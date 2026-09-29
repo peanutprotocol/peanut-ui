@@ -114,18 +114,12 @@ export default function SendLinkActionList({
         return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
     }, [claimType])
 
-    // Guest claim-to-bank (claimer unverified, but the sender can receive a bank
-    // off-ramp) is under maintenance: the BE 503s POST /bridge/offramp/create-for-guest.
-    // Render the bank option greyed + "Soon!" so guests can't enter a flow that would
-    // fail. The authenticated self off-ramp (UserBankClaim) is unaffected.
-    const isGuestBankClaim = claimType === BankClaimType.GuestBankClaim
-
     // filter and sort payment methods based on geolocation
     const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
         isMethodUnavailable: (method) =>
             method.soon ||
-            (method.id === 'bank' && (requiresVerification || isGuestBankClaim)) ||
+            (method.id === 'bank' && requiresVerification) ||
             (['mercadopago', 'pix'].includes(method.id) && !isMantecaPayEnabled),
         methods: showDevconnectMethod
             ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect')
@@ -235,7 +229,7 @@ export default function SendLinkActionList({
             {showDevconnectMethod && (
                 <>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         icon="arrow-down"
                         onClick={() => {
@@ -264,7 +258,7 @@ export default function SendLinkActionList({
                     onClick={handleContinueWithPeanut}
                     className="flex w-full items-center gap-1"
                 >
-                    {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.continueWith')} </div>}
+                    {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.createAccount')}</div>}
                     <div className="flex items-center gap-1">
                         <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
                         <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
@@ -309,7 +303,6 @@ export default function SendLinkActionList({
                                         key={method.id}
                                         method={method}
                                         requiresVerification={methodRequiresVerification}
-                                        soon={method.id === 'bank' && isGuestBankClaim}
                                     />
                                 )
                             })}
@@ -364,18 +357,14 @@ const MethodCard = ({
     onClick,
     requiresVerification,
     isDisabled,
-    soon,
 }: {
     method: PaymentMethod
     onClick: () => void
     requiresVerification?: boolean
     isDisabled?: boolean
-    // forces the "Soon!" badge + greyed/non-interactive state even when the
-    // static method config has soon=false (e.g. guest claim-to-bank maintenance)
-    soon?: boolean
 }) => {
     const t = useTranslations('claim')
-    const showSoon = method.soon || soon
+    const showSoon = method.soon
     return (
         <ListItem
             position="solo"
@@ -385,7 +374,7 @@ const MethodCard = ({
                     {method.title}
                     {(showSoon || requiresVerification) && (
                         <Badge
-                            status={requiresVerification ? 'custom' : 'soon'}
+                            status={requiresVerification ? 'pending' : 'soon'}
                             customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />
                     )}

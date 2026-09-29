@@ -31,8 +31,9 @@ jest.mock('next/image', () => ({
 }))
 
 let mockGeoCountry: string | null = null
+let mockGeoLoading = false
 jest.mock('@/hooks/useGeoLocation', () => ({
-    useGeoLocation: () => ({ countryCode: mockGeoCountry, isLoading: false }),
+    useGeoLocation: () => ({ countryCode: mockGeoCountry, isLoading: mockGeoLoading }),
 }))
 
 let mockResidence: string | null = null
@@ -124,7 +125,32 @@ describe('CountryList — which country comes first', () => {
 
     afterEach(() => {
         mockGeoCountry = null
+        mockGeoLoading = false
         mockResidence = null
+    })
+
+    /*
+     * TASK-22967: the list used to sit behind a skeleton until the IP lookup
+     * settled. A lookup that never settled left users on grey rows forever,
+     * with no way to reach bank deposit or withdraw.
+     */
+    it('renders every country while the IP lookup is still running', () => {
+        mockGeoLoading = true
+        renderList()
+        expect(firstCountry()).toContain('United States')
+        expect(row('Brazil')).toBeInTheDocument()
+        expect(row('Germany')).toBeInTheDocument()
+    })
+
+    it('moves the home country to the top once the lookup answers', () => {
+        mockGeoLoading = true
+        const { rerender } = renderList()
+        expect(firstCountry()).toContain('United States')
+
+        mockGeoLoading = false
+        mockGeoCountry = 'DE'
+        rerender(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="withdraw" onCountryClick={jest.fn()} />)
+        expect(firstCountry()).toContain('Germany')
     })
 
     it('the verified residence wins over the IP country', () => {

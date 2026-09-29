@@ -23,8 +23,8 @@ const RainCooldownIntroModal = () => {
         <ActionModal
             visible={showIntroModal}
             onClose={dismissIntroModal}
+            tone="attention"
             icon="clock"
-            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t('rainCooldownIntroModal.title')}
             description={t('rainCooldownIntroModal.description')}
             ctas={[

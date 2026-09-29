@@ -15,8 +15,11 @@ import { corridorFromRailId } from '@/features/deposit-accounts/rails'
 import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
 import { useRequestDepositInstructions } from '@/features/deposit-accounts/useRequestDepositInstructions'
 import type { RequestPayRail } from '@/services/services.types'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
+import { formatBankAmount } from '@/utils/currency'
 import { useState } from 'react'
+import { RequestPaymentContext, type RequestPaymentContextProps } from './RequestPaymentContext'
+import type { CardPosition } from '@/components/Global/Card/card.utils'
 
 /**
  * Pay this request straight into the requester's bank account.
@@ -40,6 +43,9 @@ export function PayByBankTransferDrawer({
     serverCountsAllPayments,
     rail,
     onUnavailable,
+    nested = false,
+    requestContext,
+    position = 'solo',
 }: {
     requestId: string
     bankPayable: boolean
@@ -56,9 +62,12 @@ export function PayByBankTransferDrawer({
      * leaves the dead end, so the list stops offering the row.
      */
     onUnavailable?: () => void
+    /** This rail opens from the currency chooser rather than from the page. */
+    nested?: boolean
+    requestContext?: RequestPaymentContextProps
+    position?: CardPosition
 }) {
     const t = useTranslations('payment')
-    const format = useFormatter()
     const { railName } = useDepositAccountCopy()
     const [isOpen, setIsOpen] = useState(false)
     const railCurrency = rail?.payerAmount.currency.toUpperCase()
@@ -94,13 +103,13 @@ export function PayByBankTransferDrawer({
     return (
         <>
             <ListItem
-                position="solo"
+                position={position}
                 title={
                     <div className="flex flex-wrap items-center gap-2">
                         {title}
                         {figure && (
                             <Badge
-                                status={figure.approx ? 'custom' : 'completed'}
+                                status={figure.approx ? 'neutral' : 'completed'}
                                 customText={t(figure.approx ? 'bankTransfer.estimateBadge' : 'bankTransfer.exactBadge')}
                             />
                         )}
@@ -108,25 +117,24 @@ export function PayByBankTransferDrawer({
                 }
                 body={
                     <div className="text-body-xs">
-                        {figure
-                            ? t(figure.approx ? 'bankTransfer.amountValueApprox' : 'bankTransfer.amountValue', {
-                                  amount: format.number(figure.value, {
-                                      minimumFractionDigits: figure.digits,
-                                      maximumFractionDigits: figure.digits,
-                                  }),
-                                  currency: figure.currency,
-                              })
-                            : t('bankTransfer.description')}
+                        {!figure
+                            ? t('bankTransfer.description')
+                            : figure.approx
+                              ? t('bankTransfer.amountValueApprox', {
+                                    amount: formatBankAmount(figure.value, figure.currency),
+                                })
+                              : formatBankAmount(figure.value, figure.currency)}
                     </div>
                 }
                 onClick={() => setIsOpen(true)}
                 chevron
             />
-            <Drawer open={isOpen} onOpenChange={setIsOpen}>
-                <DrawerContent className="px-4 py-6">
+            <Drawer open={isOpen} onOpenChange={setIsOpen} nested={nested}>
+                <DrawerContent className="py-6">
                     <DrawerHeader>
                         <DrawerTitle className="text-start">{title}</DrawerTitle>
                     </DrawerHeader>
+                    {requestContext && <RequestPaymentContext {...requestContext} />}
                     <div className="max-h-[70vh] overflow-auto">
                         {isLoading && (
                             <div className="flex justify-center py-8">

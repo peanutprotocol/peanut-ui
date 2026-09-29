@@ -4,6 +4,25 @@
  * page consume these.
  */
 
+/**
+ * The statement the user authorizes for managed card funding, word for word.
+ * The backend records it byte for byte and refuses any other text, so the UI
+ * shows exactly this and never a translation of it.
+ */
+export const RTF_AUTHORIZATION_TEXT = 'I authorize transfers according to the Real-Time Funding Terms.'
+/** The part of the statement that links to the terms. */
+export const RTF_TERMS_LABEL = 'Real-Time Funding Terms'
+/**
+ * The only funding permission scope this app knows how to sign: scope 2 is
+ * exactly two policies, in this order — the approve-only call policy, then a
+ * signature-caller policy with no allowed callers that denies every ERC-1271
+ * signature. Scope 1 (call policy alone) left the session key able to sign for
+ * the wallet.
+ */
+export const RTF_SUPPORTED_SCOPE_VERSION = 2
+/** Reason the backend gives when this permission was retired on chain and cannot be signed again. */
+export const RTF_SCOPE_RETIRED_REASON = 'scope_retired'
+
 export const rainCoordinatorAbi = [
     {
         inputs: [

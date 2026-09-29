@@ -31,12 +31,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
+    // use_content_metadata only holds back 6 legacy content files with bad title/description;
+    // fix those, then read the frontmatter unconditionally like the sibling marketing routes.
+    const { title, description, use_content_metadata: useContentMetadata } = mdxContent.frontmatter
 
     return {
         ...metadataHelper({
             locale,
-            title: `${t(i18n.receiveMoneyFrom, { country: countryName })} | Peanut`,
-            description: t(i18n.receiveMoneyFromDesc, { country: countryName }),
+            title:
+                useContentMetadata === true && typeof title === 'string' && title.trim()
+                    ? title
+                    : `${t(i18n.receiveMoneyFrom, { country: countryName })} | Peanut`,
+            description:
+                useContentMetadata === true && typeof description === 'string' && description.trim()
+                    ? description
+                    : t(i18n.receiveMoneyFromDesc, { country: countryName }),
             canonical: `/${contentLocale}/receive-money-from/${country}`,
         }),
         alternates: {

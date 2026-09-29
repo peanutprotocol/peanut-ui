@@ -68,11 +68,11 @@ export default function NotFoundScreen() {
                                 {'Take me home'}
                             </Button>
                             {modals ? (
-                                <Button variant="stroke" className="w-full" onClick={openSupport}>
+                                <Button variant="secondary" className="w-full" onClick={openSupport}>
                                     {'Contact support'}
                                 </Button>
                             ) : (
-                                <Button variant="stroke" href={supportHref} className="w-full">
+                                <Button variant="secondary" href={supportHref} className="w-full">
                                     {'Contact support'}
                                 </Button>
                             )}

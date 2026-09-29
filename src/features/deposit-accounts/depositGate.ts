@@ -28,6 +28,18 @@ type DepositGateAction =
     | 'finish-review'
     /** the same block, where the app has no way to start the hosted check: a person does */
     | 'finish-review-support'
+    /**
+     * A verified user whose own review for this corridor waits on them
+     * (backend `cause: 'review-action'`). The capability gate's action clears
+     * it, but its words are the identity ones, which are false here.
+     */
+    | 'provider-review'
+    /**
+     * The rail is blocked by the residence rule, not by a review (capability
+     * reason `residence_bank_restricted` or `uk_resident_blocked`, api#1738).
+     * Support cannot lift it, so the drawer states it and closes.
+     */
+    | 'residence-restricted'
     | 'none'
 
 /** The reasons the BACKEND gives, beside the ones the capability gate gives. */
@@ -99,6 +111,8 @@ export interface DepositGateView {
         action: DepositGateAction
         /** the terms link, on the one kind that has one */
         tosUrl?: string
+        /** `residence-restricted` for a UK residence: the UK rule has its own words */
+        ukResidence?: true
     }
 }
 
@@ -152,6 +166,20 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
     if (gate.kind === 'loading') return { claimable: false }
     if (gate.kind === 'ready' || (claimable && NO_RAIL_YET.has(gate.kind))) {
         return claimable?.blockedBy ? blockNotice(claimable.blockedBy) : { claimable: true }
+    }
+
+    const residenceCode = gate.kind === 'blocked-rejection' ? gate.reason?.code : undefined
+    if (residenceCode === 'uk_resident_blocked' || residenceCode === 'residence_bank_restricted') {
+        return {
+            claimable: false,
+            notice: {
+                kind: gate.kind,
+                // the app's own localized words; the backend sentence is English
+                message: null,
+                action: 'residence-restricted',
+                ...(residenceCode === 'uk_resident_blocked' ? { ukResidence: true as const } : {}),
+            },
+        }
     }
 
     return {

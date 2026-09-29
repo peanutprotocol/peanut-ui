@@ -49,4 +49,36 @@ describe('Field', () => {
         )
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
+
+    // the label-less shape absorbed from FieldColumn (fold ruling, kush 2026-09-22)
+    it('stacks a bare control and its error in the 4px board column', () => {
+        const { container } = render(
+            <Field error="Invalid IBAN" errorTestId="error-alert" errorId="iban-error">
+                <input />
+            </Field>
+        )
+        expect(container.firstChild).toHaveClass('flex', 'flex-col', 'gap-1')
+        const alert = screen.getByTestId('error-alert')
+        expect(alert).toHaveTextContent('Invalid IBAN')
+        expect(alert).toHaveAttribute('id', 'iban-error')
+        expect(alert).toHaveAttribute('role', 'alert')
+    })
+
+    it('renders no error element when a bare control has no message', () => {
+        render(
+            <Field>
+                <input />
+            </Field>
+        )
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('names the error line after the control when no errorTestId is given', () => {
+        render(
+            <Field label="BIC" htmlFor="bic" error="BIC is invalid">
+                <BaseInput id="bic" />
+            </Field>
+        )
+        expect(screen.getByTestId('bic-error')).toHaveTextContent('BIC is invalid')
+    })
 })

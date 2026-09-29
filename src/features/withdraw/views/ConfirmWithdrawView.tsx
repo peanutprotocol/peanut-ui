@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -25,7 +26,6 @@ interface WithdrawConfirmViewProps {
     toAddress: string
     /** Rhino's quoted total fee (USD), verbatim from `useCrossChainTransfer`. */
     networkFee?: number
-    peanutFee?: string
     onConfirm: () => void
     onBack: () => void
     isProcessing?: boolean
@@ -43,7 +43,7 @@ interface WithdrawConfirmViewProps {
      */
     receiveAmount?: string | null
     /**
-     * The exact USDC the kernel spends (decimal string) — the honest "You pay".
+     * The exact USDC the kernel spends (decimal string) — the honest "Total".
      * SDA (receive mode) = principal + quoted fee; bridge (pay mode) = principal
      * (any fee comes out of what the recipient receives). Nullable while
      * calculating.
@@ -90,7 +90,6 @@ export default function ConfirmWithdrawView({
     chain,
     toAddress,
     networkFee = 0,
-    peanutFee = '0.00',
     onConfirm,
     onBack,
     isProcessing,
@@ -180,7 +179,7 @@ export default function ConfirmWithdrawView({
                                                     altText={resolvedChainName || t('confirm.chainAlt')}
                                                     fallbackName={resolvedChainName || 'C'}
                                                     sizeClass="h-3.5 w-3.5"
-                                                    className="rounded-full border-2 border-white dark:border-gray-100"
+                                                    className="rounded-full border-2 border-background-default"
                                                 />
                                             </div>
                                         )}
@@ -222,7 +221,7 @@ export default function ConfirmWithdrawView({
                         // top (the sponsored row), or a quoted fee. Withdraw
                         // quotes are pay-mode (useCrossChainTransfer), so the
                         // fee comes out of what the recipient receives — it is
-                        // never added on top of You pay.
+                        // never added on top of Total.
                         // A failed quote shows a dash, and neither string is
                         // true then — one promises free delivery, the other
                         // describes a fee nobody quoted.
@@ -237,7 +236,7 @@ export default function ConfirmWithdrawView({
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
                         <PaymentInfoRow label={t('confirm.youPay')} value={totalPayDisplay} loading={isCalculating} />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
                 {saveAddressPrompt}
@@ -298,7 +297,11 @@ export default function ConfirmWithdrawView({
                 {belowMinimumMessage && !insufficientBalance && !error && (
                     <Callout priority="error">{belowMinimumMessage}</Callout>
                 )}
-                {error && <Callout priority="error">{error}</Callout>}
+                {error && (
+                    <Callout priority="error">
+                        <CooldownErrorText message={error} />
+                    </Callout>
+                )}
             </div>
         </div>
     )

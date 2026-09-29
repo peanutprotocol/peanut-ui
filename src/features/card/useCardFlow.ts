@@ -13,6 +13,7 @@ import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { cardConsentDocuments } from '@/services/consent'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
+import type { RainFundingConsent } from '@/utils/rain-funding.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -41,8 +42,8 @@ export function useCardFlow() {
     })
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
-    // Approve-only here: the card screen owns the allowance read.
-    const { approve: approveFunding } = useRainFunding({ enabled: false })
+    // Grant-only here: the Home prompt owns the funding state read.
+    const { grant: grantFunding } = useRainFunding({ enabled: false })
     const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
@@ -293,7 +294,9 @@ export function useCardFlow() {
         [advanceFromApplyResponse, t]
     )
 
-    const handleApply = useCallback(
+    // Returns the response only when the application went through to a state
+    // that can carry the funding permission; undefined on every other outcome.
+    const submitApplication = useCallback(
         async (termsAccepted = false) => {
             setApplyError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, { terms_accepted: termsAccepted })
@@ -308,62 +311,52 @@ export function useCardFlow() {
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
                     posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
-                    return
+                    return undefined
                 }
                 advanceFromApplyResponse(res)
+                return res
             } catch (e) {
                 const message = e instanceof Error ? e.message : t('page.applyFailed')
                 console.error('[card apply] error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
+                return undefined
             }
         },
         [advanceFromApplyResponse, pendingTerms, t]
     )
 
-    // If Rain already knows the user (rail is ENABLED, re-issue path), the
-    // backend creates the card in the accepting apply call — so approve Rain's
-    // real-time funding first. The terms screen explains that permission
-    // before the passkey prompt. Fail closed: a cancelled / failed /
-    // unconfirmed approval means no card gets issued.
-    const canFund = !!overview?.status?.contractAddress && !!overview?.status?.coordinatorAddress
+    const handleApply = useCallback(
+        async (termsAccepted = false) => {
+            await submitApplication(termsAccepted)
+        },
+        [submitApplication]
+    )
 
-    const handleAcceptTerms = useCallback(async () => {
-        posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_ACCEPTED, {
-            is_reissue: canFund,
-            is_us_resident: pendingTerms?.isUsResident ?? false,
-        })
+    const handleAcceptTerms = useCallback(
+        async (consent: RainFundingConsent) => {
+            posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_ACCEPTED, {
+                is_reissue: !!overview?.status?.contractAddress,
+                is_us_resident: pendingTerms?.isUsResident ?? false,
+            })
 
-        if (!canFund) {
-            // First-time apply — Rain has no user to fund yet. The card screen
-            // asks for the funding approval once the card exists.
             setIsIssuing(true)
             try {
-                await handleApply(true)
+                const res = await submitApplication(true)
+                // The permission needs a card account with a wallet on file, so
+                // it follows the application. Best effort: a first-time applicant
+                // has no wallet on file yet, and a cancelled or failed tap leaves
+                // the card as it is. The Home prompt asks again in either case
+                // until the backend reports the permission ready.
+                if (res && (res.status === 'pending' || res.status === 'ENABLED')) {
+                    await grantFunding(consent)
+                }
             } finally {
                 setIsIssuing(false)
             }
-            return
-        }
-
-        const isUsResidentSnapshot = pendingTerms?.isUsResident ?? false
-        setIsIssuing(true)
-        setApplyError(null)
-        try {
-            const funded = await approveFunding()
-            if (!funded.ok) {
-                // Back to the terms screen with a friendly error. Don't hit
-                // the backend — no card should be created without consent.
-                setIsIssuing(false)
-                setPendingTerms({ isUsResident: isUsResidentSnapshot })
-                setApplyError(funded.error.kind === 'user-cancelled' ? t('page.setupCancelled') : t('page.setupFailed'))
-                return
-            }
-            await handleApply(true)
-        } finally {
-            setIsIssuing(false)
-        }
-    }, [handleApply, canFund, pendingTerms, approveFunding, t])
+        },
+        [submitApplication, overview, pendingTerms, grantFunding]
+    )
 
     // Distinguishes "user finished the applicant action" from "user closed the
     // modal without finishing" — without this both paths would fire
@@ -523,7 +516,6 @@ export function useCardFlow() {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
-        requiresFundingApproval: canFund,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,

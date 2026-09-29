@@ -1,8 +1,9 @@
 'use client'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -10,6 +11,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
@@ -148,6 +150,11 @@ const LinkSendInitialView = () => {
                 }
             }, 0)
         } catch (error) {
+            // Card re-approval dismissed, or the screen left, before the link's
+            // deposit was prepared or signed — no link exists and nothing was
+            // spent. Control flow, not a failed link creation.
+            if (error instanceof SpendRecoveryAbortedError) return
+
             // handle errors
             const errorString = toFriendlyError(error)
             setErrorState({ showError: true, errorMessage: errorString })
@@ -269,7 +276,7 @@ const LinkSendInitialView = () => {
         <>
             <PeanutActionCard type="send" />
 
-            <FieldColumn error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
+            <Field error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
                 <AmountInput
                     initialAmount={tokenValue}
                     setPrimaryAmount={handleAmountChange}
@@ -277,7 +284,7 @@ const LinkSendInitialView = () => {
                     walletBalance={peanutWalletBalance}
                     balanceFillAmount={spendableBalanceDecimal}
                 />
-            </FieldColumn>
+            </Field>
 
             <BaseInput
                 placeholder={tCommon('comment')}
@@ -311,7 +318,7 @@ const LinkSendInitialView = () => {
                 )}
                 {isFlowError && (
                     <Callout priority="error" data-testid="error-alert">
-                        {errorState.errorMessage}
+                        <CooldownErrorText message={errorState.errorMessage} />
                     </Callout>
                 )}
             </div>

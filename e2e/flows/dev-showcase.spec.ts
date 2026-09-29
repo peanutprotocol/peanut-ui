@@ -13,7 +13,8 @@
 import { expect, test } from '@playwright/test'
 import { captureStep, collectConsoleLogs, getConsoleErrors } from '../utils/capture'
 import { dismissModals } from '../utils/dismiss-modals'
-// type-only IconName import inside nav-config is erased at runtime, so this is safe to import here
+// nav-config pulls lucide-react in at runtime (every nav entry carries an icon component).
+// that resolves under playwright's node runner, so importing the real config here is safe.
 import { SIDEBAR_CONFIG, TIERS } from '../../src/app/(mobile-ui)/dev/ds/_components/nav-config'
 
 // tier indexes + every doc page; playground sub-items live under /dev (standalone harnesses), not /dev/ds

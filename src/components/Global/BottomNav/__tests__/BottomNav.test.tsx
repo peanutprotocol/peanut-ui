@@ -30,6 +30,7 @@ jest.mock('@/hooks/useCardSurfaceAccess', () => ({
     useCardSurfaceAccess: (): ReturnType<typeof import('@/hooks/useCardSurfaceAccess').useCardSurfaceAccess> => ({
         hasIssuedCard: mockShowCardSurface,
         hasCardRelationship: mockShowCardSurface,
+        holdsCardOrApplication: mockShowCardSurface,
         showCardSurface: mockShowCardSurface,
         canSpendPathViaCard: mockShowCardSurface,
         cardHref: '/card',
@@ -175,10 +176,17 @@ describe('BottomNav middle slot', () => {
     })
 
     it('keeps the pill lit on /card for a holder deep-linked there', () => {
-        mockShowCardSurface = false
+        mockShowCardSurface = true
         mockPathname = '/card'
         render(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
+    })
+
+    it('does not light the pill on /card when the card slot is not shown', () => {
+        mockShowCardSurface = false
+        mockPathname = '/card'
+        render(<BottomNav />)
+        expect(screen.queryByTestId('bottom-nav-pill')).not.toBeInTheDocument()
     })
 
     it('a drag release onto the middle tab navigates to its swapped href', () => {

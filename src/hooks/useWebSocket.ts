@@ -1,13 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import {
     PeanutWebSocket,
     getWebSocketInstance,
-    type PendingPerk,
     type RailStatusUpdate,
     type RainCardBalanceChangedData,
 } from '@/services/websocket'
-import { TRANSACTIONS } from '@/constants/query.consts'
 import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -20,11 +17,16 @@ interface UseWebSocketOptions {
     autoConnect?: boolean
     username?: string
     onHistoryEntry?: (entry: HistoryEntry) => void
+    /**
+     * A kindless history ping: the server asks the client to refetch history
+     * and balance. Only the app-wide `SocketQueryRefresh` answers it, so one
+     * ping is one refetch however many screens hold a socket listener.
+     */
+    onRefetchRequested?: () => void
     onKycStatusUpdate?: (status: string) => void
     onMantecaKycStatusUpdate?: (status: string) => void
     onSumsubKycStatusUpdate?: (status: string, rejectLabels?: string[]) => void
     onTosUpdate?: (data: { accepted: boolean }) => void
-    onPendingPerk?: (perk: PendingPerk) => void
     onRailStatusUpdate?: (data: RailStatusUpdate) => void
     onRainCardBalanceChanged?: (data: RainCardBalanceChangedData) => void
     onConnect?: () => void
@@ -37,11 +39,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         autoConnect = true,
         username,
         onHistoryEntry,
+        onRefetchRequested,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
-        onPendingPerk,
         onRailStatusUpdate,
         onRainCardBalanceChanged,
         onConnect,
@@ -52,15 +54,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const [status, setStatus] = useState<WebSocketStatus>('disconnected')
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
     const wsRef = useRef<PeanutWebSocket | null>(null)
-    const queryClient = useQueryClient()
 
     const callbacksRef = useRef({
         onHistoryEntry,
+        onRefetchRequested,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
-        onPendingPerk,
         onRailStatusUpdate,
         onRainCardBalanceChanged,
         onConnect,
@@ -72,11 +73,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     useEffect(() => {
         callbacksRef.current = {
             onHistoryEntry,
+            onRefetchRequested,
             onKycStatusUpdate,
             onMantecaKycStatusUpdate,
             onSumsubKycStatusUpdate,
             onTosUpdate,
-            onPendingPerk,
             onRailStatusUpdate,
             onRainCardBalanceChanged,
             onConnect,
@@ -85,11 +86,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         }
     }, [
         onHistoryEntry,
+        onRefetchRequested,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
-        onPendingPerk,
         onRailStatusUpdate,
         onRainCardBalanceChanged,
         onConnect,
@@ -167,12 +168,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // charges-ws charge completions, claim.ts sendlink claims) —
                 // the BE expects clients to refetch, not render. Rendering one
                 // hits the transformer's fallback strategy and shows "Sent to
-                // Transaction $0.00 · Completed" (PEANUT-UI-QCW). Balance moves
-                // with these events too, so refresh it alongside the feed.
-                // Default cancelRefetch (true) on purpose: a fetch already in
-                // flight when the ping arrives started pre-commit and may lack
-                // the new row — joining it would clear the invalidation with
-                // stale data. Abort-restart guarantees a post-event response.
+                // Transaction $0.00 · Completed" (PEANUT-UI-QCW). The refetch
+                // itself is `onRefetchRequested`, answered once app-wide.
                 //
                 // The snapshots go with it. They are overlaid on top of the
                 // fetched rows, so an entry the refetch DROPS — a watcher-first
@@ -182,8 +179,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // answer it produces wins; anything REST still returns comes
                 // straight back with it.
                 setHistoryEntries([])
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-                queryClient.invalidateQueries({ queryKey: ['balance'] })
+                callbacksRef.current.onRefetchRequested?.()
                 return
             }
             if (
@@ -232,12 +228,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
-        const handlePendingPerk = (perk: PendingPerk) => {
-            if (callbacksRef.current.onPendingPerk) {
-                callbacksRef.current.onPendingPerk(perk)
-            }
-        }
-
         const handleRailStatusUpdate = (data: RailStatusUpdate) => {
             if (callbacksRef.current.onRailStatusUpdate) {
                 callbacksRef.current.onRailStatusUpdate(data)
@@ -259,7 +249,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         ws.on('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
         ws.on('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
         ws.on('persona_tos_status_update', handleTosUpdate)
-        ws.on('pending_perk', handlePendingPerk)
         ws.on('user_rail_status_changed', handleRailStatusUpdate)
         ws.on('rain_card_balance_changed', handleRainCardBalanceChanged)
 
@@ -278,11 +267,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
             ws.off('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
             ws.off('persona_tos_status_update', handleTosUpdate)
-            ws.off('pending_perk', handlePendingPerk)
             ws.off('user_rail_status_changed', handleRailStatusUpdate)
             ws.off('rain_card_balance_changed', handleRainCardBalanceChanged)
         }
-    }, [autoConnect, connect, username, queryClient])
+    }, [autoConnect, connect, username])
 
     // Return exposed functionality
     return {

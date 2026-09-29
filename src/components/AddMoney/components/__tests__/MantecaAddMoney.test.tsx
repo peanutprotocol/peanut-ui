@@ -43,7 +43,7 @@ jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }))
 
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 
 jest.mock('@/components/AddMoney/consts', () => ({
     countryData: [
@@ -68,12 +68,17 @@ let mockCapabilitiesLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], isLoading: mockCapabilitiesLoading }),
 }))
-// Default to an Argentine resident so the amount/KYC cases render the amount
-// step; the residence-gate case overrides it. The real hook reads useAuth,
-// which throws with no provider.
-let mockResidenceIso2s: string[] = ['AR']
+// Default to a resident of both countries so the amount/KYC cases render the
+// amount step whichever top-up they open; the residence-gate cases override
+// it. The real hook reads useAuth, which throws with no provider.
+let mockResidenceIso2s: string[] = ['AR', 'BR']
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({
     useResidenceIso2s: () => mockResidenceIso2s,
+}))
+// The per-currency bank chip the Accounts rows read; `active` = the rail moves money today.
+let mockBankChips: Record<string, string> = {}
+jest.mock('@/hooks/useBankRows', () => ({
+    useBankChipFor: () => (key: string) => mockBankChips[key] ?? 'unlock',
 }))
 let mockIsIdentityVerified = true
 jest.mock('@/hooks/useIdentityVerification', () => ({
@@ -154,7 +159,8 @@ beforeEach(() => {
     mockIsVerifiedForCountry = true
     mockIsIdentityVerified = true
     mockCapabilitiesLoading = false
-    mockResidenceIso2s = ['AR']
+    mockResidenceIso2s = ['AR', 'BR']
+    mockBankChips = {}
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
 })
@@ -348,5 +354,71 @@ describe('residence gate — Argentina', () => {
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Brazil carries the same rule (2026-09-22): the Pix top-up needs a first-party
+ * Manteca account, which asks for a CPF, and a Brazilian residence is the
+ * stand-in the app checks first. The rule is client-side; the backend does not
+ * gate this corridor on residence.
+ */
+describe('residence gate — Brazil', () => {
+    test('a non-resident sees the residence screen, with the Pix QR way in', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['PT']
+        render(<MantecaAddMoney />)
+
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        expect(lastKycModalProps).toBeNull()
+        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
+        expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
+    })
+
+    test('a Brazilian resident reaches the amount step', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['BR']
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Audit C4: the gate keeps non-residents out of a flow Manteca refuses (ui#3349),
+ * but a user whose rail already moves money is not refused by Manteca. The
+ * Accounts row reads Available for them, so the top-up opens too — one rule
+ * (`residenceCloses`) for both.
+ */
+describe('residence gate — a rail that already works', () => {
+    test.each([
+        ['brazil', 'brl'],
+        ['argentina', 'ars'],
+    ])('a non-resident with a working %s rail reaches the amount step', (country, key) => {
+        setCountry(country)
+        mockResidenceIso2s = ['PT']
+        mockBankChips = { [key]: 'active' }
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+        expect(screen.queryByText(/only legal residents/i)).not.toBeInTheDocument()
+    })
+
+    test('a rail still in progress does not lift the gate', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['PT']
+        mockBankChips = { brl: 'processing' }
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
+    })
+
+    test('the gate waits for the rails instead of refusing a depositor while they load', () => {
+        setCountry('brazil')
+        mockResidenceIso2s = ['PT']
+        mockCapabilitiesLoading = true
+        render(<MantecaAddMoney />)
+
+        expect(screen.queryByText(/only legal residents/i)).not.toBeInTheDocument()
     })
 })

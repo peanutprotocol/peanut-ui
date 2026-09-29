@@ -277,7 +277,7 @@ const SetupPasskey = () => {
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
-                                variant="stroke"
+                                variant="secondary"
                                 onClick={onLogInClick}
                                 className="text-nowrap"
                                 shadowSize="4"
@@ -289,7 +289,7 @@ const SetupPasskey = () => {
                     {inlineError && <Callout priority="error">{inlineError}</Callout>}
                 </div>
                 <div>
-                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
                         {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
                         <DocsLink href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
                             {t('passkey.learnMore')}

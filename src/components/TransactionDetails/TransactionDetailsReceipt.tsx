@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import React from 'react'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
@@ -9,8 +11,8 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
-import { formatCurrency, isStableCoin } from '@/utils/general.utils'
-import { PerkIcon } from './PerkIcon'
+import { formatCurrency } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { ReceiptActions } from './ReceiptActions'
 import { ReceiptDetailsCard } from './ReceiptDetailsCard'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -63,28 +65,6 @@ export const TransactionDetailsReceipt = ({
     const vm = useReceiptViewModel(transaction, { isPublic })
     const { formattedTotalAmountCollected } = vm
 
-    const convertedAmount = useMemo(() => {
-        if (!transaction) return null
-        // Preference order:
-        //   1. Local fiat (e.g. ARS for Manteca on/off-ramps) via currency.code/amount
-        //   2. Destination token (e.g. ETH for cross-token withdraw) via amount + tokenSymbol
-        //      — full decimals here, not truncated, so the receipt is auditable.
-        // USD-pegged stablecoins are skipped (same rule as TransactionCard).
-        const code = transaction.currency?.code
-        const amount = transaction.currency?.amount
-        if (code && amount) {
-            const upper = code.toUpperCase()
-            if (upper !== 'USD' && !isStableCoin(upper)) {
-                return `${upper} ${formatCurrency(amount)}`
-            }
-        }
-        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-        if (tokenSymbol && tokenSymbol !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
-            return `${transaction.tokenAmount} ${tokenSymbol}`
-        }
-        return null
-    }, [transaction])
-
     if (!transaction) return null
 
     let usdAmount: number | bigint = 0
@@ -110,10 +90,22 @@ export const TransactionDetailsReceipt = ({
     const headline = receiptHeadlineAmount(transaction, safeAmount, getTransactionSign(transaction))
     const amountDisplay = headline.isCollectedTotal
         ? t('amountCollected', { amount: formattedTotalAmountCollected })
-        : `$${formatCurrency(Math.abs(headline.amount).toString())}`
+        : formatBankAmount(Math.abs(headline.amount), 'USD')
 
     // '-' out, '+' in. Pots show a collected total, never a sign.
     const headSign = headline.sign
+
+    // Why a deposit went back: the one reason line under the Returned badge
+    // (design.md status words). A reason code the API recognised gets our own
+    // sentence. The provider's text is never shown: the API stores Bridge's
+    // `refund.reason` joined with its undocumented `risk_rejection_reason`,
+    // and marks the result "for support, not for display" (QA-08, 2026-09-24).
+    const returnReasonLine =
+        transaction.actionLabelKey !== 'type.returnedToSender'
+            ? undefined
+            : transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
+              ? t('returnedReasonThirdParty')
+              : t('returnedReason')
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
@@ -192,21 +184,14 @@ export const TransactionDetailsReceipt = ({
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
+                statusNote={returnReasonLine}
             />
-
-            {/* Why a deposit went back. The status alone says the money left
-                the balance; only this says what to ask the sender to fix. */}
-            {transaction.actionLabelKey === 'type.returnedToSender' && (
-                <Card position="solo" className="p-4">
-                    <span className="text-body-s text-foreground-secondary">{t('returnedReason')}</span>
-                </Card>
-            )}
 
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
                 <Card position="solo" className="p-4">
                     <div className="flex items-center gap-3">
-                        <PerkIcon size="small" />
+                        <IconBubble {...CONCEPT_ICONS.rewards} size="m" />
                         <div className="flex flex-col gap-1">
                             <span className="text-body-m-semibold text-foreground-primary">
                                 {t('perkBanner.title')}
@@ -235,12 +220,7 @@ export const TransactionDetailsReceipt = ({
 
             {/* the one receipt-style card (dates, conversion, fee, memo,
                 provider rows, pot progress + contributors) */}
-            <ReceiptDetailsCard
-                transaction={transaction}
-                vm={vm}
-                shouldShowQrShare={shouldShowQrShare}
-                convertedAmount={convertedAmount ?? undefined}
-            />
+            <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={shouldShowQrShare} />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

@@ -1,4 +1,9 @@
-import { countryData as ALL_METHODS_DATA, type CountryData } from '@/components/AddMoney/consts'
+import {
+    ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
+    countryData as ALL_METHODS_DATA,
+    type CountryData,
+} from '@/components/AddMoney/consts'
+import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
 import { type Account, AccountType } from '@/interfaces/interfaces'
 
@@ -50,6 +55,8 @@ export const getCurrencyConfig = (countryId: string, operationType: BridgeOperat
     if (countryId === 'US' || countryId === 'USA') {
         return {
             currency: 'usd',
+            // Standard ACH is the default payout; the withdraw review offers
+            // same-day ACH (free) and a wire (paid) on top (TASK-23054).
             paymentRail: operationType === 'onramp' ? 'ach_push' : 'ach',
         }
     }
@@ -111,6 +118,21 @@ export const getBankRailCountryFromAccount = (account: {
     return railJurisdictionForBank(account.details?.countryCode ?? account.country)
 }
 
+/** The exact Bridge capability rail used for a bank-account destination. */
+export const getBridgeRailIdFromAccount = (account: {
+    type?: string | AccountType | null
+    country?: string | null
+    details?: { countryCode?: string | null } | null
+}): string | undefined => {
+    const country = getBankRailCountryFromAccount(account)
+    if (country === 'US') return 'bridge.ach_us'
+    if (country === 'GB') return 'bridge.faster_payments_gb'
+    if (country === 'MX') return 'bridge.spei_mx'
+    if (country === 'CO') return 'bridge.bank_transfer_co'
+    if (country === 'EU') return 'bridge.sepa_eu'
+    return undefined
+}
+
 /**
  * Derive the offramp destination currency + payment rail from the bank
  * account's actual `type`, falling back to country only when the type is
@@ -141,6 +163,36 @@ export const getOfframpConfigFromAccount = (account: {
     }
     // type missing / unknown — fall back to country, preserving prior behavior.
     return getOfframpCurrencyConfig(account.country ?? 'EU')
+}
+
+export interface BankPayout extends CurrencyConfig {
+    /**
+     * The account country's own currency when its bank receives another one,
+     * uppercase: a UK or Polish IBAN is paid EUR over SEPA and its bank
+     * converts to GBP or PLN. Null when the payout is the local currency.
+     */
+    bankConvertsTo: string | null
+}
+
+/**
+ * What a saved Bridge account actually receives: the currency and rail the
+ * transfer sends ({@link getOfframpConfigFromAccount}, from the account TYPE),
+ * and whether the bank then converts it. Every screen that quotes or shows a
+ * payout reads this, so no screen can promise a currency the transfer does not
+ * send. The account's COUNTRY never picks the currency: Bridge pays GBP only
+ * to a `gb` (sort code) account, and an IBAN always gets EUR, even in the UK.
+ */
+export const getBankPayout = (account: {
+    type?: string | AccountType | null
+    country?: string | null
+    details?: { countryCode?: string | null } | null
+}): BankPayout => {
+    const config = getOfframpConfigFromAccount(account)
+    const countryCode = (account.details?.countryCode ?? account.country ?? '').toUpperCase()
+    const iso2 = (ALL_COUNTRIES_ALPHA3_TO_ALPHA2[countryCode] ?? countryCode).toLowerCase()
+    const localCurrency = countryCurrencyMappings.find((m) => m.flagCode === iso2)?.currencyCode
+    const bankConvertsTo = config.currency === 'eur' && isNonEuroSepaCountry(localCurrency) ? localCurrency! : null
+    return { ...config, bankConvertsTo }
 }
 
 /**

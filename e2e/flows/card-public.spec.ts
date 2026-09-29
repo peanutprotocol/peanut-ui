@@ -31,7 +31,7 @@ test.beforeEach(async ({ page }) => {
 
 test('an ordinary account reaches the application and card terms without a queue or deposit', async ({ page }) => {
     await page.goto('/card?__fixture=card-application')
-    const apply = page.getByRole('button', { name: 'Get your card', exact: true })
+    const apply = page.getByRole('button', { name: 'Get card', exact: true })
     await expect(apply).toBeVisible()
     await expect(page.getByText(/closed beta|try the door|join.*waitlist/i)).toHaveCount(0)
     await shot(page, 'application')
@@ -45,53 +45,89 @@ test('an ordinary account reaches the application and card terms without a queue
 
 test('known prohibited geography keeps its regulatory screen', async ({ page }) => {
     await page.goto('/card?__fixture=card-prohibited')
-    await expect(page.getByText("Cards aren't available in your region yet")).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Get your card', exact: true })).toHaveCount(0)
+    await expect(page.getByText("Cards aren't available in this region yet")).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Get card', exact: true })).toHaveCount(0)
     await shot(page, 'prohibited')
 })
 
 test('an existing application keeps its pending provider status', async ({ page }) => {
     await page.goto('/card?__fixture=card-pending')
-    await expect(page.getByText('Setting up your card…')).toBeVisible()
+    await expect(page.getByText('Setting up card…')).toBeVisible()
     await shot(page, 'pending')
 })
 
 test('an existing holder can manage their card even with a prohibited residence', async ({ page }) => {
     await page.goto('/card?__fixture=card-holder')
     await expect(page.getByText('Card management', { exact: true })).toBeVisible()
-    await expect(page.getByText("Cards aren't available in your region yet")).toHaveCount(0)
-    // card payments already enabled: no funding callout
-    await expect(page.getByTestId('enable-card-payments')).toHaveCount(0)
+    await expect(page.getByText("Cards aren't available in this region yet")).toHaveCount(0)
+    // permission already ready: the Home prompt has nothing to ask
+    await expect(page.getByTestId('card-funding-consent')).toHaveCount(0)
     await shot(page, 'holder')
 })
 
-test('an existing holder without the Rain approval is asked to enable card payments', async ({ page }) => {
-    await page.goto('/card?__fixture=card-funding-needed')
-    await expect(page.getByTestId('enable-card-payments')).toBeVisible()
-    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+test('an existing holder without the funding permission gets the centered Home prompt with two unchecked boxes', async ({
+    page,
+}) => {
+    await page.goto('/home?__fixture=card-funding-needed')
+    await expect(page.getByText('Finish setting up the card', { exact: true })).toBeVisible()
+    await expect(page.getByText('One passkey tap to start using your card.')).toBeVisible()
+    const boxes = page.getByRole('checkbox')
+    await expect(boxes).toHaveCount(2)
+    for (const box of await boxes.all()) await expect(box).not.toBeChecked()
+    await expect(page.getByText('I authorize transfers according to the Real-Time Funding Terms.')).toBeVisible()
+    const cont = page.getByRole('button', { name: 'Continue', exact: true })
+    await expect(cont).toBeDisabled()
+    // no way out before a failure: no close button and no skip
+    await expect(page.getByText('Skip for now')).toHaveCount(0)
     await shot(page, 'funding-needed')
+    // ticking both, and only both, enables Continue
+    await boxes.nth(0).check({ force: true })
+    await expect(cont).toBeDisabled()
+    await boxes.nth(1).check({ force: true })
+    await expect(cont).toBeEnabled()
+    await shot(page, 'funding-needed-ticked')
 })
 
-test('an unreadable funding status shows a retry and keeps card management', async ({ page }) => {
-    await page.goto('/card?__fixture=card-funding-error')
-    await expect(page.getByTestId('card-funding-error')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible()
-    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
-    await shot(page, 'funding-error')
+test('a legacy holder is told there are two confirmations', async ({ page }) => {
+    await page.goto('/home?__fixture=card-funding-migration')
+    await expect(page.getByText(/confirm twice with your passkey/i)).toBeVisible()
+    await expect(page.getByText('One passkey tap to start using your card.')).toHaveCount(0)
+    await shot(page, 'funding-migration')
 })
 
-test('re-issuing a card explains the Rain wallet permission on the terms step', async ({ page }) => {
+test('a grant waiting for confirmation shows Check status and Skip, not the boxes', async ({ page }) => {
+    await page.goto('/home?__fixture=card-funding-pending')
+    await expect(page.getByRole('button', { name: 'Check status', exact: true })).toBeVisible()
+    await expect(page.getByText('Skip for now')).toBeVisible()
+    await expect(page.getByRole('checkbox')).toHaveCount(0)
+    await shot(page, 'funding-pending')
+})
+
+test('Home asks for nothing when the permission is ready, paused, or its state cannot be read', async ({ page }) => {
+    for (const fixture of ['card-funding-enabled', 'card-funding-unavailable', 'card-funding-error']) {
+        await page.goto(`/home?__fixture=${fixture}`)
+        await expect(page.getByText('Activity', { exact: true }).first()).toBeVisible()
+        await expect(page.getByText('Finish setting up the card')).toHaveCount(0)
+    }
+})
+
+test('re-issuing a card ends the card terms with the two new unchecked boxes', async ({ page }) => {
     await page.goto('/card?__fixture=card-reissue')
     await page.getByRole('button', { name: 'Get your card', exact: true }).click()
     await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
-    const permission = page.getByText(/Approve Rain, our card issuer, to take USDC from your wallet/)
-    await expect(permission).toBeVisible()
-    await permission.scrollIntoViewIfNeeded()
+    const boxes = page.getByRole('checkbox')
+    // international: the four original rows, then the two new ones
+    await expect(boxes).toHaveCount(6)
+    for (const box of await boxes.all()) await expect(box).not.toBeChecked()
+    const statement = page.getByText('I authorize transfers according to the Real-Time Funding Terms.')
+    await expect(statement).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+    await statement.scrollIntoViewIfNeeded()
     await shot(page, 'reissue-terms')
 })
 
-test('cancelling the last card offers to remove the Rain permission afterwards', async ({ page }) => {
-    await page.goto('/card?__fixture=card-funding-enabled')
+test('cancelling a card is an ordinary cancel with no permission-removal step', async ({ page }) => {
+    await page.goto('/card?__fixture=card-cancel')
     await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
     // The slide handle takes arrow keys (10% of the travel per press), so the
     // confirm is deterministic. Keys go to the page, not to a locator: the
@@ -101,10 +137,10 @@ test('cancelling the last card offers to remove the Rain permission afterwards',
     await expect(handle).toBeVisible()
     await handle.focus()
     for (let press = 0; press < 10; press++) await page.keyboard.press('ArrowRight')
-    const revokeTitle = page.getByText("Remove Rain's permission", { exact: true })
-    await expect(revokeTitle).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Not now', exact: true })).toBeVisible()
-    await shot(page, 'cancel-revoke')
+    await expect(page.getByText('Card canceled', { exact: true })).toBeVisible()
+    await expect(page.getByText(/permission/i)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Not now', exact: true })).toHaveCount(0)
+    await shot(page, 'cancel-feedback')
 })
 
 // Guests have no fixture session; stub the API at the network layer so the
@@ -141,8 +177,8 @@ test('a signed-out visitor to /card is redirected to /setup — public access is
 test('the public landing sends a guest to signup with the card destination', async ({ page }) => {
     await stubSignedOutApi(page)
     await page.goto('/shhhhh')
-    await expect(page.getByRole('heading', { level: 1, name: 'Peanut Card' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Peanut Card Go Pink.' })).toBeVisible()
     await shot(page, 'landing')
-    await page.getByRole('button', { name: 'Get your card', exact: true }).first().click()
+    await page.getByRole('button', { name: 'Get card', exact: true }).first().click()
     await expect(page).toHaveURL(/\/setup\?redirect_uri=%2Fcard/)
 })

@@ -1,12 +1,19 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { useCallback, useMemo } from 'react'
-import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAmount } from '@/utils/currency'
 import { claimErrorKey } from './claimErrors'
-import type { RailLabels } from './instructionRows'
-import { depositRuleLines, type DepositRuleKey } from './ruleLines'
-import type { DepositCorridor, DepositRail, DepositRowLabels, DepositRules, DepositSenderTerms } from './types'
+import { railLabel, type RailLabels } from './instructionRows'
+import { depositRuleLines, senderLimitKey, type DepositRuleKey } from './ruleLines'
+import type {
+    DepositCorridor,
+    DepositInstructions,
+    DepositRail,
+    DepositRowLabels,
+    DepositRules,
+    DepositSenderTerms,
+} from './types'
 
 /**
  * Catalog keys per corridor, written out rather than built by template so the
@@ -34,6 +41,21 @@ const ARRIVAL_DETAIL_KEYS = {
 } as const satisfies Record<DepositCorridor, string>
 
 /**
+ * The same timing as one short row for the claim step's benefit list. The
+ * full sentence stays for the details toggle and the payer's bank-transfer
+ * screen, where it sits among other sentences.
+ */
+const ARRIVAL_SHORT_KEYS = {
+    SEPA_EU: 'corridors.SEPA_EU.arrivalShort',
+    FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrivalShort',
+    ACH_US: 'corridors.ACH_US.arrivalShort',
+    SPEI_MX: 'corridors.SPEI_MX.arrivalShort',
+    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.arrivalShort',
+    PIX_BR: 'corridors.PIX_BR.arrivalShort',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrivalShort',
+} as const satisfies Record<DepositCorridor, string>
+
+/**
  * Every payment rail a corridor can name, written out for the same reason as
  * the corridor keys above: a rail Bridge starts returning without its copy
  * fails the build instead of reaching a user as `transfer_ar`.
@@ -50,11 +72,10 @@ const RAIL_LABEL_KEYS = [
     'transfer_ar',
 ] as const
 
-/** one rule, in the three voices the screens and the shared text need */
+/** one rule: the line the holder reads, and the explanation behind its (i) */
 export interface ResolvedRuleLine {
     key: DepositRuleKey
     text: string
-    payer: string
     why: string
 }
 
@@ -67,6 +88,7 @@ export interface ResolvedRuleLine {
  */
 export function useDepositAccountCopy() {
     const t = useTranslations('depositAccounts')
+    const format = useFormatter()
 
     const rowLabels: DepositRowLabels = useMemo(
         () => ({
@@ -80,6 +102,7 @@ export function useDepositAccountCopy() {
             clabe: t('rows.clabe'),
             brCode: t('rows.brCode'),
             breBKey: t('rows.breBKey'),
+            reference: t('rows.reference'),
             bankAddress: t('rows.bankAddress'),
             beneficiaryAddress: t('rows.beneficiaryAddress'),
             accepts: t('rows.accepts'),
@@ -94,28 +117,34 @@ export function useDepositAccountCopy() {
     }, [t])
 
     /**
-     * The rules for one account, resolved into the three voices a rule needs:
-     * `text` for the holder reading their own screen, `payer` for the text
-     * that leaves the app, and `why` for the (i) behind the line.
-     *
-     * One resolver, so a rule can never be stated on screen and missing from
-     * the message a payer actually reads.
+     * The rules for one account: `text` for the holder reading their own
+     * screen, `why` for the (i) behind the line. The shared text carries only
+     * `senderLimit`, not the full rules (`buildShareText`).
      */
     const ruleLines = useCallback(
         (matching: DepositSenderTerms, rules: DepositRules | undefined, user: string): ResolvedRuleLine[] =>
-            depositRuleLines(matching, rules, formatCurrencyAmount).map(({ key, values }) => {
+            depositRuleLines(matching, rules, formatBankAmount).map(({ key, values }) => {
                 // `user` is only read by the provider-held line; passing it to
                 // every string is cheaper than a per-key values table.
                 const all = { user, ...values }
                 return {
                     key,
                     text: t(`rules.${key}.line`, all),
-                    payer: t(`rules.${key}.payer`, all),
                     why: t(`rules.${key}.why`, all),
                 }
             }),
         [t]
     )
+
+    /**
+     * Who may pay into this account, where the corridor limits it: `text` for
+     * the holder, `payer` for whoever pays them. Undefined when anyone may.
+     */
+    const senderLimit = (matching: DepositSenderTerms): { text: string; payer: string } | undefined => {
+        const key = senderLimitKey(matching)
+        if (!key) return undefined
+        return { text: t(`senderLimit.${key}.line`), payer: t(`senderLimit.${key}.payer`) }
+    }
 
     /**
      * Why a claim failed, in the user's language. The backend answers in
@@ -138,26 +167,34 @@ export function useDepositAccountCopy() {
         return { text: t('fees.converted'), ratesFor: rail.currency }
     }
 
-    /**
-     * The smallest deposit a corridor accepts, already formatted, or undefined
-     * where the rail publishes no floor. The claim screen surfaces it in its
-     * "good to know" aside so the amount is not buried in the payer rules.
-     */
-    const minimumDeposit = (rules: DepositRules | undefined): string | undefined =>
-        rules?.min ? formatCurrencyAmount(rules.min.amount, rules.min.currency) : undefined
-
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
+    const arrivalShort = (corridor: DepositCorridor) => t(ARRIVAL_SHORT_KEYS[corridor])
+
+    /**
+     * The rails ONE account takes, for the heading above its details. The
+     * provider's own rails win over the corridor's name: a dollar account that
+     * only takes ACH must not read "ACH or wire", or its holder asks a payer
+     * for a wire that never arrives. The share text names the same rails, from
+     * the same list. Before the details exist, the corridor's name stands in.
+     */
+    const accountRailName = (corridor: DepositCorridor, instructions: DepositInstructions | undefined) => {
+        const rails = [...new Set((instructions?.paymentRails ?? []).map((rail) => railLabel(rail, railLabels)))]
+        if (rails.length === 0) return railName(corridor)
+        return format.list(rails, { type: 'disjunction' })
+    }
 
     return {
         t,
         rowLabels,
         railLabels,
         ruleLines,
+        senderLimit,
         railName,
+        accountRailName,
         arrivalDetail,
+        arrivalShort,
         claimErrorBody,
         feeLine,
-        minimumDeposit,
     }
 }

@@ -7,8 +7,10 @@ import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function PinInputPage() {
     const [value, setValue] = useState('')
@@ -19,6 +21,21 @@ export default function PinInputPage() {
                 title="PinInput"
                 description="Filled-dot PIN entry backed by one sr-only numeric input; tapping the dots opens the mobile keyboard. Lives in components/Card (the card PIN flows are its only consumers). Code-only — no figma board; pending a design ruling on a shared PIN/OTP primitive."
                 status="limited"
+            />
+
+            <WhenToUse
+                use={[
+                    'Card PIN entry — the set and confirm steps',
+                    'A short fixed-length numeric secret typed on the mobile keyboard',
+                    'Pair it with a FieldError 4px below for the rejection reason',
+                    'Disable it while the save runs, so the digits cannot change under the request',
+                ]}
+                dontUse={[
+                    'Ordinary text or number fields — use Field with BaseInput',
+                    'An error border on the dots — a field error is red text only',
+                    'Amount entry — use AmountInput',
+                    'A new non-card PIN or OTP surface — flag it; a shared primitive is not ruled yet',
+                ]}
             />
 
             <SectionDivider />
@@ -93,6 +110,46 @@ export default function PinInputPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Card — choose your PIN"
+                    path="src/components/Card/CardPinSetupFlow.tsx"
+                    description="First step. The PIN is validated live once all 4 digits are in, so the rejection reason shows before Continue — and Continue stays disabled until it passes."
+                    code={`{/* pin input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+<div className="flex flex-col items-center gap-1">
+    <PinInput value={first} onChange={setFirst} />
+    {choosePinValidation && !choosePinValidation.valid && choosePinValidation.reason && (
+        <FieldError>{t(REJECTION_KEYS[choosePinValidation.reason])}</FieldError>
+    )}
+</div>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <PinInput value="1234" onChange={() => {}} autoFocus={false} />
+                        <FieldError>No sequential digits (e.g., 1234)</FieldError>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Card — confirm your PIN"
+                    path="src/components/Card/CardPinSetupFlow.tsx"
+                    description="Second step, same column. The input goes disabled while the PIN is being saved, so the dots cannot change under a request in flight."
+                    code={`<div className="flex flex-col items-center gap-1">
+    <PinInput value={second} onChange={setSecond} disabled={step === 'saving'} />
+    {fieldError && <FieldError>{fieldError}</FieldError>}
+</div>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <PinInput value="1234" onChange={() => {}} autoFocus={false} disabled />
+                        <FieldError>PINs do not match</FieldError>
+                    </div>
+                </ProductUsage.Example>
+
+                <p className="text-body-s text-foreground-secondary">
+                    Limited usage: <code>CardPinSetupFlow</code> is the only product file that renders PinInput. Both
+                    call sites are above.
+                </p>
+            </ProductUsage>
         </DocPage>
     )
 }

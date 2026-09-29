@@ -89,7 +89,8 @@ describe("withdrawPayoutCurrency — the currency that arrives, not the country'
 })
 
 describe('liveWithdrawCurrencies — rows are payout currencies', () => {
-    const codes = liveWithdrawCurrencies().map((currency) => currency.code)
+    const currencies = liveWithdrawCurrencies()
+    const codes = currencies.map((currency) => currency.code)
 
     it('has no row for a currency no corridor pays', () => {
         for (const code of ['PLN', 'SEK', 'CHF', 'DKK', 'NOK', 'CZK', 'HUF', 'RON', 'BGN', 'ISK']) {

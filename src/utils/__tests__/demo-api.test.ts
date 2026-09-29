@@ -78,10 +78,15 @@ describe('demoRespond — routing', () => {
         const { data } = await body('/badge/catalog')
         const codes = data.badges.map(({ code }: { code: string }) => code)
 
-        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'SURF_UP']))
+        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'TRON']))
+        // campaign links still award these, but they are not earnable (Hugo, 2026-09-25)
+        expect(codes).not.toContain('SURF_UP')
         expect(codes).not.toEqual(
             expect.arrayContaining(['FIRST_INVITE', 'SECOND_INVITE', 'VERIFIED', 'OG_2025_10_12'])
         )
+        // every account holds BETA_TESTER from sign-up, so the API does not list it as earnable
+        expect(codes).not.toContain('BETA_TESTER')
+        expect(data.badges.every(({ earnable }: { earnable: boolean }) => earnable)).toBe(true)
     })
 
     it('returns populated contacts for GET /users/contacts', async () => {
@@ -315,5 +320,24 @@ describe('demoRespond — card application', () => {
 
         const after = await body('/rain/cards')
         expect(after.data.status).toEqual({ hasApplication: true, railStatus: 'PENDING' })
+    })
+})
+
+describe('demoRespond — withdraw quote (TASK-23054)', () => {
+    it('answers the typed bank amount at a synthetic 1:1 rate, offline included', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/quote?destinationCurrency=eur&destinationAmount=50',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ destinationCurrency: 'eur', rate: '1', sourceAmount: '50' })
+    })
+
+    it('answers only the rate before an amount is typed', async () => {
+        const res = await demoRespond('/bridge/offramp/quote?destinationCurrency=gbp', { method: 'GET' })
+        const body = await res.json()
+        expect(body.rate).toBe('1')
+        expect(body.sourceAmount).toBeUndefined()
     })
 })

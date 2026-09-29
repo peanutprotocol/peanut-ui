@@ -13,6 +13,7 @@ import { WITHDRAW_CRYPTO_STEPS, type WithdrawData } from '@/features/withdraw/ty
 import { cryptoStepGuards } from '@/features/withdraw/step-guards'
 import { validateCryptoWithdrawAmount } from '@/features/withdraw/amount-validation'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { chargesApi } from '@/services/charges'
 import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
@@ -29,6 +30,7 @@ import { captureMessage } from '@sentry/nextjs'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits, formatUnits } from 'viem'
@@ -58,8 +60,8 @@ export default function WithdrawCryptoPage() {
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
     const { isFromSendFlow } = useSendFlowOrigin()
-    const onBack = useSafeBack(isFromSendFlow ? '/send' : '/withdraw?showAll=true')
-    const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
+    const onBack = useSafeBack(isFromSendFlow ? '/send' : WITHDRAW_BACK_FALLBACK_URL)
+    const { address, sendTransactions, sendMoney, spendableBalance, formattedSpendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         isMaxWithdrawal,
@@ -705,6 +707,12 @@ export default function WithdrawCryptoPage() {
                 method_type: 'crypto',
             })
         } catch (err) {
+            // Card re-approval dismissed, or the screen left, before anything
+            // was prepared, signed or broadcast: nothing moved and no order
+            // exists. Control flow, not a failed withdrawal — the review screen
+            // stays as it was, with no error copy and no Sentry report.
+            if (err instanceof SpendRecoveryAbortedError) return
+
             console.error('Withdrawal execution failed:', toError(err))
             const errMsg = toFriendlyError(err)
             // Reported here rather than left to the console-capture integration,
@@ -919,11 +927,7 @@ export default function WithdrawCryptoPage() {
                     pageTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                     heading={isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                     initialAmount={amountToWithdraw}
-                    walletBalance={
-                        spendableBalance === undefined
-                            ? ''
-                            : formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS)
-                    }
+                    walletBalance={spendableBalance === undefined ? '' : formattedSpendableBalance}
                     balanceFillAmount={Number(formatUnits(spendableBalance ?? 0n, PEANUT_WALLET_TOKEN_DECIMALS))}
                     onBalanceFilled={(value) => {
                         filledFromBalance.current = value
@@ -1049,6 +1053,7 @@ export default function WithdrawCryptoPage() {
                         )}
                     </div>
                 }
+                tone="attention"
                 icon="alert"
                 footer={
                     <div className="w-full">

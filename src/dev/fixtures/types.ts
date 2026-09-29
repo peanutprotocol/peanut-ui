@@ -10,6 +10,12 @@ export type Fixture = {
      * So an empty state is `{ entries: [] }` and a renamed user is one line.
      */
     responses?: Record<string, unknown>
+    /**
+     * Wallet balance in USD, e.g. `'0.17'`. The balance is not an API answer —
+     * fixtures ride the demo balance overlay — so a state that depends on it
+     * (the Home checklist's "Add money") says it here.
+     */
+    balance?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
     /**

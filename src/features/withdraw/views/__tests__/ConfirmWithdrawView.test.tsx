@@ -48,7 +48,7 @@ describe('ConfirmWithdrawView — network fee row', () => {
     it('shows the sponsored label when the account quote carries no fee, and pay == receive', () => {
         renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0} />)
         expect(screen.getByText('Sponsored by Peanut!')).toBeInTheDocument()
-        // "Recipient receives" and "You pay" both read $10 — nothing on top.
+        // "Recipient receives" and "Total" both read $10 — nothing on top.
         expect(screen.getAllByText('$10')).toHaveLength(2)
     })
 

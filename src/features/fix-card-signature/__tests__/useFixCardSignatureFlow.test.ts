@@ -7,7 +7,7 @@ import { useFixCardSignatureFlow } from '../useFixCardSignatureFlow'
 const mockDiagnose = jest.fn()
 const mockRepair = jest.fn()
 const mockGrant = jest.fn()
-const mockApproveFunding = jest.fn()
+const mockFundingGrant = jest.fn()
 
 let mockAddress: string | null = null
 let mockDiagnosis: { state: string; currentNonce?: string; validNonceFrom?: string } | null = null
@@ -38,7 +38,7 @@ jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ grant: mockGrant, isGranting: false }),
 }))
 jest.mock('@/hooks/wallet/useRainFunding', () => ({
-    useRainFunding: () => ({ approve: mockApproveFunding, isSubmitting: false }),
+    useRainFunding: () => ({ grant: mockFundingGrant }),
 }))
 
 describe('useFixCardSignatureFlow', () => {
@@ -67,64 +67,27 @@ describe('useFixCardSignatureFlow', () => {
         expect(renderHook(() => useFixCardSignatureFlow()).result.current.needsRepair).toBe(false)
     })
 
-    // The session-key grant only repairs WITHDRAWALS. The card is funded by
-    // Rain's operator approval, so "done" needs both — in that order.
-    it('is done only after the withdrawal grant AND the Rain funding approval', async () => {
-        const order: string[] = []
-        mockGrant.mockImplementation(async () => {
-            order.push('grant')
-            return { ok: true }
-        })
-        mockApproveFunding.mockImplementation(async () => {
-            order.push('approve')
-            return { ok: true }
-        })
-        const { result } = renderHook(() => useFixCardSignatureFlow())
-        await act(async () => {
-            await result.current.handleGrant()
-        })
-        expect(order).toEqual(['grant', 'approve'])
-        expect(result.current.grantDone).toBe(true)
-        expect(result.current.grantErrorMessage).toBeNull()
-    })
-
-    it('a repaired withdrawal permission alone is not "all set"', async () => {
+    // This page repairs WITHDRAWALS only. The card funding permission needs the
+    // person's own consent boxes, which live on the Home prompt.
+    it('is done after the withdrawal grant alone and never signs the funding permission', async () => {
         mockGrant.mockResolvedValue({ ok: true })
-        mockApproveFunding.mockResolvedValue({ ok: false, error: { kind: 'not-confirmed' } })
         const { result } = renderHook(() => useFixCardSignatureFlow())
-        await act(async () => {
-            await result.current.handleGrant()
-        })
-        expect(result.current.withdrawalsRepaired).toBe(true)
-        expect(result.current.grantDone).toBe(false)
-        expect(result.current.grantErrorMessage).toBe('fixSignature.fundingFailed')
-    })
-
-    it('a retry after a failed funding approval does not re-sign the withdrawal grant', async () => {
-        mockGrant.mockResolvedValue({ ok: true })
-        mockApproveFunding.mockResolvedValueOnce({ ok: false, error: { kind: 'user-cancelled' } })
-        mockApproveFunding.mockResolvedValueOnce({ ok: true })
-        const { result } = renderHook(() => useFixCardSignatureFlow())
-        await act(async () => {
-            await result.current.handleGrant()
-        })
-        expect(result.current.grantDone).toBe(false)
-        expect(result.current.grantErrorMessage).toBeNull()
         await act(async () => {
             await result.current.handleGrant()
         })
         expect(mockGrant).toHaveBeenCalledTimes(1)
-        expect(mockApproveFunding).toHaveBeenCalledTimes(2)
+        expect(mockFundingGrant).not.toHaveBeenCalled()
         expect(result.current.grantDone).toBe(true)
+        expect(result.current.grantErrorMessage).toBeNull()
     })
 
-    it('never asks for the funding approval when the withdrawal grant fails', async () => {
+    it('reports a failed withdrawal grant with the retry message', async () => {
         mockGrant.mockResolvedValue({ ok: false, error: { kind: 'unexpected', message: 'AA23' } })
         const { result } = renderHook(() => useFixCardSignatureFlow())
         await act(async () => {
             await result.current.handleGrant()
         })
-        expect(mockApproveFunding).not.toHaveBeenCalled()
+        expect(result.current.grantDone).toBe(false)
         expect(result.current.grantErrorMessage).toBe('fixSignature.regrantFailed')
     })
 

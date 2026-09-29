@@ -121,12 +121,14 @@ beforeEach(() => {
         // not the client's possibly-stale kernelPluginManager.sudoValidator.
         getPatchedSudoValidator: jest.fn().mockResolvedValue({ signTypedData }),
     })
+    const overview = {
+        status: { contractAddress: COLLATERAL, coordinatorAddress: COORDINATOR },
+        cards: [{ id: 'card-1', status: 'ACTIVE' }],
+    }
     ;(useRainCardOverview as jest.Mock).mockReturnValue({
-        overview: {
-            status: { contractAddress: COLLATERAL, coordinatorAddress: COORDINATOR },
-            cards: [{ id: 'card-1', status: 'ACTIVE' }],
-        },
-        refetch: jest.fn().mockResolvedValue({ isSuccess: true }),
+        overview,
+        // The grant reads the coordinator off a FRESH refetch (TASK-22734).
+        refetch: jest.fn().mockResolvedValue({ isSuccess: true, data: overview }),
     })
     ;(rainApi.submitWithdrawSessionApproval as jest.Mock).mockResolvedValue(undefined)
     ;(rainApi.getSessionKeyAddress as jest.Mock).mockResolvedValue({

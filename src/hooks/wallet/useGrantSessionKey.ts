@@ -1,41 +1,19 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import type { Address, Hex, LocalAccount } from 'viem'
+import type { Address } from 'viem'
 import { toFunctionSelector } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { useQueryClient } from '@tanstack/react-query'
-import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
-import { toPermissionValidator } from '@zerodev/permissions'
 import { toCallPolicy, CallPolicyVersion } from '@zerodev/permissions/policies'
-import { toECDSASigner } from '@zerodev/permissions/signers'
-import { accountMetadata, createKernelAccount, getPluginsEnableTypedData, KernelV3AccountAbi } from '@zerodev/sdk'
-import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import { serializePermissionAccount } from '@zerodev/permissions'
-import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
-import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
-import { repairEnableNonce, type NoncePublicClient } from '@/utils/kernelNonceRepair.utils'
-
-/** Minimal structural view of the bits of the kernel account's plugin manager
- *  this flow touches. The SDK doesn't surface these on its public account type,
- *  so we model just what we use rather than reaching through `any`.
- *  `getAction`/`hook` are typed from `getPluginsEnableTypedData`'s own
- *  parameter so the enable-typed-data call stays fully checked. */
-type EnableTypedDataParams = Parameters<typeof getPluginsEnableTypedData>[0]
-type KernelAccountInternals = {
-    kernelPluginManager: {
-        getAction: () => EnableTypedDataParams['action']
-        hook: EnableTypedDataParams['hook']
-    }
-}
+import { signKernelPermission } from '@/hooks/wallet/signKernelPermission'
 
 /**
  * One-time session-key grant for Rain card operations.
@@ -49,36 +27,24 @@ type KernelAccountInternals = {
  * authorization still comes from the user via the admin EIP-712 signature
  * (which the coordinator verifies against the kernel via ERC-1271).
  *
+ * This is the WITHDRAWAL permission only. Card payments are funded by a
+ * different, approve-only permission (`useRainFunding`); the two have distinct
+ * permission ids and coexist on one kernel.
+ *
  * Consumers: dev grant page, the stale-approval re-enable modal, and
  * `spendPreflight` for the lazy "first collateral spend prompts for grant" flow.
  */
-
-/**
- * Frontend doesn't hold the session-key private key (backend does).
- * `toECDSASigner` only reads `.address` off the signer for permission
- * install, so a minimal LocalAccount that throws on any sign attempt
- * is sufficient and protects against misuse.
- */
-function remoteSignerByAddress(address: Address): LocalAccount {
-    const throwSign = () => {
-        throw new Error('Session-key remote signer cannot sign on the frontend — backend owns the private key')
-    }
-    return {
-        address,
-        type: 'local',
-        source: 'remote-session-key',
-        publicKey: '0x' as Hex,
-        signMessage: throwSign,
-        signTransaction: throwSign,
-        signTypedData: throwSign,
-    } as unknown as LocalAccount
-}
 
 export type GrantSessionKeyError =
     | { kind: 'no-card' }
     | { kind: 'no-contracts' }
     | { kind: 'session-key-unavailable'; message: string }
     | { kind: 'user-cancelled' }
+    /** The grant store refused the approval (400 STALE_CARD_APPROVAL): the
+     *  controller moved between this overview read and the save. Kept distinct
+     *  from `unexpected` because it is the ONE grant failure a spend may treat
+     *  as a rotation candidate — and the re-enable modal can say so. */
+    | { kind: 'stale-approval'; message: string }
     | { kind: 'unexpected'; message: string }
 
 export interface GrantSessionKeyResult {
@@ -97,7 +63,6 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
     const { overview, refetch } = useRainCardOverview()
     const { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
-    const queryClient = useQueryClient()
     const [isGranting, setIsGranting] = useState(false)
     const [lastError, setLastError] = useState<GrantSessionKeyError | null>(null)
 
@@ -105,12 +70,28 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
      * Shared passkey + serialize step. Produces the serialized permission
      * string but does NOT hit any backend endpoint. Requires the collateral
      * proxy + coordinator addresses (available once Rain has approved KYC).
+     *
+     * The coordinator is read from a FRESH overview fetch, never the cached
+     * one: it surfaces the latest SERVER metadata, which a failed Rain
+     * operation repairs after Rain rotates the controller (TASK-22734). A grant
+     * pinned to a stale coordinator is dead on arrival — the backend refuses to
+     * store it (400 STALE_CARD_APPROVAL) and every collateral spend would 409.
      */
     const runSerialize = useCallback(async (): Promise<
         { ok: true; serialized: string } | { ok: false; error: GrantSessionKeyError }
     > => {
-        const collateralProxy = overview?.status?.contractAddress as Address | undefined
-        const coordinatorAddress = overview?.status?.coordinatorAddress as Address | undefined
+        const fresh = await refetch()
+        if (!fresh.isSuccess || !fresh.data) {
+            return {
+                ok: false,
+                error: {
+                    kind: 'unexpected',
+                    message: (fresh.error as Error | null)?.message ?? 'Card overview unavailable',
+                },
+            }
+        }
+        const collateralProxy = fresh.data.status?.contractAddress as Address | undefined
+        const coordinatorAddress = fresh.data.status?.coordinatorAddress as Address | undefined
         if (!collateralProxy || !coordinatorAddress) {
             return { ok: false, error: { kind: 'no-contracts' } }
         }
@@ -126,8 +107,8 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // coordinator.withdrawAsset(*) — user-initiated withdrawals. No param
         // rules: the per-spend admin EIP-712 signature the user produces via
         // passkey gates recipient/amount on every call. The session key can
-        // move no funds on its own — card payments are funded by the user's
-        // own operator approval (useRainFunding), not by this grant.
+        // move no funds on its own — card payments are funded by the separate
+        // approve-only funding permission, not by this grant.
         const rainCallPolicy = await toCallPolicy({
             policyVersion: CallPolicyVersion.V0_0_4,
             permissions: [
@@ -138,163 +119,14 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             ],
         })
 
-        const sessionKeySigner = await toECDSASigner({
-            signer: remoteSignerByAddress(sessionKeyAddress),
-        })
-        const permissionPlugin = await toPermissionValidator(peanutPublicClient, {
-            entryPoint: getEntryPoint('0.7'),
-            kernelVersion: KERNEL_V3_1,
-            signer: sessionKeySigner,
+        const serialized = await signKernelPermission({
             policies: [rainCallPolicy],
+            sessionKeyAddress,
+            kernel: { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain },
+            sendUserOp: handleSendUserOpEncoded,
         })
-
-        const chainId = PEANUT_WALLET_CHAIN.id.toString()
-        const kernelClient = await ensureClientForChain(chainId)
-        // Fired here (not at wrap-entry) so the denominator excludes the
-        // 'no-contracts' / 'session-key-unavailable' early returns that never
-        // produce a passkey prompt.
-        posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PROMPTED)
-        // The serialized approval's sudo plugin MUST bind to the v0.0.3 PATCHED
-        // validator. Do NOT read `kernelClient.account.kernelPluginManager
-        // .sudoValidator`: for a pre-2025-09-18 (migrated) user that resolves to
-        // the STALE v0.0.2 validator the migration client was constructed with
-        // (`sudo: fromValidator`), so the backend's replayed sweep/withdraw
-        // userOp gets wapk-403'd by ZeroDev's paymaster. `getPatchedSudoValidator`
-        // is the single source of truth — the same v0.0.3 validator the migration
-        // client migrates *to* — so the approval binds correctly for every user.
-        const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
-
-        // Triggers the passkey prompt — this is the one-time install.
-        // `address` is forced to the user's actual wallet so the approval
-        // binds to the deployed kernel. Pre-2025-09-18 users sit at a
-        // legacy V0_0_2-derived address (migrated in place to V0_0_3); the
-        // natural counterfactual of `createKernelAccount({sudo: patchedSudoValidator})`
-        // is a different, never-funded address. Forcing the address here makes
-        // the grant work for both legacy and post-migration users.
-        const accountAddress = kernelClient.account!.address
-        // The four on-chain reads only need the (already-known) account address,
-        // so they run alongside the account construction.
-        const [sessionKernelAccount, bytecode, metadata, nonceRead, floorRead] = await Promise.all([
-            createKernelAccount(peanutPublicClient, {
-                address: accountAddress,
-                entryPoint: getEntryPoint('0.7'),
-                kernelVersion: KERNEL_V3_1,
-                plugins: {
-                    sudo: patchedSudoValidator,
-                    regular: permissionPlugin,
-                },
-            }),
-            peanutPublicClient.getCode({ address: accountAddress }),
-            // Live on-chain EIP-712 domain version, KERNEL_V3_1 fallback when the
-            // account can't report one — the same resolution the SDK's internal
-            // enable path uses (a hardcoded version signs the wrong domain for any
-            // kernel not exactly on that version).
-            accountMetadata(peanutPublicClient, accountAddress, KERNEL_V3_1, PEANUT_WALLET_CHAIN.id),
-            peanutPublicClient
-                .readContract({ address: accountAddress, abi: KernelV3AccountAbi, functionName: 'currentNonce' })
-                .then(
-                    (nonce) => ({ read: true as const, nonce: Number(nonce) }),
-                    (error: unknown) => ({ read: false as const, error })
-                ),
-            peanutPublicClient
-                .readContract({ address: accountAddress, abi: KernelV3AccountAbi, functionName: 'validNonceFrom' })
-                .then(
-                    (floor) => ({ read: true as const, floor: Number(floor) }),
-                    (error: unknown) => ({ read: false as const, error })
-                ),
-        ])
-
-        // The session-key permission installs on-chain via an "enable" approval the
-        // passkey signs here, bound to the account's `currentNonce` — the kernel
-        // rejects the enable with `AA23 InvalidNonce` if the signed value ≠ its live
-        // value, and the grant still "succeeds", so the card then declines forever.
-        // The SDK's internal `getKernelV3Nonce` silently falls back to `1` on ANY
-        // read failure, which mints exactly that broken approval for accounts whose
-        // live nonce ≠ 1 (e.g. migrated / sudo-changed accounts). Bind to the
-        // verified live nonce instead, and only fall back where 1 is provably
-        // correct: a counterfactual account, whose kernel initializes
-        // `currentNonce` to 1 at deployment (the read itself reverts pre-deploy).
-        let validatorNonce: number
-        if (!bytecode) {
-            if (isMigrationWrapperAccount(kernelClient.account)) {
-                // Undeployed PRE-cutoff account: the serialized approval would bake
-                // a v0.0.3 initCode that derives a different CREATE2 address than
-                // this wallet, so every backend replay reverts AA14. Deploy first
-                // via the hardened migration gate — it verifies the root-validator
-                // swap against ON-CHAIN ground truth (a reverted migration inside a
-                // successful bundle would otherwise deploy the account on v0.0.2
-                // and the approval signed below would be silently dead) and hands
-                // back a rebuilt client. One extra passkey tap.
-                await ensureRootValidatorMigrated({
-                    client: kernelClient,
-                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainId, { returnRevertedReceipt: true }),
-                    rebuildClient: () => rebuildClientForChain(chainId),
-                })
-                // Freshly deployed: read the live nonce; fail loud if unreadable.
-                const freshNonce = await peanutPublicClient.readContract({
-                    address: accountAddress,
-                    abi: KernelV3AccountAbi,
-                    functionName: 'currentNonce',
-                })
-                validatorNonce = Math.max(Number(freshNonce), 1)
-                posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'deploy' })
-            } else {
-                // Post-cutoff counterfactual: the kernel initializes currentNonce
-                // to 1 at deployment, so 1 is provably exact.
-                validatorNonce = 1
-            }
-        } else if (!nonceRead.read) {
-            // Deployed but unreadable: fail LOUDLY rather than sign a guess.
-            throw nonceRead.error
-        } else if (floorRead.read && floorRead.floor > Math.max(nonceRead.nonce, 1)) {
-            // validNonceFrom AHEAD of currentNonce — the 2025-09-18 migration-wave
-            // state. Every enable-mode install lands below the floor and reverts
-            // InvalidNonce forever, so an approval signed now would be dead on
-            // arrival. Repair inline (one extra passkey tap: invalidateNonce
-            // syncs the counter up to the floor), then bind the fresh nonce.
-            validatorNonce = (
-                await repairEnableNonce({
-                    // viem's generic readContract collapses structural
-                    // assignability to the minimal client interface.
-                    publicClient: peanutPublicClient as unknown as NoncePublicClient,
-                    accountAddress,
-                    validNonceFrom: floorRead.floor,
-                    sendUserOp: (call) => handleSendUserOpEncoded([call], chainId),
-                })
-            ).validatorNonce
-            posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'invalidate' })
-        } else {
-            if (!floorRead.read) {
-                // Don't regress every healthy grant on one flaky read: proceed on
-                // the old (pre-floor-check) behavior and flag it — a floored
-                // account slipping through here still gets caught by the sweep's
-                // permanent-failure path and /fix-card-signature.
-                posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'floor-read-failed' })
-            }
-            // A deployed-but-uninitialized proxy reports 0; enables validate
-            // against ≥1 post-init, so normalize the way the SDK does.
-            validatorNonce = nonceRead.nonce === 0 ? 1 : nonceRead.nonce
-        }
-
-        const pm = (sessionKernelAccount as unknown as KernelAccountInternals).kernelPluginManager
-        const enableTypedData = await getPluginsEnableTypedData({
-            accountAddress: sessionKernelAccount.address,
-            chainId: PEANUT_WALLET_CHAIN.id,
-            kernelVersion: metadata.version,
-            action: pm.getAction(),
-            hook: pm.hook,
-            validator: permissionPlugin,
-            validatorNonce,
-        })
-        // Same sudo validator + signing path the SDK uses internally, so for
-        // healthy nonce=1 accounts this yields an identical approval.
-        const enableSignature = await withCeremonyPurpose('session_key_grant', () =>
-            patchedSudoValidator.signTypedData(enableTypedData)
-        )
-
-        const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
-    }, [overview, ensureClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
+    }, [refetch, ensureClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
 
     const wrap = useCallback(
         async <T>(
@@ -340,20 +172,27 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             try {
                 await rainApi.submitWithdrawSessionApproval({ serializedApproval: r.serialized })
             } catch (e) {
-                return { ok: false, error: { kind: 'unexpected', message: (e as Error).message } as const }
+                // Structured code only — the approval we just signed targets a
+                // controller the backend no longer has on record.
+                const kind =
+                    wireErrorCode(e) === API_ERROR_CODES.STALE_CARD_APPROVAL
+                        ? 'stale-approval'
+                        : ('unexpected' as const)
+                return { ok: false, error: { kind, message: (e as Error).message } as const }
             }
 
             // Flip the `hasWithdrawApproval` flag in UI by refetching overview.
             // refetch() resolves (never throws) with an error state on network
             // failure — surface that so the caller can tell "flag is stale"
-            // apart from "flag genuinely didn't flip".
+            // apart from "flag genuinely didn't flip". No invalidateQueries
+            // after it: awaiting the shared query's own refetch already gives
+            // every observer the post-grant data.
             const refetchResult = await refetch()
-            queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             return { ok: true as const, value: refetchResult.isSuccess }
         })
         if (result.ok) return { ok: true, overviewFresh: result.value === true }
         return result
-    }, [wrap, runSerialize, overview, refetch, queryClient])
+    }, [wrap, runSerialize, overview, refetch])
 
     return { grant, isGranting, lastError }
 }

@@ -2,14 +2,17 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
+import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
-import ExchangeRate from '@/components/ExchangeRate'
-import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { AccountType, type Account } from '@/interfaces/interfaces'
+import { type ReviewPayout } from '@/features/withdraw/types'
+import { payoutAmounts } from '@/features/withdraw/bank-amount'
 import { formatIban } from '@/utils/general.utils'
 import { type FC, useState } from 'react'
 import { Field } from '@/components/0_Bruddle/Field'
@@ -20,13 +23,30 @@ import {
     type PayoutDefaultReferenceNoteKey,
     type PayoutNoteKey,
 } from '@/features/withdraw/bank-reference'
-import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
+import RateUnavailable from '@/components/Global/RateUnavailable'
+import { formatBankAmount } from '@/utils/currency'
+import { UsdPayoutSpeedChoice } from '@/features/withdraw/components/UsdPayoutSpeedChoice'
+import { type UsdPayoutSpeed, type UsdPayoutSpeedOption } from '@/features/withdraw/usd-payout-speed'
+
+/** What the Arrives row says for each USD speed. */
+const USD_ARRIVAL_KEY = {
+    ach: 'speedAchBody',
+    ach_same_day: 'speedSameDayHelper',
+    wire: 'speedWireBody',
+} as const satisfies Record<UsdPayoutSpeed, string>
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
+    /** USDC that leaves the balance. */
     amount: string
+    /** What the bank receives: currency from the account type, bank amount and rate from the quote. */
+    payout: ReviewPayout
+    /** true while the first rate for a converting payout loads. */
+    isRateLoading: boolean
     fromSendFlow: boolean
+    /** ISO date a future-dated verification becomes due; shows a non-blocking heads-up. */
+    verificationDeadline?: string
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
     isSubmitReady: boolean
@@ -46,13 +66,28 @@ interface WithdrawBankReviewViewProps {
     onReferenceChange: (reference: string) => void
     onSubmit: () => void
     onDone: () => void
+    /** Set while the quote's last refresh failed: the amounts stay, submit waits for a fresh quote. */
+    onRetryQuote?: () => void
+    /** Set when the provider refused the saved account for good: add it again replaces Retry. */
+    onAddBankAccountAgain?: () => void
+    /** USD only: same-day ACH or wire, the fee and what the bank receives. */
+    usdSpeed?: {
+        options: UsdPayoutSpeedOption[]
+        selected: UsdPayoutSpeed
+        onSelect: (speed: UsdPayoutSpeed) => void
+        feeUsd: string
+        receivedUsd: string
+    } | null
 }
 
 /** Review step of the Bridge bank withdraw — dumb view, logic in useBridgeOfframpFlow. */
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
+    payout,
+    isRateLoading,
     fromSendFlow,
+    verificationDeadline,
     isLoading,
     isSubmitReady,
     submittedTxHash,
@@ -67,28 +102,28 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     onReferenceChange,
     onSubmit,
     onDone,
+    onRetryQuote,
+    onAddBankAccountAgain,
+    usdSpeed,
 }) => {
     // a half-typed reference is not an error yet — name the problem on blur
     const [referenceTouched, setReferenceTouched] = useState(false)
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
+    const tRate = useTranslations('exchangeRate.row')
 
-    // ONE country drives this screen: the account's own, read off the IBAN.
-    // The country picked upstream is not the same thing — a Portugal resident
-    // with a Lithuanian IBAN who picked Poland got a Lithuanian flag beside a
-    // zloty conversion quote — and since the euro area became one destination
-    // there is often no picked country at all (QA round 3, W1).
+    // The flag is the account's own country, read off the IBAN, not the one
+    // picked upstream (QA round 3, W1). The country never picks the currency:
+    // that is `payout`, from the account type, because a UK IBAN is paid EUR.
     const accountCountryCode = (
         ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount?.details?.countryCode ?? ''] ??
         bankAccount?.details?.countryCode ??
         ''
     ).toLowerCase()
 
-    const nonEuroCurrency = countryCurrencyMappings.find(
-        (currency) => currency.flagCode.toLowerCase() === accountCountryCode
-    )?.currencyCode
+    const { headline, secondary } = payoutAmounts(amount, payout)
+    const convertsCurrency = payout.currency.toLowerCase() !== 'usd'
 
     const referenceErrorText = (problem: BankReferenceProblem) => {
         if (!referenceSpec) return undefined
@@ -96,9 +131,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
         if (problem === 'tooLong') return t('bank.referenceTooLong', { max: referenceSpec.maxLength })
         return t(`bank.${referenceSpec.invalidCharsKey}`)
     }
-
-    // non-eur sepa countries that are currently experiencing issues
-    const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
 
     const getBicAndRoutingNumber = () => {
         if (bankAccount.type === AccountType.US) {
@@ -120,64 +152,113 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 recipientType={'BANK_ACCOUNT'}
                 recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}
                 amount={amount}
+                amountDisplay={headline}
+                secondaryAmount={secondary}
                 tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                 isFromSendFlow={fromSendFlow}
             />
 
-            {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
-            {isNonEuroSepa && bankAccount?.type !== AccountType.GB && (
+            {/* An IBAN outside the euro area (UK, Poland, Sweden…) is paid EUR; its bank converts. */}
+            {payout.bankConvertsTo && (
                 <Callout priority="info" title={t('bank.eurTitle')}>
                     {t('bank.eurDescription')}
                 </Callout>
             )}
 
-            <Card className="rounded-sm">
-                <PaymentInfoRow
-                    label={t('bank.accountOwner')}
-                    value={bankAccount?.details?.accountOwnerName || user?.user.fullName || 'N/A'}
+            {verificationDeadline && <VerificationDeadlineNotice effectiveDate={verificationDeadline} />}
+
+            {usdSpeed && (
+                <UsdPayoutSpeedChoice
+                    options={usdSpeed.options}
+                    selected={usdSpeed.selected}
+                    onSelect={usdSpeed.onSelect}
+                    disabled={isLoading || !!submittedTxHash}
                 />
-                {bankAccount?.type === AccountType.IBAN ? (
-                    <>
+            )}
+
+            {usdSpeed ? (
+                // A USD payout uses DataRow (design.md "receipt / detail card"). The
+                // fee is the chosen speed's, from the backend's fee table, and the
+                // bank receives the amount less it. Other currencies keep their
+                // PaymentInfoRow card until they are moved as a whole.
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                    {bankAccount?.details?.accountOwnerName && (
+                        <DataRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
+                    )}
+                    <DataRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                    <DataRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
+                    <DataRow label={t('bank.arrives')} value={t(`bank.${USD_ARRIVAL_KEY[usdSpeed.selected]}`)} />
+                    <DataRow
+                        label={t('bank.fee')}
+                        value={
+                            Number(usdSpeed.feeUsd) > 0
+                                ? formatBankAmount(Number(usdSpeed.feeUsd), 'USD')
+                                : t('bank.speedFree')
+                        }
+                    />
+                    <DataRow
+                        label={t('bank.bankReceives')}
+                        value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
+                    />
+                </Card>
+            ) : (
+                <Card className="rounded-sm">
+                    {/* The holder is whoever the account was saved under — often not
+                        the user (a parent, a partner). When no name was stored, leave
+                        the row out: the user's own name here would be a wrong claim. */}
+                    {bankAccount?.details?.accountOwnerName && (
+                        <PaymentInfoRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
+                    )}
+                    {bankAccount?.type === AccountType.IBAN ? (
+                        <>
+                            <PaymentInfoRow
+                                label={t('bank.iban')}
+                                value={
+                                    bankAccount?.identifier
+                                        ? formatIban(bankAccount.identifier)
+                                        : '' /* fallback to empty string to avoid runtime error */
+                                }
+                            />
+                            {/* The form no longer asks for a BIC, so a new euro
+                                account has none. Show the row only for the saved
+                                accounts that still carry one — an empty "N/A" row
+                                tells the user nothing. */}
+                            {bankAccount.bic && (
+                                <PaymentInfoRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />
+                            )}
+                        </>
+                    ) : bankAccount?.type === AccountType.CLABE ? (
+                        <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
+                    ) : bankAccount?.type === AccountType.CO_BANK_TRANSFER ? (
+                        // A Colombian account is named by its number alone; the bank
+                        // code is not shown back to the user.
+                        <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                    ) : bankAccount?.type === AccountType.GB ? (
+                        <>
+                            <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                            <PaymentInfoRow label={t('bank.sortCode')} value={getBicAndRoutingNumber()} />
+                        </>
+                    ) : (
+                        <>
+                            <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                            <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
+                        </>
+                    )}
+                    {convertsCurrency && (
                         <PaymentInfoRow
-                            label={t('bank.iban')}
+                            loading={isRateLoading}
+                            label={tCommon('exchangeRate')}
                             value={
-                                bankAccount?.identifier
-                                    ? formatIban(bankAccount.identifier)
-                                    : '' /* fallback to empty string to avoid runtime error */
+                                payout.rate
+                                    ? `1 USD = ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
+                                    : '-'
                             }
+                            moreInfoText={tRate('approximate')}
                         />
-                        {/* The form no longer asks for a BIC, so a new euro
-                            account has none. Show the row only for the saved
-                            accounts that still carry one — an empty "N/A" row
-                            tells the user nothing. */}
-                        {bankAccount.bic && (
-                            <PaymentInfoRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />
-                        )}
-                    </>
-                ) : bankAccount?.type === AccountType.CLABE ? (
-                    <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
-                ) : bankAccount?.type === AccountType.CO_BANK_TRANSFER ? (
-                    // A Colombian account is named by its number alone; the bank
-                    // code is not shown back to the user.
-                    <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                ) : bankAccount?.type === AccountType.GB ? (
-                    <>
-                        <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                        <PaymentInfoRow label={t('bank.sortCode')} value={getBicAndRoutingNumber()} />
-                    </>
-                ) : (
-                    <>
-                        <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                        <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
-                    </>
-                )}
-                <ExchangeRate
-                    accountType={bankAccount.type}
-                    nonEuroCurrency={nonEuroCurrency}
-                    amountToConvert={amount}
-                />
-                <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
-            </Card>
+                    )}
+                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
+                </Card>
+            )}
 
             {payoutNoteKey && (
                 <p className="text-body-xs text-foreground-secondary">
@@ -225,6 +306,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Field>
             )}
 
+            {onRetryQuote && !submittedTxHash && <RateUnavailable onRetry={onRetryQuote} />}
             {submittedTxHash ? (
                 // On-chain leg already fired. Even if confirmOfframp failed
                 // we must NOT offer Retry — it would re-run sendMoney() and
@@ -233,12 +315,16 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <Button shadowSize="4" className="w-full" onClick={onDone}>
                     {tCommon('done')}
                 </Button>
+            ) : error.showError && onAddBankAccountAgain ? (
+                <Button shadowSize="4" className="w-full" onClick={onAddBankAccountAgain}>
+                    {t('withdrawToBank')}
+                </Button>
             ) : error.showError ? (
                 <Button
-                    // Same guard as the normal submit below: the flow hook
-                    // returns early on a reference problem, so without this
-                    // Retry looks live and does nothing.
-                    disabled={isLoading || !!referenceProblem}
+                    // Same guards as the normal submit below: the flow hook
+                    // returns early on a reference problem or a quote that is
+                    // not current, so without them Retry looks live and does nothing.
+                    disabled={isLoading || !!referenceProblem || !isSubmitReady}
                     onClick={onSubmit}
                     loading={isLoading}
                     shadowSize="4"
@@ -268,7 +354,11 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     {confirmPendingCopy}
                 </Callout>
             ) : (
-                error.showError && <Callout priority="error">{error.errorMessage}</Callout>
+                error.showError && (
+                    <Callout priority="error">
+                        <CooldownErrorText message={error.errorMessage} />
+                    </Callout>
+                )
             )}
             {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
         </div>

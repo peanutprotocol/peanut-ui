@@ -39,7 +39,7 @@ function buildComment({ android, ios, commitMsg = 'fix: something\nsecond line' 
     const result = spawnSync('bash', ['-c', `${commentAssignment()}; printf '%s' "$COMMENT"`], {
         env: {
             ...process.env,
-            GITHUB_SHA: 'abc1234567890abcdef',
+            OTA_SOURCE_SHA: 'abc1234567890abcdef',
             COMMIT_MSG: commitMsg,
             FLOOR_ANDROID: android,
             FLOOR_IOS: ios,
@@ -90,7 +90,7 @@ it('ignores a marker that is not at the end, however well-formed', () => {
 it('the verify step checks for the same string the upload writes', () => {
     const marker = '[ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]'
     expect(workflowSource).toContain('Verify the floors reached the bundle')
-    expect(workflowSource).toContain('node scripts/capgo-release-guard.mjs verify-bundle')
+    expect(workflowSource).toContain('node ../release-tooling/scripts/capgo-release-guard.mjs verify-bundle')
     expect(commentAssignment()).toContain(marker)
 })
 

@@ -20,12 +20,7 @@ export function HomeTopNav({ showRewards }: HomeTopNavProps) {
         <div className="flex items-center justify-between">
             {/* link-mode Button — ONE anchor, no nested interactive (the test
                 asserts this). 40px circle like NavHeader's back button. */}
-            <Button
-                variant="transparent"
-                href="/profile"
-                className={NAV_CIRCLE_BUTTON_CLASSES}
-                aria-label={t('openProfile')}
-            >
+            <Button variant="ghost" href="/profile" className={NAV_CIRCLE_BUTTON_CLASSES} aria-label={t('openProfile')}>
                 <Icon name="menu" size={20} />
             </Button>
             {showRewards && (

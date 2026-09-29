@@ -22,8 +22,9 @@ const mockMantecaCancel = jest.fn()
 jest.mock('@/services/manteca', () => ({
     mantecaApi: { cancelDeposit: (...args: unknown[]) => mockMantecaCancel(...args) },
 }))
+const mockChargesCancel = jest.fn()
 jest.mock('@/services/charges', () => ({
-    chargesApi: { cancel: jest.fn() },
+    chargesApi: { cancel: (...args: unknown[]) => mockChargesCancel(...args) },
 }))
 const mockInvalidateQueries = jest.fn()
 jest.mock('@tanstack/react-query', () => ({
@@ -88,17 +89,36 @@ const pendingBridgeOnramp = {
     extraDataForDrawer: { depositInstructions: { deposit_message: 'BRGTESTREF1234567890' } },
 } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
 
-const renderCancel = (setIsModalOpen?: (isModalOpen: boolean) => void) =>
-    render(
-        <CancelDepositActions
-            transaction={pendingBridgeOnramp}
-            isPendingBankRequest={false}
-            isLoading={false}
-            setIsLoading={jest.fn()}
-            onClose={jest.fn()}
-            setIsModalOpen={setIsModalOpen}
-        />
+type Transaction = import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
+
+// stands in for the receipt: owns the confirm state and opens it the way the
+// More actions row does
+function Harness({
+    transaction = pendingBridgeOnramp,
+    setIsModalOpen,
+}: {
+    transaction?: Transaction
+    setIsModalOpen?: (isModalOpen: boolean) => void
+}) {
+    const [confirmOpen, setConfirmOpen] = React.useState(false)
+    return (
+        <>
+            <button onClick={() => setConfirmOpen(true)}>Open cancel</button>
+            <CancelDepositActions
+                transaction={transaction}
+                isPendingBankRequest={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                setIsModalOpen={setIsModalOpen}
+                confirmOpen={confirmOpen}
+                onConfirmOpenChange={setConfirmOpen}
+            />
+        </>
     )
+}
+
+const renderCancel = (setIsModalOpen?: (isModalOpen: boolean) => void) =>
+    render(<Harness setIsModalOpen={setIsModalOpen} />)
 
 beforeEach(() => {
     mockCancelOnramp.mockReset().mockResolvedValue({})
@@ -107,11 +127,11 @@ beforeEach(() => {
 })
 
 describe('CancelDepositActions confirmation gate', () => {
-    it('does NOT cancel on the first click — it asks for confirmation instead', () => {
+    it('opening the cancel does NOT cancel — it asks for confirmation instead', () => {
         renderCancel()
 
         expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByText('Cancel deposit'))
+        fireEvent.click(screen.getByText('Open cancel'))
 
         expect(mockCancelOnramp).not.toHaveBeenCalled()
         expect(screen.getByTestId('confirm-drawer')).toBeInTheDocument()
@@ -121,7 +141,7 @@ describe('CancelDepositActions confirmation gate', () => {
     it('cancels only after the user confirms', async () => {
         renderCancel()
 
-        fireEvent.click(screen.getByText('Cancel deposit'))
+        fireEvent.click(screen.getByText('Open cancel'))
         fireEvent.click(screen.getByText('Yes, cancel deposit'))
 
         await waitFor(() => expect(mockCancelOnramp).toHaveBeenCalledWith('tx-1'))
@@ -133,7 +153,7 @@ describe('CancelDepositActions confirmation gate', () => {
         mockCancelOnramp.mockReturnValue(new Promise((resolve) => (resolveCancel = resolve)))
         renderCancel()
 
-        fireEvent.click(screen.getByText('Cancel deposit'))
+        fireEvent.click(screen.getByText('Open cancel'))
         const confirmButton = screen.getByText('Yes, cancel deposit')
         fireEvent.click(confirmButton)
         fireEvent.click(confirmButton)
@@ -145,7 +165,7 @@ describe('CancelDepositActions confirmation gate', () => {
     it('dismissing the confirmation leaves the deposit untouched', () => {
         renderCancel()
 
-        fireEvent.click(screen.getByText('Cancel deposit'))
+        fireEvent.click(screen.getByText('Open cancel'))
         fireEvent.click(screen.getByText('Dismiss'))
 
         expect(mockCancelOnramp).not.toHaveBeenCalled()
@@ -154,18 +174,9 @@ describe('CancelDepositActions confirmation gate', () => {
 
     it('releases the parent lock when a status update makes the tx non-cancellable', async () => {
         const setIsModalOpen = jest.fn()
-        const { rerender } = render(
-            <CancelDepositActions
-                transaction={pendingBridgeOnramp}
-                isPendingBankRequest={false}
-                isLoading={false}
-                setIsLoading={jest.fn()}
-                onClose={jest.fn()}
-                setIsModalOpen={setIsModalOpen}
-            />
-        )
+        const { rerender } = render(<Harness setIsModalOpen={setIsModalOpen} />)
 
-        fireEvent.click(screen.getByText('Cancel deposit'))
+        fireEvent.click(screen.getByText('Open cancel'))
         expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
 
         // the websocket-driven history refresh completes the deposit while the
@@ -175,16 +186,7 @@ describe('CancelDepositActions confirmation gate', () => {
             ...pendingBridgeOnramp,
             status: 'completed',
         } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
-        rerender(
-            <CancelDepositActions
-                transaction={completed}
-                isPendingBankRequest={false}
-                isLoading={false}
-                setIsLoading={jest.fn()}
-                onClose={jest.fn()}
-                setIsModalOpen={setIsModalOpen}
-            />
-        )
+        rerender(<Harness transaction={completed} setIsModalOpen={setIsModalOpen} />)
         await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
         expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
     })
@@ -201,7 +203,7 @@ describe('CancelDepositActions confirmation gate', () => {
         renderCancel(setIsModalOpen)
 
         // arming the cancel opens the confirm drawer -> parent must be locked
-        fireEvent.click(screen.getByText('Cancel deposit'))
+        fireEvent.click(screen.getByText('Open cancel'))
         expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
 
         // confirming closes the drawer -> parent must be released
@@ -210,9 +212,59 @@ describe('CancelDepositActions confirmation gate', () => {
 
         // dismissing (instead of confirming) must release it too
         setIsModalOpen.mockClear()
-        fireEvent.click(screen.getByText('Cancel deposit'))
+        fireEvent.click(screen.getByText('Open cancel'))
         expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
         fireEvent.click(screen.getByText('Dismiss'))
         await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
+    })
+})
+
+describe('CancelDepositActions bank-paid request', () => {
+    const pendingBankRequest = {
+        id: 'charge-1',
+        status: 'pending',
+        extraDataForDrawer: { originalUserRole: 'SENDER', bridgeTransferId: 'bt-1' },
+    } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
+
+    const renderControlled = (confirmOpen: boolean, onConfirmOpenChange = jest.fn()) =>
+        render(
+            <CancelDepositActions
+                transaction={pendingBankRequest}
+                isPendingBankRequest
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                confirmOpen={confirmOpen}
+                onConfirmOpenChange={onConfirmOpenChange}
+            />
+        )
+
+    it('renders no button of its own; the drawer follows the controlled flag', () => {
+        const { rerender } = renderControlled(false)
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
+
+        rerender(
+            <CancelDepositActions
+                transaction={pendingBankRequest}
+                isPendingBankRequest
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                confirmOpen
+                onConfirmOpenChange={jest.fn()}
+            />
+        )
+        expect(screen.getByText('Cancel this request?')).toBeInTheDocument()
+    })
+
+    it('confirming cancels the bridge onramp, then the charge, and closes through the callback', async () => {
+        mockChargesCancel.mockReset().mockResolvedValue(undefined)
+        const onConfirmOpenChange = jest.fn()
+        renderControlled(true, onConfirmOpenChange)
+
+        fireEvent.click(screen.getByText('Yes, cancel request'))
+
+        expect(onConfirmOpenChange).toHaveBeenCalledWith(false)
+        await waitFor(() => expect(mockChargesCancel).toHaveBeenCalledWith('charge-1'))
+        expect(mockCancelOnramp).toHaveBeenCalledWith('bt-1')
     })
 })

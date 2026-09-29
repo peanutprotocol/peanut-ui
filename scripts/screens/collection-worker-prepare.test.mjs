@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { collectionWorkerConfiguration, prepareCollectionWorker } from './collection-worker/prepare.mjs'
 
 const collectionWorkerEnv = {
@@ -28,6 +28,27 @@ test('collection Worker preparation emits the access helper beside the generated
         assert.equal(existsSync(join(target, 'access.mjs')), true)
         assert.equal(existsSync(join(target, 'collection-worker', 'index.mjs')), true)
         assert.match(readFileSync(join(target, 'collection-worker', 'index.mjs'), 'utf8'), /\.\.\/access\.mjs/)
+    } finally {
+        rmSync(target, { recursive: true, force: true })
+    }
+})
+
+// wrangler bundles only what prepare copies, so a new relative import in a copied module
+// fails the deploy on dev and nowhere earlier (capture-profiles.mjs, 2026-09-23).
+test('every relative import in the prepared collection Worker resolves to a copied file', () => {
+    const target = mkdtempSync(join(tmpdir(), 'screen-collection-worker-'))
+    try {
+        prepareCollectionWorker(target, collectionWorkerEnv)
+        const modules = readdirSync(target, { recursive: true }).filter((file) => file.endsWith('.mjs'))
+        for (const module of modules) {
+            const source = readFileSync(join(target, module), 'utf8')
+            for (const [, specifier] of source.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g))
+                assert.equal(
+                    existsSync(join(target, dirname(module), specifier)),
+                    true,
+                    `${module} imports ${specifier}`
+                )
+        }
     } finally {
         rmSync(target, { recursive: true, force: true })
     }

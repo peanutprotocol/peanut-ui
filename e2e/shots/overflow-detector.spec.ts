@@ -6,10 +6,17 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { findOverflows, type Overflow } from './overflow-check'
+import { findOverflows, findTruncations, type Overflow } from './overflow-check'
 
 async function detect(page: import('@playwright/test').Page, html: string): Promise<Overflow[]> {
-    await page.setContent(`<body style="margin:0;font-family:sans-serif">${html}</body>`)
+    // the viewport meta matters: the base config emulates mobile, and without
+    // it the layout viewport falls back to 980px — real app pages always ship
+    // the meta, so the synthetic ones must too or document-level overflow
+    // (anything under 980px wide) is invisible here
+    await page.setContent(
+        `<head><meta name="viewport" content="width=device-width, initial-scale=1"></head>` +
+            `<body style="margin:0;font-family:sans-serif">${html}</body>`
+    )
     return page.evaluate(findOverflows, ['.exempt-me'])
 }
 
@@ -60,6 +67,13 @@ test('flags vertically clipped text in a fixed-height box', async ({ page }) => 
     expect(found[0].kind).toBe('clip-y')
 })
 
+test('flags a document that scrolls horizontally with nothing clipped', async ({ page }) => {
+    // no element clips, so the per-element scan is blind to this by design
+    const found = await detect(page, `<div style="position:absolute;left:0;top:0;width:400px;height:10px"></div>`)
+    expect(found).toHaveLength(1)
+    expect(found[0].kind).toBe('document-horizontal-scroll')
+})
+
 test('stays quiet on deliberate truncation, scrollers, hidden text and exemptions', async ({ page }) => {
     const found = await detect(
         page,
@@ -73,4 +87,23 @@ test('stays quiet on deliberate truncation, scrollers, hidden text and exemption
         `
     )
     expect(found).toEqual([])
+})
+
+test('the truncation check flags cut copy and stays quiet on copy that fits', async ({ page }) => {
+    await page.setContent(
+        `<head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+        <body style="margin:0;font-family:sans-serif">
+            <div class="scope">
+                <span style="display:block;width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Withdraw to your own accounts</span>
+                <span style="display:block;width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Send</span>
+                <p style="width:100px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1">una línea que no cabe en su caja</p>
+            </div>
+            <span style="display:block;width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">0xdec0debad1dec0debad1dec0debad1</span>
+        </body>`
+    )
+    const found = await page.evaluate(findTruncations, '.scope')
+    expect(found.map((item) => item.text)).toEqual([
+        'Withdraw to your own accounts',
+        'una línea que no cabe en su caja',
+    ])
 })

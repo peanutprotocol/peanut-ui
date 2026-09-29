@@ -1,4 +1,17 @@
-import type { DepositDetailRow, DepositInstructions, DepositRowKey, DepositRowLabels } from './types'
+import type { DepositCorridor, DepositDetailRow, DepositInstructions, DepositRowKey, DepositRowLabels } from './types'
+
+/**
+ * Corridors whose account is credited by key AND reference: the provider
+ * returns a `depositMessage` the payer has to put on every transfer, and a
+ * transfer without it is not matched to the account. Colombian Bre-B is the
+ * one today. The claim step reads this, because no instructions exist yet
+ * there — the details screen reads the instructions themselves.
+ */
+const REFERENCE_CORRIDORS: ReadonlySet<DepositCorridor> = new Set<DepositCorridor>(['BANK_TRANSFER_CO'])
+
+export function corridorNeedsReference(corridor: DepositCorridor): boolean {
+    return REFERENCE_CORRIDORS.has(corridor)
+}
 
 /**
  * How a payer names the rail their bank offers.
@@ -56,6 +69,10 @@ export function instructionRowKeys(
     push('clabe', instructions.clabe)
     push('brCode', instructions.brCode)
     push('breBKey', instructions.breBKey)
+    // the reference the payer types on the transfer — without it the money is
+    // not matched to this account, so it sits with the identifiers, not after
+    // the addresses a payer may skip
+    push('reference', instructions.depositMessage)
     push('bankAddress', instructions.bankAddress)
     // the recipient's address, not the bank's — some payroll and bank forms
     // have a field for it, and without a row here a payer pastes the bank's

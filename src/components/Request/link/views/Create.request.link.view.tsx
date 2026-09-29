@@ -1,5 +1,6 @@
 'use client'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
@@ -8,17 +9,15 @@ import AmountInput from '@/components/Global/AmountInput'
 import { useTranslations } from 'next-intl'
 import { useRef } from 'react'
 import type { AmountInputSides } from '../requestCurrency'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRequestBack } from '@/components/Request/useRequestBack'
 import { BankInstructionsToggle } from './BankInstructionsToggle'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
 import { RequestCurrencyPicker } from './RequestCurrencyPicker'
-import { RequestFulfillmentNotice } from './RequestFulfillmentNotice'
 import { useCreateRequestLink } from './useCreateRequestLink'
+import { RequestCreatedView } from './RequestCreatedView'
 
 export const CreateRequestLinkView = () => {
-    const t = useTranslations('request')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const onBack = useRequestBack()
@@ -47,6 +46,19 @@ export const CreateRequestLinkView = () => {
     // `setSecondaryAmount` last. They are collected here and handed on once,
     // from that last one, so the hook always reads a matching set.
     const sides = useRef<AmountInputSides>({ primary: '', secondary: '', displayed: '' })
+
+    if (requestId && generatedLink) {
+        return (
+            <RequestCreatedView
+                requestId={requestId}
+                generatedLink={generatedLink}
+                requestAmount={requestAmount}
+                currency={currency}
+                bankPayable={bankInstructionsShared}
+                onDone={onBack}
+            />
+        )
+    }
 
     return (
         <PageStack>
@@ -89,13 +101,10 @@ export const CreateRequestLinkView = () => {
                     {...(currency !== 'USD' && {
                         primaryDenomination: { symbol: currency, price: exchangeRate || 1, decimals: 2 },
                         secondaryDenomination: exchangeRate > 0 ? { symbol: 'USD', price: 1, decimals: 2 } : undefined,
+                        // the server stores the USD rounded up to the cent; the line shows that figure
+                        roundSecondaryUp: true,
                     })}
                 />
-
-                {/* only meaningful while the amount is empty (coderabbit #2780) */}
-                {(!requestAmount || Number(requestAmount) === 0) && (
-                    <Callout priority="helper">{t('leaveEmptyHint')}</Callout>
-                )}
 
                 {/* Before a request exists the QR already encodes the profile
                     payment link for the entered amount, so it only stays
@@ -123,24 +132,18 @@ export const CreateRequestLinkView = () => {
                     />
                 )}
 
-                {requestId && <RequestFulfillmentNotice requestId={requestId} bankPayable={bankInstructionsShared} />}
-
                 <CreateRequestLinkCta
                     requestId={requestId}
-                    generatedLink={generatedLink}
                     isCreatingLink={isCreatingLink}
                     isUpdatingRequest={isUpdatingRequest}
-                    requestAmount={requestAmount}
-                    currency={currency}
                     onGenerate={generateLink}
                 />
 
+                {/* a flow-level failure: not tied to one field, so a Callout */}
                 {errorState.showError && (
-                    <div className="text-start">
-                        <label className="text-body-s font-normal text-foreground-error">
-                            {errorState.errorMessage}
-                        </label>
-                    </div>
+                    <Callout priority="error" data-testid="request-create-error">
+                        {errorState.errorMessage}
+                    </Callout>
                 )}
             </PageStack.Center>
         </PageStack>

@@ -610,6 +610,21 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.actionLabelKey).toBe('type.returnedToSender')
             expect(result.status).toBe('refunded')
         })
+
+        it('carries why the bank sent it back to the receipt', () => {
+            const returned = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status: EHistoryStatus.REFUNDED,
+                extraData: {
+                    kind: 'ONRAMP',
+                    provider: 'BRIDGE',
+                    returnReason: { code: 'third_party', text: 'Risk Rejection: Third Party Payment' },
+                },
+            })
+            const result = mapTransactionDataForDrawer(returned).transactionDetails
+            expect(result.extraDataForDrawer?.returnReasonCode).toBe('third_party')
+        })
     })
 
     describe('refund credit rows (status + sign + flag)', () => {
@@ -895,6 +910,84 @@ describe('mapTransactionDataForDrawer', () => {
             expect(deposit().extraDataForDrawer?.senderReference).toBeUndefined()
             expect(deposit('   ').extraDataForDrawer?.senderReference).toBeUndefined()
         })
+
+        it('is absent when the bank sent a SEPA placeholder instead of a note', () => {
+            expect(deposit('/ROC/NOT PROVIDED').extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('/ROC/').extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('NOTPROVIDED').extraDataForDrawer?.senderReference).toBeUndefined()
+        })
+    })
+
+    describe("payer of a deposit into the user's bank details", () => {
+        // Shapes from peanut-api-ts src/db/history.ts: a deposit-account
+        // deposit has the payer's bank as sender, typed by its rail; the
+        // user's own one-off deposit has their wallet as sender.
+        const deposit = (senderAccount: HistoryEntry['senderAccount']) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+                })
+            ).transactionDetails.extraDataForDrawer
+
+        it('carries the payer name the bank reported', () => {
+            const drawer = deposit({ identifier: '', type: 'sepa', isUser: false, fullName: ' Ana Pérez ' })
+            expect(drawer?.isDepositAccountDeposit).toBe(true)
+            expect(drawer?.payerName).toBe('Ana Pérez')
+        })
+
+        it('is still a deposit-account deposit when the bank sent no name', () => {
+            const drawer = deposit({ identifier: '', type: 'sepa', isUser: false })
+            expect(drawer?.isDepositAccountDeposit).toBe(true)
+            expect(drawer?.payerName).toBeUndefined()
+        })
+
+        it('is not one for a Manteca deposit, whose sender is also a bank account', () => {
+            // peanut-api-ts src/manteca/history.ts: the user's own CBU transfer.
+            const drawer = mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { identifier: 'Manteca Deposit', type: 'BANK_CBU', isUser: false },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'MANTECA' },
+                })
+            ).transactionDetails.extraDataForDrawer
+            expect(drawer?.isDepositAccountDeposit).toBeUndefined()
+            expect(drawer?.payerName).toBeUndefined()
+        })
+
+        it("is not one when the sender is the user's own wallet or an address", () => {
+            expect(
+                deposit({ identifier: '0xabc', type: 'peanut-wallet', isUser: true })?.isDepositAccountDeposit
+            ).toBeUndefined()
+            expect(
+                deposit({ identifier: '0xabc', type: 'evm-address', isUser: false })?.isDepositAccountDeposit
+            ).toBeUndefined()
+        })
+    })
+
+    describe('payment reference on a bank withdrawal', () => {
+        // The API key is `extraData.paymentReference` (peanut-api-ts
+        // `src/db/history.ts`). An earlier attempt read `payoutReference` and
+        // therefore rendered nothing — this test pins the real key.
+        const withdraw = (paymentReference?: string | null) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', paymentReference },
+                })
+            ).transactionDetails
+
+        it('reaches the drawer trimmed', () => {
+            expect(withdraw('  hello world ').extraDataForDrawer?.paymentReference).toBe('hello world')
+        })
+
+        it('is absent when the API sends none or blank — an older API, or a rail that takes none', () => {
+            expect(withdraw().extraDataForDrawer?.paymentReference).toBeUndefined()
+            expect(withdraw('   ').extraDataForDrawer?.paymentReference).toBeUndefined()
+        })
     })
 
     describe('Bridge wire status (QA ledger AL6: deposit stuck on "Processing")', () => {
@@ -950,5 +1043,47 @@ describe('mapTransactionDataForDrawer', () => {
         it('an unknown word with no terminal stamp stays processing', () => {
             expect(bridgeDeposit('SOMETHING_NEW').status).toBe('processing')
         })
+    })
+})
+
+describe('a wire fee is its own receipt line (TASK-23054)', () => {
+    const usAccount: Account = { identifier: '123456780', type: 'US', isUser: false }
+    // the backend states the bank amount (currency.amount): final_amount, or
+    // its payout helper before then
+    const withdrawal = (extraData: Record<string, unknown>) =>
+        mapTransactionDataForDrawer(
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: usAccount,
+                currency: { amount: '80.00', code: 'USD' },
+                extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', ...extraData },
+            })
+        ).transactionDetails
+
+    it("carries the fee and the backend's bank amount, not a subtraction of its own", () => {
+        const details = withdrawal({ payoutFeeUsd: 20 })
+        expect(details.fee).toBe(20)
+        expect(details.payoutReceivedUsd).toBe(80)
+    })
+
+    it('states no bank amount when the backend gives none in dollars', () => {
+        const details = mapTransactionDataForDrawer(
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: usAccount,
+                currency: { amount: '', code: '' },
+                extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20 },
+            })
+        ).transactionDetails
+        expect(details.fee).toBe(20)
+        expect(details.payoutReceivedUsd).toBeUndefined()
+    })
+
+    it('a free payout keeps the convention: no fee line, nothing received to state', () => {
+        for (const payoutFeeUsd of [undefined, null, 0]) {
+            const details = withdrawal({ payoutFeeUsd })
+            expect(details.fee).toBeUndefined()
+            expect(details.payoutReceivedUsd).toBeUndefined()
+        }
     })
 })

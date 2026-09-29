@@ -1,7 +1,11 @@
 # Versioned screen library
 
 The library combines two complementary sources. The app-state catalogue captures
-deterministic synthetic states at 393×852 in every supported locale. Nutcracker
+deterministic synthetic states at 393×852 in every supported locale. Each capture
+profile declares its platform, mobile user agent, cutout and safe-area insets; the
+same metadata drives the gallery's matching device frame. Legacy reports without
+that metadata use a neutral viewport frame with no simulated hardware overlays.
+Nutcracker
 adds English screenshots from real Peanut backend journeys, provider sandboxes,
 Arbitrum Sepolia and an isolated Postgres database. Synthetic captures remain the
 complete visual baseline; Nutcracker supplies integration evidence for the subset
@@ -71,6 +75,18 @@ Hosted links use `/collections/<immutable-id>/` and keep the selected locale in
 the URL. The manifest may change from queued to complete while focused capture
 runs; after completion its ordered content and assets are stable.
 
+To review the same custom selection **before and after two code revisions** through
+MCP, first use `list_comparisons` to find a published comparison (optionally
+filtering by exact before/after commit). Then call `compare_collection` with the
+existing collection ID and the returned comparison path. Its URL opens the
+collection in ordered, side-by-side Before/After mode, including unchanged
+screens and per-screen notes. The link pins one comparison report and locale;
+filters and screen anchors remain shareable. Screens absent from that report
+remain visible as unavailable rather than silently disappearing. The comparison
+must already be published; these tools do not start a capture of arbitrary
+historical revisions. The normal collection link still shows its original
+single-revision screenshots.
+
 ### Collection and MCP services
 
 The deployment has three deliberately separate Workers:
@@ -80,8 +96,9 @@ The deployment has three deliberately separate Workers:
    searches the latest complete catalogues, writes collection manifests, and
    dispatches the focused GitHub Actions workflow when an asset is missing.
 3. `peanut-screen-library-mcp` is a stateless Streamable HTTP MCP endpoint at
-   `/mcp`. Its four tools (`search_screens`, `create_collection`,
-   `get_collection_status`, and `capture_missing_states`) call the collection
+   `/mcp`. Its six tools (`search_screens`, `create_collection`,
+   `get_collection_status`, `capture_missing_states`, `list_comparisons`, and
+   `compare_collection`) call the collection
    Worker through a Cloudflare service binding. MCP never receives R2 or GitHub
    credentials.
 
@@ -189,9 +206,8 @@ new screens. Build each revision with its own lockfile and content commit.
 ## Private deployment
 
 The gallery deploys independently to Cloudflare Workers from the trusted
-publisher workflow after a successful dev publication. This ordering completes
-any historical private-asset migration before new viewer or Worker code can go
-live. No Next.js build or Vercel deployment is involved. Worker Static Assets
+publisher workflow after a successful dev publication and index refresh. No
+Next.js build or Vercel deployment is involved. Worker Static Assets
 serves the viewer; only `/screen-data/*` invokes the read-only R2 handler.
 The R2 bucket remains private. Cloudflare Access protects `/screens/*` and
 `/screen-data/*`; the public root is a sign-in shell that shows a blurred gallery
@@ -212,9 +228,7 @@ DevOps setup:
 2. Create two Cloudflare API tokens with separate values, both stored under the
    standard `CLOUDFLARE_API_TOKEN` name at different GitHub scopes:
    - a publisher token with Workers R2 Storage Edit scoped to this gallery's R2
-     bucket. Until the first private publication has migrated every retained
-     report, also keep Images Edit so it can remove the old public Hosted Images
-     objects. Save it as the repository `CLOUDFLARE_API_TOKEN` secret. The
+     bucket. Save it as the repository `CLOUDFLARE_API_TOKEN` secret. The
      reusable workflow retains its historical `CLOUDFLARE_PUBLISH_TOKEN` input
      only at the workflow boundary; the publisher process receives the standard
      variable name and never receives Workers Scripts Edit.
@@ -251,14 +265,11 @@ DevOps setup:
 The existing Vercel app preview workflow remains independent. Neither the Blob
 secret nor `SCREEN_LIBRARY_STORE_URL` is used by the gallery anymore.
 
-Before publishing a new report, the trusted publisher scans retained manifests
-for legacy Cloudflare Images URL maps. It verifies each report against its
-trusted offline archive, restores every content-addressed image to private R2,
-deletes the corresponding public Hosted Images objects, and only then rewrites
-the manifest without those URLs. A failed deletion leaves the old manifest in
-place so the next run can retry; publication fails instead of declaring the
-migration complete. After one successful run reports that all retained reports
-were migrated, Images Edit can be removed from the publisher token.
+Hosted Images is not part of the current storage path. Normal publication never
+deletes retained objects or scans historical reports for migration work. It lists
+existing content-addressed R2 assets once, shares duplicate conversions, uploads
+only missing hashes, commits every report and entry, then performs one shared
+index refresh for the run.
 
 Only the separate trusted publisher receives the storage write credential. The
 publisher accepts hashes and validated JSON plus exact PNG capture inputs; no
@@ -296,6 +307,12 @@ boundary; there is no shorter wall-clock cutoff during quiet periods. If the
 baseline is unavailable or the capture harness changed, publication fails
 closed instead of comparing against an arbitrary revision; run the baseline
 workflow manually after enabling it.
+
+The four-viewport baseline publisher requires all 16 locale and viewport
+artifacts from one run attempt. If a capture leg fails, choose **Re-run all
+jobs** in GitHub Actions. Re-running only failed jobs leaves the successful
+artifacts under the earlier attempt and cannot pass the publisher's matrix
+check.
 
 `Publish screen library` is a reusable `workflow_call` job invoked after the
 capture jobs finish. The caller resolves the reusable workflow from `dev`, and
@@ -354,8 +371,10 @@ Current bank journeys use `/add-money/[country]/bank`. QR captures distinguish
 permission denial from an unobstructed scanner using a stationary synthetic
 camera frame; the capture runner never opens a real camera.
 
-The publisher uses GitHub's `queue: max` so pending publications do not replace
-one another (up to 100 queued runs; see [GitHub concurrency documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#example-queueing-multiple-pending-runs)).
+Immutable report and asset uploads may run concurrently. Only the short
+`index.json` and `latest.json` refresh uses GitHub's `queue: max`, so one run
+cannot overwrite another run's catalogue pointers while large uploads no longer
+block unrelated PRs (see [GitHub concurrency documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#example-queueing-multiple-pending-runs)).
 When GitHub omits the event PR list, publication binds to the unique open
 same-repository PR matching the run's branch and head. If no original base
 snapshot is available, a changed merge base requires a rerun.

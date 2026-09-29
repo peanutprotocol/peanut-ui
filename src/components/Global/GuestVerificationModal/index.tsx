@@ -44,7 +44,7 @@ export const GuestVerificationModal = ({
                             const { inviteLink } = generateInviteCodeLink(inviterUsername)
                             router.push(inviteLink)
                         } else if (redirectToVerification) {
-                            router.push('/setup?redirect_uri=/profile/accounts-and-payments')
+                            router.push('/setup?redirect_uri=/profile/accounts')
                             return
                         } else {
                             router.push('/setup')
@@ -53,7 +53,7 @@ export const GuestVerificationModal = ({
                 },
                 {
                     text: secondaryCtaLabel,
-                    variant: 'stroke',
+                    variant: 'secondary',
                     className: 'w-full',
                     onClick: () => {
                         onClose()

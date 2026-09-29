@@ -144,6 +144,9 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
                         completion([])
                         return
                     }
+                    // Keep the device filter in the request consistent with the
+                    // eligibility check, even if the SDK omitted it from config.
+                    configuration.primaryAccountIdentifier = identifier
                 }
 
                 if let name = provisioningData.cardholderName, !name.isEmpty {

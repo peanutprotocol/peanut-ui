@@ -48,11 +48,11 @@ export default function CeremonyLogPage() {
         >
             <div className="flex flex-wrap gap-2">
                 <Button onClick={refresh}>Refresh</Button>
-                <Button variant="stroke" onClick={copy}>
+                <Button variant="secondary" onClick={copy}>
                     {copied ? 'Copied' : 'Copy JSON'}
                 </Button>
                 <Button
-                    variant="stroke"
+                    variant="secondary"
                     onClick={() => {
                         clearCeremonyLog()
                         refresh()

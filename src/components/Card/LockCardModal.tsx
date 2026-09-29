@@ -166,24 +166,10 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                               loading: phase === 'loading',
                               disabled: phase === 'loading',
                           },
-                          {
-                              text: tCommon('cancel'),
-                              variant: 'stroke',
-                              className: 'w-full',
-                              onClick: onClose,
-                              disabled: phase === 'loading',
-                          },
                       ]
-                    : [
-                          {
-                              text: tCommon('cancel'),
-                              variant: 'stroke',
-                              className: 'w-full',
-                              onClick: onClose,
-                              disabled: phase === 'loading',
-                          },
-                      ]
+                    : undefined
             }
+            tertiaryCta={{ text: tCommon('cancel'), onClick: onClose, disabled: phase === 'loading' }}
         />
     )
 }

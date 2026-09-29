@@ -3,6 +3,21 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isDemoMode } from '@/utils/demo'
 
+/**
+ * The revert error every send path already threw, now carrying proof when —
+ * and ONLY when — the receipt reported `success === false`. A missing or
+ * malformed `success` is not proof: the error is still thrown (unchanged
+ * message and behaviour), just without the flag, so nothing may replay it.
+ */
+export function userOpRevertedError(userOpHash: Hash, receiptSuccess?: boolean): Error {
+    const error = new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+    return receiptSuccess === false ? Object.assign(error, { userOpReverted: true as const }) : error
+}
+
+export function isUserOpRevertedError(error: unknown): boolean {
+    return !!error && typeof error === 'object' && (error as { userOpReverted?: unknown }).userOpReverted === true
+}
+
 /** The slice of a bundler client the rescue needs. */
 export interface UserOpReceiptWaiter {
     waitForUserOperationReceipt(args: {

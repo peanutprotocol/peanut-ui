@@ -34,7 +34,6 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Card/CardFace', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/CancelCardModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/LockCardModal', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Card/EnableCardPaymentsBanner', () => ({ __esModule: true, default: () => null }))
 
 import YourCardScreen from '../YourCardScreen'
 

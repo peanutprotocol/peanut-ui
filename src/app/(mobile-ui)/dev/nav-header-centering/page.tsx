@@ -99,13 +99,7 @@ const TITLE_CASES: TitleCase[] = [
         title: 'More networks',
         // the real trailing control, from Profile: a circle Button in the slot
         rightElement: (
-            <Button
-                variant="transparent"
-                href="/dev"
-                icon="edit"
-                aria-label="Edit"
-                className={NAV_CIRCLE_BUTTON_CLASSES}
-            />
+            <Button variant="ghost" href="/dev" icon="edit" aria-label="Edit" className={NAV_CIRCLE_BUTTON_CLASSES} />
         ),
     },
 ]

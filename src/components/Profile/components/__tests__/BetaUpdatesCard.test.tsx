@@ -43,6 +43,25 @@ it('renders nothing off native, where there is no OTA layer at all', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
 })
 
+it('shows the public release in the beta card while retaining the Capgo ID for support', () => {
+    const previous = process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
+    process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION = '1.6.9'
+    try {
+        setup({
+            status: {
+                channel: 'android-mobile-release',
+                bundleVersion: '1.6.1000-android',
+                deviceId: 'abc-123',
+                onBuiltinBundle: false,
+            },
+        })
+        expect(screen.getByText('1.6.9-a')).toHaveAttribute('title', '1.6.1000-android')
+    } finally {
+        if (previous === undefined) delete process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION
+        else process.env.NEXT_PUBLIC_OTA_DISPLAY_VERSION = previous
+    }
+})
+
 describe('channel switching access', () => {
     it('keeps the join control enabled when the profile refresh has no badge', async () => {
         setup()
@@ -102,14 +121,16 @@ it('confirms the exit when the app did not reload', async () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('released version')))
 })
 
-it('sends dashboard-assigned testers to an admin, since the app cannot unassign them', async () => {
+it('asks support to review a channel assignment that still wins after a local unset', async () => {
     setup({
         isBeta: true,
         status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
         ...switching('left-override'),
     })
     fireEvent.click(screen.getByRole('switch'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Capgo dashboard')))
+    await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('review its channel assignment'))
+    )
 })
 
 it('keeps the switch on when the exit could not be confirmed', async () => {
@@ -119,7 +140,9 @@ it('keeps the switch on when the exit could not be confirmed', async () => {
         ...switching('left-unconfirmed'),
     })
     fireEvent.click(screen.getByRole('switch'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('still on the beta build')))
+    await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('could not confirm the release channel'))
+    )
     expect(screen.getByRole('switch')).toBeChecked()
 })
 

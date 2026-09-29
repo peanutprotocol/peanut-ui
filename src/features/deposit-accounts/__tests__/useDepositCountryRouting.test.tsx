@@ -58,6 +58,7 @@ const ARGENTINA = { id: 'AR', type: 'country', title: 'Argentina', path: 'argent
 const BRAZIL = { id: 'BRA', type: 'country', title: 'Brazil', path: 'brazil', iso2: 'BR', currency: 'BRL' }
 // a euro member whose own bank flow is live — the mock answers for DEU alone
 const GERMANY = { id: 'DEU', type: 'country', title: 'Germany', path: 'germany', iso2: 'DE', currency: 'EUR' }
+const COLOMBIA = { id: 'COL', type: 'country', title: 'Colombia', path: 'colombia', iso2: 'CO', currency: 'COP' }
 const NIGERIA = { id: 'NG', type: 'country', title: 'Nigeria', path: 'nigeria', iso2: 'NG', currency: 'NGN' }
 
 type RoutingArgs = Parameters<typeof useDepositCountryRouting>[0]
@@ -207,5 +208,45 @@ describe('useDepositCountryRouting', () => {
         expect(result.current.isCountrySupported(BRAZIL as any)).toBe(true)
         expect(result.current.isCountrySupported({ ...PORTUGAL, id: 'DEU' } as any)).toBe(true)
         expect(result.current.isCountrySupported(NIGERIA as any)).toBe(false)
+    })
+
+    // Round 12: a Colombian on the general level holds no Colombian rail, and
+    // Colombia has no top-up, so the pick used to fall through to the waitlist.
+    // The backend now offers the corridor ahead of the rail; the claim behind
+    // it answers with the verification that opens it.
+    it('sends Colombia to the peso account the backend offers ahead of a rail', async () => {
+        const updates: UrlUpdateEvent[] = []
+        const claimable = {
+            BANK_TRANSFER_CO: { railId: 'bridge.bank_transfer_co', method: 'BANK_TRANSFER_CO' },
+        } as unknown as NonNullable<RoutingArgs>['claimable']
+        const { result } = renderRouting((e) => updates.push(e), { claimable })
+
+        expect(result.current.isCountrySupported(COLOMBIA as any)).toBe(true)
+        act(() => result.current.openCountry(COLOMBIA as any))
+
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_CO'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('sends Colombia to the peso account for a user who has not verified yet — its screen starts that', async () => {
+        const updates: UrlUpdateEvent[] = []
+        const unavailable = {
+            BANK_TRANSFER_CO: {
+                railId: 'bridge.bank_transfer_co',
+                method: 'BANK_TRANSFER_CO',
+                reason: 'identity-required',
+            },
+        } as unknown as NonNullable<RoutingArgs>['unavailable']
+        const { result } = renderRouting((e) => updates.push(e), { unavailable })
+
+        act(() => result.current.openCountry(COLOMBIA as any))
+
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_CO'))
+    })
+
+    it('still offers the waitlist for Colombia when the backend offers no peso account', () => {
+        const { result } = renderRouting()
+
+        expect(result.current.isCountrySupported(COLOMBIA as any)).toBe(false)
     })
 })

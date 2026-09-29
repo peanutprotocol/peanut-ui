@@ -15,7 +15,19 @@ import en from '@/i18n/app/messages/en.json'
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { parseUnits } from 'viem'
+import { MANTECA_QR_DEPOSIT_ADDRESS_AR } from '@/constants/manteca.consts'
 import type { RailCapability } from '@/types/capabilities'
+import {
+    registerSpendArtifactMeta,
+    SpendRecoveryAbortedError,
+    SpendRecoveryQuoteReviewError,
+} from '@/hooks/wallet/signSpendRetry'
+
+/** Fixtures that intend a LIVE quote: the flow now refuses to sign or submit
+ *  against an expired lock, so a fixed past date would be a different case. */
+const LIVE_QUOTE_EXPIRY = new Date(Date.now() + 10 * 60_000).toISOString()
+/** The time left the API measured for a live quote; the device deadline counts from it. */
+const LIVE_QUOTE_TTL_MS = 10 * 60_000
 
 // Test-local subsets — only the fields the qr-pay page actually reads from each
 // fixture. Mirroring the full RailCapability/CapabilityRestriction types here
@@ -135,9 +147,6 @@ jest.mock('@/hooks/wallet/useSmartSpendPreparation', () => ({
     useSmartSpendPreparation: () => ({ takePreparedSmartSpend: () => null }),
 }))
 
-const mockPerksApi = { claimPerk: jest.fn(), getPendingPerks: jest.fn() }
-jest.mock('@/services/perks', () => ({ perksApi: mockPerksApi }))
-
 jest.mock('@/hooks/wallet/useSpendBundle', () => ({
     InsufficientSpendableError: class extends Error {
         constructor() {
@@ -156,6 +165,11 @@ jest.mock('@/hooks/wallet/useSpendBundle', () => ({
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: () => ({ overview: { balance: { spendingPower: 0 } } }),
 }))
+
+// Only the two calls the controller-recovery path makes (cache repair + the
+// superseded-prep release).
+const mockRainApi = { refreshControllerAddress: jest.fn(), cancelPreparation: jest.fn() }
+jest.mock('@/services/rain', () => ({ rainApi: mockRainApi }))
 
 jest.mock('@/utils/balance.utils', () => ({
     // keep the real isAmountWithinBalance / messages so the gate is genuinely
@@ -638,7 +652,8 @@ function applyDefaults() {
         paymentPrice: '1200',
         paymentAgainstAmount: '10',
         paymentAgainst: 'USD',
-        expireAt: '2026-04-16T23:59:59Z',
+        expireAt: LIVE_QUOTE_EXPIRY,
+        expiresInMs: LIVE_QUOTE_TTL_MS,
         creationTime: '2026-04-16T00:00:00Z',
     })
 
@@ -718,7 +733,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         const modal = screen.getByTestId('action-modal')
         expect(modal).toBeInTheDocument()
         expect(screen.getByText('Unlock QR payments')).toBeInTheDocument()
-        expect(screen.getByText('Unlock now')).toBeInTheDocument()
+        expect(screen.getByText('Verify identity')).toBeInTheDocument()
     })
 
     // Pool QR pay is residence-agnostic, so the offer is legitimate for almost
@@ -731,7 +746,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
         expect(screen.getByText(/doesn't accept documents issued in your country/i)).toBeInTheDocument()
-        expect(screen.queryByText('Unlock now')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
     })
 
     // nothing revokes a pool rail when a later reverification is refused on
@@ -904,7 +919,8 @@ describe('GROUP 2: Payment Form States', () => {
             paymentPrice: '5',
             paymentAgainstAmount: '18.4',
             paymentAgainst: 'USD',
-            expireAt: '2026-04-16T23:59:59Z',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
             ...overrides,
         }
@@ -1083,7 +1099,8 @@ describe('GROUP 3: Processing States', () => {
             paymentPrice: '1200',
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
-            expireAt: '2026-04-16T23:59:59Z',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1127,7 +1144,8 @@ describe('GROUP 3: Processing States', () => {
             paymentPrice: '1200',
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
-            expireAt: '2026-04-16T23:59:59Z',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1202,7 +1220,7 @@ describe('GROUP 4: Success States', () => {
     ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
         await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
         await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
         expect(screen.getByTestId('receipt-status')).toHaveTextContent(receiptStatus)
         expect(screen.queryByText(/You earned/)).not.toBeInTheDocument()
@@ -1216,7 +1234,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
@@ -1295,7 +1313,7 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Perk claimed shows shake class + go home button', async () => {
-        // Make claimPerk fast for test
+        // Fake timers: skip the hold-to-claim gesture timing
         jest.useFakeTimers()
 
         await completeMantecaPayment({
@@ -1332,11 +1350,10 @@ describe('GROUP 4: Success States', () => {
 
     // Regression: the perk is already claimed server-side during QR-payment
     // processing, and the QR response carries the sponsored amount. The
-    // hold-to-claim gesture must report that reward directly — it must NOT make
-    // a second /perks/claim round-trip (that endpoint now requires a usageId the
-    // client never has, so the old call always 400'd and surfaced a false
-    // "reward is being processed" error even though the reward had landed).
-    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+    // hold-to-claim gesture must report that reward directly with no error.
+    // (A second /perks/claim round-trip is structurally impossible now —
+    // perksApi is deleted — so this only asserts the reward path.)
+    test('Perk claim reports the reward from the QR response, no error', async () => {
         jest.useFakeTimers()
 
         // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
@@ -1417,10 +1434,9 @@ describe('GROUP 4: Success States', () => {
         expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
 
         // The reveal talks to no one: the scan init and the completion are the
-        // only Manteca calls, and the legacy /perks/claim round-trip stays dead.
+        // only calls it makes.
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })
@@ -1443,7 +1459,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.getByTestId('success-sound')).toBeInTheDocument()
         expect(screen.getByText('Split this bill')).toBeInTheDocument()
@@ -1458,7 +1474,6 @@ describe('GROUP 4: Success States', () => {
         for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
             expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
         }
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })
@@ -1476,7 +1491,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.getByTestId('success-sound')).toBeInTheDocument()
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
@@ -1495,7 +1510,7 @@ describe('GROUP 4: Success States', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
@@ -1519,7 +1534,8 @@ describe('GROUP 4: Success States', () => {
             paymentPrice: '5',
             paymentAgainstAmount: '18.4',
             paymentAgainst: 'USD',
-            expireAt: '2026-04-16T23:59:59Z',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         })
 
@@ -1553,7 +1569,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         // Savings message should appear for Argentina QR3 payments, via the localized catalog
@@ -1572,7 +1588,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.getByText(message)).toBeInTheDocument()
@@ -1584,7 +1600,7 @@ describe('GROUP 4: Success States', () => {
     const CLAIMED_PERK = { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true }
 
     test.each([
-        ['a plain Manteca success (no perk)', {}, /You paid/],
+        ['a plain Manteca success (no perk)', {}, /Paid to/],
         ['a claimed perk', { perk: CLAIMED_PERK }, 'Go to Home'],
     ] as Array<[string, Record<string, unknown>, RegExp | string]>)(
         'invite row renders on %s',
@@ -1625,7 +1641,7 @@ describe('GROUP 4: Success States', () => {
         await completeMantecaPayment()
 
         await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+            expect(screen.getByText(/Paid to/)).toBeInTheDocument()
         })
 
         expect(screen.queryByText(INVITE_CTA)).not.toBeInTheDocument()
@@ -1668,7 +1684,8 @@ const reconnectLock = {
     paymentPrice: '1000',
     paymentAgainstAmount: '1',
     paymentAgainst: 'USD',
-    expireAt: '2026-04-16T23:59:59Z',
+    expireAt: LIVE_QUOTE_EXPIRY,
+    expiresInMs: LIVE_QUOTE_TTL_MS,
     creationTime: '2026-04-16T00:00:00Z',
 }
 
@@ -1709,6 +1726,348 @@ describe('GROUP 5: Error States', () => {
         }
     )
 
+    /**
+     * A backend-confirmed revert on a broadcast-first mixed artifact created no
+     * order, so the payment is re-signed under the SAME lock. The failed
+     * attempt leaves no user-visible row (the backend records only its internal
+     * funding prep), so nothing about it travels on the replacement.
+     */
+    test('a confirmed revert after a rotation replays once under the same lock with a fresh prep', async () => {
+        const OLD_COORD = `0x${'a'.repeat(40)}`
+        const NEW_COORD = `0x${'b'.repeat(40)}`
+        const mixedArtifact = (prep: string, coordinatorAddress: string) =>
+            registerSpendArtifactMeta(
+                {
+                    strategy: 'mixed' as const,
+                    rainPreparationId: prep,
+                    signedUserOp: {
+                        signedUserOp: { sender: '0x1', nonce: '0x0', callData: '0x', signature: '0x' },
+                        chainId: '42161',
+                        entryPointAddress: '0xentry',
+                    },
+                },
+                { coordinatorAddress, mixedSpendContract: 'broadcast-first-revert-v1' }
+            )
+        mockSignSpend
+            .mockResolvedValueOnce(mixedArtifact('prep-1', OLD_COORD))
+            .mockResolvedValueOnce(mixedArtifact('prep-2', NEW_COORD))
+        mockRainApi.refreshControllerAddress.mockResolvedValue({ coordinatorAddress: NEW_COORD, changed: true })
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValueOnce(
+            Object.assign(new Error('Operation failed'), { name: 'ApiError', status: 500, code: 'USER_OP_REVERTED' })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(2))
+        const firstBody = mockMantecaApi.completeQrPaymentWithSignedTx.mock.calls[0][0]
+        const secondBody = mockMantecaApi.completeQrPaymentWithSignedTx.mock.calls[1][0]
+        // Nothing about the failed attempt travels on the replacement.
+        expect(secondBody.recoveryAttemptId).toBeUndefined()
+        // Same payment lock, fresh preparation.
+        expect(secondBody.paymentLockCode).toBe(firstBody.paymentLockCode)
+        expect(firstBody.paymentLockCode).toBe('LOCK123')
+        expect(firstBody.rainPreparationId).toBe('prep-1')
+        expect(secondBody.rainPreparationId).toBe('prep-2')
+        // The replacement is signed for the SAME money and the SAME recipient —
+        // only the preparation behind it is new.
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+        const [firstSignInput] = mockSignSpend.mock.calls[0]
+        const [secondSignInput] = mockSignSpend.mock.calls[1]
+        expect(firstSignInput).toMatchObject({
+            requiredUsdcAmount: 10_000_000n,
+            recipient: MANTECA_QR_DEPOSIT_ADDRESS_AR,
+            kind: 'QR_PAY',
+        })
+        expect(secondSignInput.requiredUsdcAmount).toBe(firstSignInput.requiredUsdcAmount)
+        expect(secondSignInput.recipient).toBe(firstSignInput.recipient)
+        expect(secondSignInput.kind).toBe(firstSignInput.kind)
+        // Recovered in-flow: no error copy, no stale-approval modal.
+        expect(screen.queryByText(en.qrPay.errors.paymentStatusUnknown)).not.toBeInTheDocument()
+    })
+
+    /**
+     * When the replacement cannot be prepared inside the current lock, the same
+     * payment returns to review with a refreshed quote: no failed screen, no
+     * modal, and nothing submitted until the user taps Pay again.
+     */
+    test('a quote-review recovery REPLACES the lock and waits for an explicit confirmation', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down')))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        const initCallsBefore = mockMantecaApi.initiateQrPayment.mock.calls.length
+        // The replacement quote the recovery mints (queued only now, so the scan
+        // itself still used the original lock).
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+            ...(await mockMantecaApi.initiateQrPayment.mock.results[0].value),
+            code: 'LOCK-REPLACEMENT',
+            paymentPrice: '1250',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        // A NEW quote identity — replaying the scan key would return the lock
+        // that just became unusable — for the same scan and entered amount.
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment.mock.calls.length).toBe(initCallsBefore + 1))
+        const firstInitCall = mockMantecaApi.initiateQrPayment.mock.calls[0][0]
+        const replacementCall = mockMantecaApi.initiateQrPayment.mock.calls[initCallsBefore][0]
+        expect(replacementCall.idempotencyKey).not.toBe(firstInitCall.idempotencyKey)
+        expect(replacementCall.qrCode).toBe(firstInitCall.qrCode)
+        expect(replacementCall.amount).toBe('12000')
+
+        // Nothing submitted; neutral notice; review usable again.
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        await waitFor(() => expect(screen.getByTestId('quote-updated-notice')).toBeInTheDocument())
+        // Neutral copy — the same notice serves a rotation and a plain expiry.
+        expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent(en.qrPay.reviewUpdatedQuote)
+        expect(screen.queryByText(/card was updated/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(en.qrPay.errors.paymentStatusUnknown)).not.toBeInTheDocument()
+        expect(screen.queryByText(en.qrPay.errors.paymentCancelled)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+
+        // Only a SECOND explicit confirmation submits, and it uses the NEW lock.
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1))
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx.mock.calls[0][0].paymentLockCode).toBe('LOCK-REPLACEMENT')
+    })
+
+    test('a known Rain cooldown finishes BEFORE the replacement quote is minted, and Pay stays blocked', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down'), 2))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        // Still inside the cooldown: no replacement quote yet, Pay is blocked.
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        expect(screen.getByTestId('button')).toBeDisabled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        jest.useRealTimers()
+    })
+
+    test('leaving the screen during the cooldown wait requests no replacement quote', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down'), 2))
+
+        const view = renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+
+        // A browser/gesture back never runs the in-app handler — the unmount
+        // itself has to stop the recovery.
+        view.unmount()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        jest.useRealTimers()
+    })
+
+    test('a failed re-quote leaves the user on review, never a failed payment', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down')))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        // Queued only now, so the scan itself still succeeded.
+        mockMantecaApi.initiateQrPayment.mockRejectedValueOnce(new Error('init unavailable'))
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+    })
+
+    /*
+     * The quote bounds every attempt. These run the real handler, not button
+     * state: an expired lock must produce a re-quote and ZERO signing/submission.
+     */
+    test('an already-expired quote re-quotes without signing or submitting', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, expiresInMs: 0 })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        // A plain expiry has nothing to do with a card: the notice stays neutral.
+        expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent(en.qrPay.reviewUpdatedQuote)
+        expect(screen.queryByText(/card was updated/i)).not.toBeInTheDocument()
+    })
+
+    // A phone clock a few minutes fast read Manteca's expireAt as already past and
+    // re-quoted on every tap. The time left our API measured decides (api#1707).
+    test.each([
+        ['a fast device clock, with time left on the lock', { expiresInMs: 120_000 }],
+        ['an API without the time left: no device-side expiry check', { expiresInMs: undefined }],
+    ])('%s: a live lock signs instead of re-quoting', async (_case, ttl) => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+            ...reconnectLock,
+            expireAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+            ...ttl,
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
+
+    test('a signature that finishes AFTER the quote dies submits nothing and re-quotes', async () => {
+        // The lock is live at tap time and dead by the time signing resolves.
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+            ...reconnectLock,
+            expiresInMs: 120,
+        })
+        mockSignSpend.mockImplementationOnce(
+            () => new Promise((resolve) => setTimeout(() => resolve({ strategy: 'smart-only' }), 200))
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+    })
+
+    test('a REPLACEMENT signed after the quote dies is never submitted', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+            ...reconnectLock,
+            expiresInMs: 400,
+        })
+        const mixedArtifact = (prep: string, coordinatorAddress: string) =>
+            registerSpendArtifactMeta(
+                {
+                    strategy: 'mixed' as const,
+                    rainPreparationId: prep,
+                    signedUserOp: {
+                        signedUserOp: { sender: '0x1', nonce: '0x0', callData: '0x', signature: '0x' },
+                        chainId: '42161',
+                        entryPointAddress: '0xentry',
+                    },
+                },
+                { coordinatorAddress, mixedSpendContract: 'broadcast-first-revert-v1' }
+            )
+        mockSignSpend
+            .mockResolvedValueOnce(mixedArtifact('prep-1', `0x${'a'.repeat(40)}`))
+            // The replacement takes long enough that the lock dies first.
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) =>
+                        setTimeout(() => resolve(mixedArtifact('prep-2', `0x${'b'.repeat(40)}`)), 500)
+                    )
+            )
+        mockRainApi.refreshControllerAddress.mockResolvedValue({
+            coordinatorAddress: `0x${'b'.repeat(40)}`,
+            changed: true,
+        })
+        // First submit: definitive no-effect revert → recovery re-signs.
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValueOnce(
+            Object.assign(new Error('Operation failed'), { name: 'ApiError', status: 500, code: 'USER_OP_REVERTED' })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+        // Exactly ONE submission ever happened — the replacement was refused
+        // because its quote had died, and the flow re-quoted instead.
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+    })
+
+    test('after a failed re-quote, Pay retries the QUOTE only — same identity — before it can pay again', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down')))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        // The re-quote fails (uncertain transport), then succeeds on retry.
+        mockMantecaApi.initiateQrPayment.mockRejectedValueOnce(new Error('init unavailable'))
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+
+        // Tap #2 re-fetches the quote ONLY — no signing against the dead lock.
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: 'LOCK-REPLACEMENT' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3))
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+
+        // The retried refresh reuses the SAME replacement identity and amount.
+        const failedCall = mockMantecaApi.initiateQrPayment.mock.calls[1][0]
+        const retryCall = mockMantecaApi.initiateQrPayment.mock.calls[2][0]
+        expect(retryCall.idempotencyKey).toBe(failedCall.idempotencyKey)
+        expect(retryCall.amount).toBe(failedCall.amount)
+
+        // Tap #3 is the explicit confirmation of the fresh terms.
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+    })
+
+    test('a recovery the user dismissed returns to review with no error and no submission', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryAbortedError(new Error('reverted')))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        expect(screen.queryByText(en.qrPay.errors.paymentStatusUnknown)).not.toBeInTheDocument()
+    })
+
     test('a typed pre-broadcast cancellation shows retry guidance without success or merchant blame', async () => {
         mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
             Object.assign(new Error('Cancelled'), { name: 'ApiError', status: 400, code: 'QR_PAYMENT_CANCELLED' })
@@ -1719,7 +2078,7 @@ describe('GROUP 5: Error States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
         await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentCancelled)).toBeInTheDocument())
-        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Paid to/)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
     })
 
@@ -2106,6 +2465,69 @@ describe('GROUP 5: Error States', () => {
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
     }, 20_000)
 
+    // A refused sender id is a support case, not a KYC prompt: the user is
+    // verified, so "finish verifying your identity" would send them in circles.
+    it('routes a refused sender id on its wire code, offers support, and does not retry', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('We could not confirm the ID on your account for this payment. Contact support.'), {
+                name: 'ApiError',
+                status: 422,
+                code: 'MANTECA_SENDER_REJECTED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/couldn't confirm the id on your account/i)).toBeInTheDocument()
+        })
+        expect(screen.queryByText(/verifying your identity/i)).not.toBeInTheDocument()
+        // The copy's only instruction is "contact support", so the card must offer it.
+        expect(screen.getByText('Having trouble?')).toBeInTheDocument()
+
+        // Past the 3 s retry backoff: still one POST.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        jest.useRealTimers()
+    })
+
+    // The same refusal after the user typed an amount on an open-amount QR: the
+    // re-init call site, which classifies at the call rather than through the
+    // scan query.
+    it('a refused sender id at the re-init call site shows the support copy and blocks Pay', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: '' }).mockRejectedValue(
+            Object.assign(new Error('We could not confirm the ID on your account for this payment. Contact support.'), {
+                name: 'ApiError',
+                status: 422,
+                code: 'MANTECA_SENDER_REJECTED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/couldn't confirm the id on your account/i)).toBeInTheDocument()
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(screen.queryByText(/verifying your identity/i)).not.toBeInTheDocument()
+        // Deterministic, and only support can change the outcome: no Sentry
+        // event, and a different amount is no way out, so Pay stays blocked.
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+    }, 20_000)
+
     /*
      * Offline is not an outcome. Under react-query's default networkMode a
      * device that drops mid-retry PAUSES the query — resumable, no fetch in
@@ -2213,7 +2635,8 @@ describe('GROUP 5: Error States', () => {
             paymentPrice: '1000',
             paymentAgainstAmount: '1',
             paymentAgainst: 'USD',
-            expireAt: '2026-04-16T23:59:59Z',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
         }
         mockMantecaApi.initiateQrPayment
@@ -2306,7 +2729,8 @@ describe('GROUP: Entity deposit recipient wiring', () => {
             paymentPrice: '1200',
             paymentAgainstAmount: '10',
             paymentAgainst: 'USD',
-            expireAt: '2026-04-16T23:59:59Z',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
             creationTime: '2026-04-16T00:00:00Z',
             ...lockExtra,
         })

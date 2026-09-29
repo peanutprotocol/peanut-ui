@@ -66,7 +66,6 @@ export type MantecaBankCode = {
 }
 
 type MantecaCountryConfig = {
-    accountNumberLabel: string
     depositAddressLabel: string
 } & (
     | {
@@ -90,20 +89,17 @@ type MantecaCountryConfig = {
  */
 export const MANTECA_COUNTRIES_CONFIG: Record<string, MantecaCountryConfig> = {
     AR: {
-        accountNumberLabel: 'CBU, CVU or Alias',
         depositAddressLabel: 'CBU',
         needsBankCode: false,
         needsAccountType: false,
     },
     BR: {
-        accountNumberLabel: 'PIX Key (Include +55 in case of phone number)',
-        depositAddressLabel: 'PIX Key',
+        depositAddressLabel: 'Pix key',
         needsBankCode: false,
         needsAccountType: false,
     },
     BO: {
-        accountNumberLabel: 'Account Number',
-        depositAddressLabel: 'Deposit Address',
+        depositAddressLabel: 'Deposit address',
         needsBankCode: true,
         needsAccountType: true,
         validAccountTypes: [MantecaAccountType.CHECKING, MantecaAccountType.SAVINGS],

@@ -39,7 +39,7 @@ jest.mock('@/components/Global/IframeWrapper', () => ({
 
 const openTos = async () => {
     await act(async () => {
-        screen.getByRole('button', { name: 'Accept Terms' }).click()
+        screen.getByRole('button', { name: 'Accept terms' }).click()
     })
 }
 

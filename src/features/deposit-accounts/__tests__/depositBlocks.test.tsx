@@ -7,7 +7,7 @@
  * on the screen behind the row rather than on the row — the row stays
  * tappable, because the tap is what asks for the review in the first place.
  */
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -15,6 +15,7 @@ import { depositGateView } from '../depositGate'
 import { resolveScreen } from '../resolveScreen'
 import { DEPOSIT_RAILS, corridorRecord, emptyCorridorRecord } from '../rails'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
+import { tapGateButton } from '../__fixtures__/gateDrawer'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
 import type { EndorsementReview } from '../useEndorsementReview'
 import type { GateState } from '@/utils/capability-gate'
@@ -172,9 +173,9 @@ describe('the screen a blocked corridor lands on', () => {
         // names — a genuinely-held account elsewhere — so the cap screen is true.
         const props = flowProps('account-limit', true)
         render(flow(props))
-        expect(screen.getByText('You already have 1 account')).toBeInTheDocument()
+        expect(screen.getByText('1 account already open')).toBeInTheDocument()
         expect(screen.getByText(GATE.limitBody)).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-account-limit'))
+        tapGateButton(screen.getByTestId('corridor-gate-account-limit'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
         // Support is the answer, never the identity flow: verifying again
         // cannot open a third account.
@@ -198,17 +199,21 @@ describe('the screen a blocked corridor lands on', () => {
             const buttons = screen.getAllByRole('button')
             const topUp = screen.getByTestId('corridor-gate-top-up')
             const support = screen.getByTestId('corridor-gate-account-limit')
-            expect(topUp).toHaveTextContent('Send from your own bank')
+            expect(topUp).toHaveTextContent('Add money from a bank')
             // the leading button is first in the DOM, so screen order and tab
             // order say the same thing
             expect(buttons.indexOf(topUp)).toBeLessThan(buttons.indexOf(support))
+            // support is the escape, not a second way in: the tertiary
+            // LinkButton, never a stroke Button beside the primary
+            expect(support).toHaveClass('underline')
+            expect(topUp).not.toHaveClass('underline')
         })
 
         it('takes the user to that transfer, not to support', () => {
             const props = capped()
             render(flow(props))
 
-            fireEvent.click(screen.getByTestId('corridor-gate-top-up'))
+            tapGateButton(screen.getByTestId('corridor-gate-top-up'))
             expect(props.onTopUp).toHaveBeenCalledWith(CORRIDOR)
             expect(props.onContactSupport).not.toHaveBeenCalled()
         })
@@ -223,7 +228,7 @@ describe('the screen a blocked corridor lands on', () => {
         it('keeps support reachable, one tap away', () => {
             const props = capped()
             render(flow(props))
-            fireEvent.click(screen.getByTestId('corridor-gate-account-limit'))
+            tapGateButton(screen.getByTestId('corridor-gate-account-limit'))
             expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
         })
 
@@ -263,9 +268,9 @@ describe('the screen a blocked corridor lands on', () => {
         const props = flowProps('account-limit')
         render(flow(props))
         expect(screen.queryByText(GATE.limitBody)).not.toBeInTheDocument()
-        expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.blockedTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         expect(screen.queryByTestId('corridor-gate-account-limit')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-support'))
+        tapGateButton(screen.getByTestId('corridor-gate-support'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
         expect(props.onResolveGate).not.toHaveBeenCalled()
     })
@@ -278,7 +283,7 @@ describe('the screen a blocked corridor lands on', () => {
 
     it('states the number of accounts the user holds, not a default', () => {
         render(flow({ ...flowProps('account-limit', true), slotsHeld: 3 }))
-        expect(screen.getByText('You already have 3 accounts')).toBeInTheDocument()
+        expect(screen.getByText('3 accounts already open')).toBeInTheDocument()
     })
 
     describe('a review that waits on a verified user', () => {
@@ -287,11 +292,11 @@ describe('the screen a blocked corridor lands on', () => {
         it('opens the provider page for this corridor, and never identity verification', () => {
             const props = flowProps('endorsement-required', false, PENDING)
             render(flow(props))
-            expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.finishReviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
             expect(screen.getByText(GATE.finishReviewBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
             expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
-            expect(screen.queryByText(GATE.waitTitle)).not.toBeInTheDocument()
-            fireEvent.click(screen.getByTestId('corridor-gate-finish-review'))
+            expect(screen.queryByText(GATE.waitTitle.replace('{currency}', 'EUR'))).not.toBeInTheDocument()
+            tapGateButton(screen.getByTestId('corridor-gate-finish-review'))
             expect(props.review?.start).toHaveBeenCalledWith(CORRIDOR)
             expect(props.onResolveGate).not.toHaveBeenCalled()
         })
@@ -302,9 +307,9 @@ describe('the screen a blocked corridor lands on', () => {
         ])('says what is needed and offers support when %s', (_, review) => {
             const props = { ...flowProps('endorsement-required', false, PENDING), review: review() }
             render(flow(props))
-            expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.finishReviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
             expect(screen.getByText(GATE.finishReviewSupportBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
-            fireEvent.click(screen.getByTestId('corridor-gate-finish-review-support'))
+            tapGateButton(screen.getByTestId('corridor-gate-finish-review-support'))
             expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'review')
             expect(props.onResolveGate).not.toHaveBeenCalled()
         })
@@ -342,30 +347,30 @@ describe('the screen a blocked corridor lands on', () => {
             const props = flowProps('endorsement-required', false, { kind: 'needs-identity' })
             render(flow(props))
             expect(screen.getByText(GATE.verifyTitle)).toBeInTheDocument()
-            fireEvent.click(screen.getByTestId('corridor-gate-verify'))
+            tapGateButton(screen.getByTestId('corridor-gate-verify'))
             expect(props.onResolveGate).toHaveBeenCalledTimes(1)
             expect(props.review?.start).not.toHaveBeenCalled()
         })
 
         it('keeps the under-review wait for a review the provider is still running', () => {
             render(flow(flowProps('endorsement-pending', false, PENDING)))
-            expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.reviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         })
     })
 
     it('waits while the review runs, with nothing for the user to press but back', () => {
         const props = flowProps('endorsement-pending')
         render(flow(props))
-        expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.reviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         expect(screen.getByText(GATE.reviewBody)).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-pending-review'))
+        tapGateButton(screen.getByTestId('corridor-gate-pending-review'))
         expect(props.onResolveGate).not.toHaveBeenCalled()
         expect(props.onContactSupport).not.toHaveBeenCalled()
     })
 
     it('continues into the claim by itself once the review clears', () => {
         const { rerender } = render(flow(flowProps('endorsement-pending')))
-        expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.reviewTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         // The preview stops saying it is blocked, and the flow moves on with no
         // tap: the user is watching this screen while the provider answers.
         rerender(flow(flowProps()))
@@ -398,9 +403,9 @@ describe('the screen behind a corridor the backend withheld', () => {
     it('support-required: offers a person, and never a verification run', () => {
         const props = withheldProps('support-required')
         render(flow(props))
-        expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
+        expect(screen.getByText(GATE.blockedTitle.replace('{currency}', 'EUR'))).toBeInTheDocument()
         expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-support'))
+        tapGateButton(screen.getByTestId('corridor-gate-support'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
         expect(props.onResolveGate).not.toHaveBeenCalled()
     })
@@ -409,7 +414,7 @@ describe('the screen behind a corridor the backend withheld', () => {
         const props = withheldProps('identity-required')
         render(flow(props))
         expect(screen.getByText(GATE.verifyTitle)).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('corridor-gate-verify'))
+        tapGateButton(screen.getByTestId('corridor-gate-verify'))
         expect(props.onResolveGate).toHaveBeenCalledTimes(1)
         expect(props.onContactSupport).not.toHaveBeenCalled()
     })

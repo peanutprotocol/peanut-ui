@@ -370,6 +370,7 @@ export interface paths {
                                 name: string;
                                 publicDescription: string;
                             } & {
+                                earnable: boolean;
                                 unlock: {
                                     /** @enum {string} */
                                     kind: "invites";
@@ -811,6 +812,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bridge/guest-claim/external-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a bank account for a guest send-link claim
+         * @description Creates the external account on the send-link sender's Bridge customer. Authorized by a signature from the link key; the response never names the customer.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "api-key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        accountCategory?: string;
+                        accountNumber: string;
+                        accountOwnerName: {
+                            businessName?: string;
+                            firstName?: string;
+                            lastName?: string;
+                        };
+                        accountOwnerType: "business" | "individual";
+                        accountType: "iban" | "us" | "clabe" | "gb" | "co_bank_transfer";
+                        address?: {
+                            city: string;
+                            country: string;
+                            postalCode: string;
+                            state?: string;
+                            street: string;
+                        };
+                        bankCode?: string;
+                        bic?: string;
+                        country: string;
+                        documentNumber?: string;
+                        documentType?: string;
+                        phoneNumber?: string;
+                        reuseOnError?: boolean;
+                        routingNumber?: string;
+                        sendLinkPubKey: string;
+                        signature: string;
+                        sortCode?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bridge/offramp/create": {
         parameters: {
             query?: never;
@@ -879,7 +951,19 @@ export interface paths {
                                 blockchainMemo?: string;
                                 toAddress: string;
                             };
+                            intentId: string;
                             transferId: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -923,8 +1007,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Initiate an off-ramp transfer for a guest
-         * @description This endpoint initiates a new off-ramp transfer for a guest user. It uses the configured off-ramp provider (e.g., Bridge) to create a transfer and returns deposit instructions for the user. This is intended for server-to-server use where the user is not authenticated.
+         * Claim a send link to a bank account as a guest
+         * @description Creates the Bridge off-ramp for a guest send-link claim, under the link sender's Bridge customer, and returns the deposit instructions the link is claimed to. Authorized by a signature from the link key. One payout per link: a repeat claim to the same account returns the same transfer.
          */
         post: {
             parameters: {
@@ -938,7 +1022,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        amount?: string;
+                        amount: string;
                         beneficiaryAddress?: {
                             city: string;
                             country: string;
@@ -946,7 +1030,7 @@ export interface paths {
                             state?: string;
                             street: string;
                         };
-                        beneficiaryName?: string;
+                        beneficiaryName: string;
                         destination: {
                             achReference?: string;
                             coBankTransferReference?: string;
@@ -959,13 +1043,13 @@ export interface paths {
                             wireMessage?: string;
                         };
                         provider?: string;
-                        sendLinkPubKey?: string;
+                        sendLinkPubKey: string;
+                        signature: string;
                         source: {
                             currency: "usdc" | "eurc" | "usdt" | "dai";
                             fromAddress?: string;
                             paymentRail: "ethereum" | "polygon" | "base" | "optimism" | "solana" | "stellar" | "arbitrum" | "avalance_c_chain";
                         };
-                        userId: string;
                     };
                 };
             };
@@ -999,13 +1083,28 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
-                401: {
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            code?: string;
                             error: string;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1016,23 +1115,121 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
                 /** @description Default Response */
-                503: {
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bridge/offramp/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quote the USDC for a withdrawal typed in the destination currency */
+        get: {
+            parameters: {
+                query: {
+                    destinationCurrency: "eur" | "gbp" | "mxn" | "cop";
+                    destinationAmount?: string;
+                    sourceAmount?: string;
+                };
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            destinationAmount?: string;
+                            destinationCurrency: string;
+                            rate: string;
+                            sourceAmount?: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bridge/offramp/rail-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rails a USD bank payout may use, and the fee for each */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            currency: "USD";
+                            minimumAfterFeeUsd: string;
+                            rails: {
+                                feeUsd: string;
+                                rail: "ach" | "ach_same_day" | "wire";
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1101,6 +1298,7 @@ export interface paths {
                                 reference?: string;
                                 sortCode?: string;
                             };
+                            flexibleAmount: boolean;
                             transferId: string;
                         };
                     };
@@ -2076,6 +2274,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description Fiat the simulated payer sent, when it differs from the quote. Flexible-amount top-ups only. */
+                        depositedAmount?: string;
                         developerFee?: string;
                         exchangeRate?: number;
                         /** @description Either a TransactionIntent.id or a Bridge transfer id. */
@@ -5761,6 +5961,7 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
+                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
                         };
                     };
@@ -6019,6 +6220,7 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
+                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
                         };
                     };
@@ -6780,6 +6982,7 @@ export interface paths {
                             cards: {
                                 expiryMonth: number;
                                 expiryYear: number;
+                                hasStoredWithdrawApproval: boolean;
                                 hasWithdrawApproval: boolean;
                                 id: string;
                                 issuedAt: string;
@@ -6953,6 +7156,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rain/cards/controller/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            changed: boolean;
+                            coordinatorAddress: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rain/cards/funding": {
         parameters: {
             query?: never;
@@ -6978,7 +7259,25 @@ export interface paths {
                         "application/json": {
                             allowance: string;
                             chainId: string;
+                            management: {
+                                migration: {
+                                    invalidateNonceFloor: number;
+                                    uninstall: {
+                                        deinitData: string;
+                                        validationId: string;
+                                    }[];
+                                } | null;
+                                reason: string | null;
+                                status: "required" | "migration_required" | "pending" | "ready" | "temporarily_unavailable";
+                            };
                             operatorAddress: string;
+                            permission: {
+                                authorizationText: string;
+                                ceiling: string;
+                                scopeVersion: number;
+                                termsVersion: string;
+                            };
+                            sessionKeyAddress: string;
                             tokenAddress: string;
                             walletAddress: string;
                         };
@@ -7008,10 +7307,140 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
             };
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/funding/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        consent: {
+                            authorizationText: string;
+                            managementAccepted: boolean;
+                            termsVersion: string;
+                        };
+                        serializedPermission: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            allowance: string;
+                            chainId: string;
+                            management: {
+                                migration: {
+                                    invalidateNonceFloor: number;
+                                    uninstall: {
+                                        deinitData: string;
+                                        validationId: string;
+                                    }[];
+                                } | null;
+                                reason: string | null;
+                                status: "required" | "migration_required" | "pending" | "ready" | "temporarily_unavailable";
+                            };
+                            operatorAddress: string;
+                            permission: {
+                                authorizationText: string;
+                                ceiling: string;
+                                scopeVersion: number;
+                                termsVersion: string;
+                            };
+                            sessionKeyAddress: string;
+                            tokenAddress: string;
+                            walletAddress: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -7363,6 +7792,8 @@ export interface paths {
                         amount: string;
                         chargeId?: string;
                         directTransfer: boolean;
+                        /** Format: uuid */
+                        fundsIntentId?: string;
                         recipientAddress: string;
                         totalAmountCents?: string;
                     };
@@ -7766,6 +8197,7 @@ export interface paths {
                         executorSignature: string;
                         expiresAt: number;
                         preparationId: string;
+                        preparedCoordinatorAddress?: string;
                         recipientAddress: string;
                     };
                 };
@@ -7813,7 +8245,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            code?: "STALE_CARD_APPROVAL" | "WITHDRAWAL_PENDING_CONFIRMATION";
+                            code?: "STALE_CARD_APPROVAL" | "WITHDRAWAL_PENDING_CONFIRMATION" | "RAIN_CONTROLLER_CHANGED";
                             error: string;
                         };
                     };
@@ -8002,6 +8434,7 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
+                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
                         };
                     };
@@ -8270,6 +8703,7 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
+                            preparedCoordinatorAddress?: string;
                             recipientAddress: string;
                         };
                     };
@@ -9292,7 +9726,7 @@ export interface paths {
                                     sortCode?: string;
                                 };
                                 matching: {
-                                    nameOnAccount: "user" | "provider";
+                                    nameOnAccount: "user" | "provider" | "unknown";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
@@ -10193,39 +10627,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/test-error": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/tokens/price": {
         parameters: {
             query?: never;
@@ -10383,7 +10784,6 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
-                        offrampHandle?: string;
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
@@ -10447,6 +10847,7 @@ export interface paths {
                             /** @enum {string} */
                             code: "RESIDENCE_CHANGE_UNAVAILABLE";
                             error: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -10786,7 +11187,7 @@ export interface paths {
                                     currency?: string;
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -10806,6 +11207,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -10824,7 +11227,7 @@ export interface paths {
                                             currency?: string;
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -11204,7 +11607,7 @@ export interface paths {
                                 };
                                 isPrimary: boolean;
                                 matching: {
-                                    nameOnAccount: "user" | "provider";
+                                    nameOnAccount: "user" | "provider" | "unknown";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
@@ -11247,6 +11650,7 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
+                                cause?: "review-action" | "review-pending" | "review-closed" | "residence-restricted" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;
@@ -11315,7 +11719,7 @@ export interface paths {
                                 };
                                 isPrimary: boolean;
                                 matching: {
-                                    nameOnAccount: "user" | "provider";
+                                    nameOnAccount: "user" | "provider" | "unknown";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
@@ -11357,7 +11761,17 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
-                            outcome: "opened" | "endorsement_pending" | "endorsement_required";
+                            nextAction?: {
+                                currency?: string;
+                                effectiveDate?: string;
+                                key: string;
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                levelKey?: string;
+                                purpose: string;
+                                requirementKey?: string;
+                                tosUrl?: string;
+                            };
+                            outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
                                 issues: string[];
                                 missing: string[];
@@ -11387,6 +11801,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -11745,6 +12160,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/identity/session-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        generation: number;
+                        /** Format: uuid */
+                        sessionId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/identity/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/increase-limits": {
         parameters: {
             query?: never;
@@ -11912,6 +12403,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        correctSession?: boolean;
                         /** @description A capability nextAction key */
                         key: string;
                     };
@@ -11927,6 +12419,15 @@ export interface paths {
                         "application/json": {
                             externalActionId?: string;
                             levelName?: string;
+                            session?: {
+                                externalActionId: string;
+                                generation: number;
+                                id: string;
+                                isMultiLevel: boolean;
+                                reasonCode: string | null;
+                                state: string;
+                                targetCountry: string;
+                            };
                             sumsubAccessToken?: string;
                             verificationUrl?: string;
                         };
@@ -12041,7 +12542,7 @@ export interface paths {
                                     currency?: string;
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -12061,6 +12562,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -12079,7 +12582,7 @@ export interface paths {
                                             currency?: string;
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -12095,6 +12598,9 @@ export interface paths {
                                     userMessage: string;
                                 }[];
                             };
+                            depositAccounts: {
+                                enabled: boolean;
+                            };
                             identityVerification: {
                                 actionMessage?: string;
                                 canRetry?: boolean;
@@ -12104,6 +12610,7 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
+                                reviewPending?: boolean;
                                 reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
@@ -12347,6 +12854,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12360,6 +12868,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12373,6 +12882,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12792,6 +13302,7 @@ export interface paths {
                             avatarKey: string | null;
                             canReceiveBankOfframp: boolean;
                             fullName: string | null;
+                            guestBankClaimEnabled: boolean;
                             isVerified: boolean;
                             showFullName: boolean;
                             userId: string;

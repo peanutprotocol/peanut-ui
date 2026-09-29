@@ -8,7 +8,7 @@
  * the raw locale — is what this pins down.
  */
 import React, { type ReactNode } from 'react'
-import { render as rtlRender, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { AppLocale } from '@/i18n/app/config'
 import { deepMerge } from '@/i18n/app/messages'
@@ -76,25 +76,95 @@ describe('CardTermsScreen legal links', () => {
     })
 })
 
-// On the re-issue path Continue opens a passkey prompt for Rain's wallet
-// permission, so the screen must say what that grants before the prompt.
-describe('CardTermsScreen funding notice', () => {
-    const renderNotice = (showFundingNotice?: boolean) =>
-        rtlRender(<CardTermsScreen isUsResident showFundingNotice={showFundingNotice} onAccept={jest.fn()} />, {
+// The managed card funding consent: the original card boxes stay exactly as
+// they were, and two new unchecked boxes follow. Every box is required.
+describe('CardTermsScreen managed funding consent', () => {
+    const AUTHORIZATION = 'I authorize transfers according to the Real-Time Funding Terms.'
+    const renderTerms = (isUsResident: boolean, onAccept = jest.fn()) => {
+        rtlRender(<CardTermsScreen isUsResident={isUsResident} onAccept={onAccept} />, {
             wrapper: ({ children }: { children: ReactNode }) => (
                 <NextIntlClientProvider locale="en" messages={CATALOGS.en as never} timeZone="UTC">
                     {children}
                 </NextIntlClientProvider>
             ),
         })
+        return onAccept
+    }
+    const boxes = () => screen.getAllByRole('checkbox') as HTMLInputElement[]
+    const continueButton = () => screen.getByRole('button', { name: 'Continue' })
 
-    it('explains the Rain permission when the accept step will ask for it', () => {
-        renderNotice(true)
-        expect(screen.getByText(/Approve Rain, our card issuer, to take USDC from your wallet/)).toBeInTheDocument()
+    it('keeps the four international rows, then adds the two new boxes — all unchecked', () => {
+        renderTerms(false)
+        expect(boxes()).toHaveLength(6)
+        expect(boxes().every((box) => !box.checked)).toBe(true)
     })
 
-    it('stays out of a first-time application, which asks for no wallet permission', () => {
-        renderNotice()
-        expect(screen.queryByText(/Approve Rain, our card issuer/)).not.toBeInTheDocument()
+    it('keeps the five US rows, then adds the two new boxes — all unchecked', () => {
+        renderTerms(true)
+        expect(boxes()).toHaveLength(7)
+        expect(boxes().every((box) => !box.checked)).toBe(true)
+    })
+
+    it('shows the exact authorization statement with the terms as a link, and no provider name', () => {
+        renderTerms(false)
+        const statement = screen.getByTestId('funding-authorization-statement')
+        expect(statement).toHaveTextContent(AUTHORIZATION)
+        expect(within(statement).getByRole('button', { name: 'Real-Time Funding Terms' })).toBeInTheDocument()
+        expect(screen.getByText(/our third party provider/)).toBeInTheDocument()
+        expect(document.body.textContent).not.toMatch(/\bRain\b/)
+        expect(document.body.textContent).not.toMatch(/existing/i)
+    })
+
+    it('states the permission plainly: managed, renewed, ongoing, finite at any moment', () => {
+        renderTerms(false)
+        expect(
+            screen.getByText(/Peanut manages how much our third party provider can take from your wallet/)
+        ).toBeInTheDocument()
+        expect(screen.getByText(/renews automatically, including for money you add later/)).toBeInTheDocument()
+        expect(
+            screen.getByText(/The permission stays in place. The amount it allows at any one time is limited./)
+        ).toBeInTheDocument()
+        // no promise about a total cap, exclusive access or never signing again
+        expect(document.body.textContent).not.toMatch(/never sign|no one|only \$|total spend|cap on/i)
+    })
+
+    it('keeps Continue off until every box, old and new, is ticked', () => {
+        renderTerms(false)
+        expect(continueButton()).toBeDisabled()
+        // the four original rows alone are not enough
+        boxes()
+            .slice(0, 4)
+            .forEach((box) => fireEvent.click(box))
+        expect(continueButton()).toBeDisabled()
+        fireEvent.click(boxes()[4])
+        expect(continueButton()).toBeDisabled()
+        fireEvent.click(boxes()[5])
+        expect(continueButton()).toBeEnabled()
+    })
+
+    it.each([4, 5])('stays off when only new box %i is left unticked', (skipped) => {
+        renderTerms(false)
+        boxes().forEach((box, index) => index !== skipped && fireEvent.click(box))
+        expect(continueButton()).toBeDisabled()
+    })
+
+    it('hands the ticked consent and the exact statement to the flow', async () => {
+        const onAccept = renderTerms(false)
+        boxes().forEach((box) => fireEvent.click(box))
+        fireEvent.click(continueButton())
+        await waitFor(() =>
+            expect(onAccept).toHaveBeenCalledWith({
+                managementAccepted: true,
+                authorizationAccepted: true,
+                authorizationText: AUTHORIZATION,
+            })
+        )
+    })
+
+    it('opens a draft-for-review panel from the terms link without inventing legal text', () => {
+        renderTerms(false)
+        fireEvent.click(screen.getByRole('button', { name: 'Real-Time Funding Terms' }))
+        expect(screen.getByText(/Draft for review/)).toBeInTheDocument()
+        expect(screen.getByText(/not final legal text/)).toBeInTheDocument()
     })
 })

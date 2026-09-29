@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
@@ -94,10 +94,7 @@ const InputAmountStep = ({
                 <div className="text-label-l">{t('howMuchToAdd')}</div>
 
                 {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
-                <FieldColumn
-                    error={!limitsValidation?.isBlocking ? validationError : undefined}
-                    errorTestId="error-alert"
-                >
+                <Field error={!limitsValidation?.isBlocking ? validationError : undefined} errorTestId="error-alert">
                     <AmountInput
                         initialAmount={tokenAmount}
                         initialDenomination={initialDenomination}
@@ -117,7 +114,7 @@ const InputAmountStep = ({
                         setCurrentDenomination={setCurrentDenomination}
                         hideBalance
                     />
-                </FieldColumn>
+                </Field>
 
                 {/* limits warning/error card */}
                 {limitsCardProps && (

@@ -7,6 +7,8 @@
 import { act, render } from '@testing-library/react'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'
 import type { GateState } from '@/utils/capability-gate'
+import { DEPOSIT_RAIL_ORDER } from '../rails'
+import type { DepositCorridor } from '../types'
 
 const handleInitiateKyc = jest.fn()
 const handleRestartIdentity = jest.fn()
@@ -21,6 +23,10 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         errorCooldown: null,
         showWrapper: false,
     }),
+}))
+const gateFor = jest.fn((): GateState => ({ kind: 'needs-enrollment' }) as GateState)
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ gateFor: (...args: unknown[]) => (gateFor as jest.Mock)(...args) }),
 }))
 jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
@@ -39,19 +45,23 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     },
 }))
 
-const openBannerFor = async (gate: GateState) => {
-    let resolveGate: (gate: GateState) => void = () => {}
+type Remediation = ReturnType<typeof useDepositGateRemediation>
+
+const openWith = async (open: (remediation: Remediation) => void) => {
+    let remediation: Remediation | undefined
     function Host() {
-        const remediation = useDepositGateRemediation()
-        resolveGate = remediation.resolveGate
+        remediation = useDepositGateRemediation()
         return <>{remediation.modals}</>
     }
     render(<Host />)
-    act(() => resolveGate(gate))
+    act(() => open(remediation!))
     await act(async () => {
         await verify()
     })
 }
+
+const openBannerFor = (gate: GateState, corridor?: DepositCorridor) =>
+    openWith((remediation) => remediation.resolveGate(gate, corridor))
 
 beforeEach(() => jest.clearAllMocks())
 
@@ -74,5 +84,26 @@ describe('useDepositGateRemediation', () => {
         await openBannerFor({ kind: 'needs-identity' } as GateState)
 
         expect(handleInitiateKyc).toHaveBeenCalled()
+    })
+
+    // One path from a corridor tap into verification, whichever screen the tap
+    // came from: the corridor goes to the backend, which opens its level.
+    it.each(DEPOSIT_RAIL_ORDER)('sends %s to verification as the corridor it is', async (corridor) => {
+        await openBannerFor({ kind: 'needs-enrollment' } as GateState, corridor)
+
+        expect(handleInitiateKyc).toHaveBeenCalledWith(undefined, undefined, true, undefined, corridor)
+    })
+
+    it('starts an unverified user on the corridor level, not as a cross-region upgrade', async () => {
+        await openBannerFor({ kind: 'needs-identity' } as GateState, 'BANK_TRANSFER_CO')
+
+        expect(handleInitiateKyc).toHaveBeenCalledWith(undefined, undefined, undefined, undefined, 'BANK_TRANSFER_CO')
+    })
+
+    it('a claim that answered verification_required starts the same run, from the corridor gate', async () => {
+        await openWith((remediation) => remediation.verifyCorridor('BANK_TRANSFER_CO'))
+
+        expect(gateFor).toHaveBeenCalledWith('deposit', { railId: 'bridge.bank_transfer_co' })
+        expect(handleInitiateKyc).toHaveBeenCalledWith(undefined, undefined, true, undefined, 'BANK_TRANSFER_CO')
     })
 })

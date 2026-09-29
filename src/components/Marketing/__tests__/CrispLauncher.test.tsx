@@ -7,20 +7,32 @@
 import React from 'react'
 import { act, render } from '@testing-library/react'
 import { CrispLauncher } from '../CrispLauncher'
+import { isCapacitor } from '@/utils/capacitor'
+import { isNativeHelpContext } from '@/utils/native-help-context'
+
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
+jest.mock('@/utils/native-help-context', () => ({ isNativeHelpContext: jest.fn(() => false) }))
 
 const queued = () => (window.$crisp ?? []) as unknown[][]
+const SCRIPT_SELECTOR = 'script[src="https://client.crisp.chat/l.js"]'
+const script = () => document.head.querySelector(SCRIPT_SELECTOR)
+const setReadyState = (value: DocumentReadyState) =>
+    Object.defineProperty(document, 'readyState', { configurable: true, get: () => value })
+
+beforeEach(() => {
+    jest.mocked(isCapacitor).mockReturnValue(false)
+    jest.mocked(isNativeHelpContext).mockReturnValue(false)
+    window.$crisp = undefined
+    document.head.querySelectorAll(SCRIPT_SELECTOR).forEach((el) => el.remove())
+    setReadyState('complete')
+})
 
 describe('CrispLauncher', () => {
-    beforeEach(() => {
-        window.$crisp = undefined
-        document.head.querySelectorAll('script[src="https://client.crisp.chat/l.js"]').forEach((el) => el.remove())
-    })
-
     it('shows the launcher while a marketing page is mounted', () => {
         render(<CrispLauncher />)
 
         expect(queued()).toContainEqual(['do', 'chat:show'])
-        expect(document.head.querySelector('script[src="https://client.crisp.chat/l.js"]')).not.toBeNull()
+        expect(script()).not.toBeNull()
     })
 
     it('hides the launcher when marketing unmounts — the app must never see it', () => {
@@ -45,17 +57,6 @@ describe('CrispLauncher', () => {
 })
 
 describe('CrispLauncher — deferred load', () => {
-    const setReadyState = (value: DocumentReadyState) =>
-        Object.defineProperty(document, 'readyState', { configurable: true, get: () => value })
-
-    const script = () => document.head.querySelector('script[src="https://client.crisp.chat/l.js"]')
-
-    beforeEach(() => {
-        window.$crisp = undefined
-        document.head.querySelectorAll('script[src="https://client.crisp.chat/l.js"]').forEach((el) => el.remove())
-        setReadyState('complete')
-    })
-
     it('does not fetch the Crisp bundle while the page is still loading', () => {
         setReadyState('loading')
 
@@ -92,5 +93,26 @@ describe('CrispLauncher — deferred load', () => {
             ['do', 'chat:close'],
             ['do', 'chat:hide'],
         ])
+    })
+})
+
+describe('CrispLauncher — native support', () => {
+    it.each(['browser sheet', 'native webview'])('suppresses the duplicate launcher in the %s', (surface) => {
+        jest.mocked(isNativeHelpContext).mockReturnValue(surface === 'browser sheet')
+        jest.mocked(isCapacitor).mockReturnValue(surface === 'native webview')
+        const { unmount } = render(<CrispLauncher />)
+        // Keep explicit support links functional, but never show the bubble by default.
+        expect(script()).not.toBeNull()
+        expect(queued()).not.toContainEqual(['do', 'chat:show'])
+        expect(queued().slice(0, 2)).toEqual([
+            ['do', 'chat:close'],
+            ['do', 'chat:hide'],
+        ])
+        const onClosed = queued().find((command) => command[0] === 'on' && command[1] === 'chat:closed')?.[2]
+        expect(onClosed).toEqual(expect.any(Function))
+        ;(onClosed as () => void)()
+        expect(queued().slice(-1)).toEqual([['do', 'chat:hide']])
+        unmount()
+        expect(queued()).toContainEqual(['off', 'chat:closed'])
     })
 })

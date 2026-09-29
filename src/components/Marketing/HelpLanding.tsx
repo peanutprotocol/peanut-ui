@@ -7,6 +7,9 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { SearchInput } from '@/components/SearchInput'
 import { ContentLinkRow } from './ContentLinkRow'
 import { PROSE_WIDTH } from './constants'
+import { isCapacitor } from '@/utils/capacitor'
+import { isNativeHelpContext } from '@/utils/native-help-context'
+import { showCrispLauncher } from '@/utils/crisp-launcher'
 
 interface HelpArticle {
     slug: string
@@ -51,13 +54,18 @@ function CategoryRows({ articles }: { articles: HelpArticle[] }) {
 
 export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
+    // The static page cannot know whether it was opened by the native app.
+    // Reveal browser-only support instructions after that context is resolved.
+    const [showSupportCallout, setShowSupportCallout] = useState(false)
     const searchParams = useSearchParams()
 
     // Auto-open Crisp chat when ?chat=open (e.g. redirected from /support)
     useEffect(() => {
+        setShowSupportCallout(!(isCapacitor() || isNativeHelpContext()))
         if (searchParams.get('chat') !== 'open') return
         const interval = setInterval(() => {
             if (window.$crisp) {
+                showCrispLauncher()
                 window.$crisp.push(['do', 'chat:open'])
                 clearInterval(interval)
             }
@@ -114,9 +122,11 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                 )}
 
                 {/* Contact CTA */}
-                <Callout priority="helper" title={strings.cantFind} className="my-8">
-                    {strings.cantFindDesc}
-                </Callout>
+                {showSupportCallout && (
+                    <Callout priority="helper" title={strings.cantFind} className="my-8">
+                        {strings.cantFindDesc}
+                    </Callout>
+                )}
             </div>
         </>
     )

@@ -8,13 +8,13 @@ import { useGeoLocation } from '@/hooks/useGeoLocation'
  * verified residence is what the money rails are bound to, and it survives a
  * trip abroad or a VPN — both of which move the IP answer.
  *
- * `isLoading` still tracks the IP lookup, because the list waits on it only
- * when it has nothing better; a known residence answers on the first frame.
+ * The IP answer can arrive late or never. Callers render without it and let it
+ * re-sort when it comes (TASK-22967), so this returns no loading flag.
  */
-export function useHomeCountry(): { countryCode: string | null; isLoading: boolean } {
+export function useHomeCountry(): { countryCode: string | null } {
     const user = useOptionalAuth()?.user
     const geo = useGeoLocation()
     const residence = user?.residence?.verified ?? null
-    if (residence) return { countryCode: residence.toUpperCase(), isLoading: false }
-    return { countryCode: geo.countryCode, isLoading: geo.isLoading }
+    if (residence) return { countryCode: residence.toUpperCase() }
+    return { countryCode: geo.countryCode }
 }

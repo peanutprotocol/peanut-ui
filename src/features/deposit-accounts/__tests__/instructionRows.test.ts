@@ -1,4 +1,10 @@
-import { acceptedRails, instructionRowKeys, instructionRows, type RailLabels } from '../instructionRows'
+import {
+    acceptedRails,
+    corridorNeedsReference,
+    instructionRowKeys,
+    instructionRows,
+    type RailLabels,
+} from '../instructionRows'
 import type { DepositInstructions, DepositRowKey, DepositRowLabels } from '../types'
 
 const railLabels: RailLabels = {
@@ -69,6 +75,25 @@ describe('instructionRowKeys renders the rows a corridor actually has', () => {
         ).toEqual(['accountHolder', 'clabe', 'accepts'])
     })
 
+    /**
+     * The Colombian account is credited by key AND reference: Bridge returns
+     * a `deposit_message` the payer has to put on the transfer, and a transfer
+     * without it is not matched. The row used to be dropped on the floor, so a
+     * payer copying the details sent money that never arrived.
+     */
+    it('Bre-B: the key, then the reference the payer must add', () => {
+        expect(
+            keysOf({
+                accountHolderName: 'Ana Pérez',
+                bankName: 'Banco de Bogotá',
+                breBKey: '@DEMO123',
+                depositMessage: 'PEANUT-7F3A',
+                bankAddress: 'Calle 1',
+                paymentRails: ['bre_b'],
+            })
+        ).toEqual(['accountHolder', 'bank', 'breBKey', 'reference', 'bankAddress', 'accepts'])
+    })
+
     it('the row order follows the transfer form: who, where, which account, what it takes', () => {
         expect(
             keysOf({
@@ -132,4 +157,12 @@ it.each([
         railLabels
     )
     expect(rows).toContainEqual({ key: field, label: `label:${field}`, value, copyable: true })
+})
+
+describe('corridorNeedsReference', () => {
+    it('names the Colombian corridor and nothing else', () => {
+        expect(corridorNeedsReference('BANK_TRANSFER_CO')).toBe(true)
+        expect(corridorNeedsReference('SEPA_EU')).toBe(false)
+        expect(corridorNeedsReference('ACH_US')).toBe(false)
+    })
 })

@@ -35,12 +35,13 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
                     }}
                     size="medium"
                     shadowSize="4"
-                    variant="stroke"
+                    variant="secondary"
                     className="w-full"
                 >
                     {t('errors.talkToSupport')}
                 </Button>
-                <LinkButton href="/home" className="mt-2 self-center">
+                {/* mt-4 on the gap-2 column: 24px above the tertiary */}
+                <LinkButton href="/home" className="mt-4 self-center">
                     {t('errors.goBackToHome')}
                 </LinkButton>
             </div>

@@ -16,7 +16,8 @@ import { useQrPayFlow } from '../QrPayFlowContext'
  */
 export function QrPayBlockedView() {
     const t = useAppTranslations('qrPay')
-    const { view, paymentMethodName, errorInitiatingPayment, onBack, retryOrderNotReady } = useQrPayFlow()
+    const { view, paymentMethodName, errorInitiatingPayment, initErrorNeedsSupport, onBack, retryOrderNotReady } =
+        useQrPayFlow()
     const { setIsSupportModalOpen } = useModalsContext()
 
     const supportLink = (
@@ -30,7 +31,8 @@ export function QrPayBlockedView() {
     )
 
     // A failed init keeps its historical shape: message + CTA inside the card,
-    // no title, no support link.
+    // no title. The support link appears only for the refusals whose copy
+    // sends the user to support, so the one instruction on screen is reachable.
     if (view === 'INIT_ERROR') {
         return (
             <PageStack>
@@ -45,6 +47,7 @@ export function QrPayBlockedView() {
                             {t('maintenance.goBack')}
                         </Button>
                     </Card>
+                    {initErrorNeedsSupport ? supportLink : null}
                 </PageStack.Center>
             </PageStack>
         )

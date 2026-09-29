@@ -1,5 +1,6 @@
 import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
+    type DepositReturnReasonCode,
     type TransactionDirection,
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
@@ -18,8 +19,11 @@ import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
-import { parseWireAmount } from './transaction-details.utils'
+import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+
+/** Sender account types that are not a payer's bank account. */
+const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -96,7 +100,8 @@ export interface DrawerDepositInstructions {
     amount: string
     currency: string
     bank_name: string
-    bank_address: string
+    /** absent on some rails — Mexican SPEI has none */
+    bank_address?: string
     payment_rail: string
     deposit_message: string
     // US format
@@ -384,6 +389,8 @@ export interface TransactionDetails {
     haveSentMoneyToUser?: boolean
     date: string | Date
     fee?: number | string
+    /** What the bank received after a paid rail's fee, in USD; set only when there was a fee. */
+    payoutReceivedUsd?: number
     memo?: string
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
@@ -426,8 +433,26 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
-        /** The payer's own reference on a bank deposit, as their bank sent it. */
+        /** The payer's own note on a bank deposit, as their bank sent it.
+         *  Undefined for an empty field or a bank placeholder
+         *  ("/ROC/NOT PROVIDED") — see senderNoteText. */
         senderReference?: string
+        /** A deposit someone else paid into the user's bank details (a
+         *  standing deposit account), as opposed to the user's own one-off
+         *  bank deposit. */
+        isDepositAccountDeposit?: boolean
+        /** The payer's name as their bank reported it. Owner-only: the API
+         *  withholds it from anyone else. Deposit-account deposits only. */
+        payerName?: string
+        /** The provider reported the transfer as returned or refunded after
+         *  it settled. */
+        wasReturned?: boolean
+        /** Why the bank sent the deposit back; picks the receipt's reason line. */
+        returnReasonCode?: DepositReturnReasonCode
+        /** The reference we sent out on a fiat payout — the user's own text
+         *  when they typed one, otherwise the default our payment partner
+         *  composed. Owner-only: it never reaches a public receipt. */
+        paymentReference?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -631,6 +656,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // so this shows the true amount deducted instead of just the principal.
     const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
     const amount = baseAmount + networkFeeUsd
+    // The one fee shown as its own line: a wire's, which the user picked and
+    // saw before confirming (TASK-23054). The bank receives the amount less it.
+    const payoutFeeUsd =
+        typeof entry.extraData?.payoutFeeUsd === 'number' && entry.extraData.payoutFeeUsd > 0
+            ? entry.extraData.payoutFeeUsd
+            : undefined
+    const usdBankAmount = (currency: HistoryEntry['currency']) => {
+        const value = currency?.code?.toUpperCase() === 'USD' ? Number(currency.amount) : Number.NaN
+        return Number.isFinite(value) ? value : undefined
+    }
 
     const { explorerUrlWithTx, proofTxHash, addressExplorerUrl, tokenDisplayDetails, rewardData } =
         computeDerivedFields(entry)
@@ -643,6 +678,19 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // determine which name to use for initials based on showFullName preference
     // if showFullName is false or undefined, use username; otherwise use fullName
     const nameForInitials = showFullName && fullName ? fullName : nameForDetails
+
+    // A deposit into the user's standing bank details. The wire carries no flag
+    // for it, so read the shape the API gives it (peanut-api-ts
+    // src/db/history.ts, `isDepositAccount`): a Bridge deposit whose sender is
+    // the payer's bank account, typed by its rail. Every other Bridge deposit
+    // names the user's own wallet ('peanut-wallet') or an on-chain address as
+    // the sender. Manteca deposits also carry a bank sender (BANK_CBU), but
+    // they are the user's own transfer, so the provider gate is required.
+    const isDepositAccountDeposit =
+        direction === 'bank_deposit' &&
+        entry.extraData?.provider === 'BRIDGE' &&
+        entry.senderAccount?.isUser === false &&
+        !NON_BANK_SENDER_TYPES.has(entry.senderAccount.type)
 
     // check if this is a test transaction for adding a memo
     const isTestDeposit =
@@ -672,12 +720,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         // Peanut product convention: fees are baked into the displayed exchange
-        // rate, never surfaced as a separate line item. Keep the backend field
-        // populated for ops/debug, but never thread it to the UI. `fee` stays
-        // `undefined` so `rowVisibilityConfig.fee` is always false and the
-        // drawer's fee row never renders. If this rule changes, update
-        // docs/product-conventions.md first.
-        fee: undefined,
+        // rate, never surfaced as a separate line item — with one exception, a
+        // wire's flat fee (TASK-23054, Hugo 2026-09-25: "communicate it
+        // clearly"). The user chose it on the review screen, so the receipt
+        // states it and what the bank received.
+        fee: payoutFeeUsd,
+        // the backend's own figure (Bridge's final_amount, or its payout helper
+        // before then), never a subtraction here
+        payoutReceivedUsd: payoutFeeUsd !== undefined ? usdBankAmount(entry.currency) : undefined,
         // memo carries free-form user notes from non-card flows (link memos,
         // request comments). Card spends + Rain refunds suppress this — the
         // merchant name and any decline reason render inside CardPaymentRows
@@ -720,7 +770,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
-            senderReference: entry.extraData?.senderReference?.trim() || undefined,
+            senderReference: senderNoteText(entry.extraData?.senderReference),
+            isDepositAccountDeposit: isDepositAccountDeposit || undefined,
+            // The bank sent the money back after it settled, so the
+            // conversion happened even though the row reads as failed.
+            wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
+            returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
+            payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
+            paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

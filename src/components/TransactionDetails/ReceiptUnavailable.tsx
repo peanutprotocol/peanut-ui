@@ -47,7 +47,7 @@ export function ReceiptUnavailable({
                             {tCommon('retry')}
                         </Button>
                     )}
-                    <Button href="/home" variant={isGone ? 'primary' : 'stroke'} shadowSize="4" size="small">
+                    <Button href="/home" variant={isGone ? 'primary' : 'secondary'} shadowSize="4" size="small">
                         {tCommon('goToHome')}
                     </Button>
                 </div>

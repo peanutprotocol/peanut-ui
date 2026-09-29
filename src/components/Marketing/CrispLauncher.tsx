@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
+import { isCapacitor } from '@/utils/capacitor'
 import { hideCrispLauncher, scheduleCrispChatboxLoad, showCrispLauncher } from '@/utils/crisp-launcher'
+import { isNativeHelpContext } from '@/utils/native-help-context'
 
 /**
  * Owns the stock Crisp launcher for the marketing site.
@@ -17,13 +19,25 @@ import { hideCrispLauncher, scheduleCrispChatboxLoad, showCrispLauncher } from '
  */
 export function CrispLauncher() {
     useEffect(() => {
-        // queue the show first: it costs nothing, and it means a `#chat` tap
-        // before the bundle lands has a queue to land in
-        showCrispLauncher()
+        // Help opened from the native app already has a support entry point.
+        // Its browser sheet has no Capacitor bridge, so check the carried
+        // context too. Explicit support links may still open the chatbox;
+        // closing it must hide the redundant bubble again.
+        const hasNativeSupport = isCapacitor() || isNativeHelpContext()
+        if (hasNativeSupport) {
+            hideCrispLauncher()
+            window.$crisp?.push(['on', 'chat:closed', () => window.$crisp?.push(['do', 'chat:hide'])])
+        } else {
+            showCrispLauncher()
+        }
+
+        // Queue visibility before loading so the native sheet never flashes
+        // the launcher, and early explicit support taps can queue too.
         const cancelLoad = scheduleCrispChatboxLoad()
 
         return () => {
             cancelLoad()
+            if (hasNativeSupport) window.$crisp?.push(['off', 'chat:closed'])
             hideCrispLauncher()
         }
     }, [])

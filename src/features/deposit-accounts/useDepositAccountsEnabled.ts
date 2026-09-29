@@ -1,26 +1,21 @@
 'use client'
 
-import { useFeatureFlags } from '@/hooks/useFeatureFlag'
+import { useAuth } from '@/context/authContext'
 
 /**
- * Have standing deposit accounts launched?
+ * Have standing deposit accounts launched for this user?
  *
- * Bridge's Virtual Accounts SKU is `not_allowed` in production, so every claim
- * a production user makes today fails at the provider. The flow is therefore
- * dark in production until the SKU is granted and the flag is flipped in
- * PostHog: the Add drawer's bank row goes back to the one-off transfer flow,
- * /request does not offer the link, and the bank hub shows the country list
- * alone.
+ * The one rollout gate is the `app.configurations` row the claim route reads
+ * (`deposit_accounts.enabled`, or the `deposit_accounts.allowed_user_ids`
+ * cohort). `/users/me` reports that decision as `depositAccounts.enabled`, so
+ * the app shows the feature exactly where a claim would succeed and a rollback
+ * is a row flip, not a deploy. Off = the app as it was before deposit
+ * accounts: the Add drawer's bank row goes to the one-off transfer flow,
+ * /request offers no link, and the bank hub shows the country list alone.
  *
- * `nonProdBypass` is the standard rollout-gate behaviour every other flag here
- * uses: local, previews, staging and the Nutcracker sandbox always see the
- * feature so it can be tested, and production fails closed while flags load.
- * The dev fixtures are covered by the same bypass — fixture mode only exists
- * in development and preview builds, which are never the production domain.
+ * Fails closed: no user, or an API that predates the field, reads as off.
  */
-export const DEPOSIT_ACCOUNTS_FLAG = 'deposit-accounts'
-
 export function useDepositAccountsEnabled(): boolean {
-    const isEnabled = useFeatureFlags()
-    return isEnabled(DEPOSIT_ACCOUNTS_FLAG, { nonProdBypass: true })
+    const { user } = useAuth()
+    return user?.depositAccounts?.enabled === true
 }

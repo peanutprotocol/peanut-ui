@@ -491,7 +491,7 @@ function SetupPageContent() {
                 <p className="text-center">{tCommon('genericError')}</p>
                 <div className="flex w-full max-w-sm flex-col gap-3">
                     <Button onClick={() => window.location.reload()}>{tCommon('tryAgain')}</Button>
-                    <Button variant="stroke" onClick={() => setIsSupportModalOpen(true)}>
+                    <Button variant="secondary" onClick={() => setIsSupportModalOpen(true)}>
                         {tCommon('contactSupport')}
                     </Button>
                 </div>
@@ -520,7 +520,12 @@ function SetupPageContent() {
                     <Button shadowSize="4" onClick={handleContinueSession} disabled={isLoggingOut}>
                         {t('existingSession.continueAs', { username: existingSessionUsername })}
                     </Button>
-                    <Button variant="stroke" onClick={handleStartFresh} loading={isLoggingOut} disabled={isLoggingOut}>
+                    <Button
+                        variant="secondary"
+                        onClick={handleStartFresh}
+                        loading={isLoggingOut}
+                        disabled={isLoggingOut}
+                    >
                         {t('existingSession.logoutAndStartFresh')}
                     </Button>
                 </div>

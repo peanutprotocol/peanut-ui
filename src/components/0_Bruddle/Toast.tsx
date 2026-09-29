@@ -41,8 +41,8 @@ const readingDuration = (message?: string): number => {
 interface ToastOptions {
     /** Plain-string message — wrapped in a styled <p>. Ignored when `content` is provided. */
     message?: string
-    /** Custom inner content. Use this when the toast needs an icon + dynamic text
-     *  (e.g. a live countdown). Takes precedence over `message`. */
+    /** Custom non-interactive inner content. Toasts disappear, so never place
+     *  buttons, links, or other actions here. Takes precedence over `message`. */
     content?: React.ReactNode
     type?: ToastType
     /** Number = ms until auto-dismiss. `'persistent'` = stays until `dismiss(id)` is called. */
@@ -192,7 +192,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                         toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM
                     )}
                 >
-                    {rendererWanted && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
+                    {rendererWanted && <ToastStack toasts={toasts} onShow={handleToastShown} />}
                 </div>
                 {children}
             </ToastContext.Provider>

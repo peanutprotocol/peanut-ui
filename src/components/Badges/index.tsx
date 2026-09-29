@@ -16,6 +16,7 @@ import { getBadgeCatalog, type BadgeUnlockRequirement } from '@/services/badges'
 import { twMerge } from '@/utils/tw'
 import { BadgeDetailDrawer } from './BadgeDetailDrawer'
 import { BadgeImage } from './BadgeImage'
+import { BadgeMysteryTile } from './BadgeMysteryTile'
 import { buildBadgeCollection, type BadgeView } from './badge.types'
 import { getBadgeIcon } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
@@ -91,7 +92,7 @@ export const Badges = () => {
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto">
                     <EmptyState
-                        icon="achievements"
+                        concept="badges"
                         title={catalog.isError ? t('loadErrorTitle') : t('emptyTitle')}
                         description={catalog.isError ? t('loadErrorDescription') : t('emptyDescription')}
                     />
@@ -104,7 +105,7 @@ export const Badges = () => {
         <div className="flex h-full w-full flex-col gap-10">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-2" aria-label={t('collectionLabel')}>
+                <div className="grid grid-cols-2 gap-2" aria-label={t('collectionLabel')}>
                     {badges.map((badge) => (
                         <button
                             key={badge.code}
@@ -112,18 +113,22 @@ export const Badges = () => {
                             aria-label={`${badge.name}, ${badge.earned ? t('earned') : t('locked')}`}
                             onClick={() => setSelectedBadge(badge)}
                             className={twMerge(
-                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                // Two tiles per row on every phone: three squeezed names and copy at 320-430px
+                                // (TASK-22677). The art is a square 3/4 of the tile width, so it scales with the
+                                // tile at every width and reserves its box before the image loads (no layout
+                                // shift). The Earned pill may overlap the art's corner (TASK-23054), never the text.
+                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-2 pt-2 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                 !badge.earned && 'bg-background-disabled'
                             )}
                         >
                             {badge.earned && (
-                                <Badge status="custom" customText={t('earned')} className="absolute top-1 right-1" />
+                                <Badge status="completed" customText={t('earned')} className="absolute top-1 right-1" />
                             )}
                             <BadgeImage
                                 src={badge.logo!}
                                 alt=""
                                 className={twMerge(
-                                    'h-16 w-full object-contain',
+                                    'aspect-square h-auto w-3/4 object-contain',
                                     !badge.earned && 'opacity-40 grayscale'
                                 )}
                                 height={100}
@@ -131,11 +136,13 @@ export const Badges = () => {
                                 unoptimized
                             />
                             <span className="mt-2 line-clamp-2 h-8 w-full text-label-m">{badge.name}</span>
-                            <span className="line-clamp-3 h-12 w-full text-body-xs text-foreground-secondary">
+                            {/* two lines: the tap opens the detail drawer with the full description */}
+                            <span className="line-clamp-2 h-8 w-full text-body-xs text-foreground-secondary">
                                 {badge.description}
                             </span>
                         </button>
                     ))}
+                    <BadgeMysteryTile />
                 </div>
 
                 <p className="text-center text-body-xs text-foreground-secondary">{t('publicProfileNote')}</p>

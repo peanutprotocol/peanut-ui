@@ -22,9 +22,8 @@ import { resolveContentHref } from '@/lib/content'
  * These components are available in .md/.mdx files without imports.
  *
  * Prose column: PROSE_WIDTH (~Wise's 600px content width)
- * Text color: text-foreground-secondary (#5F646D) for body, text-foreground-primary for headings
- * Line-height: leading-[1.75] for generous readability
- * Paragraph spacing: mb-6 (24px) matching Wise
+ * Text: text-body-m / leading-7 in text-foreground-secondary, headings in
+ * text-foreground-primary. Paragraph spacing mb-6.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MdxComponentMap = Record<string, React.ComponentType<any>>
@@ -92,7 +91,11 @@ export const mdxComponents: MdxComponentMap = {
         />
     ),
     h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-        <div className="relative">
+        // overflow-x-clip: the stars sit partly past the viewport by design,
+        // and nothing else clips them — without this the page scrolls
+        // sideways at 375px. clip keeps overflow-y visible, so the -top
+        // offsets still show.
+        <div className="relative overflow-x-clip">
             <ProseStars seed={extractText(props.children)} />
             <h2
                 className={`mx-auto mt-14 mb-4 ${PROSE_WIDTH} px-6 text-heading-s text-foreground-primary md:mt-16 md:px-4 md:text-heading-m`}
@@ -106,9 +109,29 @@ export const mdxComponents: MdxComponentMap = {
             {...props}
         />
     ),
+    h4: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+        <h4
+            className={`mx-auto mt-8 mb-2 ${PROSE_WIDTH} px-6 text-heading-card text-foreground-primary md:px-4 md:text-heading-xs`}
+            {...props}
+        />
+    ),
+    // h5/h6 share one size: the heading ramp bottoms out at heading-card, and
+    // content this deep is a labelled paragraph, not a heading step.
+    h5: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+        <h5
+            className={`mx-auto mt-6 mb-2 ${PROSE_WIDTH} px-6 text-body-m-semibold text-foreground-primary md:px-4`}
+            {...props}
+        />
+    ),
+    h6: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+        <h6
+            className={`mx-auto mt-6 mb-2 ${PROSE_WIDTH} px-6 text-body-m-semibold text-foreground-primary md:px-4`}
+            {...props}
+        />
+    ),
     p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
         <p
-            className={`mx-auto mb-6 ${PROSE_WIDTH} px-6 text-body-m leading-7 text-foreground-secondary md:px-4`}
+            className={`mx-auto mb-6 ${PROSE_WIDTH} px-6 text-body-m leading-7 break-words text-foreground-secondary md:px-4`}
             {...props}
         />
     ),
@@ -122,7 +145,7 @@ export const mdxComponents: MdxComponentMap = {
         <ol className={`mx-auto my-6 ${PROSE_WIDTH} space-y-3 list-decimal pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
     ),
     li: (props: React.HTMLAttributes<HTMLLIElement>) => (
-        <li className="text-body-m leading-7 text-foreground-secondary" {...props} />
+        <li className="text-body-m leading-7 break-words text-foreground-secondary" {...props} />
     ),
     strong: (props: React.HTMLAttributes<HTMLElement>) => (
         <strong className="font-semibold text-foreground-primary" {...props} />
@@ -144,6 +167,28 @@ export const mdxComponents: MdxComponentMap = {
     ),
     td: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
         <td className="border-b border-border-default/10 px-4 py-3 text-foreground-secondary" {...props} />
+    ),
+    pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
+        <div className={`mx-auto my-6 ${PROSE_WIDTH} px-6 md:px-4`}>
+            {/* x-auto on the pre itself, same reason as the table above: a long
+                code line scrolls inside the block, it never widens the page
+                (TASK-22366). Nested <code> drops its own background so the two
+                /10 layers don't stack into a darker stripe. */}
+            <pre
+                className="overflow-x-auto rounded-sm bg-foreground-primary/10 p-4 font-mono text-body-s text-foreground-primary [&_code]:bg-transparent [&_code]:p-0"
+                {...props}
+            />
+        </div>
+    ),
+    code: (props: React.HTMLAttributes<HTMLElement>) => (
+        <code className="rounded-sm bg-foreground-primary/10 px-1 font-mono" {...props} />
+    ),
+    // Plain <img>: MDX authors ship no width/height, which next/image requires.
+    // The parent <p> already carries the prose column, so no wrapper (a div
+    // inside a <p> would break hydration).
+    img: ({ alt = '', ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="mx-auto my-6 block h-auto max-w-full" alt={alt} {...props} />
     ),
     blockquote: (props: React.HTMLAttributes<HTMLQuoteElement>) => (
         <blockquote

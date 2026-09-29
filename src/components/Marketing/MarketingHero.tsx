@@ -51,8 +51,9 @@ export function MarketingHero({
                     )}
                     <h1>
                         {/* 5xl on mobile: the knerd display face clips at 320px
-                            with text-7xl (TASK-22366 sweep) */}
-                        <Title text={title} className="text-5xl md:text-9xl" />
+                            with text-7xl. break-words + hyphens: one long word
+                            must wrap, not clip, at 320px (TASK-22366 sweep) */}
+                        <Title text={title} className="text-5xl break-words hyphens-auto md:text-9xl" />
                     </h1>
                     <p className="mt-6 text-heading-m text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (

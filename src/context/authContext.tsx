@@ -40,7 +40,12 @@ interface AuthContextType {
     user: IUserProfile | null
     userId: string | undefined
     username: string | undefined
-    fetchUser: () => Promise<IUserProfile | null>
+    /**
+     * Re-fetch the profile. A failed refresh (5xx, 429, network) keeps the cached
+     * profile and resolves with it; `throwOnError` rejects instead, for a caller
+     * that must not act on a profile the refresh could not confirm.
+     */
+    fetchUser: (options?: { throwOnError?: boolean }) => Promise<IUserProfile | null>
     hydrateLoginSession: () => Promise<IUserProfile>
     addAccount: ({
         accountIdentifier,
@@ -187,10 +192,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user?.user.userId, fetchUser])
 
-    const legacy_fetchUser = useCallback(async () => {
-        const { data: fetchedUser } = await fetchUser()
-        return fetchedUser ?? null
-    }, [fetchUser])
+    const legacy_fetchUser = useCallback(
+        async (options?: { throwOnError?: boolean }) => {
+            const { data: fetchedUser, error } = await fetchUser()
+            if (options?.throwOnError && error) throw error
+            return fetchedUser ?? null
+        },
+        [fetchUser]
+    )
 
     const hydrateLoginSession = useCallback(async () => {
         const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })

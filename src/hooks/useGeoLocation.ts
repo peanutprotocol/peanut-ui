@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react'
 const GEO_CACHE_KEY = 'user_geo_country_code'
 const GEO_CACHE_TIMESTAMP_KEY = 'user_geo_country_code_timestamp'
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+// The lookup only sorts lists. Past this it answers "unknown", so no screen
+// waits on a third party that has stopped answering (TASK-22967).
+export const GEO_LOOKUP_TIMEOUT_MS = 3000
 
 // in-memory cache to share across all hook instances in the same session
 let memoryCache: { countryCode: string | null; timestamp: number } | null = null
@@ -22,20 +25,26 @@ let memoryCache: { countryCode: string | null; timestamp: number } | null = null
  * memoryCache is null on the server and on the first client render, so both
  * sides agree.
  */
-const freshMemoryCountry = (): string | null =>
-    memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION ? memoryCache.countryCode : null
+const hasFreshMemoryCache = (): boolean => !!memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION
+const freshMemoryCountry = (): string | null => (hasFreshMemoryCache() ? memoryCache!.countryCode : null)
 
 export const useGeoLocation = () => {
     const [countryCode, setCountryCode] = useState<string | null>(freshMemoryCountry)
-    const [isLoading, setIsLoading] = useState(() => freshMemoryCountry() === null)
+    const [isLoading, setIsLoading] = useState(() => !hasFreshMemoryCache())
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        const controller = new AbortController()
+        let timedOut = false
+        const timeout = setTimeout(() => {
+            timedOut = true
+            controller.abort()
+        }, GEO_LOOKUP_TIMEOUT_MS)
         const fetchCountry = async () => {
             try {
                 // check memory cache first (fastest)
-                if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION) {
-                    setCountryCode(memoryCache.countryCode)
+                if (hasFreshMemoryCache()) {
+                    setCountryCode(memoryCache!.countryCode)
                     setIsLoading(false)
                     return
                 }
@@ -56,7 +65,7 @@ export const useGeoLocation = () => {
                 }
 
                 // no valid cache, fetch from api
-                const response = await fetch('https://ipapi.co/country')
+                const response = await fetch('https://ipapi.co/country', { signal: controller.signal })
                 if (!response.ok) {
                     throw new Error('Failed to fetch country')
                 }
@@ -69,13 +78,21 @@ export const useGeoLocation = () => {
                 sessionStorage.setItem(GEO_CACHE_TIMESTAMP_KEY, timestamp.toString())
                 memoryCache = { countryCode: fetchedCountryCode, timestamp }
             } catch (err) {
+                // A timed-out lookup is remembered as "unknown" for this session
+                // (memory only), so the next mount does not wait another 3 s.
+                if (timedOut) memoryCache = { countryCode: null, timestamp: Date.now() }
                 setError(err instanceof Error ? err.message : String(err))
             } finally {
+                clearTimeout(timeout)
                 setIsLoading(false)
             }
         }
 
         fetchCountry()
+        return () => {
+            clearTimeout(timeout)
+            controller.abort()
+        }
     }, [])
 
     return { countryCode, isLoading, error }

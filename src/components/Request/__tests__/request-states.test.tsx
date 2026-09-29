@@ -18,6 +18,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -27,7 +28,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/request',
@@ -194,6 +195,9 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
     default: (props: any) => <div data-testid="peanut-action-card" data-type={props.type} />,
 }))
 
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
+
 jest.mock('@/components/Global/QRCodeWrapper', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -278,6 +282,10 @@ jest.mock('@/context/loadingStates.context', () => {
 // not), so stubbing them globally is safe. Defaults resolve to a logged-in user
 // viewing a valid recipient, so the main form (incl. AmountInput) renders.
 
+jest.mock('@/hooks/useRequestContact', () => ({
+    useRequestContact: () => ({ data: { relationshipTypes: ['sent_money'] }, isLoading: false, isError: false }),
+}))
+
 const mockUseUserByUsername = jest.fn(() => ({
     user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
     isLoading: false,
@@ -301,6 +309,7 @@ jest.mock('@/components/User/UserCard', () => ({
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'
 import DirectRequestInitialView from '../direct-request/views/Initial.direct.request.view'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -367,7 +376,7 @@ function applyDefaults() {
     mockCopyTextToClipboard.mockResolvedValue(true)
 
     mockUseAuth.mockReturnValue({
-        user: { user: { username: 'test-user', userId: 'user-1' } },
+        user: { user: { username: 'test-user', userId: 'user-1' }, accounts: [{ type: 'peanut-wallet' }] },
         isFetchingUser: false,
         fetchUser: jest.fn(),
     })
@@ -447,6 +456,7 @@ function applyDefaults() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    safeBackTesting.reset()
     mockSearchParams.clear()
     applyDefaults()
 })
@@ -504,7 +514,7 @@ describe('GROUP 1: Initial Form States', () => {
         renderCreateRequest()
 
         fireEvent.click(screen.getByTestId('nav-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     test.each(['/request', '/request?amount=20', '/request/', 'https://outside.example'])(
@@ -514,17 +524,38 @@ describe('GROUP 1: Initial Form States', () => {
 
             fireEvent.click(screen.getByTestId('nav-back'))
 
-            expect(mockRouterPush).toHaveBeenCalledWith('/home')
+            expect(mockRouterReplace).toHaveBeenCalledWith('/home')
             expect(mockRouterBack).not.toHaveBeenCalled()
         }
     )
+
+    // Home → Request drawer → Share a request link → back pushed /home, so
+    // browser back from home reopened Request (TASK-23054 integration pass).
+    test('with home behind it in history, back rewinds to home instead of pushing it', async () => {
+        window.history.replaceState(null, '', '/')
+        safeBackTesting.reset()
+        window.history.pushState({}, '', '/home')
+        window.history.pushState({}, '', '/request')
+        renderCreateRequest()
+
+        const popped = new Promise<void>((resolve) =>
+            window.addEventListener('popstate', () => resolve(), { once: true })
+        )
+        fireEvent.click(screen.getByTestId('nav-back'))
+        await act(() => popped)
+
+        expect(window.location.pathname).toBe('/home')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        safeBackTesting.reset()
+    })
 
     test('request Back honors a safe explicit origin', () => {
         renderCreateRequest({ returnTo: '/profile?section=payments' })
 
         fireEvent.click(screen.getByTestId('nav-back'))
 
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?section=payments')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile?section=payments')
         expect(mockRouterBack).not.toHaveBeenCalled()
     })
 
@@ -577,10 +608,14 @@ describe('GROUP 1: Initial Form States', () => {
         expect(screen.getByPlaceholderText('Comment')).toBeInTheDocument()
     })
 
-    test('info content shows hint about leaving amount empty', () => {
+    // Konrad, 2026-09-23: an open amount is not worth a callout, which is
+    // kept for what a user must know. The empty amount is where the old hint
+    // showed, so the screen must render no callout at all there.
+    test('shows no callout while the amount is empty', () => {
         renderCreateRequest()
 
-        expect(screen.getByText(/Leave empty to let payers choose amounts/)).toBeInTheDocument()
+        expect(screen.getByTestId('amount-field')).toHaveValue('')
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 })
 
@@ -623,11 +658,11 @@ describe('GROUP 2: Link Creation', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'false')
+            expect(screen.getByTestId('qr-code-wrapper')).not.toHaveAttribute('data-blurred', 'true')
         })
     })
 
-    test('after link creation, amount input is disabled', async () => {
+    test('after link creation, the form is replaced by the persistent success state', async () => {
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
@@ -639,7 +674,8 @@ describe('GROUP 2: Link Creation', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByTestId('amount-input')).toHaveAttribute('data-disabled', 'true')
+            expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+            expect(screen.getByRole('heading', { name: 'Request created' })).toBeInTheDocument()
         })
     })
 

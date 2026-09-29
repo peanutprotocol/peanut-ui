@@ -91,7 +91,13 @@ const LandingStep = () => {
                 </Button>
             )}
             <Divider text={tCommon('or')} />
-            <Button loading={isLoggingIn} shadowSize="4" disabled={isLoggingIn} variant="stroke" onClick={onLoginClick}>
+            <Button
+                loading={isLoggingIn}
+                shadowSize="4"
+                disabled={isLoggingIn}
+                variant="secondary"
+                onClick={onLoginClick}
+            >
                 {t('logIn')}
             </Button>
             <div className="pt-2 text-center">

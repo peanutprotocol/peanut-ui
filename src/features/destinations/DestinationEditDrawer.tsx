@@ -101,7 +101,7 @@ export default function DestinationEditDrawer({ destination, onClose }: Destinat
                     {failed && <Callout priority="error">{t('savedDestinations.editFailed')}</Callout>}
                     {destination?.remove && (
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             className="w-full"
                             icon="trash"
                             disabled={!!busy}

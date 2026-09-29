@@ -169,7 +169,7 @@ export default function FullGraphPage() {
                                     </div>
                                     {forceConfig.charge.enabled && (
                                         <BaseInput
-                                            variant="sm"
+                                            size="sm"
                                             type="number"
                                             min="-1"
                                             max="1"
@@ -226,7 +226,7 @@ export default function FullGraphPage() {
                                     </div>
                                     {forceConfig.inviteLinks.enabled && (
                                         <BaseInput
-                                            variant="sm"
+                                            size="sm"
                                             type="number"
                                             min="-1"
                                             max="1"
@@ -284,7 +284,7 @@ export default function FullGraphPage() {
                                     </div>
                                     {forceConfig.p2pLinks.enabled && (
                                         <BaseInput
-                                            variant="sm"
+                                            size="sm"
                                             type="number"
                                             min="-1"
                                             max="1"
@@ -344,7 +344,7 @@ export default function FullGraphPage() {
                                                     <span>Strength</span>
                                                 </div>
                                                 <BaseInput
-                                                    variant="sm"
+                                                    size="sm"
                                                     type="number"
                                                     min="-1"
                                                     max="1"
@@ -383,7 +383,7 @@ export default function FullGraphPage() {
                                                     </span>
                                                 </div>
                                                 <BaseInput
-                                                    variant="sm"
+                                                    size="sm"
                                                     type="number"
                                                     min="0"
                                                     max="9"
@@ -538,7 +538,7 @@ export default function FullGraphPage() {
                                                 {(forceConfig.externalLinks?.enabled ??
                                                     DEFAULT_FORCE_CONFIG.externalLinks.enabled) && (
                                                     <BaseInput
-                                                        variant="sm"
+                                                        size="sm"
                                                         type="number"
                                                         min="-1"
                                                         max="1"
@@ -612,7 +612,7 @@ export default function FullGraphPage() {
                                         </span>
                                     </div>
                                     <BaseInput
-                                        variant="sm"
+                                        size="sm"
                                         type="number"
                                         min="0"
                                         max="10000"
@@ -652,7 +652,7 @@ export default function FullGraphPage() {
                                 {/* Action buttons */}
                                 <div className="flex flex-col gap-3">
                                     <Button
-                                        variant="stroke"
+                                        variant="secondary"
                                         size="small"
                                         onClick={handleRecalculate}
                                         title="Recalculate layout with current settings"
@@ -661,7 +661,7 @@ export default function FullGraphPage() {
                                         Recalculate
                                     </Button>
                                     <Button
-                                        variant="stroke"
+                                        variant="secondary"
                                         size="small"
                                         onClick={handleReset}
                                         title="Reset all settings to defaults"

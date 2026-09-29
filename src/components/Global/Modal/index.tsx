@@ -136,7 +136,7 @@ const Modal = ({
                                 ) : (
                                     <Button
                                         type="button"
-                                        variant="transparent"
+                                        variant="ghost"
                                         size="small"
                                         shape="square"
                                         aria-label={tCommon('close')}

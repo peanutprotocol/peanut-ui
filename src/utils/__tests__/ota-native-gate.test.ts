@@ -86,6 +86,12 @@ describe('needsStoreUpdate with candidate floors', () => {
         await expect(needsStoreUpdate('1.6.3', floors('1.6.0', '1.5.0'))).resolves.toBe(false)
     })
 
+    it('admits a 1.5.x bridge on the old numeric gate, then a 1.6.x bundle on the floor-aware gate', async () => {
+        const { bundleNeedsNewerBinary, needsStoreUpdate } = await load('ios', '1.5.0')
+        expect(bundleNeedsNewerBinary('1.5.999-ios', '1.5.0')).toBe(false)
+        await expect(needsStoreUpdate('1.6.8-ios', floors('1.6.0', '1.5.0'))).resolves.toBe(false)
+    })
+
     it('still refuses that candidate on an Android 1.5.0 binary, whose floor is 1.6.0', async () => {
         const { needsStoreUpdate } = await load('android', '1.5.0')
         await expect(needsStoreUpdate('1.6.3', floors('1.6.0', '1.5.0'))).resolves.toBe(true)

@@ -9,7 +9,7 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { DocPage } from './_components/DocPage'
 
-import { SIDEBAR_CONFIG } from './_components/nav-config'
+import { LUCIDE_FILL_NONE, SIDEBAR_CONFIG, TIERS } from './_components/nav-config'
 
 // same guarded require as ds/audit/page.tsx — keeps the ~360KB audit inventory
 // out of the prod bundle while letting the stats derive from the real data
@@ -28,44 +28,14 @@ const stats = [
     { label: 'Merge clusters', value: String(AUDIT_CLUSTERS.length) },
 ]
 
-const sections = [
-    {
-        title: 'Foundations',
-        description: 'Color tokens, typography, spacing, shadows, icons, and borders',
-        href: '/dev/ds/foundations',
-        icon: 'bulb' as const,
-        count: SIDEBAR_CONFIG.foundations.length,
-    },
-    {
-        title: 'Primitives',
-        description: 'Bruddle base components: Button, Card, Input, Select, Checkbox, Toast',
-        href: '/dev/ds/primitives',
-        icon: 'switch' as const,
-        count: SIDEBAR_CONFIG.primitives.length,
-    },
-    {
-        title: 'Patterns',
-        description: 'Composed components: Modal, Drawer, Navigation, Loading, Feedback, Layouts',
-        href: '/dev/ds/patterns',
-        icon: 'docs' as const,
-        count: SIDEBAR_CONFIG.patterns.length,
-    },
-    {
-        title: 'Audit',
-        description:
-            'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',
-        href: '/dev/ds/audit',
-        icon: 'search' as const,
-        count: SIDEBAR_CONFIG.audit.length,
-    },
-    {
-        title: 'Playground',
-        description: 'Interactive test harnesses: shake & confetti, perk success, share-asset builder',
-        href: '/dev/ds/playground',
-        icon: 'bulb' as const,
-        count: SIDEBAR_CONFIG.playground.length,
-    },
-]
+// tier titles, hrefs and icons come from nav-config so this index matches the sidebar
+const TIER_DESCRIPTIONS: Record<string, string> = {
+    foundations: 'Color tokens, typography, spacing, shadows, icons, and borders',
+    primitives: 'Bruddle base components: Button, Card, Input, Select, Checkbox, Toast',
+    patterns: 'Composed components: Modal, Drawer, Navigation, Loading, Feedback, Layouts',
+    audit: 'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',
+    playground: 'Interactive test harnesses: shake & confetti, perk success, share-asset builder',
+}
 
 export default function DesignSystemPage() {
     return (
@@ -96,19 +66,27 @@ export default function DesignSystemPage() {
             {/* Section index — DS ListItem rows, position-clustered via getCardPosition
                 (each row sits inside its own Link, so ListGroup can't do it) */}
             <div>
-                {sections.map((section, i) => (
-                    <Link key={section.href} href={section.href} className="block">
+                {TIERS.map(({ key, label, href, icon: Glyph }, i) => (
+                    <Link key={href} href={href} className="block">
                         <ListItem
                             className="cursor-pointer transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
-                            position={getCardPosition(i, sections.length)}
-                            leading={<IconBubble icon={section.icon} size="s" color="yellow" />}
+                            position={getCardPosition(i, TIERS.length)}
+                            leading={
+                                <IconBubble
+                                    icon={<Glyph size={16} aria-hidden style={LUCIDE_FILL_NONE} />}
+                                    size="s"
+                                    color="yellow"
+                                />
+                            }
                             title={
                                 <span className="flex items-center gap-2">
-                                    {section.title}
-                                    <span className="text-label-m text-foreground-secondary">{section.count}</span>
+                                    {label}
+                                    <span className="text-label-m text-foreground-secondary">
+                                        {SIDEBAR_CONFIG[key].length}
+                                    </span>
                                 </span>
                             }
-                            body={section.description}
+                            body={TIER_DESCRIPTIONS[key]}
                             chevron
                         />
                     </Link>

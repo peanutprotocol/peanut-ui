@@ -7,8 +7,11 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
 import { useEffect, useState, type ReactNode } from 'react'
+import { railIdFor } from './rails'
+import type { DepositCorridor } from './types'
 
 /**
  * What the gate banner's button actually does, and the UI it needs mounted.
@@ -20,12 +23,23 @@ import { useEffect, useState, type ReactNode } from 'react'
  * and the hosts live together here, mirroring what /add-money mounts, and the
  * page renders `modals` once.
  */
-export function useDepositGateRemediation(): { resolveGate: (gate: GateState) => void; modals: ReactNode } {
+export function useDepositGateRemediation(): {
+    resolveGate: (gate: GateState, corridor?: DepositCorridor) => void
+    /** the claim answered `verification_required`: start the level this corridor needs */
+    verifyCorridor: (corridor: DepositCorridor) => void
+    modals: ReactNode
+} {
     const sumsubFlow = useMultiPhaseKycFlow({})
+    const { gateFor } = useCapabilities()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [kycModalGate, setKycModalGate] = useState<GateState | undefined>()
+    // The corridor the verification is for. It is what the backend opens the
+    // level from — the same request for every corridor, from every entry point
+    // (the list, the country pick, the claim) — so the user lands back on the
+    // corridor they tapped, one verification later.
+    const [kycCorridor, setKycCorridor] = useState<DepositCorridor | undefined>()
     const [tosReasonCode, setTosReasonCode] = useState<string | undefined>()
 
     // the SDK takes over the screen; the modal that offered to open it should not
@@ -34,7 +48,8 @@ export function useDepositGateRemediation(): { resolveGate: (gate: GateState) =>
         if (sumsubFlow.showWrapper) setKycModalGate(undefined)
     }, [sumsubFlow.showWrapper])
 
-    const resolveGate = (gate: GateState) => {
+    const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
+        setKycCorridor(corridor)
         switch (gate.kind) {
             case 'loading':
             case 'ready':
@@ -86,10 +101,14 @@ export function useDepositGateRemediation(): { resolveGate: (gate: GateState) =>
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         return
                     }
+                    // The corridor, where there is one, names the level: a
+                    // verified user moves on to it, a new one starts there.
                     await sumsubFlow.handleInitiateKyc(
                         undefined,
                         undefined,
-                        kycModalGate?.kind === 'needs-enrollment' || undefined
+                        kycModalGate?.kind === 'needs-enrollment' || undefined,
+                        undefined,
+                        kycCorridor
                     )
                 }}
                 onContactSupport={() => {
@@ -112,5 +131,8 @@ export function useDepositGateRemediation(): { resolveGate: (gate: GateState) =>
         </>
     )
 
-    return { resolveGate, modals }
+    const verifyCorridor = (corridor: DepositCorridor) =>
+        resolveGate(gateFor('deposit', { railId: railIdFor(corridor) }), corridor)
+
+    return { resolveGate, verifyCorridor, modals }
 }

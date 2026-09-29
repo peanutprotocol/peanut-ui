@@ -48,11 +48,6 @@ jest.mock('@/services/rain', () => ({
         getOverview: jest.fn(),
     },
 }))
-const mockRevoke = jest.fn()
-let mockFunding: { allowance: string } | undefined
-jest.mock('@/hooks/wallet/useRainFunding', () => ({
-    useRainFunding: () => ({ funding: mockFunding, revoke: mockRevoke }),
-}))
 // Modal chrome and the slide gesture are not under test — render passthroughs.
 jest.mock('@/components/Global/Modal', () => ({
     __esModule: true,
@@ -79,8 +74,6 @@ const mockSignSpend = jest.fn()
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 const mockInvalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
 
-const MAX_ALLOWANCE = (2n ** 256n - 1n).toString()
-const CANCELED_CARD = { id: 'card-1', status: 'CANCELED' }
 const RAIN_WITHDRAWAL = { preparationId: 'prep-1', amount: '10060000' }
 // $10.06 spending power — the reporting user's exact state.
 const OVERVIEW = { balance: { spendingPower: 1006 } }
@@ -116,10 +109,6 @@ beforeEach(() => {
     mockLockCard.mockResolvedValue({})
     mockActivateCard.mockResolvedValue({})
     mockCancelCard.mockResolvedValue({})
-    // Default: a sibling card is still live, so cancel never offers the revoke.
-    mockFunding = { allowance: MAX_ALLOWANCE }
-    mockGetOverview.mockResolvedValue({ cards: [CANCELED_CARD, { id: 'card-2', status: 'ACTIVE' }] })
-    mockRevoke.mockResolvedValue({ ok: true })
 })
 
 describe('LockCardModal — lock with spending power', () => {
@@ -131,8 +120,7 @@ describe('LockCardModal — lock with spending power', () => {
         expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockLockCard).toHaveBeenCalledWith('card-1', RAIN_WITHDRAWAL)
-        // a lock is reversible — it never touches Rain's wallet permission
-        expect(mockRevoke).not.toHaveBeenCalled()
+        // a lock is reversible — it reads no card list beyond the overview
         expect(mockGetOverview).not.toHaveBeenCalled()
     })
 
@@ -171,10 +159,19 @@ describe('LockCardModal — unlock', () => {
 })
 
 describe('CancelCardModal', () => {
+    it('offers "Keep card" as the tertiary link, and it closes without canceling', () => {
+        setup(OVERVIEW)
+        const onClose = jest.fn()
+        render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })
+        fireEvent.click(screen.getByRole('button', { name: 'Keep card' }))
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(mockCancelCard).not.toHaveBeenCalled()
+    })
+
     it('forces collateral-only routing and delivers the withdrawal to the cancel call', async () => {
         setup(OVERVIEW)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
@@ -183,7 +180,7 @@ describe('CancelCardModal', () => {
     it('fails closed before signing when the overview has not loaded', async () => {
         setup(undefined)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
         expect(await screen.findByText(/still loading/)).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).not.toHaveBeenCalled()
@@ -192,7 +189,7 @@ describe('CancelCardModal', () => {
     it('cancels without signing when there is no spending power to return', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })
@@ -200,87 +197,21 @@ describe('CancelCardModal', () => {
 })
 
 /**
- * Rain's operator allowance is per WALLET. Removing it stops every card the
- * user holds, so the cancel flow may only offer it for the last card — and the
- * cancel itself must never depend on it.
+ * Cancelling is an ordinary cancel. The card funding permission is Peanut's to
+ * manage: the person is offered no step to remove it, and cancelling never
+ * reads or changes it.
  */
-describe('CancelCardModal — removing Rain’s permission', () => {
-    const cancel = () => {
+describe('CancelCardModal — no permission removal step', () => {
+    it('goes straight from the cancel to the feedback step, with no removal offer', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
-    }
+        fireEvent.click(screen.getByRole('button', { name: /slide to cancel/i }))
 
-    it('never offers the revoke while another non-cancelled card remains', async () => {
-        cancel()
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
-        expect(screen.queryByText("Remove Rain's permission")).not.toBeInTheDocument()
-        expect(mockRevoke).not.toHaveBeenCalled()
-    })
-
-    it('never offers the revoke when the fresh card list cannot be read', async () => {
-        mockGetOverview.mockRejectedValue(new Error('network'))
-        cancel()
-        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
-        expect(screen.queryByText("Remove Rain's permission")).not.toBeInTheDocument()
-    })
-
-    it('skips the revoke when there is no allowance to remove', async () => {
-        mockFunding = { allowance: '0' }
-        mockGetOverview.mockResolvedValue({ cards: [CANCELED_CARD] })
-        cancel()
-        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockCancelCard).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('button', { name: /remove permission|not now/i })).not.toBeInTheDocument()
+        expect(screen.queryByText(/permission/i)).not.toBeInTheDocument()
+        // the cancel flow reads no funding state and no card list beyond the overview
         expect(mockGetOverview).not.toHaveBeenCalled()
-    })
-
-    it('cancels FIRST, then offers the revoke for the last card and moves on once it lands', async () => {
-        mockGetOverview.mockResolvedValue({ cards: [CANCELED_CARD, { id: 'card-0', status: 'CANCELED' }] })
-        cancel()
-        expect(await screen.findByText("Remove Rain's permission")).toBeInTheDocument()
-        // the card is already cancelled before any revoke is attempted
-        expect(mockCancelCard).toHaveBeenCalledTimes(1)
-        expect(mockRevoke).not.toHaveBeenCalled()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Remove permission' }))
-        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
-        expect(mockRevoke).toHaveBeenCalledTimes(1)
-    })
-
-    it('does not revoke if a replacement card appears after the offer', async () => {
-        mockGetOverview.mockResolvedValueOnce({ cards: [CANCELED_CARD] })
-        cancel()
-        fireEvent.click(await screen.findByRole('button', { name: 'Remove permission' }))
-        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
-        expect(mockRevoke).not.toHaveBeenCalled()
-    })
-
-    it('does not revoke if the card list fails when the offer is accepted', async () => {
-        mockGetOverview.mockResolvedValueOnce({ cards: [CANCELED_CARD] }).mockRejectedValueOnce(new Error('network'))
-        cancel()
-        fireEvent.click(await screen.findByRole('button', { name: 'Remove permission' }))
-        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
-        expect(mockRevoke).not.toHaveBeenCalled()
-    })
-
-    it('a failed revoke leaves the card cancelled and shows a retry', async () => {
-        mockGetOverview.mockResolvedValue({ cards: [CANCELED_CARD] })
-        mockRevoke.mockResolvedValueOnce({ ok: false, error: { kind: 'user-cancelled' } })
-        cancel()
-        fireEvent.click(await screen.findByRole('button', { name: 'Remove permission' }))
-
-        expect(await screen.findByText('We could not remove the permission. Try again.')).toBeInTheDocument()
-        expect(mockCancelCard).toHaveBeenCalledTimes(1)
-        // still on the revoke step: retry works, and "Not now" still leaves
-        fireEvent.click(screen.getByRole('button', { name: 'Remove permission' }))
-        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
-        expect(mockRevoke).toHaveBeenCalledTimes(2)
-    })
-
-    it('"Not now" skips the revoke without touching the wallet', async () => {
-        mockGetOverview.mockResolvedValue({ cards: [CANCELED_CARD] })
-        cancel()
-        fireEvent.click(await screen.findByRole('button', { name: 'Not now' }))
-        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
-        expect(mockRevoke).not.toHaveBeenCalled()
     })
 })

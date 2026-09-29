@@ -13,6 +13,8 @@ jest.mock('@/components/Global/ShareButton', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
 }))
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
 jest.mock('@/components/Request/useRequestBack', () => ({ useRequestBack: () => jest.fn() }))
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({ useDepositAccountsEnabled: () => false }))
 jest.mock('../RequestFulfillmentNotice', () => ({ RequestFulfillmentNotice: () => null }))
@@ -87,7 +89,7 @@ describe('CreateRequestLinkView — request currency', () => {
         expect(amountInputProps().secondaryDenomination).toBeUndefined()
     })
 
-    it('locks the currency once the request exists, and names it on the share button', () => {
+    it('shows the created state and names the request currency on its share button', () => {
         renderView({
             currency: 'EUR',
             requestAmount: '100',
@@ -96,10 +98,10 @@ describe('CreateRequestLinkView — request currency', () => {
             generatedLink: 'https://peanut.me/request/pay?id=req-1',
         })
 
-        expect(screen.getByRole('button', { name: 'Request currency: EUR' })).toBeDisabled()
+        expect(screen.getByRole('heading', { name: 'Request created' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Share 100 EUR request' })).toBeInTheDocument()
-        // `disabled` leaves the swap button live, so the toggle goes too
-        expect(amountInputProps()).toEqual(expect.objectContaining({ disabled: true, hideCurrencyToggle: true }))
+        expect(screen.queryByRole('button', { name: 'Request currency: EUR' })).not.toBeInTheDocument()
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
     })
 
     it('hands the hook all three sides of the field at once, from the last report', () => {
@@ -127,5 +129,16 @@ describe('CreateRequestLinkView — request currency', () => {
         renderView({ requestAmount: '25', requestId: 'req-1', generatedLink: 'https://peanut.me/request/pay?id=req-1' })
 
         expect(screen.getByRole('button', { name: 'Share $25 request' })).toBeInTheDocument()
+    })
+})
+
+describe('CreateRequestLinkView — a failed create', () => {
+    // Not tied to one field, so it is the shared error banner (A37).
+    it('shows the failure in the shared error banner', () => {
+        renderView({ errorState: { showError: true, errorMessage: 'Could not create the request' } })
+
+        const banner = screen.getByTestId('request-create-error')
+        expect(banner).toHaveTextContent('Could not create the request')
+        expect(banner).toHaveAttribute('role', 'alert')
     })
 })

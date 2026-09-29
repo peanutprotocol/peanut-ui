@@ -517,6 +517,9 @@
                                                     },
                                                     {
                                                         "properties": {
+                                                            "earnable": {
+                                                                "type": "boolean"
+                                                            },
                                                             "unlock": {
                                                                 "anyOf": [
                                                                     {
@@ -647,7 +650,8 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "unlock"
+                                                            "unlock",
+                                                            "earnable"
                                                         ],
                                                         "type": "object"
                                                     }
@@ -1256,6 +1260,182 @@
                 }
             }
         },
+        "/bridge/guest-claim/external-accounts": {
+            "post": {
+                "description": "Creates the external account on the send-link sender's Bridge customer. Authorized by a signature from the link key; the response never names the customer.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "api-key",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "accountCategory": {
+                                        "type": "string"
+                                    },
+                                    "accountNumber": {
+                                        "type": "string"
+                                    },
+                                    "accountOwnerName": {
+                                        "properties": {
+                                            "businessName": {
+                                                "type": "string"
+                                            },
+                                            "firstName": {
+                                                "type": "string"
+                                            },
+                                            "lastName": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "accountOwnerType": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "business"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "individual"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "accountType": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "iban"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "us"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "clabe"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "gb"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "co_bank_transfer"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "address": {
+                                        "properties": {
+                                            "city": {
+                                                "type": "string"
+                                            },
+                                            "country": {
+                                                "type": "string"
+                                            },
+                                            "postalCode": {
+                                                "type": "string"
+                                            },
+                                            "state": {
+                                                "type": "string"
+                                            },
+                                            "street": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "street",
+                                            "city",
+                                            "country",
+                                            "postalCode"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    "bankCode": {
+                                        "type": "string"
+                                    },
+                                    "bic": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "documentNumber": {
+                                        "type": "string"
+                                    },
+                                    "documentType": {
+                                        "type": "string"
+                                    },
+                                    "phoneNumber": {
+                                        "type": "string"
+                                    },
+                                    "reuseOnError": {
+                                        "type": "boolean"
+                                    },
+                                    "routingNumber": {
+                                        "type": "string"
+                                    },
+                                    "sendLinkPubKey": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "signature": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "sortCode": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "accountNumber",
+                                    "country",
+                                    "accountOwnerName",
+                                    "accountOwnerType",
+                                    "accountType",
+                                    "sendLinkPubKey",
+                                    "signature"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Add a bank account for a guest send-link claim",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
         "/bridge/offramp/create": {
             "post": {
                 "description": "This endpoint initiates a new off-ramp transfer. It uses the configured off-ramp provider (e.g., Bridge) to create a transfer and returns deposit instructions for the user.",
@@ -1568,13 +1748,35 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "intentId": {
+                                            "type": "string"
+                                        },
                                         "transferId": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
                                         "transferId",
-                                        "depositInstructions"
+                                        "depositInstructions",
+                                        "intentId"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -1627,7 +1829,7 @@
         },
         "/bridge/offramp/create-for-guest": {
             "post": {
-                "description": "This endpoint initiates a new off-ramp transfer for a guest user. It uses the configured off-ramp provider (e.g., Bridge) to create a transfer and returns deposit instructions for the user. This is intended for server-to-server use where the user is not authenticated.",
+                "description": "Creates the Bridge off-ramp for a guest send-link claim, under the link sender's Bridge customer, and returns the deposit instructions the link is claimed to. Authorized by a signature from the link key. One payout per link: a repeat claim to the same account returns the same transfer.",
                 "parameters": [
                     {
                         "in": "header",
@@ -1644,6 +1846,7 @@
                             "schema": {
                                 "properties": {
                                     "amount": {
+                                        "minLength": 1,
                                         "type": "string"
                                     },
                                     "beneficiaryAddress": {
@@ -1809,6 +2012,11 @@
                                         "type": "string"
                                     },
                                     "sendLinkPubKey": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "signature": {
+                                        "minLength": 1,
                                         "type": "string"
                                     },
                                     "source": {
@@ -1902,15 +2110,15 @@
                                             "paymentRail"
                                         ],
                                         "type": "object"
-                                    },
-                                    "userId": {
-                                        "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "userId",
+                                    "amount",
+                                    "sendLinkPubKey",
+                                    "signature",
                                     "source",
-                                    "destination"
+                                    "destination",
+                                    "beneficiaryName"
                                 ],
                                 "type": "object"
                             }
@@ -1996,12 +2204,42 @@
                         },
                         "description": "Default Response"
                     },
-                    "401": {
+                    "400": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
                                             "type": "string"
                                         }
                                     },
@@ -2019,7 +2257,13 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
                                             "type": "string"
                                         }
                                     },
@@ -2032,12 +2276,18 @@
                         },
                         "description": "Default Response"
                     },
-                    "503": {
+                    "409": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
                                             "type": "string"
                                         }
                                     },
@@ -2051,7 +2301,193 @@
                         "description": "Default Response"
                     }
                 },
-                "summary": "Initiate an off-ramp transfer for a guest",
+                "summary": "Claim a send link to a bank account as a guest",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
+        "/bridge/offramp/quote": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "destinationCurrency",
+                        "required": true,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "eur"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "gbp"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "mxn"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "cop"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "destinationAmount",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "sourceAmount",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "destinationAmount": {
+                                            "type": "string"
+                                        },
+                                        "destinationCurrency": {
+                                            "type": "string"
+                                        },
+                                        "rate": {
+                                            "type": "string"
+                                        },
+                                        "sourceAmount": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "destinationCurrency",
+                                        "rate",
+                                        "updatedAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Quote the USDC for a withdrawal typed in the destination currency",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
+        "/bridge/offramp/rail-fees": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "currency": {
+                                            "enum": [
+                                                "USD"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "minimumAfterFeeUsd": {
+                                            "type": "string"
+                                        },
+                                        "rails": {
+                                            "items": {
+                                                "properties": {
+                                                    "feeUsd": {
+                                                        "type": "string"
+                                                    },
+                                                    "rail": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "ach"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "ach_same_day"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "wire"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "rail",
+                                                    "feeUsd"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "currency",
+                                        "minimumAfterFeeUsd",
+                                        "rails"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "The rails a USD bank payout may use, and the fee for each",
                 "tags": [
                     "offramp"
                 ]
@@ -2268,12 +2704,16 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "flexibleAmount": {
+                                            "type": "boolean"
+                                        },
                                         "transferId": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
                                         "transferId",
+                                        "flexibleAmount",
                                         "depositInstructions"
                                     ],
                                     "type": "object"
@@ -3228,6 +3668,7 @@
                         "name": "chargeId",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -3245,6 +3686,7 @@
                         "name": "chargeId",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -3264,6 +3706,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -3869,6 +4312,10 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "depositedAmount": {
+                                        "description": "Fiat the simulated payer sent, when it differs from the quote. Flexible-amount top-ups only.",
+                                        "type": "string"
+                                    },
                                     "developerFee": {
                                         "type": "string"
                                     },
@@ -9826,6 +10273,10 @@
                                                         "minLength": 1,
                                                         "type": "string"
                                                     },
+                                                    "preparedCoordinatorAddress": {
+                                                        "pattern": "^0x[0-9a-fA-F]{40}$",
+                                                        "type": "string"
+                                                    },
                                                     "recipientAddress": {
                                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
@@ -10525,6 +10976,10 @@
                                                     },
                                                     "preparationId": {
                                                         "minLength": 1,
+                                                        "type": "string"
+                                                    },
+                                                    "preparedCoordinatorAddress": {
+                                                        "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
                                                     },
                                                     "recipientAddress": {
@@ -11513,6 +11968,9 @@
                                                     "expiryYear": {
                                                         "type": "number"
                                                     },
+                                                    "hasStoredWithdrawApproval": {
+                                                        "type": "boolean"
+                                                    },
                                                     "hasWithdrawApproval": {
                                                         "type": "boolean"
                                                     },
@@ -11544,7 +12002,8 @@
                                                     "status",
                                                     "network",
                                                     "issuedAt",
-                                                    "hasWithdrawApproval"
+                                                    "hasWithdrawApproval",
+                                                    "hasStoredWithdrawApproval"
                                                 ],
                                                 "type": "object"
                                             },
@@ -11943,6 +12402,107 @@
                 }
             }
         },
+        "/rain/cards/controller/refresh": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {},
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "changed": {
+                                            "type": "boolean"
+                                        },
+                                        "coordinatorAddress": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "coordinatorAddress",
+                                        "changed"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/rain/cards/funding": {
             "get": {
                 "responses": {
@@ -11957,7 +12517,124 @@
                                         "chainId": {
                                             "type": "string"
                                         },
+                                        "management": {
+                                            "properties": {
+                                                "migration": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "invalidateNonceFloor": {
+                                                                    "type": "number"
+                                                                },
+                                                                "uninstall": {
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "deinitData": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "validationId": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "validationId",
+                                                                            "deinitData"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "array"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "uninstall",
+                                                                "invalidateNonceFloor"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "reason": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "migration_required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "pending"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "ready"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "temporarily_unavailable"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "reason",
+                                                "migration"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "operatorAddress": {
+                                            "type": "string"
+                                        },
+                                        "permission": {
+                                            "properties": {
+                                                "authorizationText": {
+                                                    "type": "string"
+                                                },
+                                                "ceiling": {
+                                                    "type": "string"
+                                                },
+                                                "scopeVersion": {
+                                                    "type": "number"
+                                                },
+                                                "termsVersion": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "scopeVersion",
+                                                "ceiling",
+                                                "termsVersion",
+                                                "authorizationText"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "sessionKeyAddress": {
                                             "type": "string"
                                         },
                                         "tokenAddress": {
@@ -11972,7 +12649,10 @@
                                         "tokenAddress",
                                         "operatorAddress",
                                         "walletAddress",
-                                        "allowance"
+                                        "allowance",
+                                        "sessionKeyAddress",
+                                        "permission",
+                                        "management"
                                     ],
                                     "type": "object"
                                 }
@@ -12002,6 +12682,313 @@
                         "description": "Default Response"
                     },
                     "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/funding/grant": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "consent": {
+                                        "properties": {
+                                            "authorizationText": {
+                                                "maxLength": 256,
+                                                "type": "string"
+                                            },
+                                            "managementAccepted": {
+                                                "type": "boolean"
+                                            },
+                                            "termsVersion": {
+                                                "maxLength": 64,
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "termsVersion",
+                                            "managementAccepted",
+                                            "authorizationText"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    "serializedPermission": {
+                                        "maxLength": 32768,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "serializedPermission",
+                                    "consent"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "allowance": {
+                                            "type": "string"
+                                        },
+                                        "chainId": {
+                                            "type": "string"
+                                        },
+                                        "management": {
+                                            "properties": {
+                                                "migration": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "invalidateNonceFloor": {
+                                                                    "type": "number"
+                                                                },
+                                                                "uninstall": {
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "deinitData": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "validationId": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "validationId",
+                                                                            "deinitData"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "array"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "uninstall",
+                                                                "invalidateNonceFloor"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "reason": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "migration_required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "pending"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "ready"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "temporarily_unavailable"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "reason",
+                                                "migration"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "operatorAddress": {
+                                            "type": "string"
+                                        },
+                                        "permission": {
+                                            "properties": {
+                                                "authorizationText": {
+                                                    "type": "string"
+                                                },
+                                                "ceiling": {
+                                                    "type": "string"
+                                                },
+                                                "scopeVersion": {
+                                                    "type": "number"
+                                                },
+                                                "termsVersion": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "scopeVersion",
+                                                "ceiling",
+                                                "termsVersion",
+                                                "authorizationText"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "sessionKeyAddress": {
+                                            "type": "string"
+                                        },
+                                        "tokenAddress": {
+                                            "type": "string"
+                                        },
+                                        "walletAddress": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "chainId",
+                                        "tokenAddress",
+                                        "operatorAddress",
+                                        "walletAddress",
+                                        "allowance",
+                                        "sessionKeyAddress",
+                                        "permission",
+                                        "management"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -12460,6 +13447,10 @@
                                     },
                                     "directTransfer": {
                                         "type": "boolean"
+                                    },
+                                    "fundsIntentId": {
+                                        "format": "uuid",
+                                        "type": "string"
                                     },
                                     "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
@@ -13098,6 +14089,10 @@
                                         "minLength": 1,
                                         "type": "string"
                                     },
+                                    "preparedCoordinatorAddress": {
+                                        "pattern": "^0x[0-9a-fA-F]{40}$",
+                                        "type": "string"
+                                    },
                                     "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                         "type": "string"
@@ -13198,6 +14193,12 @@
                                                 {
                                                     "enum": [
                                                         "WITHDRAWAL_PENDING_CONFIRMATION"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "RAIN_CONTROLLER_CHANGED"
                                                     ],
                                                     "type": "string"
                                                 }
@@ -13496,6 +14497,10 @@
                                             },
                                             "preparationId": {
                                                 "minLength": 1,
+                                                "type": "string"
+                                            },
+                                            "preparedCoordinatorAddress": {
+                                                "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             },
                                             "recipientAddress": {
@@ -13917,6 +14922,10 @@
                                             },
                                             "preparationId": {
                                                 "minLength": 1,
+                                                "type": "string"
+                                            },
+                                            "preparedCoordinatorAddress": {
+                                                "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             },
                                             "recipientAddress": {
@@ -15012,6 +16021,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -15268,6 +16278,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     },
@@ -15293,6 +16304,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -15557,6 +16569,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -15717,6 +16730,12 @@
                                                                 {
                                                                     "enum": [
                                                                         "provider"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "unknown"
                                                                     ],
                                                                     "type": "string"
                                                                 }
@@ -17134,15 +18153,6 @@
                 }
             }
         },
-        "/test-error": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/tokens/price": {
             "get": {
                 "parameters": [
@@ -17326,6 +18336,7 @@
                                         "type": "boolean"
                                     },
                                     "email": {
+                                        "maxLength": 320,
                                         "type": "string"
                                     },
                                     "emailVerificationCode": {
@@ -17341,10 +18352,6 @@
                                     "locale": {
                                         "maxLength": 16,
                                         "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8}){0,2}$",
-                                        "type": "string"
-                                    },
-                                    "offrampHandle": {
-                                        "maxLength": 320,
                                         "type": "string"
                                     },
                                     "pushSubscriptionId": {
@@ -17482,11 +18489,15 @@
                                                 },
                                                 "error": {
                                                     "type": "string"
+                                                },
+                                                "userMessage": {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required": [
                                                 "error",
-                                                "code"
+                                                "code",
+                                                "userMessage"
                                             ],
                                             "type": "object"
                                         }
@@ -18159,6 +19170,12 @@
                                                                             "rain-hosted"
                                                                         ],
                                                                         "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "restart-identity"
+                                                                        ],
+                                                                        "type": "string"
                                                                     }
                                                                 ]
                                                             },
@@ -18323,6 +19340,10 @@
                                                                 },
                                                                 "type": "object"
                                                             },
+                                                            "pendingSince": {
+                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning \u2014 the FE stops promising a quick setup past that.",
+                                                                "type": "string"
+                                                            },
                                                             "provider": {
                                                                 "anyOf": [
                                                                     {
@@ -18467,6 +19488,12 @@
                                                                                     {
                                                                                         "enum": [
                                                                                             "rain-hosted"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "restart-identity"
                                                                                         ],
                                                                                         "type": "string"
                                                                                     }
@@ -19438,6 +20465,12 @@
                                                                             "provider"
                                                                         ],
                                                                         "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "unknown"
+                                                                        ],
+                                                                        "type": "string"
                                                                     }
                                                                 ]
                                                             },
@@ -19708,6 +20741,40 @@
                                         "unavailable": {
                                             "items": {
                                                 "properties": {
+                                                    "cause": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "review-action"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "review-pending"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "review-closed"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "residence-restricted"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "not-open"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
                                                     "country": {
                                                         "type": "string"
                                                     },
@@ -19899,6 +20966,12 @@
                                                                 {
                                                                     "enum": [
                                                                         "provider"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "unknown"
                                                                     ],
                                                                     "type": "string"
                                                                 }
@@ -20166,6 +21239,89 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "nextAction": {
+                                            "properties": {
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "effectiveDate": {
+                                                    "type": "string"
+                                                },
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "kind": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "sumsub"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "accept-tos"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "wait"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "contact-support"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "provide-email"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "bridge-hosted"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "rain-hosted"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "restart-identity"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "levelKey": {
+                                                    "type": "string"
+                                                },
+                                                "purpose": {
+                                                    "type": "string"
+                                                },
+                                                "requirementKey": {
+                                                    "type": "string"
+                                                },
+                                                "tosUrl": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "kind",
+                                                "purpose"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "outcome": {
                                             "anyOf": [
                                                 {
@@ -20183,6 +21339,12 @@
                                                 {
                                                     "enum": [
                                                         "endorsement_required"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "verification_required"
                                                     ],
                                                     "type": "string"
                                                 }
@@ -20256,6 +21418,9 @@
                                             "type": "string"
                                         },
                                         "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
                                             "type": "string"
                                         }
                                     },
@@ -20724,6 +21889,59 @@
                 }
             }
         },
+        "/users/identity/session-token": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "generation": {
+                                        "minimum": 0,
+                                        "type": "integer"
+                                    },
+                                    "sessionId": {
+                                        "format": "uuid",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "sessionId",
+                                    "generation"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/identity/sessions/{sessionId}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "sessionId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/increase-limits": {
             "post": {
                 "responses": {
@@ -20839,6 +22057,9 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "correctSession": {
+                                        "type": "boolean"
+                                    },
                                     "key": {
                                         "description": "A capability nextAction key",
                                         "minLength": 1,
@@ -20865,6 +22086,48 @@
                                         },
                                         "levelName": {
                                             "type": "string"
+                                        },
+                                        "session": {
+                                            "properties": {
+                                                "externalActionId": {
+                                                    "type": "string"
+                                                },
+                                                "generation": {
+                                                    "type": "integer"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "isMultiLevel": {
+                                                    "type": "boolean"
+                                                },
+                                                "reasonCode": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "state": {
+                                                    "type": "string"
+                                                },
+                                                "targetCountry": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "generation",
+                                                "state",
+                                                "reasonCode",
+                                                "targetCountry",
+                                                "externalActionId",
+                                                "isMultiLevel"
+                                            ],
+                                            "type": "object"
                                         },
                                         "sumsubAccessToken": {
                                             "type": "string"
@@ -21002,6 +22265,12 @@
                                                                     {
                                                                         "enum": [
                                                                             "rain-hosted"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "restart-identity"
                                                                         ],
                                                                         "type": "string"
                                                                     }
@@ -21168,6 +22437,10 @@
                                                                 },
                                                                 "type": "object"
                                                             },
+                                                            "pendingSince": {
+                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning \u2014 the FE stops promising a quick setup past that.",
+                                                                "type": "string"
+                                                            },
                                                             "provider": {
                                                                 "anyOf": [
                                                                     {
@@ -21314,6 +22587,12 @@
                                                                                             "rain-hosted"
                                                                                         ],
                                                                                         "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "restart-identity"
+                                                                                        ],
+                                                                                        "type": "string"
                                                                                     }
                                                                                 ]
                                                                             },
@@ -21446,6 +22725,17 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "depositAccounts": {
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "enabled"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "identityVerification": {
                                             "properties": {
                                                 "actionMessage": {
@@ -21477,6 +22767,9 @@
                                                         "type": "string"
                                                     },
                                                     "type": "array"
+                                                },
+                                                "reviewPending": {
+                                                    "type": "boolean"
                                                 },
                                                 "reviewedAt": {
                                                     "type": "string"
@@ -21655,7 +22948,8 @@
                                         "identityVerification",
                                         "profileNameLocked",
                                         "residenceRestrictions",
-                                        "residence"
+                                        "residence",
+                                        "depositAccounts"
                                     ],
                                     "type": "object"
                                 }
@@ -21884,6 +23178,9 @@
                                         },
                                         "retryAfterSeconds": {
                                             "type": "number"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -21908,6 +23205,9 @@
                                         },
                                         "retryAfterSeconds": {
                                             "type": "number"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -21932,6 +23232,9 @@
                                         },
                                         "retryAfterSeconds": {
                                             "type": "number"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -22508,6 +23811,9 @@
                                                 }
                                             ]
                                         },
+                                        "guestBankClaimEnabled": {
+                                            "type": "boolean"
+                                        },
                                         "isVerified": {
                                             "type": "boolean"
                                         },
@@ -22535,7 +23841,8 @@
                                         "avatarKey",
                                         "showFullName",
                                         "canReceiveBankOfframp",
-                                        "isVerified"
+                                        "isVerified",
+                                        "guestBankClaimEnabled"
                                     ],
                                     "type": "object"
                                 }

@@ -12,6 +12,21 @@ import { qrInitIdempotencyKey } from '@/utils/qr-payment.utils'
 const PIX_QR = '00020126580014BR.GOV.BCB.PIX0136some-pix-key@example.com5204000053039865802BR'
 
 describe('qrInitIdempotencyKey', () => {
+    it.each([
+        [undefined, '84d1ee3c1472a6cac6dddb9646b78856'],
+        ['100', 'c82b2cafbd0255cf01f4943803c53fa8'],
+    ])('preserves the deployed key for amount %s', (amount, expected) => {
+        expect(qrInitIdempotencyKey({ qrCode: 'qr-fixture', timestamp: '1700000000', amount })).toBe(expected)
+    })
+
+    it('gives a replacement quote its own stable key', () => {
+        const scan = { qrCode: PIX_QR, timestamp: '1700000000', amount: '100' }
+        const replacement = { ...scan, replacement: 'recovery-1' }
+        expect(qrInitIdempotencyKey(replacement)).toBe(qrInitIdempotencyKey(replacement))
+        expect(qrInitIdempotencyKey(replacement)).not.toBe(qrInitIdempotencyKey(scan))
+        expect(qrInitIdempotencyKey(replacement)).not.toBe(qrInitIdempotencyKey({ ...scan, replacement: 'recovery-2' }))
+    })
+
     it('is identical across the retries of one scan', () => {
         const a = qrInitIdempotencyKey({ qrCode: PIX_QR, timestamp: '1700000000' })
         const b = qrInitIdempotencyKey({ qrCode: PIX_QR, timestamp: '1700000000' })

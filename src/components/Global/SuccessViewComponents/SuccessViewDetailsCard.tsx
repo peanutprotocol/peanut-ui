@@ -1,8 +1,9 @@
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { useTranslations } from 'next-intl'
 import React from 'react'
 import Badge, { type StatusType } from '../Badges/Badge'
-import { Icon } from '../Icons/Icon'
 
 interface SuccessViewDetailsCardProps {
     title: string
@@ -23,11 +24,7 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
             <div className="flex items-start justify-between">
                 {/* Left side: Icon, Amount, Description */}
                 <div className="flex items-center gap-3">
-                    <div
-                        className={`flex h-14 w-14 min-w-14 items-center justify-center rounded-full bg-blue-500 font-bold`}
-                    >
-                        <Icon name="link" size={24} className="text-white" />
-                    </div>
+                    <IconBubble {...CONCEPT_ICONS.sendLink} size="m" />
                     <div className="space-y-1">
                         <h1 className="text-heading-card">{title}</h1>
                         {amountDisplay && <h2 className="text-heading-l">$ {amountDisplay}</h2>}

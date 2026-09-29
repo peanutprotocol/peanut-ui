@@ -118,7 +118,18 @@ export interface UseDepositAccountsResult {
  * the end of it. The corridor reads as timed out then, which is the one state
  * with a retry on it.
  */
-export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {}): UseDepositAccountsResult {
+export function useDepositAccounts({
+    enabled = true,
+    onVerificationRequired,
+}: {
+    enabled?: boolean
+    /**
+     * The claim answered that this corridor needs a verification the user has
+     * not done yet. The caller starts it; the claim screen stays where it is,
+     * so the user comes back to the same corridor.
+     */
+    onVerificationRequired?: (corridor: DepositCorridor) => void
+} = {}): UseDepositAccountsResult {
     const { userId } = useAuth()
     const queryClient = useQueryClient()
     const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
@@ -141,9 +152,12 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
             if (hasAccountStillWaiting(q.state.data?.accounts, provisioningPolls)) return PROVISIONING_POLL_MS
             // A corridor whose review is under way resolves on its own, and the
             // screen is waiting on exactly this read to continue into the claim.
-            return (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending')
-                ? ENDORSEMENT_POLL_MS
-                : false
+            // The same holds for the user's own review of a rail (`review-pending`):
+            // its wait drawer says the page updates by itself.
+            const reviewUnderWay =
+                (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending') ||
+                (q.state.data?.unavailable ?? []).some((corridor) => corridor.cause === 'review-pending')
+            return reviewUnderWay ? ENDORSEMENT_POLL_MS : false
         },
     })
 
@@ -185,6 +199,7 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
             const corridor = method as DepositCorridor
             if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
             if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
+            if (result.outcome === 'verification_required') onVerificationRequired?.(corridor)
         },
         onError: (error: Error, method: string) => {
             const corridor = method as DepositCorridor

@@ -50,6 +50,7 @@ export function QrPayProviderRejectionView() {
                           ? (qrKycUserMessage ?? t('kyc.restartDescription'))
                           : (qrKycUserMessage ?? t('kyc.blockedDescription'))
                 }
+                tone="error"
                 icon={
                     methodIcon ? (
                         <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
@@ -79,7 +80,7 @@ export function QrPayProviderRejectionView() {
                           : {
                                 text: tCommon('contactSupport'),
                                 onClick: () => setIsSupportModalOpen(true),
-                                variant: 'stroke' as const,
+                                variant: 'secondary' as const,
                             },
                 ]}
             />

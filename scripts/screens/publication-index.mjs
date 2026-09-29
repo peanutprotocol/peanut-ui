@@ -4,13 +4,13 @@ const devPath =
 const entryLocale = (entry) => entry.locale ?? 'en'
 const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
 const modernPath =
-    /^(\d{4}-\d{2}-\d{2})\/(dev|main|compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(en|es-419|es-ar|pt-br)\/([a-f0-9]{40})(\/run-[0-9]+-[0-9]+)?$/
+    /^(\d{4}-\d{2}-\d{2})\/(dev|main|compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(en|es-419|es-ar|pt-br)\/(?:(440x956|360x800|320x712)\/)?([a-f0-9]{40})(\/run-[0-9]+-[0-9]+)?$/
 const isCount = (value) => Number.isSafeInteger(value) && value >= 0
 
 function pathDetails(path) {
     const match = modernPath.exec(path ?? '')
     if (!match) return null
-    const [, date, channel, locale, commit, run = ''] = match
+    const [, date, channel, locale, profile, commit, run = ''] = match
     const pr = /^pr-([1-9][0-9]*)$/.exec(channel)
     return {
         date,
@@ -18,7 +18,8 @@ function pathDetails(path) {
         locale,
         commit,
         run,
-        key: `${date}/${locale}/${commit}${run}`,
+        key: `${date}/${locale}/${profile ?? '393x852'}/${commit}${run}`,
+        profile: profile ?? '393x852',
         prNumber: pr ? Number(pr[1]) : undefined,
         comparison: channel === 'compare-dev' || channel.startsWith('compare-main-') || Boolean(pr),
         library: channel === 'dev' || channel === 'main',
@@ -49,20 +50,24 @@ async function cachedEntries(storage) {
     }
 }
 
+const entryObjectPath = (entry) => `entries/${entry.path.replaceAll('/', '_')}.json`
+
 /** Add compact display metadata without rewriting immutable publication markers. */
-export async function enrichEntries(entries, storage) {
-    const cached = await cachedEntries(storage)
+export async function enrichEntries(entries, storage, cached = undefined) {
+    cached ??= await cachedEntries(storage)
     const enriched = entries.map((entry) => {
         const prior = cached.get(entry.path) ?? {}
         const details = pathDetails(entry.path)
         const branch = entry.branch ?? prior.branch ?? (details?.library ? details.channel : details?.channel)
         const prNumber = entry.prNumber ?? prior.prNumber ?? details?.prNumber
         const changedScreens = entry.changedScreens ?? prior.changedScreens
+        const profile = entry.profile ?? prior.profile ?? details?.profile
         return {
             ...entry,
             ...(branch ? { branch } : {}),
             ...(Number.isSafeInteger(prNumber) && prNumber > 0 ? { prNumber } : {}),
             ...(isCount(changedScreens) ? { changedScreens } : {}),
+            ...(profile ? { profile } : {}),
         }
     })
     const unresolved = enriched.filter((entry) => {
@@ -115,16 +120,28 @@ export function selectLatest(entries) {
 
 /** Rebuild shared pointers from immutable entry objects after a publication. */
 export async function updateIndexes(storage) {
-    const entries = []
+    const cached = await cachedEntries(storage)
+    const cachedObjects = new Map([...cached.values()].map((entry) => [entryObjectPath(entry), entry]))
+    const blobs = []
     let cursor
     do {
         const page = await storage.list({ prefix: 'entries/', cursor })
-        for (const blob of page.blobs) entries.push(JSON.parse((await storage.read(blob.pathname)).toString('utf8')))
+        blobs.push(...page.blobs)
         cursor = page.cursor
         if (!page.hasMore) break
     } while (cursor)
 
-    const sorted = sortEntries(await enrichEntries(entries, storage))
+    // Entry objects are immutable. Reuse the last index as a read-through
+    // cache and fetch only entries that were committed since that index was
+    // written. Listing remains necessary so an interrupted index update can
+    // recover every committed entry without dropping older publications.
+    const entries = await mapBounded(
+        blobs,
+        async (blob) =>
+            cachedObjects.get(blob.pathname) ?? JSON.parse((await storage.read(blob.pathname)).toString('utf8')),
+        16
+    )
+    const sorted = sortEntries(await enrichEntries(entries, storage, cached))
     const pointerOptions = {
         allowOverwrite: true,
         cacheControlMaxAge: 60,

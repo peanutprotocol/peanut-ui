@@ -15,7 +15,6 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
-import EnableCardPaymentsBanner from '@/components/Card/EnableCardPaymentsBanner'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -98,8 +97,6 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 onToggleReveal={isLocked || isRevealing ? undefined : toggle}
                 onCopy={handleCopy}
             />
-
-            <EnableCardPaymentsBanner />
 
             {/* Rain pulls every card payment from the WALLET. The home balance
                 also counts card collateral, which a new card payment cannot

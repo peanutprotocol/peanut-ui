@@ -169,7 +169,7 @@ function Harness() {
 
                 <div className="min-w-48 flex-1 sm:max-w-64">
                     <BaseInput
-                        variant="sm"
+                        size="sm"
                         value={pathInput}
                         onChange={(event) => setPathInput(event.target.value)}
                         onKeyDown={(event) => event.key === 'Enter' && go()}
@@ -177,14 +177,19 @@ function Harness() {
                         aria-label="Path"
                     />
                 </div>
-                <Button variant="stroke" size="small" className="w-auto" onClick={go}>
+                <Button variant="secondary" size="small" className="w-auto" onClick={go}>
                     Go
                 </Button>
 
-                <Button variant="stroke" size="small" className="w-auto" onClick={() => setOneToOne((value) => !value)}>
+                <Button
+                    variant="secondary"
+                    size="small"
+                    className="w-auto"
+                    onClick={() => setOneToOne((value) => !value)}
+                >
                     {oneToOne ? 'Fit panes' : 'Show 1:1'}
                 </Button>
-                <Button variant="stroke" size="small" className="w-auto" onClick={() => post({ t: 'scan' })}>
+                <Button variant="secondary" size="small" className="w-auto" onClick={() => post({ t: 'scan' })}>
                     Scan overflow
                 </Button>
                 <span className="text-body-xs text-foreground-secondary">
@@ -214,7 +219,7 @@ function Harness() {
                 <footer style={S.console}>
                     <div style={S.consoleHead}>
                         <span>errors</span>
-                        <Button variant="transparent" size="small" className="w-auto" onClick={() => setLogs([])}>
+                        <Button variant="ghost" size="small" className="w-auto" onClick={() => setLogs([])}>
                             Clear
                         </Button>
                     </div>

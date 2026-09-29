@@ -6,8 +6,11 @@ import Badge from '@/components/Global/Badges/Badge'
 import { requestsApi } from '@/services/requests'
 import { formatTokenAmount } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { requestFulfillmentState, requestIsSettled } from '../requestFulfillment'
+import { TRANSACTIONS } from '@/constants/query.consts'
+import { useEffect, useRef } from 'react'
 
 export const REQUEST_FULFILLMENT_QUERY_KEY = ['request-fulfillment'] as const
 
@@ -23,6 +26,7 @@ export const REQUEST_FULFILLMENT_POLL_MS = 15_000
  */
 export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId: string; bankPayable: boolean }) {
     const t = useTranslations('request')
+    const queryClient = useQueryClient()
 
     const { data } = useQuery({
         queryKey: [...REQUEST_FULFILLMENT_QUERY_KEY, requestId],
@@ -31,9 +35,20 @@ export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId
         refetchInterval: REQUEST_FULFILLMENT_POLL_MS,
     })
 
-    if (!data) return null
+    const state = data ? requestFulfillmentState(data) : null
+    const lastObservedBankPayment = useRef<string | null>(null)
+    useEffect(() => {
+        if (!state || state === 'unpaid') return
+        // The API serializes one request's Decimal amount consistently. Keep
+        // its string form so comparisons never round money through Number.
+        const bankPayment = `${requestId}:${state}:${data?.receivedAmount ?? ''}`
+        if (bankPayment === lastObservedBankPayment.current) return
+        lastObservedBankPayment.current = bankPayment
+        void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+    }, [data?.receivedAmount, queryClient, requestId, state])
 
-    const state = requestFulfillmentState(data)
+    if (!data || !state) return null
+
     // This row reports the bank transfer, so no bank money means no row — a
     // request paid entirely inside Peanut has nothing to say here.
     if (state === 'unpaid') return null

@@ -13,6 +13,8 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { Callout } from '@/components/0_Bruddle/Callout'
 
 const historyRows = [
@@ -24,6 +26,11 @@ export default function TabsPage() {
     const [period, setPeriod] = useState('monthly')
     const [network, setNetwork] = useState('evm')
     const [chain, setChain] = useState('arb')
+    // separate state per "Used in product" recreation, so a doc section never
+    // drives the tab row of another one
+    const [limitsPeriod, setLimitsPeriod] = useState('monthly')
+    const [depositChainType, setDepositChainType] = useState('EVM')
+    const [tokenNetwork, setTokenNetwork] = useState('all')
 
     return (
         <DocPage>
@@ -31,6 +38,21 @@ export default function TabsPage() {
                 title="Tabs"
                 description="The ONE tab component for product and marketing — one look, no variants. It is the app's own bottom navigation standing still (ruled 2026-09-21, TASK-22707, which also absorbed SegmentedControl): a bordered white pill track carrying a bordered page-tint chip, sharing its resting surface with BottomNav through 0_Bruddle/PillSurface. The chip is welded FLUSH — the track has no padding and the chip is drawn 1px outside the trigger, so its border lands on the track's. The two fills are only 1.09:1 apart, so selection is carried by that 1px border, the label colour, and — ruled 2026-09-21 — the label weight: active steps from 500 to 600 on the matching semibold type token. Static: no shadow, no slide, no spring. Code-first, figma board pending."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Switch between panels of related content on one screen — transaction details and history',
+                    'Any segmented control: Tabs absorbed SegmentedControl, so there is no second tab component',
+                    'Value toggles — give no tab a content and only the trigger row renders, so the switched content can live elsewhere on the screen',
+                    'Period, network, and view-mode switches — limits period, deposit chain type, token network',
+                ]}
+                dontUse={[
+                    'Navigation between routes — use NavHeader and links',
+                    'Switching the app section — that is the route-driven Global/BottomNav',
+                    'A long option list or a filter picker — use a Drawer selection list',
+                    'A different look per screen — there is no variant prop; never re-style the trigger row',
+                ]}
             />
 
             <DocSection title="Content tabs">
@@ -339,7 +361,7 @@ export default function TabsPage() {
                         type: "'stretch' | 'track'",
                         default: '—',
                         description:
-                            'What the row does with the width it is given. Omitted, the track is content-width. stretch fills the row and grows every tab to an equal share. track fills the row but keeps the tabs at their content width, spread across it the way BottomNav spreads its slots — for rows whose tab count is decided at runtime, where a content-width track would end early and leave a ragged gap',
+                            'What the row does with the width it is given. Omitted, the track is content-width. stretch fills the row and grows every tab to an equal share — what every full-width product row uses. track fills the row but keeps the tabs at their content width, spread across it the way BottomNav spreads its slots; no product surface asks for that today',
                     },
                     {
                         name: 'value / onValueChange',
@@ -361,6 +383,114 @@ export default function TabsPage() {
                     },
                 ]}
             />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Limits — monthly vs yearly"
+                    path="src/features/limits/views/MantecaLimitsView.tsx"
+                    description="The smallest row: size='sm', content width, sitting on the right of a card header opposite the asset name. It switches which limit the progress bar below reads."
+                    code={`<Tabs
+    size="sm"
+    tabs={[
+        { value: 'monthly', label: tPeriod('monthly') },
+        { value: 'yearly', label: tPeriod('yearly') },
+    ]}
+    value={period}
+    onValueChange={(v) => setPeriod(v as LimitsPeriod)}
+    aria-label={tPeriod('selectAriaLabel')}
+/>`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-body-xs text-foreground-secondary">Total allowed in ARS</span>
+                        <Tabs
+                            size="sm"
+                            tabs={[
+                                { value: 'monthly', label: 'Monthly' },
+                                { value: 'yearly', label: 'Yearly' },
+                            ]}
+                            value={limitsPeriod}
+                            onValueChange={setLimitsPeriod}
+                            aria-label="Select a period"
+                        />
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Add money — crypto deposit network type"
+                    path="src/components/AddMoney/views/RhinoDeposit.view.tsx"
+                    description="fullWidth='stretch': three fixed tabs, each given an equal share of the row, above the deposit address the choice generates."
+                    code={`<Tabs
+    tabs={[
+        { value: 'EVM', label: 'EVM' },
+        { value: 'SOL', label: 'Solana' },
+        { value: 'TRON', label: 'Tron' },
+    ]}
+    value={chainType}
+    onValueChange={(v) => setChainType(v as RhinoChainType)}
+    fullWidth="stretch"
+    aria-label={t('selectNetworkType')}
+/>`}
+                >
+                    <Tabs
+                        tabs={[
+                            { value: 'EVM', label: 'EVM' },
+                            { value: 'SOL', label: 'Solana' },
+                            { value: 'TRON', label: 'Tron' },
+                        ]}
+                        value={depositChainType}
+                        onValueChange={setDepositChainType}
+                        fullWidth="stretch"
+                        aria-label="Select a network type"
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Token selector — network row"
+                    path="src/components/Global/TokenSelector/TokenSelector.tsx"
+                    description="fullWidth='stretch': the tab count is decided at runtime — the row drops the chains that do not fit — and whatever survives shares the row equally, the same row add-money renders above. In product each chain label carries its own logo; the Icon here stands in for it."
+                    code={`const networkTabs = [
+    { value: 'all', label: t('tokenSelector.allNetworks') },
+    ...visiblePopularChains.map((chain) => ({
+        value: chain.chainId,
+        label: chainTabLabel(chain.name, chain.iconURI),
+    })),
+]
+
+<Tabs
+    aria-label={t('tokenSelector.selectANetwork')}
+    value={activeNetworkTab}
+    onValueChange={handleNetworkTabChange}
+    tabs={networkTabs}
+    fullWidth="stretch"
+/>`}
+                >
+                    <Tabs
+                        aria-label="Select a network"
+                        value={tokenNetwork}
+                        onValueChange={setTokenNetwork}
+                        fullWidth="stretch"
+                        tabs={[
+                            { value: 'all', label: 'All' },
+                            {
+                                value: '42161',
+                                label: (
+                                    <>
+                                        <Icon name="arrow-up-right" size={16} /> ARB
+                                    </>
+                                ),
+                            },
+                            {
+                                value: '1',
+                                label: (
+                                    <>
+                                        <Icon name="arrow-up-right" size={16} /> ETH
+                                    </>
+                                ),
+                            },
+                        ]}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

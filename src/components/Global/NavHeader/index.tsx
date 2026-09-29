@@ -9,10 +9,10 @@ import { Icon, type IconName } from '../Icons/Icon'
 import { Banner } from '@/components/Global/Banner'
 import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 import { NAV_CIRCLE_BUTTON_CLASSES } from './navHeader.consts'
+import { hasInAppHistory } from '@/hooks/useSafeBack'
 
 export interface NavHeaderProps {
     onPrev?: () => void
-    disableBackBtn?: boolean
     title?: string
     /** Localized title for callers that cannot call useTranslations — i.e. server
      *  components, since this app has no server-side next-intl setup (locale is
@@ -42,7 +42,6 @@ const NavHeader = ({
     href,
     hideLabel = false,
     onPrev,
-    disableBackBtn,
     titleClassName,
     rightElement,
     hideBackBtn = false,
@@ -69,8 +68,18 @@ const NavHeader = ({
                     {hideBackBtn ? null : !onPrev ? (
                         // link-mode Button: one anchor, no Link>Button nested interactive
                         <Button
-                            variant="transparent"
+                            variant="ghost"
                             href={href ?? '/home'}
+                            // Back pops the entry this page was opened from, like
+                            // useSafeBack. Following the link pushed the parent on
+                            // top instead, so browser back from the parent
+                            // reopened this page (Activity → back → home → back →
+                            // Activity). The link stays the no-history fallback.
+                            onClick={(event) => {
+                                if (!hasInAppHistory()) return
+                                event.preventDefault()
+                                window.history.back()
+                            }}
                             className={NAV_CIRCLE_BUTTON_CLASSES}
                             aria-label={tCommon('back')}
                             data-testid="nav-back"
@@ -83,10 +92,9 @@ const NavHeader = ({
                         </Button>
                     ) : (
                         <Button
-                            variant="transparent"
+                            variant="ghost"
                             className={NAV_CIRCLE_BUTTON_CLASSES}
                             onClick={onPrev}
-                            disabled={disableBackBtn}
                             aria-label={tCommon('back')}
                             data-testid="nav-back"
                         >

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { focusManager } from '@tanstack/react-query'
+import { setConnectivityAppActive } from '@/utils/connectivity'
 import posthog from 'posthog-js'
 import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed } from '@/utils/capacitor'
@@ -185,6 +186,7 @@ export function useNativeAppLinks() {
                 // resumed app kept rendering its pre-background query data (stale
                 // home Activity). Drive the focusManager from the native lifecycle.
                 const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+                    setConnectivityAppActive(isActive)
                     focusManager.setFocused(isActive)
                     // Android WebViews do not reliably emit visibilitychange on
                     // resume. Refresh lightweight notification consumers (the

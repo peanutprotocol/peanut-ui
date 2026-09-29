@@ -42,7 +42,7 @@ export default function StoreBadges({ surface, payload }: { surface: MigrationSu
                         every primary/secondary CTA — small (40px) was under the DS default
                         and mismatched the setup flow's h-11 siblings */}
                     <Button
-                        variant={i === 0 ? 'primary' : 'stroke'}
+                        variant={i === 0 ? 'primary' : 'secondary'}
                         shadowSize="4"
                         icon={s === 'ios' ? 'apple-logo' : 'google-play'}
                         className="w-full"

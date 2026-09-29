@@ -11,6 +11,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { QrKycState } from '@/constants/kyc.consts'
+import { QR_IDENTITY_CHECK_INTENT } from '../qrKycGate.utils'
 import { useQrPayFlow } from '../QrPayFlowContext'
 
 // KYC screens come before any error screens - user needs to verify first.
@@ -41,17 +42,19 @@ export function QrPayKycGateView() {
                 onClose={onBack}
                 title={t('kyc.unlockTitle')}
                 description={t('kyc.unlockDescription')}
-                icon={
-                    methodIcon ? (
-                        <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
-                    ) : undefined
-                }
+                // the payment method's brand mark when known, else the QR pay concept (pink)
+                {...(methodIcon
+                    ? {
+                          tone: 'info' as const,
+                          icon: <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />,
+                      }
+                    : { concept: 'qrPay' as const })}
                 ctas={[
                     {
                         text: t('kyc.unlockCta'),
                         onClick: () =>
                             sumsubFlow.handleInitiateKyc(
-                                'LATAM',
+                                QR_IDENTITY_CHECK_INTENT,
                                 undefined,
                                 isKycApproved || undefined,
                                 targetMantecaCountry
@@ -72,13 +75,14 @@ export function QrPayKycGateView() {
                 onClose={onBack}
                 title={t('kyc.inProgressTitle')}
                 description={t('kyc.inProgressDescription')}
+                tone="attention"
                 icon="shield"
                 ctas={[
                     {
                         text: tCommon('continue'),
                         onClick: () =>
                             sumsubFlow.handleInitiateKyc(
-                                'LATAM',
+                                QR_IDENTITY_CHECK_INTENT,
                                 undefined,
                                 isKycApproved || undefined,
                                 targetMantecaCountry
@@ -87,13 +91,8 @@ export function QrPayKycGateView() {
                         shadowSize: '4',
                         icon: 'check-circle',
                     },
-                    {
-                        text: t('kyc.notNow'),
-                        onClick: onBack,
-                        variant: 'stroke',
-                        className: 'w-full',
-                    },
                 ]}
+                tertiaryCta={{ text: t('kyc.notNow'), onClick: onBack }}
             />
             <SumsubKycModals
                 flow={sumsubFlow}

@@ -43,7 +43,7 @@ const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     },
     {
         id: 'crypto-add',
-        icon: 'wallet-outline' as IconName,
+        icon: 'coins' as IconName,
         path: '/add-money/crypto',
         title: 'From Crypto',
         description: 'Usually arrives instantly',

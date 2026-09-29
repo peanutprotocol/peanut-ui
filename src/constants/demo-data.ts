@@ -147,6 +147,7 @@ export const DEMO_USER: IUserProfile = {
     totalPoints: 0,
     contacts: [],
     rails: [],
+    depositAccounts: { enabled: true },
     invitesSent: [],
     showEarlyUserModal: false,
     invitedBy: null,

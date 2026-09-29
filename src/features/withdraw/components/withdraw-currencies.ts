@@ -71,7 +71,12 @@ export function liveWithdrawCurrencies({ sendToBankOnly = false } = {}): Withdra
     for (const [code, countries] of byCurrency) {
         const mapping = countryCurrencyMappings.find((m) => m.currencyCode.toUpperCase() === code.toUpperCase())
         const flagCode = mapping?.flagCode ?? (countries.length === 1 ? (countries[0].iso2 ?? '').toLowerCase() : '')
-        rows.push({ code, name: mapping?.currencyName ?? code, flagCode, countries })
+        rows.push({
+            code,
+            name: mapping?.currencyName ?? code,
+            flagCode,
+            countries,
+        })
     }
 
     const rank = (code: string) => {

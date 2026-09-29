@@ -32,6 +32,7 @@ import {
     ZERODEV_RPC_TIMEOUT_MS,
 } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
+import { beginKernelSigning } from '@/utils/kernelSigningGuard'
 
 /*
  * Per-transaction ephemeral session key for the one-tap mixed spend.
@@ -201,6 +202,19 @@ export async function createEphemeralSpendSession(args: {
     const { publicClient, chain, scope, patchedSudoValidator, ttlSeconds = TTL_SECONDS } = args
     assertZeroDevRpcUrls(BUNDLER_URL, PAYMASTER_URL)
 
+    // Held until the session is disposed (or its permission has expired): a
+    // card permission migration must not raise the nonce floor under it. A
+    // refusal is a pre-broadcast failure like any other here, so the caller
+    // falls back to the passkey path.
+    let releaseSigning: () => void
+    try {
+        releaseSigning = beginKernelSigning((ttlSeconds + 60) * 1000)
+    } catch (e) {
+        throw new EphemeralKeyPreflightError('ephemeral key: card permission update in progress — fall back', {
+            cause: e,
+        })
+    }
+
     try {
         let privateKey: Hex | null = generatePrivateKey()
         const ephemeralAccount = privateKeyToAccount(privateKey)
@@ -363,9 +377,11 @@ export async function createEphemeralSpendSession(args: {
             uninstallCall,
             dispose: () => {
                 privateKey = null
+                releaseSigning()
             },
         }
     } catch (e) {
+        releaseSigning()
         if (e instanceof EphemeralKeyPreflightError) throw e
         throw new EphemeralKeyPreflightError('ephemeral key: session setup failed', { cause: e })
     }

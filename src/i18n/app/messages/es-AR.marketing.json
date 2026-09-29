@@ -3,7 +3,7 @@
         "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
-        "slideToProceed": "Deslizá para continuar"
+        "slideToProceed": "Deslizá y continuá"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",
@@ -32,8 +32,9 @@
         "sessionExpired": "Tu sesión expiró. Iniciá sesión de nuevo.",
         "connectionTimeout": "Peanut está tardando demasiado en responder. Revisá tu conexión e intentalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contactá con soporte.",
-        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en breve.",
+        "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en {time}.",
+        "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya podés volver a intentarlo.",
         "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contactá a soporte para ampliar tu límite.",
@@ -41,6 +42,7 @@
         "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre podés retirar en Arbitrum, o contactá a soporte para recibir ayuda.",
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contactá a soporte para recibir ayuda.",
         "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
+        "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agregala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Esperá un momento e intentalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualizá la página e intentalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
@@ -72,16 +74,22 @@
     "shhhhh": {
         "hero": {
             "tagline": "Tu plata. Lista para pagar.",
-            "body": "Usá tu Peanut Card en línea y, sin contacto, con Apple Pay o Google Pay donde estén disponibles, donde se acepta Visa.",
-            "cta": "Conseguí tu tarjeta"
+            "cta": "Pedir tarjeta"
         },
         "whatItDoes": {
-            "body": "Agregá dinero a Peanut por transferencia bancaria, desde un exchange o con stablecoins compatibles. Pagá en línea o agregá tu tarjeta a Apple Pay o Google Pay donde estén disponibles."
+            "body": "Cargala como ya movés tu plata: transferencia bancaria, retiro desde un exchange o stablecoins. Después pagá donde se acepta Visa."
+        },
+        "notForYou": {
+            "title": "Probablemente no es para vos.",
+            "body1": "Si tu plata vive en un solo país y una sola moneda, tu tarjeta bancaria ya funciona. Quedate con ella.",
+            "body2": "Si tu plata vive en otro lado, cruza fronteras, está en dólares o en más de un lugar, la Peanut Card se hizo para vos."
         },
         "howToApply": {
-            "verify": "Iniciá sesión y completá la verificación de identidad.",
-            "terms": "Revisá y aceptá los términos del titular.",
-            "spend": "Una vez aprobada, agregá fondos y empezá a pagar."
+            "signInTitle": "Iniciá sesión.",
+            "signInBody": "O creá tu cuenta. Toma un minuto.",
+            "verifyTitle": "Verificá.",
+            "spendTitle": "Pagá.",
+            "spendBody": "¿Aprobada? Agregá plata y pagá."
         },
         "marquee": {
             "available": "OBTENÉ TU TARJETA"
@@ -101,8 +109,7 @@
             }
         },
         "ready": {
-            "title": "Obtené tu Peanut Card",
-            "subtitle": "Empezá tu solicitud hoy."
+            "subtitle": "Iniciá sesión, verificá, pagá."
         }
     }
 }

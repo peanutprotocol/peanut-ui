@@ -21,7 +21,7 @@ jest.mock('@/context/authContext', () => ({
 }))
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
-    default: ({ visible, title, ctas }: any) =>
+    default: ({ visible, title, ctas, tertiaryCta }: any) =>
         visible ? (
             <div data-testid="modal">
                 <h1>{title}</h1>
@@ -30,6 +30,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
                         {c.text}
                     </button>
                 ))}
+                {tertiaryCta && <button onClick={tertiaryCta.onClick}>{tertiaryCta.text}</button>}
             </div>
         ) : null,
 }))
@@ -45,7 +46,7 @@ describe('ShowNameToggle', () => {
         render(<ShowNameToggle checked={false} onChange={onChange} />)
 
         fireEvent.click(screen.getByRole('switch'))
-        expect(screen.getByText('Show your full name?')).toBeInTheDocument()
+        expect(screen.getByText('Show full name?')).toBeInTheDocument()
         expect(mockUpdateUserById).not.toHaveBeenCalled()
         expect(onChange).not.toHaveBeenCalled()
 

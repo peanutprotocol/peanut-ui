@@ -129,7 +129,7 @@ jest.mock('@/context/loadingStates.context', () => {
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 jest.mock('@/components/Claim/useClaimLink', () => ({ __esModule: true, default: () => ({ claimLink: jest.fn() }) }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
-jest.mock('@/app/actions/external-accounts', () => ({ createBridgeExternalAccountForGuest: jest.fn() }))
+jest.mock('@/app/actions/external-accounts', () => ({ createGuestClaimExternalAccount: jest.fn() }))
 jest.mock('@/app/actions/offramp', () => ({
     confirmOfframp: jest.fn(),
     createOfframp: jest.fn(),
@@ -238,6 +238,6 @@ test('unlock CTA after a saved Mexico account sends the NA intent, not LATAM', a
         fireEvent.click(screen.getByTestId('kyc-verify-button'))
     })
 
-    expect(mockGateFor).toHaveBeenCalledWith('deposit', { channel: 'bank', country: 'MX' })
+    expect(mockGateFor).toHaveBeenCalledWith('withdraw', { railId: 'bridge.spei_mx' })
     expect(mockHandleInitiateKyc.mock.calls[0].slice(0, 3)).toEqual(['NA', undefined, true])
 })

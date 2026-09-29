@@ -218,6 +218,8 @@ export type CounterpartyUser = User & {
     canReceiveBankOfframp: boolean
     /** Provider-agnostic identity-verified signal (BE-computed). The "verified" badge. */
     isVerified: boolean
+    /** Server switch for the guest send-link claim to a bank. The same for every user. */
+    guestBankClaimEnabled?: boolean
 }
 
 // based on the API's AccountType
@@ -255,6 +257,8 @@ export interface Account {
     bic?: string
     routingNumber?: string
     sortCode?: string // uk bank accounts
+    /** Why the API switched the account off, when it did — see isUsableSavedAccount. */
+    deactivationReason?: string | null
 }
 
 interface userInvites {
@@ -309,6 +313,10 @@ export interface IUserProfile {
     // user declared at signup. Read via useResidenceRestrictions(). Advisory
     // offer-shaping only: hides bank/card surfaces the user could never use.
     residenceRestrictions?: { banking: boolean; card: boolean }
+    // The deposit-accounts rollout as the claim route decides it, from
+    // `app.configurations`. Read via useDepositAccountsEnabled(). Optional for
+    // the window before that API lands; absent reads as off.
+    depositAccounts?: { enabled: boolean }
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
     // nextChangeAllowedAt: legacy field, ignored for self-declaration.

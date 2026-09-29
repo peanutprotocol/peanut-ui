@@ -41,8 +41,13 @@ jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+// the no-history Back fallback each render asks for
+const mockSafeBackFallbacks: string[] = []
 jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+    useSafeBack: (fallbackUrl: string) => {
+        mockSafeBackFallbacks.push(fallbackUrl)
+        return jest.fn()
+    },
 }))
 
 jest.mock('@/context/tokenSelector.context', () => {
@@ -168,8 +173,14 @@ jest.mock('@/features/withdraw/views/InitialWithdrawView', () => ({
 }))
 
 jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
-    WithdrawAmountView: (props: { onContinue: () => void; onBack: () => void; error: { errorMessage: string } }) => (
+    WithdrawAmountView: (props: {
+        walletBalance: string
+        onContinue: () => void
+        onBack: () => void
+        error: { errorMessage: string }
+    }) => (
         <>
+            <span data-testid="balance-label">{props.walletBalance}</span>
             {props.error.errorMessage && <p role="alert">{props.error.errorMessage}</p>}
             <button data-testid="back-amount" onClick={props.onBack}>
                 Back
@@ -304,7 +315,10 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
 // mutable so the frozen-spend tests can move the balance between setup and confirm
-const mockWalletState = { spendableBalance: (100n * 10n ** 6n) as bigint | undefined }
+const mockWalletState = {
+    spendableBalance: (100n * 10n ** 6n) as bigint | undefined,
+    formattedSpendableBalance: '100.00',
+}
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
@@ -312,6 +326,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
         sendMoney: mockSendMoney,
         sendTransactions: mockSendTransactions,
         spendableBalance: mockWalletState.spendableBalance,
+        formattedSpendableBalance: mockWalletState.formattedSpendableBalance,
     }),
 }))
 
@@ -359,6 +374,8 @@ jest.mock('@/hooks/useSavedAddresses', () => ({
 import WithdrawCryptoPage from '../page'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -393,6 +410,7 @@ beforeEach(() => {
     mockStepper.step = 'review'
     mockWithdrawFlow.isMaxWithdrawal = false
     mockWalletState.spendableBalance = 100n * 10n ** 6n
+    mockWalletState.formattedSpendableBalance = '100.00'
     mockIsAmountWithinBalance.mockReset()
     mockIsAmountWithinBalance.mockImplementation(() => true)
 })
@@ -510,6 +528,62 @@ describe('crypto withdraw preparation', () => {
         } finally {
             mockStepper.step = 'review'
         }
+    })
+
+    // TASK-22590: USDC on BNB Chain is 18-decimal on-chain. The request is
+    // sized and labelled in destination units, so the catalog entry the
+    // selector hands over must reach the charge as 18, not USDC's usual 6.
+    it('sizes a BNB Chain USDC withdrawal request in 18-decimal destination units', async () => {
+        const bsc = (await getSupportedChainsAndTokens())['56']
+        const usdc = bsc.tokens.find((t) => t.symbol === 'USDC')!
+        const original = { token: withdrawData.token, chain: withdrawData.chain }
+        withdrawData.token = { address: usdc.address, symbol: usdc.symbol, decimals: usdc.decimals, price: 1 }
+        withdrawData.chain = { chainId: 56, name: bsc.networkName }
+        mockStepper.step = 'recipient'
+        jest.mocked(chargesApi.create).mockResolvedValue({ data: { id: CHARGE_UUID } } as never)
+        jest.mocked(chargesApi.get).mockResolvedValue(chargeDetails as never)
+        try {
+            render(<WithdrawCryptoPage />)
+            selectDestinationAndReview()
+            await waitFor(() => expect(chargesApi.create).toHaveBeenCalledTimes(1))
+            const [payload] = jest.mocked(chargesApi.create).mock.calls[0]
+            expect(payload).toMatchObject({
+                local_price: { amount: '50', currency: 'USD' },
+                requestProps: {
+                    chainId: '56',
+                    tokenAddress: usdc.address,
+                    tokenSymbol: 'USDC',
+                    tokenDecimals: 18,
+                    tokenAmount: '50.000000000000000000',
+                },
+            })
+        } finally {
+            Object.assign(withdrawData, original)
+            mockStepper.step = 'review'
+        }
+    })
+})
+
+// Back with no in-app history landed on /withdraw?showAll=true, the full method
+// list, and skipped the saved destinations. /withdraw shows them when there are any.
+describe('crypto withdraw — Back without history', () => {
+    it('falls back to the withdraw entry, not the full method list', () => {
+        mockStepper.step = 'recipient'
+        render(<WithdrawCryptoPage />)
+
+        expect(mockSafeBackFallbacks.at(-1)).toBe('/withdraw')
+    })
+})
+
+describe('crypto withdraw amount step — balance label', () => {
+    it('shows the two-decimal display balance, never the raw USDC units', () => {
+        mockStepper.step = 'recipient'
+        mockWalletState.spendableBalance = 11_652_683n
+        mockWalletState.formattedSpendableBalance = '11.65'
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('destination-cta'))
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('balance-label')).toHaveTextContent(/^11\.65$/)
     })
 })
 
@@ -769,6 +843,37 @@ describe('crypto withdraw confirm — charge completion', () => {
         await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
         expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
         expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+})
+
+/**
+ * The spend engine checks the card controller before it prepares or signs
+ * anything, and that check can end the attempt: the re-approval prompt was
+ * dismissed, or the screen was left. Nothing was broadcast and no charge was
+ * paid, so the review screen must not read as a failed withdrawal.
+ */
+describe('crypto withdraw — card re-approval cancelled before the broadcast', () => {
+    it('leaves the review screen clean: no error, no failure report, no success step', async () => {
+        mockSendMoney.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+
+        await confirm()
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+
+    it('a real broadcast failure still surfaces and is reported', async () => {
+        mockSendMoney.mockRejectedValue(new Error('bundler 502'))
+
+        await confirm()
+
+        await waitFor(() =>
+            expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        )
+        expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything())
     })
 })
 

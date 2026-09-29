@@ -9,8 +9,9 @@ let accounts: Record<string, TestAccount | undefined> = {}
 // so the hook must expose per-corridor gates. Default every corridor to a ready
 // gate; a test overrides one to prove a blocked corridor hides the opt-in.
 let gates: Record<string, { kind: string }> = {}
+let isLoading = false
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
-    useDepositAccounts: () => ({ accounts, gates }),
+    useDepositAccounts: () => ({ accounts, gates, isLoading }),
 }))
 
 // canShare needs live instructions present, so the fixture carries them by default.
@@ -30,6 +31,7 @@ const renderToggle = (checked = false, onChange = jest.fn()) => {
 }
 
 beforeEach(() => {
+    isLoading = false
     accounts = {}
     gates = new Proxy({}, { get: () => ({ kind: 'ready' }) }) as Record<string, { kind: string }>
 })
@@ -81,6 +83,32 @@ describe('BankInstructionsToggle', () => {
         expect(screen.queryByTestId('bank-instructions-toggle')).not.toBeInTheDocument()
     })
 
+    // A row that appears after the accounts load pushes Create down under the
+    // user's thumb. The placeholder holds its place (sep-23 review, A39).
+    it('holds the row in place while the accounts load, with a still pulse under reduced motion', () => {
+        isLoading = true
+
+        renderToggle()
+
+        const skeleton = screen.getByTestId('bank-instructions-toggle-skeleton')
+        expect(screen.queryByTestId('bank-instructions-toggle')).not.toBeInTheDocument()
+        const pulses = skeleton.querySelectorAll('.animate-pulse')
+        expect(pulses.length).toBeGreaterThan(0)
+        pulses.forEach((el) => expect(el).toHaveClass('motion-reduce:animate-none'))
+    })
+
+    // The row owns its body type and wrapping; the toggle hands it a plain
+    // string (A40).
+    it('lets the row own the disclosure line, at the row body size', () => {
+        accounts = { SEPA_EU: account('active') }
+
+        renderToggle(true)
+
+        const line = screen.getByText('Payers see your full name and bank details.')
+        expect(line).toHaveClass('text-body-s', 'whitespace-normal')
+        expect(line).not.toHaveClass('text-body-xs')
+    })
+
     it('reports the opt-in when the user turns it on', () => {
         accounts = { SEPA_EU: account('active') }
 
@@ -91,14 +119,17 @@ describe('BankInstructionsToggle', () => {
     })
 
     describe('who may pay', () => {
-        // The sender-line only describes a live disclosure, so it only shows
-        // once the toggle is actually ON (checked=true below).
-        it('says anyone may pay on a corridor that takes third-party money', () => {
+        // The sender warning only describes a live disclosure, so it only
+        // shows once the toggle is actually ON (checked=true below). A
+        // corridor anybody can pay into adds no warning.
+        it('adds no warning on a corridor that takes third-party money', () => {
             accounts = { SEPA_EU: account('active', 'anyone') }
 
             renderToggle(true)
 
-            expect(screen.getByText(/They can then pay you by bank transfer\./)).toBeInTheDocument()
+            expect(screen.getByText('Accept bank transfer')).toBeInTheDocument()
+            expect(screen.queryByText(/Only businesses/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/Transfers from other people are not confirmed/)).not.toBeInTheDocument()
         })
 
         // A friend's transfer into a business-only corridor comes back to them.
@@ -108,7 +139,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText(/Only businesses can pay this by bank transfer\./)).toBeInTheDocument()
+            expect(screen.getByText(/Only you or a business can pay in\./)).toBeInTheDocument()
         })
 
         // Nothing a third party can pay into, so there is nothing to offer.
@@ -127,7 +158,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(true)
 
-            expect(screen.getByText(/is not confirmed on this account/)).toBeInTheDocument()
+            expect(screen.getByText(/Transfers from other people are not confirmed/)).toBeInTheDocument()
         })
     })
 
@@ -135,43 +166,51 @@ describe('BankInstructionsToggle', () => {
     // the first active one in catalogue order. The line must describe that
     // account, not whichever one the record happens to list first.
     it('reads the policy of the account the payer will be given', () => {
-        accounts = { ACH_US: account('active', 'business-only'), SEPA_EU: account('active', 'anyone') }
+        accounts = { ACH_US: account('active', 'anyone'), SEPA_EU: account('active', 'business-only') }
 
         renderToggle(true)
 
-        expect(screen.getByText(/They can then pay you by bank transfer\./)).toBeInTheDocument()
+        expect(screen.getByText(/Only you or a business can pay in\./)).toBeInTheDocument()
     })
 
-    describe('state-reactive copy', () => {
-        // ON reads as a privacy disclosure: sharing the link exposes bank
-        // details and a full name, not just "here's how payers pay you".
-        it('shows the sharing disclosure while checked', () => {
-            accounts = { SEPA_EU: account('active') }
+    describe('one title, and one line about what a payer sees', () => {
+        // Konrad, 2026-09-23: the title says what switching it on does, so it
+        // reads the same in both positions. While on, one line says the
+        // payer sees the full name: the only notice that the name leaves.
+        it('says a payer sees the full name and bank details while on', () => {
+            accounts = { SEPA_EU: account('active', 'anyone') }
 
             renderToggle(true)
 
-            expect(screen.getByText('Share your bank details')).toBeInTheDocument()
+            expect(screen.getByText('Accept bank transfer')).toBeInTheDocument()
+            expect(screen.getByText('Payers see your full name and bank details.')).toBeInTheDocument()
+        })
+
+        it('keeps the title and drops the line while off', () => {
+            accounts = { SEPA_EU: account('active', 'anyone') }
+
+            renderToggle(false)
+
+            expect(screen.getByText('Accept bank transfer')).toBeInTheDocument()
+            expect(screen.queryByText(/Payers see your full name/)).not.toBeInTheDocument()
+        })
+
+        it('puts the corridor warning after the disclosure on the same line', () => {
+            accounts = { SEPA_EU: account('active', 'business-only') }
+
+            renderToggle(true)
+
             expect(
-                screen.getByText(/Anyone who opens this link sees your bank details and full name\./)
+                screen.getByText(/^Payers see your full name and bank details\. Only you or a business can pay in/)
             ).toBeInTheDocument()
         })
 
-        // OFF says two things and stops: the details stay private, and a payer
-        // can still pay with Peanut or crypto. The pay screen does list a
-        // generic bank method either way — that method funds the payer's own
-        // Peanut balance — but the copy deliberately does not mention it, by
-        // Hugo's ruling of 2026-09-21: every payment ends up in Peanut, so
-        // naming the payer's own bank only confused the requester. It drops
-        // the sender line: there is no live disclosure to qualify.
-        it('shows the opt-out copy while unchecked, with no sender line', () => {
+        it('drops the sender line while unchecked', () => {
             accounts = { SEPA_EU: account('active', 'business-only') }
 
             renderToggle(false)
 
-            expect(screen.getByText('Your bank details stay private')).toBeInTheDocument()
-            expect(screen.getByText('Payers can pay you with Peanut or crypto.')).toBeInTheDocument()
-            expect(screen.queryByText(/Only businesses can pay this by bank transfer\./)).not.toBeInTheDocument()
-            expect(screen.queryByText(/their own bank/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/Only you or a business can pay in\./)).not.toBeInTheDocument()
         })
 
         // A name that flips with the state reads "Don't share…, switch, off".
@@ -180,7 +219,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle(checked)
 
-            expect(screen.getByRole('switch', { name: 'Share your bank details' })).toBeInTheDocument()
+            expect(screen.getByRole('switch', { name: 'Accept bank transfer' })).toBeInTheDocument()
         })
     })
 })

@@ -6,16 +6,17 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import CardFundingConsent from '@/components/Card/CardFundingConsent'
+import { RTF_AUTHORIZATION_TEXT } from '@/constants/rain.consts'
 import { toMarketingLocale } from '@/i18n/localeBridge'
 import type { Locale as MarketingLocale } from '@/i18n/types'
+import type { RainFundingConsent } from '@/utils/rain-funding.utils'
 
 interface Props {
     isUsResident: boolean
-    /** Continue will ask for Rain's wallet permission (re-issue path). */
-    showFundingNotice?: boolean
-    onAccept: () => void | Promise<void>
+    /** Called with the two managed-funding boxes the person ticked, after every box is ticked. */
+    onAccept: (consent: RainFundingConsent) => void | Promise<void>
     onPrev?: () => void
     submitError?: string | null
 }
@@ -47,12 +48,16 @@ const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, childre
     </a>
 )
 
-const CardTermsScreen: FC<Props> = ({ isUsResident, showFundingNotice, onAccept, onPrev, submitError }) => {
+const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError }) => {
     const t = useTranslations('card.terms')
     const tCard = useTranslations('card')
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [checked, setChecked] = useState<Record<string, boolean>>({})
+    // The two managed-funding boxes follow the card terms. All boxes start
+    // unticked and every one is required.
+    const [managementAccepted, setManagementAccepted] = useState(false)
+    const [authorizationAccepted, setAuthorizationAccepted] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
     const links = useMemo(() => linksFor(toMarketingLocale(locale)), [locale])
@@ -98,13 +103,16 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, showFundingNotice, onAccept,
         })
     }, [isUsResident, terms.length])
 
-    const allAccepted = useMemo(() => terms.every((t) => checked[t.id]), [terms, checked])
+    const allAccepted = useMemo(
+        () => terms.every((t) => checked[t.id]) && managementAccepted && authorizationAccepted,
+        [terms, checked, managementAccepted, authorizationAccepted]
+    )
 
     const handleContinue = async () => {
         if (!allAccepted) return
         setSubmitting(true)
         try {
-            await onAccept()
+            await onAccept({ managementAccepted, authorizationAccepted, authorizationText: RTF_AUTHORIZATION_TEXT })
         } finally {
             setSubmitting(false)
         }
@@ -135,13 +143,14 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, showFundingNotice, onAccept,
                 ))}
             </ul>
 
-            {/* Continue opens a passkey prompt for Rain's wallet permission —
-                say what it grants before the prompt appears. */}
-            {showFundingNotice && (
-                <Callout priority="info" title={tCard('funding.title')}>
-                    {tCard('funding.description')}
-                </Callout>
-            )}
+            <CardFundingConsent
+                authorizationText={RTF_AUTHORIZATION_TEXT}
+                managementAccepted={managementAccepted}
+                authorizationAccepted={authorizationAccepted}
+                onManagementChange={setManagementAccepted}
+                onAuthorizationChange={setAuthorizationAccepted}
+                disabled={submitting}
+            />
 
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 

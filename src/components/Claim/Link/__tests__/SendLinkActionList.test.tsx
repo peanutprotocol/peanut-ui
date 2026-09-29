@@ -6,10 +6,9 @@
  * identify as a Peanut user's (live session or an earlier registration) gets
  * the Peanut option alone.
  *
- * On the rails themselves, the GUEST claim-to-bank off-ramp is under
- * maintenance (BE 503s POST /bridge/offramp/create-for-guest): the bank method
- * must render greyed + "Soon!" and be non-interactive when the claim resolves
- * to GuestBankClaim, while UserBankClaim stays fully clickable.
+ * On the rails themselves, a guest whose sender can receive a bank off-ramp
+ * (GuestBankClaim) claims straight to a bank (TASK-22936): the bank method is
+ * live and enters the bank flow, the same as UserBankClaim.
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -157,6 +156,7 @@ describe('SendLinkActionList — who gets the alternate rails', () => {
     test('an unrecognised recipient keeps every rail, so a bank claim needs no account', () => {
         renderList()
 
+        expect(screen.getByRole('button', { name: /create peanut account/i })).toBeInTheDocument()
         expect(screen.getByText('Bank transfer')).toBeInTheDocument()
         expect(screen.getByText('Crypto')).toBeInTheDocument()
     })
@@ -183,17 +183,15 @@ describe('SendLinkActionList — who gets the alternate rails', () => {
     })
 })
 
-describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
-    test('GuestBankClaim: bank option is greyed + "Soon!" and non-interactive', () => {
+describe('SendLinkActionList — claim to a bank', () => {
+    test('GuestBankClaim: the bank option is live and enters the bank flow', () => {
         mockClaimType = 'guest-bank-claim'
         renderList()
 
-        // SOON badge present on the bank option
-        expect(screen.getByText('Soon!')).toBeInTheDocument()
+        expect(screen.queryByText('Soon!')).not.toBeInTheDocument()
 
-        // clicking the disabled bank card does not start the bank flow
         fireEvent.click(screen.getByText('Bank transfer'))
-        expect(mockSetFlowStep).not.toHaveBeenCalled()
+        expect(mockSetFlowStep).toHaveBeenCalledWith('bank-country-list')
     })
 
     test('UserBankClaim: the non-guest off-ramp stays interactive (no "Soon!")', () => {

@@ -11,6 +11,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -49,6 +50,8 @@ export function QrPayFormView() {
         balanceErrorMessage,
         shouldBlockPay,
         isLoading,
+        quoteUpdatedNotice,
+        isQuoteRecovering,
         payQR,
         handleCurrencyAmountChange,
         balance,
@@ -208,12 +211,15 @@ export function QrPayFormView() {
                     <Button
                         onClick={payQR}
                         shadowSize="4"
-                        loading={isLoading}
+                        loading={isLoading || isQuoteRecovering}
                         disabled={
                             !!errorInitiatingPayment ||
                             isBlockingError ||
                             !amount ||
                             isLoading ||
+                            // A replacement quote is being obtained — paying now
+                            // would submit under terms the user has not seen.
+                            isQuoteRecovering ||
                             !!balanceErrorMessage ||
                             shouldBlockPay ||
                             !usdAmount ||
@@ -224,10 +230,17 @@ export function QrPayFormView() {
                         {isLoading ? tCommon('loading') : tNav('pay')}
                     </Button>
 
+                    {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
+                    {quoteUpdatedNotice && (
+                        <Callout priority="info" data-testid="quote-updated-notice">
+                            {quoteUpdatedNotice}
+                        </Callout>
+                    )}
+
                     {/* Error State */}
                     {errorMessage && (
                         <Callout priority="error" data-testid="error-alert">
-                            {errorMessage}
+                            <CooldownErrorText message={errorMessage} />
                         </Callout>
                     )}
                 </PageStack.Center>

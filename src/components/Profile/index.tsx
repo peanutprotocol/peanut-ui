@@ -1,5 +1,6 @@
 'use client'
 
+import { useAboutHelpPreload } from '@/hooks/useAboutHelpPreload'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
@@ -30,6 +31,7 @@ const OtaUpdateModal = dynamic(() => import('./components/OtaUpdateModal'), { ss
 const StoreUpdateModal = dynamic(() => import('./components/StoreUpdateModal'), { ssr: false })
 
 export const Profile = () => {
+    useAboutHelpPreload()
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const [isInviteFriendsModalMounted, setIsInviteFriendsModalMounted] = useState(false)
@@ -97,7 +99,7 @@ export const Profile = () => {
                     // profile earns the top-right slot instead: it's the one
                     // action worth reaching without scrolling.
                     <Button
-                        variant="transparent"
+                        variant="ghost"
                         href="/profile/edit"
                         icon="edit"
                         aria-label={t('menu.personalDetails')}
@@ -124,14 +126,16 @@ export const Profile = () => {
                         /profile/edit. */}
                     <ListGroup>
                         <ProfileMenuItem
-                            icon="globe-lock"
-                            label={t('menu.unlockedRegions')}
-                            href="/profile/accounts-and-payments"
+                            icon="bank"
+                            label={t('menu.accounts')}
+                            href="/profile/accounts"
                             // same chip treatment as the card row's "New!" — a
                             // pulsing dot was a second attention language on
-                            // one screen.
+                            // one screen. One entry carries it: verification
+                            // starts from either page.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
+                        <ProfileMenuItem icon="wallet" label={t('menu.payments')} href="/profile/payments" />
                         {showCardMenuItem && (
                             <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
@@ -197,8 +201,7 @@ export const Profile = () => {
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
-                            variant="primary-soft"
-                            shadowSize="4"
+                            variant="secondary"
                             className="w-full"
                             onClick={logout}
                             icon="logout"

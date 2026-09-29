@@ -12,6 +12,7 @@ import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -408,11 +409,17 @@ export const useMultiPhaseKycFlow = ({
 
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
+        async (
+            overrideIntent?: KYCRegionIntent,
+            levelName?: string,
+            crossRegion?: boolean,
+            targetCountry?: string,
+            corridor?: DepositCorridor
+        ) => {
             const intent = overrideIntent ?? regionIntent
             lastIntentRef.current = intent
             setRequestedIntent(intent)
-            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry }
+            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
                 { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
@@ -428,14 +435,20 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
+            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
     useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
         resumingRef.current = true
-        const opened = await handleInitiateKyc(state.intent, state.levelName, state.crossRegion, state.targetCountry)
+        const opened = await handleInitiateKyc(
+            state.intent,
+            state.levelName,
+            state.crossRegion,
+            state.targetCountry,
+            state.corridor
+        )
         resumingRef.current = false
         return !!opened
     })

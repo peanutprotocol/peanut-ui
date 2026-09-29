@@ -1,5 +1,6 @@
 'use client'
 
+import { useAboutHelpPreload } from '@/hooks/useAboutHelpPreload'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import DocsLink from '@/components/Global/DocsLink'
@@ -21,6 +22,7 @@ const TAPS_TO_REVEAL_BETA = 5
 const TAP_WINDOW_MS = 2_000
 
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
+    useAboutHelpPreload()
     const t = useTranslations('profile.about')
     const onBack = useSafeBack('/profile', { replace: true })
     // the bundled version is only the web value and the pre-bridge fallback
@@ -103,7 +105,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                 {/* whole row is the link: DocsLink keeps the locale + in-app
                     browser routing, ListItem carries the DS row anatomy */}
                 {LEGAL_POLICIES.map((doc, index) => (
-                    <DocsLink key={doc.href} href={doc.href} className="block">
+                    <DocsLink key={doc.href} href={doc.href} className="block" openInDrawer>
                         <ListItem
                             title={t(`policies.${doc.key}`)}
                             chevron

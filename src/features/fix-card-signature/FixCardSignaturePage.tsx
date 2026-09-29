@@ -5,9 +5,8 @@
  *
  * Guided repair for accounts whose card session-key approval can never
  * validate (nonce-bricked or undeployed kernel — see useCardSignatureRepair).
- * Not linked from anywhere; support DMs the URL to affected users. Up to three
- * passkey taps: repair the wallet state, re-grant the withdrawal permission,
- * then approve Rain's card funding (skipped when it already stands).
+ * Not linked from anywhere; support DMs the URL to affected users. Two passkey
+ * taps: repair the wallet state, then re-grant the withdrawal permission.
  */
 
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -31,7 +30,6 @@ export function FixCardSignaturePage() {
         error,
         diagnose,
         isGranting,
-        withdrawalsRepaired,
         grantDone,
         grantErrorMessage,
         needsRepair,
@@ -51,7 +49,7 @@ export function FixCardSignaturePage() {
                 )}
 
                 {!isDiagnosing && !diagnosis && error && (
-                    <Button variant="stroke" className="w-full" onClick={() => void diagnose()}>
+                    <Button variant="secondary" className="w-full" onClick={() => void diagnose()}>
                         {t('fixSignature.checkAgain')}
                     </Button>
                 )}
@@ -109,9 +107,7 @@ export function FixCardSignaturePage() {
                         ) : (
                             <>
                                 <p className="text-body-s text-foreground-secondary">
-                                    {withdrawalsRepaired
-                                        ? t('fixSignature.fundingRemaining')
-                                        : t('fixSignature.oneMoreConfirmation')}
+                                    {t('fixSignature.oneMoreConfirmation')}
                                 </p>
                                 <Button
                                     variant="primary"

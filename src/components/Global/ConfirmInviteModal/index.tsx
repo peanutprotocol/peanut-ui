@@ -59,7 +59,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                 },
                 {
                     text: t('confirmInviteModal.continueWithMethod', { method }),
-                    variant: 'stroke',
+                    variant: 'secondary',
                     className: 'sm:flex-none',
                     onClick: handleLoseInvite,
                 },

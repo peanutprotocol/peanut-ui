@@ -1,7 +1,8 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
@@ -10,7 +11,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import RateUnavailable from '@/components/Global/RateUnavailable'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
+import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
@@ -40,12 +41,11 @@ export function BridgeBankOnrampView() {
         locale,
         t,
         tCommon,
-        tUnlock,
         gate,
         sumsubFlow,
         handleVerify,
         pendingModal,
-        advisoryModalProps,
+        advisoryDeadline,
         showBridgeTos,
         hideTos,
         setIsSupportModalOpen,
@@ -124,7 +124,9 @@ export function BridgeBankOnrampView() {
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     visible
                     presentation="page"
-                    navTitle={tUnlock('title')}
+                    // Reached from Add money, so it keeps that title; the same
+                    // unlock opened from Accounts and payments is a drawer there.
+                    navTitle={t('title')}
                     onBack={onBack}
                     onClose={onBack}
                     onVerify={handleVerify}
@@ -150,12 +152,12 @@ export function BridgeBankOnrampView() {
         })
 
         return (
-            <div className="space-y-8 flex flex-col justify-start">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                <PageStack.Center className="gap-4 md:my-0">
                     <div className="text-label-l">{t('howMuchToAdd')}</div>
                     {/* the field error yields to the limits card only when that card renders */}
-                    <FieldColumn
+                    <Field
                         error={
                             shouldShowAmountError({
                                 showError: !!validationError,
@@ -183,12 +185,10 @@ export function BridgeBankOnrampView() {
                             }
                             hideBalance
                         />
-                    </FieldColumn>
+                    </Field>
 
                     {/* limits warning/error card */}
                     {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
-
-                    {!limitsValidation.isBlocking && <Callout priority="attention">{t('amountMustMatchBank')}</Callout>}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
@@ -196,6 +196,7 @@ export function BridgeBankOnrampView() {
                             {t('eurAccountsOnlyDescription')}
                         </Callout>
                     )}
+                    {advisoryDeadline && <VerificationDeadlineNotice effectiveDate={advisoryDeadline} />}
                     <Button
                         variant="primary"
                         shadowSize="4"
@@ -222,14 +223,12 @@ export function BridgeBankOnrampView() {
                         limitsBlocking: limitsValidation.isBlocking,
                     }) && <Callout priority="error">{error.errorMessage}</Callout>}
                     {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
-                </div>
+                </PageStack.Center>
 
                 <OnrampConfirmationModal
                     visible={showWarningModal}
                     onClose={handleWarningCancel}
                     onConfirm={handleWarningConfirm}
-                    amount={rawTokenAmount}
-                    currency={getCurrencySymbol(getCurrencyConfig(selectedCountry.id, 'onramp').currency)}
                 />
 
                 <InitiateKycModal
@@ -255,8 +254,6 @@ export function BridgeBankOnrampView() {
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                 />
 
-                <AdvisoryPreemptModal {...advisoryModalProps} />
-
                 <KycReverificationPendingModal
                     isOpen={pendingModal.isOpen}
                     onClose={pendingModal.close}
@@ -280,7 +277,7 @@ export function BridgeBankOnrampView() {
                     onSkip={hideTos}
                     reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                 />
-            </div>
+            </PageStack>
         )
     }
 

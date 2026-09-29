@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
 import type { MutableRefObject, ReactNode, RefObject } from 'react'
 import { ForceGraph2D } from './ForceGraph2D'
 import { type GraphData, type GraphMode, type GraphOverlayProps } from './types'
@@ -132,13 +133,15 @@ export function MinimalGraphView({
                 )}
                 {/* Reset camera button when focused on a user */}
                 {selectedUserId && (
-                    <button
+                    <Button
+                        variant="secondary"
+                        size="small"
+                        icon="undo"
                         onClick={handleResetView}
-                        className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-body-xs font-medium shadow-md transition-colors"
+                        className="absolute top-2 left-2 z-10"
                     >
-                        <span>←</span>
-                        <span>{t('invitesGraph.resetView')}</span>
-                    </button>
+                        {t('invitesGraph.resetView')}
+                    </Button>
                 )}
                 {renderOverlays?.(overlayProps)}
             </div>

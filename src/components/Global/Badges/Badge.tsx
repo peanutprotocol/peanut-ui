@@ -11,11 +11,12 @@ export type StatusType =
     | 'soon'
     | 'processing'
     | 'custom'
+    | 'neutral'
     | 'closed'
     | 'refunded'
 
-/** every status that the icon badge can draw — `custom` has no glyph. */
-export type IconStatusType = Exclude<StatusType, 'custom'>
+/** every status that the icon badge can draw — `custom` and `neutral` have no glyph. */
+export type IconStatusType = Exclude<StatusType, 'custom' | 'neutral'>
 
 /**
  * Status → `common.status.*` catalog key. Exhaustive over StatusType, so a new
@@ -31,6 +32,9 @@ export const STATUS_LABEL_KEYS = {
     soon: 'status.soon',
     closed: 'status.closed',
     custom: 'status.custom',
+    // `neutral` is a fact with no tone (a counter, "Not set up", a dead end)
+    // and always carries its own text; this key is only the fallback
+    neutral: 'status.unknown',
 } as const satisfies Record<StatusType, string>
 
 interface BadgeProps {
@@ -39,11 +43,14 @@ interface BadgeProps {
     type?: 'text' | 'icon'
     className?: string
     size?: 'small' | 'medium'
+    /** `neutral` has no default word: always pass the text it stands for */
     customText?: string
 }
 
 // board 17802:61533 colors: pending=attention, processing=info, fail=error,
-// success=success, accent=soon/custom. borderless, dark text.
+// success=success, accent=soon/custom, helper=neutral. borderless, dark text.
+// neutral exists so counters and dead ends stop borrowing the accent colour
+// through `custom` (Konrad review, 2026-09-23).
 const STATUS_STYLES: Record<StatusType, string> = {
     completed: 'bg-background-badge-success',
     closed: 'bg-background-badge-success',
@@ -54,6 +61,7 @@ const STATUS_STYLES: Record<StatusType, string> = {
     cancelled: 'bg-background-badge-error',
     soon: 'bg-background-badge-accent',
     custom: 'bg-background-badge-accent',
+    neutral: 'bg-background-badge-helper',
 }
 
 // badge board type=icon glyphs (17312:137472-480, 18072:25494/25504/25520):
@@ -84,12 +92,13 @@ const SIZE_CLASSES = {
  * `type="icon"` is the icon-only chip (states board 17966:12128): 3px padding,
  * 14px icon, round, on the same status → colour map.
  *
- * `custom` has no glyph, so it renders as text whatever the type asks for.
+ * `custom` and `neutral` have no glyph, so they render as text whatever the
+ * type asks for.
  */
 const Badge: React.FC<BadgeProps> = ({ status, type = 'text', className, size = 'small', customText }) => {
     const t = useTranslations('common')
 
-    if (type === 'icon' && status !== 'custom') {
+    if (type === 'icon' && status !== 'custom' && status !== 'neutral') {
         return (
             <div
                 className={twMerge(

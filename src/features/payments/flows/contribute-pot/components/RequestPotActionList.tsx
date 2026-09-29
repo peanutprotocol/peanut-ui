@@ -33,10 +33,12 @@ import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
-import { isUsdPeggedRequest, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
+import { BankTransferChooserDrawer } from './BankTransferChooserDrawer'
+import { isUsdPeggedRequest } from '@/features/deposit-accounts/payerAmount'
+import { formatBankAmount } from '@/utils/currency'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
 import { usdRemainingOf } from '../collected'
 
@@ -45,6 +47,8 @@ interface RequestPotActionListProps {
     usdAmount: string
     recipientUserId?: string
     recipientUsername?: string
+    recipientAvatarKey?: string | null
+    requestMessage?: string
     /** the request being paid — needed to read its bank details */
     requestId?: string
     /** the requester lets this request be settled by bank transfer */
@@ -66,6 +70,8 @@ export function RequestPotActionList({
     usdAmount,
     recipientUserId,
     recipientUsername,
+    recipientAvatarKey,
+    requestMessage,
     requestId,
     bankPayable = false,
     remainingUsd,
@@ -80,7 +86,6 @@ export function RequestPotActionList({
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
     const methodLabels = usePaymentMethodLabels()
-    const format = useFormatter()
     const { user, isFetchingUser } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
@@ -247,6 +252,11 @@ export function RequestPotActionList({
               : remainingUsd,
         serverCountsAllPayments,
     }
+    const requestedAmount = Number(payAmounts?.requestAmount)
+    const requestContextAmount =
+        payAmounts && Number.isFinite(requestedAmount) && requestedAmount > 0
+            ? formatBankAmount(requestedAmount, payAmounts.requestCurrency.toUpperCase())
+            : undefined
     // The generic row, where the backend picks the account, is for one case: the
     // pay-amounts read gave NOTHING, because the API predates the route or the
     // read failed. An answer that lists no bank rail is an answer: a request
@@ -264,17 +274,18 @@ export function RequestPotActionList({
             aria-hidden
         />
     ) : bankRails.length > 0 ? (
-        bankRails.map((rail) => (
-            <PayByBankTransferDrawer
-                key={rail.railId ?? rail.payerAmount.currency}
-                requestId={requestId}
-                rail={rail}
-                onUnavailable={() =>
-                    setUnavailableRails((current) => new Set(current).add(rail.railId ?? rail.payerAmount.currency))
-                }
-                {...bankRowProps}
-            />
-        ))
+        <BankTransferChooserDrawer
+            requestId={requestId}
+            rails={bankRails}
+            recipientUsername={recipientUsername}
+            recipientAvatarKey={recipientAvatarKey}
+            requestMessage={requestMessage}
+            requestAmount={requestContextAmount}
+            bankRowProps={bankRowProps}
+            onUnavailable={(rail) =>
+                setUnavailableRails((current) => new Set(current).add(rail.railId ?? rail.payerAmount.currency))
+            }
+        />
     ) : payAmounts ? null : (
         <PayByBankTransferDrawer requestId={requestId} {...bankRowProps} />
     )
@@ -285,9 +296,7 @@ export function RequestPotActionList({
     const otherCurrencyNote = useMemo(() => {
         if (!payAmounts || payAmounts.requestCurrency.toUpperCase() === 'USD') return undefined
         const currency = payAmounts.requestCurrency.toUpperCase()
-        const digits = minorUnitDigits(currency)
-        const show = (value: number) =>
-            format.number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+        const show = (value: number) => formatBankAmount(value, currency)
         const asked = Number(payAmounts.requestAmount)
         const left = Number(payAmounts.remainingAmount)
         if (!(asked > 0)) return undefined
@@ -295,9 +304,9 @@ export function RequestPotActionList({
         // send. Not where the API's remainder missed a payment: the screen has
         // no figure of its own in this currency, so it states none.
         return serverCountsAllPayments && left > 0 && left < asked
-            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left), currency })
-            : t('requestCurrencyNote', { amount: show(asked), currency })
-    }, [payAmounts, serverCountsAllPayments, format, t])
+            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left) })
+            : t('requestCurrencyNote', { amount: show(asked) })
+    }, [payAmounts, serverCountsAllPayments, t])
 
     if (isGeoLoading) {
         return (
@@ -353,7 +362,7 @@ export function RequestPotActionList({
                                     {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
                                         <Badge
-                                            status={methodRequiresVerification ? 'custom' : 'soon'}
+                                            status={methodRequiresVerification ? 'pending' : 'soon'}
                                             customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />
                                     )}
@@ -390,6 +399,7 @@ export function RequestPotActionList({
                 }}
                 title={t('usePeanutBalance.title')}
                 description={t('usePeanutBalance.description')}
+                tone="info"
                 icon="user-plus"
                 ctas={[
                     {
@@ -405,7 +415,7 @@ export function RequestPotActionList({
                     {
                         text: tCommon('continue'),
                         shadowSize: '4',
-                        variant: 'stroke',
+                        variant: 'secondary',
                         onClick: () => {
                             setShowUsePeanutBalanceModal(false)
                             setIsUsePeanutBalanceModalShown(true)

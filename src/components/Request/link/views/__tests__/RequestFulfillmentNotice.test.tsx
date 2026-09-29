@@ -19,8 +19,8 @@ const request = (over: Record<string, unknown>) => ({
     ...over,
 })
 
+let client: QueryClient
 const wrapper = ({ children }: { children: ReactNode }) => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return (
         <IntlWrapper>
             <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -30,7 +30,10 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 
 const renderNotice = () => render(<RequestFulfillmentNotice requestId="req-1" bankPayable={true} />, { wrapper })
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+    jest.clearAllMocks()
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+})
 
 describe('RequestFulfillmentNotice', () => {
     it('shows nothing while no deposit has answered the request', async () => {
@@ -60,6 +63,65 @@ describe('RequestFulfillmentNotice', () => {
 
         expect(await screen.findByText('Paid')).toBeInTheDocument()
         expect(screen.getByText('Paid by ANA SILVA')).toBeInTheDocument()
+    })
+
+    it('refreshes activity when polling first observes a bank payment', async () => {
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        getRequest.mockResolvedValue(request({ bankFulfilment: 'paid', receivedAmount: '250' }))
+
+        renderNotice()
+
+        await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] }))
+    })
+
+    it('refreshes activity for each larger partial bank payment, but not an identical poll', async () => {
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        getRequest
+            .mockResolvedValueOnce(request({ bankFulfilment: 'partial', receivedAmount: '100' }))
+            .mockResolvedValue(request({ bankFulfilment: 'partial', receivedAmount: '150' }))
+
+        renderNotice()
+
+        const transactionRefreshes = () =>
+            invalidate.mock.calls.filter(([filters]) => filters?.queryKey?.[0] === 'transactions').length
+        await waitFor(() => expect(transactionRefreshes()).toBe(1))
+
+        await client.refetchQueries({ queryKey: ['request-fulfillment', 'req-1'] })
+        await waitFor(() => expect(transactionRefreshes()).toBe(2))
+
+        await client.refetchQueries({ queryKey: ['request-fulfillment', 'req-1'] })
+        expect(transactionRefreshes()).toBe(2)
+    })
+
+    it('refreshes activity when a partial bank payment completes the request', async () => {
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        getRequest
+            .mockResolvedValueOnce(request({ bankFulfilment: 'partial', receivedAmount: '100' }))
+            .mockResolvedValue(request({ bankFulfilment: 'paid', receivedAmount: '250' }))
+
+        renderNotice()
+
+        const transactionRefreshes = () =>
+            invalidate.mock.calls.filter(([filters]) => filters?.queryKey?.[0] === 'transactions').length
+        await waitFor(() => expect(transactionRefreshes()).toBe(1))
+
+        await client.refetchQueries({ queryKey: ['request-fulfillment', 'req-1'] })
+        await waitFor(() => expect(transactionRefreshes()).toBe(2))
+    })
+
+    it('refreshes the same bank amount when the component moves to another request', async () => {
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        getRequest.mockResolvedValue(request({ bankFulfilment: 'partial', receivedAmount: '100' }))
+
+        const { rerender } = renderNotice()
+
+        const transactionRefreshes = () =>
+            invalidate.mock.calls.filter(([filters]) => filters?.queryKey?.[0] === 'transactions').length
+        await waitFor(() => expect(transactionRefreshes()).toBe(1))
+
+        rerender(<RequestFulfillmentNotice requestId="req-2" bankPayable={true} />)
+        await waitFor(() => expect(getRequest).toHaveBeenCalledWith('req-2'))
+        await waitFor(() => expect(transactionRefreshes()).toBe(2))
     })
 
     // The bank does not always report a name. The request is still paid, and

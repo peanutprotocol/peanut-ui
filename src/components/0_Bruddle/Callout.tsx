@@ -4,8 +4,8 @@ import React from 'react'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
-import { Button } from './Button'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
+import { LinkButton } from './LinkButton'
 
 export type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
 export type CalloutVariant = 'inline' | 'floating'
@@ -30,13 +30,15 @@ interface CalloutProps {
     children?: React.ReactNode
     /** Checklist body: one check-marked row per entry, instead of `children`. */
     items?: React.ReactNode[]
-    /** When set, shows a close button (dismissible variant). */
+    /** When set, shows a close button on inline callouts only. A toast leaves on
+     *  its own: on its timer, or (a `persistent` toast) when its caller clears
+     *  it as the condition ends. So `floating` never draws one. */
     onDismiss?: () => void
     /** ms the callout has left on screen. Draws the tone-colored countdown
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
     progressMs?: number
-    /** One or two actions: first renders primary, second stroke (secondary). */
+    /** One or two underlined text actions on inline callouts only. Transient toasts have no actions. */
     ctas?: [CalloutCta] | [CalloutCta, CalloutCta]
     className?: string
     'data-testid'?: string
@@ -83,8 +85,6 @@ const PRIORITY_STYLES: Record<
     },
 }
 
-const CTA_VARIANTS = ['primary', 'stroke'] as const
-
 /**
  * Inline callout banner from the figma notification board (17802:61535):
  * priority (info/success/attention/helper/error) sets the tone and icon;
@@ -115,6 +115,9 @@ const CTA_VARIANTS = ['primary', 'stroke'] as const
  * flat badge tint, the tone lands on a 24px icon bubble, the countdown bar, and
  * a 5% wash of the fill — light enough that the card stays legible over
  * whatever screen it floats above, and opaque so it never reads as a wash.
+ * It has no close button (TASK-23054, konrad + hugo): a toast times out, or a
+ * persistent one is cleared by its caller when its condition ends, and
+ * the × read as a control that did nothing.
  */
 export const Callout = ({
     priority = 'info',
@@ -132,6 +135,8 @@ export const Callout = ({
     const t = useTranslations('common')
     const { icon, bg, surface, bubble, bar } = PRIORITY_STYLES[priority]
     const isFloating = variant === 'floating'
+    const visibleCtas = isFloating ? undefined : ctas
+    const handleDismiss = isFloating ? undefined : onDismiss
     // `items` wins whenever it is passed at all — an explicit [] means "no rows",
     // not "fall back to children"
     const body = items
@@ -163,7 +168,7 @@ export const Callout = ({
     const indent = showIcon ? (isFloating ? 'pl-8' : 'pl-6') : ''
     // an empty `items` array used to fall through to `children` (undefined at
     // every migrated call site) and paint a bare icon-only box
-    if (!body && !title && !ctas?.length) return null
+    if (!body && !title && !visibleCtas?.length) return null
     return (
         <div
             role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
@@ -180,15 +185,11 @@ export const Callout = ({
                 isFloating
                     ? // pb-2 is deliberately short: the 4px countdown bar sits inside
                       // the bottom padding and reads as part of the frame, so 12/8
-                      // balances where an even 12/12 looks bottom-heavy. pr-4 + gap-4
-                      // keep the close glyph well off the end of the message.
+                      // balances where an even 12/12 looks bottom-heavy.
                       twMerge(
-                          // no overflow-hidden: it clipped the dismiss button's
-                          // after:-inset-2.5 expansion where the 44px target runs past
-                          // the card, so taps near the top-right corner missed. The bar
-                          // rounds its own bottom corners instead of being clipped to
-                          // them, which is all the clipping was ever for.
-                          'relative gap-4 border border-border-default pr-4 pb-2 text-foreground-primary shadow-4',
+                          // the bar rounds its own bottom corners, so the card needs
+                          // no overflow-hidden to clip it
+                          'relative border border-border-default pb-2 text-foreground-primary shadow-4',
                           // the tone whispers through the surface at 5% — opaque,
                           // so the card still covers the screen behind it
                           surface
@@ -227,35 +228,22 @@ export const Callout = ({
                     </div>
                     {title && <div className={twMerge('text-body-s break-words', indent)}>{body}</div>}
                 </div>
-                {!!ctas?.length && (
-                    <div className={twMerge('flex flex-wrap gap-2', indent)}>
-                        {ctas.slice(0, 2).map((cta, i) => (
-                            <Button
-                                key={i}
-                                size="small"
-                                variant={CTA_VARIANTS[i]}
-                                icon="chevron-right"
-                                iconPosition="right"
-                                onClick={cta.onClick}
-                                className="w-auto min-w-28"
-                            >
+                {!!visibleCtas?.length && (
+                    <div className={twMerge('flex flex-wrap gap-6', indent)}>
+                        {visibleCtas.slice(0, 2).map((cta, i) => (
+                            <LinkButton key={i} onClick={cta.onClick}>
                                 {cta.label}
-                            </Button>
+                            </LinkButton>
                         ))}
                     </div>
                 )}
             </div>
-            {onDismiss && (
+            {handleDismiss && (
                 <button
                     type="button"
                     aria-label={t('close')}
-                    onClick={onDismiss}
-                    className={twMerge(
-                        'relative -m-1 flex size-6 shrink-0 items-center justify-center rounded-full transition-opacity duration-instant after:absolute after:-inset-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
-                        // -m-1's own -4px is exactly what puts the 24px button's glyph
-                        // on the lifted content's centre line (12 - 4 + 12 == 12 - 2 + 10)
-                        isFloating ? 'text-foreground-secondary' : 'text-foreground-over-color-secondary'
-                    )}
+                    onClick={handleDismiss}
+                    className="relative -m-1 flex size-6 shrink-0 items-center justify-center rounded-full text-foreground-over-color-secondary transition-opacity duration-instant after:absolute after:-inset-2.5 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                 >
                     <Icon name="cancel" size={12} />
                 </button>
@@ -273,9 +261,7 @@ export const Callout = ({
                 <span
                     aria-hidden
                     className={twMerge(
-                        // pointer-events-none: the bar paints after the dismiss
-                        // button and spans the full width, so on a one-line toast it
-                        // sat over the lower half of that button's 44px target
+                        // The decorative bar never intercepts pointer events.
                         'pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left rounded-b-sm motion-safe:animate-toast-progress',
                         bar
                     )}

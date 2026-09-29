@@ -14,6 +14,8 @@
 
 import {
     initiateSumsubKyc,
+    initiateSelfHealResubmission,
+    startKycAction,
     isTerminalActionCode,
     restartIdentityVerification,
     startResidenceChangeVerification,
@@ -71,6 +73,16 @@ describe('initiateSumsubKyc — backend refusals', () => {
         expect(result.error).toMatch(/try again shortly/i)
         // a transient failure must NOT be classified terminal
         expect(isTerminalActionCode(result.code)).toBe(false)
+    })
+
+    it('never shows a 4xx developer string; userMessage still wins', async () => {
+        respondWith(404, { error: 'No provider rejection found' })
+        const result = await initiateSelfHealResubmission('BRIDGE')
+        expect(result.error).not.toMatch(/no provider rejection found/i)
+        expect(result.code).toBe('resubmit_failed')
+
+        respondWith(400, { error: 'No identity verification found', userMessage: 'Start the ID check first.' })
+        expect((await initiateSelfHealResubmission('BRIDGE')).error).toBe('Start the ID check first.')
     })
 
     it('falls back to canned copy with a code when the backend says nothing', async () => {
@@ -216,7 +228,8 @@ describe('startResidenceChangeVerification — wire shape', () => {
 
         const result = await startResidenceChangeVerification('PT')
 
-        expect(result.error).toMatch(/save a new residence/i)
+        // a 4xx `error` is not user copy: the localized fallback shows instead
+        expect(result.code).toBe('residence_change_failed')
         expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
     })
@@ -236,4 +249,65 @@ describe('startResidenceChangeVerification — wire shape', () => {
             nowSpy.mockRestore()
         }
     })
+})
+
+describe('startKycAction — durable session contract', () => {
+    const session = {
+        id: 'session-1',
+        generation: 3,
+        targetCountry: 'BR',
+        externalActionId: 'manteca-user-attempt-3-BR',
+        state: 'SUBMISSION_PENDING',
+        reasonCode: null,
+        isMultiLevel: false,
+    }
+    it.each(['REVIEW_PENDING', 'SUBMISSION_PENDING', 'PROVIDER_PENDING', 'READY', 'CORRECTION_REQUIRED', 'BLOCKED'])(
+        'keeps a %s response without a token',
+        async (state) => {
+            respondWith(200, {
+                levelName: 'manteca-kyc',
+                externalActionId: session.externalActionId,
+                session: { ...session, state },
+            })
+            const result = await startKycAction('manteca-kyc-action:BR')
+            expect(result.error).toBeUndefined()
+            expect(result.data?.session).toEqual({ ...session, state })
+            expect(result.data?.token).toBeUndefined()
+        }
+    )
+    it('keeps generation ownership when collection returns a token', async () => {
+        respondWith(200, {
+            sumsubAccessToken: 'token',
+            levelName: 'manteca-kyc',
+            session: { ...session, state: 'COLLECTING' },
+        })
+        expect(await startKycAction('manteca-kyc-action:BR')).toMatchObject({
+            data: { token: 'token', session: { id: 'session-1', generation: 3 } },
+        })
+    })
+    it('still rejects a success response with neither a token nor a session', async () => {
+        respondWith(200, { levelName: 'manteca-kyc' })
+        expect((await startKycAction('manteca-kyc-action:BR')).code).toBe('invalid_response')
+    })
+})
+
+// api#1738: resubmit refuses a residence the bank rails are closed to with a
+// 403 carrying `code` + `userMessage`. It is permanent, and never read as prose.
+describe('residence refusals (code field)', () => {
+    it.each(['residence_bank_restricted', 'uk_resident_blocked'])(
+        '%s on resubmit is terminal and keeps the user message',
+        async (code) => {
+            respondWith(403, {
+                error: 'Bank transfers are not available for your current or pending residence.',
+                code,
+                userMessage: 'Bank transfers are not available for your current or pending residence.',
+            })
+
+            const result = await initiateSelfHealResubmission('BRIDGE')
+
+            expect(result.code).toBe(code)
+            expect(isTerminalActionCode(result.code)).toBe(true)
+            expect(result.error).toMatch(/not available for your current or pending residence/)
+        }
+    )
 })

@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
 import { DEPOSIT_ACCOUNT_SCREENS, DEPOSIT_CORRIDORS } from './params'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from './types'
+import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from './types'
 import { useDepositAccountsEnabled } from './useDepositAccountsEnabled'
 import { useOfferedCorridors } from './useOfferedCorridors'
 
@@ -31,12 +31,15 @@ import { useOfferedCorridors } from './useOfferedCorridors'
 export function useDepositCountryRouting({
     accounts,
     claimable,
+    unavailable,
     isLoading = false,
 }: {
     /** the accounts the user holds, by corridor, where the caller has read them */
     accounts?: Record<DepositCorridor, DepositAccountView | undefined>
     /** the terms of each corridor the user could open, and what blocks it */
     claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /** why the backend withholds a corridor — one waiting on identity verification still leads somewhere */
+    unavailable?: Record<DepositCorridor, UnavailableCorridor | undefined>
     /** the two above are still being read, so neither answers yet */
     isLoading?: boolean
 } = {}) {
@@ -48,7 +51,21 @@ export function useDepositCountryRouting({
         step: parseAsStringEnum([...DEPOSIT_ACCOUNT_SCREENS]),
     })
     const depositAccountsEnabled = useDepositAccountsEnabled()
-    const offeredCorridors = useOfferedCorridors()
+    // The corridors the user has a rail for, plus the ones the backend leads
+    // to ahead of a rail: a corridor it offers (its endorsement is asked for on
+    // the tap, or the user has not done Bridge's verification yet), and one it
+    // withholds until identity is verified. Each screen behind them names the
+    // verification the corridor needs. Left out, Colombia had no route at all
+    // and the country pick sent a Colombian to the waitlist.
+    const railCorridors = useOfferedCorridors()
+    const offeredCorridors = [
+        ...railCorridors,
+        ...DEPOSIT_CORRIDORS.filter(
+            (corridor) =>
+                !railCorridors.includes(corridor) &&
+                (claimable?.[corridor] || unavailable?.[corridor]?.reason === 'identity-required')
+        ),
+    ]
 
     const openCountry = (country: CountryData) => {
         posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {

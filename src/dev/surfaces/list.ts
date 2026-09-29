@@ -18,6 +18,9 @@ export type SurfaceMeta = {
      *  surfaces that mount closed and open on an in-surface action. The spec
      *  asserts a dialog is open before capturing. */
     shotClick?: string
+    /** Stable test id for a translated trigger that opens a dialog. The capture
+     *  runner proves that the dialog opened before it records the surface. */
+    shotClickTestId?: string
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
@@ -57,7 +60,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'SetupNotificationsModal',
         path: 'Notifications/SetupNotificationsModal.tsx',
     },
-    '21-b-advisorypreemptmodal': { name: 'AdvisoryPreemptModal', path: 'Kyc/AdvisoryPreemptModal.tsx' },
     '22-b-initiatekycmodal': { name: 'InitiateKycModal (default)', path: 'Kyc/InitiateKycModal.tsx' },
     '23-b-kycreverificationpendingmodal': {
         name: 'KycReverificationPendingModal',
@@ -203,11 +205,20 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Claim/Generic/ClaimError.view.tsx',
     },
     '86-f-choice-not-found': { name: 'Not found — recovery actions', path: 'app/not-found.tsx' },
+    '87-f-request-created': {
+        name: 'Request link — created',
+        path: 'Request/link/views/RequestCreatedView.tsx',
+    },
+    '88-f-request-bank-currency': {
+        name: 'Request link — bank currency chooser',
+        path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
+        shotClickTestId: 'bank-transfer-chooser',
+    },
     '70-d-activationctas-outbound': {
-        name: 'ActivationCTAs (outbound)',
-        path: 'Home/ActivationCTAs.tsx',
+        name: 'First-payment chooser',
+        path: 'Home/FirstPaymentChooser.tsx',
         shotFixture: 'card-access',
-        shotClick: 'Start Spending',
+        shotClickTestId: 'checklist-first-payment',
     },
     '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqDrawers.tsx' },
     '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqDrawers.tsx' },

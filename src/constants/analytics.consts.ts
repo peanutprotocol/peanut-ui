@@ -18,6 +18,8 @@ export const ANALYTICS_EVENTS = {
     HOME_VIEWED: 'home_viewed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
+    HOME_CHECKLIST_HIDDEN: 'home_checklist_hidden',
+    HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
@@ -206,6 +208,7 @@ export const ANALYTICS_EVENTS = {
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
+    QR_SENDER_REJECTED_SHOWN: 'qr_sender_rejected_shown',
     QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
     // Per-stage latency of one signed QR payment attempt; shared client/server
     // contract (TASK-22692). Properties: qr-payment-telemetry.ts.
@@ -232,6 +235,8 @@ export const ANALYTICS_EVENTS = {
     KYC_SDK_LAUNCHED: 'kyc_sdk_launched',
     KYC_SDK_LAUNCH_TIMEOUT: 'kyc_sdk_launch_timeout',
     KYC_SDK_INIT_FAILED: 'kyc_sdk_init_failed',
+    // android destroyed the native sdk screen without a close callback (TASK-22030)
+    KYC_SDK_ORPHANED: 'kyc_sdk_orphaned',
 
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
@@ -274,10 +279,9 @@ export const ANALYTICS_EVENTS = {
 
     // Public card application entry.
     CARD_APPLICATION_CTA_CLICKED: 'card_application_cta_clicked',
-    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced; tap
-    // opens the badge detail modal (or the badges list for several).
+    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced;
+    // non-interactive: toasts carry no actions.
     BADGE_EARN_TOAST_SHOWN: 'badge_earn_toast_shown',
-    BADGE_EARN_TOAST_TAPPED: 'badge_earn_toast_tapped',
     // Activation reward — $10 perk minted on first $100 spend (and same to referrer).
     CARD_ACTIVATION_THRESHOLD_REACHED: 'card_activation_threshold_reached',
     CARD_ACTIVATION_REWARD_CLAIMED: 'card_activation_reward_claimed',

@@ -80,9 +80,9 @@ describe('action functions Content-Type headers', () => {
         expect(headers['Content-Type']).toBe('application/json')
     })
 
-    it('should include Content-Type in createBridgeExternalAccountForGuest', async () => {
-        const { createBridgeExternalAccountForGuest } = require('@/app/actions/external-accounts')
-        await createBridgeExternalAccountForGuest('customer-123', {
+    it('should include Content-Type in createGuestClaimExternalAccount', async () => {
+        const { createGuestClaimExternalAccount } = require('@/app/actions/external-accounts')
+        await createGuestClaimExternalAccount('0xlink', '0xsignature', {
             accountType: 'iban',
             accountOwnerType: 'individual',
             iban: 'DE89370400440532013000',
