@@ -133,8 +133,8 @@
         "autoBalance": {
             "title": "Termina de configurar la tarjeta",
             "description": "Un toque con tu passkey para empezar a usar tu tarjeta.",
-            "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirmas dos veces con tu passkey: una para la actualización y otra para el nuevo permiso.",
-            "descriptionPending": "Enviamos tu autorización, pero todavía no pudimos confirmarla. Revisa el estado en un momento. No autorices dos veces.",
+            "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirma dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
+            "descriptionPending": "Autorización enviada, aún sin confirmar. Revisa el estado en un momento. No autorices dos veces.",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir la próxima vez que abras Inicio.",
             "working": "Procesando…",
             "confirmUpdate": "Confirma la actualización del permiso de la tarjeta",
@@ -1658,8 +1658,8 @@
             "autoRenewBody": "Tu tarjeta se renovará automáticamente en {days, plural, one {# día} other {# días}}, la fecha de vencimiento cambiará.",
             "dismiss": "Descartar",
             "cardFundsTitle": "{amount} disponibles para pagos con tarjeta",
-            "cardFundsBody": "Los pagos con tarjeta usan los USDC de tu billetera Peanut.",
-            "cardFundsCollateral": "Los pagos con tarjeta usan solo los USDC de tu billetera Peanut. Otros {amount} están retenidos como colateral de la tarjeta. Los nuevos pagos con tarjeta no pueden usarlos. Todavía sirven para enviar, retirar o pagar con QR.",
+            "cardFundsBody": "Los pagos con tarjeta usan los dólares de tu billetera Peanut.",
+            "cardFundsCollateral": "Los pagos con tarjeta usan solo los dólares de tu billetera Peanut. Otros {amount} están retenidos como colateral de la tarjeta. Los nuevos pagos con tarjeta no pueden usarlos. Todavía sirven para enviar, retirar o pagar con QR.",
             "balanceDueTitle": "{amount} pendientes en tu tarjeta",
             "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contacta a soporte para saldarla.",
             "payAsCreditTitle": "Paga como crédito",
@@ -1678,9 +1678,9 @@
             "distinction": "El permiso sigue vigente. El monto que permite en cada momento es limitado.",
             "managementConsent": "Acepto que Peanut gestione este permiso de la tarjeta por mí.",
             "termsDraftBadge": "Borrador en revisión",
-            "termsDraftBody": "Estos términos son un borrador en revisión. No son el texto legal final.",
+            "termsDraftBody": "Este borrador no es el texto legal final.",
             "termsVersion": "Versión {version}",
-            "termsChanged": "Los términos cambiaron mientras esta pantalla estaba abierta. Léelos de nuevo y confirma.",
+            "termsChanged": "Los términos cambiaron. Léelos de nuevo y confirma.",
             "walletMismatch": "Esta tarjeta está vinculada a otra billetera. Contacta a soporte."
         },
         "page": {

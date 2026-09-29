@@ -356,7 +356,7 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
     it('waits on a pending grant: Check status and Skip, no boxes, no second grant', async () => {
         mockStatus = 'pending'
         render(<EnableAutoBalanceBanner />)
-        expect(screen.getByTestId('description')).toHaveTextContent(/could not confirm it yet/i)
+        expect(screen.getByTestId('description')).toHaveTextContent(/not confirmed yet/i)
         expect(screen.getByTestId('description')).toHaveTextContent(/do not approve twice/i)
         expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
         expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()

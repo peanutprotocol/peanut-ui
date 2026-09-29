@@ -67,7 +67,7 @@ describe('YourCardScreen — funds for card payments', () => {
     it('shows the wallet-only amount, not wallet + collateral', () => {
         render(<YourCardScreen overview={overview(0)} card={CARD} />)
         expect(screen.getByText('$25.00 available for card payments')).toBeInTheDocument()
-        expect(screen.getByText('Card payments use the USDC in your Peanut wallet.')).toBeInTheDocument()
+        expect(screen.getByText('Card payments use the dollars in your Peanut wallet.')).toBeInTheDocument()
     })
 
     it('wallet $0 with $100 collateral reads as $0 for the card, and says what the collateral is for', () => {

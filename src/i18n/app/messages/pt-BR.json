@@ -133,8 +133,8 @@
         "autoBalance": {
             "title": "Termine de configurar o cartão",
             "description": "Um toque com sua passkey para começar a usar seu cartão.",
-            "descriptionMigration": "Primeiro é preciso atualizar a permissão do seu cartão. Você confirma duas vezes com sua passkey: uma para a atualização e outra para a nova permissão.",
-            "descriptionPending": "Enviamos sua autorização, mas ainda não conseguimos confirmá-la. Verifique o status em instantes. Não autorize duas vezes.",
+            "descriptionMigration": "Primeiro é preciso atualizar a permissão do seu cartão. Confirme duas vezes com sua passkey: uma para atualizar e outra para a nova permissão.",
+            "descriptionPending": "Autorização enviada, mas ainda não confirmada. Verifique o status em instantes. Não autorize duas vezes.",
             "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto. Vamos pedir de novo na próxima vez que você abrir o Início.",
             "working": "Processando…",
             "confirmUpdate": "Confirme a atualização da permissão do cartão",
@@ -1658,8 +1658,8 @@
             "autoRenewBody": "Seu cartão vai renovar automaticamente em {days, plural, one {# dia} other {# dias}}, a data de validade vai mudar.",
             "dismiss": "Dispensar",
             "cardFundsTitle": "{amount} disponíveis para pagamentos com cartão",
-            "cardFundsBody": "Os pagamentos com cartão usam os USDC da sua carteira Peanut.",
-            "cardFundsCollateral": "Os pagamentos com cartão usam só os USDC da sua carteira Peanut. Outros {amount} estão retidos como colateral do cartão. Novos pagamentos com cartão não podem usá-los. Eles ainda servem para enviar, sacar ou pagar com QR.",
+            "cardFundsBody": "Os pagamentos com cartão usam os dólares da sua carteira Peanut.",
+            "cardFundsCollateral": "Os pagamentos com cartão usam só os dólares da sua carteira Peanut. Outros {amount} estão retidos como colateral do cartão. Novos pagamentos com cartão não podem usá-los. Eles ainda servem para enviar, sacar ou pagar com QR.",
             "balanceDueTitle": "{amount} pendentes no seu cartão",
             "balanceDueBody": "Um pagamento recente com o cartão ficou maior que o valor reservado no momento da compra. Isso acontece com gorjetas ou totais atualizados. A diferença continua pendente. Fale com o suporte para quitá-la.",
             "payAsCreditTitle": "Pague como crédito",
@@ -1678,9 +1678,9 @@
             "distinction": "A permissão continua valendo. O valor que ela permite em cada momento é limitado.",
             "managementConsent": "Concordo que a Peanut gerencie esta permissão do cartão por mim.",
             "termsDraftBadge": "Rascunho em revisão",
-            "termsDraftBody": "Estes termos são um rascunho em revisão. Não são o texto legal final.",
+            "termsDraftBody": "Este rascunho não é o texto legal final.",
             "termsVersion": "Versão {version}",
-            "termsChanged": "Os termos mudaram enquanto esta tela estava aberta. Leia de novo e confirme.",
+            "termsChanged": "Os termos mudaram. Leia de novo e confirme.",
             "walletMismatch": "Este cartão está vinculado a outra carteira. Fale com o suporte."
         },
         "page": {

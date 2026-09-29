@@ -2,6 +2,7 @@
 import { type FC, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { Card } from '@/components/0_Bruddle/Card'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { RTF_TERMS_LABEL } from '@/constants/rain.consts'
 
@@ -69,8 +70,8 @@ const CardFundingConsent: FC<Props> = ({
                 </div>
             )}
 
-            <ul className="flex flex-col gap-3">
-                <li className="flex items-start gap-3 rounded-sm border border-border-default bg-background-default p-4">
+            <div role="list" className="flex flex-col gap-3">
+                <Card role="listitem" className="flex-row items-start gap-3 p-4">
                     <Checkbox
                         value={managementAccepted}
                         onChange={(e) => !disabled && onManagementChange(e.target.checked)}
@@ -79,8 +80,8 @@ const CardFundingConsent: FC<Props> = ({
                     <div className="flex-1 text-body-s" data-testid="funding-management-consent">
                         {t('managementConsent')}
                     </div>
-                </li>
-                <li className="flex items-start gap-3 rounded-sm border border-border-default bg-background-default p-4">
+                </Card>
+                <Card role="listitem" className="flex-row items-start gap-3 p-4">
                     <Checkbox
                         value={authorizationAccepted}
                         onChange={(e) => !disabled && onAuthorizationChange(e.target.checked)}
@@ -89,8 +90,8 @@ const CardFundingConsent: FC<Props> = ({
                     <div className="flex-1 text-body-s" data-testid="funding-authorization-statement">
                         {statement}
                     </div>
-                </li>
-            </ul>
+                </Card>
+            </div>
 
             {termsOpen && (
                 <Callout priority="attention" title={`${RTF_TERMS_LABEL} · ${t('termsDraftBadge')}`}>
