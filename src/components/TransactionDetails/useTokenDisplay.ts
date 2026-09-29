@@ -18,7 +18,10 @@ interface TokenDisplayData {
  */
 export function useTokenDisplay(transaction: TransactionDetails | null): TokenDisplayData | null {
     const details = transaction?.tokenDisplayDetails
-    const platformId = resolveChainRegistryEntry(details?.chainId ?? details?.chainName ?? '')?.coingeckoPlatformId
+    // history uses chainId "0" for Solana, which only the chain name resolves
+    const platformId = (
+        resolveChainRegistryEntry(details?.chainId ?? '') ?? resolveChainRegistryEntry(details?.chainName ?? '')
+    )?.coingeckoPlatformId
     const needsFetch =
         !!details && !(details.tokenIconUrl && details.tokenSymbol) && !!platformId && !!transaction?.tokenAddress
 

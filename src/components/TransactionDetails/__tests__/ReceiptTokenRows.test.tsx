@@ -69,6 +69,15 @@ describe('ReceiptTokenRows token lookup', () => {
         expect(fetchMock).not.toHaveBeenCalled()
     })
 
+    it('falls back to the chain name when the chain id is not in the registry (Solana "0")', async () => {
+        fetchMock.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' })
+        renderRows({ tokenSymbol: 'weird', chainId: '0', chainName: 'Solana' })
+
+        expect(await screen.findByText('rows.tokenOnChain:WEIRD@Solana')).toBeInTheDocument()
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+        expect(fetchMock.mock.calls[0][0]).toBe(`https://api.coingecko.com/api/v3/coins/solana/contract/${TOKEN}`)
+    })
+
     it('uses the looked-up symbol when the wire has none', async () => {
         fetchMock.mockResolvedValue({
             ok: true,
