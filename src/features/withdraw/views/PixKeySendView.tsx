@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { useRouter } from 'next/navigation'
@@ -9,7 +10,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
-import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
+import { isPixKeyNotFound, pixKeyToQrPayUrl } from '@/utils/pix.utils'
+import { pixKeyOwnerQueryOptions } from '@/hooks/usePixKeyOwner'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -20,6 +22,9 @@ import { useTranslations } from 'next-intl'
  * hands off to `/qr-pay`, where the amount is entered and the capability gate
  * (`canDo('pay', { provider: 'manteca' })`) is enforced — the same path the QR
  * scanner uses for a pasted PIX key.
+ *
+ * Continue first resolves the key's owner, so /qr-pay can show who is paid and
+ * an unknown key stops here instead of failing at payment.
  */
 export default function PixKeySendView({ destinationParam }: { destinationParam?: string | null }) {
     const router = useRouter()
@@ -30,6 +35,8 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [isResolvingOwner, setIsResolvingOwner] = useState(false)
+    const queryClient = useQueryClient()
 
     const validatePixDestination = async (value: string): Promise<boolean> => {
         const normalized = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
@@ -40,11 +47,31 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
         return result.valid
     }
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         const url = pixKeyToQrPayUrl(pixKey)
         if (!url) {
             setErrorMessage(t('pixKey.invalid'))
             return
+        }
+        const trimmedKey = pixKey.trim()
+        // A BR Code names its own recipient; only a bare key needs the lookup.
+        if (!isPixEmvcoQr(trimmedKey)) {
+            setIsResolvingOwner(true)
+            try {
+                await queryClient.fetchQuery(pixKeyOwnerQueryOptions(trimmedKey))
+            } catch (error) {
+                // Only an unknown key stops the user. Any other failure pays
+                // without a name, as before this lookup existed.
+                if (isPixKeyNotFound(error)) {
+                    setErrorMessage(t('pixKey.notFound'))
+                    // Keep Continue off until the key changes: the same key
+                    // gets the same answer and spends another lookup.
+                    setIsValid(false)
+                    return
+                }
+            } finally {
+                setIsResolvingOwner(false)
+            }
         }
         router.push(url)
     }
@@ -81,8 +108,8 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
 
                     <Button
                         onClick={handleContinue}
-                        disabled={!isValid || isChanging}
-                        loading={isChanging}
+                        disabled={!isValid || isChanging || isResolvingOwner}
+                        loading={isChanging || isResolvingOwner}
                         className="w-full"
                         shadowSize="4"
                     >

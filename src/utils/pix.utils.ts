@@ -1,5 +1,6 @@
 import { createStaticPix, hasError } from 'pix-utils'
 import { validatePixKey, isPixEmvcoQr } from './withdraw.utils'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 
 /**
  * Converts a raw PIX key into an EMVCo BR Code string.
@@ -58,4 +59,12 @@ export const pixKeyToQrPayUrl = (pixKey: string): string | null => {
 
 export function verifiedPixKeyLabel(qrCode: string, pixKey: string | null): string | null {
     return pixKey && pixKeyToBRCode(pixKey) === qrCode ? pixKey : null
+}
+
+/**
+ * The PIX key lookup failed because the key does not exist. Any other lookup
+ * failure only means no owner name is available, and the payment can go ahead.
+ */
+export function isPixKeyNotFound(error: unknown): boolean {
+    return apiErrorStatus(error) === 404 && wireErrorCode(error) === API_ERROR_CODES.PAYMENT_DESTINATION_NOT_FOUND
 }

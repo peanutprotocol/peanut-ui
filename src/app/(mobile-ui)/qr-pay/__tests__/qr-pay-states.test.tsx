@@ -204,6 +204,7 @@ jest.mock('@/components/Global/InviteFriendsModal', () => ({
 const mockMantecaApi = {
     initiateQrPayment: jest.fn(),
     completeQrPaymentWithSignedTx: jest.fn(),
+    getPixKeyOwner: jest.fn(),
 }
 jest.mock('@/services/manteca', () => ({
     mantecaApi: mockMantecaApi,
@@ -608,6 +609,8 @@ function renderQrPay(params: Record<string, string> = {}) {
 
 function applyDefaults() {
     setCapabilitiesGate('proceed_to_pay')
+    // No owner name unless a test resolves one: the form falls back to the key.
+    mockMantecaApi.getPixKeyOwner.mockRejectedValue(new Error('PIX key lookup unavailable'))
 
     mockUseAuth.mockReturnValue({
         user: { user: { username: 'test-user' } },
@@ -944,6 +947,25 @@ describe('GROUP 2: Payment Form States', () => {
         expect(await screen.findByText(pixKey)).toHaveClass('ph-mask', 'ph-no-capture')
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2500' } })
         await waitFor(() => expect(screen.getByText(/Transfer amount exceeds maximum/i)).toBeInTheDocument())
+    })
+
+    test("PIX-key transfer shows the resolved owner's name, with the key and masked tax ID below", async () => {
+        setupMantecaPayment({ code: '' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText('MARIA DA SILVA')).toHaveClass('ph-mask', 'ph-no-capture')
+        expect(screen.getByText(`${pixKey} · CPF/CNPJ 12*******90`)).toHaveClass('ph-mask', 'ph-no-capture')
+        expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith(pixKey)
+    })
+
+    test('a scanned merchant QR never looks up a PIX key owner', async () => {
+        setupMantecaPayment()
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+        await screen.findByText('PIX Merchant')
+        expect(mockMantecaApi.getPixKeyOwner).not.toHaveBeenCalled()
     })
 
     test('Manteca PIX form ready shows merchant card + amount input + pay button', async () => {

@@ -1,6 +1,7 @@
 'use client'
 
 import { verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
 import {
     isSpendRecoveryOutcome,
     SpendRecoveryAbortedError,
@@ -104,6 +105,9 @@ function attemptOutcomeForStatus(status: ReturnType<typeof qrPaymentDisplayStatu
 export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams) {
     const { qrCode, timestamp, qrType } = scan
     const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
+    // Usually a cache hit: the key screen resolved it on Continue. A pasted key
+    // from the scanner resolves here. Without data the key itself is shown.
+    const { data: pixKeyOwner } = usePixKeyOwner(pixKeyLabel)
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
@@ -566,8 +570,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
-        return pixKeyLabel ?? paymentLock.paymentRecipientName
-    }, [paymentLock, pixKeyLabel])
+        return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
+    }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
     // The "paying" caption timer must die with the flow: the loading context is
     // app-wide, so a timer surviving unmount would flip it back to 'Paying'
@@ -1216,6 +1220,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         usdAmount,
         merchantName,
         pixKeyLabel,
+        pixKeyOwner,
         // kyc gate
         gate,
         shouldBlockPay,

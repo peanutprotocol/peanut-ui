@@ -38,6 +38,7 @@ export function QrPayFormView() {
         qrPayment,
         merchantName,
         pixKeyLabel,
+        pixKeyOwner,
         methodIcon,
         currency,
         currencyAmount,
@@ -119,6 +120,17 @@ export function QrPayFormView() {
                                 >
                                     {merchantName}
                                 </p>
+                                {/* The heading is the owner's name; this keeps the key the user typed in view. */}
+                                {pixKeyOwner && pixKeyLabel && (
+                                    <p className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary">
+                                        {pixKeyOwner.legalIdMasked
+                                            ? t('pixKeyOwnerDetails', {
+                                                  pixKey: pixKeyLabel,
+                                                  taxId: pixKeyOwner.legalIdMasked,
+                                              })
+                                            : pixKeyLabel}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </Card>
