@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
@@ -36,15 +36,36 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
     const [isChanging, setIsChanging] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isResolvingOwner, setIsResolvingOwner] = useState(false)
+    // Re-runs the input's validation, so a key the lookup did not find shows as invalid.
+    const [validationNonce, setValidationNonce] = useState(0)
     const queryClient = useQueryClient()
+    // The lookup can take seconds. By the time it answers, the key may have
+    // changed or the user may have left, and its answer must not act then.
+    const currentKeyRef = useRef(pixKey)
+    const isMountedRef = useRef(false)
+    useEffect(() => {
+        isMountedRef.current = true
+        return () => {
+            isMountedRef.current = false
+        }
+    }, [])
+
+    const isKnownUnknownKey = (key: string) =>
+        isPixKeyNotFound(queryClient.getQueryState(pixKeyOwnerQueryOptions(key).queryKey)?.error)
 
     const validatePixDestination = async (value: string): Promise<boolean> => {
         const normalized = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
         const result = validatePixKey(normalized)
         if (!result.valid) {
             setErrorMessage(result.message ?? t('pixKey.invalid'))
+            return false
         }
-        return result.valid
+        // Remembered, so returning to a key that was not found costs no second lookup.
+        if (isKnownUnknownKey(normalized)) {
+            setErrorMessage(t('pixKey.notFound'))
+            return false
+        }
+        return true
     }
 
     const handleContinue = async () => {
@@ -57,20 +78,22 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
         // A BR Code names its own recipient; only a bare key needs the lookup.
         if (!isPixEmvcoQr(trimmedKey)) {
             setIsResolvingOwner(true)
+            let isUnknownKey = false
             try {
                 await queryClient.fetchQuery(pixKeyOwnerQueryOptions(trimmedKey))
             } catch (error) {
                 // Only an unknown key stops the user. Any other failure pays
                 // without a name, as before this lookup existed.
-                if (isPixKeyNotFound(error)) {
-                    setErrorMessage(t('pixKey.notFound'))
-                    // Keep Continue off until the key changes: the same key
-                    // gets the same answer and spends another lookup.
-                    setIsValid(false)
-                    return
-                }
+                isUnknownKey = isPixKeyNotFound(error)
             } finally {
                 setIsResolvingOwner(false)
+            }
+            if (!isMountedRef.current || currentKeyRef.current.trim() !== trimmedKey) return
+            if (isUnknownKey) {
+                setErrorMessage(t('pixKey.notFound'))
+                setIsValid(false)
+                setValidationNonce((nonce) => nonce + 1)
+                return
             }
         }
         router.push(url)
@@ -89,7 +112,8 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                                 value={pixKey}
                                 placeholder={t('pixKey.placeholder')}
                                 onUpdate={(update) => {
-                                    setPixKey(normalizePixInput(update.value))
+                                    currentKeyRef.current = normalizePixInput(update.value)
+                                    setPixKey(currentKeyRef.current)
                                     setIsValid(update.isValid)
                                     setIsChanging(update.isChanging)
                                     if (update.isValid || update.value === '') {
@@ -97,6 +121,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                                     }
                                 }}
                                 validate={validatePixDestination}
+                                validationNonce={validationNonce}
                                 smartPasteKind="pixKey"
                             />
                             {errorMessage && <FieldError>{errorMessage}</FieldError>}

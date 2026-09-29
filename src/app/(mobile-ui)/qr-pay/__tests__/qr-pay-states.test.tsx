@@ -961,6 +961,20 @@ describe('GROUP 2: Payment Form States', () => {
         expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith(pixKey)
     })
 
+    test('a pasted PIX key the directory does not know stops before the amount step', async () => {
+        setupMantecaPayment({ code: '' })
+        const { ApiError } = require('@/services/api-error')
+        mockMantecaApi.getPixKeyOwner.mockRejectedValue(
+            new ApiError('PIX key not found', { status: 404, code: 'PAYMENT_DESTINATION_NOT_FOUND' })
+        )
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText(/No Pix account found for this key/i)).toBeInTheDocument()
+        expect(screen.queryByTestId('amount-field')).not.toBeInTheDocument()
+    })
+
     test('a scanned merchant QR never looks up a PIX key owner', async () => {
         setupMantecaPayment()
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })

@@ -1,6 +1,6 @@
 'use client'
 
-import { verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { isPixKeyNotFound, verifiedPixKeyLabel } from '@/utils/pix.utils'
 import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
 import {
     isSpendRecoveryOutcome,
@@ -107,7 +107,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
     // Usually a cache hit: the key screen resolved it on Continue. A pasted key
     // from the scanner resolves here. Without data the key itself is shown.
-    const { data: pixKeyOwner } = usePixKeyOwner(pixKeyLabel)
+    const { data: pixKeyOwner, error: pixKeyOwnerError } = usePixKeyOwner(pixKeyLabel)
+    const tWithdraw = useTranslations('withdraw')
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
@@ -465,8 +466,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      * verdicts (a recurring Pix code, an unparseable QR) are terminal.
      */
     const errorInitiatingPayment = useMemo(
-        () => entryGuardError ?? (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
-        [entryGuardError, scanOutcome, scanFailureCopy]
+        () =>
+            entryGuardError ??
+            // A pasted key the PIX directory does not know: paying it can only fail.
+            (isPixKeyNotFound(pixKeyOwnerError) ? tWithdraw('pixKey.notFound') : null) ??
+            (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
+        [entryGuardError, pixKeyOwnerError, tWithdraw, scanOutcome, scanFailureCopy]
     )
     // The generic init card has no support entry; these refusals need one.
     const initErrorNeedsSupport = scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)

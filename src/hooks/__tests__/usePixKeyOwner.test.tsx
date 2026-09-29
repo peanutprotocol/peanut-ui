@@ -37,6 +37,18 @@ describe('usePixKeyOwner', () => {
         expect(mockGetPixKeyOwner).toHaveBeenCalledTimes(1)
     })
 
+    it('keeps its answer and spends no lookup when every query is invalidated (native pull-to-refresh)', async () => {
+        mockGetPixKeyOwner.mockResolvedValue(OWNER)
+        const client = new QueryClient()
+        const { result } = renderHook(() => usePixKeyOwner(PIX_KEY), { wrapper: withClient(client) })
+        await waitFor(() => expect(result.current.data).toEqual(OWNER))
+
+        await client.invalidateQueries()
+
+        expect(result.current.data).toEqual(OWNER)
+        expect(mockGetPixKeyOwner).toHaveBeenCalledTimes(1)
+    })
+
     it('does not retry a failed lookup', async () => {
         mockGetPixKeyOwner.mockRejectedValue(new Error('PIX key lookup failed'))
 

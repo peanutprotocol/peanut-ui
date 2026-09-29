@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { mantecaApi } from '@/services/manteca'
 
 /**
@@ -19,5 +19,13 @@ export const pixKeyOwnerQueryOptions = (pixKey: string) => ({
 })
 
 /** The owner of `pixKey`, or no data while the key is unknown or the lookup failed. */
-export const usePixKeyOwner = (pixKey: string | null) =>
-    useQuery({ ...pixKeyOwnerQueryOptions(pixKey ?? ''), enabled: !!pixKey })
+export const usePixKeyOwner = (pixKey: string | null) => {
+    const queryClient = useQueryClient()
+    const options = pixKeyOwnerQueryOptions(pixKey ?? '')
+    // Once the lookup has answered, this observer turns off, so a global
+    // invalidateQueries() (native pull-to-refresh) cannot spend another one.
+    // A disabled query still returns its cached answer.
+    const state = queryClient.getQueryState(options.queryKey)
+    const hasAnswered = !!state && (state.dataUpdatedAt > 0 || state.errorUpdatedAt > 0)
+    return useQuery({ ...options, enabled: !!pixKey && !hasAnswered })
+}
