@@ -888,6 +888,23 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: 'p[role="alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
+    // A PIX-key send after the key screen resolved the owner: the owner's name is
+    // the heading, and the key with the masked CPF/CNPJ sits underneath.
+    'qr-pay-pix-key-owner': {
+        route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&pixKey=maria%40silva.com.br&t=1',
+        about: "PIX-key payment showing the key owner's name, with the key and masked CPF/CNPJ below it.",
+        waitFor: 'p.text-body-s.ph-mask',
+        responses: {
+            'POST /manteca/qr-payment/init': {
+                type: 'PIX',
+                paymentRecipientName: 'MARIA@SILVA.COM.BR',
+                paymentAsset: 'BRL',
+                paymentAgainst: 'USDC',
+                paymentPrice: '5.5',
+            },
+            'POST /manteca/pix-key/owner': { name: 'MARIA DA SILVA', legalIdMasked: '12*******90' },
+        },
+    },
     // Named bank accounts beside the named address book: destinationLabel on
     // every row, masked identifier underneath.
     'withdraw-destination-names': {

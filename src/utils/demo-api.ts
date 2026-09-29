@@ -633,6 +633,15 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
     },
 
+    // The QR payment form asks for the card-vs-local-rail markup. The demo has
+    // no live observations, and 404 is the API's "nothing to compare" answer,
+    // so the form shows no savings claim instead of an invented one.
+    {
+        method: 'GET',
+        pattern: '/fx/card-markup',
+        handler: () => json({ error: 'NO_CARD_MARKUP', message: 'No card markup to compare.' }, 404),
+    },
+
     // The demo wallet holds nothing to recover; the shape is what
     // fetchWalletBalances reads.
     { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
@@ -719,6 +728,13 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/manteca/withdraw/complete-with-signed-tx', handler: () => demoMantecaWithdraw() },
     { method: 'POST', pattern: '/manteca/withdraw', handler: () => demoMantecaWithdraw() },
     { method: 'POST', pattern: '/manteca/initiate-onboarding', handler: () => ({ url: '' }) },
+    // A demo payee, so a PIX-key send shows a resolved owner the way it does
+    // live. 200, not an error, so a fixture can override the name.
+    {
+        method: 'POST',
+        pattern: '/manteca/pix-key/owner',
+        handler: () => ({ name: 'DEMO RECIPIENT', legalIdMasked: null }),
+    },
     {
         method: 'POST',
         pattern: '/manteca/qr-payment/init',
