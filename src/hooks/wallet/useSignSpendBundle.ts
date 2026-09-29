@@ -135,16 +135,11 @@ export type SignSpendProgressEvent =
  * Strategies map to backend behaviour:
  * - smart-only: backend broadcasts the signed UserOp via the bundler.
  * - mixed: backend broadcasts the signed UserOp (which atomically pulls
- *   collateral — up to and including the FULL amount — and forwards it to the
- *   recipient). Ordinary collateral funding runs here: it is the pipeline with
- *   a durable reservation, a precomputed hash, broadcast-first submission and
- *   definitive failure codes, so a late controller rotation can be replaced on
- *   the same lock. Cost: the passkey fallback is two taps instead of the direct
- *   path's one (the ephemeral one-tap path is unchanged where enabled).
- * - collateral-only: ONLY for `forceStrategy` callers (lock/cancel card).
+ *   collateral and forwards the full amount to the recipient). Used for genuine
+ *   mixed spends and for non-QR collateral spends, which keep this pipeline.
+ * - collateral-only: QR_PAY and `forceStrategy` callers (lock/cancel card).
  *   Backend submits the signed Rain withdrawal via the user's session-key
- *   UserOp with `directTransfer=true` (1 passkey tap — admin EIP-712 only);
- *   that handler orders before funding and has no safe resume.
+ *   UserOp with `directTransfer=true` (1 passkey tap — admin EIP-712 only).
  */
 
 export const useSignSpendBundle = () => {
@@ -228,20 +223,12 @@ export const useSignSpendBundle = () => {
                     flow: 'sign-only',
                 }))
                 /*
-                 * Ordinary collateral funding EXECUTES through the mixed
-                 * pipeline: it is the one with a durable reservation, a
-                 * precomputed hash, broadcast-first and definitive failure
-                 * codes, so a late controller rotation can be recovered on the
-                 * same lock. The legacy collateral handler creates the provider
-                 * order before funding and cannot be resumed safely.
-                 *
-                 * `smartBalance = 0` (not `collateralOnlyAllowed: false`) keeps
-                 * the funding SOURCE the user's routing already chose: the whole
-                 * amount comes from collateral even when the smart account has a
-                 * balance. Forced collateral-only (lock/cancel card) is exempt —
-                 * it is submitted by the backend's session key, not broadcast.
+                 * Non-QR collateral spends keep executing as mixed, for that
+                 * pipeline's existing recovery contract. QR_PAY keeps direct
+                 * signing: the deployed backend funds first for it. smartBalance
+                 * = 0 keeps the whole amount funded from collateral.
                  */
-                if (strategy === 'collateral-only') {
+                if (strategy === 'collateral-only' && kind !== 'QR_PAY') {
                     strategy = 'mixed'
                     smartBalance = 0n
                 }

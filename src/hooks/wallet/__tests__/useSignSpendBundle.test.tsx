@@ -14,7 +14,9 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
+import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
+import { rainCentsToUsdcUnits, usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { submitSignedSpend } from '../signSpendRetry'
 import { useSignSpendBundle } from '../useSignSpendBundle'
 import {
@@ -70,7 +72,10 @@ jest.mock('@/context/kernelClient.context', () => ({
         getPatchedSudoValidator: () => mockGetPatchedSudoValidator(),
     }),
 }))
-jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { tag: 'public' } }))
+const mockReadContract = jest.fn()
+jest.mock('@/app/actions/clients', () => ({
+    peanutPublicClient: { tag: 'public', readContract: (...args: unknown[]) => mockReadContract(...args) },
+}))
 const mockSessionKeySignEnabled = jest.fn(() => false)
 jest.mock('@/constants/session-key-sign.consts', () => ({
     sessionKeySignEnabled: (contract: unknown) =>
@@ -366,7 +371,7 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
     }
 
     beforeEach(() => {
-        // QR: routing picks collateral, execution runs on the mixed pipeline.
+        // QR: routing picks collateral and it executes as the direct artifact.
         mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
     })
 
@@ -376,10 +381,13 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
         mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
         mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
 
-        const artifact = (await signQr()) as unknown as { strategy: string; rainPreparationId?: string }
+        const artifact = (await signQr()) as unknown as {
+            strategy: string
+            rainWithdrawal?: { preparationId: string }
+        }
 
-        expect(artifact.strategy).toBe('mixed')
-        expect(artifact.rainPreparationId).toBe('prep-1')
+        expect(artifact.strategy).toBe('collateral-only')
+        expect(artifact.rainWithdrawal?.preparationId).toBe('prep-1')
         expect(mockRefreshController).toHaveBeenCalledTimes(1)
         expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
         expect(mockGrant).toHaveBeenCalledTimes(1)
@@ -388,7 +396,7 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
         expect(failedPaymentEvents()).toHaveLength(0)
     })
 
-    it('cached snapshot already false on the new controller, grant stored: still renews (mixed)', async () => {
+    it('cached snapshot already false on the new controller, grant stored: still renews', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, true) }
         mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
         mockFreshOverview = mockOverview
@@ -400,7 +408,10 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
         expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
     })
 
-    it('never granted: a mixed QR payment signs without a prompt', async () => {
+    // Unlike mixed (the user's own UserOp), the direct withdrawal is submitted by
+    // the backend's session key, so the approval on the prepared controller is
+    // required — asked once, before the admin signature.
+    it('never granted: a direct collateral QR payment asks for the approval once, before the admin signature', async () => {
         mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(false, false) }
         mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
         mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, false) }
@@ -408,8 +419,9 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
 
         const artifact = (await signQr()) as unknown as { strategy: string }
 
-        expect(artifact.strategy).toBe('mixed')
-        expect(mockGrant).not.toHaveBeenCalled()
+        expect(artifact.strategy).toBe('collateral-only')
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(mockGrant.mock.invocationCallOrder[0]).toBeLessThan(mockSignTypedData.mock.invocationCallOrder[0])
     })
 
     it('current controller with a live approval: one read, no refetch, no grant', async () => {
@@ -534,7 +546,7 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
         it('signs normally when the lock still covers the renewal', async () => {
             const artifact = (await signWithLock(Date.now() + 60_000)) as unknown as { strategy: string }
 
-            expect(artifact.strategy).toBe('mixed')
+            expect(artifact.strategy).toBe('collateral-only')
             expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
         })
     })
@@ -552,14 +564,11 @@ describe('useSignSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)
 })
 
 /**
- * Ordinary collateral funding EXECUTES through the mixed pipeline: it is the
- * one with a durable reservation, a precomputed hash and definitive failure
- * codes, so a late rotation is recoverable on the same lock. The funding SOURCE
- * the user's routing picked is preserved — the whole amount still comes from
- * collateral, even when the smart account holds a balance.
+ * QR_PAY routed to collateral-only keeps the DIRECT artifact: one admin
+ * signature, the backend submits the withdrawal straight to the recipient.
  */
-describe('useSignSpendBundle — ordinary collateral funding runs on the mixed pipeline', () => {
-    function signOrdinary() {
+describe('useSignSpendBundle — QR_PAY collateral funding stays direct (one passkey signature)', () => {
+    function signQrCollateral() {
         const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
         return act(async () =>
             result.current.signSpend({
@@ -567,6 +576,54 @@ describe('useSignSpendBundle — ordinary collateral funding runs on the mixed p
                 recipient: RECIPIENT,
                 rainSpendingPower: 200_000_000n,
                 kind: 'QR_PAY',
+            })
+        )
+    }
+
+    it.each([
+        ['an empty smart account', 0n],
+        ['a smart account that also has funds', 40_000_000n],
+    ])('%s: the FULL amount is a direct withdrawal to the recipient, one signature', async (_label, smartBalance) => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance })
+
+        const artifact = await signQrCollateral()
+
+        expect(artifact).toMatchObject({
+            strategy: 'collateral-only',
+            rainWithdrawal: { preparationId: 'prep-1', directTransfer: true, adminSignature: '0xadminsig' },
+        })
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            { amount: '15000', recipientAddress: RECIPIENT, directTransfer: true },
+            { suppressCooldownEvent: false }
+        )
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+    })
+
+    it('keeps only the coordinator metadata: a direct artifact has no mixed replay capability', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+        const artifact = (await signQrCollateral()) as unknown as object
+        expect(getSpendArtifactMeta(artifact)).toEqual({ coordinatorAddress: PREP.coordinatorAddress })
+    })
+})
+
+/**
+ * Non-QR collateral funding (FIAT_OFFRAMP) still EXECUTES through the mixed
+ * pipeline: it is the one with a durable reservation, a precomputed hash and
+ * definitive failure codes, so a late rotation is recoverable on the same
+ * lock. The funding SOURCE the user's routing picked is preserved — the whole
+ * amount still comes from collateral, even when the smart account holds a
+ * balance.
+ */
+describe('useSignSpendBundle — non-QR collateral funding runs on the mixed pipeline', () => {
+    function signOrdinary() {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n, // $150
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'FIAT_OFFRAMP',
             })
         )
     }
@@ -622,6 +679,151 @@ describe('useSignSpendBundle — ordinary collateral funding runs on the mixed p
             { suppressCooldownEvent: false }
         )
         expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Real routing (resolveSpendStrategy + the cent conversions) for the sub-cent
+ * QR quote 15.24486273 USDC: paid as 15,244,863 units, withdrawn as 1525 cents.
+ * Only the live smart balance read and the Rain API are stubbed.
+ */
+describe('useSignSpendBundle — QR quote 15.24486273 (15,244,863 units, 1525 cents), real routing', () => {
+    const QUOTE = parseUnits('15.24486273', 6)
+
+    it('the quote is 15,244,863 units and needs 1525 cents', () => {
+        expect(QUOTE).toBe(15_244_863n)
+        expect(usdcUnitsToRainCents(QUOTE)).toBe(1525n)
+    })
+
+    function signQuote(rainCents: number, smartUnits: bigint, prepAmountCents = 1525) {
+        mockPrepareWithdrawal.mockResolvedValue({
+            ...PREP,
+            amount: rainCentsToUsdcUnits(prepAmountCents).toString(),
+        })
+        // Already authorized on the prepared controller: no grant expected.
+        mockOverview = {
+            status: { coordinatorAddress: PREP.coordinatorAddress },
+            cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: true, hasStoredWithdrawApproval: true }],
+        }
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+        // The mixed path's real calldata encoder needs a well-formed signature.
+        mockSignTypedData.mockResolvedValue(`0x${'ab'.repeat(65)}`)
+        mockReadContract.mockResolvedValue(smartUnits)
+        mockResolveSpendStrategy.mockImplementation(jest.requireActual('../spendPreflight').resolveSpendStrategy)
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current.signSpend({
+                requiredUsdcAmount: QUOTE,
+                recipient: RECIPIENT,
+                rainSpendingPower: rainCentsToUsdcUnits(rainCents),
+                kind: 'QR_PAY',
+            })
+        )
+    }
+
+    it('Rain 1525 cents, smart empty: collateral-only, a DIRECT 1525-cent withdrawal to the recipient, ONE admin signature and no UserOp', async () => {
+        const artifact = await signQuote(1525, 0n)
+
+        await expect(mockResolveSpendStrategy.mock.results[0].value).resolves.toEqual({
+            strategy: 'collateral-only',
+            smartBalance: 0n,
+        })
+        expect(artifact).toMatchObject({
+            strategy: 'collateral-only',
+            rainWithdrawal: {
+                preparationId: 'prep-1',
+                amount: '15250000',
+                recipientAddress: RECIPIENT,
+                directTransfer: true,
+            },
+        })
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            { amount: '1525', recipientAddress: RECIPIENT, directTransfer: true },
+            { suppressCooldownEvent: false }
+        )
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+        expect(mockGrant).not.toHaveBeenCalled()
+    })
+
+    it('Rain 1524 cents, smart empty: rejected before any prepare or signature', async () => {
+        await expect(signQuote(1524, 0n)).rejects.toBeInstanceOf(InsufficientSpendableError)
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+    })
+
+    it('Rain 1524 cents with 1 USDC in smart: a genuine mixed spend that withdraws only the rounded shortfall', async () => {
+        const artifact = await signQuote(1524, 1_000_000n, 1425)
+
+        await expect(mockResolveSpendStrategy.mock.results[0].value).resolves.toMatchObject({ strategy: 'mixed' })
+        expect(artifact).toMatchObject({ strategy: 'mixed', rainPreparationId: 'prep-1' })
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            { amount: '1425', totalAmountCents: '1525', recipientAddress: ACCOUNT, directTransfer: false },
+            { suppressCooldownEvent: false }
+        )
+        expect(mockSignCallsUserOp).toHaveBeenCalledTimes(1)
+    })
+
+    it('smart covering the full quote: smart-only, no Rain draft', async () => {
+        const artifact = await signQuote(1525, QUOTE)
+
+        expect(artifact).toMatchObject({ strategy: 'smart-only' })
+        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Direct artifacts keep the existing PRE-EFFECT recovery only: nothing has
+ * been broadcast when the prepare/sign leg fails, so a proven controller
+ * rotation re-signs once. Unknown failures stay fail-closed.
+ */
+describe('useSignSpendBundle — direct QR artifact pre-effect recovery', () => {
+    const COORD_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+
+    function signDirectQr() {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+        )
+    }
+
+    it('a proven pre-effect RAIN_CONTROLLER_CHANGED re-signs once with a fresh direct prep', async () => {
+        mockPrepareWithdrawal
+            .mockRejectedValueOnce(
+                new ApiError('controller changed', { status: 409, code: API_ERROR_CODES.RAIN_CONTROLLER_CHANGED })
+            )
+            .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+
+        const artifact = await signDirectQr()
+
+        expect(artifact).toMatchObject({
+            strategy: 'collateral-only',
+            rainWithdrawal: { preparationId: 'prep-2', directTransfer: true },
+        })
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+        expect(mockPrepareWithdrawal.mock.calls[1][0]).toEqual(mockPrepareWithdrawal.mock.calls[0][0])
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+    })
+
+    it('a signing failure with an unchanged controller is not retried', async () => {
+        mockSignTypedData.mockRejectedValueOnce(new Error('bundler 502'))
+
+        const error = (await signDirectQr()) as unknown as Error
+
+        expect(error.message).toBe('bundler 502')
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -1114,15 +1316,14 @@ describe('useSignSpendBundle — pre-Pay smart-only candidate and progress event
         ])
     })
 
-    it('routed collateral-only runs the mixed pipeline: the candidate is ignored and the batched op is built fresh', async () => {
+    it('routed QR collateral-only: the candidate is ignored — direct withdrawal, no kernel UserOp at all', async () => {
         mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
-        mockSessionKeySignEnabled.mockReturnValue(false)
         const onProgress = await signWithCandidate()
 
         expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
-        expect(mockSignCallsUserOp).toHaveBeenCalledTimes(1)
-        const options = (mockSignCallsUserOp.mock.calls[0] as any[])[2]
-        expect(options?.prepared).toBeUndefined()
+        expect(mockPrepareWithdrawal.mock.calls[0][0]).toMatchObject({ directTransfer: true })
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
         expect(onProgress.mock.calls.map(([e]) => e)).toEqual([
             { stage: 'preflight_ready' },
             { stage: 'signing_preparation_ready', preparation: 'fresh' },
