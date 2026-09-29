@@ -10026,6 +10026,78 @@
                 ]
             }
         },
+        "/manteca/pix-key/saved": {
+            "post": {
+                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send \u2192 Bank. Saving a key the user already has renames it.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "label": {
+                                        "maxLength": 15,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "pixKey": {
+                                        "maxLength": 77,
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "pixKey",
+                                    "label"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Save a PIX key to the address book",
+                "tags": [
+                    "manteca"
+                ]
+            }
+        },
         "/manteca/prices": {
             "get": {
                 "parameters": [
