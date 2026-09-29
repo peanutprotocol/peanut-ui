@@ -74,6 +74,27 @@ describe('demoRespond — routing', () => {
         expect(await res.json()).toEqual({})
     })
 
+    // Both are called by /qr-pay for a PIX key, and the screen-capture harness
+    // runs strict: an unmapped route fails the qr-pay-pix-key-owner fixture.
+    it('answers the PIX key owner lookup in strict capture mode', async () => {
+        const res = await demoRespond(
+            '/manteca/pix-key/owner',
+            { method: 'POST', body: JSON.stringify({ pixKey: 'maria@silva.com.br' }) },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({ name: 'DEMO RECIPIENT', legalIdMasked: null })
+    })
+
+    it('answers the card markup read with "nothing to compare" in strict capture mode', async () => {
+        const res = await demoRespond(
+            '/fx/card-markup?currency=BRL',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(404)
+    })
+
     it('only advertises badges with live unlock paths in the demo catalog', async () => {
         const { data } = await body('/badge/catalog')
         const codes = data.badges.map(({ code }: { code: string }) => code)
