@@ -21,7 +21,7 @@ const SIZES: { size: string; use: string; inCards: string }[] = [
     },
     {
         size: '20',
-        use: 'Inside buttons and nav circles (40px circle + 20px icon)',
+        use: 'Nav circles and icon-only buttons (40px box + 20px icon). A Button with a label sizes its own icon from its size: small 16, medium 20, large 24 — pass the icon, not a size',
         inCards: 'The trailing chevron of a list item (ListItem chevron draws it)',
     },
     {
