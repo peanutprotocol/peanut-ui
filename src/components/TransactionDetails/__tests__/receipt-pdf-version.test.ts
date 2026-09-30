@@ -18,6 +18,12 @@ describe('receiptPdfVersion', () => {
         expect(receiptPdfVersion(withRate('1400'))).not.toBe(receiptPdfVersion(withRate('1420')))
     })
 
+    test('is an opaque digest, never the receipt details themselves', () => {
+        const version = receiptPdfVersion({ ...base, amount: 1234.56, txHash: '0xdeadbeef' })
+        expect(version).toMatch(/^[0-9a-f]{16}$/)
+        expect(version).not.toContain('1234')
+    })
+
     test('is stable for an unchanged receipt, bigint amounts included', () => {
         expect(receiptPdfVersion({ ...base })).toBe(receiptPdfVersion(base))
         expect(receiptPdfVersion({ ...base, amount: BigInt(10) })).toBe(

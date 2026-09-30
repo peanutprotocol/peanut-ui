@@ -1,5 +1,6 @@
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
+import { fnv1a64 } from '@/utils/qr-payment.utils'
 import type { TransactionDetails } from './transactionTransformer'
 
 /** the pdf route path with the locale and receipt state in the url — the
@@ -31,21 +32,24 @@ export function openReceiptPdfUrl(pdfPath: `/${string}`): void {
 
 /** the receipt state the pdf renders; when it changes, a file fetched for the
  *  earlier state is outdated (pending → completed, refunds, amount or rate
- *  fixes, a new status date, tx hash or card dispute). */
+ *  fixes, a new status date, tx hash or card dispute). it rides the pdf url,
+ *  so it is an opaque digest — amounts and dates never land in request logs. */
 export const receiptPdfVersion = (transaction: TransactionDetails): string =>
-    [
-        transaction.status,
-        transaction.amount,
-        transaction.tokenAmount,
-        transaction.currency?.amount,
-        transaction.currency?.code,
-        transaction.extraDataForDrawer?.receipt?.exchange_rate,
-        transaction.extraDataForDrawer?.wasReturned,
-        transaction.fee,
-        transaction.date,
-        transaction.completedAt,
-        transaction.claimedAt,
-        transaction.cancelledDate,
-        transaction.txHash,
-        transaction.extraDataForDrawer?.cardPayment?.dispute?.status,
-    ].join('|')
+    fnv1a64(
+        [
+            transaction.status,
+            transaction.amount,
+            transaction.tokenAmount,
+            transaction.currency?.amount,
+            transaction.currency?.code,
+            transaction.extraDataForDrawer?.receipt?.exchange_rate,
+            transaction.extraDataForDrawer?.wasReturned,
+            transaction.fee,
+            transaction.date,
+            transaction.completedAt,
+            transaction.claimedAt,
+            transaction.cancelledDate,
+            transaction.txHash,
+            transaction.extraDataForDrawer?.cardPayment?.dispute?.status,
+        ].join('\u0000')
+    )
