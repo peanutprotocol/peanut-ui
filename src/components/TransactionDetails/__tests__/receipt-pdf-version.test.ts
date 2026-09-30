@@ -13,6 +13,9 @@ describe('receiptPdfVersion', () => {
         expect(receiptPdfVersion({ ...base, currency: { amount: '9', code: 'ARS' } })).not.toBe(pending)
         expect(receiptPdfVersion({ ...base, completedAt: '2026-09-30T10:00:00Z' })).not.toBe(pending)
         expect(receiptPdfVersion({ ...base, txHash: '0xabc' })).not.toBe(pending)
+        const withRate = (rate: string) =>
+            ({ ...base, extraDataForDrawer: { receipt: { exchange_rate: rate } } }) as unknown as TransactionDetails
+        expect(receiptPdfVersion(withRate('1400'))).not.toBe(receiptPdfVersion(withRate('1420')))
     })
 
     test('is stable for an unchanged receipt, bigint amounts included', () => {
