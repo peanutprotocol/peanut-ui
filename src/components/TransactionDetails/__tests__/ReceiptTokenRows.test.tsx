@@ -39,7 +39,7 @@ describe('ReceiptTokenRows token lookup', () => {
 
         expect(await screen.findByText('rows.tokenOnChain:WEIRD@OP Mainnet')).toBeInTheDocument()
         await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-        // canonical platform id, not slugify('OP Mainnet')
+        // canonical platform id, not a slug of 'OP Mainnet'
         expect(fetchMock.mock.calls[0][0]).toBe(
             `https://api.coingecko.com/api/v3/coins/optimistic-ethereum/contract/${TOKEN}`
         )
@@ -54,12 +54,34 @@ describe('ReceiptTokenRows token lookup', () => {
         await waitFor(() => expect(captureException).toHaveBeenCalledTimes(1))
     })
 
-    it('keeps the row and reports a network failure', async () => {
-        fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    it('reports a malformed payload', async () => {
+        fetchMock.mockResolvedValue({ ok: true, json: async () => ({ symbol: 'abc' }) })
         renderRows({ tokenSymbol: 'weird', chainId: '42161', chainName: 'Arbitrum One' })
 
         expect(await screen.findByText('rows.tokenOnChain:WEIRD@Arbitrum One')).toBeInTheDocument()
         await waitFor(() => expect(captureException).toHaveBeenCalledTimes(1))
+    })
+
+    it.each([
+        ['a network error', () => fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))],
+        ['a rate limit', () => fetchMock.mockResolvedValue({ ok: false, status: 429, statusText: 'Too Many' })],
+    ])('keeps the row without reporting %s', async (_, arrange) => {
+        arrange()
+        renderRows({ tokenSymbol: 'weird', chainId: '42161', chainName: 'Arbitrum One' })
+
+        expect(await screen.findByText('rows.tokenOnChain:WEIRD@Arbitrum One')).toBeInTheDocument()
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+        expect(captureException).not.toHaveBeenCalled()
+    })
+
+    it('shows the CoinGecko icon when the wire icon is an empty string', async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => ({ symbol: 'weird', image: { large: 'https://example.com/weird.png' } }),
+        })
+        renderRows({ tokenSymbol: 'weird', tokenIconUrl: '', chainId: '42161', chainName: 'Arbitrum One' })
+
+        expect(await screen.findByAltText('weird')).toBeInTheDocument()
     })
 
     it('skips the lookup for a chain CoinGecko does not list', async () => {

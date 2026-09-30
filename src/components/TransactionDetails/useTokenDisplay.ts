@@ -31,12 +31,14 @@ export function useTokenDisplay(transaction: TransactionDetails | null): TokenDi
         staleTime: Infinity,
         retry: false,
         queryFn: async (): Promise<{ symbol: string; icon: string } | null> => {
+            // network errors come from ad blockers, offline users and 429s without
+            // cors headers — not actionable, so they fall back without a report
+            const res = await fetch(
+                `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${transaction!.tokenAddress}`
+            ).catch(() => null)
+            // 404 = token not listed, 429 = rate limited; the fallback icon covers both
+            if (!res || res.status === 404 || res.status === 429) return null
             try {
-                const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${transaction!.tokenAddress}`
-                )
-                // 404 = CoinGecko doesn't list this token; the fallback icon covers it
-                if (res.status === 404) return null
                 if (!res.ok) throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
                 const tokenDetails = await res.json()
                 return { symbol: tokenDetails.symbol, icon: tokenDetails.image.large }
@@ -47,6 +49,7 @@ export function useTokenDisplay(transaction: TransactionDetails | null): TokenDi
         },
     })
 
-    const symbol = details?.tokenSymbol ?? data?.symbol
-    return symbol ? { symbol, icon: details?.tokenIconUrl ?? data?.icon } : null
+    // || not ??: getTokenLogo returns '' for unknown symbols
+    const symbol = details?.tokenSymbol || data?.symbol
+    return symbol ? { symbol, icon: details?.tokenIconUrl || data?.icon } : null
 }
