@@ -161,5 +161,6 @@ PAGE_CAPTURES.push(
         route: '/profile/accounts',
         fixture: 'profile-accounts',
         clicks: ['Open new account'],
-    }
+    },
+    { id: 'p73-statements', name: 'Statements', route: '/profile/statements' }
 )
