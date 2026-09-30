@@ -248,3 +248,79 @@ describe('GET /receipt/[entryId]/pdf', () => {
         expect((await get('entry-12', 'kind=OFFRAMP&locale=en')).headers.get('Cache-Control')).toBe('no-store')
     })
 })
+
+// TASK-23188: the render cache must never hand out bytes rendered for an
+// earlier state of the same receipt — least of all under the final-state
+// public cache policy.
+describe('GET /receipt/[entryId]/pdf — receipt freshness', () => {
+    type Entry = { status: string; amount: string }
+    const bytesOf = async (response: Response) => Buffer.from(await response.arrayBuffer()).toString()
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockMap.mockImplementation((entry: Entry) => ({
+            transactionDetails: { id: 'entry', extraDataForDrawer: { kind: 'OFFRAMP' }, ...entry },
+        }))
+        mockBuildModel.mockImplementation((details: Entry) => ({
+            fileName: 'peanut-receipt.pdf',
+            amountDisplay: details.amount,
+            rows: [{ label: 'status', value: details.status }],
+        }))
+        mockRender.mockImplementation(async (model: { amountDisplay: string; rows: { value: string }[] }) =>
+            Buffer.from(`%PDF ${model.rows[0].value} ${model.amountDisplay}`)
+        )
+    })
+
+    test('a receipt that completes after a pending render gets fresh bytes', async () => {
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'PENDING', amount: '10' })
+        const pending = await get('entry-status', 'kind=OFFRAMP&locale=en')
+        expect(await bytesOf(pending)).toBe('%PDF PENDING 10')
+        expect(pending.headers.get('Cache-Control')).toBe('no-store')
+
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        const completed = await get('entry-status', 'kind=OFFRAMP&locale=en')
+        expect(await bytesOf(completed)).toBe('%PDF COMPLETED 10')
+        expect(completed.headers.get('Cache-Control')).toBe('public, s-maxage=3600')
+    })
+
+    test('a completed receipt that is refunded gets fresh bytes', async () => {
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        await get('entry-refund', 'kind=OFFRAMP&locale=en')
+
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'REFUNDED', amount: '10' })
+        expect(await bytesOf(await get('entry-refund', 'kind=OFFRAMP&locale=en'))).toBe('%PDF REFUNDED 10')
+    })
+
+    test('a changed amount on the same receipt gets fresh bytes', async () => {
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        await get('entry-amount', 'kind=OFFRAMP&locale=en')
+
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '12' })
+        expect(await bytesOf(await get('entry-amount', 'kind=OFFRAMP&locale=en'))).toBe('%PDF COMPLETED 12')
+    })
+
+    test('a request after completion never joins an in-flight pending render', async () => {
+        let releasePending: (v: Buffer) => void = () => {}
+        mockRender.mockImplementationOnce(() => new Promise<Buffer>((r) => (releasePending = r)))
+        mockGetHistoryEntry
+            .mockResolvedValueOnce({ status: 'PENDING', amount: '10' })
+            .mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+
+        const pendingRequest = get('entry-race', 'kind=OFFRAMP&locale=en&_=1')
+        // let the pending request reach the render before the state changes
+        await new Promise((r) => setImmediate(r))
+        const completedRequest = get('entry-race', 'kind=OFFRAMP&locale=en&_=2')
+        await new Promise((r) => setImmediate(r))
+        releasePending(Buffer.from('%PDF PENDING 10'))
+        const [pending, completed] = await Promise.all([pendingRequest, completedRequest])
+
+        expect(await bytesOf(pending)).toBe('%PDF PENDING 10')
+        expect(pending.headers.get('Cache-Control')).toBe('no-store')
+        expect(await bytesOf(completed)).toBe('%PDF COMPLETED 10')
+        expect(completed.headers.get('Cache-Control')).toBe('public, s-maxage=3600')
+
+        // the pending bytes were not promoted into the completed receipt's cache
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        expect(await bytesOf(await get('entry-race', 'kind=OFFRAMP&locale=en&_=3'))).toBe('%PDF COMPLETED 10')
+    })
+})
