@@ -58,7 +58,6 @@ export default function PerkSuccessTestPage() {
     const [currentPerkIndex, setCurrentPerkIndex] = useState(0)
     const [showSuccess, setShowSuccess] = useState(false)
     const [canDismiss, setCanDismiss] = useState(false)
-    const [isExiting, setIsExiting] = useState(false)
     const [playSound, setPlaySound] = useState(false)
     const { triggerHaptic } = useAppHaptic()
 
@@ -67,7 +66,6 @@ export default function PerkSuccessTestPage() {
     const handleShowSuccess = () => {
         setShowSuccess(true)
         setCanDismiss(false)
-        setIsExiting(false)
         setPlaySound(true)
         triggerHaptic()
         shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })
@@ -79,13 +77,10 @@ export default function PerkSuccessTestPage() {
     const handleDismiss = () => {
         if (!canDismiss) return
 
-        setIsExiting(true)
-        setTimeout(() => {
-            setShowSuccess(false)
-            setPlaySound(false)
-            // Move to next perk
-            setCurrentPerkIndex((prev) => (prev + 1) % MOCK_PERKS.length)
-        }, 400)
+        setShowSuccess(false)
+        setPlaySound(false)
+        // Move to next perk
+        setCurrentPerkIndex((prev) => (prev + 1) % MOCK_PERKS.length)
     }
 
     const inviteeName = extractInviteeName(currentPerk.reason)
@@ -137,10 +132,9 @@ export default function PerkSuccessTestPage() {
                         >
                             {playSound && <SoundPlayer sound="success" />}
 
-                            {/* Success card - full width, matches PaymentSuccessView */}
-                            <GlobalCard
-                                className={`flex w-full items-center gap-4 p-4 ${isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}`}
-                            >
+                            {/* success card - full width, matches PaymentSuccessView. no zoom in or
+                                out: success screens stay still, confetti + haptic carry the moment */}
+                            <GlobalCard className="flex w-full items-center gap-4 p-4">
                                 {/* Check icon */}
                                 <IconBubble icon="check" size="m" color="green" />
 

@@ -16,6 +16,13 @@ describe('DocNavList', () => {
         rows.forEach((row) => expect(row.className).toContain('min-h-11'))
     })
 
+    // the rendered order follows TIERS, so the patterns group is the first one people see
+    it('renders the patterns tier as the first nav row', () => {
+        render(<DocNavList />)
+
+        expect(screen.getAllByRole('link')[0].getAttribute('href')).toBe('/dev/ds/patterns')
+    })
+
     // a live region announces a text change, not its own arrival: created together
     // with its text it is silent, so the region has to outlive the empty result.
     it('keeps the empty-result status region mounted while results exist', () => {

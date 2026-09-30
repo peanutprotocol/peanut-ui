@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import PinInput from '@/components/Card/PinInput'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { WhenToUse } from '../../_components/WhenToUse'
+import { DoDont } from '../../_components/DoDont'
 
 export default function FieldErrorPage() {
     const [value, setValue] = useState('kush!')
@@ -38,12 +40,7 @@ export default function FieldErrorPage() {
             <DocSection title="With an input">
                 <DocSection.Content>
                     <div className="flex flex-col gap-1">
-                        <BaseInput
-                            value={value}
-                            onChange={(e) => setValue(e.target.value)}
-                            state={invalid ? 'error' : 'default'}
-                            placeholder="username"
-                        />
+                        <BaseInput value={value} onChange={(e) => setValue(e.target.value)} placeholder="username" />
                         <FieldError>{invalid ? 'Lowercase letters and numbers only.' : undefined}</FieldError>
                     </div>
                 </DocSection.Content>
@@ -53,18 +50,48 @@ export default function FieldErrorPage() {
                         code={`import { FieldError } from '@/components/0_Bruddle/FieldError'
 
 <div className="flex flex-col gap-1">
-    <BaseInput state={error ? 'error' : 'default'} ... />
+    <BaseInput ... />
     <FieldError>{error}</FieldError>
 </div>`}
                     />
                 </DocSection.Code>
             </DocSection>
 
+            <DocSection
+                title="Alignment"
+                description="The error belongs to its control, so it starts where the control starts. Under a full-width control (BaseInput, BaseSelect, AmountInput) it is left-aligned to the control's edge — also when the control centers its own content, like AmountInput. Center it only under a narrow control that is itself centered in the column (PinInput). Never center an error under a left-aligned input."
+            >
+                <DocSection.Content>
+                    <DoDont
+                        doLabel="Left under a full-width input, centered under a centered PIN"
+                        doExample={
+                            <div className="flex flex-col gap-6">
+                                <div className="flex flex-col gap-1">
+                                    <BaseInput defaultValue="kush!" aria-label="Username" />
+                                    <FieldError>Lowercase letters and numbers only.</FieldError>
+                                </div>
+                                <div className="flex flex-col items-center gap-1">
+                                    <PinInput value="1234" onChange={() => {}} autoFocus={false} />
+                                    <FieldError>No sequential digits (e.g., 1234)</FieldError>
+                                </div>
+                            </div>
+                        }
+                        dontLabel="Centered under a left-aligned input"
+                        dontExample={
+                            <div className="flex flex-col gap-1">
+                                <BaseInput defaultValue="kush!" aria-label="Username" />
+                                <FieldError className="text-center">Lowercase letters and numbers only.</FieldError>
+                            </div>
+                        }
+                    />
+                </DocSection.Content>
+            </DocSection>
+
             <ProductUsage>
                 <ProductUsage.Example
                     title="Send — not enough balance"
                     path="src/features/payments/flows/direct-send/views/SendInputView.tsx"
-                    description="The amount input and its error form one column, 4px apart. The error only mounts when the amount passes the balance."
+                    description="The amount input and its error form one column, 4px apart. The input is a full-width box, so the error starts at its left edge even though the amount inside is centered. The error only mounts when the amount passes the balance."
                     code={`{/* amount input + its field error form one column, 4px apart */}
 <div className="flex flex-col gap-1">
   <AmountInput ... />
@@ -72,8 +99,27 @@ export default function FieldErrorPage() {
 </div>`}
                 >
                     <div className="flex flex-col gap-1">
-                        <div className="text-center text-heading-l">$120.00</div>
+                        {/* static stand-in for AmountInput (it needs flow context): the full-width bordered box */}
+                        <div className="border border-border-default bg-background-default p-4 text-center">
+                            <span className="text-heading-big-input">$120.00</span>
+                        </div>
                         <FieldError>You do not have enough balance.</FieldError>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Card — choose a PIN"
+                    path="src/components/Card/CardPinSetupFlow.tsx"
+                    description="The PIN dots are narrow and centered in the column, so the error centers under them."
+                    code={`{/* pin input + its field error form one column, 4px apart */}
+<div className="flex flex-col items-center gap-1">
+  <PinInput value={first} onChange={setFirst} />
+  {rejected && <FieldError>{t(REJECTION_KEYS[reason])}</FieldError>}
+</div>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <PinInput value="1234" onChange={() => {}} autoFocus={false} />
+                        <FieldError>No sequential digits (e.g., 1234)</FieldError>
                     </div>
                 </ProductUsage.Example>
 
@@ -87,7 +133,7 @@ export default function FieldErrorPage() {
 <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>`}
                 >
                     <div className="flex flex-col gap-2">
-                        <BaseInput defaultValue="kushagra" state="error" />
+                        <BaseInput defaultValue="kushagra" />
                         <div className="min-h-8">
                             <FieldError>This username is already taken.</FieldError>
                         </div>
