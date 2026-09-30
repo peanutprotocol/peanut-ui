@@ -7,6 +7,7 @@ import CardFundingConsent from '@/components/Card/CardFundingConsent'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
+import { isRainBalanceKnown } from '@/utils/balance.utils'
 
 /** Matches the hook's polling window for a pending grant (useRainFunding). */
 const PENDING_WAIT_MS = 60_000
@@ -31,8 +32,10 @@ const PENDING_WAIT_MS = 60_000
  * nothing, forgets nothing in flight (the hook keeps polling and the grant
  * keeps running), and the prompt returns on the next Home visit.
  *
- * A legacy user confirms twice (the old permission is retired first), and the
- * copy says so instead of promising one tap.
+ * A legacy user confirms twice (the old permission is retired first). Card
+ * balance moving back to the wallet first adds confirmations too; the copy
+ * says so instead of promising one tap. A card withdrawal still confirming
+ * keeps this dialog as a wait, never as done.
  *
  * The card this modal keys off MUST be `findActiveCard(overview)`, never
  * `cards[0]`: in the 2026-07-02 duplicate-card incident `cards[0]` was a bare
@@ -46,8 +49,18 @@ export default function EnableAutoBalanceBanner() {
     const { overview } = useRainCardOverview()
     const card = findActiveCard(overview)
     const hasActiveCard = card?.status === 'ACTIVE'
-    const { funding, needsGrant, isMigration, isPending, grant, recheck, isSubmitting, step, lastError } =
-        useRainFunding({ enabled: hasActiveCard })
+    const {
+        funding,
+        needsGrant,
+        isMigration,
+        isPending,
+        isWithdrawalInFlight,
+        grant,
+        recheck,
+        isSubmitting,
+        step,
+        lastError,
+    } = useRainFunding({ enabled: hasActiveCard })
     // Card id the user chose "Skip for now" for — per card, so skipping a
     // stuck card A never suppresses the prompt for a different card B that
     // legitimately needs its own setup later in the same session.
@@ -76,7 +89,8 @@ export default function EnableAutoBalanceBanner() {
     // A grant that ended as retired or paused also ends the prompt: the person
     // can do nothing more, and it is never offered again.
     const endedForGood = lastError?.kind === 'scope-retired' || lastError?.kind === 'unavailable'
-    const shouldShow = hasActiveCard && !endedForGood && (needsGrant === true || isPending)
+    // A card withdrawal still confirming is unfinished setup, never done.
+    const shouldShow = hasActiveCard && !endedForGood && (needsGrant === true || isPending || isWithdrawalInFlight)
 
     // Only honor the hook's error if the attempt it came from was for THIS
     // card. `lastAttemptFor === null` (error with no recorded attempt) can't
@@ -86,23 +100,25 @@ export default function EnableAutoBalanceBanner() {
 
     // `user-cancelled` just means the passkey sheet was dismissed — not a real
     // error, the user simply taps Continue again. Any other failure gets a
-    // recoverable message.
-    const hardError = errorForThisCard && lastError!.kind !== 'user-cancelled'
+    // recoverable message. A withdrawal still confirming is shown as a wait.
+    const hardError =
+        errorForThisCard && lastError!.kind !== 'user-cancelled' && lastError!.kind !== 'withdrawal-in-flight'
 
     const authorizationText = funding?.permission.authorizationText ?? ''
 
-    // While the hook polls a pending grant, show the wait as the button's
-    // "Working…" state. Check status and Skip appear only after the window.
-    // The window restarts per card.
+    // While the hook polls a pending grant or a card withdrawal still
+    // confirming, show the wait as the button's "Working…" state. Check status
+    // and Skip appear only after the window. The window restarts per card.
+    const waiting = isPending || isWithdrawalInFlight
     const [pendingTimedOut, setPendingTimedOut] = useState(false)
     useEffect(() => {
         setPendingTimedOut(false)
-        if (!isPending) return
+        if (!waiting) return
         const timer = setTimeout(() => setPendingTimedOut(true), PENDING_WAIT_MS)
         return () => clearTimeout(timer)
-    }, [isPending, cardId])
-    const stalled = isPending && pendingTimedOut
-    const busy = isSubmitting || (isPending && !pendingTimedOut)
+    }, [waiting, cardId])
+    const stalled = waiting && pendingTimedOut
+    const busy = isSubmitting || (waiting && !pendingTimedOut)
 
     const onContinue = () => {
         if (busy || !authorizationAccepted) return
@@ -121,7 +137,9 @@ export default function EnableAutoBalanceBanner() {
                   text: busy
                       ? isSubmitting && step === 'updating-permission'
                           ? t('confirmUpdate')
-                          : t('working')
+                          : isSubmitting && step === 'returning-balance'
+                            ? t('returningBalance')
+                            : t('working')
                       : hardError
                         ? tCommon('tryAgain')
                         : tCommon('continue'),
@@ -144,15 +162,36 @@ export default function EnableAutoBalanceBanner() {
 
     const dismissed = dismissedFor !== null && dismissedFor === cardId
 
-    const description = stalled
-        ? t('descriptionPending')
-        : termsChanged
-          ? tFunding('termsChanged')
-          : hardError
-            ? t('descriptionError')
-            : isMigration
-              ? t('descriptionMigration')
-              : t('description')
+    // Card balance goes back to the wallet first, which can take more than one
+    // confirmation. An unreadable balance shows the usual copy; the attempt
+    // itself stops before any prompt in that case.
+    const returnCents =
+        isRainBalanceKnown(overview) && !overview?.balanceUnavailable && overview?.balance
+            ? Math.max(0, Math.floor(overview.balance.spendingPower))
+            : 0
+
+    const failureDescription =
+        lastError?.kind === 'return-pending'
+            ? t('descriptionReturnPending')
+            : lastError?.kind === 'return-wait'
+              ? t('descriptionReturnWait')
+              : lastError?.kind === 'balance-unavailable'
+                ? t('descriptionBalanceUnavailable')
+                : t('descriptionError')
+
+    const description = isWithdrawalInFlight
+        ? t('descriptionWithdrawalInFlight')
+        : stalled
+          ? t('descriptionPending')
+          : termsChanged
+            ? tFunding('termsChanged')
+            : hardError
+              ? failureDescription
+              : returnCents > 0
+                ? t('descriptionReturn', { amount: `$${(returnCents / 100).toFixed(2)}` })
+                : isMigration
+                  ? t('descriptionMigration')
+                  : t('description')
 
     return (
         <ActionModal

@@ -63,14 +63,25 @@ jest.mock('@/hooks/wallet/useRainFunding', () => ({
             isSubmitting: mockIsSubmitting,
             step: mockStep,
             lastError: mockLastError,
+            isWithdrawalInFlight: mockInFlight,
         }
     },
 }))
 
 type MockCard = { id?: string; status: string; hasWithdrawApproval?: boolean }
 let mockCards: MockCard[] = []
+let mockSpendingPower: number | null = null
+let mockBalanceUnavailable = false
+let mockInFlight = false
 jest.mock('@/hooks/useRainCardOverview', () => ({
-    useRainCardOverview: () => ({ overview: { cards: mockCards, status: {} } }),
+    useRainCardOverview: () => ({
+        overview: {
+            cards: mockCards,
+            status: {},
+            balance: mockSpendingPower === null ? null : { spendingPower: mockSpendingPower },
+            balanceUnavailable: mockBalanceUnavailable,
+        },
+    }),
 }))
 
 jest.mock('@/components/Global/ActionModal', () => ({
@@ -118,6 +129,9 @@ beforeEach(() => {
     mockGrant.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
     mockRecheck.mockResolvedValue(undefined)
     mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
+    mockSpendingPower = null
+    mockBalanceUnavailable = false
+    mockInFlight = false
 })
 
 describe('EnableAutoBalanceBanner — what is shown', () => {
@@ -271,6 +285,100 @@ describe('EnableAutoBalanceBanner — one confirmation or two', () => {
         render(<EnableAutoBalanceBanner />)
         expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
+    })
+})
+
+describe('EnableAutoBalanceBanner — card balance moves back first', () => {
+    const description = () => screen.getByTestId('description')
+
+    it.each<[Status]>([['required'], ['migration_required']])(
+        '%s: names the amount and more than one confirmation, with no exact count, in one dialog',
+        (status) => {
+            mockSpendingPower = 1_234.7
+            mockStatus = status
+            render(<EnableAutoBalanceBanner />)
+            expect(description()).toHaveTextContent(
+                'First, $12.34 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
+            )
+            expect(description()).not.toHaveTextContent(/One passkey tap|twice|\d+ times/)
+            expect(boxes()).toHaveLength(1)
+            expect(screen.getAllByTestId('modal')).toHaveLength(1)
+        }
+    )
+
+    it.each([
+        ['zero', 0, false],
+        ['sub-cent dust', 0.4, false],
+        ['a cached figure', 5_000, true],
+    ])('%s adds no return to the copy', (_label, spendingPower, unavailable) => {
+        mockSpendingPower = spendingPower
+        mockBalanceUnavailable = unavailable
+        render(<EnableAutoBalanceBanner />)
+        expect(description()).toHaveTextContent('One passkey tap to start using your card.')
+    })
+
+    it('shows the return as the button state while it runs', () => {
+        mockSpendingPower = 500
+        mockIsSubmitting = true
+        mockStep = 'returning-balance'
+        render(<EnableAutoBalanceBanner />)
+        expect(screen.getByRole('button', { name: 'Moving card balance…' })).toBeDisabled()
+        expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['return-pending', /not confirmed yet/],
+        ['return-wait', /cannot move right now/],
+        ['balance-unavailable', /couldn't read your card balance/i],
+        ['return-failed', /couldn't finish setting up your card/],
+    ])('a %s stop explains it and offers Try again and Skip for now in the same dialog', (kind, text) => {
+        mockSpendingPower = 500
+        mockLastError = { kind } as RainFundingError
+        render(<EnableAutoBalanceBanner />)
+        expect(description()).toHaveTextContent(text)
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+        expect(screen.getByText('Skip for now')).toBeInTheDocument()
+        expect(screen.getAllByTestId('modal')).toHaveLength(1)
+    })
+
+    describe('a card withdrawal still confirming', () => {
+        afterEach(() => jest.useRealTimers())
+
+        it('keeps the same dialog as a wait, never as done, then offers Check status and Skip', () => {
+            jest.useFakeTimers()
+            mockStatus = 'temporarily_unavailable'
+            mockInFlight = true
+            render(<EnableAutoBalanceBanner />)
+            expect(screen.getByTestId('modal')).toBeInTheDocument()
+            expect(description()).toHaveTextContent('A card withdrawal is still confirming.')
+            expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
+            expect(boxes()).toHaveLength(1)
+
+            act(() => void jest.advanceTimersByTime(60_001))
+            expect(description()).toHaveTextContent('A card withdrawal is still confirming.')
+            expect(description()).not.toHaveTextContent(/do not approve twice/i)
+            expect(screen.getByRole('button', { name: 'Check status' })).toBeInTheDocument()
+            expect(screen.getByText('Skip for now')).toBeInTheDocument()
+            expect(mockGrant).not.toHaveBeenCalled()
+        })
+
+        it('once it settles, the normal prompt returns with no error copy', () => {
+            mockStatus = 'migration_required'
+            mockLastError = { kind: 'withdrawal-in-flight' }
+            render(<EnableAutoBalanceBanner />)
+            expect(description()).toHaveTextContent(/confirm twice with your passkey/i)
+            expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+            expect(screen.getByText('Skip for now')).toBeInTheDocument()
+        })
+    })
+
+    it('skipping after a stopped return grants nothing', () => {
+        mockSpendingPower = 500
+        mockLastError = { kind: 'return-pending' }
+        render(<EnableAutoBalanceBanner />)
+        fireEvent.click(screen.getByText('Skip for now'))
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(mockGrant).not.toHaveBeenCalled()
     })
 })
 

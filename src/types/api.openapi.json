@@ -13913,7 +13913,49 @@
                         },
                         "description": "Default Response"
                     },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
                     "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14025,6 +14067,203 @@
                         "description": "Default Response"
                     },
                     "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/withdraw/status/{preparationId}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "preparationId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "chainId": {
+                                            "type": "string"
+                                        },
+                                        "expiresAt": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "preparationId": {
+                                            "type": "string"
+                                        },
+                                        "reason": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "not_submitted"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "submission_held"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "confirming"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "verification_unavailable"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "needs_reconciliation"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "receipt_confirmed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "reverted"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "rejected"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "not_executed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "cancelled"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "state": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "pending"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "completed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "failed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "cancelled"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "txHash": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "preparationId",
+                                        "state",
+                                        "reason",
+                                        "chainId",
+                                        "txHash",
+                                        "expiresAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {

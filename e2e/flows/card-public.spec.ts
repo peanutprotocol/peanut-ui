@@ -116,6 +116,46 @@ test('a legacy holder is told there are two confirmations', async ({ page }) => 
     await shot(page, 'funding-migration')
 })
 
+// A fixture cannot sign, so the return → retirement → grant order is covered by
+// useRainFunding.test.tsx; this pins what the person reads before Continue.
+test('card balance moving back first is named in the same prompt, without promising one tap', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    await page.goto('/home?__fixture=card-funding-return')
+    await expect(
+        page.getByText(
+            'First, $25.00 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
+        )
+    ).toBeVisible()
+    await expect(page.getByText('One passkey tap to start using your card.')).toHaveCount(0)
+    await expect(page.getByRole('checkbox')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+    await shot(page, 'funding-return')
+})
+
+test('a card withdrawal still confirming keeps the prompt as a wait, never as done', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    await page.clock.install()
+    await page.goto('/home?__fixture=card-funding-withdrawal-in-flight')
+    await expect(page.getByText(/A card withdrawal is still confirming/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Working…', exact: true })).toBeDisabled()
+    await shot(page, 'funding-withdrawal-in-flight')
+
+    await page.clock.fastForward(61_000)
+    await expect(page.getByRole('button', { name: 'Check status', exact: true })).toBeVisible()
+    await expect(page.getByText('Skip for now')).toBeVisible()
+})
+
+test('the card screen offers Move card balance to wallet only while there is card balance', async ({ page }) => {
+    await page.goto('/card?__fixture=card-holder-collateral')
+    await expect(page.getByTestId('card-collateral')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Move card balance to wallet', exact: true })).toBeVisible()
+    await shot(page, 'holder-collateral')
+
+    await page.goto('/card?__fixture=card-holder')
+    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Move card balance to wallet', exact: true })).toHaveCount(0)
+})
+
 test('a pending grant waits as a disabled Working… button, then offers Check status and Skip', async ({ page }) => {
     await asReturningHomeVisitor(page)
     // The prompt's wait window is a page timer: control it instead of waiting 60s.

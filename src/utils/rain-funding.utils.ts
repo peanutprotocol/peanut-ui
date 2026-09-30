@@ -1,5 +1,9 @@
 import { isAddress, isAddressEqual, zeroAddress, type Address } from 'viem'
-import { RTF_SCOPE_RETIRED_REASON, RTF_SUPPORTED_SCOPE_VERSION } from '@/constants/rain.consts'
+import {
+    RTF_SCOPE_RETIRED_REASON,
+    RTF_SUPPORTED_SCOPE_VERSION,
+    RTF_WITHDRAWAL_IN_FLIGHT_REASON,
+} from '@/constants/rain.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import type { RainCardFunding, RainFundingManagementStatus } from '@/services/rain'
@@ -30,6 +34,16 @@ export type RainFundingError =
     | { kind: 'unavailable' }
     /** Another card signature or permission update is running on this wallet. Nothing was sent; try again shortly. */
     | { kind: 'busy' }
+    /** The card balance could not be read, so it is not known whether there is money to move first. Nothing was sent. */
+    | { kind: 'balance-unavailable' }
+    /** Moving the card balance to the wallet was sent and has not settled. No permission is changed until it has. */
+    | { kind: 'return-pending' }
+    /** The provider does not allow moving the card balance right now. Nothing moved. */
+    | { kind: 'return-wait' }
+    /** Moving the card balance could not finish. Check the balance and try again. */
+    | { kind: 'return-failed' }
+    /** A card withdrawal is still confirming. Nothing is retired or signed until it settles. */
+    | { kind: 'withdrawal-in-flight' }
     | { kind: 'unexpected'; message: string }
 
 export type RainFundingResult =
@@ -53,6 +67,14 @@ export const needsFundingGrant = (status: RainFundingManagementStatus | undefine
     reason !== RTF_SCOPE_RETIRED_REASON &&
     reason !== 'support_required' &&
     (status === 'required' || status === 'migration_required')
+
+/**
+ * The backend holds the old permission's retirement while a card withdrawal it
+ * submitted is still confirming. Setup is unfinished: never read this as done.
+ */
+export const isFundingWithdrawalInFlight = (funding: Pick<RainCardFunding, 'management'>): boolean =>
+    funding.management.status === 'temporarily_unavailable' &&
+    funding.management.reason === RTF_WITHDRAWAL_IN_FLIGHT_REASON
 
 /**
  * The backend funding config must be the chain and token this app's wallet

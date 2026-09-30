@@ -8070,7 +8070,31 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -8163,6 +8187,74 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/withdraw/status/{preparationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    preparationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            chainId: string;
+                            expiresAt: number | null;
+                            preparationId: string;
+                            reason: "not_submitted" | "submission_held" | "confirming" | "verification_unavailable" | "needs_reconciliation" | "receipt_confirmed" | "reverted" | "rejected" | "not_executed" | "cancelled";
+                            state: "pending" | "completed" | "failed" | "cancelled";
+                            txHash: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

@@ -626,6 +626,15 @@ const CARD_HOLDER_OVERVIEW = {
     ],
 }
 
+/** $25.00 the provider can release; holds already excluded. */
+const CARD_HOLDER_COLLATERAL = {
+    creditLimit: 0,
+    spendingPower: 2500,
+    pendingCharges: 0,
+    postedCharges: 0,
+    balanceDue: 0,
+}
+
 // `GET /rain/cards/funding` for managed card funding. Fake operator, wallet and
 // session signer — a fixture never signs. `allowance` is informational only:
 // every fixture gives a large one on purpose, because readiness is the
@@ -975,6 +984,15 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /rain/cards/funding': cardFunding('ready'),
         },
     },
+    'card-holder-collateral': {
+        route: '/card',
+        about: 'Existing holder with card balance left from before: the collateral note offers Move card balance to wallet.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...CARD_HOLDER_OVERVIEW, balance: CARD_HOLDER_COLLATERAL },
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
     // The funding authorization sits on the terms step, one tap in ("Get your
     // card") — e2e/flows/card-public.spec.ts takes that tap and shoots it.
     'card-reissue': {
@@ -1017,6 +1035,36 @@ export const FIXTURES: Record<string, Fixture> = {
             }),
         },
         waitFor: '[data-testid="card-funding-consent"]',
+    },
+    // Card balance from before goes back to the wallet before the old grant is
+    // retired: the same prompt names the amount and every confirmation.
+    'card-funding-return': {
+        route: '/home',
+        about: 'Existing cardholder with card balance and a legacy grant: the same prompt names the amount and more than one confirmation.',
+        responses: {
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                balance: CARD_HOLDER_COLLATERAL,
+                cards: [{ ...CARD_HOLDER_OVERVIEW.cards[0], hasWithdrawApproval: true }],
+            },
+            'GET /rain/cards/funding': cardFunding('migration_required', {
+                uninstall: [{ validationId: `0x02${'ab'.repeat(20)}`, deinitData: '0x1234' }],
+                invalidateNonceFloor: 3,
+            }),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    'card-funding-withdrawal-in-flight': {
+        route: '/home',
+        about: 'Existing cardholder with a legacy grant while a card withdrawal still confirms: the same prompt waits, then offers Check status and Skip.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding': {
+                ...cardFunding('temporarily_unavailable'),
+                management: { status: 'temporarily_unavailable', reason: 'withdrawal_in_flight', migration: null },
+            },
+        },
+        waitFor: '[data-testid="modal-head"]',
     },
     'card-funding-pending': {
         route: '/home',

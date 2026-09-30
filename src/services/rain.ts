@@ -195,6 +195,28 @@ export interface SubmitRainWithdrawalResponse {
     txHash: string
 }
 
+/** `GET /rain/cards/withdraw/status/:preparationId`. No signatures, amounts or PII. */
+export interface RainWithdrawalStatus {
+    preparationId: string
+    state: 'pending' | 'completed' | 'failed' | 'cancelled'
+    reason:
+        | 'not_submitted'
+        | 'submission_held'
+        | 'confirming'
+        | 'verification_unavailable'
+        | 'needs_reconciliation'
+        | 'receipt_confirmed'
+        | 'reverted'
+        | 'rejected'
+        | 'not_executed'
+        | 'cancelled'
+    chainId: string
+    /** The transaction on record for this preparation, if any. */
+    txHash: string | null
+    /** Provider signature expiry (unix seconds). */
+    expiresAt: number | null
+}
+
 /** `changed` is true only when the stored controller actually moved. */
 export interface RefreshRainControllerResponse {
     coordinatorAddress: string
@@ -453,6 +475,12 @@ interface RequestOpts {
      * the recovery exists to avoid.
      */
     suppressCooldownEvent?: boolean
+    /**
+     * Suppress the GLOBAL re-enable modal for a submit's 409 STALE_CARD_APPROVAL
+     * (the typed `StaleCardApprovalError` is unchanged). The card balance return
+     * owns that outcome in its own dialog and never re-grants from it.
+     */
+    suppressStaleApprovalEvent?: boolean
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -518,7 +546,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
             const message =
                 err.error ||
                 'Your card needs to be re-enabled before you can withdraw. Please re-enable your card and try again.'
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && !opts.suppressStaleApprovalEvent) {
                 posthog.capture(ANALYTICS_EVENTS.CARD_STALE_APPROVAL_HIT)
                 window.dispatchEvent(new CustomEvent(RAIN_STALE_APPROVAL_EVENT))
             }
@@ -648,12 +676,16 @@ export const rainApi = {
      * payment that actually succeeded, retries, and double-sends. (#2245 routed
      * request payments through this path for the first time → the regression.)
      */
-    submitWithdrawal: async (input: SubmitRainWithdrawalInput): Promise<SubmitRainWithdrawalResponse> => {
+    submitWithdrawal: async (
+        input: SubmitRainWithdrawalInput,
+        opts?: { suppressStaleApprovalEvent?: boolean }
+    ): Promise<SubmitRainWithdrawalResponse> => {
         return rainRequest<SubmitRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/submit',
             body: input,
             timeoutMs: 120_000,
+            suppressStaleApprovalEvent: opts?.suppressStaleApprovalEvent,
         })
     },
 
@@ -705,7 +737,13 @@ export const rainApi = {
      * hash so the Rain collateral webhook can reconcile against the right
      * intent. Non-fatal on failure.
      */
-    stampWithdrawal: async (input: { preparationId: string; txHash: string }): Promise<void> => {
+    stampWithdrawal: async (
+        input: { preparationId: string; txHash: string },
+        opts: {
+            /** Rethrow instead of logging: the caller keeps the hash and stamps again. */
+            throwOnError?: boolean
+        } = {}
+    ): Promise<void> => {
         try {
             await rainRequest<{ ok: boolean }>({
                 method: 'POST',
@@ -713,10 +751,24 @@ export const rainApi = {
                 body: input,
             })
         } catch (e) {
+            if (opts.throwOnError) throw e
             // Non-fatal: intent stays PENDING until expiry, no history
             // categorization until then. Log loudly but don't block the user.
             console.warn('[rainApi.stampWithdrawal] failed:', (e as Error).message)
         }
+    },
+
+    /**
+     * Status of one of the user's own withdrawal preparations. `pending` never
+     * means nothing moved; `completed` is receipt-backed. A failed read throws
+     * and is never a terminal state.
+     */
+    getWithdrawalStatus: async (preparationId: string): Promise<RainWithdrawalStatus> => {
+        return rainRequest<RainWithdrawalStatus>({
+            method: 'GET',
+            path: `/rain/cards/withdraw/status/${encodeURIComponent(preparationId)}`,
+            noStore: true,
+        })
     },
 
     /**
@@ -725,7 +777,13 @@ export const rainApi = {
      * signature could still execute (409) and the 30-min TTL sweep is the
      * guaranteed cleanup, so every failure mode here is safe to swallow.
      */
-    cancelPreparation: async (preparationId: string): Promise<void> => {
+    cancelPreparation: async (
+        preparationId: string,
+        opts: {
+            /** Rethrow instead of logging: the caller treats only a 2xx as a verified cancel. */
+            throwOnError?: boolean
+        } = {}
+    ): Promise<void> => {
         try {
             await rainRequest<{ ok: boolean }>({
                 method: 'POST',
@@ -733,6 +791,7 @@ export const rainApi = {
                 body: { preparationId },
             })
         } catch (e) {
+            if (opts.throwOnError) throw e
             console.warn('[rainApi.cancelPreparation] failed (non-fatal):', (e as Error).message)
         }
     },

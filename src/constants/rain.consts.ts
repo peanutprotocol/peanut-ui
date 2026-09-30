@@ -22,6 +22,12 @@ export const RTF_TERMS_LABEL = 'Real-Time Funding Terms'
 export const RTF_SUPPORTED_SCOPE_VERSION = 2
 /** Reason the backend gives when this permission was retired on chain and cannot be signed again. */
 export const RTF_SCOPE_RETIRED_REASON = 'scope_retired'
+/**
+ * Reason the backend gives (with `temporarily_unavailable` and no migration)
+ * while a card withdrawal it submitted is still confirming: the old permission
+ * cannot be retired until it settles. Setup is unfinished, not done.
+ */
+export const RTF_WITHDRAWAL_IN_FLIGHT_REASON = 'withdrawal_in_flight'
 
 export const rainCoordinatorAbi = [
     {

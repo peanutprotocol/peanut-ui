@@ -21,7 +21,9 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCardReveal } from '@/hooks/useCardReveal'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
-import { cardBalanceDueCents } from '@/utils/balance.utils'
+import { useCardCollateralReturn } from '@/hooks/wallet/useCardCollateralReturn'
+import type { CollateralReturnFailure } from '@/hooks/wallet/cardCollateralReturn'
+import { cardBalanceDueCents, isRainBalanceKnown } from '@/utils/balance.utils'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 
 type CardAction = 'lock' | 'unlock' | 'cancel'
@@ -38,6 +40,20 @@ const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiry
     cvv: 'cvvCopied',
 }
 
+// A dismissed passkey is not an error.
+const RETURN_ERROR_KEY: Record<
+    CollateralReturnFailure,
+    'moveFailed' | 'movePending' | 'moveWait' | 'moveBalanceUnavailable' | 'moveBusy' | null
+> = {
+    'balance-unavailable': 'moveBalanceUnavailable',
+    pending: 'movePending',
+    cooldown: 'moveWait',
+    cancelled: null,
+    'account-changed': 'moveFailed',
+    busy: 'moveBusy',
+    failed: 'moveFailed',
+}
+
 const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const t = useTranslations('card.yourCard')
     const tCommon = useTranslations('common')
@@ -52,6 +68,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
     const { nativeAvailable, isAdding, addToWallet } = usePushProvisioning({ id: card.id, last4: card.last4 })
+    const { returnCollateral, isReturning, lastError: lastReturnError } = useCardCollateralReturn()
 
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
@@ -71,6 +88,17 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
     const collateralCents = Math.max(0, Math.floor(overview.balance?.spendingPower ?? 0))
+    // Offered only on a fresh provider figure; the return reads it again anyway.
+    const canMoveCollateral = collateralCents > 0 && isRainBalanceKnown(overview) && !overview.balanceUnavailable
+    const returnErrorKey = lastReturnError ? RETURN_ERROR_KEY[lastReturnError.kind] : null
+
+    // Moves the card balance to this wallet. Never locks, cancels or grants.
+    const handleMoveToWallet = useCallback(() => {
+        if (isReturning) return
+        void returnCollateral().catch(() => {
+            // shown from `lastReturnError`
+        })
+    }, [isReturning, returnCollateral])
 
     const handleCopy = useCallback(
         (_value: string, field: CopyableCardField) => {
@@ -95,10 +123,29 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 onCopy={handleCopy}
             />
 
-            {/* Card payments come from the wallet; older collateral cannot pay them. */}
+            {/* Card payments come from the wallet; older collateral cannot pay them.
+                The note and its action leave only once a refreshed read shows none. */}
             {collateralCents > 0 && (
-                <Callout priority="helper" data-testid="card-collateral">
+                <Callout
+                    priority="helper"
+                    data-testid="card-collateral"
+                    ctas={
+                        canMoveCollateral
+                            ? [
+                                  {
+                                      label: isReturning ? t('movingToWallet') : t('moveToWallet'),
+                                      onClick: handleMoveToWallet,
+                                  },
+                              ]
+                            : undefined
+                    }
+                >
                     {t('cardFundsCollateral', { amount: `$${(collateralCents / 100).toFixed(2)}` })}
+                </Callout>
+            )}
+            {returnErrorKey && (
+                <Callout priority="error" data-testid="card-collateral-error">
+                    {t(returnErrorKey)}
                 </Callout>
             )}
 

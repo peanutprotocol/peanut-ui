@@ -10,6 +10,12 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { signKernelPermission, PermissionWalletMismatchError } from '@/hooks/wallet/signKernelPermission'
+import {
+    CollateralReturnError,
+    type CollateralReturnFailure,
+    type CollateralReturnOutcome,
+} from '@/hooks/wallet/cardCollateralReturn'
+import { useCardCollateralReturn } from '@/hooks/wallet/useCardCollateralReturn'
 import { wireErrorCode } from '@/services/api-error'
 import { rainApi, type RainCardFunding } from '@/services/rain'
 import type { NoncePublicClient } from '@/utils/kernelNonceRepair.utils'
@@ -21,6 +27,7 @@ import {
 } from '@/utils/legacyGrantMigration.utils'
 import {
     classifyFundingApiError,
+    isFundingWithdrawalInFlight,
     isRainFundingConfigValid,
     isRainFundingWallet,
     isUserCancellation,
@@ -35,7 +42,18 @@ const RAIN_CARD_FUNDING_QUERY_KEY = 'rain-card-funding'
 const PENDING_POLL_INTERVAL_MS = 3_000
 const PENDING_POLL_WINDOW_MS = 60_000
 
-type GrantStep = 'idle' | 'updating-permission' | 'signing' | 'submitting'
+type GrantStep = 'idle' | 'returning-balance' | 'updating-permission' | 'signing' | 'submitting'
+
+/** Why moving the card balance stopped a setup attempt, as the setup reports it. */
+const RETURN_FAILURES: Record<CollateralReturnFailure, RainFundingError> = {
+    'balance-unavailable': { kind: 'balance-unavailable' },
+    pending: { kind: 'return-pending' },
+    cooldown: { kind: 'return-wait' },
+    cancelled: { kind: 'user-cancelled' },
+    'account-changed': { kind: 'account-changed' },
+    busy: { kind: 'busy' },
+    failed: { kind: 'return-failed' },
+}
 
 /**
  * Managed card funding: the one scoped permission that lets Peanut's backend
@@ -64,6 +82,15 @@ type GrantStep = 'idle' | 'updating-permission' | 'signing' | 'submitting'
  * A legacy user (`migration_required`) confirms twice: once to retire the old
  * combined grant on chain, once for the new permission. Only the root key can
  * do the first.
+ *
+ * Card balance the provider can release goes back to the same wallet first,
+ * before any old permission is retired (it may be the one that submits it).
+ * That adds passkey confirmations. Any outcome other than done or nothing to
+ * move stops the attempt there: nothing is retired and nothing is granted. An
+ * unknown earlier return blocks the same way until its status is known. After
+ * a return the funding state is read again, so retirement never uses a batch
+ * read before it, and a backend withdrawal still confirming
+ * (`withdrawal_in_flight`) makes setup wait.
  */
 export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) => {
     const queryClient = useQueryClient()
@@ -71,6 +98,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
     const userId = user?.user?.userId
     const { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
     const { handleSendUserOpEncoded, address: connectedAddress } = useZeroDev()
+    const { returnCollateral } = useCardCollateralReturn()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [step, setStep] = useState<GrantStep>('idle')
     const [lastError, setLastError] = useState<RainFundingError | null>(null)
@@ -95,8 +123,10 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
         // A wallet mismatch (409) never heals on retry, and callers offer an
         // explicit retry for everything else.
         retry: false,
+        // Bounded: after the window the caller offers Check status instead.
         refetchInterval: (query) => {
-            if (query.state.data?.management.status !== 'pending') {
+            const data = query.state.data
+            if (data?.management.status !== 'pending' && !(data && isFundingWithdrawalInFlight(data))) {
                 pendingSinceRef.current = null
                 return false
             }
@@ -108,7 +138,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
     useEffect(() => {
         setLastError(null)
         setStep('idle')
-    }, [userId])
+    }, [userId, connectedAddress])
 
     const grant = useCallback(
         (consent: RainFundingConsent): Promise<RainFundingResult> => {
@@ -146,29 +176,42 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                         )
                     }
                     if (changed()) return fail({ kind: 'account-changed' })
-                    if (!isRainFundingConfigValid(live)) return fail({ kind: 'config-mismatch' })
-                    // The statement the user ticked must be the statement the
-                    // backend will record.
-                    if (consent.authorizationText !== live.permission.authorizationText) {
-                        // Show the person the text now on record before asking again.
-                        queryClient.setQueryData<RainCardFunding>(queryKey, live)
-                        return fail({ kind: 'terms-changed' })
-                    }
 
+                    // Checks a fresh funding read. A result means there is
+                    // nothing to sign now; null means sign against it.
+                    const nothingToSign = (read: RainCardFunding): RainFundingResult | null => {
+                        if (!isRainFundingConfigValid(read)) return fail({ kind: 'config-mismatch' })
+                        // The statement the user ticked must be the statement
+                        // the backend will record.
+                        if (consent.authorizationText !== read.permission.authorizationText) {
+                            // Show the person the text now on record before asking again.
+                            queryClient.setQueryData<RainCardFunding>(queryKey, read)
+                            return fail({ kind: 'terms-changed' })
+                        }
+                        // A retired permission never reinstalls: no prompt, no
+                        // signature. Internal support restores it with a new one.
+                        if (read.management.reason === RTF_SCOPE_RETIRED_REASON) {
+                            queryClient.setQueryData<RainCardFunding>(queryKey, read)
+                            return fail({ kind: 'scope-retired' })
+                        }
+                        // A card withdrawal is still confirming: setup waits,
+                        // and nothing is retired or signed until it settles.
+                        if (isFundingWithdrawalInFlight(read)) {
+                            queryClient.setQueryData<RainCardFunding>(queryKey, read)
+                            return fail({ kind: 'withdrawal-in-flight' })
+                        }
+                        if (!needsFundingGrant(read.management.status)) {
+                            // ready / pending / temporarily_unavailable: nothing
+                            // to sign. Cache what the backend says and let the
+                            // caller wait or move on.
+                            queryClient.setQueryData<RainCardFunding>(queryKey, read)
+                            return { ok: true, status: read.management.status }
+                        }
+                        return null
+                    }
+                    const settledEarly = nothingToSign(live)
+                    if (settledEarly) return settledEarly
                     const { status } = live.management
-                    // A retired permission never reinstalls: no prompt, no
-                    // signature. Internal support restores it with a new one.
-                    if (live.management.reason === RTF_SCOPE_RETIRED_REASON) {
-                        queryClient.setQueryData<RainCardFunding>(queryKey, live)
-                        return fail({ kind: 'scope-retired' })
-                    }
-                    if (!needsFundingGrant(status)) {
-                        // ready / pending / temporarily_unavailable: nothing to
-                        // sign. Cache what the backend says and let the caller
-                        // wait or move on.
-                        queryClient.setQueryData<RainCardFunding>(queryKey, live)
-                        return { ok: true, status }
-                    }
 
                     const kernelClient = await ensureClientForChain(live.chainId)
                     if (changed()) return fail({ kind: 'account-changed' })
@@ -177,16 +220,60 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                     }
                     const walletAddress = live.walletAddress as Address
 
-                    let toSign = live
+                    // The backend names the old validations. A payload this app
+                    // cannot check is never acted on, and nothing is prompted.
+                    let migration: ParsedLegacyMigration | null = null
                     if (status === 'migration_required') {
-                        // The backend names the old validations. A payload this
-                        // app cannot check is never acted on.
-                        let migration: ParsedLegacyMigration
                         try {
                             migration = parseLegacyMigration(live.management.migration)
                         } catch {
                             return fail({ kind: 'config-mismatch' })
                         }
+                    }
+
+                    // Card balance back to this wallet before anything is
+                    // retired. It reconciles an earlier unsettled return first.
+                    let returned: CollateralReturnOutcome
+                    try {
+                        returned = await returnCollateral({ onStart: () => setStep('returning-balance') })
+                    } catch (e) {
+                        const kind = e instanceof CollateralReturnError ? e.kind : 'failed'
+                        return fail(RETURN_FAILURES[kind])
+                    }
+                    if (changed()) return fail({ kind: 'account-changed' })
+                    // The return may have migrated or rebuilt the client: check
+                    // the current one is still the funded wallet.
+                    const currentClient = await ensureClientForChain(live.chainId)
+                    if (changed()) return fail({ kind: 'account-changed' })
+                    if (!isRainFundingWallet(live, currentClient.account?.address)) {
+                        return fail({ kind: 'wallet-mismatch' })
+                    }
+
+                    // A return can take a while: the state and the batch read
+                    // before it are stale. Act only on a fresh read.
+                    let current = live
+                    if (returned.kind === 'returned') {
+                        try {
+                            current = await rainApi.getCardFunding()
+                        } catch (e) {
+                            return fail({ kind: 'funding-unavailable', message: (e as Error).message })
+                        }
+                        if (changed()) return fail({ kind: 'account-changed' })
+                        if (!isRainFundingWallet(current, walletAddress)) return fail({ kind: 'wallet-mismatch' })
+                        const settledAfterReturn = nothingToSign(current)
+                        if (settledAfterReturn) return settledAfterReturn
+                        migration = null
+                        if (current.management.status === 'migration_required') {
+                            try {
+                                migration = parseLegacyMigration(current.management.migration)
+                            } catch {
+                                return fail({ kind: 'config-mismatch' })
+                            }
+                        }
+                    }
+
+                    let toSign = current
+                    if (migration) {
                         setStep('updating-permission')
                         try {
                             // Confirmation 1: one root (passkey) userOp that
@@ -196,7 +283,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                                 publicClient: peanutPublicClient as unknown as NoncePublicClient,
                                 accountAddress: walletAddress,
                                 migration,
-                                sendUserOp: (calls) => handleSendUserOpEncoded(calls, live.chainId),
+                                sendUserOp: (calls) => handleSendUserOpEncoded(calls, current.chainId),
                             })
                         } catch (e) {
                             if (e instanceof KernelSigningBusyError) return fail({ kind: 'busy' })
@@ -327,7 +414,14 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
             inFlightRef.current = promise
             return promise
         },
-        [queryClient, ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain, handleSendUserOpEncoded]
+        [
+            queryClient,
+            ensureClientForChain,
+            getPatchedSudoValidator,
+            rebuildClientForChain,
+            handleSendUserOpEncoded,
+            returnCollateral,
+        ]
     )
 
     /** Re-read the state and drop the last error — the way out of `pending`. */
@@ -346,6 +440,8 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
         needsGrant: status === undefined ? undefined : needsFundingGrant(status, funding?.management.reason),
         isMigration: status === 'migration_required',
         isPending: status === 'pending',
+        /** A card withdrawal is still confirming: setup is unfinished and waits for it. */
+        isWithdrawalInFlight: !!funding && isFundingWithdrawalInFlight(funding),
         isLoading,
         fundingError,
         grant,

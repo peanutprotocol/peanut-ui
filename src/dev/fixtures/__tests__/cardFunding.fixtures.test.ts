@@ -63,6 +63,23 @@ describe('card funding fixtures', () => {
         expect(() => parseLegacyMigration(body.management.migration)).not.toThrow()
     })
 
+    it('the in-flight fixture answers a paused state with the withdrawal reason and no migration', async () => {
+        const body = await read('card-funding-withdrawal-in-flight')
+        expect(body.management).toEqual({
+            status: 'temporarily_unavailable',
+            reason: 'withdrawal_in_flight',
+            migration: null,
+        })
+    })
+
+    it('the return fixtures carry a fresh positive card balance', async () => {
+        for (const name of ['card-funding-return', 'card-holder-collateral']) {
+            const overview = await (await answer(name, '/rain/cards', 'GET')).json()
+            expect(overview.balance.spendingPower).toBeGreaterThan(0)
+            expect(overview.balanceUnavailable).toBeFalsy()
+        }
+    })
+
     it('a fixture that declares the funding read as failed makes it fail', async () => {
         const response = await answer('card-funding-error', PATH, 'GET')
         expect(response.status).toBe(500)

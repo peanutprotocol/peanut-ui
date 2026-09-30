@@ -36,6 +36,11 @@
             "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirmá dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisá el estado en un momento. No autorices dos veces.",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora. Te lo volveremos a pedir la próxima vez que abras Inicio.",
+            "descriptionReturn": "Primero, {amount} del saldo de la tarjeta vuelve a tu billetera. Puede requerir más de una confirmación con tu passkey.",
+            "descriptionWithdrawalInFlight": "Un retiro de la tarjeta todavía se está confirmando. Revisá de nuevo en un momento u omitilo por ahora.",
+            "descriptionReturnPending": "El movimiento del saldo de tu tarjeta a tu billetera aún no está confirmado. Revisá de nuevo en un momento u omitilo por ahora.",
+            "descriptionReturnWait": "El saldo de tu tarjeta no se puede mover ahora. Intentá más tarde u omitilo por ahora.",
+            "descriptionBalanceUnavailable": "No pudimos leer el saldo de tu tarjeta. Intentá de nuevo u omitilo por ahora.",
             "confirmUpdate": "Confirmá la actualización del permiso de la tarjeta"
         },
         "history": {
@@ -888,6 +893,11 @@
         },
         "yourCard": {
             "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contactá a soporte para saldarla.",
+            "moveFailed": "No pudimos terminar de mover el saldo de tu tarjeta. Revisá tu saldo y después intentá de nuevo.",
+            "movePending": "El movimiento del saldo de tu tarjeta aún no está confirmado. Revisá de nuevo en un momento.",
+            "moveWait": "El saldo de tu tarjeta no se puede mover ahora. Intentá más tarde.",
+            "moveBalanceUnavailable": "No pudimos leer el saldo de tu tarjeta. Intentá de nuevo.",
+            "moveBusy": "Hay otra acción de la tarjeta en curso. Intentá de nuevo en un momento.",
             "payAsCreditTitle": "Pagá como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elegí crédito — tu tarjeta Peanut corre en la red de crédito."
         },
