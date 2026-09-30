@@ -472,6 +472,64 @@ describe('crypto withdraw confirm — network fee', () => {
         expect(mockSendMoney).not.toHaveBeenCalled()
     })
 
+    // Page logic only: the mocked view has no disabled state, so a tap stands in
+    // for Confirm and for Retry (set paymentError). Disabled buttons are pinned
+    // in ConfirmWithdrawView.test.tsx.
+    it('refuses Confirm and Retry when the live fee rises past the amount, then continues once the amount grows', async () => {
+        chargeDetails.chainId = 'solana'
+        mockUrlAmount = '2'
+        mockSendTransactions.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'mixed',
+            intentId: 'prep-intent-fee',
+        })
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0.5, receiveAmount: '1.5' })
+        const view = render(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('below-minimum').textContent).toBe('null')
+
+        const expectNothingMoved = () => {
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+            // the charge already exists; a refused tap creates no request or charge
+            expect(requestsApi.create).not.toHaveBeenCalled()
+            expect(chargesApi.create).not.toHaveBeenCalled()
+        }
+
+        // the live fee rises past the amount
+        Object.assign(mockCrossChainTransfer, { feeUsd: 3, receiveAmount: '0' })
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('below-minimum').textContent).toMatch(
+            /network fee to this network is \$3\.00, which would leave nothing to deliver\. Enter a larger amount/
+        )
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() =>
+            expect(mockSetPaymentError).toHaveBeenCalledWith(expect.stringMatching(/fee is more than this withdrawal/))
+        )
+        expectNothingMoved()
+
+        // Retry: an error is on screen and the fee is still too high
+        mockWithdrawFlow.paymentError = 'Something went wrong'
+        mockSetPaymentError.mockClear()
+        view.rerender(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() =>
+            expect(mockSetPaymentError).toHaveBeenCalledWith(expect.stringMatching(/fee is more than this withdrawal/))
+        )
+        expectNothingMoved()
+
+        // the user enters $4 against the same $3 fee: the block lifts and the send goes through
+        mockWithdrawFlow.paymentError = null
+        mockUrlAmount = '4'
+        Object.assign(mockCrossChainTransfer, { receiveAmount: '1' })
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('below-minimum').textContent).toBe('null')
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
+        expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+    })
+
     it('raises the heads-up when the quoted fee dominates a small withdrawal', () => {
         mockIsWithdrawFeeDisproportionate.mockImplementation((...args: unknown[]) =>
             realRule(...(args as Parameters<typeof realRule>))
