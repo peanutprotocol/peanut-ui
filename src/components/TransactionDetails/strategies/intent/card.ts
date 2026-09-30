@@ -6,8 +6,8 @@ import { formatBrTaxId } from '@/utils/br-tax-id.utils'
 
 export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const raw = entry.recipientAccount?.identifier
-    // A PIX key the payer looked up arrives with its owner's name (the payer's
-    // own history only): name the owner and keep the key beside the name.
+    // A PIX key the payer looked up arrives with its owner's name: name the
+    // owner and keep the key beside the name. A shared receipt gets the key masked.
     const ownerName = entry.recipientAccount?.fullName
     if (raw && ownerName) {
         return {

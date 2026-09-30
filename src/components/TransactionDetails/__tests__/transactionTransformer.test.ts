@@ -1115,7 +1115,23 @@ describe('QR_PAY to a looked-up PIX key', () => {
         expect(result.nameDetail).toBeUndefined()
     })
 
-    it('a public receipt, which gets no owner name, shows only the masked key', () => {
+    it('a shared receipt names the owner with the masked key beside the name', () => {
+        const result = mapTransactionDataForDrawer(
+            pixEntry({
+                recipientAccount: {
+                    identifier: '•••• 8909',
+                    fullName: 'MARIA DA SILVA',
+                    type: 'BANK_CBU',
+                    isUser: false,
+                },
+            })
+        ).transactionDetails
+
+        expect(result.userName).toBe('Maria Da Silva')
+        expect(result.nameDetail).toBe('•••• 8909')
+    })
+
+    it('a key paid without a lookup has no owner name, so a shared receipt shows only the masked key', () => {
         const result = mapTransactionDataForDrawer(
             pixEntry({ recipientAccount: { identifier: '•••• 8909', type: 'BANK_CBU', isUser: false } })
         ).transactionDetails
