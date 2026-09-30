@@ -142,7 +142,8 @@ test('a card withdrawal still confirming keeps the prompt as a wait, never as do
 
     await page.clock.fastForward(61_000)
     await expect(page.getByRole('button', { name: 'Check status', exact: true })).toBeVisible()
-    await expect(page.getByText('Skip for now')).toBeVisible()
+    // the description also says "skip for now": match the button only
+    await expect(page.getByRole('button', { name: 'Skip for now', exact: true })).toBeVisible()
 })
 
 test('the card screen offers Move card balance to wallet only while there is card balance', async ({ page }) => {
