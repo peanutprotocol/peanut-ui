@@ -2,17 +2,19 @@
  * EnableAutoBalanceBanner — the Home prompt for managed card funding.
  *
  * An existing cardholder whose permission is missing gets today's centered,
- * non-dismissible modal: the plain description of the permission and two
- * explicit, unchecked boxes. Locked down here:
+ * non-dismissible modal: the plain description of the permission and ONE
+ * explicit, unchecked authorization checkbox. Locked down here:
  *
- *  1. Continue is gated on BOTH boxes; consent is never implied, and a grant
+ *  1. Continue is gated on that checkbox; consent is never implied, and a grant
  *     carries exactly what was ticked and the statement shown
  *  2. it shows only when the backend says the permission is missing or pending —
  *     never for ready, temporarily unavailable, an unknown state or an allowance
  *  3. a legacy user is told there are two confirmations; nobody else is
  *  4. a passkey that fails or is cancelled never traps the user (Skip for now),
  *     and skipping grants nothing and forgets nothing in flight
- *  5. pending waits (Check status) instead of asking again
+ *  5. a grant the backend accepted waits in the SAME dialog as the button's
+ *     Working… state (no second, different dialog); only a stalled wait shows
+ *     Check status, and nothing asks again
  *  6. success closes onto Home; the 2026-07-02 duplicate-card shape still keys
  *     off the ACTIVE card, never `cards[0]`, and errors never leak between cards
  *  7. no removal, revoke, pause or "Automatic card payments" control exists
@@ -134,13 +136,12 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
     })
 
-    it('asks for the two new boxes only, unchecked — never the old card checklist again', () => {
+    it('asks for the one authorization only, unchecked — no management box, never the old card checklist', () => {
         render(<EnableAutoBalanceBanner />)
-        expect(boxes()).toHaveLength(2)
-        expect(boxes().every((box) => !box.checked)).toBe(true)
-        expect(screen.getByTestId('funding-management-consent')).toHaveTextContent(
-            'I agree that Peanut manages this card permission for me.'
-        )
+        expect(boxes()).toHaveLength(1)
+        expect(boxes()[0].checked).toBe(false)
+        expect(screen.queryByTestId('funding-management-consent')).not.toBeInTheDocument()
+        expect(screen.queryByText(/I agree that Peanut manages/)).not.toBeInTheDocument()
         expect(screen.getByTestId('funding-authorization-statement')).toHaveTextContent(AUTHORIZATION)
         expect(screen.queryByText(/E-Sign|Privacy|solicitation/i)).not.toBeInTheDocument()
     })
@@ -196,13 +197,11 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
 })
 
 describe('EnableAutoBalanceBanner — consent gates Continue', () => {
-    it('keeps Continue off until both boxes are ticked, and off again if one is cleared', () => {
+    it('keeps Continue off until the authorization is ticked, and off again if it is cleared', () => {
         render(<EnableAutoBalanceBanner />)
         const cont = screen.getByRole('button', { name: 'Continue' })
         expect(cont).toBeDisabled()
         fireEvent.click(boxes()[0])
-        expect(cont).toBeDisabled()
-        fireEvent.click(boxes()[1])
         expect(cont).toBeEnabled()
         fireEvent.click(boxes()[0])
         expect(cont).toBeDisabled()
@@ -227,7 +226,7 @@ describe('EnableAutoBalanceBanner — consent gates Continue', () => {
         })
     })
 
-    it('links the terms to the public page without ticking either box, and shows no draft placeholder', () => {
+    it('links the terms to the public page without ticking the box, and shows no draft placeholder', () => {
         render(<EnableAutoBalanceBanner />)
         const link = screen.getByRole('link', { name: 'Real-Time Funding Terms' })
         expect(link).toHaveAttribute('href', 'https://peanut.mucu.dev/en/real-time-funding-terms')
@@ -360,9 +359,27 @@ describe('EnableAutoBalanceBanner — cancel, failure and skip', () => {
 })
 
 describe('EnableAutoBalanceBanner — pending and success', () => {
-    it('waits on a pending grant: Check status and Skip, no boxes, no second grant', async () => {
+    afterEach(() => jest.useRealTimers())
+    const stall = () => act(() => void jest.advanceTimersByTime(60_001))
+
+    it('while the backend confirms a grant, the wait stays in this dialog as a disabled Working… button — no second view, no re-grant', () => {
+        jest.useFakeTimers()
         mockStatus = 'pending'
         render(<EnableAutoBalanceBanner />)
+        expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
+        expect(screen.getByTestId('description')).toHaveTextContent('One passkey tap')
+        expect(screen.queryByText('Check status')).not.toBeInTheDocument()
+        expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
+        expect(screen.queryByText(/not confirmed yet/i)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Working…' }))
+        expect(mockGrant).not.toHaveBeenCalled()
+    })
+
+    it('waits on a stalled grant: Check status and Skip, no boxes, no second grant', async () => {
+        jest.useFakeTimers()
+        mockStatus = 'pending'
+        render(<EnableAutoBalanceBanner />)
+        stall()
         expect(screen.getByTestId('description')).toHaveTextContent(/not confirmed yet/i)
         expect(screen.getByTestId('description')).toHaveTextContent(/do not approve twice/i)
         expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
@@ -376,9 +393,28 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
         expect(mockGrant).not.toHaveBeenCalled()
     })
 
-    it('skipping while pending closes the modal and grants or claims nothing', () => {
+    it('a different card that is pending gets its own fresh wait, not the earlier card’s expired one', () => {
+        jest.useFakeTimers()
+        mockStatus = 'pending'
+        mockCards = [{ id: 'card-a', status: 'ACTIVE' }]
+        const { rerender } = render(<EnableAutoBalanceBanner />)
+        stall()
+        expect(screen.getByRole('button', { name: 'Check status' })).toBeInTheDocument()
+
+        mockCards = [
+            { id: 'card-a', status: 'CANCELED' },
+            { id: 'card-b', status: 'ACTIVE' },
+        ]
+        rerender(<EnableAutoBalanceBanner />)
+        expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
+        expect(screen.queryByText('Check status')).not.toBeInTheDocument()
+    })
+
+    it('skipping a stalled grant closes the modal and grants or claims nothing', () => {
+        jest.useFakeTimers()
         mockStatus = 'pending'
         render(<EnableAutoBalanceBanner />)
+        stall()
         fireEvent.click(screen.getByText('Skip for now'))
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         expect(mockGrant).not.toHaveBeenCalled()

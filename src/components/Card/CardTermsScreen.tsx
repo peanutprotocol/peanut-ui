@@ -144,7 +144,6 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
 
             <CardFundingConsent
                 authorizationText={RTF_AUTHORIZATION_TEXT}
-                authorizationOnly
                 authorizationAccepted={authorizationAccepted}
                 onAuthorizationChange={setAuthorizationAccepted}
                 disabled={submitting}

@@ -1,10 +1,10 @@
 /**
- * YourCardScreen — what the card can actually spend.
+ * YourCardScreen — the notes that matter.
  *
- * Rain pulls every card payment from the smart WALLET. The home balance also
- * counts card collateral, which a new card payment cannot use, so the card
- * screen must state the wallet-only figure and never the combined one. A card
- * debt must not promise an automatic repayment that no longer exists.
+ * The provider pulls card payments from the smart WALLET, so collateral left
+ * from before cannot pay a new card payment; that is said only when there is
+ * some. The ordinary wallet balance is not repeated on this screen. A card debt
+ * must not promise an automatic repayment that no longer exists.
  */
 import React from 'react'
 import { fireEvent, screen } from '@testing-library/react'
@@ -12,11 +12,9 @@ import { renderWithIntl as render } from '@/test-utils/intl'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 
 const mockOpenSupport = jest.fn()
-let mockWallet: { balance: bigint | undefined; formattedBalance: string }
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => mockWallet }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport }),
 }))
@@ -60,29 +58,28 @@ const overview = (spendingPower: number | null): RainCardOverview => ({
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockWallet = { balance: 25_000_000n, formattedBalance: '25.00' }
 })
 
-describe('YourCardScreen — funds for card payments', () => {
-    it('shows the wallet-only amount, not wallet + collateral', () => {
+describe('YourCardScreen — collateral note', () => {
+    it('shows no "available for card payments" summary: the wallet balance already lives on Home', () => {
         render(<YourCardScreen overview={overview(0)} card={CARD} />)
-        expect(screen.getByText('$25.00 available for card payments')).toBeInTheDocument()
-        expect(screen.getByText('Card payments use the dollars in your Peanut wallet.')).toBeInTheDocument()
+        expect(screen.queryByText(/available for card payments/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('card-collateral')).not.toBeInTheDocument()
+        expect(screen.queryByText(/dollars in your Peanut wallet/)).not.toBeInTheDocument()
     })
 
-    it('wallet $0 with $100 collateral reads as $0 for the card, and says what the collateral is for', () => {
-        mockWallet = { balance: 0n, formattedBalance: '0.00' }
+    it('with no card overview balance there is no summary and no note', () => {
+        render(<YourCardScreen overview={overview(null)} card={CARD} />)
+        expect(screen.queryByText(/available for card payments/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('card-collateral')).not.toBeInTheDocument()
+    })
+
+    it('collateral left from before is still explained: a new card payment cannot use it', () => {
         render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
-        expect(screen.getByText('$0.00 available for card payments')).toBeInTheDocument()
-        expect(screen.queryByText(/\$100\.00 available/)).not.toBeInTheDocument()
+        expect(screen.getByTestId('card-collateral')).toBeInTheDocument()
         expect(screen.getByText(/Another \$100\.00 is held as card collateral/)).toBeInTheDocument()
         expect(screen.getByText(/New card payments cannot use it/)).toBeInTheDocument()
-    })
-
-    it('shows no figure while the wallet balance is unknown — never a guessed $0', () => {
-        mockWallet = { balance: undefined, formattedBalance: '0.00' }
-        render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
-        expect(screen.queryByTestId('card-funds')).not.toBeInTheDocument()
+        expect(screen.queryByText(/available for card payments/i)).not.toBeInTheDocument()
     })
 })
 

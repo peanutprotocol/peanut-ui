@@ -975,11 +975,11 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /rain/cards/funding': cardFunding('ready'),
         },
     },
-    // The two new consent boxes sit on the terms step, one tap in ("Get your
+    // The funding authorization sits on the terms step, one tap in ("Get your
     // card") — e2e/flows/card-public.spec.ts takes that tap and shoots it.
     'card-reissue': {
         route: '/card',
-        about: 'Approved holder with no card: the card terms end with the two funding-permission boxes.',
+        about: 'Approved holder with no card: the card terms end with one funding authorization.',
         responses: {
             'GET /card': { isEligible: true, geoProhibited: false },
             'GET /rain/cards': {
@@ -999,7 +999,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // Nothing can be signed in a fixture, so Continue's outcome is not shot.
     'card-funding-needed': {
         route: '/home',
-        about: 'Existing cardholder whose funding permission is missing: the centered Home prompt with the two unchecked boxes.',
+        about: 'Existing cardholder whose funding permission is missing: the centered Home prompt with one unchecked authorization.',
         responses: {
             'GET /rain/cards': CARD_HOLDER_OVERVIEW,
             'GET /rain/cards/funding': cardFunding('required'),
@@ -1020,7 +1020,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'card-funding-pending': {
         route: '/home',
-        about: 'Existing cardholder whose grant is accepted but not confirmed: Check status and Skip, no boxes.',
+        about: 'Existing cardholder whose grant is accepted but not confirmed: a disabled Working… button, then Check status and Skip once the wait window passes.',
         responses: {
             'GET /rain/cards': CARD_HOLDER_OVERVIEW,
             'GET /rain/cards/funding': cardFunding('pending'),

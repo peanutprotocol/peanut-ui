@@ -82,7 +82,7 @@ describe('CardTermsScreen legal links', () => {
 })
 
 // The managed card funding consent: the original card boxes stay exactly as
-// they were, and two new unchecked boxes follow. Every box is required.
+// they were, and one unchecked funding authorization follows. Every box is required.
 describe('CardTermsScreen managed funding consent', () => {
     const AUTHORIZATION = 'I authorize transfers according to the Real-Time Funding Terms.'
     const renderTerms = (isUsResident: boolean, onAccept = jest.fn()) => {

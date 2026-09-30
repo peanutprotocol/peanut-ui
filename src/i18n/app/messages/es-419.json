@@ -1657,8 +1657,6 @@
             "autoRenewTitle": "La tarjeta se renueva pronto",
             "autoRenewBody": "Tu tarjeta se renovará automáticamente en {days, plural, one {# día} other {# días}}, la fecha de vencimiento cambiará.",
             "dismiss": "Descartar",
-            "cardFundsTitle": "{amount} disponibles para pagos con tarjeta",
-            "cardFundsBody": "Los pagos con tarjeta usan los dólares de tu billetera Peanut.",
             "cardFundsCollateral": "Los pagos con tarjeta usan solo los dólares de tu billetera Peanut. Otros {amount} están retenidos como colateral de la tarjeta. Los nuevos pagos con tarjeta no pueden usarlos. Todavía sirven para enviar, retirar o pagar con QR.",
             "balanceDueTitle": "{amount} pendientes en tu tarjeta",
             "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contacta a soporte para saldarla.",
@@ -1676,7 +1674,6 @@
         "funding": {
             "body": "Peanut gestiona cuánto puede tomar de tu billetera nuestro proveedor externo para los pagos con tarjeta. Se renueva automáticamente, incluso para el dinero que agregues después.",
             "distinction": "El permiso sigue vigente. El monto que permite en cada momento es limitado.",
-            "managementConsent": "Acepto que Peanut gestione este permiso de la tarjeta por mí.",
             "termsChanged": "Los términos cambiaron. Léelos de nuevo y confirma.",
             "walletMismatch": "Esta tarjeta está vinculada a otra billetera. Contacta a soporte."
         },

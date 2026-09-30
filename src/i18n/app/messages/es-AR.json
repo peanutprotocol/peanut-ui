@@ -893,7 +893,6 @@
         },
         "funding": {
             "body": "Peanut gestiona cuánto puede tomar de tu billetera nuestro proveedor externo para los pagos con tarjeta. Se renueva automáticamente, incluso para el dinero que agregues después.",
-            "managementConsent": "Acepto que Peanut gestione este permiso de la tarjeta por mí.",
             "termsChanged": "Los términos cambiaron. Leelos de nuevo y confirmá.",
             "walletMismatch": "Esta tarjeta está vinculada a otra billetera. Contactá a soporte."
         },

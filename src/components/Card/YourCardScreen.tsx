@@ -21,7 +21,6 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCardReveal } from '@/hooks/useCardReveal'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
-import { useWallet } from '@/hooks/wallet/useWallet'
 import { cardBalanceDueCents } from '@/utils/balance.utils'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 
@@ -72,8 +71,6 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
     const collateralCents = Math.max(0, Math.floor(overview.balance?.spendingPower ?? 0))
-    // smart-account USDC only — NOT the wallet + collateral total
-    const { balance: walletBalance, formattedBalance } = useWallet()
 
     const handleCopy = useCallback(
         (_value: string, field: CopyableCardField) => {
@@ -98,18 +95,10 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 onCopy={handleCopy}
             />
 
-            {/* Rain pulls every card payment from the WALLET. The home balance
-                also counts card collateral, which a new card payment cannot
-                use — so the card screen states the wallet-only figure. */}
-            {walletBalance !== undefined && (
-                <Callout
-                    priority="helper"
-                    title={t('cardFundsTitle', { amount: `$${formattedBalance}` })}
-                    data-testid="card-funds"
-                >
-                    {collateralCents > 0
-                        ? t('cardFundsCollateral', { amount: `$${(collateralCents / 100).toFixed(2)}` })
-                        : t('cardFundsBody')}
+            {/* Card payments come from the wallet; older collateral cannot pay them. */}
+            {collateralCents > 0 && (
+                <Callout priority="helper" data-testid="card-collateral">
+                    {t('cardFundsCollateral', { amount: `$${(collateralCents / 100).toFixed(2)}` })}
                 </Callout>
             )}
 

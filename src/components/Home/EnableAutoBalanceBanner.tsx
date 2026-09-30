@@ -8,11 +8,15 @@ import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 
+/** Matches the hook's polling window for a pending grant (useRainFunding). */
+const PENDING_WAIT_MS = 60_000
+
 /**
  * The Home prompt for an existing cardholder whose card funding permission is
  * not in place: a centered modal with the plain description of the permission
- * and two explicit, unchecked boxes. Continue stays off until both are ticked;
- * consent is never implied and the old card checklist is not asked again.
+ * and an unchecked authorization checkbox. Continue stays off until it is
+ * ticked; consent is never implied and the old card checklist is not asked
+ * again.
  *
  * It shows only while the BACKEND says the permission is missing (`required`,
  * `migration_required`) or accepted but not yet confirmed on chain
@@ -22,8 +26,8 @@ import { useRainFunding } from '@/hooks/wallet/useRainFunding'
  * Blocking on the happy path (no close button, no backdrop dismiss). It closes
  * onto Home by itself once the backend reports the permission ready. A passkey
  * can fail or be cancelled (very common on iOS / 1Password), so after a
- * cancelled or failed attempt a "Skip for now" escape appears; the same escape
- * shows while a grant waits for confirmation. Skipping is local: it grants
+ * cancelled or failed attempt a "Skip for now" escape appears; it also appears
+ * for a pending grant once the polling window has passed. Skipping is local: it grants
  * nothing, forgets nothing in flight (the hook keeps polling and the grant
  * keeps running), and the prompt returns on the next Home visit.
  *
@@ -53,20 +57,17 @@ export default function EnableAutoBalanceBanner() {
     // this a failure on card A would leak "Try again" copy and the escape
     // hatch into a re-issued card B's first-ever prompt.
     const [lastAttemptFor, setLastAttemptFor] = useState<string | null>(null)
-    const [managementAccepted, setManagementAccepted] = useState(false)
     const [authorizationAccepted, setAuthorizationAccepted] = useState(false)
 
     const cardId = card?.id ?? null
     // A new card starts unticked: consent is per prompt, never carried over.
     useEffect(() => {
-        setManagementAccepted(false)
         setAuthorizationAccepted(false)
     }, [cardId])
     // Terms that changed under the person invalidate what they ticked.
     const termsChanged = lastError?.kind === 'terms-changed'
     useEffect(() => {
         if (!termsChanged) return
-        setManagementAccepted(false)
         setAuthorizationAccepted(false)
     }, [termsChanged])
 
@@ -89,15 +90,27 @@ export default function EnableAutoBalanceBanner() {
     const hardError = errorForThisCard && lastError!.kind !== 'user-cancelled'
 
     const authorizationText = funding?.permission.authorizationText ?? ''
-    const consentGiven = managementAccepted && authorizationAccepted
+
+    // While the hook polls a pending grant, show the wait as the button's
+    // "Working…" state. Check status and Skip appear only after the window.
+    // The window restarts per card.
+    const [pendingTimedOut, setPendingTimedOut] = useState(false)
+    useEffect(() => {
+        setPendingTimedOut(false)
+        if (!isPending) return
+        const timer = setTimeout(() => setPendingTimedOut(true), PENDING_WAIT_MS)
+        return () => clearTimeout(timer)
+    }, [isPending, cardId])
+    const stalled = isPending && pendingTimedOut
+    const busy = isSubmitting || (isPending && !pendingTimedOut)
 
     const onContinue = () => {
-        if (isSubmitting || !consentGiven) return
+        if (busy || !authorizationAccepted) return
         void grant({ authorizationAccepted, authorizationText }).then(() => setLastAttemptFor(cardId))
     }
 
     const ctas: ActionModalButtonProps[] = [
-        isPending
+        stalled
             ? {
                   text: t('checkStatus'),
                   variant: 'primary',
@@ -105,8 +118,8 @@ export default function EnableAutoBalanceBanner() {
                   onClick: () => void recheck(),
               }
             : {
-                  text: isSubmitting
-                      ? step === 'updating-permission'
+                  text: busy
+                      ? isSubmitting && step === 'updating-permission'
                           ? t('confirmUpdate')
                           : t('working')
                       : hardError
@@ -114,25 +127,24 @@ export default function EnableAutoBalanceBanner() {
                         : tCommon('continue'),
                   variant: 'primary',
                   shadowSize: '4',
-                  disabled: isSubmitting || !consentGiven,
+                  disabled: busy || !authorizationAccepted,
                   onClick: onContinue,
               },
     ]
-    // Escape hatch, shown once a grant has failed, and while one waits for
-    // confirmation, so the user is never trapped behind this non-dismissible
-    // modal.
+    // Escape hatch after a failure or a stalled wait, so the non-dismissible
+    // modal never traps the user.
     const tertiaryCta: ActionModalTertiaryCta | undefined =
-        errorForThisCard || isPending
+        errorForThisCard || stalled
             ? {
                   text: tCommon('skipForNow'),
-                  disabled: isSubmitting,
+                  disabled: busy,
                   onClick: () => setDismissedFor(cardId),
               }
             : undefined
 
     const dismissed = dismissedFor !== null && dismissedFor === cardId
 
-    const description = isPending
+    const description = stalled
         ? t('descriptionPending')
         : termsChanged
           ? tFunding('termsChanged')
@@ -152,14 +164,13 @@ export default function EnableAutoBalanceBanner() {
             title={t('title')}
             description={description}
             content={
-                isPending ? undefined : (
+                stalled ? undefined : (
                     <CardFundingConsent
                         authorizationText={authorizationText}
-                        managementAccepted={managementAccepted}
+                        showDisclosure
                         authorizationAccepted={authorizationAccepted}
-                        onManagementChange={setManagementAccepted}
                         onAuthorizationChange={setAuthorizationAccepted}
-                        disabled={isSubmitting}
+                        disabled={busy}
                     />
                 )
             }

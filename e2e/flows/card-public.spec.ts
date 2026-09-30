@@ -80,7 +80,7 @@ test('an existing holder can manage their card even with a prohibited residence'
     await shot(page, 'holder')
 })
 
-test('an existing holder without the funding permission gets the centered Home prompt with two unchecked boxes', async ({
+test('an existing holder without the funding permission gets the centered Home prompt with one unchecked authorization', async ({
     page,
 }) => {
     await asReturningHomeVisitor(page)
@@ -88,7 +88,7 @@ test('an existing holder without the funding permission gets the centered Home p
     await expect(page.getByText('Finish setting up the card', { exact: true })).toBeVisible()
     await expect(page.getByText('One passkey tap to start using your card.')).toBeVisible()
     const boxes = page.getByRole('checkbox')
-    await expect(boxes).toHaveCount(2)
+    await expect(boxes).toHaveCount(1)
     for (const box of await boxes.all()) await expect(box).not.toBeChecked()
     await expect(page.getByText('I authorize transfers according to the Real-Time Funding Terms.')).toBeVisible()
     const cont = page.getByRole('button', { name: 'Continue', exact: true })
@@ -96,19 +96,14 @@ test('an existing holder without the funding permission gets the centered Home p
     // no way out before a failure: no close button and no skip
     await expect(page.getByText('Skip for now')).toHaveCount(0)
     await shot(page, 'funding-needed')
-    // ticking both, and only both, enables Continue. The native input is
+    // ticking the authorization enables Continue. The native input is
     // visually hidden (`sr-only`); a person taps the visible box, which is its label.
-    const tick = (index: number) =>
-        page
-            .locator('label')
-            .filter({ has: page.getByRole('checkbox') })
-            .nth(index)
-            .click()
-    await tick(0)
-    await expect(boxes.nth(0)).toBeChecked()
-    await expect(cont).toBeDisabled()
-    await tick(1)
-    await expect(boxes.nth(1)).toBeChecked()
+    await page
+        .locator('label')
+        .filter({ has: page.getByRole('checkbox') })
+        .first()
+        .click()
+    await expect(boxes.first()).toBeChecked()
     await expect(cont).toBeEnabled()
     await shot(page, 'funding-needed-ticked')
 })
@@ -121,13 +116,22 @@ test('a legacy holder is told there are two confirmations', async ({ page }) => 
     await shot(page, 'funding-migration')
 })
 
-test('a grant waiting for confirmation shows Check status and Skip, not the boxes', async ({ page }) => {
+test('a pending grant waits as a disabled Working… button, then offers Check status and Skip', async ({ page }) => {
     await asReturningHomeVisitor(page)
+    // The prompt's wait window is a page timer: control it instead of waiting 60s.
+    await page.clock.install()
     await page.goto('/home?__fixture=card-funding-pending')
+    await expect(page.getByRole('button', { name: 'Working…', exact: true })).toBeDisabled()
+    await expect(page.getByRole('checkbox')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Check status', exact: true })).toHaveCount(0)
+    await expect(page.getByText('Skip for now')).toHaveCount(0)
+    await shot(page, 'funding-pending')
+
+    await page.clock.fastForward(61_000)
     await expect(page.getByRole('button', { name: 'Check status', exact: true })).toBeVisible()
     await expect(page.getByText('Skip for now')).toBeVisible()
     await expect(page.getByRole('checkbox')).toHaveCount(0)
-    await shot(page, 'funding-pending')
+    await shot(page, 'funding-pending-stalled')
 })
 
 test('Home asks for nothing when the permission is ready, paused, or its state cannot be read', async ({ page }) => {

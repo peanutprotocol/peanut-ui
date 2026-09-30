@@ -51,8 +51,8 @@ type GrantStep = 'idle' | 'updating-permission' | 'signing' | 'submitting'
  *
  * Readiness is only ever the backend's own statement (`management.status ===
  * 'ready'`, confirmed from chain state). An allowance, an accepted POST or a
- * signed blob prove nothing here. Consent is a hard gate: without both boxes
- * and the exact statement the backend records, nothing is signed.
+ * signed blob prove nothing here. Consent is a hard gate: without the ticked
+ * authorization and the exact statement the backend records, nothing is signed.
  *
  * Fail closed throughout: a funding read that fails is "unknown", never "not
  * granted", so no prompt follows from it. Chain, token, operator, signer and
