@@ -1,11 +1,13 @@
 import { nativeCapability } from './native-capability'
 
 /**
- * PostHog launch gate for native wallet push provisioning (doctrine:
- * feature-gates.md). Stays off in prod until the Apple entitlement / Google
- * onboarding land and the flow is verified on production binaries.
+ * Independent PostHog launch gates. Keep each off until its platform approval
+ * and provisioning flow are verified on a production binary.
  */
-export const PUSH_PROVISIONING_FLAG = 'push-provisioning'
+export const PUSH_PROVISIONING_FLAGS = {
+    apple: 'push-provisioning-apple',
+    google: 'push-provisioning-google',
+} as const
 
 export interface PushProvisioningAvailability {
     available: boolean
