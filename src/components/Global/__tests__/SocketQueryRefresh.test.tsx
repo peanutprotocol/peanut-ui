@@ -23,8 +23,9 @@ const fakeWs = {
 jest.mock('@/services/websocket', () => ({
     getWebSocketInstance: () => fakeWs,
 }))
+const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'user-1', username: 'alice' } } }),
+    useAuth: () => ({ user: { user: { userId: 'user-1', username: 'alice' } }, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({ RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview' }))
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -67,6 +68,8 @@ const settle = () =>
 beforeEach(() => {
     for (const key of Object.keys(handlers)) delete handlers[key]
     serverFetchMock.mockReset()
+    mockFetchUser.mockReset()
+    mockFetchUser.mockResolvedValue(null)
 })
 
 describe('SocketQueryRefresh', () => {
@@ -125,5 +128,103 @@ describe('SocketQueryRefresh', () => {
         // the superseded request is cancelled, not left open
         expect(first?.aborted).toBe(true)
         expect(serverFetchMock.mock.calls[2][1]?.signal?.aborted).toBe(false)
+    })
+
+    describe('user refetch on rail and ToS pushes', () => {
+        const railPush = (railId: string) => ({ railId, status: 'ENABLED', provider: 'BRIDGE' })
+        const advance = (ms: number) =>
+            act(() => {
+                jest.advanceTimersByTime(ms)
+            })
+        const flushPromises = () => act(async () => {})
+
+        beforeEach(() => {
+            jest.useFakeTimers()
+        })
+        afterEach(() => {
+            jest.useRealTimers()
+        })
+
+        it('one rail push refetches the user once and still refreshes the card overview', async () => {
+            const { App, client } = makeApp()
+            const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+            render(<App />)
+
+            emit('user_rail_status_changed', railPush('r1'))
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rain-card-overview', 'user-1'] })
+            expect(mockFetchUser).not.toHaveBeenCalled()
+
+            advance(499)
+            expect(mockFetchUser).not.toHaveBeenCalled()
+            advance(1)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+
+            await flushPromises()
+            advance(5000)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        })
+
+        it('three rail pushes inside the window refetch the user once', async () => {
+            const { App } = makeApp()
+            render(<App />)
+
+            emit('user_rail_status_changed', railPush('r1'))
+            advance(200)
+            emit('user_rail_status_changed', railPush('r2'))
+            advance(200)
+            emit('user_rail_status_changed', railPush('r3'))
+            advance(100)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+
+            await flushPromises()
+            advance(5000)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        })
+
+        it('a ToS push refetches the user once', async () => {
+            // The other listeners log that they have no ToS callback.
+            const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+            const { App } = makeApp()
+            render(<App />)
+
+            emit('persona_tos_status_update', { status: 'approved' })
+            advance(500)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+
+            await flushPromises()
+            advance(5000)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+            logSpy.mockRestore()
+        })
+
+        it('pushes during a refetch in flight lead to one more refetch after it settles', async () => {
+            let settleFirst: (value: null) => void = () => {}
+            mockFetchUser.mockReturnValueOnce(
+                new Promise<null>((resolve) => {
+                    settleFirst = resolve
+                })
+            )
+            const { App } = makeApp()
+            render(<App />)
+
+            emit('user_rail_status_changed', railPush('r1'))
+            advance(500)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+
+            emit('user_rail_status_changed', railPush('r2'))
+            advance(500)
+            emit('user_rail_status_changed', railPush('r3'))
+            advance(500)
+            // never two requests at once
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+
+            settleFirst(null)
+            await flushPromises()
+            expect(mockFetchUser).toHaveBeenCalledTimes(2)
+
+            await flushPromises()
+            advance(5000)
+            expect(mockFetchUser).toHaveBeenCalledTimes(2)
+        })
     })
 })
