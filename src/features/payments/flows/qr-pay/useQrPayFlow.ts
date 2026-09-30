@@ -583,16 +583,6 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
-    // The "paying" caption timer must die with the flow: the loading context is
-    // app-wide, so a timer surviving unmount would flip it back to 'Paying'
-    // after the route already reset it to Idle.
-    const payingStateTimerRef = useRef<NodeJS.Timeout | null>(null)
-    useEffect(() => {
-        return () => {
-            if (payingStateTimerRef.current) clearTimeout(payingStateTimerRef.current)
-        }
-    }, [])
-
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
      * (a broadcast may well have happened and reverted definitively), so the
@@ -814,6 +804,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             onProgress: (event: SignSpendProgressEvent) => {
                 if (event.stage === 'signing_preparation_ready') {
                     signingStarted = true
+                    setLoadingState('Approve transaction')
                     telemetry.stage(event.stage, { preparation: event.preparation })
                 } else {
                     telemetry.stage(event.stage)
@@ -899,8 +890,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         // mixed/userOp route broadcasts the funding op FIRST — a definitive
         // revert leaves no provider order behind, which is what makes the
         // replacement below safe.
-        // Schedule "paying" state after 3s so the user sees something is happening.
-        payingStateTimerRef.current = setTimeout(() => setLoadingState('Paying'), 3000)
+        setLoadingState('Paying')
         try {
             // Built from the artifact actually being submitted: a recovery
             // replacement carries a fresh prep + signature under the SAME lock.
@@ -956,11 +946,6 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 }
             )
             telemetry.stage('response_received', { outcome: 'success' })
-            // clear the timer since we got a response
-            if (payingStateTimerRef.current) {
-                clearTimeout(payingStateTimerRef.current)
-                payingStateTimerRef.current = null
-            }
             // Map backend field name (sponsoredUsd) to frontend field name (amountSponsored)
             const perkResponse = qrPaymentResponse.perk as Record<string, unknown> | undefined
             if (qrPaymentResponse.perk && typeof perkResponse?.sponsoredUsd === 'number') {
@@ -994,11 +979,6 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // nothing, so that stage is not reported at all. The money
             // outcome is decided per branch below, never from a status code.
             if (!isNetworkLayerFailure(error)) telemetry.stage('response_received', { outcome: 'failed' })
-            // clear the timer on error to prevent race condition
-            if (payingStateTimerRef.current) {
-                clearTimeout(payingStateTimerRef.current)
-                payingStateTimerRef.current = null
-            }
             /*
              * Controller-recovery control flow, handled BEFORE any failure
              * copy: the payment never left the client, so the user goes back to

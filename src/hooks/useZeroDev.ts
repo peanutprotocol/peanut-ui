@@ -46,7 +46,8 @@ import { settleShhhhhCampaignContinuation } from '@/app/shhhhh/shhhhh-acquisitio
 import { signupConsentDocuments } from '@/services/consent'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
+import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
+import { isCapacitor, isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt, userOpRevertedError } from '@/utils/userop-rescue.utils'
 import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
@@ -132,6 +133,12 @@ export const useZeroDev = () => {
                     })
                 )
             )
+
+            // Pin signup signing just like restored Android credentials. Otherwise
+            // the OS can select a different peanut.me passkey for the test UserOp.
+            if (isAndroidNative()) {
+                webAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId, webAuthnKey.authenticatorId)
+            }
 
             // Keep the new key recoverable even if the API session cannot load yet.
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
@@ -454,6 +461,7 @@ export const useZeroDev = () => {
                         },
                     })
                     zeroDevFlowActions.setIsSendingUserOp(false)
+                    if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
                     logoutUser()
                     throw createStaleSessionError(error)
                 }
@@ -506,7 +514,7 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain, ensureClientForChain, logoutUser]
+        [getClientForChain, ensureClientForChain, logoutUser, setLoadingState, user?.user.userId]
     )
 
     return {

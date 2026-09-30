@@ -15,7 +15,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import CardPinSetupFlow from '@/components/Card/CardPinSetupFlow'
 import { rainApi, RainCardRateLimitError } from '@/services/rain'
 
-type Mode = 'view' | 'set'
+type Mode = 'view' | 'set' | 'change'
 
 interface Props {
     cardId: string
@@ -26,7 +26,7 @@ const AUTO_MASK_MS = 30_000
 
 const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
     const t = useTranslations('card.pin')
-    const [mode, setMode] = useQueryState('mode', parseAsStringEnum<Mode>(['view', 'set']))
+    const [mode, setMode] = useQueryState('mode', parseAsStringEnum<Mode>(['view', 'set', 'change']))
     const [pin, setPin] = useState<string | null>(null)
     const [pinUnset, setPinUnset] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -88,11 +88,11 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         }
     }, [])
 
-    if (mode === 'set') {
+    if (mode === 'set' || mode === 'change') {
         return (
             <PageStack gap="6">
                 <NavHeader
-                    title={t('setNavTitle')}
+                    title={t(mode === 'change' ? 'changePin' : 'setNavTitle')}
                     onPrev={() => {
                         setPinUnset(false)
                         void setMode(null)
@@ -159,7 +159,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         chevron
                         onClick={() => {
                             hide()
-                            void setMode('set')
+                            void setMode('change')
                         }}
                     />
                 </ListGroup>

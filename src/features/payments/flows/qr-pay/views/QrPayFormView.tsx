@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import GlobalCard from '@/components/Global/Card'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -34,6 +35,7 @@ export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
     const {
         paymentProcessor,
         paymentLock,
@@ -55,6 +57,7 @@ export function QrPayFormView() {
         balanceErrorMessage,
         shouldBlockPay,
         isLoading,
+        loadingState,
         quoteUpdatedNotice,
         isQuoteRecovering,
         payQR,
@@ -262,8 +265,14 @@ export function QrPayFormView() {
                             limitsValidation.isBlocking
                         }
                     >
-                        {isLoading ? tCommon('loading') : tNav('pay')}
+                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
+
+                    {isLoading && (
+                        <p role="status" className="text-center text-body-s text-foreground-secondary">
+                            {tLoading(loadingStateKey(loadingState))}
+                        </p>
+                    )}
 
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (
