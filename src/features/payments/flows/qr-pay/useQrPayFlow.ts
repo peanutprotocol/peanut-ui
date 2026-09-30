@@ -1,6 +1,8 @@
 'use client'
 
-import { verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { isPixKeyNotFound, verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
+import { usePixKeySavePrompt } from './usePixKeySavePrompt'
 import {
     isSpendRecoveryOutcome,
     SpendRecoveryAbortedError,
@@ -104,6 +106,14 @@ function attemptOutcomeForStatus(status: ReturnType<typeof qrPaymentDisplayStatu
 export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams) {
     const { qrCode, timestamp, qrType } = scan
     const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
+    // Usually a cache hit: the key screen resolved it on Continue. A pasted key
+    // from the scanner resolves here. Without data the key itself is shown.
+    const { data: pixKeyOwner, error: pixKeyOwnerError, isPending: isPixKeyOwnerPending } = usePixKeyOwner(pixKeyLabel)
+    // A pasted key reaches the form before its lookup answers. Pay waits for the
+    // answer, so the user sees who is paid, or the unknown-key stop, first.
+    const isAwaitingPixKeyOwner = !!pixKeyLabel && isPixKeyOwnerPending
+    const pixKeySave = usePixKeySavePrompt(pixKeyLabel, pixKeyOwner?.name)
+    const tWithdraw = useTranslations('withdraw')
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
@@ -461,8 +471,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      * verdicts (a recurring Pix code, an unparseable QR) are terminal.
      */
     const errorInitiatingPayment = useMemo(
-        () => entryGuardError ?? (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
-        [entryGuardError, scanOutcome, scanFailureCopy]
+        () =>
+            entryGuardError ??
+            // A pasted key the PIX directory does not know: paying it can only fail.
+            (isPixKeyNotFound(pixKeyOwnerError) ? tWithdraw('pixKey.notFound') : null) ??
+            (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
+        [entryGuardError, pixKeyOwnerError, tWithdraw, scanOutcome, scanFailureCopy]
     )
     // The generic init card has no support entry; these refusals need one.
     const initErrorNeedsSupport = scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)
@@ -566,8 +580,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
-        return pixKeyLabel ?? paymentLock.paymentRecipientName
-    }, [paymentLock, pixKeyLabel])
+        return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
+    }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
     // The "paying" caption timer must die with the flow: the loading context is
     // app-wide, so a timer surviving unmount would flip it back to 'Paying'
@@ -1075,6 +1089,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [paymentProcessor, handleMantecaPayment])
 
+    // A payment that went through saves its key, and so does one still
+    // settling: the flow does not follow it to its end, and the user asked to
+    // keep an owner the directory confirmed. A Pay tap that ends in a re-quote,
+    // a refusal or a failure saves nothing.
+    const { saveAfterPayment: savePixKeyAfterPayment } = pixKeySave
+    const isPaymentSettling = !!qrPayment && qrPaymentDisplayStatus(qrPayment.status) === 'processing'
+    useEffect(() => {
+        if (isSuccess || isPaymentSettling) savePixKeyAfterPayment()
+    }, [isSuccess, isPaymentSettling, savePixKeyAfterPayment])
+
     /*
      * Balance and floor/cap validation, derived — the old effect-and-state pair
      * could only ever restate these inputs.
@@ -1216,6 +1240,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         usdAmount,
         merchantName,
         pixKeyLabel,
+        pixKeyOwner,
+        isAwaitingPixKeyOwner,
+        pixKeySave,
         // kyc gate
         gate,
         shouldBlockPay,

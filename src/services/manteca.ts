@@ -10,6 +10,7 @@ import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
+import type { paths } from '@/types/api.generated'
 
 export interface QrPaymentRequest {
     qrCode: string
@@ -132,6 +133,9 @@ export type MantecaPrice = {
     effectiveBuy?: string
     effectiveSell?: string
 }
+
+/** Owner of a PIX key. `legalIdMasked` keeps the first 2 and last 2 digits. Read from the API schema, so a contract change fails typecheck. */
+export type PixKeyOwner = paths['/manteca/pix-key/owner']['post']['responses'][200]['content']['application/json']
 
 // withdraw init response - contains locked price for withdraw flow
 export type WithdrawPriceLock = {
@@ -516,6 +520,33 @@ export const mantecaApi = {
                 return { error: error.message }
             }
             return { error: 'An unexpected error occurred.' }
+        }
+    },
+    /**
+     * Resolves a PIX key to its owner. A 404 ApiError with
+     * PAYMENT_DESTINATION_NOT_FOUND means the key does not exist; any other
+     * failure only means no name is available.
+     */
+    getPixKeyOwner: async (pixKey: string): Promise<PixKeyOwner> => {
+        const response = await serverFetch('/manteca/pix-key/owner', {
+            method: 'POST',
+            body: jsonStringify({ pixKey }),
+            // The API gives Manteca 5s; past this the user continues without a name.
+            timeoutMs: 8_000,
+        })
+        if (!response.ok) {
+            throw await apiErrorFromResponse(response, `PIX key lookup failed: ${response.statusText}`)
+        }
+        return response.json()
+    },
+    /** Saves a PIX key to the user's address book under `label`; saving a saved key renames it. */
+    savePixKey: async (pixKey: string, label: string): Promise<void> => {
+        const response = await serverFetch('/manteca/pix-key/saved', {
+            method: 'POST',
+            body: jsonStringify({ pixKey, label }),
+        })
+        if (!response.ok) {
+            throw await apiErrorFromResponse(response, `Saving the PIX key failed: ${response.statusText}`)
         }
     },
 }

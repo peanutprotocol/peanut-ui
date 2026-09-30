@@ -91,6 +91,100 @@ it('keeps a dev pre-release binary on its built-in JS', async () => {
     expect(mockUpdater.download).not.toHaveBeenCalled()
 })
 
+describe.each([
+    ['ios', '1.5.1000-ios'],
+    ['android', '1.6.1000-android'],
+])('native migration on %s', (platform, bridgeVersion) => {
+    const bridge = { id: 'legacy-bridge', version: bridgeVersion }
+    const builtin = { id: 'builtin', version: '1.7.0' }
+    const bridgeComment = '[ota-floors: android=1.6.0 ios=1.5.0]'
+
+    beforeEach(() => {
+        mockPlatform.android = platform === 'android'
+        mockPlatform.binaryVersion = '1.7.0'
+        mockUpdater.current.mockResolvedValue({ bundle: builtin })
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.51.14' })
+        mockUpdater.download.mockResolvedValue(bridge)
+        mockUpdater.getLatest.mockResolvedValue({
+            url: 'https://cdn.test/legacy-bridge.zip',
+            version: bridgeVersion,
+            comment: bridgeComment,
+        })
+    })
+
+    it('keeps the new binary on its own JS until a compatible cutover bundle arrives', async () => {
+        const { applyStagedBundleOnLaunch } = await import('../capgo-updater')
+        const onStoreUpdateRequired = jest.fn()
+        const onUpdateAvailable = jest.fn()
+        await initCapgoUpdater({ onStoreUpdateRequired, onUpdateAvailable })
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(onUpdateAvailable).not.toHaveBeenCalled()
+        expect(onStoreUpdateRequired).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+        await expect(applyStagedBundleOnLaunch()).resolves.toBeNull()
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+
+        const cutover = { id: 'cutover', version: '1.7.1' }
+        mockUpdater.getLatest.mockResolvedValue({
+            url: 'https://cdn.test/cutover.zip',
+            version: cutover.version,
+            comment: '[ota-floors: android=1.7.0 ios=1.7.0]',
+        })
+        mockUpdater.download.mockResolvedValue(cutover)
+        mockUpdater.list.mockResolvedValue({ bundles: [cutover] })
+        await launch()
+        expect(mockUpdater.download).toHaveBeenCalledTimes(1)
+        await expect(applyStagedBundleOnLaunch()).resolves.toEqual(cutover)
+        expect(mockUpdater.set).toHaveBeenCalledWith({ id: cutover.id })
+    })
+
+    it('deletes a bridge saved before the store upgrade without applying it', async () => {
+        const { applyStagedBundleOnLaunch } = await import('../capgo-updater')
+        const { rememberStagedFloors } = await import('../ota-native-gate')
+        window.localStorage.setItem('capgoDownloadedBundleId', bridge.id)
+        rememberStagedFloors(bridge.id, bridgeComment)
+        mockUpdater.list.mockResolvedValue({ bundles: [bridge] })
+
+        await expect(applyStagedBundleOnLaunch()).resolves.toBeNull()
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: bridge.id })
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+        expect(stagedFloors(bridge.id)).toBeUndefined()
+    })
+
+    it('disarms a bridge queued by older JS so backgrounding cannot install it', async () => {
+        const { rememberStagedFloors } = await import('../ota-native-gate')
+        const onStoreUpdateRequired = jest.fn()
+        window.localStorage.setItem('capgoDownloadedBundleId', bridge.id)
+        rememberStagedFloors(bridge.id, bridgeComment)
+        mockUpdater.getNextBundle.mockResolvedValue(bridge)
+        mockUpdater.next.mockImplementation(async ({ id }: { id: string }) => {
+            if (id === builtin.id) mockUpdater.getNextBundle.mockResolvedValue(builtin)
+        })
+
+        await expect(readStagedBundle({ onStoreUpdateRequired })).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: builtin.id })
+        expect(mockUpdater.getNextBundle).toHaveBeenLastCalledWith()
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: bridge.id })
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+        expect(stagedFloors(bridge.id)).toBeUndefined()
+        expect(onStoreUpdateRequired).not.toHaveBeenCalled()
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+    })
+
+    it('preserves bridge recovery on the legacy binary even from a numerically newer running OTA', async () => {
+        mockPlatform.binaryVersion = platform === 'ios' ? '1.5.0' : '1.6.0'
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'old-ota', version: '1.6.99999' } })
+        await launch()
+        expect(mockUpdater.download).toHaveBeenCalledTimes(1)
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe(bridge.id)
+        mockUpdater.list.mockResolvedValue({ bundles: [bridge] })
+        await expect(readStagedBundle()).resolves.toEqual(bridge)
+    })
+})
+
 it('logs a transient failure at info, not error', async () => {
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()

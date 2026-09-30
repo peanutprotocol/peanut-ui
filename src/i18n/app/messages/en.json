@@ -1487,7 +1487,8 @@
                 "title": "Payment is processing",
                 "description": "The payment has not been confirmed yet. Check Activity before trying again."
             }
-        }
+        },
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Add card",
@@ -1946,7 +1947,8 @@
             "heading": "Enter Pix key",
             "placeholder": "Pix key",
             "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
-            "invalid": "Invalid Pix key"
+            "invalid": "Invalid Pix key",
+            "notFound": "No Pix account found for this key. Check it and try again."
         },
         "bank": {
             "eurTitle": "We send EUR to the bank",

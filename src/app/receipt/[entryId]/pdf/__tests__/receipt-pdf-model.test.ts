@@ -386,6 +386,15 @@ describe('buildReceiptPdfModel — representative private kinds', () => {
         expect(labels(model)).not.toContain('transaction.rows.transferId')
     })
 
+    test('PIX-key payment: "To" is the owner with the key beside the name', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ userName: 'Maria Da Silva', nameDetail: '123.456.789-09' }),
+            t,
+            'en'
+        )
+        expect(row(model, 'transaction.rows.to')).toBe('Maria Da Silva · 123.456.789-09')
+    })
+
     test('p2p direct transfer: counterparty and memo — no bank rows', () => {
         const model = buildReceiptPdfModel(
             withOverrides(

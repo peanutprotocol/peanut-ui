@@ -28,7 +28,7 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
         let hasConfig = Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil
         guard let card,
               hasConfig,
-              WalletExtensionAuth.authorizationToken() != nil else {
+              WalletExtensionAuth.authorizationToken(forCardId: card.cardId) != nil else {
             status.passEntriesAvailable = false
             status.remotePassEntriesAvailable = false
             status.requiresAuthentication = false
@@ -105,7 +105,7 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
         completion: @escaping ([PKIssuerProvisioningExtensionPassEntry]) -> Void
     ) {
         guard let card = WalletExtensionCardStore.load(),
-              let token = WalletExtensionAuth.authorizationToken(),
+              let token = WalletExtensionAuth.authorizationToken(forCardId: card.cardId),
               Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil else {
             completion([])
             return
@@ -121,8 +121,9 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
             }
             if let replacement = provisioningData.walletAuthorizationToken,
                let expiresIn = provisioningData.walletAuthorizationExpiresIn,
-               expiresIn > 0 {
-                WalletExtensionAuth.saveAuthorizationToken(replacement, expiresIn: expiresIn)
+               expiresIn > 0,
+               WalletExtensionCardStore.load()?.cardId == card.cardId {
+                WalletExtensionAuth.saveAuthorizationToken(replacement, forCardId: card.cardId, expiresIn: expiresIn)
             }
             let cardParams = MppCardDataParameters(
                 cardId: provisioningData.cardId,

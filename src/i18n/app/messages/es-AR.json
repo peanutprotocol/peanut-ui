@@ -1002,7 +1002,8 @@
         },
         "pixKey": {
             "heading": "Ingresá la clave Pix",
-            "info": "Enviá a cualquier clave Pix: email, teléfono (incluí +55), CPF/CNPJ o clave aleatoria."
+            "info": "Enviá a cualquier clave Pix: email, teléfono (incluí +55), CPF/CNPJ o clave aleatoria.",
+            "notFound": "No encontramos una cuenta Pix con esta clave. Revisala e intentá de nuevo."
         },
         "bank": {
             "referenceTooShort": "Mínimo {min} caracteres, o dejala vacía.",

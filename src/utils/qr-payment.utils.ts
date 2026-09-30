@@ -74,7 +74,7 @@ export function qrInitIdempotencyKey(input: {
 }
 
 /** FNV-1a over 64 bits, as two 32-bit halves with different offsets. */
-function fnv1a64(value: string): string {
+export function fnv1a64(value: string): string {
     let h1 = 0x811c9dc5
     let h2 = 0x01000193
     for (let i = 0; i < value.length; i++) {

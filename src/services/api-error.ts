@@ -46,6 +46,8 @@ export const API_ERROR_CODES = {
     MANTECA_SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
     MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
     QR_PAYMENT_CANCELLED: 'QR_PAYMENT_CANCELLED',
+    /** The payment destination (e.g. a PIX key) does not exist at the provider. */
+    PAYMENT_DESTINATION_NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',
     TRANSFER_ALREADY_CONFIRMED: 'TRANSFER_ALREADY_CONFIRMED',
     /** Bridge refused a saved bank account: it belongs to an earlier Bridge
      *  customer of the user. The API has switched the account off; the user

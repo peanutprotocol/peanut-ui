@@ -1487,7 +1487,8 @@
                 "title": "Pago en proceso",
                 "description": "El pago todavía no se ha confirmado. Revisa Actividad antes de volver a intentarlo."
             }
-        }
+        },
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Agregar tarjeta",
@@ -1946,7 +1947,8 @@
             "heading": "Ingresa la clave Pix",
             "placeholder": "Clave Pix",
             "info": "Envía a cualquier clave Pix: email, teléfono (incluye +55), CPF/CNPJ o clave aleatoria.",
-            "invalid": "Clave Pix inválida"
+            "invalid": "Clave Pix inválida",
+            "notFound": "No encontramos una cuenta Pix con esta clave. Revísala e intenta de nuevo."
         },
         "bank": {
             "eurTitle": "Enviamos EUR al banco",

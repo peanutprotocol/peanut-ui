@@ -7105,16 +7105,23 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "completed": {
+                                            "type": "boolean"
+                                        },
                                         "ms": {
                                             "type": "number"
                                         },
                                         "ok": {
                                             "type": "boolean"
+                                        },
+                                        "reason": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
                                         "ok",
-                                        "ms"
+                                        "ms",
+                                        "completed"
                                     ],
                                     "type": "object"
                                 }
@@ -9974,6 +9981,233 @@
                     }
                 },
                 "summary": "Get deposit order status",
+                "tags": [
+                    "manteca"
+                ]
+            }
+        },
+        "/manteca/pix-key/owner": {
+            "post": {
+                "description": "Returns the owner's name and masked CPF/CNPJ for a PIX key before the user pays it. 404 PAYMENT_DESTINATION_NOT_FOUND means the key does not exist. 502 PROVIDER_UNAVAILABLE, 429 and 400 MANTECA_KYC_REQUIRED mean no name is available; the client pays without one.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "pixKey": {
+                                        "maxLength": 77,
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "pixKey"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "legalIdMasked": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "legalIdMasked"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Resolve a PIX key to its owner",
+                "tags": [
+                    "manteca"
+                ]
+            }
+        },
+        "/manteca/pix-key/saved": {
+            "post": {
+                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send \u2192 Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "label": {
+                                        "maxLength": 15,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "pixKey": {
+                                        "maxLength": 77,
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "pixKey",
+                                    "label"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Save a PIX key to the address book",
                 "tags": [
                     "manteca"
                 ]
@@ -19152,6 +19386,9 @@
                                                 "isActive": {
                                                     "type": "boolean"
                                                 },
+                                                "isPixRecipient": {
+                                                    "type": "boolean"
+                                                },
                                                 "label": {
                                                     "anyOf": [
                                                         {
@@ -19226,7 +19463,8 @@
                                                 "routingNumber",
                                                 "sortCode",
                                                 "isActive",
-                                                "deactivationReason"
+                                                "deactivationReason",
+                                                "isPixRecipient"
                                             ],
                                             "type": "object"
                                         }

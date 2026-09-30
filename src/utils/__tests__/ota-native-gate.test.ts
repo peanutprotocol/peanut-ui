@@ -38,7 +38,7 @@ describe('bundleNeedsNewerBinary', () => {
         expect(bundleNeedsNewerBinary('1.5.10482', '1.5.0')).toBe(false)
     })
 
-    it('leaves the below-native direction to Capgo', () => {
+    it('leaves the below-native direction to the separate downgrade gate', () => {
         expect(bundleNeedsNewerBinary('1.4.9', '1.5.0')).toBe(false)
     })
 
@@ -51,6 +51,35 @@ describe('bundleNeedsNewerBinary', () => {
 })
 
 const floors = (android: string, ios: string) => `abc1234 — some commit [ota-floors: android=${android} ios=${ios}]`
+
+describe('bundlePredatesBinary', () => {
+    afterEach(() => {
+        jest.dontMock('@/utils/app-version')
+        jest.resetModules()
+    })
+
+    it.each([
+        ['1.7.0', '1.5.1000-ios', true],
+        ['1.7.0', '1.6.1000-android', true],
+        ['1.7.0', '1.7.0', false],
+        ['1.7.0', '1.7.1', false],
+        ['1.7.0', '1.8.1', false],
+        ['1.8.0', '1.7.99999', true],
+        ['2.0.0', '1.99.99999', true],
+        ['1.5.0', '1.4.9', false],
+        ['1.6.0', '1.5.1000-ios', false],
+        ['1.7.0', 'builtin', false],
+        ['unknown', '1.6.1000-android', false],
+        [null, '1.6.1000-android', false],
+    ])('binary %s, candidate %s: rejects older release = %s', async (binary, candidate, rejected) => {
+        jest.resetModules()
+        jest.doMock('@/utils/app-version', () => ({
+            getBinaryInfo: async () => (binary ? { appVersion: binary, appBuild: '1' } : null),
+        }))
+        const { bundlePredatesBinary } = await import('../ota-native-gate')
+        await expect(bundlePredatesBinary(candidate)).resolves.toBe(rejected)
+    })
+})
 
 /**
  * The candidate's floors, read off the comment Capgo round-trips with it.

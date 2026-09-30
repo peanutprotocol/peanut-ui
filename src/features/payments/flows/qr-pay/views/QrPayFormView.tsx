@@ -27,6 +27,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
+import { pixKeyOwnerDetails } from '@/utils/pix.utils'
+import SaveAddressPrompt from '@/features/withdraw/components/AddressBook/SaveAddressPrompt'
 
 export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
@@ -38,6 +40,9 @@ export function QrPayFormView() {
         qrPayment,
         merchantName,
         pixKeyLabel,
+        pixKeyOwner,
+        isAwaitingPixKeyOwner,
+        pixKeySave,
         methodIcon,
         currency,
         currencyAmount,
@@ -79,6 +84,8 @@ export function QrPayFormView() {
         onNeedsSupport: () => openSupportForLimits('Hi, I would like to increase my payment limits.'),
     })
 
+    const ownerDetails = pixKeyOwner && pixKeyLabel ? pixKeyOwnerDetails(pixKeyLabel, pixKeyOwner.legalIdMasked) : null
+
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
@@ -119,6 +126,22 @@ export function QrPayFormView() {
                                 >
                                     {merchantName}
                                 </p>
+                                {/* The heading is the owner's name; this line names the key and tax ID it belongs to. */}
+                                {ownerDetails && (
+                                    <p className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary">
+                                        {ownerDetails.pixKey}
+                                        {ownerDetails.pixKey && ownerDetails.taxId && ' · '}
+                                        {/* "CPF 12*******90" never breaks between the label and the number. */}
+                                        {ownerDetails.taxId && (
+                                            <span className="whitespace-nowrap">
+                                                {t('pixKeyOwnerTaxId', {
+                                                    taxIdKind: ownerDetails.taxId.kind,
+                                                    taxId: ownerDetails.taxId.value,
+                                                })}
+                                            </span>
+                                        )}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </Card>
@@ -207,6 +230,16 @@ export function QrPayFormView() {
                         />
                     </GlobalCard>
 
+                    {/* Same place as the crypto review screen's address-book prompt. */}
+                    {pixKeySave.isOffered && (
+                        <SaveAddressPrompt
+                            checked={pixKeySave.checked}
+                            nickname={pixKeySave.nickname}
+                            onCheckedChange={pixKeySave.setChecked}
+                            onNicknameChange={pixKeySave.setNickname}
+                        />
+                    )}
+
                     {/* Send Button */}
                     <Button
                         onClick={payQR}
@@ -222,6 +255,8 @@ export function QrPayFormView() {
                             isQuoteRecovering ||
                             !!balanceErrorMessage ||
                             shouldBlockPay ||
+                            isAwaitingPixKeyOwner ||
+                            pixKeySave.blocksPay ||
                             !usdAmount ||
                             usdAmount === '0.00' ||
                             limitsValidation.isBlocking

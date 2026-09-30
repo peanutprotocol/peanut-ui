@@ -98,10 +98,12 @@ export interface NavGroup {
     items: NavItem[]
 }
 
+// patterns first: they are what most screens reach for. primitives and
+// foundations are the building blocks underneath them.
 export const TIERS: NavTier[] = [
-    { label: 'Foundations', href: '/dev/ds/foundations', icon: Blocks, key: 'foundations' },
-    { label: 'Primitives', href: '/dev/ds/primitives', icon: Component, key: 'primitives' },
     { label: 'Patterns', href: '/dev/ds/patterns', icon: Puzzle, key: 'patterns' },
+    { label: 'Primitives', href: '/dev/ds/primitives', icon: Component, key: 'primitives' },
+    { label: 'Foundations', href: '/dev/ds/foundations', icon: Blocks, key: 'foundations' },
     { label: 'Audit', href: '/dev/ds/audit', icon: ClipboardCheck, key: 'audit' },
     { label: 'Playground', href: '/dev/ds/playground', icon: FlaskConical, key: 'playground' },
 ]
@@ -264,7 +266,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'PinInput',
             icon: KeyRound,
             href: '/dev/ds/primitives/pin-input',
-            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board yet',
+            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board',
             status: 'limited',
         },
         {

@@ -1,7 +1,10 @@
 name: App Release OTA
 
-# Every main push publishes an OTA from that exact main commit, independently
-# of the native store build. Manual dispatch on main retries its current head.
+# Every compatible main push publishes an OTA from that exact main commit,
+# independently of the native store build. A changed native contract stops at
+# the floor guard; completion still triggers the native build, while the later
+# OTA cutover waits until the new binaries are available.
+# Only the first run from a main push may publish a production OTA.
 # The source must contain the newest attested native release and pass native
 # compatibility checks. It uploads
 # two signed platform bundle records to an inactive candidate channel, verifies
@@ -16,7 +19,6 @@ name: App Release OTA
 on:
     push:
         branches: [main]
-    workflow_dispatch:
 
 env:
     CAPGO_APP_ID: me.peanut.wallet
@@ -38,6 +40,7 @@ concurrency:
 
 jobs:
     resolve:
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
         runs-on: ubuntu-latest
         environment: Production
         outputs:
@@ -48,18 +51,22 @@ jobs:
             android_bridge_active: ${{ steps.resolve.outputs.android_bridge_active }}
             ios_bootstrap: ${{ steps.resolve.outputs.ios_bootstrap }}
             android_bootstrap: ${{ steps.resolve.outputs.android_bootstrap }}
+            migration_cutover: ${{ steps.resolve.outputs.migration_cutover }}
+            ios_bridge_before: ${{ steps.resolve.outputs.ios_bridge_before }}
+            android_bridge_before: ${{ steps.resolve.outputs.android_bridge_before }}
             source_sha: ${{ steps.source.outputs.sha }}
         defaults:
             run:
                 working-directory: app
         steps:
-            # Both triggers use main source and the release tooling at that SHA.
+            # Use the main-push source and the release tooling at that SHA.
             - name: Guard release ref
               working-directory: .
               run: |
                   if [ "$GITHUB_REF_NAME" != main ] ||
-                     { [ "$GITHUB_EVENT_NAME" != push ] && [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; }; then
-                      echo '::error::production OTA requires a main push or a manual dispatch on main' >&2
+                     [ "$GITHUB_EVENT_NAME" != push ] ||
+                     [ "$GITHUB_RUN_ATTEMPT" != 1 ]; then
+                      echo '::error::production OTA requires the first run of a main push; manual dispatches and reruns are not releases' >&2
                       exit 1
                   fi
 
@@ -123,18 +130,42 @@ jobs:
               run: |
                   BRIDGE="$(node ../release-tooling/scripts/capgo-release-guard.mjs bridge-status)"
                   ANDROID_BRIDGE="$(node ../release-tooling/scripts/capgo-release-guard.mjs android-bridge-status)"
+                  NATIVE_FLOOR="$(node ../release-tooling/scripts/release-version.mjs native-floor --root "$PWD")"
+                  NEW_NATIVE="$(node ../release-tooling/scripts/semver-newer.mjs "$NATIVE_FLOOR" 1.6.0)"
+                  MIGRATION_CUTOVER=false
+                  if [ "$BRIDGE" = active ] || [ "$ANDROID_BRIDGE" = active ]; then
+                    CUTOVER_MARKER='.github/native-ota-cutover-version'
+                    if [ "$NEW_NATIVE" = true ]; then
+                      if [ ! -f "$CUTOVER_MARKER" ] || [ "$(cat "$CUTOVER_MARKER")" != "$NATIVE_FLOOR" ]; then
+                        echo "::error::a new native release is tagged but a legacy bridge remains active; merge a reviewed $CUTOVER_MARKER containing $NATIVE_FLOOR only after the store binaries are available" >&2
+                        exit 1
+                      fi
+                      MIGRATION_CUTOVER=true
+                    elif [ -f "$CUTOVER_MARKER" ]; then
+                      echo "::error::$CUTOVER_MARKER was committed before its native release was tagged" >&2
+                      exit 1
+                    fi
+                  fi
                   CURRENT="$(node ../release-tooling/scripts/capgo-release-guard.mjs current-release)"
                   VERSION="$(node ../release-tooling/scripts/release-version.mjs ota --current "$CURRENT" --root "$PWD")"
-                  IOS_VERSION="$(node ../release-tooling/scripts/capgo-release-guard.mjs next-ios-bridge)"
-                  ANDROID_VERSION="$(node ../release-tooling/scripts/capgo-release-guard.mjs next-android-bridge)"
+                  if [ "$MIGRATION_CUTOVER" = true ] || [ "$NEW_NATIVE" = true ]; then
+                    IOS_VERSION="$VERSION-ios"
+                    ANDROID_VERSION="$VERSION-android"
+                  else
+                    IOS_VERSION="$(node ../release-tooling/scripts/capgo-release-guard.mjs next-ios-bridge)"
+                    ANDROID_VERSION="$(node ../release-tooling/scripts/capgo-release-guard.mjs next-android-bridge)"
+                  fi
                   {
                     echo "version=$VERSION"
                     echo "ios_version=$IOS_VERSION"
                     echo "android_version=$ANDROID_VERSION"
-                    echo 'bridge_active=active'
-                    echo 'android_bridge_active=active'
-                    echo "ios_bootstrap=$BRIDGE"
-                    echo "android_bootstrap=$ANDROID_BRIDGE"
+                    echo "bridge_active=$([ "$MIGRATION_CUTOVER" = true ] && echo inactive || echo "$BRIDGE")"
+                    echo "android_bridge_active=$([ "$MIGRATION_CUTOVER" = true ] && echo inactive || echo "$ANDROID_BRIDGE")"
+                    echo "ios_bootstrap=$([ "$NEW_NATIVE" = true ] && echo active || echo "$BRIDGE")"
+                    echo "android_bootstrap=$([ "$NEW_NATIVE" = true ] && echo active || echo "$ANDROID_BRIDGE")"
+                    echo "migration_cutover=$MIGRATION_CUTOVER"
+                    echo "ios_bridge_before=$BRIDGE"
+                    echo "android_bridge_before=$ANDROID_BRIDGE"
                   } >> "$GITHUB_OUTPUT"
                   echo "Highest current or reserved release is $CURRENT — Android $ANDROID_VERSION, iOS $IOS_VERSION"
                   {
@@ -147,6 +178,7 @@ jobs:
 
     deploy:
         needs: resolve
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
         runs-on: ubuntu-latest
         environment: Production
         env:
@@ -155,6 +187,9 @@ jobs:
             ANDROID_BRIDGE_ACTIVE: ${{ needs.resolve.outputs.android_bridge_active }}
             IOS_BRIDGE_PREVIOUS: ${{ needs.resolve.outputs.ios_bootstrap }}
             ANDROID_BRIDGE_PREVIOUS: ${{ needs.resolve.outputs.android_bootstrap }}
+            MIGRATION_CUTOVER: ${{ needs.resolve.outputs.migration_cutover }}
+            IOS_BRIDGE_BEFORE: ${{ needs.resolve.outputs.ios_bridge_before }}
+            ANDROID_BRIDGE_BEFORE: ${{ needs.resolve.outputs.android_bridge_before }}
         defaults:
             run:
                 working-directory: app
@@ -187,6 +222,34 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            # Only a native-contract mismatch may hand a failed OTA to the
+            # automatic store build. Write the marker at the failing preflight,
+            # before any candidate upload or other failure can occur.
+            - name: Preflight OTA native compatibility
+              run: |
+                  FLOOR="$(node ../release-tooling/scripts/release-version.mjs newest-native --root "$PWD")"
+                  for PLATFORM in android ios; do
+                    if RESULT="$(node ../release-tooling/scripts/check-native-ota-surface.mjs "v$FLOOR" --platform "$PLATFORM" --root "$PWD" 2>&1)"; then
+                      echo "$RESULT"
+                    else
+                      echo "$RESULT" >&2
+                      if [[ "$RESULT" == *"this tree's native surface differs from v$FLOOR"* ]]; then
+                        mkdir -p "$RUNNER_TEMP/ota-native-incompatible"
+                        printf '%s\n' "$OTA_SOURCE_SHA" > "$RUNNER_TEMP/ota-native-incompatible/head.sha"
+                      fi
+                      exit 1
+                    fi
+                  done
+
+            - name: Record native-incompatible OTA
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ota-native-incompatible-${{ github.run_id }}
+                  path: ${{ runner.temp }}/ota-native-incompatible/head.sha
+                  if-no-files-found: ignore
+                  retention-days: 7
+
             # NEXT_PUBLIC_* values are baked into the static export at build time.
             # rpId MUST be peanut.me (passkeys + assetlinks/AASA). CAPACITOR_BUILD /
             # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
@@ -208,6 +271,13 @@ jobs:
                   else
                     ANDROID="$(node ../release-tooling/scripts/ota-platform-floor.mjs --platform android --root "$PWD")"
                     IOS="$(node ../release-tooling/scripts/ota-platform-floor.mjs --platform ios --root "$PWD")"
+                  fi
+                  if [ "$MIGRATION_CUTOVER" = true ]; then
+                    NATIVE_VERSION="$(node ../release-tooling/scripts/release-version.mjs native-floor --root "$PWD")"
+                    if [ "$ANDROID" != "$NATIVE_VERSION" ] || [ "$IOS" != "$NATIVE_VERSION" ]; then
+                      echo "::error::cutover must start at the newly tagged native floor $NATIVE_VERSION (got Android $ANDROID, iOS $IOS)" >&2
+                      exit 1
+                    fi
                   fi
                   if [ "$BRIDGE_ACTIVE" = active ]; then
                     if [ "$IOS" != '1.5.0' ]; then
@@ -413,7 +483,15 @@ jobs:
                     guard_current_main
                     # Bundle selection and rollout disablement are one Capgo
                     # mutation, followed by exact channel and artifact readback.
-                    if [ "$PLATFORM" = ios ] && [ "$IOS_BRIDGE_PREVIOUS" = inactive ]; then
+                    if [ "$MIGRATION_CUTOVER" = true ]; then
+                      if { [ "$PLATFORM" = ios ] && [ "$IOS_BRIDGE_BEFORE" = active ]; } ||
+                         { [ "$PLATFORM" = android ] && [ "$ANDROID_BRIDGE_BEFORE" = active ]; }; then
+                        node ../release-tooling/scripts/capgo-release-guard.mjs promote-migration-cutover
+                      else
+                        node ../release-tooling/scripts/capgo-release-guard.mjs promote-production
+                      fi
+                      node ../release-tooling/scripts/capgo-release-guard.mjs verify-production
+                    elif [ "$PLATFORM" = ios ] && [ "$IOS_BRIDGE_PREVIOUS" = inactive ]; then
                       node ../release-tooling/scripts/capgo-release-guard.mjs promote-ios-bridge
                       node ../release-tooling/scripts/capgo-release-guard.mjs verify-ios-bridge
                     elif [ "$PLATFORM" = android ] && [ "$ANDROID_BRIDGE_PREVIOUS" = inactive ]; then
@@ -437,6 +515,7 @@ jobs:
 
     tag:
         needs: [resolve, deploy]
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
