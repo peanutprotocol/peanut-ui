@@ -33,9 +33,7 @@ import {
     ChevronUp,
     Dice5,
     DollarSign,
-    Calendar,
     Download,
-    ListFilter,
     ExternalLink,
     Eye,
     EyeOff,
@@ -108,10 +106,8 @@ export type IconName =
     | 'meter'
     | 'cancel'
     | 'ban'
-    | 'calendar'
     | 'dice'
     | 'download'
-    | 'list-filter'
     | 'double-check'
     | 'eye'
     | 'eye-slash'
@@ -272,9 +268,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     check: (props) => <LucideWrapper Icon={Check} {...props} />,
     'chevron-right': (props) => <LucideWrapper Icon={ChevronRight} {...props} />,
     'chevron-up': (props) => <LucideWrapper Icon={ChevronUp} {...props} />,
-    calendar: (props) => <LucideWrapper Icon={Calendar} {...props} />,
     download: (props) => <LucideWrapper Icon={Download} {...props} />,
-    'list-filter': (props) => <LucideWrapper Icon={ListFilter} {...props} />,
     dollar: (props) => <LucideWrapper Icon={DollarSign} {...props} />,
     'double-check': DoubleCheckIcon,
     eye: (props) => <LucideWrapper Icon={Eye} {...props} />,

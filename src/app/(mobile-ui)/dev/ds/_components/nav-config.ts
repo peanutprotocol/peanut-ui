@@ -174,7 +174,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: CalendarRange,
             href: '/dev/ds/primitives/calendar',
             description:
-                'Range calendar over react-day-picker, semantic tokens only. Built for the activity-history timeframe filter',
+                'Range calendar over react-day-picker, semantic tokens only. Built for the statement period on Profile → Statements',
             status: 'limited',
         },
         {

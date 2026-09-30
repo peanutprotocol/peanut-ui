@@ -1,13 +1,14 @@
 import {
+    LOCAL_DATE_RE,
     endOfLocalDay,
+    matchPeriodPreset,
+    periodAnalytics,
     presetDates,
-    rangeAnalytics,
     startOfLocalDay,
     toLocalDateString,
-    LOCAL_DATE_RE,
-} from '../historyRange.utils'
+} from '../statementPeriod.utils'
 
-describe('historyRange.utils', () => {
+describe('statementPeriod.utils', () => {
     const today = new Date(2026, 8, 15) // 2026-09-15 local
 
     it('round-trips local date strings', () => {
@@ -33,16 +34,25 @@ describe('historyRange.utils', () => {
         expect(presetDates('last6m', new Date(2026, 1, 10))).toEqual({ from: '2025-08-10', to: '2026-02-10' })
     })
 
-    it('reports the window name and length, never the dates', () => {
-        expect(rangeAnalytics({ activePreset: 'last30d', from: '2026-08-17', to: '2026-09-15' })).toEqual({
+    it('names the preset a URL period stands for, and nothing for a hand-picked one', () => {
+        expect(matchPeriodPreset(null, null, today)).toBe('allTime')
+        expect(matchPeriodPreset('2026-08-17', '2026-09-15', today)).toBe('last30d')
+        expect(matchPeriodPreset('2026-01-01', '2026-09-15', today)).toBe('ytd')
+        expect(matchPeriodPreset('2026-08-03', '2026-08-14', today)).toBeUndefined()
+        // a rolling preset from another day is a custom period today
+        expect(matchPeriodPreset('2026-08-16', '2026-09-14', today)).toBeUndefined()
+    })
+
+    it('reports the period name and length, never the dates', () => {
+        expect(periodAnalytics({ preset: 'last30d', from: '2026-08-17', to: '2026-09-15' })).toEqual({
             range_preset: 'last30d',
             range_days: 30,
         })
-        // no preset match = a hand-picked window
-        expect(rangeAnalytics({ from: '2026-09-01', to: '2026-09-01' })).toEqual({
+        // no preset match = a hand-picked period
+        expect(periodAnalytics({ from: '2026-09-01', to: '2026-09-01' })).toEqual({
             range_preset: 'custom',
             range_days: 1,
         })
-        expect(rangeAnalytics({})).toEqual({ range_preset: 'allTime', range_days: null })
+        expect(periodAnalytics({})).toEqual({ range_preset: 'allTime', range_days: null })
     })
 })

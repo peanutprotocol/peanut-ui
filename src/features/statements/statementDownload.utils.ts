@@ -5,16 +5,35 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import type { AppLocale } from '@/i18n/app/config'
 
-export type ActivityExportFormat = 'pdf' | 'csv' | 'xlsx'
-export type ActivityExportFile = { blob: Blob; fileName: string }
+export const STATEMENT_FORMATS = ['pdf', 'csv', 'xlsx'] as const
+export type StatementFormat = (typeof STATEMENT_FORMATS)[number]
+export type StatementFile = { blob: Blob; fileName: string }
+
+/** What the page says when a download fails. `tooLarge` is the one failure the
+ *  period field can fix, so it is shown under that field; the rest are flow
+ *  failures. */
+export type StatementDownloadFailure = 'tooLarge' | 'unverified' | 'busy' | 'saveUnavailable' | 'failed'
+
 /** `message` is the API code; `refusal` names the check that refused the file, when the API says. */
-export class ActivityDownloadError extends Error {
+export class StatementDownloadError extends Error {
     constructor(
         code: string,
         public refusal?: string
     ) {
         super(code)
     }
+}
+
+const FAILURES = new Map<string, StatementDownloadFailure>([
+    ['EXPORT_TOO_LARGE', 'tooLarge'],
+    ['EXPORT_UNVERIFIED', 'unverified'],
+    ['EXPORT_BUSY', 'busy'],
+    ['EXPORT_SAVE_UNAVAILABLE', 'saveUnavailable'],
+])
+
+/** The failure to show for an API or delivery code; unknown codes are a plain failure. */
+export function downloadFailure(code: string): StatementDownloadFailure {
+    return FAILURES.get(code) ?? 'failed'
 }
 
 /** The API's 4xx body, whatever transport delivered it. */
@@ -27,23 +46,25 @@ function refusalFrom(body: unknown): { code?: string; refusal?: string } {
     }
 }
 
-const MIME: Record<ActivityExportFormat, string> = {
+const MIME: Record<StatementFormat, string> = {
     pdf: 'application/pdf',
     csv: 'text/csv',
     xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
-export async function prepareActivityExport(options: {
-    format: ActivityExportFormat
+/** Fetches the statement file over the authenticated client. Nothing is saved yet. */
+export async function prepareStatement(options: {
+    format: StatementFormat
     /** The API accepts exactly the app locales and writes PDF and XLSX files in that language. */
     locale: AppLocale
     fromIso?: string
     toIso?: string
-}): Promise<ActivityExportFile> {
+}): Promise<StatementFile> {
     const params = new URLSearchParams({ format: options.format })
     params.set('timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone)
     params.set('locale', options.locale)
     if (options.fromIso) params.set('from', options.fromIso)
+    // the API's `to` is exclusive: the next local midnight after the last day
     if (options.toIso) params.set('to', new Date(new Date(options.toIso).getTime() + 1).toISOString())
     const path = `/users/history/export?${params}`
     let blob: Blob
@@ -51,7 +72,7 @@ export async function prepareActivityExport(options: {
     if (isCapacitor()) {
         await authReady()
         const headers = getAuthHeaders()
-        if (!headers.Authorization) throw new ActivityDownloadError('EXPORT_FAILED')
+        if (!headers.Authorization) throw new StatementDownloadError('EXPORT_FAILED')
         const { CapacitorHttp } = await import('@capacitor/core')
         const response = await CapacitorHttp.request({
             url: `${PEANUT_API_URL}${path}`,
@@ -70,7 +91,7 @@ export async function prepareActivityExport(options: {
                 body = null
             }
             const { refusal } = refusalFrom(body)
-            throw new ActivityDownloadError(
+            throw new StatementDownloadError(
                 response.status === 413
                     ? 'EXPORT_TOO_LARGE'
                     : response.status === 409
@@ -93,10 +114,10 @@ export async function prepareActivityExport(options: {
         })
         if (!response.ok) {
             const { code, refusal } = refusalFrom(await response.json().catch(() => null))
-            throw new ActivityDownloadError(code ?? 'EXPORT_FAILED', refusal)
+            throw new StatementDownloadError(code ?? 'EXPORT_FAILED', refusal)
         }
         if (!response.headers.get('content-type')?.startsWith(MIME[options.format]))
-            throw new ActivityDownloadError('EXPORT_FAILED')
+            throw new StatementDownloadError('EXPORT_FAILED')
         blob = await response.blob()
         disposition = response.headers.get('content-disposition')
     }
@@ -105,17 +126,17 @@ export async function prepareActivityExport(options: {
 }
 
 /** Native callers invoke this on a fresh tap after preparation, preserving user activation. */
-export async function saveActivityExport(prepared: ActivityExportFile): Promise<'saved' | 'cancelled'> {
+export async function saveStatement(file: StatementFile): Promise<'saved' | 'cancelled'> {
     if (isCapacitor()) {
-        const file = new File([prepared.blob], prepared.fileName, { type: prepared.blob.type })
-        if (!navigator.share || !navigator.canShare?.({ files: [file] }))
-            throw new ActivityDownloadError('EXPORT_SAVE_UNAVAILABLE')
+        const shared = new File([file.blob], file.fileName, { type: file.blob.type })
+        if (!navigator.share || !navigator.canShare?.({ files: [shared] }))
+            throw new StatementDownloadError('EXPORT_SAVE_UNAVAILABLE')
         try {
-            await navigator.share({ files: [file] })
+            await navigator.share({ files: [shared] })
         } catch (error) {
             if ((error as Error).name === 'AbortError') return 'cancelled'
             throw error
         }
-    } else downloadBlob(prepared.blob, prepared.fileName)
+    } else downloadBlob(file.blob, file.fileName)
     return 'saved'
 }

@@ -108,6 +108,7 @@
             "inviteFriends": "Invitá amigos a Peanut",
             "accounts": "Cuentas",
             "payments": "Pagos",
+            "statements": "Resúmenes",
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible"
@@ -1081,19 +1082,18 @@
     },
     "history": {
         "errorDescription": "Contactá a soporte.",
-        "empty": "Aún no hay transacciones",
-        "range": {
-            "description": "Elegí el período que querés ver."
-        },
-        "export": {
-            "error": "La exportación falló. Intentá de nuevo.",
-            "save": "Guardar archivo",
-            "tooLarge": "Este período es demasiado amplio. Elegí uno más corto.",
+        "empty": "Aún no hay transacciones"
+    },
+    "statements": {
+        "title": "Resúmenes",
+        "downloaded": "Resumen descargado",
+        "errors": {
+            "tooLarge": "Este período es demasiado largo. Elegí uno más corto.",
             "unverified": "No pudimos verificar todas las transacciones de este período. Intentá de nuevo más tarde o contactá a soporte.",
             "busy": "Hay varias descargas en curso. Intentá de nuevo en un momento.",
-            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descargalo desde la app web."
-        },
-        "emptyFilteredDescription": "Probá con otro rango de fechas."
+            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descargalo desde la app web.",
+            "failed": "La descarga falló. Intentá de nuevo."
+        }
     },
     "rewards": {
         "youHave": "Tenés",

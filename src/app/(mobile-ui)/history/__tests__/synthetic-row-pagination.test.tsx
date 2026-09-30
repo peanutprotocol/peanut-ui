@@ -14,21 +14,6 @@ let mockUser: unknown = null
 const mockLoaderRef = { current: null as HTMLDivElement | null }
 // stable data per pages array, like the query cache, so memo deps are exercised
 const mockDataByPages = new WeakMap<Page[], { pages: Page[]; pageParams: unknown[] }>()
-// unbounded range (no from/to). one object for every render, like the real
-// hook's memoized isInRange, so the page's memo deps stay stable
-const mockHistoryRange = {
-    from: null,
-    to: null,
-    fromDate: undefined,
-    toDate: undefined,
-    fromIso: undefined,
-    toIso: undefined,
-    hasActiveRange: false,
-    activePreset: 'allTime',
-    setPreset: jest.fn(),
-    setCustom: jest.fn(),
-    isInRange: () => true,
-}
 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next-intl', () => ({
@@ -43,9 +28,6 @@ jest.mock('@/context/authContext', () => ({
 }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useInfiniteScroll', () => ({ useInfiniteScroll: () => ({ loaderRef: mockLoaderRef }) }))
-jest.mock('@/hooks/useHistoryRange', () => ({ useHistoryRange: () => mockHistoryRange }))
-jest.mock('@/components/History/HistoryRangeDrawer', () => ({ HistoryRangeDrawer: () => null }))
-jest.mock('@/components/History/ExportActivityDrawer', () => ({ ExportActivityDrawer: () => null }))
 jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
     useTransactionDetailsDrawer: () => ({
         isTransactionSelected: () => false,

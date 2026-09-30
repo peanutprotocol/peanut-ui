@@ -268,6 +268,7 @@
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar nome completo",
             "backup": "Backup",
+            "statements": "Extratos",
             "exchangeRatesAndFees": "Câmbio e taxas",
             "starAlt": "estrela",
             "help": "Central de Ajuda",
@@ -2376,11 +2377,13 @@
         "empty": "Nenhuma transação ainda",
         "loadingMore": "Carregando mais...",
         "today": "Hoje",
-        "yesterday": "Ontem",
-        "range": {
-            "title": "Filtrar por data",
-            "titleActive": "Filtrar por data: {range}",
-            "description": "Escolha o período que você quer ver.",
+        "yesterday": "Ontem"
+    },
+    "statements": {
+        "title": "Extratos",
+        "format": "Formato",
+        "period": "Período",
+        "periods": {
             "allTime": "Todo o histórico",
             "last7d": "Últimos 7 dias",
             "last30d": "Últimos 30 dias",
@@ -2389,21 +2392,16 @@
             "ytd": "Este ano",
             "custom": "Período personalizado"
         },
-        "export": {
-            "title": "Exportar atividade",
-            "format": "Formato",
-            "range": "Período",
-            "download": "Baixar",
-            "success": "Exportação baixada",
-            "error": "Falha na exportação. Tente de novo.",
-            "save": "Salvar arquivo",
+        "download": "Baixar",
+        "save": "Salvar arquivo",
+        "downloaded": "Extrato baixado",
+        "errors": {
             "tooLarge": "Este período é muito longo. Escolha um período menor.",
             "unverified": "Não foi possível verificar todas as transações deste período. Tente novamente mais tarde ou fale com o suporte.",
             "busy": "Há vários downloads em andamento. Tente novamente em instantes.",
-            "saveUnavailable": "Não é possível salvar arquivos neste dispositivo. Baixe pelo app web."
-        },
-        "emptyFiltered": "Nenhuma atividade neste período",
-        "emptyFilteredDescription": "Tente outro período."
+            "saveUnavailable": "Não é possível salvar arquivos neste dispositivo. Baixe pelo app web.",
+            "failed": "Falha no download. Tente de novo."
+        }
     },
     "rewards": {
         "title": "Pontos",

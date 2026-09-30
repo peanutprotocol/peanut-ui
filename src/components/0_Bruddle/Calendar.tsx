@@ -40,9 +40,10 @@ interface Press {
  * tap for each new day the pointer crosses.
  *
  * code-only ❓ — no figma board yet (law 6): the primitive was ordered for the
- * activity-history timeframe filter (Aleks, 2026-09-15); a board is owed via
- * the figma-first flow. Day cells are 44px (touch-target law). Future days are
- * unselectable — activity can only exist in the past.
+ * activity download period (Aleks, 2026-09-15), now the statement period on
+ * Profile → Statements; a board is owed via the figma-first flow. Day cells
+ * are 44px (touch-target law). Future days are unselectable — activity can
+ * only exist in the past.
  */
 export const Calendar = ({ selected, onSelect, defaultMonth, className }: CalendarProps) => {
     const locale = useLocale()

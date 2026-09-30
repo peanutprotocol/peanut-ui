@@ -15,7 +15,7 @@ export default function CalendarPage() {
         <DocPage>
             <DocHeader
                 title="Calendar"
-                description="Range calendar over react-day-picker, semantic tokens only. Day cells are 44px (touch-target law); future days are unselectable. code-only ❓ — a figma board is owed via the figma-first flow (ordered for the activity-history timeframe filter, 2026-09-15)."
+                description="Range calendar over react-day-picker, semantic tokens only. Day cells are 44px (touch-target law); future days are unselectable. code-only ❓ — a figma board is owed via the figma-first flow (ordered 2026-09-15 for the statement period on Profile → Statements)."
                 status="limited"
             />
 

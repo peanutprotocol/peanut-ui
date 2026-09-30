@@ -268,6 +268,7 @@
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar nombre completo",
             "backup": "Respaldo",
+            "statements": "Estados de cuenta",
             "exchangeRatesAndFees": "Tipos de cambio y comisiones",
             "starAlt": "estrella",
             "help": "Centro de Ayuda",
@@ -2376,34 +2377,31 @@
         "empty": "Aún no hay transacciones",
         "loadingMore": "Cargando más...",
         "today": "Hoy",
-        "yesterday": "Ayer",
-        "range": {
-            "title": "Filtrar por fecha",
-            "titleActive": "Filtrar por fecha: {range}",
-            "description": "Elige el período que quieres ver.",
+        "yesterday": "Ayer"
+    },
+    "statements": {
+        "title": "Estados de cuenta",
+        "format": "Formato",
+        "period": "Período",
+        "periods": {
             "allTime": "Todo el historial",
             "last7d": "Últimos 7 días",
             "last30d": "Últimos 30 días",
             "last3m": "Últimos 3 meses",
             "last6m": "Últimos 6 meses",
             "ytd": "Este año",
-            "custom": "Rango personalizado"
+            "custom": "Período personalizado"
         },
-        "export": {
-            "title": "Exportar actividad",
-            "format": "Formato",
-            "range": "Rango de fechas",
-            "download": "Descargar",
-            "success": "Exportación descargada",
-            "error": "La exportación falló. Intenta de nuevo.",
-            "save": "Guardar archivo",
-            "tooLarge": "Este período es demasiado amplio. Elige uno más corto.",
+        "download": "Descargar",
+        "save": "Guardar archivo",
+        "downloaded": "Estado de cuenta descargado",
+        "errors": {
+            "tooLarge": "Este período es demasiado largo. Elige uno más corto.",
             "unverified": "No pudimos verificar todas las transacciones de este período. Inténtalo de nuevo más tarde o contacta a soporte.",
             "busy": "Hay varias descargas en curso. Inténtalo de nuevo en un momento.",
-            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descárgalo desde la app web."
-        },
-        "emptyFiltered": "No hay actividad en este período",
-        "emptyFilteredDescription": "Prueba con otro rango de fechas."
+            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descárgalo desde la app web.",
+            "failed": "La descarga falló. Intenta de nuevo."
+        }
     },
     "rewards": {
         "title": "Puntos",

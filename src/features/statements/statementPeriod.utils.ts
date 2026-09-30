@@ -1,14 +1,26 @@
 /**
- * Date math for the activity-history timeframe filter. Values in the URL (and
- * in these helpers) are LOCAL calendar days as `yyyy-MM-dd` strings — same
- * local-day semantics as dateGrouping.utils. The API receives ISO date-times
- * built from the local day bounds (startOfLocalDay / endOfLocalDay).
+ * Date math for the statement period. The URL and these helpers hold LOCAL
+ * calendar days as `yyyy-MM-dd` strings, the same local-day semantics as
+ * dateGrouping.utils. The API receives ISO date-times built from the local day
+ * bounds (startOfLocalDay / endOfLocalDay).
  */
 
-export type HistoryRangePreset = 'allTime' | 'last7d' | 'last30d' | 'last3m' | 'last6m' | 'ytd'
+export type StatementPeriodPreset = 'allTime' | 'last7d' | 'last30d' | 'last3m' | 'last6m' | 'ytd'
 
-/** Drawer order. Rolling windows (industry-standard preset shape). */
-export const HISTORY_RANGE_PRESETS: HistoryRangePreset[] = ['allTime', 'last7d', 'last30d', 'last3m', 'last6m', 'ytd']
+/** Select order. Rolling windows (industry-standard preset shape). */
+export const STATEMENT_PERIOD_PRESETS: StatementPeriodPreset[] = [
+    'allTime',
+    'last7d',
+    'last30d',
+    'last3m',
+    'last6m',
+    'ytd',
+]
+
+/** The select option that opens the calendar. */
+export const CUSTOM_PERIOD = 'custom'
+
+export type StatementPeriodOption = StatementPeriodPreset | typeof CUSTOM_PERIOD
 
 export const LOCAL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -44,7 +56,10 @@ function daysBack(today: Date, days: number): Date {
 }
 
 /** The preset's local-day bounds, or null for the unbounded `allTime`. */
-export function presetDates(preset: HistoryRangePreset, today: Date = new Date()): { from: string; to: string } | null {
+export function presetDates(
+    preset: StatementPeriodPreset,
+    today: Date = new Date()
+): { from: string; to: string } | null {
     const to = toLocalDateString(today)
     switch (preset) {
         case 'allTime':
@@ -62,18 +77,31 @@ export function presetDates(preset: HistoryRangePreset, today: Date = new Date()
     }
 }
 
-/** Analytics shape for a range. Deliberately the window's NAME and LENGTH, never
- *  the dates: which months a person exports says when they bank. `null` days is
- *  the unbounded all-time window. */
-export function rangeAnalytics(range: {
-    activePreset?: HistoryRangePreset
-    from?: string | null
-    to?: string | null
-}): { range_preset: string; range_days: number | null } {
-    const preset = range.activePreset ?? (range.from || range.to ? 'custom' : 'allTime')
-    if (!range.from || !range.to) return { range_preset: preset, range_days: null }
+/** The preset a URL period stands for, if any. No bounds is `allTime`; a
+ *  hand-picked period matches nothing. */
+export function matchPeriodPreset(
+    from: string | null,
+    to: string | null,
+    today: Date = new Date()
+): StatementPeriodPreset | undefined {
+    if (!from && !to) return 'allTime'
+    return STATEMENT_PERIOD_PRESETS.find((preset) => {
+        const dates = presetDates(preset, today)
+        return dates !== null && dates.from === from && dates.to === to
+    })
+}
+
+/** Analytics shape for a period. Deliberately the period's NAME and LENGTH,
+ *  never the dates: which months a person downloads says when they bank.
+ *  `null` days is the unbounded all-time period. */
+export function periodAnalytics(period: { preset?: StatementPeriodPreset; from?: string | null; to?: string | null }): {
+    range_preset: string
+    range_days: number | null
+} {
+    const preset = period.preset ?? (period.from || period.to ? CUSTOM_PERIOD : 'allTime')
+    if (!period.from || !period.to) return { range_preset: preset, range_days: null }
     const days = Math.round(
-        (startOfLocalDay(range.to).getTime() - startOfLocalDay(range.from).getTime()) / 86_400_000 + 1
+        (startOfLocalDay(period.to).getTime() - startOfLocalDay(period.from).getTime()) / 86_400_000 + 1
     )
     return { range_preset: preset, range_days: days }
 }

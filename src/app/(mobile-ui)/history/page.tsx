@@ -19,13 +19,8 @@ import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
-import React, { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { ExportActivityDrawer } from '@/components/History/ExportActivityDrawer'
-import { HistoryFilterButton } from '@/components/History/HistoryFilterButton'
-import { HistoryRangeDrawer } from '@/components/History/HistoryRangeDrawer'
-import { useHistoryRange } from '@/hooks/useHistoryRange'
-import { useHistoryRangeLabel } from '@/hooks/useHistoryRangeLabel'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
@@ -72,12 +67,6 @@ const HistoryPage = () => {
     const userId = user?.user.userId
     const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
 
-    // timeframe filter (URL state) + the two drawers it feeds
-    const { fromIso, toIso, hasActiveRange, isInRange } = useHistoryRange()
-    const rangeLabel = useHistoryRangeLabel()
-    const [rangeDrawerOpen, setRangeDrawerOpen] = useState(false)
-    const [exportDrawerOpen, setExportDrawerOpen] = useState(false)
-
     const {
         data: historyData,
         hasNextPage,
@@ -89,8 +78,6 @@ const HistoryPage = () => {
     } = useTransactionHistory({
         mode: 'infinite',
         limit: 20,
-        from: fromIso,
-        to: toIso,
     })
 
     // infinite scroll hook
@@ -140,50 +127,37 @@ const HistoryPage = () => {
                 }
             }
 
-            // Match the server's creation-time filter, even when settlement changes the display timestamp.
-            const activityDate =
-                completedEntry.createdAt ??
-                (completedEntry.extraData?.kind === 'PERK_REWARD' ? completedEntry.timestamp : undefined)
-            const withinActiveRange = !hasActiveRange || (activityDate && isInRange(new Date(activityDate)))
-            if (hasActiveRange && !activityDate) {
-                // Older event payloads need the server to decide period membership.
-                queryClient.invalidateQueries({
-                    queryKey: [TRANSACTIONS, 'infinite', { limit: 20, from: fromIso, to: toIso }],
-                })
-            }
-
             // Update TanStack Query cache with processed transaction
-            if (withinActiveRange)
-                queryClient.setQueryData<InfiniteData<HistoryResponse>>(
-                    [TRANSACTIONS, 'infinite', { limit: 20, from: fromIso, to: toIso }],
-                    (oldData) => {
-                        if (!oldData) return oldData
+            queryClient.setQueryData<InfiniteData<HistoryResponse>>(
+                [TRANSACTIONS, 'infinite', { limit: 20 }],
+                (oldData) => {
+                    if (!oldData) return oldData
 
-                        // Check if entry exists on ANY page to prevent duplicates
-                        const existsAnywhere = oldData.pages.some((p) =>
-                            p.entries.some((e) => e.uuid === completedEntry.uuid)
-                        )
+                    // Check if entry exists on ANY page to prevent duplicates
+                    const existsAnywhere = oldData.pages.some((p) =>
+                        p.entries.some((e) => e.uuid === completedEntry.uuid)
+                    )
 
-                        if (existsAnywhere) {
-                            console.log('[History] Duplicate transaction ignored:', completedEntry.uuid)
-                            return oldData
-                        }
-
-                        // Add new entry to the first page
-                        return {
-                            ...oldData,
-                            pages: oldData.pages.map((page, index) => {
-                                if (index === 0) {
-                                    return {
-                                        ...page,
-                                        entries: [completedEntry, ...page.entries],
-                                    }
-                                }
-                                return page
-                            }),
-                        }
+                    if (existsAnywhere) {
+                        console.log('[History] Duplicate transaction ignored:', completedEntry.uuid)
+                        return oldData
                     }
-                )
+
+                    // Add new entry to the first page
+                    return {
+                        ...oldData,
+                        pages: oldData.pages.map((page, index) => {
+                            if (index === 0) {
+                                return {
+                                    ...page,
+                                    entries: [completedEntry, ...page.entries],
+                                }
+                            }
+                            return page
+                        }),
+                    }
+                }
+            )
 
             // Invalidate balance query to refresh it (scoped to user's wallet address)
             const walletAddress = user?.accounts.find(
@@ -225,12 +199,10 @@ const HistoryPage = () => {
         const isLoadedThrough = (timestamp: string | Date) =>
             loadedThroughMs === null || new Date(timestamp).getTime() > loadedThroughMs
 
-        // inject badge items from user profile, placed by earnedAt — client-side
-        // rows must respect the active timeframe filter like API rows do
+        // inject badge items from user profile, placed by earnedAt
         const badges = displayableBadges(user?.user?.badges ?? [])
         badges.forEach((b) => {
             if (!b.earnedAt || !isLoadedThrough(b.earnedAt)) return
-            if (hasActiveRange && !isInRange(new Date(b.earnedAt))) return
             entries.push({
                 isBadge: true,
                 uuid: b.id ?? b.code,
@@ -245,12 +217,7 @@ const HistoryPage = () => {
         // add the single identity-verification row (provider-agnostic)
         if (user) {
             const kycEntry = buildKycHistoryEntry(user)
-            if (
-                kycEntry &&
-                isLoadedThrough(kycEntry.timestamp) &&
-                (!hasActiveRange || isInRange(new Date(kycEntry.timestamp)))
-            )
-                entries.push(kycEntry)
+            if (kycEntry && isLoadedThrough(kycEntry.timestamp)) entries.push(kycEntry)
         }
 
         entries.sort((a, b) => {
@@ -260,7 +227,7 @@ const HistoryPage = () => {
         })
 
         return entries
-    }, [allEntries, historyData, hasNextPage, user, isLoading, hasActiveRange, isInRange])
+    }, [allEntries, historyData, hasNextPage, user, isLoading])
 
     // Memoize per-row drawer projection so the .map() below doesn't recompute
     // mapTransactionDataForDrawer per row on every parent rerender (websocket
@@ -274,40 +241,8 @@ const HistoryPage = () => {
         return m
     }, [combinedAndSortedEntries])
 
-    const filterButton = (
-        <HistoryFilterButton
-            active={hasActiveRange}
-            label={hasActiveRange ? t('range.titleActive', { range: rangeLabel }) : t('range.title')}
-            onClick={() => setRangeDrawerOpen(true)}
-        />
-    )
-
-    const drawers = (
-        <>
-            <HistoryRangeDrawer
-                open={rangeDrawerOpen}
-                onOpenChange={setRangeDrawerOpen}
-                // export lives behind the filter sheet: Download closes it and
-                // opens the export sheet, which starts from the applied range
-                onDownload={() => {
-                    setRangeDrawerOpen(false)
-                    setExportDrawerOpen(true)
-                }}
-            />
-            <ExportActivityDrawer open={exportDrawerOpen} onOpenChange={setExportDrawerOpen} />
-        </>
-    )
-
     if (isLoading && combinedAndSortedEntries.length === 0) {
-        if (!hasActiveRange) return <Loading variant="mascot" />
-        // keep the filter reachable while a filtered window loads
-        return (
-            <PageStack>
-                <NavHeader title={t('title')} rightElement={filterButton} />
-                <Loading />
-                {drawers}
-            </PageStack>
-        )
+        return <Loading variant="mascot" />
     }
 
     if (isError) {
@@ -324,21 +259,6 @@ const HistoryPage = () => {
     // keep the list (and its loader) while more pages can load: an empty first
     // page can still have older rows behind it
     if (!isLoading && !hasNextPage && combinedAndSortedEntries.length === 0) {
-        // an empty FILTERED window keeps the filter reachable — the user
-        // changes the range from here
-        if (hasActiveRange) {
-            return (
-                <PageStack>
-                    <NavHeader title={t('title')} rightElement={filterButton} />
-                    <EmptyState
-                        icon="calendar"
-                        title={t('emptyFiltered')}
-                        description={t('emptyFilteredDescription')}
-                    />
-                    {drawers}
-                </PageStack>
-            )
-        }
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
                 <NavHeader title={t('title')} />
@@ -360,7 +280,7 @@ const HistoryPage = () => {
 
     return (
         <PageStack>
-            <NavHeader title={t('title')} rightElement={filterButton} />
+            <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
                     const itemDate = new Date(item.timestamp)
@@ -434,7 +354,6 @@ const HistoryPage = () => {
                     {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
                 </div>
             </div>
-            {drawers}
         </PageStack>
     )
 }
