@@ -128,6 +128,52 @@ describe('useCrossChainTransfer — feeUsd is the quote, verbatim', () => {
         expect(result.current.error).toBeNull()
     })
 
+    // TASK-22462: the hook only reports the quote; the page gate is tested in
+    // crypto-withdraw-confirm.test.tsx. A re-quote must replace feeUsd and the
+    // delivered amount, including when a larger amount absorbs the same fee.
+    it('SDA withdraw: re-quotes track a fee that consumes the amount, then a larger amount at the same fee', async () => {
+        const { result } = renderHook(() => useCrossChainTransfer())
+        const requote = async (amount: string, feeUsd: number) => {
+            // pay mode: the source amount is what leaves, the fee comes off the delivery
+            mockPreviewSdaTransfer.mockResolvedValueOnce({
+                ...quote(feeUsd),
+                payAmount: amount,
+                payAmountUsd: Number(amount),
+                receiveAmount: String(Number(amount) - feeUsd),
+                receiveAmountUsd: Number(amount) - feeUsd,
+            })
+            await act(async () => {
+                await result.current.calculate({
+                    source: { ...source, tokenAmount: amount },
+                    destination: {
+                        recipientAddress: RECIPIENT,
+                        tokenAddress: USDC_ARB,
+                        tokenAmount: amount,
+                        tokenDecimals: 6,
+                        tokenType: 1,
+                        chainId: '8453',
+                        tokenSymbol: 'USDC',
+                    },
+                    context: 'withdraw',
+                    contextId: 'charge-1',
+                })
+            })
+        }
+
+        await requote('10', 0.5)
+        expect(result.current.feeUsd).toBe(0.5)
+
+        await requote('10', 10)
+        expect(result.current.feeUsd).toBe(10)
+        expect(result.current.receiveAmount).toBe('0')
+
+        await requote('11', 10)
+        expect(mockPreviewSdaTransfer).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'pay', amount: '11' }))
+        expect(result.current.feeUsd).toBe(10)
+        expect(result.current.receiveAmount).toBe('1')
+        expect(result.current.error).toBeNull()
+    })
+
     // TASK-22590: USDC on BNB Chain is 18-decimal, but the user sends Arbitrum
     // USDC (6). The destination's units must never leak into the source
     // transfer, or the kernel would try to send 10^12 times the amount.
