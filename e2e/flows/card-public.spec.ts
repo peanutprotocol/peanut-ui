@@ -139,13 +139,13 @@ test('Home asks for nothing when the permission is ready, paused, or its state c
     }
 })
 
-test('re-issuing a card ends the card terms with the two new unchecked boxes', async ({ page }) => {
+test('re-issuing a card ends the card terms with one unchecked funding authorization', async ({ page }) => {
     await page.goto('/card?__fixture=card-reissue')
     await page.getByRole('button', { name: 'Get card', exact: true }).click()
     await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
     const boxes = page.getByRole('checkbox')
-    // international: the four original rows, then the two new ones
-    await expect(boxes).toHaveCount(6)
+    // international: the four original rows, then the one funding authorization
+    await expect(boxes).toHaveCount(5)
     for (const box of await boxes.all()) await expect(box).not.toBeChecked()
     const statement = page.getByText('I authorize transfers according to the Real-Time Funding Terms.')
     await expect(statement).toBeVisible()
