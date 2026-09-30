@@ -2382,6 +2382,11 @@
     "statements": {
         "title": "Estados de cuenta",
         "format": "Formato",
+        "formatHints": {
+            "pdf": "Para compartir o imprimir",
+            "csv": "Para hojas de cálculo y contabilidad",
+            "xlsx": "Para Excel"
+        },
         "period": "Período",
         "periods": {
             "allTime": "Todo el historial",
@@ -2391,6 +2396,11 @@
             "last6m": "Últimos 6 meses",
             "ytd": "Este año",
             "custom": "Período personalizado"
+        },
+        "changeDates": "Cambiar fechas",
+        "customPeriod": {
+            "description": "Elige el primer y el último día.",
+            "apply": "Aplicar"
         },
         "download": "Descargar",
         "save": "Guardar archivo",

@@ -22,6 +22,9 @@ export const CUSTOM_PERIOD = 'custom'
 
 export type StatementPeriodOption = StatementPeriodPreset | typeof CUSTOM_PERIOD
 
+/** A calendar pick that can be applied: a first day, and the last one once tapped. */
+export type PickedDays = { from: Date; to?: Date }
+
 export const LOCAL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 export function toLocalDateString(date: Date): string {

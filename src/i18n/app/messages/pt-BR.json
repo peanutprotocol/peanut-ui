@@ -2382,6 +2382,11 @@
     "statements": {
         "title": "Extratos",
         "format": "Formato",
+        "formatHints": {
+            "pdf": "Para compartilhar ou imprimir",
+            "csv": "Para planilhas e contabilidade",
+            "xlsx": "Para Excel"
+        },
         "period": "Período",
         "periods": {
             "allTime": "Todo o histórico",
@@ -2391,6 +2396,11 @@
             "last6m": "Últimos 6 meses",
             "ytd": "Este ano",
             "custom": "Período personalizado"
+        },
+        "changeDates": "Alterar datas",
+        "customPeriod": {
+            "description": "Escolha o primeiro e o último dia.",
+            "apply": "Aplicar"
         },
         "download": "Baixar",
         "save": "Salvar arquivo",

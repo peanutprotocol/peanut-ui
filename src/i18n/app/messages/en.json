@@ -2382,6 +2382,11 @@
     "statements": {
         "title": "Statements",
         "format": "Format",
+        "formatHints": {
+            "pdf": "To share or print",
+            "csv": "For spreadsheets and accounting",
+            "xlsx": "For Excel"
+        },
         "period": "Period",
         "periods": {
             "allTime": "All time",
@@ -2391,6 +2396,11 @@
             "last6m": "Last 6 months",
             "ytd": "Year to date",
             "custom": "Custom period"
+        },
+        "changeDates": "Change dates",
+        "customPeriod": {
+            "description": "Pick the first and the last day.",
+            "apply": "Apply"
         },
         "download": "Download",
         "save": "Save file",
