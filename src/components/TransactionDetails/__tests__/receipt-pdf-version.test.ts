@@ -11,6 +11,8 @@ describe('receiptPdfVersion', () => {
         expect(receiptPdfVersion({ ...base, status: 'completed' } as TransactionDetails)).not.toBe(pending)
         expect(receiptPdfVersion({ ...base, amount: 12 })).not.toBe(pending)
         expect(receiptPdfVersion({ ...base, currency: { amount: '9', code: 'ARS' } })).not.toBe(pending)
+        expect(receiptPdfVersion({ ...base, completedAt: '2026-09-30T10:00:00Z' })).not.toBe(pending)
+        expect(receiptPdfVersion({ ...base, txHash: '0xabc' })).not.toBe(pending)
     })
 
     test('is stable for an unchanged receipt, bigint amounts included', () => {

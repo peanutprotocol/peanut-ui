@@ -30,13 +30,19 @@ export function openReceiptPdfUrl(pdfPath: `/${string}`): void {
 }
 
 /** the receipt state the pdf renders; when it changes, a file fetched for the
- *  earlier state is outdated (pending → completed, refunds, amount fixes). */
+ *  earlier state is outdated (pending → completed, refunds, amount fixes,
+ *  a new status date, tx hash or card dispute). */
 export const receiptPdfVersion = (transaction: TransactionDetails): string =>
     [
         transaction.status,
-        String(transaction.amount),
+        transaction.amount,
         transaction.tokenAmount,
         transaction.currency?.amount,
         transaction.fee,
-        transaction.cancelledDate ? String(transaction.cancelledDate) : undefined,
+        transaction.date,
+        transaction.completedAt,
+        transaction.claimedAt,
+        transaction.cancelledDate,
+        transaction.txHash,
+        transaction.extraDataForDrawer?.cardPayment?.dispute?.status,
     ].join('|')

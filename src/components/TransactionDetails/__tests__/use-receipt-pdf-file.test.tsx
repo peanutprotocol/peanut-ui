@@ -76,7 +76,7 @@ describe('useReceiptPdfFile', () => {
         await waitFor(() => expect(share).toBeEnabled())
         expect(download).toBeEnabled()
         expect(global.fetch).toHaveBeenCalledWith(
-            '/receipt/entry-private/pdf?kind=DIRECT_TRANSFER&locale=en',
+            '/receipt/entry-private/pdf?kind=DIRECT_TRANSFER&locale=en&v=',
             expect.objectContaining({ headers: { Authorization: 'Bearer owner-token' }, cache: 'no-store' })
         )
 

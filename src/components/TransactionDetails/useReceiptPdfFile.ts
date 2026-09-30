@@ -9,6 +9,7 @@ import { authReady, getAuthHeaders } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { receiptPdfPath } from './receipt-pdf-link.utils'
 
 type ReceiptPdfFile = { blob: Blob; filename: string }
 
@@ -82,12 +83,11 @@ export function useReceiptPdfFile({
     const [pdf, setPdf] = useState<ReceiptPdfFile | null>(null)
     const [error, setError] = useState(false)
     const [busy, setBusy] = useState<'share' | 'download' | null>(null)
-    const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
+    const pdfPath = receiptPdfPath(entryId, kind, locale, version)
     // the identity a cached or in-flight file belongs to; a receipt, locale or
     // state switch must never share the previous document
-    const fileIdentity = `${pdfPath}#${version}`
-    const identityRef = useRef(fileIdentity)
-    identityRef.current = fileIdentity
+    const pathRef = useRef(pdfPath)
+    pathRef.current = pdfPath
     // state alone cannot guard same-tick double taps (it only lands on the
     // next render); the ref makes repeated selection while pending a no-op
     const busyRef = useRef(false)
@@ -111,7 +111,7 @@ export function useReceiptPdfFile({
         return () => {
             cancelled = true
         }
-    }, [entryId, pdfPath, prefetch, fileIdentity])
+    }, [entryId, pdfPath, prefetch])
 
     const runFileAction = async (
         action: 'share' | 'download',
@@ -121,7 +121,6 @@ export function useReceiptPdfFile({
         busyRef.current = true
         setBusy(action)
         const requestPath = pdfPath
-        const requestIdentity = fileIdentity
         try {
             // cached file first, synchronously — the share sheet must open
             // inside the click's user activation when the prefetch landed
@@ -138,7 +137,7 @@ export function useReceiptPdfFile({
                 }
                 // the receipt changed while fetching: this file belongs to
                 // the previous identity — do not cache it, do not deliver it
-                if (identityRef.current !== requestIdentity) return
+                if (pathRef.current !== requestPath) return
                 setPdf(receipt)
             }
             const file = new File([receipt.blob], receipt.filename, { type: 'application/pdf' })
