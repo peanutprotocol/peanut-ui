@@ -56,20 +56,12 @@ const byRole = { hidden: true }
 const periodField = () => screen.getByText('period').parentElement!
 const periodSelect = () => screen.getByRole('combobox', { name: 'period', ...byRole })
 const changeDates = () => within(periodField()).queryByRole('button', { name: 'changeDates', ...byRole })
-const formatRadio = (name: string) => screen.getByRole('radio', { name: new RegExp(`^${name}`) })
-// the row a radio belongs to, where the check is drawn
-const formatRow = (name: string) => formatRadio(name).closest('label')!
-// the selected-rows ruling (design.md, 2026-09-21): fill, over-colour ink on every line, check
-const expectChosen = (name: string, hint: string) => {
-    expect(formatRadio(name).nextElementSibling).toHaveClass('bg-action-primary')
-    expect(within(formatRow(name)).getByText(name)).toHaveClass('text-foreground-over-color-primary')
-    expect(within(formatRow(name)).getByText(hint)).toHaveClass('text-foreground-over-color-primary')
-    expect(formatRow(name).querySelector('.lucide-check')).toHaveClass('text-foreground-over-color-primary')
-}
-const expectNotChosen = (name: string, hint: string) => {
-    expect(formatRadio(name).nextElementSibling).not.toHaveClass('bg-action-primary')
-    expect(within(formatRow(name)).getByText(hint)).not.toHaveClass('text-foreground-over-color-primary')
-    expect(formatRow(name).querySelector('.lucide-check')).toBeNull()
+// the Field that holds the format select: its label's column, with the hint line
+const formatField = () => screen.getByText('format').parentElement!
+const formatSelect = () => screen.getByRole('combobox', { name: 'format', ...byRole })
+const chooseFormat = (name: string) => {
+    fireEvent.click(formatSelect())
+    fireEvent.click(screen.getByRole('option', { name }))
 }
 const drawer = () => screen.queryByRole('dialog')
 const day = (iso: string) => document.querySelector(`[data-day="${iso}"]`)
@@ -107,8 +99,8 @@ describe('StatementsPage', () => {
     it('opens on all time and PDF, with no drawer and no dates', () => {
         renderPage()
         expect(periodSelect()).toHaveTextContent('periods.allTime')
-        expect(formatRadio('PDF')).toBeChecked()
-        expect(within(formatRow('PDF')).getByText('formatHints.pdf')).toBeInTheDocument()
+        expect(formatSelect()).toHaveTextContent('PDF')
+        expect(within(formatField()).getByText('formatHints.pdf')).toBeInTheDocument()
         expect(drawer()).not.toBeInTheDocument()
         expect(within(periodField()).queryByText(/\.\./)).not.toBeInTheDocument()
         expect(changeDates()).not.toBeInTheDocument()
@@ -121,21 +113,22 @@ describe('StatementsPage', () => {
         expect(drawer()).not.toBeInTheDocument()
         expect(within(periodField()).getByText('2026-08-03..2026-08-14')).toBeInTheDocument()
         expect(changeDates()).toBeInTheDocument()
-        expect(formatRadio('XLSX')).toBeChecked()
+        expect(formatSelect()).toHaveTextContent('XLSX')
+        expect(within(formatField()).getByText('formatHints.xlsx')).toBeInTheDocument()
     })
 
-    it('moves the selected row and ?format= with the format row, and the export asks for that format and period', async () => {
+    it('moves ?format= and the hint with the format select, and the export asks for that format and period', async () => {
         const { url } = renderPage('?from=2026-08-03&to=2026-08-14')
-        expectChosen('PDF', 'formatHints.pdf')
-        expectNotChosen('CSV', 'formatHints.csv')
+        expect(formatSelect()).toHaveTextContent('PDF')
+        expect(within(formatField()).getByText('formatHints.pdf')).toBeInTheDocument()
 
-        fireEvent.click(within(formatRow('CSV')).getByText('formatHints.csv'))
+        chooseFormat('CSV')
 
         await waitFor(() => expect(url()?.get('format')).toBe('csv'))
-        expect(formatRadio('CSV')).toBeChecked()
-        expect(formatRadio('PDF')).not.toBeChecked()
-        expectChosen('CSV', 'formatHints.csv')
-        expectNotChosen('PDF', 'formatHints.pdf')
+        expect(formatSelect()).toHaveTextContent('CSV')
+        // the hint follows the choice, one line, never both (form-field board)
+        expect(within(formatField()).getByText('formatHints.csv')).toBeInTheDocument()
+        expect(within(formatField()).queryByText('formatHints.pdf')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'download' }))
         await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith('downloaded'))

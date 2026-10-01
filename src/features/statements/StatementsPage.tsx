@@ -7,16 +7,12 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Field } from '@/components/0_Bruddle/Field'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { twMerge } from '@/utils/tw'
 import { CustomPeriodDrawer } from './components/CustomPeriodDrawer'
-import { STATEMENT_FORMATS } from './statementDownload.utils'
+import { STATEMENT_FORMATS, type StatementFormat } from './statementDownload.utils'
 import { CUSTOM_PERIOD, STATEMENT_PERIOD_PRESETS, type StatementPeriodOption } from './statementPeriod.utils'
 import { useStatementDownload } from './useStatementDownload'
 import { useStatementFormat } from './useStatementFormat'
@@ -76,51 +72,15 @@ export function StatementsPage() {
         <PageStack>
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="flex flex-col gap-6">
-                <Field label={t('format')}>
-                    {/* ListItem rows. The chosen one follows design.md's selected-rows
-                        ruling (2026-09-21): action-primary fill, over-colour ink on
-                        every line and the 20px check, so colour never marks it alone.
-                        The native radios under the rows give the list radio semantics
-                        and arrow keys, the way Checkbox keeps its input. Each label is
-                        `relative` to hold its sr-only input, so the focused row lifts
-                        above the next one, which would paint over its ring; `isolate`
-                        keeps that lift inside the list (the Tabs pattern). */}
-                    <div role="radiogroup" aria-label={t('format')} className="isolate">
-                        {STATEMENT_FORMATS.map((option, index) => {
-                            const checked = option === format
-                            const paint = checked ? 'text-foreground-over-color-primary' : undefined
-                            return (
-                                <label key={option} className="relative block focus-within:z-10">
-                                    <input
-                                        type="radio"
-                                        name="statement-format"
-                                        value={option}
-                                        checked={checked}
-                                        onChange={() => void setFormat(option)}
-                                        className="peer sr-only"
-                                    />
-                                    <ListItem
-                                        position={getCardPosition(index, STATEMENT_FORMATS.length)}
-                                        // the ring's colour is set at rest, so transition-colors
-                                        // cannot animate it in from black
-                                        className={twMerge(
-                                            'cursor-pointer outline-action-focus transition-colors duration-instant peer-focus-visible:outline-[3px] active:bg-background-disabled',
-                                            checked && 'bg-action-primary'
-                                        )}
-                                        title={
-                                            <span className={twMerge('text-body-m text-foreground-primary', paint)}>
-                                                {option.toUpperCase()}
-                                            </span>
-                                        }
-                                        body={<span className={paint}>{t(`formatHints.${option}`)}</span>}
-                                        trailing={
-                                            checked ? <Icon name="check" size={20} className={paint} /> : undefined
-                                        }
-                                    />
-                                </label>
-                            )
-                        })}
-                    </div>
+                {/* Format and Period are the same control (Aleks, 2026-10-01): one
+                    select each, the chosen format's hint on the helper line. */}
+                <Field label={t('format')} helper={t(`formatHints.${format}`)}>
+                    <BaseSelect
+                        aria-label={t('format')}
+                        options={STATEMENT_FORMATS.map((option) => ({ value: option, label: option.toUpperCase() }))}
+                        value={format}
+                        onValueChange={(value) => void setFormat(value as StatementFormat)}
+                    />
                 </Field>
                 <Field
                     label={t('period')}

@@ -44,6 +44,13 @@ async function choosePeriod(page: Page, name: string) {
     await page.getByRole('option', { name }).click()
 }
 
+const formatSelect = (page: Page) => page.getByRole('combobox', { name: 'Format' })
+
+async function chooseFormat(page: Page, name: string) {
+    await formatSelect(page).click()
+    await page.getByRole('option', { name }).click()
+}
+
 async function tapDay(page: Page, day: number) {
     await page.locator(`[data-day="${lastMonthDay(day)}"] button`).click()
 }
@@ -103,7 +110,8 @@ test('a deep link opens on Custom period with the drawer closed, and with its fo
     await open(page, `${STATEMENTS}&from=${lastMonthDay(3)}&to=${lastMonthDay(12)}&format=xlsx`)
 
     await expect(periodSelect(page)).toHaveText(/Custom period/)
-    await expect(page.getByRole('radio', { name: /^XLSX/ })).toBeChecked()
+    await expect(formatSelect(page)).toHaveText(/XLSX/)
+    await expect(page.getByText('For Excel')).toBeVisible()
     await expect(drawer(page)).toHaveCount(0)
 
     // the drawer opens on the linked days
@@ -112,17 +120,19 @@ test('a deep link opens on Custom period with the drawer closed, and with its fo
     await expect(page.locator(`[data-day="${lastMonthDay(12)}"]`)).toHaveAttribute('aria-selected', 'true')
 })
 
-test('a preset and a format row write the period and format to the url', async ({ page }) => {
+test('a preset and a format write the period and format to the url', async ({ page }) => {
     await open(page, STATEMENTS)
 
     await choosePeriod(page, 'Last 30 days')
     await expect(page).toHaveURL(/from=\d{4}-\d{2}-\d{2}/)
     await expect(page).toHaveURL(/to=\d{4}-\d{2}-\d{2}/)
 
-    await page.getByText('For spreadsheets and accounting').click()
+    await chooseFormat(page, 'CSV')
     await expect(page).toHaveURL(/format=csv/)
-    await expect(page.getByRole('radio', { name: /^CSV/ })).toBeChecked()
-    await expect(page.getByRole('radio', { name: /^PDF/ })).not.toBeChecked()
+    await expect(formatSelect(page)).toHaveText(/CSV/)
+    // the hint line follows the choice
+    await expect(page.getByText('For spreadsheets and accounting')).toBeVisible()
+    await expect(page.getByText('To share or print')).toHaveCount(0)
 
     // all time is no period at all
     await choosePeriod(page, 'All time')
