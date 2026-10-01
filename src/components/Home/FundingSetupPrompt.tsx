@@ -42,8 +42,8 @@ const PENDING_WAIT_MS = 60_000
  * duplicate. All the "have we been here" state (skip dismissal, error scope) is
  * keyed by card id, so a later re-issued card gets its own clean pass.
  */
-export default function EnableAutoBalanceBanner() {
-    const t = useTranslations('home.autoBalance')
+export default function FundingSetupPrompt() {
+    const t = useTranslations('home.fundingSetup')
     const tFunding = useTranslations('card.funding')
     const tCommon = useTranslations('common')
     const { overview } = useRainCardOverview()

@@ -79,7 +79,7 @@ export interface RainCardSummary {
      *  used to submit collateral withdrawals with a single passkey tap — AND
      *  it still targets the coordinator the backend has on record. After a Rain
      *  controller upgrade the backend reports `false` for grants pinned to the
-     *  old controller, so the existing prompts (EnableAutoBalanceBanner, the
+     *  old controller, so the existing prompts (FundingSetupPrompt, the
      *  collateral-only spend preflight) drive a re-grant without any new UI —
      *  a fresh address can NOT retarget an already-signed CallPolicy grant. */
     hasWithdrawApproval: boolean

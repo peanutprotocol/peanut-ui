@@ -242,8 +242,8 @@ export const useWallet = () => {
     const isRainReady = demoMode || isRainBalanceKnown(rainOverview)
 
     // The two inputs (smart-account + rain overview) refresh independently.
-    // When both change at once (e.g. auto-balancer deposit: smart goes down,
-    // collateral goes up by the same amount), the queries settle at slightly
+    // When both change at once (e.g. a card balance moving back to the wallet:
+    // collateral goes down, smart goes up by the same amount), the queries settle at slightly
     // different times and the sum briefly shows a mid-state. Hold the last
     // "both-settled" value on-screen until both queries are idle again.
     const isSmartFetchingActive = useIsFetching({ queryKey: ['balance'] }) > 0

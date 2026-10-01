@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef } from 'react'
-import { withCeremonyFlow, withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import { withCeremonyFlow } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hex } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
@@ -13,7 +13,7 @@ import { sessionKeySignEnabled } from '@/constants/session-key-sign.consts'
 import { signMixedEphemeralSpend, type MixedEphemeralSignResult } from './mixedEphemeralSign'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
-import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
+import { signRainWithdrawAdmin } from '@/utils/rainWithdraw.utils'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { RainCooldownError, rainApi, type RainCollateralKind } from '@/services/rain'
@@ -365,9 +365,7 @@ export const useSignSpendBundle = () => {
                         ? (getClientForChain(chainIdStr).account ?? activeAccount)
                         : activeAccount
 
-                    const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
-                        signingAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
-                    )) as Hex
+                    const adminSignature = await signRainWithdrawAdmin(signingAccount, prep, chainIdNum)
                     abortReplacementIfGone()
 
                     return registerSpendArtifactMeta(
@@ -467,9 +465,7 @@ export const useSignSpendBundle = () => {
                 }
 
                 abortReplacementIfGone()
-                const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
-                    activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
-                )) as Hex
+                const adminSignature = await signRainWithdrawAdmin(activeAccount, prep, chainIdNum)
                 abortReplacementIfGone()
 
                 const withdrawCall = {

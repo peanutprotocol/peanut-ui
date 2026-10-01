@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef } from 'react'
-import { withCeremonyFlow, withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import { withCeremonyFlow } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
@@ -12,7 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
-import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
+import { signRainWithdrawAdmin, toSubmitWithdrawalInput } from '@/utils/rainWithdraw.utils'
 import { RainCooldownError, rainApi, type RainCollateralKind } from '@/services/rain'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { tryMixedEphemeralSpend } from './mixedEphemeralSpend'
@@ -359,26 +359,11 @@ export const useSpendBundle = () => {
                         // cache is ref-backed, so re-read it before signing.
                         const signingClient = granted ? getClientForChain(chainIdStr) : activeClient
 
-                        const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
-                            signingClient.account!.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
-                        )) as Hex
+                        const adminSignature = await signRainWithdrawAdmin(signingClient.account!, prep, chainIdNum)
                         abortReplacementIfGone()
 
                         broadcastAttempted = true
-                        const { txHash } = await rainApi.submitWithdrawal({
-                            // Hint only — the server never targets this address.
-                            preparedCoordinatorAddress: prep.coordinatorAddress,
-                            preparationId: prep.preparationId,
-                            amount: prep.amount,
-                            recipientAddress: prep.recipientAddress,
-                            directTransfer: prep.directTransfer,
-                            adminSalt: prep.adminSalt,
-                            adminNonce: prep.adminNonce,
-                            adminSignature,
-                            executorSignature: prep.executorSignature,
-                            executorSalt: prep.executorSalt,
-                            expiresAt: prep.expiresAt,
-                        })
+                        const { txHash } = await rainApi.submitWithdrawal(toSubmitWithdrawalInput(prep, adminSignature))
                         posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
                         return { strategy, txHash: txHash as Hex, intentId: prep.preparationId }
                     }
@@ -571,9 +556,7 @@ export const useSpendBundle = () => {
                     }
 
                     abortReplacementIfGone()
-                    const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
-                        activeClient.account!.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
-                    )) as Hex
+                    const adminSignature = await signRainWithdrawAdmin(activeClient.account!, prep, chainIdNum)
                     abortReplacementIfGone()
 
                     // Mixed = two passkey taps. The admin EIP-712 sig (tap #1) just

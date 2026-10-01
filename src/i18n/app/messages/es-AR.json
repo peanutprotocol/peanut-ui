@@ -31,7 +31,7 @@
             "firstPaymentHeldCardNote": "Pagá con la tarjeta",
             "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
-        "autoBalance": {
+        "fundingSetup": {
             "title": "Terminá de configurar la tarjeta",
             "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirmá dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisá el estado en un momento. No autorices dos veces.",

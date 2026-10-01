@@ -130,7 +130,7 @@
             "progress": "{done} de {total} concluídos",
             "welcomeTitleSpoken": "Boas-vindas ao Peanut!"
         },
-        "autoBalance": {
+        "fundingSetup": {
             "title": "Termine de configurar o cartão",
             "description": "Um toque com sua passkey para começar a usar seu cartão.",
             "descriptionMigration": "Primeiro é preciso atualizar a permissão do seu cartão. Confirme duas vezes com sua passkey: uma para atualizar e outra para a nova permissão.",

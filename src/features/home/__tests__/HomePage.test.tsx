@@ -35,7 +35,7 @@ jest.mock('@/components/Home/ActivationCTAs', () => ({
     default: () => <div>activation-checklist</div>,
 }))
 jest.mock('@/components/Home/HomeCarouselCTA', () => ({ __esModule: true, default: () => <div>home-carousel</div> }))
-jest.mock('@/components/Home/EnableAutoBalanceBanner', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Home/FundingSetupPrompt', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Home/HomeHistory', () => ({ __esModule: true, default: () => null }))
 // The real component renders `whenEmpty` only when it has no large task card
 // of its own; the marker mirrors that single-surface contract.

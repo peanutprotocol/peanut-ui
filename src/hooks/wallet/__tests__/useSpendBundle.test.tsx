@@ -68,7 +68,13 @@ const mockGrant = jest.fn()
 jest.mock('../useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ grant: (...args: unknown[]) => mockGrant(...args) }),
 }))
-jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
+jest.mock('@/utils/rainWithdraw.utils', () => ({
+    ...jest.requireActual('@/utils/rainWithdraw.utils'),
+    buildRainWithdrawTypedData: jest.fn(() => ({})),
+    // The real signer builds typed data from a full prep; the account's own signer is what is under test.
+    signRainWithdrawAdmin: (account: { signTypedData: (data: unknown) => Promise<string> }) =>
+        account.signTypedData({}),
+}))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: {} }))
 jest.mock('./../mixedEphemeralSpend', () => ({ tryMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
@@ -555,7 +561,7 @@ describe('useSpendBundle — pre-prepare controller gate (TASK-22734 hotfix)', (
             expect(mockHandleSendUserOpEncoded).toHaveBeenCalledTimes(1)
         })
 
-        it("never granted (nothing stored): no prompt — auto-balance stays the user's choice", async () => {
+        it('never granted (nothing stored): no prompt — a withdrawal permission is never forced', async () => {
             mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(false, false) }
             mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
             mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false, false) }

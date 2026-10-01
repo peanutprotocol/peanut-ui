@@ -94,7 +94,13 @@ jest.mock('../useGrantSessionKey', () => ({
 }))
 const mockSignCallsUserOp = jest.fn(async () => ({ signedUserOp: { signature: '0xpasskey' } }))
 jest.mock('../useSignUserOp', () => ({ useSignUserOp: () => ({ signCallsUserOp: mockSignCallsUserOp }) }))
-jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
+jest.mock('@/utils/rainWithdraw.utils', () => ({
+    ...jest.requireActual('@/utils/rainWithdraw.utils'),
+    buildRainWithdrawTypedData: jest.fn(() => ({})),
+    // The real signer builds typed data from a full prep; the account's own signer is what is under test.
+    signRainWithdrawAdmin: (account: { signTypedData: (data: unknown) => Promise<string> }) =>
+        account.signTypedData({}),
+}))
 jest.mock('@/services/rain', () => ({
     // Real shape: the engines narrow a cooldown with `instanceof`.
     RainCooldownError: class RainCooldownError extends Error {

@@ -1,5 +1,5 @@
 /**
- * EnableAutoBalanceBanner — the Home prompt for managed card funding.
+ * FundingSetupPrompt — the Home prompt for managed card funding.
  *
  * An existing cardholder whose permission is missing gets today's centered,
  * non-dismissible modal: the plain description of the permission and ONE
@@ -113,7 +113,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
         ) : null,
 }))
 
-import EnableAutoBalanceBanner from '../EnableAutoBalanceBanner'
+import FundingSetupPrompt from '../FundingSetupPrompt'
 
 const boxes = () => screen.getAllByRole('checkbox') as HTMLInputElement[]
 const tickBoth = () => boxes().forEach((box) => fireEvent.click(box))
@@ -134,9 +134,9 @@ beforeEach(() => {
     mockInFlight = false
 })
 
-describe('EnableAutoBalanceBanner — what is shown', () => {
+describe('FundingSetupPrompt — what is shown', () => {
     it('is today’s centered, non-dismissible Home modal with its own title and the plain permission text', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByTestId('modal')).toHaveAttribute('data-prevent-close', 'true')
         expect(screen.getByTestId('description')).toHaveTextContent('One passkey tap to start using your card.')
         expect(
@@ -151,7 +151,7 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
     })
 
     it('asks for the one authorization only, unchecked — no management box, never the old card checklist', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(boxes()).toHaveLength(1)
         expect(boxes()[0].checked).toBe(false)
         expect(screen.queryByTestId('funding-management-consent')).not.toBeInTheDocument()
@@ -161,7 +161,7 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
     })
 
     it('never names the provider, offers removal, or names a feature', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(document.body.textContent).not.toMatch(/\bRain\b/)
         expect(document.body.textContent).not.toMatch(/automatic card payments|remove|revoke|pause|resume|emergency/i)
         expect(document.body.textContent).not.toMatch(/never sign|no one|total spend/i)
@@ -171,7 +171,7 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
         'shows nothing when the backend state is %s — even with a large allowance',
         (status) => {
             mockStatus = status
-            render(<EnableAutoBalanceBanner />)
+            render(<FundingSetupPrompt />)
             expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         }
     )
@@ -179,7 +179,7 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
     it('shows no prompt for a retired permission: it needs internal support, not a prompt nobody can complete', () => {
         mockStatus = 'required'
         mockRetired = true
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
     })
 
@@ -187,14 +187,14 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
         'a grant that ended as %s closes the prompt for good, with no Try again and no Skip',
         (kind) => {
             mockLastError = { kind } as RainFundingError
-            render(<EnableAutoBalanceBanner />)
+            render(<FundingSetupPrompt />)
             expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         }
     )
 
     it('shows nothing without an ACTIVE card, and does not even read the funding state', () => {
         mockCards = [{ id: 'card-x', status: 'CANCELED' }]
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         expect(mockFundingEnabledArg).toBe(false)
     })
@@ -204,15 +204,15 @@ describe('EnableAutoBalanceBanner — what is shown', () => {
             { id: 'card-dup', status: 'CANCELED' },
             { id: 'card-real', status: 'ACTIVE' },
         ]
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByTestId('modal')).toBeInTheDocument()
         expect(mockFundingEnabledArg).toBe(true)
     })
 })
 
-describe('EnableAutoBalanceBanner — consent gates Continue', () => {
+describe('FundingSetupPrompt — consent gates Continue', () => {
     it('keeps Continue off until the authorization is ticked, and off again if it is cleared', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         const cont = screen.getByRole('button', { name: 'Continue' })
         expect(cont).toBeDisabled()
         fireEvent.click(boxes()[0])
@@ -222,13 +222,13 @@ describe('EnableAutoBalanceBanner — consent gates Continue', () => {
     })
 
     it('does nothing when Continue is pressed without consent', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockGrant).not.toHaveBeenCalled()
     })
 
     it('grants with exactly what was ticked and the statement shown', async () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         tickBoth()
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -241,7 +241,7 @@ describe('EnableAutoBalanceBanner — consent gates Continue', () => {
     })
 
     it('links the terms to the public page without ticking the box, and shows no draft placeholder', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         const link = screen.getByRole('link', { name: 'Real-Time Funding Terms' })
         expect(link).toHaveAttribute('href', 'https://peanut.mucu.dev/en/real-time-funding-terms')
         expect(link).toHaveAttribute('target', '_blank')
@@ -252,21 +252,21 @@ describe('EnableAutoBalanceBanner — consent gates Continue', () => {
     })
 
     it('unticks everything when the terms changed under the person', () => {
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(<FundingSetupPrompt />)
         tickBoth()
         expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
         mockLastError = { kind: 'terms-changed' }
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(<FundingSetupPrompt />)
         expect(boxes().every((box) => !box.checked)).toBe(true)
         expect(screen.getByRole('button', { name: /Continue|Try again/ })).toBeDisabled()
         expect(screen.getByTestId('description')).toHaveTextContent(/terms changed/i)
     })
 })
 
-describe('EnableAutoBalanceBanner — one confirmation or two', () => {
+describe('FundingSetupPrompt — one confirmation or two', () => {
     it('does not promise one tap to a legacy user: it says there are two confirmations', () => {
         mockStatus = 'migration_required'
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByTestId('description')).toHaveTextContent(/confirm twice with your passkey/i)
         expect(screen.getByTestId('description')).not.toHaveTextContent('One passkey tap')
     })
@@ -275,20 +275,20 @@ describe('EnableAutoBalanceBanner — one confirmation or two', () => {
         mockStatus = 'migration_required'
         mockIsSubmitting = true
         mockStep = 'updating-permission'
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByRole('button', { name: 'Confirm the card permission update' })).toBeDisabled()
     })
 
     it('shows Working… during the new permission and keeps the button off', () => {
         mockIsSubmitting = true
         mockStep = 'signing'
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
     })
 })
 
-describe('EnableAutoBalanceBanner — card balance moves back first', () => {
+describe('FundingSetupPrompt — card balance moves back first', () => {
     const description = () => screen.getByTestId('description')
 
     it.each<[Status]>([['required'], ['migration_required']])(
@@ -296,7 +296,7 @@ describe('EnableAutoBalanceBanner — card balance moves back first', () => {
         (status) => {
             mockSpendingPower = 1_234.7
             mockStatus = status
-            render(<EnableAutoBalanceBanner />)
+            render(<FundingSetupPrompt />)
             expect(description()).toHaveTextContent(
                 'First, $12.34 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
             )
@@ -313,7 +313,7 @@ describe('EnableAutoBalanceBanner — card balance moves back first', () => {
     ])('%s adds no return to the copy', (_label, spendingPower, unavailable) => {
         mockSpendingPower = spendingPower
         mockBalanceUnavailable = unavailable
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(description()).toHaveTextContent('One passkey tap to start using your card.')
     })
 
@@ -321,7 +321,7 @@ describe('EnableAutoBalanceBanner — card balance moves back first', () => {
         mockSpendingPower = 500
         mockIsSubmitting = true
         mockStep = 'returning-balance'
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByRole('button', { name: 'Moving card balance…' })).toBeDisabled()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
     })
@@ -334,7 +334,7 @@ describe('EnableAutoBalanceBanner — card balance moves back first', () => {
     ])('a %s stop explains it and offers Try again and Skip for now in the same dialog', (kind, text) => {
         mockSpendingPower = 500
         mockLastError = { kind } as RainFundingError
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(description()).toHaveTextContent(text)
         expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
         expect(screen.getByText('Skip for now')).toBeInTheDocument()
@@ -348,7 +348,7 @@ describe('EnableAutoBalanceBanner — card balance moves back first', () => {
             jest.useFakeTimers()
             mockStatus = 'temporarily_unavailable'
             mockInFlight = true
-            render(<EnableAutoBalanceBanner />)
+            render(<FundingSetupPrompt />)
             expect(screen.getByTestId('modal')).toBeInTheDocument()
             expect(description()).toHaveTextContent('A card withdrawal is still confirming.')
             expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
@@ -365,7 +365,7 @@ describe('EnableAutoBalanceBanner — card balance moves back first', () => {
         it('once it settles, the normal prompt returns with no error copy', () => {
             mockStatus = 'migration_required'
             mockLastError = { kind: 'withdrawal-in-flight' }
-            render(<EnableAutoBalanceBanner />)
+            render(<FundingSetupPrompt />)
             expect(description()).toHaveTextContent(/confirm twice with your passkey/i)
             expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
             expect(screen.getByText('Skip for now')).toBeInTheDocument()
@@ -375,17 +375,17 @@ describe('EnableAutoBalanceBanner — card balance moves back first', () => {
     it('skipping after a stopped return grants nothing', () => {
         mockSpendingPower = 500
         mockLastError = { kind: 'return-pending' }
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         fireEvent.click(screen.getByText('Skip for now'))
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         expect(mockGrant).not.toHaveBeenCalled()
     })
 })
 
-describe('EnableAutoBalanceBanner — cancel, failure and skip', () => {
+describe('FundingSetupPrompt — cancel, failure and skip', () => {
     it('after a cancelled passkey, offers Skip for now and keeps the normal copy', () => {
         mockLastError = { kind: 'user-cancelled' }
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByText('Skip for now')).toBeInTheDocument()
         expect(screen.getByTestId('description')).toHaveTextContent('One passkey tap')
         expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
@@ -393,7 +393,7 @@ describe('EnableAutoBalanceBanner — cancel, failure and skip', () => {
 
     it('after a hard failure, explains it, says Try again, and offers Skip for now', () => {
         mockLastError = { kind: 'unexpected', message: 'boom' }
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByText(/couldn't finish setting up your card/i)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
         expect(screen.getByText('Skip for now')).toBeInTheDocument()
@@ -401,7 +401,7 @@ describe('EnableAutoBalanceBanner — cancel, failure and skip', () => {
 
     it('Skip for now closes the modal without granting anything', () => {
         mockLastError = { kind: 'user-cancelled' }
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         fireEvent.click(screen.getByText('Skip for now'))
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         expect(mockGrant).not.toHaveBeenCalled()
@@ -409,40 +409,40 @@ describe('EnableAutoBalanceBanner — cancel, failure and skip', () => {
 
     it('a skipped prompt comes back on the next Home visit', () => {
         mockLastError = { kind: 'user-cancelled' }
-        const first = render(<EnableAutoBalanceBanner />)
+        const first = render(<FundingSetupPrompt />)
         fireEvent.click(screen.getByText('Skip for now'))
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         first.unmount()
 
         mockLastError = null
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByTestId('modal')).toBeInTheDocument()
     })
 
     it('cannot be skipped while a grant is running', () => {
         mockLastError = { kind: 'unexpected', message: 'boom' }
         mockIsSubmitting = true
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByText('Skip for now')).toBeDisabled()
     })
 
     it('a failure on one card never leaks error copy or the escape into a re-issued card', async () => {
         mockGrant.mockResolvedValue({ ok: false, error: { kind: 'unexpected', message: 'boom' } })
         mockCards = [{ id: 'card-a', status: 'ACTIVE' }]
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(<FundingSetupPrompt />)
         tickBoth()
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         })
         mockLastError = { kind: 'unexpected', message: 'boom' }
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(<FundingSetupPrompt />)
         expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 
         mockCards = [
             { id: 'card-a', status: 'CANCELED' },
             { id: 'card-b', status: 'ACTIVE' },
         ]
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(<FundingSetupPrompt />)
         expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
         expect(screen.queryByText('Try again')).not.toBeInTheDocument()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
@@ -453,7 +453,7 @@ describe('EnableAutoBalanceBanner — cancel, failure and skip', () => {
     it('skipping a stuck card does not suppress the prompt for a different card later', () => {
         mockLastError = { kind: 'user-cancelled' }
         mockCards = [{ id: 'card-a', status: 'ACTIVE' }]
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(<FundingSetupPrompt />)
         fireEvent.click(screen.getByText('Skip for now'))
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
 
@@ -461,19 +461,19 @@ describe('EnableAutoBalanceBanner — cancel, failure and skip', () => {
             { id: 'card-a', status: 'CANCELED' },
             { id: 'card-b', status: 'ACTIVE' },
         ]
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(<FundingSetupPrompt />)
         expect(screen.getByTestId('modal')).toBeInTheDocument()
     })
 })
 
-describe('EnableAutoBalanceBanner — pending and success', () => {
+describe('FundingSetupPrompt — pending and success', () => {
     afterEach(() => jest.useRealTimers())
     const stall = () => act(() => void jest.advanceTimersByTime(60_001))
 
     it('while the backend confirms a grant, the wait stays in this dialog as a disabled Working… button — no second view, no re-grant', () => {
         jest.useFakeTimers()
         mockStatus = 'pending'
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
         expect(screen.getByTestId('description')).toHaveTextContent('One passkey tap')
         expect(screen.queryByText('Check status')).not.toBeInTheDocument()
@@ -486,7 +486,7 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
     it('waits on a stalled grant: Check status and Skip, no boxes, no second grant', async () => {
         jest.useFakeTimers()
         mockStatus = 'pending'
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         stall()
         expect(screen.getByTestId('description')).toHaveTextContent(/not confirmed yet/i)
         expect(screen.getByTestId('description')).toHaveTextContent(/do not approve twice/i)
@@ -505,7 +505,7 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
         jest.useFakeTimers()
         mockStatus = 'pending'
         mockCards = [{ id: 'card-a', status: 'ACTIVE' }]
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(<FundingSetupPrompt />)
         stall()
         expect(screen.getByRole('button', { name: 'Check status' })).toBeInTheDocument()
 
@@ -513,7 +513,7 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
             { id: 'card-a', status: 'CANCELED' },
             { id: 'card-b', status: 'ACTIVE' },
         ]
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(<FundingSetupPrompt />)
         expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
         expect(screen.queryByText('Check status')).not.toBeInTheDocument()
     })
@@ -521,7 +521,7 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
     it('skipping a stalled grant closes the modal and grants or claims nothing', () => {
         jest.useFakeTimers()
         mockStatus = 'pending'
-        render(<EnableAutoBalanceBanner />)
+        render(<FundingSetupPrompt />)
         stall()
         fireEvent.click(screen.getByText('Skip for now'))
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
@@ -530,10 +530,10 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
 
     it('a pending grant that becomes ready closes onto Home with no success screen', () => {
         mockStatus = 'pending'
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(<FundingSetupPrompt />)
         expect(screen.getByTestId('modal')).toBeInTheDocument()
         mockStatus = 'ready'
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(<FundingSetupPrompt />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         expect(document.body.textContent).toBe('')
     })
@@ -543,12 +543,12 @@ describe('EnableAutoBalanceBanner — pending and success', () => {
             mockStatus = 'ready'
             return { ok: true, status: 'ready' }
         })
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(<FundingSetupPrompt />)
         tickBoth()
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         })
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(<FundingSetupPrompt />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
     })
 })

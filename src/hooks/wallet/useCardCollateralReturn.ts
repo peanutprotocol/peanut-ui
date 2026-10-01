@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { isAddressEqual, type Hex } from 'viem'
+import { isAddressEqual } from 'viem'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
@@ -10,9 +10,8 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { rainApi } from '@/services/rain'
 import { beginKernelSigning } from '@/utils/kernelSigningGuard'
-import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
+import { signRainWithdrawAdmin } from '@/utils/rainWithdraw.utils'
 import { rescueUserOpReceipt, type UserOpReceiptWaiter } from '@/utils/userop-rescue.utils'
-import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import {
     CollateralReturnError,
     collateralReturnOwner,
@@ -111,10 +110,7 @@ export const useCardCollateralReturn = () => {
                                 throw new CollateralReturnError('account-changed')
                             }
                         },
-                        signAdmin: async (prep) =>
-                            (await withCeremonyPurpose('admin_eip712', () =>
-                                client.account!.signTypedData(buildRainWithdrawTypedData(prep, PEANUT_WALLET_CHAIN.id))
-                            )) as Hex,
+                        signAdmin: (prep) => signRainWithdrawAdmin(client.account!, prep, PEANUT_WALLET_CHAIN.id),
                         sendRootUserOp: (calls, onBroadcastAttempt) =>
                             handleSendUserOpEncoded(calls, chainIdStr, { onBroadcastAttempt }),
                         findUserOpReceipt: (userOpHash) =>

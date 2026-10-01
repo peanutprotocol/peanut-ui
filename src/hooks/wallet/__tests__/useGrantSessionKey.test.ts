@@ -2,8 +2,7 @@
  * Tests for useGrantSessionKey — the Rain card session-key grant.
  *
  * Money-path invariant under test: the serialized permission approval this hook
- * produces (which the backend replays for auto-balance sweeps and collateral
- * withdrawals) MUST bind its sudo plugin to the v0.0.3 PATCHED passkey
+ * produces (which the backend replays for collateral withdrawals) MUST bind its sudo plugin to the v0.0.3 PATCHED passkey
  * validator (`0x7ab1…`), for EVERY user — including pre-2025-09-18 accounts
  * whose migration kernel client still exposes the STALE v0.0.2 validator
  * (`0xbA45…`) via `account.kernelPluginManager.sudoValidator`.
@@ -297,5 +296,20 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
 
         expect(out).toEqual({ ok: false, error: { kind: 'no-contracts' } })
         expect(mockPatchedValidator.signTypedData).not.toHaveBeenCalled()
+    })
+
+    it('the policy targets only the coordinator, so a missing collateral proxy is not a precondition', async () => {
+        mockFreshOverview = {
+            status: { coordinatorAddress: COORDINATOR },
+            cards: [{ id: 'card-1', status: 'ACTIVE' }],
+        }
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).not.toEqual({ ok: false, error: { kind: 'no-contracts' } })
     })
 })

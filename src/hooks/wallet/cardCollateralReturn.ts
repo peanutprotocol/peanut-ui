@@ -15,6 +15,7 @@ import {
 } from '@/services/rain'
 import { isRainBalanceKnown, rainCentsToUsdcUnits, usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { isUserCancellation as isDismissedPrompt } from '@/utils/rain-funding.utils'
+import { toSubmitWithdrawalInput } from '@/utils/rainWithdraw.utils'
 import { isUserOpRevertedError } from '@/utils/userop-rescue.utils'
 import { isUserCancellation as isDismissedCeremony, sameAddress } from './spendPreflight'
 
@@ -498,19 +499,7 @@ export async function returnCardCollateral(deps: CollateralReturnDeps): Promise<
     if (via === 'grant') {
         deps.pending.set(deps.owner, { via, preparationId: prep.preparationId })
         try {
-            const { txHash } = await deps.submit({
-                preparedCoordinatorAddress: prep.coordinatorAddress,
-                preparationId: prep.preparationId,
-                amount: prep.amount,
-                recipientAddress: prep.recipientAddress,
-                directTransfer: prep.directTransfer,
-                adminSalt: prep.adminSalt,
-                adminNonce: prep.adminNonce,
-                adminSignature,
-                executorSignature: prep.executorSignature,
-                executorSalt: prep.executorSalt,
-                expiresAt: prep.expiresAt,
-            })
+            const { txHash } = await deps.submit(toSubmitWithdrawalInput(prep, adminSignature))
             deps.pending.settle(deps.owner)
             return { kind: 'returned', via, preparationId: prep.preparationId, txHash }
         } catch (e) {

@@ -68,8 +68,8 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
     /**
      * Shared passkey + serialize step. Produces the serialized permission
-     * string but does NOT hit any backend endpoint. Requires the collateral
-     * proxy + coordinator addresses (available once Rain has approved KYC).
+     * string but does NOT hit any backend endpoint. Requires the coordinator
+     * address (available once Rain has approved KYC); the policy targets only it.
      *
      * The coordinator is read from a FRESH overview fetch, never the cached
      * one: it surfaces the latest SERVER metadata, which a failed Rain
@@ -90,9 +90,8 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 },
             }
         }
-        const collateralProxy = fresh.data.status?.contractAddress as Address | undefined
         const coordinatorAddress = fresh.data.status?.coordinatorAddress as Address | undefined
-        if (!collateralProxy || !coordinatorAddress) {
+        if (!coordinatorAddress) {
             return { ok: false, error: { kind: 'no-contracts' } }
         }
 
