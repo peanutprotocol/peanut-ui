@@ -21,10 +21,17 @@ import {
     RainCooldownError,
     StaleCardApprovalError,
     type PrepareRainWithdrawalInput,
-    type PrepareRainWithdrawalResponse,
-    type RainCardOverview,
     type RainWithdrawalStatus,
 } from '@/services/rain'
+import {
+    EXPIRES_AT,
+    HEX32,
+    SIG,
+    WALLET,
+    cardOverview as overview,
+    preparedWithdrawal as prepared,
+    resetPreparations,
+} from '@/test-utils/cardReturnFixtures'
 import {
     CollateralReturnError,
     PendingCollateralReturns,
@@ -33,66 +40,15 @@ import {
     type CollateralReturnDeps,
 } from '../cardCollateralReturn'
 
-const WALLET = '0x1111111111111111111111111111111111111111'
 const OTHER = '0x2222222222222222222222222222222222222222'
 const COORDINATOR = '0x3333333333333333333333333333333333333333'
-const PROXY = '0x4444444444444444444444444444444444444444'
-const TOKEN = '0x5555555555555555555555555555555555555555'
-const HEX32 = `0x${'ab'.repeat(32)}`
-const SIG = `0x${'cd'.repeat(65)}` as const
 const TX = `0x${'ee'.repeat(32)}` as Hash
 const OTHER_TX = `0x${'99'.repeat(32)}` as Hash
 const USER_OP = `0x${'77'.repeat(32)}` as Hash
 const OWNER = `user-1:${WALLET}`
-const EXPIRES_AT = 1_800_000_600
 const NOW_MS = 1_800_000_000_000
 /** Past the signature expiry and the API's 5-minute margin. */
 const AFTER_EXPIRY_MS = (EXPIRES_AT + 5 * 60 + 1) * 1000
-
-const overview = (
-    spendingPower: number | null,
-    { grant = true, unavailable = false, pendingCharges = 0 } = {}
-): RainCardOverview => ({
-    status: { hasApplication: true },
-    balance:
-        spendingPower === null
-            ? null
-            : { creditLimit: 0, spendingPower, pendingCharges, postedCharges: 0, balanceDue: 0 },
-    ...(unavailable ? { balanceUnavailable: true } : {}),
-    cards: [
-        {
-            id: 'card-1',
-            rainCardId: 'rain-1',
-            last4: '0420',
-            expiryMonth: 6,
-            expiryYear: 2069,
-            status: 'ACTIVE',
-            network: 'visa',
-            issuedAt: '2026-01-01T00:00:00Z',
-            hasWithdrawApproval: grant,
-        },
-    ],
-})
-
-let prepCount = 0
-const prepared = (input: PrepareRainWithdrawalInput, over: Partial<PrepareRainWithdrawalResponse> = {}) => ({
-    preparationId: `prep-${++prepCount}`,
-    coordinatorAddress: COORDINATOR,
-    collateralProxy: PROXY,
-    adminAddress: WALLET,
-    chainId: '137',
-    tokenAddress: TOKEN,
-    // cents in, USDC units out
-    amount: (BigInt(input.amount) * 10_000n).toString(),
-    recipientAddress: input.recipientAddress,
-    directTransfer: input.directTransfer,
-    adminSalt: HEX32,
-    adminNonce: '0',
-    executorSignature: SIG,
-    executorSalt: HEX32,
-    expiresAt: EXPIRES_AT,
-    ...over,
-})
 
 const status = (
     state: RainWithdrawalStatus['state'],
@@ -176,7 +132,7 @@ const failure = async (promise: Promise<unknown>) => {
 const noGrant = () => jest.fn(async () => overview(1_234, { grant: false }))
 
 beforeEach(() => {
-    prepCount = 0
+    resetPreparations()
     storage = memoryStorage()
 })
 
@@ -646,21 +602,25 @@ describe('returnCardCollateral — root path (no stored permission)', () => {
             expect(deps.sendRootUserOp).toHaveBeenCalledTimes(2)
         })
 
+        /** An unknown root send, then an explicit retry after the signature window: both stay pending. */
+        const retryAfterExpiry = async (over: Partial<Record<keyof CollateralReturnDeps, unknown>>) => {
+            const deps = setup({ readOverview: noGrant(), sendRootUserOp: unknownSend(), ...over })
+            expect(await failure(returnCardCollateral(deps))).toBe('pending')
+            deps.nowMs = () => AFTER_EXPIRY_MS
+            expect(await failure(returnCardCollateral(deps))).toBe('pending')
+            return deps
+        }
+
         it.each([
             ['the chain check failed', new ApiError('Could not verify', { status: 503 })],
             ['the movement was found', new ApiError('already has an on-chain footprint', { status: 409 })],
             ['the signature can still execute', new ApiError('may still execute', { status: 409 })],
             ['the request failed', new Error('network')],
         ])('%s: stays pending, nothing new is sent', async (_label, error) => {
-            const deps = setup({
-                readOverview: noGrant(),
-                sendRootUserOp: unknownSend(),
+            const deps = await retryAfterExpiry({
                 readStatus: jest.fn(async () => status('pending', 'not_submitted')),
                 cancelVerified: jest.fn(() => Promise.reject(error)),
             })
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
-            deps.nowMs = () => AFTER_EXPIRY_MS
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
             expect(deps.cancelVerified).toHaveBeenCalledWith('prep-1')
             expect(deps.pending.get(OWNER)).toMatchObject({ preparationId: 'prep-1' })
             expect(deps.prepare).toHaveBeenCalledTimes(1)
@@ -668,46 +628,30 @@ describe('returnCardCollateral — root path (no stored permission)', () => {
         })
 
         it('a cancel accepted but not read back as cancelled stays pending', async () => {
-            const deps = setup({
-                readOverview: noGrant(),
-                sendRootUserOp: unknownSend(),
+            const deps = await retryAfterExpiry({
                 readStatus: jest
                     .fn()
                     .mockResolvedValueOnce(status('pending', 'not_submitted'))
                     .mockResolvedValue(status('pending', 'needs_reconciliation')),
             })
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
-            deps.nowMs = () => AFTER_EXPIRY_MS
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
             expect(deps.pending.get(OWNER)).toBeDefined()
             expect(deps.prepare).toHaveBeenCalledTimes(1)
         })
 
         it('evidence on record is never cancelled, even after expiry', async () => {
-            const deps = setup({
-                readOverview: noGrant(),
-                sendRootUserOp: unknownSend(),
-                readStatus: jest.fn(async () => status('pending', 'confirming')),
-            })
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
-            deps.nowMs = () => AFTER_EXPIRY_MS
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
+            const deps = await retryAfterExpiry({ readStatus: jest.fn(async () => status('pending', 'confirming')) })
             expect(deps.cancelVerified).not.toHaveBeenCalled()
         })
 
         it('a zero balance after expiry does not clear it without the verified cancel', async () => {
-            const deps = setup({
+            const deps = await retryAfterExpiry({
                 readOverview: jest
                     .fn()
                     .mockResolvedValueOnce(overview(1_234, { grant: false }))
                     .mockResolvedValue(overview(0, { grant: false })),
-                sendRootUserOp: unknownSend(),
                 readStatus: jest.fn(async () => status('pending', 'not_submitted')),
                 cancelVerified: jest.fn(() => Promise.reject(new ApiError('Could not verify', { status: 503 }))),
             })
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
-            deps.nowMs = () => AFTER_EXPIRY_MS
-            expect(await failure(returnCardCollateral(deps))).toBe('pending')
             expect(deps.readOverview).toHaveBeenCalledTimes(1)
             expect(deps.pending.get(OWNER)).toBeDefined()
         })

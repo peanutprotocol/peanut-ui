@@ -262,6 +262,8 @@ describe('useRainFunding.grant — consent gates', () => {
             const { out } = await runGrant()
             expect(out).toEqual({ ok: true, status })
             expect(mockEnsureClientForChain).not.toHaveBeenCalled()
+            // no card balance is moved for a state with nothing to sign
+            expect(mockReturnCollateral).not.toHaveBeenCalled()
             nothingSigned()
         }
     )
@@ -462,7 +464,20 @@ const switchIdentity = (hook: { rerender: () => void }, change: () => void) =>
     })
 
 describe('useRainFunding.grant — account or wallet change mid-flow', () => {
-    it('a switch of account while signing stops before the POST', async () => {
+    it.each([
+        [
+            'account',
+            () => {
+                mockUserId = 'user-b'
+            },
+        ],
+        [
+            'connected wallet',
+            () => {
+                mockConnectedAddress = OTHER_WALLET
+            },
+        ],
+    ])('a switch of %s while signing stops before the POST', async (_what, change) => {
         const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
         const gate = deferred()
         mockSignKernelPermission.mockImplementation(async () => {
@@ -471,33 +486,13 @@ describe('useRainFunding.grant — account or wallet change mid-flow', () => {
         })
         const pending = startGrant(hook)
         await waitFor(() => expect(mockSignKernelPermission).toHaveBeenCalled())
-        switchIdentity(hook, () => {
-            mockUserId = 'user-b'
-        })
+        switchIdentity(hook, change)
         gate.release()
 
         expect(await finish(pending)).toEqual({ ok: false, error: { kind: 'account-changed' } })
         expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
         // the second account's cache is never written with the first account's grant
         expect(client.getQueryData(['rain-card-funding', 'user-b'])).toBeUndefined()
-    })
-
-    it('a switch of connected wallet while signing stops before the POST', async () => {
-        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
-        const gate = deferred()
-        mockSignKernelPermission.mockImplementation(async () => {
-            await gate.promise
-            return 'SERIALIZED_PERMISSION'
-        })
-        const pending = startGrant(hook)
-        await waitFor(() => expect(mockSignKernelPermission).toHaveBeenCalled())
-        switchIdentity(hook, () => {
-            mockConnectedAddress = OTHER_WALLET
-        })
-        gate.release()
-
-        expect(await finish(pending)).toEqual({ ok: false, error: { kind: 'account-changed' } })
-        expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
     })
 
     it('a switch of account while the state is read signs nothing', async () => {
@@ -755,12 +750,6 @@ describe('useRainFunding.grant — card balance goes back to the wallet first', 
         expect(mockReturnCollateral).not.toHaveBeenCalled()
         expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
         nothingSigned()
-    })
-
-    it('other paused states are still nothing to sign', async () => {
-        mockGetCardFunding.mockResolvedValue(funding('temporarily_unavailable'))
-        const { out } = await runGrant()
-        expect(out).toEqual({ ok: true, status: 'temporarily_unavailable' })
     })
 
     it('a return that finds the permission already in place signs nothing more', async () => {

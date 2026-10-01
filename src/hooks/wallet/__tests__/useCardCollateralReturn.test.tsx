@@ -6,13 +6,13 @@
 import { act, renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { rainApi, type PrepareRainWithdrawalInput, type RainCardOverview } from '@/services/rain'
+import { rainApi, type PrepareRainWithdrawalInput } from '@/services/rain'
+import { SIG, cardOverview, preparedWithdrawal, resetPreparations } from '@/test-utils/cardReturnFixtures'
 
 const WALLET = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const OTHER_WALLET = '0x1111111111111111111111111111111111111111'
 const TX = `0x${'ee'.repeat(32)}`
 const USER_OP = `0x${'77'.repeat(32)}`
-const SIG = `0x${'cd'.repeat(65)}`
 
 jest.mock('@/services/rain', () => ({
     ...jest.requireActual('@/services/rain'),
@@ -58,23 +58,7 @@ import { useCardCollateralReturn } from '../useCardCollateralReturn'
 
 const api = rainApi as unknown as Record<keyof typeof rainApi, jest.Mock>
 
-const overview = (grant: boolean): RainCardOverview => ({
-    status: { hasApplication: true },
-    balance: { creditLimit: 0, spendingPower: 500, pendingCharges: 0, postedCharges: 0, balanceDue: 0 },
-    cards: [
-        {
-            id: 'card-1',
-            rainCardId: 'rain-1',
-            last4: '0420',
-            expiryMonth: 6,
-            expiryYear: 2069,
-            status: 'ACTIVE',
-            network: 'visa',
-            issuedAt: '2026-01-01T00:00:00Z',
-            hasWithdrawApproval: grant,
-        },
-    ],
-})
+const overview = (grant: boolean) => cardOverview(500, { grant })
 
 const client = (address: string) => ({ account: { address, signTypedData: jest.fn(async () => SIG) } })
 
@@ -90,22 +74,11 @@ beforeEach(() => {
     mockConnectedAddress = WALLET
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     api.getOverview.mockResolvedValue(overview(false))
-    api.prepareWithdrawal.mockImplementation(async (input: PrepareRainWithdrawalInput) => ({
-        preparationId: 'prep-1',
-        coordinatorAddress: '0x3333333333333333333333333333333333333333',
-        collateralProxy: '0x4444444444444444444444444444444444444444',
-        adminAddress: WALLET,
-        chainId: '42161',
-        tokenAddress: '0x5555555555555555555555555555555555555555',
-        amount: (BigInt(input.amount) * 10_000n).toString(),
-        recipientAddress: input.recipientAddress,
-        directTransfer: input.directTransfer,
-        adminSalt: `0x${'ab'.repeat(32)}`,
-        adminNonce: '0',
-        executorSignature: SIG,
-        executorSalt: `0x${'ab'.repeat(32)}`,
-        expiresAt: 1_800_000_600,
-    }))
+    resetPreparations()
+    // The wallet in these tests is the admin the provider signs for.
+    api.prepareWithdrawal.mockImplementation(async (input: PrepareRainWithdrawalInput) =>
+        preparedWithdrawal(input, { adminAddress: WALLET, chainId: '42161' })
+    )
     api.submitWithdrawal.mockResolvedValue({ txHash: TX })
     api.stampWithdrawal.mockResolvedValue(undefined)
     mockHandleSendUserOpEncoded.mockImplementation(
