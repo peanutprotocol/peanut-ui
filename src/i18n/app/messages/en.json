@@ -2757,6 +2757,7 @@
         "initiate": {
             "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
+            "titleIdentityDocumentMissing": "Complete your verification",
             "titleProviderRejection": "We need extra documents",
             "titleCrossRegion": "Unlock {region}",
             "titleCrossRegionGeneric": "Unlock this region",
@@ -3249,7 +3250,8 @@
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
-            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
+            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
+            "identity_document_missing": "We need an identity document and a selfie to complete your verification."
         }
     },
     "recoverFunds": {

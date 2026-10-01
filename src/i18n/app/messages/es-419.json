@@ -2757,6 +2757,7 @@
         "initiate": {
             "titleBlocked": "No pudimos desbloquear esto",
             "titleRestartIdentity": "Verifícate con otro documento",
+            "titleIdentityDocumentMissing": "Completa tu verificación",
             "titleProviderRejection": "Necesitamos documentos adicionales",
             "titleCrossRegion": "Desbloquea {region}",
             "titleCrossRegionGeneric": "Desbloquea esta región",
@@ -3249,7 +3250,8 @@
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que requieren los depósitos y retiros locales. Puedes verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
-            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado."
+            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado.",
+            "identity_document_missing": "Necesitamos un documento de identidad y una selfie para completar tu verificación."
         }
     },
     "recoverFunds": {

@@ -4,6 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
 import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import { type IdentityVerification, type IdentityVerificationStatus } from '@/types/capabilities'
+import { identityDocumentRestartAction } from '@/utils/provider-rejection.utils'
 import { useMemo } from 'react'
 
 /**
@@ -61,12 +62,20 @@ export interface UseIdentityVerificationResult {
      * support.
      */
     isEmailCollision: boolean
+    /**
+     * The approval has no identity document on file, and the API offers the
+     * identity restart for it (a top-level `restart-identity` action). The
+     * verify button must restart the check: the start route answers "already
+     * approved" for these users and opens nothing.
+     */
+    needsDocumentRestart: boolean
     isLoading: boolean
 }
 
 export function useIdentityVerification(): UseIdentityVerificationResult {
     const { user, isFetchingUser } = useAuth()
     const identity = user?.identityVerification ?? NOT_STARTED
+    const nextActions = user?.capabilities?.nextActions
 
     return useMemo(() => {
         const status = identity.status
@@ -93,7 +102,8 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
                     isTerminalRejection({ rejectType: identity.rejectType, rejectLabels: identity.rejectLabels })),
             isEmailCollision:
                 status === 'action_required' && (identity.rejectLabels?.includes(DUPLICATE_EMAIL_LABEL) ?? false),
+            needsDocumentRestart: !!identityDocumentRestartAction(nextActions ?? []),
             isLoading: isFetchingUser,
         }
-    }, [identity, isFetchingUser])
+    }, [identity, nextActions, isFetchingUser])
 }

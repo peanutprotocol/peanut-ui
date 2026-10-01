@@ -81,12 +81,14 @@ jest.mock('@/context/authContext', () => ({
 }))
 let mockRegionRestricted = false
 let mockIdentityReason: { code: string; userMessage: string } | undefined
+let mockNeedsDocumentRestart = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
         identity: { status: 'not_started', reason: mockIdentityReason },
         isProcessing: false,
         needsAction: false,
         isRegionRestricted: mockRegionRestricted,
+        needsDocumentRestart: mockNeedsDocumentRestart,
     }),
 }))
 let mockResidenceRestrictions = { banking: false, card: false }
@@ -178,6 +180,7 @@ beforeEach(() => {
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
     mockIdentityReason = undefined
+    mockNeedsDocumentRestart = false
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
@@ -201,7 +204,17 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
         fireEvent.click(screen.getByText('start-identity-check'))
         fireEvent.click(screen.getByText('initiate-kyc-modal'))
         expect(mockInitiateKyc).toHaveBeenCalledWith()
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('restarts the identity check instead when the approval has no identity document', () => {
+        mockNeedsDocumentRestart = true
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(screen.getByText('initiate-kyc-modal'))
+        expect(mockRestartIdentity).toHaveBeenCalledWith()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
     it('the QR ID check is the shared one (useQrIdentityCheck)', () => {

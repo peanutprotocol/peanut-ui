@@ -34,7 +34,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
-import { QrKycState } from '@/constants/kyc.consts'
+import { IDENTITY_DOCUMENT_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
 import { useQueryClient } from '@tanstack/react-query'
 import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
@@ -106,6 +106,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const tRegions = useTranslations('profile.regions')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
+    const tKyc = useTranslations('kyc')
     const locale = useLocale()
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
@@ -259,15 +260,27 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
 
     // Scoped like the rail above: a rejection on another country's rail is not
     // a verdict on this row. A provider-wide restriction marks every rail of
-    // that provider, so it still shows here.
+    // that provider, so it still shows here. The top-level actions go along
+    // because the missing-document restart belongs to no rail.
     const providerRejectionForRegion = useMemo(
-        () => deriveProviderRejection(clickedRegionRails, clickedRegionProvider === 'bridge' ? 'BRIDGE' : 'MANTECA'),
-        [clickedRegionRails, clickedRegionProvider]
+        () =>
+            deriveProviderRejection(
+                clickedRegionRails,
+                clickedRegionProvider === 'bridge' ? 'BRIDGE' : 'MANTECA',
+                nextActions
+            ),
+        [clickedRegionRails, clickedRegionProvider, nextActions]
     )
     const providerRejectionReasonKey = reasonCodeKey(providerRejectionForRegion.reasonCode)
     const providerRejectionMessage = providerRejectionReasonKey
         ? tIdentity(providerRejectionReasonKey)
         : providerRejectionForRegion.userMessage
+    // The restart serves two causes. An approval with no identity document asks
+    // for a first document, not a different one: same copy as the unlock modal.
+    const restartCopy =
+        providerRejectionForRegion.reasonCode === IDENTITY_DOCUMENT_MISSING_CODE
+            ? { title: tKyc('initiate.titleIdentityDocumentMissing'), cta: tKyc('initiate.ctaUnlockNow') }
+            : { title: tRegions('providerRejection.restartTitle'), cta: tRegions('providerRejection.restartTitle') }
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         clickedRegionProvider !== null &&
@@ -598,7 +611,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                     providerRejectionForRegion.state === 'fixable'
                         ? tRegions('providerRejection.fixableTitle')
                         : providerRejectionForRegion.state === 'restart-identity'
-                          ? tRegions('providerRejection.restartTitle')
+                          ? restartCopy.title
                           : tRegions('providerRejection.unavailableTitle')
                 }
                 description={
@@ -638,7 +651,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                           }
                         : providerRejectionForRegion.state === 'restart-identity'
                           ? {
-                                text: tRegions('providerRejection.restartTitle'),
+                                text: restartCopy.cta,
                                 onClick: () => {
                                     handleModalClose()
                                     flow.handleRestartIdentity()

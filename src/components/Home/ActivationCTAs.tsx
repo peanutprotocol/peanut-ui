@@ -57,7 +57,7 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
     const router = useRouter()
     const { openSupportWithMessage } = useModalsContext()
     const { user } = useAuth()
-    const { isRegionRestricted, identity } = useIdentityVerification()
+    const { isRegionRestricted, identity, needsDocumentRestart } = useIdentityVerification()
 
     const {
         blockedCard,
@@ -222,8 +222,11 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
                     cooldownActive={!!kycFlow.errorCooldown}
                     visible={showInitiateKyc}
                     onClose={() => setShowInitiateKyc(false)}
-                    // no corridor: the one ID check, the same start the status drawer resumes
-                    onVerify={() => void kycFlow.handleInitiateKyc()}
+                    // no corridor: the one ID check, the same start the status drawer
+                    // resumes, and the same restart when the approval has no document
+                    onVerify={() =>
+                        void (needsDocumentRestart ? kycFlow.handleRestartIdentity() : kycFlow.handleInitiateKyc())
+                    }
                     onContactSupport={() => {
                         setShowInitiateKyc(false)
                         openSupportWithMessage(buildContactSupportMessage({ userId: user?.user?.userId }))
