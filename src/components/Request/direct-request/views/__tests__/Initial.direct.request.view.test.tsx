@@ -203,7 +203,7 @@ describe('addressed requests', () => {
         expect(screen.getByRole('button', { name: 'Request' })).toBeEnabled()
         fireEvent.click(screen.getByRole('button', { name: 'Request' }))
         await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
-        expect(screen.getByTestId('payment-success')).toHaveTextContent('They choose the amount')
+        expect(screen.getByTestId('payment-success')).toHaveTextContent('Their choice')
         expect(mockRequestByUsername).toHaveBeenCalledWith(expect.objectContaining({ username: 'alice', amount: '' }))
     })
 

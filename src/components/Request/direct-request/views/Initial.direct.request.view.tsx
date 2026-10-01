@@ -351,7 +351,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         // currencyAmount is shown as given, in place of an amount the requestee chooses
                         {...(currentInputValue
                             ? { amount: formatAmount(currentInputValue) }
-                            : { currencyAmount: t('theyChooseAmount') })}
+                            : { currencyAmount: t('theirChoice') })}
                         message={attachmentOptions.message}
                         type="REQUEST"
                     />

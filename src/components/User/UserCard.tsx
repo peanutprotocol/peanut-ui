@@ -77,7 +77,7 @@ const UserCard = ({
     }, [type, fullName, username, t])
 
     const getAddressLinkTitle = () => {
-        if (isOpenAmount) return t('userCard.youChooseAmount')
+        if (isOpenAmount) return t('userCard.yourChoice')
         if (isRequestPot && amount && amount > 0) return `$${amount}` // If goal is set.
         if (!amount && isRequestPot) return t('userCard.payWhatYouWant') // If no goal is set.
 

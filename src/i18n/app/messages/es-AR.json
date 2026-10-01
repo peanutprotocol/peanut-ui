@@ -1605,7 +1605,7 @@
         },
         "userCard": {
             "payWhatYouWant": "Cualquier monto",
-            "youChooseAmount": "Vos elegís el monto",
+            "yourChoice": "Vos elegís",
             "sendExactAmount": "¡Enviá el monto exacto!"
         },
         "iosCopy": {
