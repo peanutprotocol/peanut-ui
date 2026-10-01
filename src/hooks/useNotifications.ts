@@ -11,6 +11,7 @@ import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
+import { HOME_FALLBACK_MIN_SESSION, PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
@@ -38,6 +39,9 @@ interface NotificationsState {
     sdkReady: boolean
     oneSignalInitialized: boolean
     showPermissionModal: boolean
+    /** the moment that opened the pre-prompt; kept after it closes so the
+     *  closing modal keeps its copy */
+    promptTrigger: PushPromptTrigger | null
     isRequestingPermission: boolean
 }
 
@@ -47,6 +51,7 @@ const INITIAL_STATE: NotificationsState = {
     sdkReady: false,
     oneSignalInitialized: false,
     showPermissionModal: false,
+    promptTrigger: null,
     isRequestingPermission: false,
 }
 
@@ -79,7 +84,12 @@ let lastLinkedExternalId: string | null = null
 // starting another login() (the double-record race behind TASK-22209)
 let loginInFlight: { id: string; token: object; promise: Promise<void> } | null = null
 let disableExternalIdLogin = false
-let hasTrackedModalShown = false
+// A session is one app load. One pre-prompt per session at most, and the
+// session count gates the Home fallback.
+let promptShownThisSession = false
+const countedSessions = new Set<string>()
+// the moment behind the OS dialog, for the permission events that follow it
+let permissionRequestTrigger: PushPromptTrigger | null = null
 let initStarted = false
 
 function handleLoginError(err: unknown) {
@@ -151,64 +161,78 @@ async function syncExternalIdLink() {
     }
 }
 
-// determine if permission modal should be shown (once per user)
-async function evaluateVisibility() {
-    if (!state.sdkReady || !state.oneSignalInitialized) return
+interface PushStatus {
+    permission: NotificationPermissionState
+    optedIn: boolean
+}
 
-    let granted = false
-    let optedIn = false
+async function readPushStatus(): Promise<PushStatus | null> {
     try {
         const adapter = await getOneSignalAdapter()
-        granted = (await adapter.getPermission()) === 'granted'
-        optedIn = await adapter.isOptedIn()
+        return { permission: await adapter.getPermission(), optedIn: await adapter.isOptedIn() }
     } catch {
-        return
+        return null
     }
-    setState({ isPushOptedIn: optedIn })
+}
 
-    // if permission is granted, hide modal
-    if (granted) {
-        setState({ showPermissionModal: false })
-        return
+// The OS dialog is one-shot: once it has an answer, or OneSignal already holds
+// an opt-in, no pre-prompt may ask again. A denied user is left to the
+// carousel CTA, which opens the OS settings.
+function isPushUnanswered({ permission, optedIn }: PushStatus): boolean {
+    return permission === 'default' && !optedIn && state.permissionState !== 'denied'
+}
+
+// hide the pre-prompt once push is answered
+async function evaluateVisibility() {
+    if (!state.sdkReady || !state.oneSignalInitialized) return
+    const status = await readPushStatus()
+    if (!status) return
+    setState({ isPushOptedIn: status.optedIn })
+    if (!isPushUnanswered(status)) setState({ showPermissionModal: false })
+}
+
+const isWithinSnooze = (closedAt: string) => Date.now() - new Date(closedAt).getTime() < NOTIF_PROMPT_SNOOZE_MS
+
+function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
+    const userPreferences = getUserPreferences(userId)
+    if (trigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK) {
+        const closedAt = userPreferences?.notifPromptClosedAt?.[trigger]
+        return !!closedAt && isWithinSnooze(closedAt)
     }
-
-    const userPreferences = getUserPreferences(currentExternalId ?? undefined)
-    // migration window (TASK-20771): "Not now" snoozes instead of dismissing
-    // forever — the custom pre-prompt exists so we CAN re-ask later. Legacy
-    // `notifModalClosed: true` (no timestamp) converts to a snooze starting
-    // now, same trick as getDismissedCTAs. Flag off keeps the old
-    // closed-forever behavior.
+    if ((userPreferences?.sessionCount ?? 0) < HOME_FALLBACK_MIN_SESSION) return true
+    // The Home fallback snoozes on the last "Not now" of any pre-prompt.
+    // Migration window (TASK-20771): "Not now" snoozes instead of dismissing
+    // forever. Legacy `notifModalClosed: true` (no timestamp) converts to a
+    // snooze starting now, same trick as getDismissedCTAs. Flag off keeps the
+    // old closed-forever behavior.
     let closedAt = userPreferences?.notifModalClosedAt
     if (!closedAt && userPreferences?.notifModalClosed) {
         closedAt = new Date().toISOString()
-        updateUserPreferences(currentExternalId ?? undefined, { notifModalClosedAt: closedAt })
+        updateUserPreferences(userId, { notifModalClosedAt: closedAt })
     }
-    const snoozeExpired = !!closedAt && Date.now() - new Date(closedAt).getTime() >= NOTIF_PROMPT_SNOOZE_MS
-    const modalClosed = !!closedAt && !(isPwaSunsetOn() && snoozeExpired)
-
-    // don't show modal if permission is denied (carousel cta will handle it)
-    if (state.permissionState === 'denied') {
-        setState({ showPermissionModal: false })
-        return
-    }
-
-    // if permission is default and user already opted in at onesignal level, hide modal
-    if (optedIn) {
-        setState({ showPermissionModal: false })
-        return
-    }
-
-    // show modal only if user hasn't closed it yet
-    if (!modalClosed) {
-        setState({ showPermissionModal: true })
-        if (!hasTrackedModalShown) {
-            hasTrackedModalShown = true
-            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS })
-        }
-    } else {
-        setState({ showPermissionModal: false })
-    }
+    return !!closedAt && (!isPwaSunsetOn() || isWithinSnooze(closedAt))
 }
+
+/**
+ * Ask for push at a money moment (TASK-23251). Shows the pre-prompt with the
+ * copy for `trigger`, unless push is already answered, this session already
+ * showed a pre-prompt, or "Not now" snoozed this moment. Safe to call every
+ * time the moment happens.
+ */
+export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void> {
+    const userId = currentExternalId
+    if (promptShownThisSession || !state.oneSignalInitialized || !userId) return
+    const status = await readPushStatus()
+    // re-checked after the await: two moments can land in the same tick
+    if (!status || promptShownThisSession || !isPushUnanswered(status)) return
+    if (isPromptSnoozed(trigger, userId)) return
+    promptShownThisSession = true
+    setState({ showPermissionModal: true, promptTrigger: trigger })
+    posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
+}
+
+// the trigger of the pre-prompt on screen, null for the carousel and waitlist asks
+const activePromptTrigger = () => (state.showPermissionModal ? state.promptTrigger : null)
 
 // initialize onesignal (web or native) via the platform adapter, once per page
 async function ensureInitialized() {
@@ -237,10 +261,13 @@ async function ensureInitialized() {
             evaluateVisibility()
 
             // track the resulting permission state
+            const trigger = permissionRequestTrigger
             if (permissionState === 'granted') {
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_GRANTED)
+                permissionRequestTrigger = null
+                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_GRANTED, { trigger })
             } else if (permissionState === 'denied') {
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED)
+                permissionRequestTrigger = null
+                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED, { trigger })
             }
         })
 
@@ -298,9 +325,16 @@ async function ensureInitialized() {
     }
 }
 
+function countSession(userId: string) {
+    if (countedSessions.has(userId)) return
+    countedSessions.add(userId)
+    updateUserPreferences(userId, { sessionCount: (getUserPreferences(userId)?.sessionCount ?? 0) + 1 })
+}
+
 function setExternalId(externalId: string | null) {
     if (currentExternalId === externalId) return
     currentExternalId = externalId
+    if (externalId) countSession(externalId)
     syncExternalIdLink()
     evaluateVisibility()
 }
@@ -322,7 +356,8 @@ async function requestPermission(): Promise<NotificationPermissionState> {
     if (typeof window === 'undefined' || !state.oneSignalInitialized) return 'default'
 
     setState({ isRequestingPermission: true })
-    posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED)
+    permissionRequestTrigger = activePromptTrigger()
+    posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED, { trigger: permissionRequestTrigger })
 
     try {
         const adapter = await getOneSignalAdapter()
@@ -347,26 +382,41 @@ async function requestPermission(): Promise<NotificationPermissionState> {
     }
 }
 
+// Snoozes the moment that asked. The legacy fields snooze the Home fallback;
+// `notifModalClosed` is kept so bundles predating notifModalClosedAt stay closed.
+function recordPromptClosed(trigger: PushPromptTrigger | null) {
+    const userId = currentExternalId ?? undefined
+    const closedAt = new Date().toISOString()
+    updateUserPreferences(userId, {
+        notifModalClosed: true,
+        notifModalClosedAt: closedAt,
+        ...(trigger && {
+            notifPromptClosedAt: { ...getUserPreferences(userId)?.notifPromptClosedAt, [trigger]: closedAt },
+        }),
+    })
+}
+
 // close modal when user dismisses it
 function closePermissionModal() {
+    const trigger = activePromptTrigger()
     setState({ showPermissionModal: false })
-    // legacy boolean kept so bundles predating notifModalClosedAt stay closed
-    updateUserPreferences(currentExternalId ?? undefined, {
-        notifModalClosed: true,
-        notifModalClosedAt: new Date().toISOString(),
-    })
-    posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS })
+    recordPromptClosed(trigger)
+    posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
 }
 
 // update permission state after user interacts with permission prompt
 async function afterPermissionAttempt() {
-    // mark modal as closed (permanent flag-off; 14-day snooze while the
-    // native-migration flag is on — see evaluateVisibility)
-    updateUserPreferences(currentExternalId ?? undefined, {
-        notifModalClosed: true,
-        notifModalClosedAt: new Date().toISOString(),
-    })
+    // an OS dialog the user closed without answering snoozes like "Not now"
+    const trigger = activePromptTrigger()
+    setState({ showPermissionModal: false })
+    recordPromptClosed(trigger)
     await refreshPermissionState()
+}
+
+export function resetPushPromptForTests() {
+    promptShownThisSession = false
+    permissionRequestTrigger = null
+    setState({ showPermissionModal: false, promptTrigger: null })
 }
 
 export function useNotifications() {
@@ -384,6 +434,7 @@ export function useNotifications() {
 
     return {
         showPermissionModal: snapshot.showPermissionModal,
+        promptTrigger: snapshot.promptTrigger,
         requestPermission,
         closePermissionModal,
         afterPermissionAttempt,

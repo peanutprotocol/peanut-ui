@@ -12,6 +12,8 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { offerPushPrompt } from '@/hooks/useNotifications'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { useAuth } from '@/context/authContext'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
@@ -137,6 +139,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             })
             setLoadingState('Idle')
             setView('success')
+            void offerPushPrompt(PUSH_PROMPT_TRIGGERS.REQUEST_CREATED)
         } catch (error) {
             const status = apiErrorStatus(error)
             let errorMessage = t('errors.createRequestFailed')
