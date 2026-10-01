@@ -11,7 +11,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import StoreButtons from '@/components/Migration/StoreButtons'
@@ -20,6 +20,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
+import { SetupLanguageSwitcher } from '@/components/Setup/components/SetupLanguageSwitcher'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
@@ -64,7 +65,7 @@ const LandingStep = () => {
     }
 
     return (
-        <div className="flex flex-col gap-4 pt-4">
+        <div className="flex flex-col gap-2">
             {blockSignup ? (
                 <div className="space-y-2 pb-2">
                     {/* heading only above the desktop QR — a lone store button
@@ -77,7 +78,7 @@ const LandingStep = () => {
             ) : (
                 <Button
                     shadowSize="4"
-                    // native only: mid-ceremony Sign Up taps flashed the waitlist
+                    // native only: mid-ceremony Sign Up taps flashed the next setup
                     // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
                     // pend minutes — Sign Up must stay an escape hatch there, and a
                     // mid-ceremony register fails cleanly as CeremonyConflictError.
@@ -100,12 +101,12 @@ const LandingStep = () => {
             >
                 {t('logIn')}
             </Button>
-            <div className="pt-2 text-center">
-                {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
-                <DocsLink href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
+            <div className="pt-1 text-center">
+                <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
                     {t('landing.recoverWallet')}
-                </DocsLink>
+                </SetupDocLink>
             </div>
+            <SetupLanguageSwitcher />
         </div>
     )
 }

@@ -77,7 +77,7 @@ describe('ResidenceStep', () => {
 
     it('disables Continue until a country is chosen', () => {
         render(<ResidenceStep />)
-        expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: "That's my home" })).toBeDisabled()
     })
 
     // The chrome h1 is suppressed for this step (titleInView), so each view
@@ -147,7 +147,7 @@ describe('ResidenceStep', () => {
     it('replaces Next with one main-residence button per declared country', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: "That's my home" })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Select Brazil' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Select Germany' })).toBeInTheDocument()
     })
@@ -189,7 +189,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
         mockSetupState = { residenceCountry: 'DE', secondResidenceCountry: '' }
         view.rerender(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
             expect.objectContaining({ residence_country: 'DE', was_prefilled: false })
@@ -208,7 +208,7 @@ describe('ResidenceStep', () => {
     it('shows the congrats screen for an unrestricted residence and continues on demand', () => {
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
             expect.objectContaining({ residence_country: 'BR' })
@@ -241,7 +241,7 @@ describe('ResidenceStep', () => {
         // bank transfers there — the rail clause disappears entirely.
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         // the rail clause disappears; the card clause is self-contained, so the
         // same string serves both branches
         expect(screen.getByText(/work right away\./)).toBeInTheDocument()
@@ -258,7 +258,7 @@ describe('ResidenceStep', () => {
         mockRestrictionSetsSettled = false
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(mockHandleNext).toHaveBeenCalled()
         expect(screen.queryByText('Good news')).not.toBeInTheDocument()
         expect(mockedCapture).not.toHaveBeenCalledWith(
@@ -273,7 +273,7 @@ describe('ResidenceStep', () => {
         // not outlive the data it was based on.
         mockSetupState.residenceCountry = 'BR'
         const view = render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
         const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
         const local = actual.LOCAL_RESIDENCE_RESTRICTION_SETS
@@ -305,7 +305,7 @@ describe('ResidenceStep', () => {
     it('returns to the selector from the congrats screen', () => {
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Good news')).not.toBeInTheDocument()
         expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
@@ -316,7 +316,7 @@ describe('ResidenceStep', () => {
     it('treats Hong Kong as unrestricted', () => {
         mockSetupState.residenceCountry = 'HK'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
     })
@@ -327,7 +327,7 @@ describe('ResidenceStep', () => {
         (iso2) => {
             mockSetupState.residenceCountry = iso2
             render(<ResidenceStep />)
-            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
             expect(mockHandleNext).not.toHaveBeenCalled()
             expect(screen.getAllByRole('heading')).toHaveLength(1)
             expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
@@ -366,7 +366,7 @@ describe('ResidenceStep', () => {
     ])('shows the partial heads-up for %s (%s restriction) and continues on demand', (iso2, kind) => {
         mockSetupState.residenceCountry = iso2
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(screen.getAllByRole('heading')).toHaveLength(1)
         expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
@@ -400,7 +400,7 @@ describe('ResidenceStep', () => {
     it('lets a restricted resident continue anyway', () => {
         mockSetupState.residenceCountry = 'GB'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByRole('button', { name: 'Continue anyway' }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED,
@@ -412,7 +412,7 @@ describe('ResidenceStep', () => {
     it('captures a valid email on the notify exit and rejects an invalid one', () => {
         mockSetupState.residenceCountry = 'RU'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByRole('button', { name: 'Notify me when it is available' }))
 
         const input = screen.getByPlaceholderText('you@example.com')
@@ -439,7 +439,7 @@ describe('ResidenceStep', () => {
     it('returns to the selector from the heads-up', () => {
         mockSetupState.residenceCountry = 'CN'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
@@ -484,7 +484,7 @@ describe('ResidenceStep', () => {
         it('returns to the selector from a heads-up sub-view', () => {
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
-            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
             expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
 
             let consumed = false
@@ -499,14 +499,14 @@ describe('ResidenceStep', () => {
         it('returns to the selector from the congrats view', () => {
             mockSetupState.residenceCountry = 'BR'
             render(<ResidenceStep />)
-            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
             expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
 
             act(() => {
                 dispatchBackPress()
             })
             expect(screen.queryByText('Good news')).not.toBeInTheDocument()
-            expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: "That's my home" })).toBeInTheDocument()
         })
 
         it('does not intercept on the selector itself', () => {
@@ -517,7 +517,7 @@ describe('ResidenceStep', () => {
         it('consumes but holds the sub-view while the step is advancing', () => {
             mockSetupState.residenceCountry = 'CN'
             const view = render(<ResidenceStep />)
-            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
             mockIsLoading = true
             view.rerender(<ResidenceStep />)
 

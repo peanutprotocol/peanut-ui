@@ -16,6 +16,10 @@ const mockIsConfirmedBadgeCampaignClaim = jest.fn()
 const mockIsUnavailableBadgeCampaignClaim = jest.fn()
 const mockPersistRegistrationBadgeCampaignDestination = jest.fn()
 const mockSettleShhhhhCampaignContinuation = jest.fn()
+const mockEnsureSignupAttributionForRegistration = jest.fn()
+const mockMarkSignupAttributionPending = jest.fn()
+const mockAttachSignupAttribution = jest.fn()
+const mockSignupAnalyticsState = jest.fn()
 let mockPendingBadgeCampaigns: string[] = []
 
 jest.mock('@/context/authContext', () => ({
@@ -57,7 +61,9 @@ const mockClearInvite = jest.fn()
 jest.mock('@/utils/invite-stash', () => ({
     readInviteCode: () => 'founderhaus',
     readInviteType: () => 'PAYMENT_LINK',
-    clearInvite: (...args: unknown[]) => mockClearInvite(...args),
+    bindInviteToUser: () => true,
+    clearInviteIfOwnedBy: (...args: unknown[]) => mockClearInvite(...args),
+    extendInviteForRetry: jest.fn(),
 }))
 jest.mock('@/utils/general.utils', () => ({
     updateUserPreferences: jest.fn(),
@@ -102,6 +108,14 @@ jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => m
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'localhost' }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+jest.mock('@/utils/signup-attribution', () => ({
+    ensureSignupAttributionForRegistration: (...args: unknown[]) => mockEnsureSignupAttributionForRegistration(...args),
+    markSignupAttributionPending: (...args: unknown[]) => mockMarkSignupAttributionPending(...args),
+    signupAnalyticsState: (...args: unknown[]) => mockSignupAnalyticsState(...args),
+}))
+jest.mock('@/services/signup-attribution', () => ({
+    attachSignupAttribution: (...args: unknown[]) => mockAttachSignupAttribution(...args),
+}))
 
 describe('useZeroDev registration invite boundary', () => {
     beforeEach(() => {
@@ -110,12 +124,50 @@ describe('useZeroDev registration invite boundary', () => {
         mockToWebAuthnKey.mockResolvedValue({ id: 'new-passkey' })
         mockSettleAcceptedInviteAcquisition.mockReturnValue({ destination: '/home', pending: [] })
         mockSettleShhhhhCampaignContinuation.mockReturnValue(undefined)
+        mockEnsureSignupAttributionForRegistration.mockResolvedValue({ journeyId: 'signup-journey' })
+        mockMarkSignupAttributionPending.mockResolvedValue(undefined)
+        mockAttachSignupAttribution.mockResolvedValue(undefined)
+        mockSignupAnalyticsState.mockReturnValue('enabled')
         mockIsConfirmedBadgeCampaignClaim.mockImplementation(
             (claim: { outcome?: string }) => claim.outcome === 'awarded' || claim.outcome === 'already_owned'
         )
         mockIsUnavailableBadgeCampaignClaim.mockImplementation((claim: { outcome?: string }) =>
             ['inactive', 'expired', 'unknown'].includes(claim.outcome ?? '')
         )
+    })
+
+    it('durably prepares attribution before registration and only arms attachment when a context exists', async () => {
+        mockAcceptInvite.mockResolvedValue({
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            claims: [],
+        })
+        const { result } = renderHook(() => useZeroDev())
+
+        await act(async () => result.current.handleRegister('new-user'))
+
+        expect(mockEnsureSignupAttributionForRegistration).toHaveBeenCalledTimes(1)
+        expect(mockEnsureSignupAttributionForRegistration.mock.invocationCallOrder[0]).toBeLessThan(
+            mockToWebAuthnKey.mock.invocationCallOrder[0]
+        )
+        expect(mockMarkSignupAttributionPending).toHaveBeenCalledWith('registered-user')
+        expect(mockAttachSignupAttribution).toHaveBeenCalledWith('registered-user')
+        expect(mockToWebAuthnKey).toHaveBeenCalledWith(
+            expect.objectContaining({
+                passkeyServerHeaders: expect.objectContaining({ 'x-signup-analytics-state': 'enabled' }),
+            })
+        )
+
+        jest.clearAllMocks()
+        mockToWebAuthnKey.mockResolvedValue({ id: 'new-passkey' })
+        mockEnsureSignupAttributionForRegistration.mockResolvedValue(null)
+        mockAttachSignupAttribution.mockResolvedValue(undefined)
+
+        await act(async () => result.current.handleRegister('another-user'))
+
+        expect(mockMarkSignupAttributionPending).not.toHaveBeenCalled()
+        expect(mockAttachSignupAttribution).toHaveBeenCalledWith('registered-user')
     })
 
     it.each(['awarded', 'inactive'] as const)(

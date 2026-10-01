@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 
@@ -40,10 +40,14 @@ const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: ()
                             <p>{t('backup')}</p>
                             <p>{t('privacy')}</p>
                             <p>
-                                {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
-                                <DocsLink href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
+                                <SetupDocLink
+                                    kind="passkeys"
+                                    href="/en/help/passkeys"
+                                    className={LINK_BUTTON_CLASSES}
+                                    onBeforeOpen={onClose}
+                                >
                                     {t('fullGuide')}
-                                </DocsLink>
+                                </SetupDocLink>
                             </p>
                         </div>
                         <Button variant="primary" shadowSize="4" className="w-full justify-center" onClick={onClose}>

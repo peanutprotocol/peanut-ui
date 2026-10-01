@@ -8,6 +8,7 @@ import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
+import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
@@ -60,8 +61,14 @@ function SetupPageContent() {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, resetSetupFlow, setNoBackLockScreenId, setSignupEntryFlow } = useSetupFlowContext()
+    const { steps, setNoBackLockScreenId, setSignupEntryFlow } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
+    useEffect(() => {
+        const nextImage = steps[currentStepIndex + 1]?.image
+        if (nextImage && 'pose' in nextImage) {
+            void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
+        }
+    }, [steps, currentStepIndex])
     const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
     // The entry effect must run once per steps-identity, never per step change:
@@ -98,7 +105,6 @@ function SetupPageContent() {
         [searchParamsString]
     )
     const [sessionChecked, setSessionChecked] = useState(false)
-    const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
     /*
      * A completed session is on its way to /home (see the session effect
      * below), but the soft nav takes a beat and this page keeps rendering and
@@ -130,12 +136,7 @@ function SetupPageContent() {
     const recoveryReason = isLeavingForHome
         ? null
         : (initializationError ??
-          (!isLoading &&
-          sessionChecked &&
-          !step &&
-          !existingSessionUsername &&
-          !showDeviceNotSupportedModal &&
-          !showBrowserNotSupportedModal
+          (!isLoading && sessionChecked && !step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal
               ? 'missing_step'
               : null))
 
@@ -165,21 +166,19 @@ function SetupPageContent() {
         return () => clearTimeout(timeout)
     }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
 
-    // only count steps that actually render: not while the entry step is
-    // being determined, and not behind the existing-session interstitial
-    // or the unsupported-device/browser modals
+    // Only count steps that actually render, not while the entry step is being
+    // determined or behind unsupported-device/browser modals.
     const stepRendered =
         !!step &&
         !recoveryReason &&
         !isLoading &&
         sessionChecked &&
-        !existingSessionUsername &&
         !showDeviceNotSupportedModal &&
         !showBrowserNotSupportedModal
 
     // Arm the point of no return only for a step the user actually SEES —
-    // stepRendered excludes entry-resolution loading, the existing-session
-    // interstitial, and the unsupported modals. A stale terminal URL
+    // stepRendered excludes entry-resolution loading and unsupported modals.
+    // A stale terminal URL
     // (?screen=sign-test-transaction in a fresh session) must stay unlockable
     // so the entry resolver can replace it (Chip review round 2).
     useEffect(() => {
@@ -226,82 +225,73 @@ function SetupPageContent() {
                 : getPendingBadgeCampaigns()
 
         if (user?.user?.username) {
-            /*
-             * A COMPLETED session (hasAppAccess) that lands back on /setup — e.g. a
-             * native cold start that restored this route — goes straight home; the
-             * interstitial is reserved for the half-finished-signup case it was
-             * written for (durable credentials, setup never completed).
-             */
-            if (user.user.hasAppAccess) {
-                const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
-                const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
-                const shouldSettleNativeBadgeCampaigns =
-                    isCapacitor() &&
-                    pendingBadgeCampaigns.length > 0 &&
-                    (nativeClaimCampaignsKeyRef.current !== nativeClaimCampaignsKey ||
-                        nativeClaimGenerationRef.current !== nativeClaimDeepLinkGeneration)
-                if (shouldSettleNativeBadgeCampaigns) {
-                    const nativeClaimRunId = nativeClaimRunIdRef.current + 1
-                    nativeClaimRunIdRef.current = nativeClaimRunId
-                    nativeClaimCampaignsKeyRef.current = nativeClaimCampaignsKey
-                    nativeClaimGenerationRef.current = nativeClaimDeepLinkGeneration
-                    const isCurrentNativeClaim = () =>
-                        isSetupMountedRef.current &&
-                        nativeClaimRunIdRef.current === nativeClaimRunId &&
-                        getDeepLinkGeneration() === nativeClaimDeepLinkGeneration &&
-                        currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
-                    setIsSettlingNativeBadgeCampaigns(true)
-                    void claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
-                        .then(async (batch) => {
-                            if (!isCurrentNativeClaim()) return
+            // Signup is open to every authenticated account. A stale legacy
+            // hasAppAccess=false profile must not resurrect the retired
+            // waitlist or offer to replace an already-created account.
+            const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
+            const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
+            const shouldSettleNativeBadgeCampaigns =
+                isCapacitor() &&
+                pendingBadgeCampaigns.length > 0 &&
+                (nativeClaimCampaignsKeyRef.current !== nativeClaimCampaignsKey ||
+                    nativeClaimGenerationRef.current !== nativeClaimDeepLinkGeneration)
+            if (shouldSettleNativeBadgeCampaigns) {
+                const nativeClaimRunId = nativeClaimRunIdRef.current + 1
+                nativeClaimRunIdRef.current = nativeClaimRunId
+                nativeClaimCampaignsKeyRef.current = nativeClaimCampaignsKey
+                nativeClaimGenerationRef.current = nativeClaimDeepLinkGeneration
+                const isCurrentNativeClaim = () =>
+                    isSetupMountedRef.current &&
+                    nativeClaimRunIdRef.current === nativeClaimRunId &&
+                    getDeepLinkGeneration() === nativeClaimDeepLinkGeneration &&
+                    currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
+                setIsSettlingNativeBadgeCampaigns(true)
+                void claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
+                    .then(async (batch) => {
+                        if (!isCurrentNativeClaim()) return
 
-                            const hasConfirmedClaim = batch.claims.some(
-                                ({ outcome }) => outcome === 'awarded' || outcome === 'already_owned'
-                            )
-                            if (hasConfirmedClaim) {
-                                try {
-                                    await fetchUser()
-                                    if (!isCurrentNativeClaim()) return
-                                } catch (error) {
-                                    Sentry.captureException(error, {
-                                        tags: { error_type: 'native_campaign_profile_refresh_failed' },
-                                    })
-                                }
+                        const hasConfirmedClaim = batch.claims.some(
+                            ({ outcome }) => outcome === 'awarded' || outcome === 'already_owned'
+                        )
+                        if (hasConfirmedClaim) {
+                            try {
+                                await fetchUser()
+                                if (!isCurrentNativeClaim()) return
+                            } catch (error) {
+                                Sentry.captureException(error, {
+                                    tags: { error_type: 'native_campaign_profile_refresh_failed' },
+                                })
                             }
-                        })
-                        .catch((error) => {
-                            if (!isCurrentNativeClaim()) return
-                            Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
-                        })
-                        .finally(() => {
-                            if (isCurrentNativeClaim()) {
-                                setIsSettlingNativeBadgeCampaigns(false)
-                                router.replace('/home')
-                            } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
-                                // A newer native link may keep this setup instance
-                                // mounted while Next transitions to its new URL.
-                                // Release the old loader until the latest URL's
-                                // effect starts its replacement settlement.
-                                setIsSettlingNativeBadgeCampaigns(false)
-                            }
-                        })
-                    return
-                }
-                if (isNewSetupDeepLink) {
-                    setIsSettlingNativeBadgeCampaigns(false)
-                    router.replace('/home')
-                    return
-                }
-                if (!isInitialSessionCheck) return
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
-                setIsLeavingForHome(true)
+                        }
+                    })
+                    .catch((error) => {
+                        if (!isCurrentNativeClaim()) return
+                        Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
+                    })
+                    .finally(() => {
+                        if (isCurrentNativeClaim()) {
+                            setIsSettlingNativeBadgeCampaigns(false)
+                            router.replace('/home')
+                        } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
+                            // A newer native link may keep this setup instance
+                            // mounted while Next transitions to its new URL.
+                            // Release the old loader until the latest URL's
+                            // effect starts its replacement settlement.
+                            setIsSettlingNativeBadgeCampaigns(false)
+                        }
+                    })
+                return
+            }
+            if (isNewSetupDeepLink) {
+                setIsSettlingNativeBadgeCampaigns(false)
                 router.replace('/home')
                 return
             }
-            setExistingSessionUsername(user.user.username)
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_PROMPTED, {
-                has_app_access: !!user.user.hasAppAccess,
-            })
+            if (!isInitialSessionCheck) return
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
+            setIsLeavingForHome(true)
+            router.replace('/home')
+            return
         }
     }, [
         sessionChecked,
@@ -313,19 +303,6 @@ function SetupPageContent() {
         deepLinkGeneration,
         searchParamsString,
     ])
-
-    const handleContinueSession = () => {
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
-        router.push('/home')
-    }
-
-    const handleStartFresh = async () => {
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_LOGGED_OUT)
-        await logoutUser()
-        // the setup provider stays mounted through this logout — clear the typed state
-        resetSetupFlow()
-        setExistingSessionUsername(null)
-    }
 
     useEffect(() => {
         let cancelled = false
@@ -343,8 +320,8 @@ function SetupPageContent() {
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
             if (isObsolete()) return
 
-            // The entry-step rules (invite code / ?step=signup skipping the invite
-            // gate, ?step=login, a known device going to Log In) live in
+            // The entry-step rules (invite code / ?step=signup opening the form
+            // directly, ?step=login, a known device going to Log In) live in
             // resolveSetupEntryStep. After authentication, useZeroDev submits the
             // queued opaque campaign list to the canonical claim service; the step
             // decision never interprets that cookie.
@@ -506,33 +483,6 @@ function SetupPageContent() {
             </div>
         )
 
-    if (existingSessionUsername) {
-        return (
-            <SetupWrapper
-                layoutType="signup"
-                screenId="welcome"
-                image={{ pose: 'waving-hello' }}
-                title={t('existingSession.title')}
-                description={t('existingSession.description', { username: existingSessionUsername })}
-                contentClassName="flex flex-col items-center justify-center gap-6"
-            >
-                <div className="flex w-full flex-col gap-3">
-                    <Button shadowSize="4" onClick={handleContinueSession} disabled={isLoggingOut}>
-                        {t('existingSession.continueAs', { username: existingSessionUsername })}
-                    </Button>
-                    <Button
-                        variant="secondary"
-                        onClick={handleStartFresh}
-                        loading={isLoggingOut}
-                        disabled={isLoggingOut}
-                    >
-                        {t('existingSession.logoutAndStartFresh')}
-                    </Button>
-                </div>
-            </SetupWrapper>
-        )
-    }
-
     if (showBrowserNotSupportedModal || showDeviceNotSupportedModal) {
         return <UnsupportedBrowserModal visible={true} allowClose={false} />
     }
@@ -562,6 +512,7 @@ function SetupPageContent() {
             onLogout={logoutUser}
             isLoggingOut={isLoggingOut}
             step={currentStepIndex}
+            totalSteps={steps.length}
             direction={direction}
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}

@@ -62,7 +62,7 @@ describe('useSetupFlow (URL stepper)', () => {
         const { result } = renderFlow({ screen: 'signup' })
         await seedSteps(result)
         expect(result.current.flow.step?.screenId).toBe('signup')
-        expect(result.current.flow.currentIndex).toBe(2)
+        expect(result.current.flow.currentIndex).toBe(1)
     })
 
     it('an unknown screen id falls back to the first step instead of a dead screen', async () => {
@@ -161,12 +161,25 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.currentIndex).toBeGreaterThanOrEqual(0)
     })
 
-    it('a filtered-out screen in the URL resolves to the default, never to no step', async () => {
+    it('the retired inviter-input screen resolves to the default, never to no step', async () => {
+        expect(setupScreenIds).not.toContain('welcome')
         const { result } = renderFlow({ screen: 'welcome' })
-        const filteredSteps = setupSteps.filter((step) => step.screenId !== 'welcome')
-        await seedSteps(result, filteredSteps)
+        await seedSteps(result)
         expect(result.current.flow.step).toBeDefined()
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
+    })
+
+    it('places a tracked benefit step between each setup action', () => {
+        expect(setupScreenIds).toEqual([
+            'landing',
+            'signup',
+            'advantage-payments',
+            'residence',
+            'advantage-rewards',
+            'passkey-permission',
+            'advantage-control',
+            'sign-test-transaction',
+        ])
     })
 
     it('resetSetupFlow disarms the lock (start-fresh on the existing-session interstitial)', async () => {
