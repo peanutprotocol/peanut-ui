@@ -142,10 +142,12 @@ export function StatementsPage() {
                 />
             </div>
             <PageStack.Footer>
-                {error && <Callout priority="error">{t(`errors.${error}`)}</Callout>}
                 <Button variant="primary" className="w-full" loading={isDownloading} onClick={download}>
                     {t(isPrepared ? 'save' : 'download')}
                 </Button>
+                {/* the outcome reads under the action that caused it, so the CTA
+                    never jumps when the error appears */}
+                {error && <Callout priority="error">{t(`errors.${error}`)}</Callout>}
             </PageStack.Footer>
         </PageStack>
     )
