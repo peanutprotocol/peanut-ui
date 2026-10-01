@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createParser, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
+import type { DateRange } from 'react-day-picker'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
     CUSTOM_PERIOD,
@@ -11,7 +12,6 @@ import {
     presetDates,
     startOfLocalDay,
     toLocalDateString,
-    type PickedDays,
     type StatementPeriodOption,
 } from './statementPeriod.utils'
 
@@ -24,37 +24,41 @@ const parseAsLocalDate = createParser({
  * The statement period, held in the URL (`?from=2026-08-01&to=2026-08-31`,
  * local calendar days; neither = all time) per the URL-as-state rule, so a
  * period survives refresh and deep-links. `fromIso`/`toIso` are the API bounds
- * built from local midnight / end of day. A period needs both days, so a URL
- * with only one of them reads as all time.
+ * built from local midnight / end of day.
  *
- * "Custom period" opens the custom period drawer and changes nothing until
- * Apply. Closing the drawer any other way keeps the period chosen before, so
- * the select never shows a custom period without its days.
+ * Two picks the URL cannot hold stay local: "Custom period" chosen before any
+ * day is tapped, and a calendar pick that has only its first day. A first tap
+ * alone is already a one-day period in the URL, so Download never sends a
+ * period the screen does not show.
  */
 export function useStatementPeriod() {
-    const [url, setUrlState] = useQueryStates(
+    const [{ from, to }, setUrlState] = useQueryStates(
         { from: parseAsLocalDate, to: parseAsLocalDate },
         { history: 'replace', shallow: true }
     )
-    const [from, to] = url.from && url.to ? [url.from, url.to] : [null, null]
-    // Apply keeps the select on "Custom period", even when the days match a preset
-    const [customApplied, setCustomApplied] = useState(false)
-    const [drawerOpen, setDrawerOpen] = useState(false)
+    const [customChosen, setCustomChosen] = useState(false)
+    // null: the calendar shows the URL period. `days: undefined` is a cleared
+    // calendar, which leaves nothing to download until the next pick.
+    const [draft, setDraft] = useState<{ days: DateRange | undefined } | null>(null)
 
     const preset = useMemo(() => matchPeriodPreset(from, to), [from, to])
-    const option: StatementPeriodOption = preset && !customApplied ? preset : CUSTOM_PERIOD
-    const days = useMemo(
+    const option: StatementPeriodOption = preset && !customChosen ? preset : CUSTOM_PERIOD
+    const isCustom = option === CUSTOM_PERIOD
+    const urlDays = useMemo(
         () => (from && to ? { from: startOfLocalDay(from), to: startOfLocalDay(to) } : undefined),
         [from, to]
     )
+    const days = draft ? draft.days : urlDays
 
     const selectOption = useCallback(
         (next: StatementPeriodOption) => {
+            setDraft(null)
             if (next === CUSTOM_PERIOD) {
-                setDrawerOpen(true)
+                // the calendar opens on the current period; the URL changes on the first tap
+                setCustomChosen(true)
                 return
             }
-            setCustomApplied(false)
+            setCustomChosen(false)
             const dates = presetDates(next)
             void setUrlState(dates ?? { from: null, to: null })
             posthog.capture(
@@ -65,14 +69,23 @@ export function useStatementPeriod() {
         [setUrlState]
     )
 
-    /** The drawer's Apply. A first day alone is a one-day period. */
-    const applyDays = useCallback(
-        (range: PickedDays) => {
+    const selectDays = useCallback(
+        (range: DateRange | undefined) => {
+            // a calendar pick keeps the select on "Custom period", even when the
+            // days happen to match a preset
+            setCustomChosen(true)
+            if (!range?.from) {
+                setDraft({ days: undefined })
+                return
+            }
             const fromDay = toLocalDateString(range.from)
             const toDay = toLocalDateString(range.to ?? range.from)
-            setCustomApplied(true)
-            setDrawerOpen(false)
             void setUrlState({ from: fromDay, to: toDay })
+            if (!range.to) {
+                setDraft({ days: range })
+                return
+            }
+            setDraft(null)
             posthog.capture(ANALYTICS_EVENTS.ACTIVITY_RANGE_APPLIED, periodAnalytics({ from: fromDay, to: toDay }))
         },
         [setUrlState]
@@ -87,15 +100,12 @@ export function useStatementPeriod() {
         preset,
         /** what the select shows */
         option,
-        isCustom: option === CUSTOM_PERIOD,
-        /** the period's first and last day; all time has none */
+        isCustom,
+        /** the calendar selection */
         days,
-        /** the custom period drawer */
-        drawerOpen,
-        /** "Change dates": the select cannot reopen the drawer while it already shows "Custom period" */
-        openDrawer: () => setDrawerOpen(true),
-        closeDrawer: () => setDrawerOpen(false),
+        /** false while a custom period has no day picked: Download waits */
+        isComplete: !isCustom || Boolean(days?.from),
         selectOption,
-        applyDays,
+        selectDays,
     }
 }

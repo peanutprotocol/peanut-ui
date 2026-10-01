@@ -1,17 +1,16 @@
 'use client'
 
-import { useMemo, type ReactNode } from 'react'
+import { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { BaseSelect } from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Calendar } from '@/components/0_Bruddle/Calendar'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Field } from '@/components/0_Bruddle/Field'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { CustomPeriodDrawer } from './components/CustomPeriodDrawer'
 import { STATEMENT_FORMATS, type StatementFormat } from './statementDownload.utils'
 import { CUSTOM_PERIOD, STATEMENT_PERIOD_PRESETS, type StatementPeriodOption } from './statementPeriod.utils'
 import { useStatementDownload } from './useStatementDownload'
@@ -22,8 +21,9 @@ import { useStatementPeriod } from './useStatementPeriod'
  * Profile → Statements: pick a format and a period, then download the
  * activity file. Both live in the URL, so
  * `/profile/statements?from=2026-08-01&to=2026-08-31&format=csv` opens with
- * them chosen. "Custom period" picks its days in a drawer, so the page keeps
- * one height and Download stays under the fields.
+ * them chosen. "Custom period" opens the range calendar on the page, under
+ * the Period field (Aleks, 2026-10-01, over a drawer): the page grows and
+ * Download moves down with it, and waits until a first day is picked.
  */
 export function StatementsPage() {
     const t = useTranslations('statements')
@@ -50,23 +50,14 @@ export function StatementsPage() {
         [t]
     )
 
-    // the exact days the file will cover; all time has none to show
+    // the exact days the file will cover; all time has none to show, and a
+    // custom period with no day yet says what to do on the calendar below
     const { days } = period
     const periodDates = days?.from
         ? formatter.dateTimeRange(days.from, days.to ?? days.from, { day: 'numeric', month: 'short', year: 'numeric' })
-        : undefined
-    // Choosing "Custom period" again changes nothing in the select, so a custom
-    // period keeps its own way back into the drawer on the line under the field,
-    // next to its dates or next to the error that asks for a shorter period
-    const withChangeDates = (line: ReactNode) =>
-        period.isCustom ? (
-            <span className="flex items-start justify-between gap-2">
-                <span>{line}</span>
-                <LinkButton onClick={period.openDrawer}>{t('changeDates')}</LinkButton>
-            </span>
-        ) : (
-            line
-        )
+        : period.isCustom
+          ? t('customPeriod.description')
+          : undefined
 
     return (
         <PageStack>
@@ -82,27 +73,32 @@ export function StatementsPage() {
                         onValueChange={(value) => void setFormat(value as StatementFormat)}
                     />
                 </Field>
-                <Field
-                    label={t('period')}
-                    helper={periodDates && withChangeDates(periodDates)}
-                    error={periodTooLong ? withChangeDates(t('errors.tooLarge')) : undefined}
-                >
-                    <BaseSelect
-                        aria-label={t('period')}
-                        options={periodOptions}
-                        value={period.option}
-                        onValueChange={(value) => period.selectOption(value as StatementPeriodOption)}
-                    />
-                </Field>
-                <CustomPeriodDrawer
-                    open={period.drawerOpen}
-                    days={days}
-                    onApply={period.applyDays}
-                    onClose={period.closeDrawer}
-                />
+                <div className="flex flex-col gap-3">
+                    <Field
+                        label={t('period')}
+                        helper={periodDates}
+                        error={periodTooLong ? t('errors.tooLarge') : undefined}
+                    >
+                        <BaseSelect
+                            aria-label={t('period')}
+                            options={periodOptions}
+                            value={period.option}
+                            onValueChange={(value) => period.selectOption(value as StatementPeriodOption)}
+                        />
+                    </Field>
+                    {period.isCustom && (
+                        <Calendar selected={days} onSelect={period.selectDays} defaultMonth={days?.from} />
+                    )}
+                </div>
             </div>
             <PageStack.Footer>
-                <Button variant="primary" className="w-full" loading={isDownloading} onClick={download}>
+                <Button
+                    variant="primary"
+                    className="w-full"
+                    loading={isDownloading}
+                    disabled={!period.isComplete}
+                    onClick={download}
+                >
                     {t(isPrepared ? 'save' : 'download')}
                 </Button>
                 {/* the outcome reads under the action that caused it, so the CTA

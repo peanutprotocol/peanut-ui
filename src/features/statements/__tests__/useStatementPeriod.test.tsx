@@ -25,7 +25,6 @@ const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve
 
 const AUG_3 = new Date(2026, 7, 3)
 const AUG_14 = new Date(2026, 7, 14)
-const AUG_20 = new Date(2026, 7, 20)
 
 beforeEach(() => mockCapture.mockClear())
 
@@ -37,13 +36,12 @@ describe('useStatementPeriod', () => {
         expect(result.current.fromIso).toBeUndefined()
         expect(result.current.toIso).toBeUndefined()
         expect(result.current.days).toBeUndefined()
-        expect(result.current.drawerOpen).toBe(false)
+        expect(result.current.isComplete).toBe(true)
     })
 
-    it('opens a deep-linked period as a custom one, with local-day API bounds and the drawer closed', () => {
+    it('opens a deep-linked period as a custom one, with local-day API bounds', () => {
         const { result } = renderPeriod('?from=2026-08-03&to=2026-08-14')
         expect(result.current.option).toBe('custom')
-        expect(result.current.drawerOpen).toBe(false)
         expect(result.current.days).toEqual({ from: AUG_3, to: AUG_14 })
         expect(result.current.fromIso).toBe(AUG_3.toISOString())
         expect(result.current.toIso).toBe(new Date(2026, 7, 14, 23, 59, 59, 999).toISOString())
@@ -61,13 +59,6 @@ describe('useStatementPeriod', () => {
         expect(result.current.from).toBeNull()
         expect(result.current.to).toBeNull()
         expect(result.current.option).toBe('allTime')
-    })
-
-    it('reads a URL with only one of the two days as all time, so nothing half-bounded is sent', () => {
-        const { result } = renderPeriod('?from=2026-08-03')
-        expect(result.current.option).toBe('allTime')
-        expect(result.current.days).toBeUndefined()
-        expect(result.current.fromIso).toBeUndefined()
     })
 
     it('writes a preset to the URL and reports its name and length, never its dates', async () => {
@@ -88,68 +79,53 @@ describe('useStatementPeriod', () => {
         await waitFor(() => expect(url()?.has('from')).toBe(false))
         expect(url()?.has('to')).toBe(false)
         expect(result.current.option).toBe('allTime')
-        expect(mockCapture).toHaveBeenCalledWith('activity_range_applied', {
-            range_preset: 'allTime',
-            range_days: null,
-        })
     })
 
-    it('opens the drawer on "Custom period" and changes nothing until Apply', async () => {
+    it('keeps the URL when custom is chosen, and opens the calendar on the current period', async () => {
         const dates = presetDates('last30d')!
         const { result, updates } = renderPeriod(`?from=${dates.from}&to=${dates.to}`)
         act(() => result.current.selectOption('custom'))
 
-        expect(result.current.drawerOpen).toBe(true)
-        expect(result.current.option).toBe('last30d')
         await settle()
         expect(updates).toHaveLength(0)
-        expect(mockCapture).not.toHaveBeenCalled()
+        expect(result.current.option).toBe('custom')
+        expect(result.current.days?.from).toEqual(startOfLocalDay(dates.from))
+        expect(result.current.isComplete).toBe(true)
     })
 
-    it.each([
-        ['all time', '', 'allTime'],
-        ['a preset', `?from=${presetDates('last30d')!.from}&to=${presetDates('last30d')!.to}`, 'last30d'],
-    ])('closing the drawer without Apply keeps %s, never a custom period without days', async (_, search, option) => {
-        const { result, updates } = renderPeriod(search)
+    it('waits for a day when custom is chosen from all time', () => {
+        const { result } = renderPeriod()
         act(() => result.current.selectOption('custom'))
-        act(() => result.current.closeDrawer())
 
-        expect(result.current.drawerOpen).toBe(false)
-        expect(result.current.option).toBe(option)
-        expect(result.current.isCustom).toBe(false)
-        await settle()
-        expect(updates).toHaveLength(0)
-        expect(mockCapture).not.toHaveBeenCalled()
+        expect(result.current.isCustom).toBe(true)
+        expect(result.current.days).toBeUndefined()
+        expect(result.current.isComplete).toBe(false)
     })
 
-    it('Apply writes both days, closes the drawer and reports a custom period', async () => {
+    it('treats a first tap as a one-day period, and the second tap finishes the period', async () => {
         const { result, url } = renderPeriod()
         act(() => result.current.selectOption('custom'))
-        act(() => result.current.applyDays({ from: AUG_3, to: AUG_14 }))
 
-        expect(result.current.drawerOpen).toBe(false)
+        act(() => result.current.selectDays({ from: AUG_3, to: undefined }))
         await waitFor(() => expect(url()?.get('from')).toBe('2026-08-03'))
-        expect(url()?.get('to')).toBe('2026-08-14')
-        expect(result.current.option).toBe('custom')
+        expect(url()?.get('to')).toBe('2026-08-03')
+        // the calendar keeps the open pick, so the next tap ends the period
+        expect(result.current.days).toEqual({ from: AUG_3, to: undefined })
+        expect(result.current.isComplete).toBe(true)
+        expect(mockCapture).not.toHaveBeenCalled()
+
+        act(() => result.current.selectDays({ from: AUG_3, to: AUG_14 }))
+        await waitFor(() => expect(url()?.get('to')).toBe('2026-08-14'))
+        expect(url()?.get('from')).toBe('2026-08-03')
         expect(result.current.days).toEqual({ from: AUG_3, to: AUG_14 })
-        expect(mockCapture).toHaveBeenCalledTimes(1)
         expect(mockCapture).toHaveBeenCalledWith('activity_range_applied', { range_preset: 'custom', range_days: 12 })
     })
 
-    it('Apply with only a first day is a one-day period', async () => {
-        const { result, url } = renderPeriod()
-        act(() => result.current.applyDays({ from: AUG_3 }))
-
-        await waitFor(() => expect(url()?.get('from')).toBe('2026-08-03'))
-        expect(url()?.get('to')).toBe('2026-08-03')
-        expect(mockCapture).toHaveBeenCalledWith('activity_range_applied', { range_preset: 'custom', range_days: 1 })
-    })
-
-    it('stays on "Custom period" when the applied days match a preset', () => {
+    it('stays on custom when the picked days match a preset', () => {
         const dates = presetDates('last7d')!
         const { result } = renderPeriod('?from=2026-08-03&to=2026-08-14')
         act(() =>
-            result.current.applyDays({
+            result.current.selectDays({
                 from: startOfLocalDay(dates.from),
                 to: startOfLocalDay(dates.to),
             })
@@ -158,15 +134,13 @@ describe('useStatementPeriod', () => {
         expect(result.current.option).toBe('custom')
     })
 
-    it('"Change dates" reopens the drawer on an applied custom period, and a new Apply replaces its days', async () => {
-        const { result, url } = renderPeriod('?from=2026-08-03&to=2026-08-14')
-        act(() => result.current.openDrawer())
-        expect(result.current.drawerOpen).toBe(true)
-        expect(result.current.option).toBe('custom')
+    it('leaves nothing to download after the calendar is cleared, and keeps the URL', async () => {
+        const { result, updates } = renderPeriod('?from=2026-08-03&to=2026-08-03')
+        act(() => result.current.selectDays(undefined))
 
-        act(() => result.current.applyDays({ from: AUG_14, to: AUG_20 }))
-        await waitFor(() => expect(url()?.get('from')).toBe('2026-08-14'))
-        expect(url()?.get('to')).toBe('2026-08-20')
-        expect(result.current.drawerOpen).toBe(false)
+        await settle()
+        expect(updates).toHaveLength(0)
+        expect(result.current.days).toBeUndefined()
+        expect(result.current.isComplete).toBe(false)
     })
 })

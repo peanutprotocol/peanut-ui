@@ -37,8 +37,6 @@ export const CONCEPT_ICONS = {
     // the KYC start drawer's hero glyph (InitiateKycModal)
     verification: { icon: 'badge', color: 'blue' },
     otherCountries: { icon: 'globe', color: 'blue' },
-    // a span of days: the custom period of a statement
-    period: { icon: 'calendar', color: 'blue' },
     // 5/8 of the bubble: 20px in the s bubble, as the mascot was drawn there
     peanutUser: {
         icon: <Image src={PEANUTMAN} alt="" className="h-5/8 w-auto" />,

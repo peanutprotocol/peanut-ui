@@ -2397,10 +2397,8 @@
             "ytd": "Year to date",
             "custom": "Custom period"
         },
-        "changeDates": "Change dates",
         "customPeriod": {
-            "description": "Pick the first and the last day.",
-            "apply": "Apply"
+            "description": "Pick the first and the last day."
         },
         "download": "Download",
         "save": "Save file",
