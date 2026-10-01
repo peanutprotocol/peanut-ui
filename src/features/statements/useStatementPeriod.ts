@@ -15,8 +15,10 @@ import {
     type StatementPeriodOption,
 } from './statementPeriod.utils'
 
+// a local day that exists: `2026-02-31` has the shape but rolls over to March,
+// so it must not become a period
 const parseAsLocalDate = createParser({
-    parse: (value) => (LOCAL_DATE_RE.test(value) ? value : null),
+    parse: (value) => (LOCAL_DATE_RE.test(value) && toLocalDateString(startOfLocalDay(value)) === value ? value : null),
     serialize: (value: string) => value,
 })
 
@@ -32,10 +34,12 @@ const parseAsLocalDate = createParser({
  * period the screen does not show.
  */
 export function useStatementPeriod() {
-    const [{ from, to }, setUrlState] = useQueryStates(
+    const [url, setUrlState] = useQueryStates(
         { from: parseAsLocalDate, to: parseAsLocalDate },
         { history: 'replace', shallow: true }
     )
+    // a period needs both days in order; one of them, or a reversed pair, reads as all time
+    const [from, to] = url.from && url.to && url.from <= url.to ? [url.from, url.to] : [null, null]
     const [customChosen, setCustomChosen] = useState(false)
     // null: the calendar shows the URL period. `days: undefined` is a cleared
     // calendar, which leaves nothing to download until the next pick.

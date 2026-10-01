@@ -54,8 +54,14 @@ describe('useStatementPeriod', () => {
         expect(result.current.preset).toBe('last30d')
     })
 
-    it('ignores URL values that are not local days', () => {
-        const { result } = renderPeriod('?from=yesterday&to=2026-8-1')
+    it.each([
+        ['not local days', '?from=yesterday&to=2026-8-1'],
+        ['days that do not exist', '?from=2026-02-31&to=2026-03-02'],
+        ['a month that does not exist', '?from=2026-13-01&to=2026-13-02'],
+        ['a reversed pair', '?from=2026-08-14&to=2026-08-03'],
+        ['only one day', '?from=2026-08-03'],
+    ])('ignores URL values that are %s', (_, search) => {
+        const { result } = renderPeriod(search)
         expect(result.current.from).toBeNull()
         expect(result.current.to).toBeNull()
         expect(result.current.option).toBe('allTime')
