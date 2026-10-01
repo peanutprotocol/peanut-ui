@@ -208,11 +208,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         </Button>
 
                         <Button
-                            disabled={
-                                isLoggedIn &&
-                                !!user?.user.hasAppAccess &&
-                                (!requestContact.data || requestContact.isError)
-                            }
+                            disabled={isLoggedIn && (!requestContact.data || requestContact.isError)}
                             onClick={() => {
                                 if (isLoggedIn) {
                                     router.push(requestUrl(username))
@@ -235,7 +231,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 )}
 
                 {isLoggedIn &&
-                    user?.user.hasAppAccess &&
                     !isSelfProfile &&
                     !requestContact.isLoading &&
                     (!requestContact.data || requestContact.isError) && (

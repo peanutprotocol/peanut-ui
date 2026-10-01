@@ -316,7 +316,7 @@ describe('ResidenceStep', () => {
     it('treats Hong Kong as unrestricted', () => {
         mockSetupState.residenceCountry = 'HK'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
     })

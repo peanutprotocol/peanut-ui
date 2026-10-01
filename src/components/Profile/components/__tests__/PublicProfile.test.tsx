@@ -191,6 +191,7 @@ describe('PublicProfile guest door', () => {
 
     it('routes a registered user directly even when a cached legacy access flag is false', async () => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
+        mockRequestContact = { data: { relationshipTypes: ['received_money'] }, isLoading: false, isError: false }
         renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
 
         fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
@@ -398,15 +399,18 @@ describe('PublicProfile request eligibility', () => {
         expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
     })
 
-    it('preserves the invite gate for signed-in users without app access', async () => {
+    it('keeps money-contact restrictions without restoring the removed invite gate', async () => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
         mockRequestContact = { data: null, isLoading: false, isError: false }
         renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
-        fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
-        expect(screen.getByTestId('invite-drawer')).toBeInTheDocument()
+        expect(await screen.findByRole('button', { name: en.navigation.request })).toBeDisabled()
+        expect(screen.getByRole('button', { name: en.navigation.send })).not.toBeDisabled()
+        expect(screen.queryByTestId('invite-drawer')).not.toBeInTheDocument()
+        expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
     })
 
     it('allows Request for a received-money contact even without a sent-money badge', async () => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
         mockRequestContact = { data: { relationshipTypes: ['received_money'] }, isLoading: false, isError: false }
         mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: false, isError: false })
         renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
