@@ -74,6 +74,10 @@ const expectNotChosen = (name: string, hint: string) => {
 const drawer = () => screen.queryByRole('dialog')
 const day = (iso: string) => document.querySelector(`[data-day="${iso}"]`)
 const tapDay = (iso: string) => fireEvent.click(day(iso)!.querySelector('button')!)
+// the calendar opens on the draft's month, which is not always today's (a
+// preset's first day usually sits in the previous month), so tests that only
+// need "some day was tapped" take the first enabled one on screen
+const tapFirstEnabledDay = () => fireEvent.click(document.querySelector('[data-day] button:not([disabled])')!)
 
 function chooseCustomPeriod() {
     fireEvent.click(periodSelect())
@@ -155,7 +159,7 @@ describe('StatementsPage', () => {
             chooseCustomPeriod()
             expect(drawer()).toHaveAttribute('data-state', 'open')
             expect(within(drawer()!).getByRole('heading', { name: 'periods.custom' })).toBeInTheDocument()
-            tapDay(toLocalDateString(new Date()))
+            tapFirstEnabledDay()
 
             close()
 
@@ -211,7 +215,7 @@ describe('StatementsPage', () => {
         expect(drawer()).toHaveAttribute('data-state', 'open')
     })
 
-    it('shows a refused download as a flow error above the button', async () => {
+    it('shows a refused download as a flow error under the button', async () => {
         prepare.mockRejectedValue(new StatementDownloadError('EXPORT_UNVERIFIED', 'reward-credit-missing'))
         renderPage('?from=2026-08-03&to=2026-08-14')
         fireEvent.click(screen.getByRole('button', { name: 'download' }))
@@ -219,8 +223,9 @@ describe('StatementsPage', () => {
         const alert = await screen.findByRole('alert')
         expect(alert).toHaveTextContent('errors.unverified')
         expect(periodField()).not.toContainElement(alert)
+        // the outcome reads under the action that caused it; the CTA never moves
         const button = screen.getByRole('button', { name: 'download' })
-        expect(alert.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(button.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(save).not.toHaveBeenCalled()
     })
 })
