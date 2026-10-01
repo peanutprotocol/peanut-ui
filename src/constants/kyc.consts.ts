@@ -24,6 +24,14 @@ export const MAX_SELF_HEAL_ATTEMPTS = 3
 export const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
 
 /**
+ * `purpose` of the top-level `restart-identity` action the backend sends for an
+ * approval with no identity document on file (peanut-api-ts
+ * `src/kyc/identity-document-missing.ts`, TASK-23227). The app also uses it as
+ * the reason code that picks the copy for that cause.
+ */
+export const IDENTITY_DOCUMENT_MISSING_CODE = 'identity_document_missing'
+
+/**
  * QR-pay KYC gate states. Relocated here from the (now capability-derived)
  * useQrKycGate hook so the qr-pay page keeps a stable import after that hook is
  * deleted. The gate is now computed inline on the page from useCapabilities().

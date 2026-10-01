@@ -7,6 +7,7 @@ import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
@@ -71,7 +72,9 @@ interface InitiateKycModalProps {
 // default            → "Unlock your account" — verb is "unlock", ID check is the means
 // provider_rejection → "We need extra documents"
 // blocked            → "We couldn't unlock this — contact support"
-// restart_identity   → "Verify with a different document" (self-fix for country mismatch)
+// restart_identity   → "Verify with a different document" (self-fix for country mismatch);
+//                      with the identity_document_missing reason code it is
+//                      "Complete your verification" (the approval has no document)
 // cross_region       → "Unlock {region}" (identity already cleared)
 // country_payments   → "Unlock {region}" for a user who has not verified yet and
 //                      arrived from one country's flow: what they unlock is that
@@ -136,6 +139,10 @@ export const InitiateKycModal = ({
     const isProviderRejection = resolvedVariant === 'provider_rejection'
     const isBlocked = resolvedVariant === 'blocked'
     const isRestartIdentity = resolvedVariant === 'restart_identity'
+    // The restart serves two causes. Only the missing document asks for a
+    // first document rather than a different one, so the reason code picks
+    // the title and the button; the description already follows the code.
+    const isDocumentMissing = isRestartIdentity && reasonCode === IDENTITY_DOCUMENT_MISSING_CODE
     const isCrossRegion = resolvedVariant === 'cross_region'
     const isCountryPayments = resolvedVariant === 'country_payments'
     const router = useRouter()
@@ -146,6 +153,7 @@ export const InitiateKycModal = ({
         if (isRegionUnavailable) return t('initiate.titleRegionUnavailable')
         if (isBankUnavailable) return t('initiate.titleBankUnavailable')
         if (isBlocked) return t('initiate.titleBlocked')
+        if (isDocumentMissing) return t('initiate.titleIdentityDocumentMissing')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isProviderRejection) return t('initiate.titleProviderRejection')
         if (isCrossRegion)
@@ -195,8 +203,9 @@ export const InitiateKycModal = ({
             }
         }
         if (isRestartIdentity) {
+            const label = isDocumentMissing ? t('initiate.ctaUnlockNow') : t('initiate.titleRestartIdentity')
             return {
-                text: isLoading ? tCommon('loading') : t('initiate.titleRestartIdentity'),
+                text: isLoading ? tCommon('loading') : label,
                 onClick: onVerify,
                 icon: 'upload-cloud',
             }

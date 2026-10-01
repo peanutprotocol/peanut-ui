@@ -1148,6 +1148,7 @@
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Intentalo de nuevo.",
         "initiate": {
             "titleRestartIdentity": "Verificate con otro documento",
+            "titleIdentityDocumentMissing": "Completá tu verificación",
             "titleCrossRegion": "Desbloqueá {region}",
             "titleCrossRegionGeneric": "Desbloqueá esta región",
             "titleDefault": "Desbloqueá la cuenta",
