@@ -1020,6 +1020,26 @@ describe('MoneySettings', () => {
             expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
 
+        // With no enabled rail the user is not "approved" for this screen, and
+        // the unlock path would call the start route, which opens nothing for
+        // them. The restart still comes first, on Manteca and Bridge rows alike.
+        it('the identity restart needs no enabled rail, on a Manteca row and a Bridge row', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+            mockNextActions = [
+                { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+            ]
+            render()
+
+            fireEvent.click(screen.getByText('ARS'))
+            expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+            fireEvent.click(screen.getByText('EUR'))
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+
+            expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
+        })
+
         it('a full Manteca account reads Available on both rows', () => {
             mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
             mockRails = [{ ...qrPoolRail, operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' } }]

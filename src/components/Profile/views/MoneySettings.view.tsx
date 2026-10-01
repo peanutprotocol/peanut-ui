@@ -277,14 +277,17 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         : providerRejectionForRegion.userMessage
     // The restart serves two causes. An approval with no identity document asks
     // for a first document, not a different one: same copy as the unlock modal.
-    const restartCopy =
-        providerRejectionForRegion.reasonCode === IDENTITY_DOCUMENT_MISSING_CODE
-            ? { title: tKyc('initiate.titleIdentityDocumentMissing'), cta: tKyc('initiate.ctaUnlockNow') }
-            : { title: tRegions('providerRejection.restartTitle'), cta: tRegions('providerRejection.restartTitle') }
+    const isDocumentRestart = providerRejectionForRegion.reasonCode === IDENTITY_DOCUMENT_MISSING_CODE
+    const restartCopy = isDocumentRestart
+        ? { title: tKyc('initiate.titleIdentityDocumentMissing'), cta: tKyc('initiate.ctaUnlockNow') }
+        : { title: tRegions('providerRejection.restartTitle'), cta: tRegions('providerRejection.restartTitle') }
+    // A provider rejection needs an approved user, but the missing-document
+    // restart does not wait for an enabled rail: without one, the unlock path
+    // calls the start route, which answers "already approved" for this user.
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         clickedRegionProvider !== null &&
-        isSumsubApproved &&
+        (isSumsubApproved || isDocumentRestart) &&
         providerRejectionForRegion.state !== 'happy'
     const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
 

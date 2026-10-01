@@ -110,10 +110,10 @@ describe('useIdentityVerification — a FINAL action_required and an email colli
 })
 
 describe('useIdentityVerification — needsDocumentRestart', () => {
-    const withActions = (nextActions?: NextAction[]) => {
+    const withActions = (nextActions?: NextAction[], status: IdentityVerification['status'] = 'action_required') => {
         mockUser.mockReturnValue({
             user: {
-                identityVerification: { status: 'action_required' },
+                identityVerification: { status },
                 ...(nextActions ? { capabilities: { rails: [], nextActions, restrictions: [] } } : {}),
             },
             isFetchingUser: false,
@@ -134,6 +134,18 @@ describe('useIdentityVerification — needsDocumentRestart', () => {
                 .needsDocumentRestart
         ).toBe(false)
     })
+
+    it.each(['processing', 'failed', 'verified', 'not_started'] as const)(
+        'is false for %s even if the action rides along: that status keeps its own button',
+        (status) => {
+            const restart: NextAction = {
+                key: 'restart-identity',
+                kind: 'restart-identity',
+                purpose: 'identity_document_missing',
+            }
+            expect(withActions([restart], status).needsDocumentRestart).toBe(false)
+        }
+    )
 
     it('is false with no actions, and before capabilities load', () => {
         expect(withActions([]).needsDocumentRestart).toBe(false)

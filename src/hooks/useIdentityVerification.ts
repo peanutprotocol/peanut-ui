@@ -63,10 +63,11 @@ export interface UseIdentityVerificationResult {
      */
     isEmailCollision: boolean
     /**
-     * The approval has no identity document on file, and the API offers the
-     * identity restart for it (a top-level `restart-identity` action). The
-     * verify button must restart the check: the start route answers "already
-     * approved" for these users and opens nothing.
+     * The approval has no identity document on file: the identity reads
+     * action_required and the API offers the identity restart for it (a
+     * top-level `restart-identity` action). The verify button must restart the
+     * check: the start route answers "already approved" for these users and
+     * opens nothing.
      */
     needsDocumentRestart: boolean
     isLoading: boolean
@@ -102,7 +103,9 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
                     isTerminalRejection({ rejectType: identity.rejectType, rejectLabels: identity.rejectLabels })),
             isEmailCollision:
                 status === 'action_required' && (identity.rejectLabels?.includes(DUPLICATE_EMAIL_LABEL) ?? false),
-            needsDocumentRestart: !!identityDocumentRestartAction(nextActions ?? []),
+            // the API pairs the action with action_required; any other status
+            // keeps its own button (resume a review, retry a failed check)
+            needsDocumentRestart: status === 'action_required' && !!identityDocumentRestartAction(nextActions ?? []),
             isLoading: isFetchingUser,
         }
     }, [identity, nextActions, isFetchingUser])
