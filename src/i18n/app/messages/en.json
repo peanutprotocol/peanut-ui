@@ -1042,6 +1042,7 @@
             "guestDescriptionApp": "You need the Peanut app to send {username} a payment request."
         },
         "createRequest": "Create request",
+        "theirChoice": "Their choice",
         "shareOpenRequest": "Share open request",
         "shareAmountRequest": "Share ${amount} request",
         "shareCurrencyAmountRequest": "Share {amount} {currency} request",
@@ -3684,6 +3685,7 @@
             "isRequesting": "{name} is requesting",
             "sendingTo": "Sending {name}",
             "payWhatYouWant": "Any amount",
+            "yourChoice": "Your choice",
             "sendExactAmount": "Send the exact amount!"
         },
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",

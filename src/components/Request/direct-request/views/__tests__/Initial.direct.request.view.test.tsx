@@ -82,7 +82,9 @@ jest.mock('@/components/Payment/Views/Error.validation.view', () => ({
 
 jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
     __esModule: true,
-    default: () => <div data-testid="payment-success" />,
+    default: ({ amount, currencyAmount }: { amount?: string; currencyAmount?: string }) => (
+        <div data-testid="payment-success">{currencyAmount ?? amount}</div>
+    ),
 }))
 
 jest.mock('@/components/Global/AmountInput', () => ({
@@ -194,6 +196,21 @@ describe('addressed requests', () => {
                 toAddress: '0x000000000000000000000000000000000000dEaD',
             })
         )
+    })
+
+    test('sends a request with no amount, for the requestee to choose', async () => {
+        renderView()
+        expect(screen.getByRole('button', { name: 'Request' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'Request' }))
+        await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(screen.getByTestId('payment-success')).toHaveTextContent('Their choice')
+        expect(mockRequestByUsername).toHaveBeenCalledWith(expect.objectContaining({ username: 'alice', amount: '' }))
+    })
+
+    test.each(['0', '0.00', '.'])('refuses a typed amount of %s', (amount) => {
+        renderView()
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: amount } })
+        expect(screen.getByRole('button', { name: 'Request' })).toBeDisabled()
     })
 
     test('keeps an eligible cached session usable when the auth refresh fails', async () => {

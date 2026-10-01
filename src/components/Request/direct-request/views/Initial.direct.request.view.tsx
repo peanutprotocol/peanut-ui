@@ -93,8 +93,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const isButtonDisabled = useMemo(() => {
+        // A blank amount is valid: the requestee chooses it before paying.
         const parsedAmount = parseFloat(currentInputValue)
-        const isAmountInvalid = isNaN(parsedAmount) || parsedAmount <= 0
+        const isAmountInvalid = currentInputValue !== '' && (isNaN(parsedAmount) || parsedAmount <= 0)
         return (
             !recipientUser?.username ||
             recipientUser.username.toLowerCase() !== username?.toLowerCase() ||
@@ -347,7 +348,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 <PageStack.Center className="gap-4">
                     <PaymentSuccessView
                         user={recipientUser}
-                        amount={formatAmount(currentInputValue)}
+                        // currencyAmount is shown as given, in place of an amount the requestee chooses
+                        {...(currentInputValue
+                            ? { amount: formatAmount(currentInputValue) }
+                            : { currencyAmount: t('theirChoice') })}
                         message={attachmentOptions.message}
                         type="REQUEST"
                     />
