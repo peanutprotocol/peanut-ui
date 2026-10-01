@@ -39,6 +39,7 @@ export function SemanticRequestInputView() {
         amount,
         recipient,
         parsedUrl,
+        charge,
         chargeIdFromUrl,
         isAmountFromUrl,
         urlToken,
@@ -111,6 +112,10 @@ export function SemanticRequestInputView() {
         }
     }
 
+    // An open-amount request names who is asking: the charge carries their
+    // handle, while the recipient derived from it is only their address.
+    const openAmountRequester = charge?.openAmount ? charge.requestLink?.recipientAccount?.user : undefined
+
     // determine button state
     const isButtonDisabled = !canProceed || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
@@ -122,8 +127,10 @@ export function SemanticRequestInputView() {
 
     // determine if we should show token selector
     // only show when chain is NOT specified in url AND recipient is ADDRESS or ENS
+    // An open-amount request is paid in the token its charge names, like any request.
     const showTokenSelector =
         !parsedUrl?.chain?.chainId &&
+        !charge?.openAmount &&
         (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
         isConnected
 
@@ -169,17 +176,30 @@ export function SemanticRequestInputView() {
 
             <PageStack.Center className="gap-4">
                 {/* recipient card */}
-                {recipient && (
+                {openAmountRequester?.username ? (
                     <UserCard
-                        type="send"
-                        // the full address: the card's AddressLink shortens it, resolves
-                        // its ENS name and links to it — a pre-shortened string breaks all three
-                        username={
-                            recipient.recipientType === 'ADDRESS' ? recipient.resolvedAddress : recipient.identifier
-                        }
-                        recipientType={recipient.recipientType}
+                        type="request_pay"
+                        username={openAmountRequester.username}
+                        recipientType="USERNAME"
+                        avatarKey={openAmountRequester.avatarKey}
                         isVerified={false}
+                        // a request pot with no goal reads "Any amount", which is what this is
+                        isRequestPot
+                        message={charge?.requestLink?.reference ?? undefined}
                     />
+                ) : (
+                    recipient && (
+                        <UserCard
+                            type="send"
+                            // the full address: the card's AddressLink shortens it, resolves
+                            // its ENS name and links to it — a pre-shortened string breaks all three
+                            username={
+                                recipient.recipientType === 'ADDRESS' ? recipient.resolvedAddress : recipient.identifier
+                            }
+                            recipientType={recipient.recipientType}
+                            isVerified={false}
+                        />
+                    )
                 )}
 
                 {/* amount input + its field error form one column, 4px apart */}
@@ -193,7 +213,8 @@ export function SemanticRequestInputView() {
                         balanceFillAmount={balanceFill}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
-                        disabled={isAmountFromUrl || !!chargeIdFromUrl}
+                        // a charge fixes the amount, unless the requestee is asked to choose it
+                        disabled={isAmountFromUrl || (!!chargeIdFromUrl && !charge?.openAmount)}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
                 </div>

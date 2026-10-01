@@ -31,6 +31,8 @@ import { areEvmAddressesEqual, isStableCoin, floorFixed } from '@/utils/general.
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { chargesApi } from '@/services/charges'
+import { toApiAmount } from '@/components/Request/link/requestCurrency'
 
 export function useSemanticRequestFlow() {
     const t = useTranslations('payment')
@@ -262,6 +264,17 @@ export function useSemanticRequestFlow() {
             try {
                 // step 1: use existing charge if available (from url), otherwise create new one
                 let chargeResult = charge // use existing charge if loaded from chargeIdFromUrl
+                let amountToSend = amount
+
+                // An open-amount request is priced by its requestee before it is
+                // paid: every payment path reads the amount from the charge.
+                if (chargeResult?.openAmount) {
+                    amountToSend = toApiAmount(amount)
+                    await chargesApi.setAmount(chargeResult.uuid, amountToSend)
+                    chargeResult = { ...chargeResult, tokenAmount: amountToSend, currencyAmount: amountToSend }
+                    setCharge(chargeResult)
+                    setUsdAmount(amountToSend)
+                }
 
                 if (!chargeResult) {
                     if (!currentUsdAmount) {
@@ -312,7 +325,7 @@ export function useSemanticRequestFlow() {
                 // if cross-chain or different token → go to confirm view
                 if (isSameChainSameToken) {
                     // direct payment - same as old flow when isPeanutWallet && same token/chain
-                    const txResult = await sendMoney(recipient.resolvedAddress, amount, {
+                    const txResult = await sendMoney(recipient.resolvedAddress, amountToSend, {
                         kind: 'REQUEST_PAY',
                         // Lets the backend settle the charge directly when the spend
                         // routes through Rain card collateral (the on-chain validator
@@ -397,6 +410,7 @@ export function useSemanticRequestFlow() {
             setCurrentView,
             setError,
             setIsLoading,
+            setUsdAmount,
             clearError,
             toFriendlyError,
             t,
@@ -452,6 +466,10 @@ export function useSemanticRequestFlow() {
                     if (isPaid && (currentView === 'CONFIRM' || currentView === 'INITIAL')) {
                         setCurrentView('RECEIPT')
                         return
+                    }
+                    // the requestee chooses an open amount on the input view
+                    if (fetchedCharge.openAmount && currentView === 'CONFIRM') {
+                        setCurrentView('INITIAL')
                     }
 
                     // set amount from charge if not already set

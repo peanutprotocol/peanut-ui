@@ -2291,6 +2291,27 @@ export const FIXTURES: Record<string, Fixture> = {
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
     },
+    'request-pay-open-amount': {
+        // The override keys on this charge id, so the route names it.
+        route: '/pay-request?chargeId=demo-open-charge',
+        about: 'Paying a request sent with no amount: the requestee types one before paying (TASK-22123).',
+        responses: {
+            'GET /request-charges/demo-open-charge': {
+                transactionType: 'REQUEST',
+                tokenAmount: null,
+                currencyAmount: null,
+                openAmount: true,
+                requestLink: {
+                    recipientAddress: '0x00000000000000000000000000000000000a11ce',
+                    recipientAccount: {
+                        userId: 'demo-alice',
+                        identifier: '0x00000000000000000000000000000000000a11ce',
+                        user: { username: 'alice' },
+                    },
+                },
+            },
+        },
+    },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,
         // so the overrides below key on it.

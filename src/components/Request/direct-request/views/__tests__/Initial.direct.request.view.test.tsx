@@ -196,6 +196,20 @@ describe('addressed requests', () => {
         )
     })
 
+    test('sends a request with no amount, for the requestee to choose', async () => {
+        renderView()
+        expect(screen.getByRole('button', { name: 'Request' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'Request' }))
+        await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(mockRequestByUsername).toHaveBeenCalledWith(expect.objectContaining({ username: 'alice', amount: '' }))
+    })
+
+    test.each(['0', '0.00', '.'])('refuses a typed amount of %s', (amount) => {
+        renderView()
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: amount } })
+        expect(screen.getByRole('button', { name: 'Request' })).toBeDisabled()
+    })
+
     test('keeps an eligible cached session usable when the auth refresh fails', async () => {
         const { rerender } = renderView()
         fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
