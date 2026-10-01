@@ -17,6 +17,7 @@ import { useEffect, useContext, useMemo } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -26,7 +27,7 @@ import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
-import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
@@ -114,12 +115,6 @@ export function SemanticRequestInputView() {
     const isButtonDisabled = !canProceed || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
-    // get display name for recipient
-    const recipientDisplayName =
-        recipient?.recipientType === 'ADDRESS'
-            ? printableAddress(recipient.resolvedAddress)
-            : recipient?.identifier || ''
-
     // check if using peanut wallet default (usdc on arb)
     const isUsingPeanutDefault =
         selectedChainID === PEANUT_WALLET_CHAIN.id.toString() &&
@@ -177,10 +172,10 @@ export function SemanticRequestInputView() {
                 {recipient && (
                     <UserCard
                         type="send"
+                        // the full address: the card's AddressLink shortens it, resolves
+                        // its ENS name and links to it — a pre-shortened string breaks all three
                         username={
-                            recipient.recipientType === 'ADDRESS'
-                                ? printableAddress(recipient.resolvedAddress)
-                                : recipientDisplayName
+                            recipient.recipientType === 'ADDRESS' ? recipient.resolvedAddress : recipient.identifier
                         }
                         recipientType={recipient.recipientType}
                         isVerified={false}
@@ -221,7 +216,11 @@ export function SemanticRequestInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {error.showError && <Callout priority="error">{error.errorMessage}</Callout>}
+                    {error.showError && (
+                        <Callout priority="error">
+                            <CooldownErrorText message={error.errorMessage} />
+                        </Callout>
+                    )}
                 </div>
 
                 {/* action list for non-logged in users */}

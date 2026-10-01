@@ -97,7 +97,13 @@ const Manteca = ({
                     />
                 </div>
 
-                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} className="md:order-2" />
+                <Image
+                    src={mantecaIphone}
+                    alt={i18n.landingPayLocalPhoneAlt}
+                    width={250}
+                    height={250}
+                    className="md:order-2"
+                />
             </div>
         </section>
     )

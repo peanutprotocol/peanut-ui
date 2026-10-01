@@ -13,7 +13,8 @@ import {
     receiptExchangeRate,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, formatCurrency, printableAddress } from '@/utils/general.utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
@@ -117,11 +118,16 @@ export function buildReceiptPdfModel(
 
     // Counterparty: FE-generated labels localize via nameKey; raw counterparty
     // data renders via printableAddress (shortens addresses, passes usernames).
-    const counterparty = transaction.nameKey
+    const counterpartyName = transaction.nameKey
         ? t(`transaction.${transaction.nameKey}`, transaction.nameParams)
         : transaction.userName
           ? printableAddress(transaction.userName)
           : undefined
+    // A PIX-key payment reads "Maria Da Silva · maria@silva.com.br", as in the drawer title.
+    const counterparty =
+        counterpartyName && transaction.nameDetail
+            ? `${counterpartyName} · ${transaction.nameDetail}`
+            : counterpartyName
     push(
         role === EHistoryUserRole.RECIPIENT ? t('transaction.officialReceipt.pdf.from') : t('transaction.rows.to'),
         counterparty
@@ -183,7 +189,7 @@ export function buildReceiptPdfModel(
         companyName: RECEIPT_COMPANY.name,
         companyAddressLines: RECEIPT_COMPANY.addressLines,
         site: RECEIPT_COMPANY.site,
-        amountDisplay: `${headline.sign}$${formatCurrency(safeAmount.toString())}`,
+        amountDisplay: `${headline.sign}${formatBankAmount(safeAmount, 'USD')}`,
         convertedAmountDisplay: converted && !isSettledConversion(transaction) ? `≈ ${converted}` : converted,
         rows,
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,

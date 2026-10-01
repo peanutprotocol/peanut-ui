@@ -34,10 +34,11 @@ import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
 import { BankTransferChooserDrawer } from './BankTransferChooserDrawer'
-import { isUsdPeggedRequest, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
+import { isUsdPeggedRequest } from '@/features/deposit-accounts/payerAmount'
+import { formatBankAmount } from '@/utils/currency'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
 import { usdRemainingOf } from '../collected'
 
@@ -85,7 +86,6 @@ export function RequestPotActionList({
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
     const methodLabels = usePaymentMethodLabels()
-    const format = useFormatter()
     const { user, isFetchingUser } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
@@ -255,10 +255,7 @@ export function RequestPotActionList({
     const requestedAmount = Number(payAmounts?.requestAmount)
     const requestContextAmount =
         payAmounts && Number.isFinite(requestedAmount) && requestedAmount > 0
-            ? `${format.number(requestedAmount, {
-                  minimumFractionDigits: minorUnitDigits(payAmounts.requestCurrency),
-                  maximumFractionDigits: minorUnitDigits(payAmounts.requestCurrency),
-              })} ${payAmounts.requestCurrency.toUpperCase()}`
+            ? formatBankAmount(requestedAmount, payAmounts.requestCurrency.toUpperCase())
             : undefined
     // The generic row, where the backend picks the account, is for one case: the
     // pay-amounts read gave NOTHING, because the API predates the route or the
@@ -299,9 +296,7 @@ export function RequestPotActionList({
     const otherCurrencyNote = useMemo(() => {
         if (!payAmounts || payAmounts.requestCurrency.toUpperCase() === 'USD') return undefined
         const currency = payAmounts.requestCurrency.toUpperCase()
-        const digits = minorUnitDigits(currency)
-        const show = (value: number) =>
-            format.number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+        const show = (value: number) => formatBankAmount(value, currency)
         const asked = Number(payAmounts.requestAmount)
         const left = Number(payAmounts.remainingAmount)
         if (!(asked > 0)) return undefined
@@ -309,9 +304,9 @@ export function RequestPotActionList({
         // send. Not where the API's remainder missed a payment: the screen has
         // no figure of its own in this currency, so it states none.
         return serverCountsAllPayments && left > 0 && left < asked
-            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left), currency })
-            : t('requestCurrencyNote', { amount: show(asked), currency })
-    }, [payAmounts, serverCountsAllPayments, format, t])
+            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left) })
+            : t('requestCurrencyNote', { amount: show(asked) })
+    }, [payAmounts, serverCountsAllPayments, t])
 
     if (isGeoLoading) {
         return (
@@ -404,6 +399,7 @@ export function RequestPotActionList({
                 }}
                 title={t('usePeanutBalance.title')}
                 description={t('usePeanutBalance.description')}
+                tone="info"
                 icon="user-plus"
                 ctas={[
                     {

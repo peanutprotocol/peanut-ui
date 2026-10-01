@@ -49,6 +49,7 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
  *  the `errors` next-intl namespace (see `useFriendlyError`). This module stays
  *  copy-free — it only classifies. */
 export type FriendlyErrorCode =
+    | 'bankAccountNotUsable'
     | 'transferTemporarilyUnavailable'
     | 'userOpReverted'
     | 'balanceSettling'
@@ -112,7 +113,6 @@ export type FriendlyErrorCode =
  */
 export type FriendlyError =
     | { kind: 'code'; code: FriendlyErrorCode }
-    | { kind: 'params'; code: 'rainCooldownRetry'; values: { minutes: number } }
     | { kind: 'params'; code: 'xchainWithdrawLimitRetry'; values: { days: number; hours: number; minutes: number } }
     | { kind: 'params'; code: 'xchainPaymentLimitRetry'; values: { days: number; hours: number; minutes: number } }
     | { kind: 'text'; text: string }
@@ -147,6 +147,9 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     // A claim or cancel on a deposit the recipient already withdrew. The API
     // leaves the link CLAIMED and answers 409 with this code (TASK-22091).
     [API_ERROR_CODES.LINK_ALREADY_CLAIMED]: 'sendLinkAlreadyClaimed',
+    // A saved bank account the provider refused for good (TASK-23054). The API
+    // has already switched it off, so a retry cannot help: add it again.
+    [API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE]: 'bankAccountNotUsable',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a
@@ -225,12 +228,9 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // carry no `.code` and fall straight through, which is what keeps this
     // safe to ship before/independently of the backend deploy.
     const wire = wireErrorCode(error)
-    if (wire && COOLDOWN_WIRE_CODES.includes(wire)) {
-        const minutes = cooldownMinutes(error)
-        return minutes === null
-            ? code('rainCooldownRetryShortly')
-            : { kind: 'params', code: 'rainCooldownRetry', values: { minutes } }
-    }
+    // Fixed copy on purpose: screens store this as a string, so a number here
+    // would freeze. CooldownErrorText swaps in the live countdown on render.
+    if (wire && COOLDOWN_WIRE_CODES.includes(wire)) return code('rainCooldownRetryShortly')
     // The backend already ships a specific, user-ready sentence for a
     // sub-minimum bridge ("Amount ($2.00) is below the $5 minimum to bridge to
     // ETHEREUM.") with the interpolated amounts and chain — pass it through

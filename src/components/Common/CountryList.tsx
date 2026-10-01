@@ -12,6 +12,7 @@ import { useCallback, useMemo, useState, useDeferredValue, type ReactNode } from
 import { getCardPosition } from '../Global/Card/card.utils'
 import { useHomeCountry } from '@/features/destinations/useHomeCountry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
 import { CountryWaitlist } from './CountryWaitlist'
@@ -195,7 +196,7 @@ export const CountryList = ({
                             onClick={() => onCryptoClick(flow!)}
                             position={'solo'}
                             chevron
-                            leading={<IconBubble icon="coins" color="blue" size="s" />}
+                            leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                         />
                     </div>
                 )}

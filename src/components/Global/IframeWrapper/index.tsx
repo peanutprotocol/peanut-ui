@@ -103,8 +103,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         {t('iframeWrapper.troubleDescriptionLine2')}
                     </p>
                 ),
+                tone: 'info' as const,
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('iframeWrapper.copyLink'),
@@ -122,21 +122,16 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         variant: 'secondary' as ButtonVariant,
                         className: 'w-full',
                     },
-                    {
-                        text: t('iframeWrapper.cancel'),
-                        onClick: () => setIsHelpModalOpen(false),
-                        variant: 'secondary' as ButtonVariant,
-                        className: 'w-full',
-                    },
                 ],
+                tertiaryCta: { text: t('iframeWrapper.cancel'), onClick: () => setIsHelpModalOpen(false) },
             }
         }
 
         return {
             title: t('iframeWrapper.exitTitle'),
             description: t('iframeWrapper.exitDescription'),
+            tone: 'attention' as const,
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-background-icon-bubble-yellow',
             ctas: [
                 {
                     text: t('iframeWrapper.exit'),
@@ -147,13 +142,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
-                {
-                    text: t('iframeWrapper.continueVerifying'),
-                    onClick: () => setIsHelpModalOpen(false),
-                    variant: 'secondary' as ButtonVariant,
-                    className: 'w-full',
-                },
             ],
+            tertiaryCta: { text: t('iframeWrapper.continueVerifying'), onClick: () => setIsHelpModalOpen(false) },
         }
     }, [modalVariant, copied, src, router, t])
 
@@ -248,14 +238,15 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 onClose={() => setIsHelpModalOpen(false)}
                 title={modalDetails.title}
                 description={modalDetails.description}
+                tone={modalDetails.tone}
                 icon={modalDetails.icon}
-                iconContainerClassName={modalDetails.iconContainerClassName}
                 modalPanelClassName="pointer-events-auto mx-0 max-w-full"
                 ctaClassName="grid grid-cols-1 gap-3"
                 contentContainerClassName="px-6 py-6"
                 modalClassName="!z-[10001] pointer-events-auto"
                 preventClose={true}
                 ctas={modalDetails.ctas}
+                tertiaryCta={modalDetails.tertiaryCta}
             />
         </Modal>
     )

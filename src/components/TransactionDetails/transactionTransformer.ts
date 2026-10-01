@@ -1,5 +1,6 @@
 import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
+    type DepositReturnReasonCode,
     type TransactionDirection,
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
@@ -99,7 +100,8 @@ export interface DrawerDepositInstructions {
     amount: string
     currency: string
     bank_name: string
-    bank_address: string
+    /** absent on some rails — Mexican SPEI has none */
+    bank_address?: string
     payment_rail: string
     deposit_message: string
     // US format
@@ -286,6 +288,7 @@ function computeDerivedFields(entry: HistoryEntry): {
         | {
               tokenSymbol: string | undefined
               tokenIconUrl: string | undefined
+              chainId: string
               chainName: string | undefined
               chainIconUrl: string | undefined
           }
@@ -336,6 +339,7 @@ function computeDerivedFields(entry: HistoryEntry): {
         tokenDisplayDetails = {
             tokenSymbol,
             tokenIconUrl: tokenSymbol ? getTokenLogo(tokenSymbol) : undefined,
+            chainId: entry.chainId,
             chainName,
             chainIconUrl: chainName ? getChainLogo(chainName) : undefined,
         }
@@ -358,6 +362,9 @@ export interface TransactionDetails {
      *  `t(nameKey, nameParams)` and fall back to `userName`. */
     nameKey?: TransactionNameKey
     nameParams?: Record<string, string>
+    /** Shown beside `userName` in the drawer title and on the receipt (see
+     *  TransactionStrategyOutput.nameDetail). */
+    nameDetail?: string
     /** The counterparty is an actual Peanut user (not a raw address, bank
      *  account, or a system copy string like 'Request'/'Recipient'/reaper text).
      *  Authoritative gate for whether the name/avatar can deep-link to a
@@ -387,6 +394,8 @@ export interface TransactionDetails {
     haveSentMoneyToUser?: boolean
     date: string | Date
     fee?: number | string
+    /** What the bank received after a paid rail's fee, in USD; set only when there was a fee. */
+    payoutReceivedUsd?: number
     memo?: string
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
@@ -443,6 +452,8 @@ export interface TransactionDetails {
         /** The provider reported the transfer as returned or refunded after
          *  it settled. */
         wasReturned?: boolean
+        /** Why the bank sent the deposit back; picks the receipt's reason line. */
+        returnReasonCode?: DepositReturnReasonCode
         /** The reference we sent out on a fiat payout — the user's own text
          *  when they typed one, otherwise the default our payment partner
          *  composed. Owner-only: it never reaches a public receipt. */
@@ -511,6 +522,7 @@ export interface TransactionDetails {
     tokenDisplayDetails?: {
         tokenSymbol?: string
         tokenIconUrl?: string
+        chainId?: string
         chainName?: string
         chainIconUrl?: string
     }
@@ -568,6 +580,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let nameForDetails = out.nameForDetails
     let nameKey = out.nameKey
     let nameParams = out.nameParams
+    let nameDetail = out.nameDetail
     let isPeerActuallyUser = out.isPeerActuallyUser
     const isLinkTx = out.isLinkTx
     let fullName = out.fullName ?? ''
@@ -593,6 +606,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
         nameKey = reaperFailKey(reaperFailReason)
         nameParams = undefined
+        nameDetail = undefined
         isPeerActuallyUser = false
     } else if (entry.status === 'FAILED' && intentKindOf(entry) === 'QR_PAY') {
         // A collateral QR-pay that failed at submit (e.g. the stale-approval 403)
@@ -605,6 +619,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         nameForDetails = 'Failed QR payment attempt'
         nameKey = TRANSACTION_NAME_KEYS.failedQrPayment
         nameParams = undefined
+        nameDetail = undefined
         isPeerActuallyUser = false
     }
 
@@ -650,6 +665,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // so this shows the true amount deducted instead of just the principal.
     const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
     const amount = baseAmount + networkFeeUsd
+    // The one fee shown as its own line: a wire's, which the user picked and
+    // saw before confirming (TASK-23054). The bank receives the amount less it.
+    const payoutFeeUsd =
+        typeof entry.extraData?.payoutFeeUsd === 'number' && entry.extraData.payoutFeeUsd > 0
+            ? entry.extraData.payoutFeeUsd
+            : undefined
+    const usdBankAmount = (currency: HistoryEntry['currency']) => {
+        const value = currency?.code?.toUpperCase() === 'USD' ? Number(currency.amount) : Number.NaN
+        return Number.isFinite(value) ? value : undefined
+    }
 
     const { explorerUrlWithTx, proofTxHash, addressExplorerUrl, tokenDisplayDetails, rewardData } =
         computeDerivedFields(entry)
@@ -687,6 +712,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         userName: nameForDetails,
         nameKey,
         nameParams,
+        nameDetail,
         amount,
         tokenAmount: entry.amount,
         fullName,
@@ -704,12 +730,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         // Peanut product convention: fees are baked into the displayed exchange
-        // rate, never surfaced as a separate line item. Keep the backend field
-        // populated for ops/debug, but never thread it to the UI. `fee` stays
-        // `undefined` so `rowVisibilityConfig.fee` is always false and the
-        // drawer's fee row never renders. If this rule changes, update
-        // docs/product-conventions.md first.
-        fee: undefined,
+        // rate, never surfaced as a separate line item — with one exception, a
+        // wire's flat fee (TASK-23054, Hugo 2026-09-25: "communicate it
+        // clearly"). The user chose it on the review screen, so the receipt
+        // states it and what the bank received.
+        fee: payoutFeeUsd,
+        // the backend's own figure (Bridge's final_amount, or its payout helper
+        // before then), never a subtraction here
+        payoutReceivedUsd: payoutFeeUsd !== undefined ? usdBankAmount(entry.currency) : undefined,
         // memo carries free-form user notes from non-card flows (link memos,
         // request comments). Card spends + Rain refunds suppress this — the
         // merchant name and any decline reason render inside CardPaymentRows
@@ -757,6 +785,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             // The bank sent the money back after it settled, so the
             // conversion happened even though the row reads as failed.
             wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
+            returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
             payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /

@@ -8,8 +8,8 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useParams, useSearchParams } from 'next/navigation'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -33,7 +33,8 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useResidenceIso2s } from '@/features/deposit-accounts/useResidenceIso2s'
-import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
+import { residenceCloses } from '@/features/deposit-accounts/residenceGate'
+import { useBankChipFor } from '@/hooks/useBankRows'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
 import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
 
@@ -49,7 +50,9 @@ const MantecaAddMoney: FC = () => {
     const queryClient = useQueryClient()
     const locale = useLocale()
     const t = useTranslations('addMoney')
-    const router = useRouter()
+    // rewinds to home past every entry the flow pushed; a replace kept the
+    // earlier entries, so back from home re-entered the flow
+    const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
@@ -97,14 +100,21 @@ const MantecaAddMoney: FC = () => {
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
     const residenceIso2s = useResidenceIso2s()
+    const bankChipFor = useBankChipFor()
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
     // non-resident only after amount + KYC. Brazil's asks for a CPF the same
-    // way. Gate on residence first, from the corridor's own rule.
+    // way. Gate on residence first, from the corridor's own rule — the rule the
+    // Accounts rows read, so a user whose rail already moves money is not
+    // turned away here while that row says Available (audit C4).
     const residenceGatedCountry =
         selectedCountry?.id === 'AR' || selectedCountry?.id === 'BR' ? (selectedCountry.id as 'AR' | 'BR') : null
     const requiresResidenceGate =
         residenceGatedCountry !== null &&
-        !residenceAllows(residenceGatedCountry === 'AR' ? 'BANK_TRANSFER_AR' : 'PIX_BR', residenceIso2s)
+        residenceCloses(
+            residenceGatedCountry === 'AR' ? 'BANK_TRANSFER_AR' : 'PIX_BR',
+            residenceIso2s,
+            bankChipFor(residenceGatedCountry === 'AR' ? 'ars' : 'brl') === 'active'
+        )
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -121,7 +131,9 @@ const MantecaAddMoney: FC = () => {
     // Dismissing the gate must not re-open it on the next render — same
     // one-shot prompt contract as QrPayKycGateView's kycPromptDismissed.
     const [kycGateDismissed, setKycGateDismissed] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry
+        ? isVerifiedForCountry(rails, selectedCountry.id, 'deposit')
+        : false
 
     // The gate comes before the amount: a user who cannot deposit should learn it
     // on arrival, not after typing a number. The amount screen stays mounted
@@ -301,14 +313,13 @@ const MantecaAddMoney: FC = () => {
     // the amount screen and the KYC drawer — with a back to the hub, and the
     // QR route that still works from any balance.
     if (residenceGatedCountry && requiresResidenceGate) {
+        // a working rail lifts the gate, so wait for the rails before refusing
+        if (areCapabilitiesLoading) return null
         return (
             <ResidenceRequiredScreen
                 residenceIso2={residenceGatedCountry}
                 qrPayHref="/qr-pay"
-                residenceChangeHref={withReturnTo(
-                    '/profile/accounts-and-payments?open=residence',
-                    '/add-money?method=bank'
-                )}
+                residenceChangeHref={withReturnTo('/profile/accounts?open=residence', '/add-money?method=bank')}
                 onBack={onBack}
             />
         )
@@ -423,7 +434,7 @@ const MantecaAddMoney: FC = () => {
                 onBack={onBack}
                 // Terminal exit — `replace` so device/browser back can't pop into the
                 // finished deposit (whose step=showQR would redirect to a new one).
-                onDone={() => router.replace(readReturnTo(searchParams) ?? '/home')}
+                onDone={leaveToHome}
                 onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )

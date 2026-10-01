@@ -4,8 +4,24 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ADDITIONAL_PROFILES, verifyBaselineMatrix } from './baseline-viewports.mjs'
+import { createStorage } from './cloudflare-storage.mjs'
 import { verifyAsset } from './core.mjs'
+import { existingAssetPaths, publishReport } from './publish.mjs'
 import { repositoryApiPath } from './repository-api.mjs'
+
+async function mapBounded(values, operation, limit = 2) {
+    const output = new Array(values.length)
+    let cursor = 0
+    await Promise.all(
+        Array.from({ length: Math.min(limit, values.length) }, async () => {
+            while (cursor < values.length) {
+                const index = cursor++
+                output[index] = await operation(values[index])
+            }
+        })
+    )
+    return output
+}
 
 const {
     REPOSITORY: repository,
@@ -53,6 +69,7 @@ for (const { name, capture } of captures) {
 const date = run.created_at.slice(0, 10)
 const staging = mkdtempSync(join(tmpdir(), 'peanut-screen-viewports-'))
 try {
+    const publications = []
     for (const { name, slug, profile, capture } of captures.filter((item) =>
         ADDITIONAL_PROFILES.includes(item.profile)
     )) {
@@ -66,25 +83,34 @@ try {
                     if (!existsSync(target)) copyFileSync(join(source, 'assets', asset), target)
                 }
         writeFileSync(join(destination, 'manifest.json'), JSON.stringify(capture))
-        execFileSync(
-            'node',
-            [
-                'scripts/screens/publish.mjs',
-                destination,
-                `${date}/dev/${slug}/${profile}/${devSha}/run-${runId}-${runAttempt}`,
-            ],
-            {
-                stdio: 'inherit',
-                env: {
-                    ...process.env,
-                    EXPECTED_HEAD: devSha,
-                    DEV_SEQUENCE: String(run.run_number),
-                    CAPTURE_ATTEMPT: String(runAttempt),
-                    SOURCE_BRANCH: 'dev',
-                },
-            }
-        )
+        publications.push({
+            inputDir: destination,
+            reportPath: `${date}/dev/${slug}/${profile}/${devSha}/run-${runId}-${runAttempt}`,
+            env: {
+                ...process.env,
+                EXPECTED_HEAD: devSha,
+                DEV_SEQUENCE: String(run.run_number),
+                CAPTURE_ATTEMPT: String(runAttempt),
+                SOURCE_BRANCH: 'dev',
+            },
+        })
     }
+    const storage = await createStorage()
+    const knownAssets = await existingAssetPaths(storage)
+    const assetWrites = new Map()
+    const assetConversions = new Map()
+    await mapBounded(publications, ({ inputDir, reportPath, env }) =>
+        publishReport({
+            inputDir,
+            reportPath,
+            env,
+            storage,
+            knownAssets,
+            assetWrites,
+            assetConversions,
+            updateSharedIndexes: false,
+        })
+    )
 } finally {
     rmSync(staging, { recursive: true, force: true })
 }

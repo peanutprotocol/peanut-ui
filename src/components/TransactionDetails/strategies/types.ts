@@ -27,6 +27,10 @@ export interface TransactionStrategyOutput {
      */
     nameKey?: TransactionNameKey
     nameParams?: Record<string, string>
+    /** What identifies the counterparty beside its name, e.g. the PIX key a
+     *  payment's owner was looked up by. Shown in the drawer title and on the
+     *  receipt, not in the activity list. */
+    nameDetail?: string
     isPeerActuallyUser: boolean
     isLinkTx: boolean
     fullName?: string

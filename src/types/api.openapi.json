@@ -517,6 +517,9 @@
                                                     },
                                                     {
                                                         "properties": {
+                                                            "earnable": {
+                                                                "type": "boolean"
+                                                            },
                                                             "unlock": {
                                                                 "anyOf": [
                                                                     {
@@ -647,7 +650,8 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "unlock"
+                                                            "unlock",
+                                                            "earnable"
                                                         ],
                                                         "type": "object"
                                                     }
@@ -1744,13 +1748,17 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "intentId": {
+                                            "type": "string"
+                                        },
                                         "transferId": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
                                         "transferId",
-                                        "depositInstructions"
+                                        "depositInstructions",
+                                        "intentId"
                                     ],
                                     "type": "object"
                                 }
@@ -1777,6 +1785,24 @@
                         "description": "Default Response"
                     },
                     "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2269,6 +2295,100 @@
                 ]
             }
         },
+        "/bridge/offramp/quote": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "destinationCurrency",
+                        "required": true,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "eur"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "gbp"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "mxn"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "cop"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "destinationAmount",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "destinationAmount": {
+                                            "type": "string"
+                                        },
+                                        "destinationCurrency": {
+                                            "type": "string"
+                                        },
+                                        "rate": {
+                                            "type": "string"
+                                        },
+                                        "sourceAmount": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "destinationCurrency",
+                                        "rate",
+                                        "updatedAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Quote the USDC for a withdrawal typed in the destination currency",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
         "/bridge/onramp/create": {
             "post": {
                 "description": "This endpoint initiates a new on-ramp transfer (fiat to crypto). It creates a transfer from fiat to USDC on Arbitrum to the user's peanut wallet and returns bank deposit instructions.",
@@ -2480,12 +2600,16 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "flexibleAmount": {
+                                            "type": "boolean"
+                                        },
                                         "transferId": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
                                         "transferId",
+                                        "flexibleAmount",
                                         "depositInstructions"
                                     ],
                                     "type": "object"
@@ -4081,6 +4205,10 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "depositedAmount": {
+                                        "description": "Fiat the simulated payer sent, when it differs from the quote. Flexible-amount top-ups only.",
+                                        "type": "string"
+                                    },
                                     "developerFee": {
                                         "type": "string"
                                     },
@@ -9744,6 +9872,232 @@
                 ]
             }
         },
+        "/manteca/pix-key/owner": {
+            "post": {
+                "description": "Returns the owner's name and masked CPF/CNPJ for a PIX key before the user pays it. 404 PAYMENT_DESTINATION_NOT_FOUND means the key does not exist. 502 PROVIDER_UNAVAILABLE, 429 and 400 MANTECA_KYC_REQUIRED mean no name is available; the client pays without one.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "pixKey": {
+                                        "maxLength": 77,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "pixKey"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "legalIdMasked": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "legalIdMasked"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Resolve a PIX key to its owner",
+                "tags": [
+                    "manteca"
+                ]
+            }
+        },
+        "/manteca/pix-key/saved": {
+            "post": {
+                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send \u2192 Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "label": {
+                                        "maxLength": 15,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "pixKey": {
+                                        "maxLength": 77,
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "pixKey",
+                                    "label"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Save a PIX key to the address book",
+                "tags": [
+                    "manteca"
+                ]
+            }
+        },
         "/manteca/prices": {
             "get": {
                 "parameters": [
@@ -12800,6 +13154,10 @@
                                     },
                                     "directTransfer": {
                                         "type": "boolean"
+                                    },
+                                    "fundsIntentId": {
+                                        "format": "uuid",
+                                        "type": "string"
                                     },
                                     "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
@@ -18324,6 +18682,9 @@
                                                             "type": "null"
                                                         }
                                                     ]
+                                                },
+                                                "isPixRecipient": {
+                                                    "type": "boolean"
                                                 }
                                             },
                                             "required": [
@@ -18343,7 +18704,8 @@
                                                 "routingNumber",
                                                 "sortCode",
                                                 "isActive",
-                                                "deactivationReason"
+                                                "deactivationReason",
+                                                "isPixRecipient"
                                             ],
                                             "type": "object"
                                         }
@@ -20081,6 +20443,40 @@
                                         "unavailable": {
                                             "items": {
                                                 "properties": {
+                                                    "cause": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "review-action"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "review-pending"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "review-closed"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "residence-restricted"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "not-open"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
                                                     "country": {
                                                         "type": "string"
                                                     },
@@ -23230,6 +23626,89 @@
                         "description": "Default Response"
                     }
                 }
+            }
+        },
+        "/bridge/offramp/rail-fees": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "currency": {
+                                            "enum": [
+                                                "USD"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "minimumAfterFeeUsd": {
+                                            "type": "string"
+                                        },
+                                        "rails": {
+                                            "items": {
+                                                "properties": {
+                                                    "feeUsd": {
+                                                        "type": "string"
+                                                    },
+                                                    "rail": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "ach"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "ach_same_day"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "wire"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "rail",
+                                                    "feeUsd"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "currency",
+                                        "minimumAfterFeeUsd",
+                                        "rails"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "The rails a USD bank payout may use, and the fee for each",
+                "tags": [
+                    "offramp"
+                ]
             }
         }
     },

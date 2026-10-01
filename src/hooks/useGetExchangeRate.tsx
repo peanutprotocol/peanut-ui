@@ -28,7 +28,11 @@ const BRIDGE_FX_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set([
 ])
 
 export default function useGetExchangeRate({ accountType, enabled = true }: IExchangeRate) {
-    const { data: exchangeRate, isFetching: isFetchingRate } = useQuery({
+    const {
+        data: exchangeRate,
+        isFetching: isFetchingRate,
+        isError: isRateError,
+    } = useQuery({
         queryKey: ['exchangeRate', accountType],
         queryFn: async () => {
             // Anything not on the Bridge FX set returns the passthrough rate.
@@ -37,20 +41,13 @@ export default function useGetExchangeRate({ accountType, enabled = true }: IExc
                 return '1'
             }
 
-            try {
-                const { data, error: rateError } = await getExchangeRate(accountType)
-
-                if (rateError) {
-                    console.error('Failed to fetch exchange rate:', rateError)
-                    // Return default rate to 1 for error cases
-                    return '1'
-                }
-
-                return data?.sell_rate || '1'
-            } catch (error) {
-                console.error('An error occurred while fetching the exchange rate:', error)
-                return '1'
+            // A failed call is an error, never '1': a made-up 1:1 rate showed
+            // "1 USD = 1.0000 EUR" and turned the COP minimum into $4,000.
+            const { data, error: rateError } = await getExchangeRate(accountType)
+            if (rateError || !data?.sell_rate) {
+                throw new Error(rateError ?? 'No exchange rate')
             }
+            return data.sell_rate
         },
         enabled,
         staleTime: 5 * 60 * 1000, // 5 minutes
@@ -61,5 +58,5 @@ export default function useGetExchangeRate({ accountType, enabled = true }: IExc
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     })
 
-    return { exchangeRate: exchangeRate ?? null, isFetchingRate }
+    return { exchangeRate: exchangeRate ?? null, isFetchingRate, isRateError }
 }

@@ -504,7 +504,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         render(<InvitesPage />)
 
-        expect(await screen.findByText('Claim your badge')).toBeInTheDocument()
+        expect(await screen.findByText('Claim the badge')).toBeInTheDocument()
         expect(screen.queryByText(/legacy-placeholder invited you/i)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 

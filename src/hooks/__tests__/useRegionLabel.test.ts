@@ -12,8 +12,8 @@ describe('useRegionLabel', () => {
 
     it('resolves the QR-only country descriptions', () => {
         const { result } = renderHookWithIntl(() => useRegionLabel())
-        expect(result.current(region('brazil', 'Brazil', 'Only PIX QR payments')).description).toBe(
-            'Only PIX QR payments'
+        expect(result.current(region('brazil', 'Brazil', 'Only Pix QR and Pix key payments')).description).toBe(
+            'Only Pix QR and Pix key payments'
         )
     })
 

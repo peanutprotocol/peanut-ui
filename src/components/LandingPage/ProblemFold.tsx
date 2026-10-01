@@ -2,6 +2,7 @@ import Image from 'next/image'
 import HandPeace from '@/assets/illustrations/hand-peace.svg'
 import StackCoin from '@/assets/illustrations/stack-coin.svg'
 import type { LandingStrings } from './landingStrings'
+import Title from '@/components/0_Bruddle/Title'
 
 // One height for all three marks so the card tops line up. The glyph needs a
 // bigger type size than the drawings to reach the same optical weight — a
@@ -31,8 +32,8 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             title: problem.sendHomeTitle,
             body: problem.sendHomeBody,
             icon: (
-                <span aria-hidden className="h-11 font-knerd-outline text-[3.9rem] leading-[2.75rem]">
-                    %
+                <span aria-hidden className="block h-11">
+                    <Title text="%" className="text-[3.9rem]" />
                 </span>
             ),
         },

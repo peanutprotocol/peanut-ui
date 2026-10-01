@@ -1,4 +1,5 @@
 import { type PaymentLink } from '@/interfaces/interfaces'
+import { knerdTitle } from '@/components/0_Bruddle/Title'
 
 function formatTokenAmount(amount: string, token?: string) {
     return token && token.toLowerCase() !== 'usdc' ? `${amount} ${token}` : `$${amount}`
@@ -116,7 +117,7 @@ export function ReceiptCardOG({
                             style={{
                                 fontFamily: 'Knerd Filled',
                                 color: '#fff',
-                                letterSpacing: '-0.08em',
+                                letterSpacing: knerdTitle.letterSpacing,
                             }}
                         >
                             {formatTokenAmount(link.amount.toString(), link.token)}
@@ -127,14 +128,14 @@ export function ReceiptCardOG({
                             aria-hidden="true"
                             style={{
                                 position: 'absolute',
-                                top: 3,
-                                left: 3,
+                                top: knerdTitle.outlineOffset.y,
+                                left: knerdTitle.outlineOffset.x,
                                 fontFamily: 'Knerd Outline',
                                 color: '#000',
                                 pointerEvents: 'none',
                                 transformOrigin: 'top left',
-                                transform: 'scaleX(1.01) scaleY(1.01)',
-                                letterSpacing: '-0.08em',
+                                transform: `scale(${knerdTitle.outlineScale})`,
+                                letterSpacing: knerdTitle.letterSpacing,
                             }}
                         >
                             {formatTokenAmount(link.amount.toString(), link.token)}

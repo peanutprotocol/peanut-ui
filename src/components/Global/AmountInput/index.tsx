@@ -1,6 +1,7 @@
 'use client'
 
 import { formatTokenAmount } from '@/utils/general.utils'
+import { formatAmountNumber, roundUpToDecimals } from '@/utils/currency'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
@@ -22,6 +23,13 @@ interface AmountInputProps {
     disabled?: boolean
     primaryDenomination?: { symbol: string; price: number; decimals: number }
     secondaryDenomination?: { symbol: string; price: number; decimals: number }
+    /**
+     * Round the conversion INTO the secondary denomination up, not down. Set it
+     * where the secondary is the USD that pays a local amount the user typed:
+     * the server rounds that charge up to the cent, so a floored line showed
+     * one cent less than the review (TASK-23054).
+     */
+    roundSecondaryUp?: boolean
     setCurrentDenomination?: (denomination: string) => void
     walletBalance?: string
     /**
@@ -54,6 +62,7 @@ const AmountInput = ({
     disabled,
     primaryDenomination = { symbol: '$', price: 1, decimals: 2 },
     secondaryDenomination,
+    roundSecondaryUp = false,
     setCurrentDenomination,
     walletBalance,
     balanceFillAmount,
@@ -165,14 +174,32 @@ const AmountInput = ({
     const alternativeDisplayValue = useMemo(() => {
         if (!secondaryDenomination || !alternativeValue) return '0.00'
         const scaledDownValue = alternativeValue / 10 ** DECIMAL_SCALE
-        return formatTokenAmount(scaledDownValue, denominations[alternativeDisplaySymbol]?.decimals) ?? '0.00'
-    }, [alternativeValue, alternativeDisplaySymbol, secondaryDenomination, denominations])
+        const decimals = denominations[alternativeDisplaySymbol]?.decimals
+        if (roundSecondaryUp && alternativeDisplaySymbol === secondaryDenomination.symbol) {
+            // formatTokenAmount floors, and a float like 11.17 * 100 can floor a cent away
+            return roundUpToDecimals(scaledDownValue, decimals).toLocaleString('en-US', {
+                maximumFractionDigits: decimals,
+            })
+        }
+        return formatTokenAmount(scaledDownValue, decimals) ?? '0.00'
+    }, [alternativeValue, alternativeDisplaySymbol, secondaryDenomination, denominations, roundSecondaryUp])
+
+    // A cent-denominated line reads like every other amount: "0.10", "11", never
+    // "0.1" (design.md, copy). A finer denomination keeps its own digits.
+    const conversionLabel =
+        denominations[alternativeDisplaySymbol]?.decimals === 2
+            ? formatAmountNumber(alternativeDisplayValue.replace(/,/g, ''))
+            : alternativeDisplayValue
 
     // primaryDenomination.symbol is included: it decides which consumer gets the
     // display value vs the converted one, so a stale read here reports the amounts
     // the wrong way round. The setPrimary/Secondary/DisplayedAmount props are left
     // out — they are the parent's identity, and including them re-fires this on
-    // every parent render.
+    // every parent render. For the same reason the denominations are read through
+    // the field-keyed memo, never the secondaryDenomination prop: callers pass an
+    // object literal, and a report on every render made each render write the
+    // URL when the setter is a URL state — which in Next.js discards a navigation
+    // in flight (TASK-23054: withdraw Continue on a EUR amount did nothing).
     useEffect(() => {
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
         // Strip commas before passing to consumers - they expect raw numeric strings
@@ -191,14 +218,7 @@ const AmountInput = ({
             setSecondaryAmount?.(rawDisplayValue)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        displayValue,
-        alternativeDisplayValue,
-        displaySymbol,
-        secondaryDenomination,
-        hasValue,
-        primaryDenomination.symbol,
-    ])
+    }, [displayValue, alternativeDisplayValue, displaySymbol, denominations, hasValue, primaryDenomination.symbol])
 
     const onSliderValueChange = useCallback(
         (value: number[]) => {
@@ -372,7 +392,7 @@ const AmountInput = ({
                     <label
                         className={`text-heading-card ${!Number(alternativeValue) ? 'text-foreground-secondary' : ''}`}
                     >
-                        ≈ {alternativeDisplaySymbol} {alternativeDisplayValue}{' '}
+                        ≈ {alternativeDisplaySymbol} {conversionLabel}{' '}
                     </label>
                 )}
 

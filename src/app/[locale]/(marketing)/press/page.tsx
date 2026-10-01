@@ -5,8 +5,11 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
-import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Divider } from '@/components/0_Bruddle/Divider'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
@@ -138,26 +141,26 @@ export default async function PressPage({ params }: PageProps) {
                     {fm.boilerplate && (
                         <section className="flex flex-col gap-4">
                             <h2 className="text-heading-xs">{i18n.pressCompanyDescription}</h2>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                {fm.boilerplate.short && (
-                                    <Card className="gap-2 p-6" shadowSize="4">
-                                        <h3 className="text-label-l text-foreground-secondary">Short</h3>
-                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.short}</p>
-                                    </Card>
-                                )}
-                                {fm.boilerplate.medium && (
-                                    <Card className="gap-2 p-6" shadowSize="4">
-                                        <h3 className="text-label-l text-foreground-secondary">Medium</h3>
-                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.medium}</p>
-                                    </Card>
-                                )}
-                                {fm.boilerplate.press && (
-                                    <Card className="gap-2 p-6" shadowSize="4">
-                                        <h3 className="text-label-l text-foreground-secondary">Press / Partner</h3>
-                                        <p className="text-body-s text-foreground-primary">{fm.boilerplate.press}</p>
-                                    </Card>
-                                )}
-                            </div>
+                            <Card className="p-6" shadowSize="4">
+                                {/* labels stay english — untranslated before this change too */}
+                                {(
+                                    [
+                                        ['Short', fm.boilerplate.short],
+                                        ['Medium', fm.boilerplate.medium],
+                                        ['Press / Partner', fm.boilerplate.press],
+                                    ] as const
+                                )
+                                    .filter(([, text]) => !!text)
+                                    .map(([label, text], index) => (
+                                        <div key={label}>
+                                            {index > 0 && <Divider />}
+                                            <h3 className="mb-2 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                                {label}
+                                            </h3>
+                                            <p className="text-body-s text-foreground-primary">{text}</p>
+                                        </div>
+                                    ))}
+                            </Card>
                         </section>
                     )}
 
@@ -187,30 +190,58 @@ export default async function PressPage({ params }: PageProps) {
                     {fm.brand_assets && fm.brand_assets.length > 0 && (
                         <section className="flex flex-col gap-4">
                             <h2 className="text-heading-xs">{i18n.pressBrandAssets}</h2>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {fm.brand_assets.map((group) => (
-                                    <Card key={group.label} className="gap-3 p-6" shadowSize="4">
-                                        <h3 className="text-label-l text-foreground-primary">{group.label}</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {group.files.map((file) => {
-                                                const href = safeHttpUrl(file.href)
-                                                if (!href) return null
-                                                return (
-                                                    <Button
-                                                        key={href}
-                                                        href={href}
-                                                        external={href.startsWith('http')}
-                                                        variant="secondary"
-                                                        size="small"
-                                                        className="w-auto whitespace-nowrap"
-                                                    >
-                                                        {file.name}
-                                                    </Button>
-                                                )
-                                            })}
+                            <div className="grid gap-8 md:grid-cols-2">
+                                {fm.brand_assets.map((group) => {
+                                    // gate the hrefs before numbering the rows — a dropped file
+                                    // must not leave a gap in the top/middle/bottom rounding
+                                    const files = group.files
+                                        .map((file) => ({ name: file.name, href: safeHttpUrl(file.href) }))
+                                        .filter((file): file is PressAssetFile => !!file.href)
+                                    if (files.length === 0) return null
+                                    return (
+                                        <div key={group.label}>
+                                            <h3 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                                {group.label}
+                                            </h3>
+                                            <div className="flex flex-col">
+                                                {files.map((file, index) => {
+                                                    // an http href is someone else's page, not our file:
+                                                    // link out to it, never offer it as a download
+                                                    const isExternal = file.href.startsWith('http')
+                                                    return (
+                                                        <a
+                                                            key={file.href}
+                                                            href={file.href}
+                                                            {...(isExternal
+                                                                ? { target: '_blank', rel: 'noopener noreferrer' }
+                                                                : { download: true })}
+                                                            className="group block rounded-sm focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid"
+                                                        >
+                                                            <ListItem
+                                                                position={getCardPosition(index, files.length)}
+                                                                title={
+                                                                    <span className="truncate group-hover:underline">
+                                                                        {file.name}
+                                                                    </span>
+                                                                }
+                                                                trailing={
+                                                                    <Icon
+                                                                        name={
+                                                                            isExternal ? 'arrow-up-right' : 'download'
+                                                                        }
+                                                                        size={16}
+                                                                        className="text-foreground-secondary"
+                                                                    />
+                                                                }
+                                                                className="transition-colors duration-instant group-hover:bg-background-disabled group-active:bg-background-disabled"
+                                                            />
+                                                        </a>
+                                                    )
+                                                })}
+                                            </div>
                                         </div>
-                                    </Card>
-                                ))}
+                                    )
+                                })}
                             </div>
                         </section>
                     )}

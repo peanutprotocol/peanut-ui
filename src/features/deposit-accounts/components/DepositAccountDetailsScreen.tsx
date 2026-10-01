@@ -105,12 +105,15 @@ export function DepositAccountDetailsScreen({
                         title={t('details.timedOutTitle', { currency: rail.currency })}
                         description={t('details.timedOutBody')}
                     />
-                    <Button variant="primary" className="w-full" onClick={onRetry}>
-                        {t('details.timedOutRetry')}
-                    </Button>
-                    <Button variant="secondary" className="w-full" onClick={onBack}>
-                        {t('details.unavailableCta')}
-                    </Button>
+                    {/* one CTA stack, the same gap-2 pair as the revoked state */}
+                    <div className="flex w-full flex-col gap-2">
+                        <Button variant="primary" className="w-full" onClick={onRetry}>
+                            {t('details.timedOutRetry')}
+                        </Button>
+                        <Button variant="secondary" className="w-full" onClick={onBack}>
+                            {t('details.unavailableCta')}
+                        </Button>
+                    </div>
                 </PageStack.Center>
             </PageStack>
         )
@@ -153,13 +156,6 @@ export function DepositAccountDetailsScreen({
                                     {t('details.referenceRequired')}
                                 </p>
                             )}
-                            {/* A corridor that limits who may pay says so in one
-                                line (design.md, 2026-09-23): a user who shares these
-                                details with a friend has to see it without opening
-                                anything. The per-payer rows stay in the toggle. */}
-                            {account.matching.sender === 'business-only' && (
-                                <p className="text-body-xs text-foreground-secondary">{t('details.businessOnly')}</p>
-                            )}
                             {gateRules.map((rule) => (
                                 // a div, not a p: the (i) renders a div of its own
                                 <div key={rule.key} className="text-body-xs text-foreground-secondary">
@@ -175,16 +171,6 @@ export function DepositAccountDetailsScreen({
                                 <Accordion.Trigger>{t('details.termsToggle')}</Accordion.Trigger>
                                 <Accordion.Content className="flex flex-col gap-3">
                                     {termRules.length > 0 && <DepositRuleList lines={termRules} />}
-                                    {/* EUR is offered to anyone, and the one third-party
-                                        SEPA transfer seen so far came back as a
-                                        third-party payment. Until a third-party credit
-                                        is proven the holder is told what to ask of a
-                                        payer, beside the terms that say anyone may pay. */}
-                                    {rail.corridor === 'SEPA_EU' && (
-                                        <p className="text-body-xs text-foreground-secondary">
-                                            {t('details.eurOwnName')}
-                                        </p>
-                                    )}
                                     <p className="text-body-xs text-foreground-secondary">
                                         <DepositFeeLine rail={rail} />
                                     </p>

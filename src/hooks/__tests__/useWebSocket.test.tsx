@@ -1,7 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import type { ReactNode } from 'react'
 
@@ -47,10 +46,10 @@ describe('useWebSocket — history_entry handling', () => {
      * answer wins over anything held locally.
      */
     it('kindless ping clears the snapshots it supersedes, so the refetched rows win', () => {
-        const { wrapper, client } = makeWrapper()
-        const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+        const { wrapper } = makeWrapper()
+        const onRefetchRequested = jest.fn()
 
-        const { result } = renderHook(() => useWebSocket({ username: 'alice' }), { wrapper })
+        const { result } = renderHook(() => useWebSocket({ username: 'alice', onRefetchRequested }), { wrapper })
 
         emitHistoryEntry({
             uuid: 'watcher-deposit',
@@ -65,36 +64,41 @@ describe('useWebSocket — history_entry handling', () => {
         expect(result.current.historyEntries).toHaveLength(0)
         // nothing is lost by dropping them: the same ping asks for the rows
         // again, and whatever REST still returns comes back with the answer
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
+        expect(onRefetchRequested).toHaveBeenCalledTimes(1)
     })
 
     // Regression for the "Sent to Transaction $0.00" flash (PEANUT-UI-QCW):
     // charge completions arrive as minimal {uuid, status} pings with no
     // extraData — the BE expects a refetch. Rendering one routes the
     // transformer to its fallback strategy (name "Transaction", amount 0).
-    it('kindless charge ping is not rendered — it invalidates the transactions query instead', () => {
+    it('kindless charge ping is not rendered — it asks for a refetch instead', () => {
         const { wrapper, client } = makeWrapper()
         const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
         const onHistoryEntry = jest.fn()
+        const onRefetchRequested = jest.fn()
 
-        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry }), { wrapper })
+        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry, onRefetchRequested }), {
+            wrapper,
+        })
 
         emitHistoryEntry({ uuid: 'charge-1', type: 'TRANSACTION_INTENT', status: 'COMPLETED' } as HistoryEntry)
 
         expect(result.current.historyEntries).toHaveLength(0)
         expect(onHistoryEntry).not.toHaveBeenCalled()
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
-        // Charge completions move balance; the ping must refresh it since the
-        // per-page callbacks (which used to) no longer see kindless entries.
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance'] })
+        expect(onRefetchRequested).toHaveBeenCalledTimes(1)
+        // the listener itself never invalidates: every mounted instance would
+        // (SocketQueryRefresh is the one that answers)
+        expect(invalidateSpy).not.toHaveBeenCalled()
     })
 
     it('full entry with a kind is surfaced to state and the callback', () => {
-        const { wrapper, client } = makeWrapper()
-        const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+        const { wrapper } = makeWrapper()
         const onHistoryEntry = jest.fn()
+        const onRefetchRequested = jest.fn()
 
-        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry }), { wrapper })
+        const { result } = renderHook(() => useWebSocket({ username: 'alice', onHistoryEntry, onRefetchRequested }), {
+            wrapper,
+        })
 
         const entry = {
             uuid: 'dep-1',
@@ -108,7 +112,7 @@ describe('useWebSocket — history_entry handling', () => {
 
         expect(result.current.historyEntries).toEqual([entry])
         expect(onHistoryEntry).toHaveBeenCalledWith(entry)
-        expect(invalidateSpy).not.toHaveBeenCalled()
+        expect(onRefetchRequested).not.toHaveBeenCalled()
     })
 
     it('pending request entries (NEW, no senderAccount) are still ignored', () => {

@@ -131,7 +131,7 @@ export default function ListItemPage() {
                         name: 'disabled',
                         type: 'boolean',
                         default: 'false',
-                        description: 'disabled fill + subtle border + secondary title, no onClick',
+                        description: 'disabled fill + default border + secondary title, no onClick',
                     },
                     { name: 'onClick', type: '() => void', default: '(none)' },
                 ]}

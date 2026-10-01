@@ -101,14 +101,14 @@ describe('BadgeDetailDrawer', () => {
         renderModal('en')
 
         expect(screen.getByText(en.badges.whatYouGet)).toBeInTheDocument()
-        expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
+        expect(screen.getByText('3 profile avatars')).toBeInTheDocument()
     })
 
     it('lists the avatars a locked badge would unlock above how to unlock it', () => {
         renderLockedModal('CARD_SPENT_1K')
 
         const whatYouGet = screen.getByText(en.badges.whatYouGet)
-        expect(screen.getByText('3 avatars for your profile')).toBeInTheDocument()
+        expect(screen.getByText('3 profile avatars')).toBeInTheDocument()
         expect(
             whatYouGet.compareDocumentPosition(screen.getByText(en.badges.howToUnlock)) &
                 Node.DOCUMENT_POSITION_FOLLOWING
@@ -123,7 +123,7 @@ describe('BadgeDetailDrawer', () => {
         expect(text).toContain('Ganhei o selo First Swipe no Peanut!')
         expect(text).toContain('/invite?code=satoshi')
         expect(text).not.toContain('Just put my Peanut card to work')
-        expect(screen.getByText('3 avatares para o seu perfil')).toBeInTheDocument()
+        expect(screen.getByText('3 avatares de perfil')).toBeInTheDocument()
     })
 
     it('shows the unlock requirement instead of sharing for a locked badge', () => {

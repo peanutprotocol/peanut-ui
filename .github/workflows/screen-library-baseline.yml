@@ -97,10 +97,6 @@ jobs:
         if: always() && needs.revision.result == 'success' && github.repository == 'peanutprotocol/peanut-ui'
         environment: screen-library-deploy
         runs-on: ubuntu-24.04
-        concurrency:
-            group: screen-library-publisher
-            queue: max
-            cancel-in-progress: false
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -132,3 +128,30 @@ jobs:
                   TRIGGER_SHA: ${{ github.sha }}
                   EXPECTED_DEV_SHA: ${{ needs.revision.outputs.sha }}
               run: node scripts/screens/publish-baseline-viewports.mjs
+
+    index:
+        needs: [revision, publish-viewports]
+        environment: screen-library-deploy
+        runs-on: ubuntu-24.04
+        concurrency:
+            group: screen-library-index
+            queue: max
+            cancel-in-progress: false
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.revision.outputs.sha }}
+                  persist-credentials: false
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
+            - name: Refresh shared library indexes
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+              run: node scripts/screens/rebuild-index.mjs

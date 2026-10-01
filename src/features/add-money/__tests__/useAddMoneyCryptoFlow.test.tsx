@@ -21,8 +21,10 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 
 const mockSafeBack = jest.fn()
+const mockReturnTo = jest.fn()
 jest.mock('@/hooks/useSafeBack', () => ({
     useSafeBack: () => mockSafeBack,
+    useReturnTo: (origin: string) => () => mockReturnTo(origin),
 }))
 
 jest.mock('@/services/rhino', () => ({
@@ -93,10 +95,10 @@ describe('useAddMoneyCryptoFlow', () => {
         expect(result.current.network).toBe('SOL')
     })
 
-    it('back pushes a same-origin returnTo instead of history-back', () => {
+    it('back returns to a same-origin returnTo instead of history-back', () => {
         const { result } = renderFlow(`?returnTo=${encodeURIComponent('/profile/exchange-rate')}`)
         act(() => result.current.onBack())
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate')
+        expect(mockReturnTo).toHaveBeenCalledWith('/profile/exchange-rate')
         expect(mockSafeBack).not.toHaveBeenCalled()
     })
 
@@ -104,7 +106,7 @@ describe('useAddMoneyCryptoFlow', () => {
         const { result } = renderFlow(`?returnTo=${encodeURIComponent('https://evil.example/phish')}`)
         act(() => result.current.onBack())
         expect(mockSafeBack).toHaveBeenCalled()
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockReturnTo).not.toHaveBeenCalled()
     })
 
     it('handleSuccess records the deposit and flips to the success view', () => {

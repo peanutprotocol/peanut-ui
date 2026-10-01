@@ -10,16 +10,29 @@ const source = fileURLToPath(new URL('../../', import.meta.url))
 
 test('capture checkpoints follow the merged app locale catalogs', () => {
     const expected = {
-        en: ['Continue', 'Start Spending', 'Earn from invites'],
-        'es-419': ['Continuar', 'Empezar a gastar', 'Gana con tus invitaciones'],
-        'es-AR': ['Continuar', 'Empezar a gastar', 'Ganá con tus invitaciones'],
-        'pt-BR': ['Continuar', 'Começar a gastar', 'Ganhe com convites'],
+        en: ['Continue', 'Add email to continue', 'Earn from invites'],
+        'es-419': ['Continuar', 'Agrega un correo para continuar', 'Gana con invitaciones'],
+        'es-AR': ['Continuar', 'Agregá un correo para continuar', 'Ganá con invitaciones'],
+        'pt-BR': ['Continuar', 'Adicione um e-mail para continuar', 'Ganhe com convites'],
     }
-    for (const [locale, [continueText, spendingText, inviteText]] of Object.entries(expected)) {
+    for (const [locale, [continueText, emailText, inviteText]] of Object.entries(expected)) {
         const text = localizedCaptureText(locale, source)
         assert.equal(text('Continue'), continueText)
-        assert.equal(text('Start Spending'), spendingText)
+        assert.equal(text('Add email to continue'), emailText)
         assert.equal(text('Earn from invites'), inviteText)
+    }
+})
+
+// p72 opens the fold on the profile Accounts page in every capture locale
+test('the open-an-account fold is clicked by its localized name', () => {
+    const expected = {
+        en: 'Open new account',
+        'es-419': 'Abrir cuenta nueva',
+        'es-AR': 'Abrir cuenta nueva',
+        'pt-BR': 'Abrir nova conta',
+    }
+    for (const [locale, label] of Object.entries(expected)) {
+        assert.equal(localizedCaptureText(locale, source)('Open new account'), label)
     }
 })
 

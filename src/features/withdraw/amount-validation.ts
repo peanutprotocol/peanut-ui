@@ -4,9 +4,10 @@ import { getMinimumAmount } from '@/utils/bridge.utils'
 
 /**
  * Bridge bank offramps have a $1 wire minimum
- * (https://apidocs.bridge.xyz/docs/transaction-costs). Per-country minimums
- * are enforced on the amount step; this is the hard floor the submit handler
- * re-checks synchronously — the amount arrives via a user-editable URL param.
+ * (https://apidocs.bridge.xyz/docs/transaction-costs). It applies to the USD
+ * that leaves, beneath the destination's own minimum (`bankPayoutMinimum`);
+ * the submit handler re-checks both synchronously — the amount arrives via a
+ * user-editable URL param.
  */
 export const BRIDGE_OFFRAMP_MIN_USD = 1
 
@@ -57,40 +58,41 @@ function checkWithdrawUsdAmount(amount: string, balance: bigint | undefined, min
 }
 
 /**
- * The bank-withdraw minimum in USD for a destination country — the same
- * conversion the amount step applies (getMinimumAmount is local-currency:
- * GB £3, MX 50 MXN; sell rate = local per 1 USD; €1 ≈ $1). While the rate
- * has not loaded it falls back to the $1 Bridge floor — callers gate
- * submission on the rate for countries that need one (bankWithdrawMinNeedsRate).
+ * `getMinimumAmount` is keyed by country, and each minimum it holds is in that
+ * country's currency. A payout minimum belongs to the currency the account is
+ * paid in, not to its country: a Polish IBAN is paid in EUR.
  */
-export function bankWithdrawMinUsd(countryIso2: string, exchangeRate: string | null | undefined): number {
-    const localMin = getMinimumAmount(countryIso2)
-    if (!countryIso2 || countryIso2 === 'US') return localMin
-    if (localMin === 1) return 1 // EUR countries: €1 ≈ $1
-    const rate = parseFloat(exchangeRate || '0')
-    if (rate <= 0) return BRIDGE_OFFRAMP_MIN_USD // fallback while the rate loads
-    return Math.ceil(localMin / rate)
+const MINIMUM_COUNTRY_BY_CURRENCY: Record<string, string> = { gbp: 'GB', mxn: 'MX', cop: 'CO' }
+
+/**
+ * Bridge's payout minimum in the currency the bank account is paid in: £3,
+ * 50 MXN, 4,000 COP, and 1 in every other currency.
+ */
+export function bankPayoutMinimum(currency: string | null | undefined): number {
+    return getMinimumAmount(MINIMUM_COUNTRY_BY_CURRENCY[currency?.toLowerCase() ?? ''] ?? '')
 }
 
-/** True when the country's minimum is local-currency and needs the FX rate. */
-export function bankWithdrawMinNeedsRate(countryIso2: string): boolean {
-    return !!countryIso2 && countryIso2 !== 'US' && getMinimumAmount(countryIso2) !== 1
+/**
+ * Whether a bank payout reaches the minimum, compared in the bank's own
+ * currency (TASK-23054). `bankAmount` is what the bank receives: the amount
+ * the user typed in that currency, or a USD amount times the quote rate. A USD
+ * minimum rounded up from the rate refused exactly 50 MXN (it asked for $3,
+ * which is 54.60 MXN).
+ */
+export function meetsBankPayoutMinimum(bankAmount: number, currency: string | null | undefined): boolean {
+    return Number.isFinite(bankAmount) && bankAmount >= bankPayoutMinimum(currency)
 }
 
 /**
  * Validate + normalize the USD amount right before creating a bank offramp
  * (Chip review, PR #2917): the URL string must be a finite positive number at
- * or above the rail floor and within the displayed spendable balance. The
+ * or above the $1 Bridge floor and within the displayed spendable balance. The
  * normalized decimal string is what goes on the wire — never the raw param.
- * `minUsd` carries the destination's converted rail minimum (Chip round 5) —
- * the $1 Bridge floor always applies beneath it.
+ * The destination's own minimum is checked in its currency
+ * (`meetsBankPayoutMinimum`).
  */
-export function validateBankOfframpAmount(
-    amount: string,
-    balance: bigint | undefined,
-    minUsd: number = BRIDGE_OFFRAMP_MIN_USD
-): WithdrawAmountCheck {
-    return checkWithdrawUsdAmount(amount, balance, Math.max(BRIDGE_OFFRAMP_MIN_USD, minUsd))
+export function validateBankOfframpAmount(amount: string, balance: bigint | undefined): WithdrawAmountCheck {
+    return checkWithdrawUsdAmount(amount, balance, BRIDGE_OFFRAMP_MIN_USD)
 }
 
 /**

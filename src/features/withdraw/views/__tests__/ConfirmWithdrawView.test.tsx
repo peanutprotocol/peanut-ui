@@ -48,7 +48,7 @@ describe('ConfirmWithdrawView — network fee row', () => {
     it('shows the sponsored label when the account quote carries no fee, and pay == receive', () => {
         renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0} />)
         expect(screen.getByText('Sponsored by Peanut!')).toBeInTheDocument()
-        // "Recipient receives" and "You pay" both read $10 — nothing on top.
+        // "Recipient receives" and "Total" both read $10 — nothing on top.
         expect(screen.getAllByText('$10')).toHaveLength(2)
     })
 
@@ -95,6 +95,50 @@ describe('ConfirmWithdrawView — the gates hold on both CTAs', () => {
         expect(retry).toBeDisabled()
         fireEvent.click(retry)
         expect(onConfirm).not.toHaveBeenCalled()
+    })
+
+    it('disables Confirm when the live-fee message appears and re-enables it once cleared', () => {
+        const onConfirm = jest.fn()
+        const message =
+            'The network fee to Solana is $3.00, which would leave nothing to deliver. Enter a larger amount.'
+        const view = renderWithIntl(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="2"
+                payAmount="2"
+                receiveAmount="1.5"
+                networkFee={0.5}
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeEnabled()
+
+        view.rerender(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="2"
+                payAmount="2"
+                receiveAmount="0"
+                networkFee={3}
+                belowMinimumMessage={message}
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeDisabled()
+        expect(screen.getByText(message)).toBeInTheDocument()
+
+        view.rerender(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="4"
+                networkFee={3}
+                receiveAmount="1"
+                payAmount="4"
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeEnabled()
+        expect(screen.queryByText(message)).not.toBeInTheDocument()
     })
 
     it('keeps Retry alive once the funds moved — it only replays the record', () => {

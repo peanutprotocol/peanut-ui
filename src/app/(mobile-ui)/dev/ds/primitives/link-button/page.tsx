@@ -30,10 +30,11 @@ export default function LinkButtonPage() {
                     'An underlined text action that is not a CTA — open details, contact support',
                     'External links and documents — pass external to open a new tab',
                     'A quiet secondary action under the primary Button — full width with justify-center',
+                    'Every dismiss or defer action (cancel, not now, skip, keep, close) — the tertiary CTA, 24px under the primary',
                 ]}
                 dontUse={[
                     'A link inside a sentence — underline the text in place',
-                    'The secondary CTA of a modal or drawer — use a secondary Button',
+                    'A second path of equal weight to the primary — use a secondary Button',
                     'Button-looking navigation — use Button with href',
                 ]}
             />

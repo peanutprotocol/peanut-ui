@@ -207,4 +207,23 @@ describe('Tabs', () => {
             u()
         }
     })
+
+    test('a disabled tab ignores taps and says it is disabled', () => {
+        const onValueChange = jest.fn()
+        render(
+            <Tabs
+                tabs={[
+                    { value: 'one', label: 'One' },
+                    { value: 'two', label: 'Two', disabled: true },
+                ]}
+                aria-label="demo"
+                value="one"
+                onValueChange={onValueChange}
+            />
+        )
+        const two = screen.getByRole('tab', { name: 'Two' })
+        clickTab(two)
+        expect(onValueChange).not.toHaveBeenCalled()
+        expect(two).toBeDisabled()
+    })
 })

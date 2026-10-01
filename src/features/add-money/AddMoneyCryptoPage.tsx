@@ -44,7 +44,6 @@ export function AddMoneyCryptoPage() {
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
                 redirectTo={successRedirectTo}
-                replaceOnDone
                 onComplete={handleSuccessComplete}
             />
         )

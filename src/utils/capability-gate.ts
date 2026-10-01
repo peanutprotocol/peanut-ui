@@ -24,6 +24,7 @@ import type {
     RailChannel,
     ResolvedRail,
 } from '@/types/capabilities'
+import type { IUserProfile } from '@/interfaces/interfaces'
 
 /**
  * A non-blocking advisory pre-empt riding on a `ready` gate. An ENABLED rail can
@@ -356,6 +357,20 @@ export interface CapabilityState {
 }
 
 /**
+ * The gate's input, read off a user profile. The hook reads the rendered
+ * profile through it; a caller holding a profile it just fetched reads that
+ * one through it, so both resolve the same way.
+ */
+export function capabilityStateForProfile(user: IUserProfile | null | undefined, isLoading: boolean): CapabilityState {
+    return {
+        rails: user?.capabilities?.rails ?? [],
+        nextActions: user?.capabilities?.nextActions ?? [],
+        identityVerified: user?.identityVerification?.status === 'verified',
+        isLoading,
+    }
+}
+
+/**
  * Pure gate derivation over the per-rail VERDICT (`rail.resolved`, BE-derived;
  * legacy fallback in {@link railVerdict}). The gate no longer re-derives
  * fixable-vs-terminal from reason codes + action kinds — it renders the
@@ -489,12 +504,21 @@ export function getKycModalVariant(
 }
 
 /**
- * Resolve the InitiateKycModal variant for a gate. Adds the UK-resident
- * 'region-unavailable' case (TASK-20729) on top of the base kind->variant map,
- * so the three add/withdraw entry points don't each re-implement the check.
+ * Resolve the InitiateKycModal variant for a gate. Adds the residence refusals
+ * on top of the base kind->variant map, so the add/withdraw entry points don't
+ * each re-implement the check:
+ *   - `uk_resident_blocked` → 'region-unavailable', whose copy names UK
+ *     regulation (TASK-20729). UK only.
+ *   - `residence_bank_restricted` → 'bank-unavailable', the country-neutral
+ *     "not available in this country" ending (api#1738). The rail is blocked,
+ *     but support cannot lift a residence rule, so it is not the contact-
+ *     support 'blocked' ending, and never the UK copy.
  */
-export function resolveKycModalVariant(gate: GateState): ReturnType<typeof getKycModalVariant> | 'region-unavailable' {
+export function resolveKycModalVariant(
+    gate: GateState
+): ReturnType<typeof getKycModalVariant> | 'region-unavailable' | 'bank-unavailable' {
     if ('reason' in gate && gate.reason?.code === 'uk_resident_blocked') return 'region-unavailable'
+    if ('reason' in gate && gate.reason?.code === 'residence_bank_restricted') return 'bank-unavailable'
     return getKycModalVariant(gate.kind)
 }
 

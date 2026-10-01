@@ -7,7 +7,8 @@ export default function PatternsPage() {
             <div>
                 <h1 className="text-heading-m">Patterns</h1>
                 <p className="mt-1 text-body-s text-foreground-secondary">
-                    Composed components and layout patterns built from primitives and Global shared components.
+                    Start here. Composed components and layouts that cover most screens, built from primitives and
+                    Global shared components.
                 </p>
             </div>
 

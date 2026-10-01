@@ -7,7 +7,6 @@ import { execFileSync } from 'node:child_process'
 import { compare, hash, validateCapture, validateJourneys, verifyAsset } from './core.mjs'
 import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
-import { migrateLegacyReports } from './private-assets.mjs'
 
 const immutableReportPath =
     /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/(?:440x956|360x800|320x712)\/[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
@@ -19,6 +18,34 @@ const localeInfo = {
     'pt-BR': { slug: 'pt-br', label: 'Português (Brasil)' },
 }
 const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
+
+async function mapBounded(values, operation, limit = 8) {
+    const output = new Array(values.length)
+    let cursor = 0
+    await Promise.all(
+        Array.from({ length: Math.min(limit, values.length) }, async () => {
+            while (cursor < values.length) {
+                const index = cursor++
+                output[index] = await operation(values[index])
+            }
+        })
+    )
+    return output
+}
+
+/** Load immutable asset keys once per publishing run so existing images are
+ * reused without a failing conditional PUT and verification GET per report. */
+export async function existingAssetPaths(storage) {
+    const paths = new Set()
+    let cursor
+    do {
+        const page = await storage.list({ prefix: 'assets/', cursor })
+        for (const blob of page.blobs) paths.add(blob.pathname)
+        cursor = page.cursor
+        if (!page.hasMore) break
+    } while (cursor)
+    return paths
+}
 
 function optionalInteger(value, label, { positive = false } = {}) {
     if (value === undefined || value === null || value === '') return undefined
@@ -47,15 +74,19 @@ function entryMetadata(report, reportPath, env) {
     }
 }
 
-export async function publishReport({ inputDir, reportPath, env = process.env, storage } = {}) {
+export async function publishReport({
+    inputDir,
+    reportPath,
+    env = process.env,
+    storage,
+    knownAssets,
+    assetWrites = new Map(),
+    assetConversions = new Map(),
+    updateSharedIndexes = true,
+} = {}) {
     if (!immutableReportPath.test(reportPath ?? '')) throw new Error('Invalid immutable report path')
     const activeStorage = storage ?? (await createStorage(env))
     const { put, list, read } = activeStorage
-    const migration = await migrateLegacyReports(activeStorage)
-    if (migration.migratedReports)
-        console.log(
-            `Migrated ${migration.migratedReports} historical reports, ${migration.migratedAssets} assets and ${migration.removedImages} public Images objects.`
-        )
     const { default: sharp } = await import('sharp')
     const dir = resolve(inputDir),
         assets = join(dir, 'assets')
@@ -87,30 +118,42 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
     const publicAssets = new Map()
     const convertedAssets = new Map()
     const variableDimensions = report.type === 'journeys'
-    async function convertToPublicWebp(name, variable = variableDimensions) {
-        if (convertedAssets.has(name)) return convertedAssets.get(name)
-        if (!name?.endsWith('.png')) throw new Error('Full screenshots must remain PNG until publication')
-        const source = verifyAsset(assets, name, {
-            variableDimensions: variable,
-            width: after.width,
-            height: after.height,
-        })
-        const inputOptions = { limitInputPixels: variable ? 16_000_000 : after.width * after.height }
-        const sourceMetadata = await sharp(source, inputOptions).metadata()
-        const pipeline = sharp(source, inputOptions)
-        if (!variable) pipeline.resize({ width: after.width, height: after.height, fit: 'fill' })
-        const bytes = await pipeline
-            .webp({ quality: 90, alphaQuality: 100, smartSubsample: true, effort: 4 })
-            .toBuffer()
-        const metadata = await sharp(bytes, inputOptions).metadata()
-        const expectedWidth = variable ? sourceMetadata.width : after.width
-        const expectedHeight = variable ? sourceMetadata.height : after.height
-        if (metadata.width !== expectedWidth || metadata.height !== expectedHeight)
-            throw new Error('Invalid public WebP dimensions')
-        const publicName = `${hash(bytes)}.webp`
-        publicAssets.set(publicName, bytes)
-        convertedAssets.set(name, publicName)
-        return publicName
+    function convertToPublicWebp(name, variable = variableDimensions) {
+        const conversionKey = `${name}:${variable ? 'variable' : `${after.width}x${after.height}`}`
+        if (convertedAssets.has(conversionKey)) return convertedAssets.get(conversionKey)
+        let sharedConversion = assetConversions.get(conversionKey)
+        if (!sharedConversion) {
+            sharedConversion = (async () => {
+                if (!name?.endsWith('.png')) throw new Error('Full screenshots must remain PNG until publication')
+                const source = verifyAsset(assets, name, {
+                    variableDimensions: variable,
+                    width: after.width,
+                    height: after.height,
+                })
+                const inputOptions = { limitInputPixels: variable ? 16_000_000 : after.width * after.height }
+                const sourceMetadata = await sharp(source, inputOptions).metadata()
+                const pipeline = sharp(source, inputOptions)
+                if (!variable) pipeline.resize({ width: after.width, height: after.height, fit: 'fill' })
+                const bytes = await pipeline
+                    .webp({ quality: 90, alphaQuality: 100, smartSubsample: true, effort: 4 })
+                    .toBuffer()
+                const metadata = await sharp(bytes, inputOptions).metadata()
+                const expectedWidth = variable ? sourceMetadata.width : after.width
+                const expectedHeight = variable ? sourceMetadata.height : after.height
+                if (metadata.width !== expectedWidth || metadata.height !== expectedHeight)
+                    throw new Error('Invalid public WebP dimensions')
+                const publicName = `${hash(bytes)}.webp`
+                return { publicName, bytes }
+            })()
+            assetConversions.set(conversionKey, sharedConversion)
+        }
+        const conversion = (async () => {
+            const { publicName, bytes } = await sharedConversion
+            publicAssets.set(publicName, bytes)
+            return publicName
+        })()
+        convertedAssets.set(conversionKey, conversion)
+        return conversion
     }
     async function rewriteScreen(screen) {
         if (!screen?.image) return
@@ -120,16 +163,20 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
         // full-size asset so cards never select a reduced-size variant.
         screen.thumbnail = publicName
     }
+    const rewrites = []
     for (const capture of publicReport.type === 'comparison'
         ? [publicReport.before, publicReport.after]
         : [publicReport])
-        for (const screen of capture.screens) await rewriteScreen(screen)
+        rewrites.push(...capture.screens.map((screen) => () => rewriteScreen(screen)))
     if (publicReport.type === 'comparison')
         for (const screen of publicReport.screens) {
-            await rewriteScreen(screen.before)
-            await rewriteScreen(screen.after)
-            if (screen.diff) screen.diff = await convertToPublicWebp(screen.diff, false)
+            rewrites.push(
+                () => rewriteScreen(screen.before),
+                () => rewriteScreen(screen.after)
+            )
+            if (screen.diff) rewrites.push(async () => (screen.diff = await convertToPublicWebp(screen.diff, false)))
         }
+    await mapBounded(rewrites, (rewrite) => rewrite(), 4)
     const options = { allowOverwrite: false }
     async function immutable(path, body, contentType) {
         // Conflict on a rerun is acceptable only when the remote bytes agree.
@@ -147,10 +194,23 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
     const offline = mkdtempSync(join(tmpdir(), 'peanut-screens-offline-'))
     try {
         mkdirSync(join(offline, 'assets'))
-        for (const [name, bytes] of publicAssets) {
-            await immutable(`assets/${name}`, bytes, 'image/webp')
-            writeFileSync(join(offline, 'assets', name), bytes)
-        }
+        await mapBounded(
+            [...publicAssets],
+            async ([name, bytes]) => {
+                const pathname = `assets/${name}`
+                if (!knownAssets?.has(pathname)) {
+                    let write = assetWrites.get(pathname)
+                    if (!write) {
+                        write = immutable(pathname, bytes, 'image/webp')
+                        assetWrites.set(pathname, write)
+                    }
+                    await write
+                    knownAssets?.add(pathname)
+                }
+                writeFileSync(join(offline, 'assets', name), bytes)
+            },
+            8
+        )
         const json = JSON.stringify(publicReport)
         writeFileSync(join(offline, 'manifest.json'), json)
         // JSON is escaped for a JS data file; it is not accepted from the PR artifact.
@@ -203,7 +263,7 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
             }),
             'application/json'
         )
-        await updateIndexes({ put, list, read })
+        if (updateSharedIndexes) await updateIndexes({ put, list, read })
         console.log(`${env.SCREEN_LIBRARY_PUBLIC_URL}/screens/${reportPath}/`)
         console.log(`Storage manifest: ${manifest.url}`)
         return { report: publicReport, manifest }

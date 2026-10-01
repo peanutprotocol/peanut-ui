@@ -3,11 +3,13 @@ import { DepositAccountsFlow, type DepositAccountsFlowProps } from '../component
 import { corridorRecord, emptyCorridorRecord } from '../rails'
 import type { DepositAccountView } from '../types'
 
+// the step the flow opens on; jest lets a mock factory read a `mock`-prefixed variable
+let mockInitialStep = 'claim'
 jest.mock('nuqs', () => ({
     ...jest.requireActual('nuqs'),
     useQueryStates: () => {
         const React = jest.requireActual('react')
-        const [params, setParams] = React.useState({ step: 'claim', corridor: 'SEPA_EU', screen: null })
+        const [params, setParams] = React.useState({ step: mockInitialStep, corridor: 'SEPA_EU', screen: null })
         return [params, (next: object) => setParams((current: object) => ({ ...current, ...next }))]
     },
     // the raw `?corridor=` read, which only matters for an id the catalogue does not know
@@ -20,13 +22,28 @@ jest.mock('../useDepositAccountCopy', () => ({
     useDepositAccountCopy: () => ({ t: (key: string) => key, railName: () => 'SEPA' }),
 }))
 jest.mock('../components/ClaimAccountScreen', () => ({
-    ClaimAccountScreen: ({ onClaim }: { onClaim: () => void }) => <button onClick={onClaim}>Open account</button>,
+    ClaimAccountScreen: ({ onClaim, onBack }: { onClaim: () => void; onBack: () => void }) => (
+        <div>
+            <button onClick={onClaim}>Open account</button>
+            <button onClick={onBack}>Back from claim</button>
+        </div>
+    ),
 }))
 jest.mock('../components/DepositAccountDetailsScreen', () => ({
-    DepositAccountDetailsScreen: () => <div>Account details</div>,
+    DepositAccountDetailsScreen: ({ onBack }: { onBack: () => void }) => (
+        <div>
+            Account details
+            <button onClick={onBack}>Back</button>
+        </div>
+    ),
 }))
 jest.mock('../components/DepositAccountsListScreen', () => ({
-    DepositAccountsListScreen: () => <div>Account list</div>,
+    DepositAccountsListScreen: ({ onOpen }: { onOpen: (corridor: string) => void }) => (
+        <div>
+            Account list
+            <button onClick={() => onOpen('SEPA_EU')}>Open SEPA</button>
+        </div>
+    ),
 }))
 jest.mock('../components/AccountOpenedScreen', () => ({
     AccountOpenedScreen: ({ onContinue }: { onContinue: () => void }) => (
@@ -62,6 +79,10 @@ function props(account?: DepositAccountView): DepositAccountsFlowProps {
         onContactSupport: jest.fn(),
     }
 }
+
+beforeEach(() => {
+    mockInitialStep = 'claim'
+})
 
 describe('account opening celebration', () => {
     it('waits for active instructions and a ready gate, then dismisses into details', () => {
@@ -119,5 +140,56 @@ describe('the flow while claims are off', () => {
         render(<DepositAccountsFlow {...{ ...props(active), claimsEnabled: false }} />)
 
         expect(screen.getByText('Account details')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Accounts and payments links straight to the details step with a returnTo.
+ * Back from there has to leave the flow, not land on the add money list.
+ */
+describe('back from the details step', () => {
+    it('leaves the flow when the details were opened directly', () => {
+        mockInitialStep = 'details'
+        const direct = props(active)
+        render(<DepositAccountsFlow {...direct} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+        expect(direct.onExit).toHaveBeenCalled()
+    })
+
+    it('returns to the list when the user came from it', () => {
+        mockInitialStep = 'list'
+        const fromList = props(active)
+        render(<DepositAccountsFlow {...fromList} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open SEPA' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+        expect(screen.getByText('Account list')).toBeInTheDocument()
+        expect(fromList.onExit).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Accounts and payments also links straight to the claim step of an account
+ * the user does not hold yet (Chip on ui#3434). Back from there leaves too.
+ */
+describe('back from the claim step', () => {
+    it('leaves the flow when the claim was opened directly', () => {
+        const direct = props()
+        render(<DepositAccountsFlow {...direct} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Back from claim' }))
+        expect(direct.onExit).toHaveBeenCalled()
+    })
+
+    it('returns to the list when the user came from it', () => {
+        mockInitialStep = 'list'
+        const fromList = props()
+        render(<DepositAccountsFlow {...fromList} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open SEPA' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Back from claim' }))
+        expect(screen.getByText('Account list')).toBeInTheDocument()
+        expect(fromList.onExit).not.toHaveBeenCalled()
     })
 })

@@ -7,7 +7,7 @@
 export type Overflow = {
     selector: string
     text: string
-    kind: 'clip-x' | 'clip-y' | 'placeholder' | 'document-horizontal-scroll'
+    kind: 'clip-x' | 'clip-y' | 'placeholder' | 'document-horizontal-scroll' | 'truncated'
     detail: string
 }
 
@@ -136,6 +136,16 @@ export function findOverflows(exempt: string[]): Overflow[] {
             (d) => hasOwnText(d) && visible(d) && !truncates(d) && !isExempt(d)
         )
         for (const d of holders) {
+            // Embla keeps neighboring slides mounted beyond its clipped
+            // viewport. Their copy is reachable by swiping, so it is not a
+            // localization overflow. Still inspect the slide occupying the
+            // viewport, where a genuinely too-long translation can be lost.
+            const slide = d.closest('.embla__slide')
+            if (slide && el.contains(slide)) {
+                const slideBox = slide.getBoundingClientRect()
+                const center = slideBox.left + slideBox.width / 2
+                if (center < box.left || center > box.right) continue
+            }
             const r = d.getBoundingClientRect()
             // text extent, not box extent: a nowrap child at 100% width ends
             // its BOX exactly at the clip edge while its TEXT keeps going —
@@ -148,6 +158,43 @@ export function findOverflows(exempt: string[]): Overflow[] {
             } else if (clipY && textBottom > box.bottom + 3) {
                 flag(d, 'clip-y', `text extent ${Math.round(textBottom)}px > clip edge ${Math.round(box.bottom)}px`)
             }
+        }
+    }
+    return bad
+}
+
+/**
+ * Runs in the page. Finds text inside `scope` that is cut short on purpose —
+ * ellipsis or line-clamp — and does not fit. findOverflows skips deliberate
+ * truncation, because addresses and usernames truncate by design; that is how
+ * "Withdraw to your own accou…" shipped in the home Send drawer (QA
+ * 2026-09-24). Screens whose copy must never be cut run this as well.
+ */
+export function findTruncations(scope: string): Overflow[] {
+    const bad: Overflow[] = []
+    for (const root of Array.from(document.querySelectorAll(scope))) {
+        for (const el of [root, ...Array.from(root.querySelectorAll('*'))]) {
+            const cs = getComputedStyle(el)
+            if (cs.display === 'none' || cs.visibility === 'hidden') continue
+            const clamp = (cs as unknown as Record<string, string>).webkitLineClamp
+            const clamped = clamp !== undefined && clamp !== 'none'
+            const cutX = cs.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1
+            // +3 vertical tolerance: line-height rounding trips a +1 check
+            const cutY = clamped && el.scrollHeight > el.clientHeight + 3
+            if (!cutX && !cutY) continue
+            bad.push({
+                selector:
+                    el.tagName.toLowerCase() +
+                    [...el.classList]
+                        .slice(0, 3)
+                        .map((c) => `.${c}`)
+                        .join(''),
+                text: ((el as HTMLElement).innerText ?? '').trim().replace(/\s+/g, ' ').slice(0, 80),
+                kind: 'truncated',
+                detail: cutX
+                    ? `scrollWidth ${el.scrollWidth} > clientWidth ${el.clientWidth}`
+                    : `scrollHeight ${el.scrollHeight} > clientHeight ${el.clientHeight}`,
+            })
         }
     }
     return bad

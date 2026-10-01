@@ -1,6 +1,6 @@
 'use client'
 
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import Link from 'next/link'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 
@@ -24,9 +24,16 @@ export function DepositFeeLine({ rail }: { rail: DepositRail }) {
         <span className="inline">
             {fee.text}{' '}
             {fee.ratesFor && (
-                <LinkButton href={ratesHref(fee.ratesFor)} data-testid="deposit-fee-rates">
+                // A link inside a sentence just underlines its words (design.md):
+                // the standalone LinkButton's 44px hit area reached into the
+                // lines above and below.
+                <Link
+                    href={ratesHref(fee.ratesFor)}
+                    className="rounded-sm underline hover:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus active:text-foreground-primary"
+                    data-testid="deposit-fee-rates"
+                >
                     {t('fees.seeRates')}
-                </LinkButton>
+                </Link>
             )}
         </span>
     )

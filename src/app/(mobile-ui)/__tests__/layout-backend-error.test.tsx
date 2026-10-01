@@ -59,7 +59,7 @@ jest.mock('@/components/Global/QRScannerOverlay', () => ({ __esModule: true, def
 jest.mock('@/components/Global/SecurityVerificationOverlay', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 
-import Layout from '../layout'
+import Layout from '../MobileLayoutClient'
 import {
     beginIntentionalLogout,
     clearRedirectUrl,

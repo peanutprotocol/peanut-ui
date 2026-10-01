@@ -3,6 +3,9 @@
 import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
 import { DocHeader } from '../../_components/DocHeader'
@@ -12,6 +15,7 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
 import { WhenToUse } from '../../_components/WhenToUse'
+import { DesignNote } from '../../_components/DesignNote'
 
 export default function CardPage() {
     return (
@@ -36,6 +40,12 @@ export default function CardPage() {
                     'An inline status or error message — use Callout',
                 ]}
             />
+
+            <DesignNote type="info">
+                Building a card? Start from Patterns → Cards. It says which shadow, which IconBubble size and which
+                header gap to use.
+            </DesignNote>
+            <LinkButton href="/dev/ds/patterns/cards-global">Patterns → Cards</LinkButton>
 
             <Playground
                 name="Card"
@@ -73,7 +83,10 @@ export default function CardPage() {
                 ]}
             />
 
-            <DocSection title="Shadow Variants">
+            <DocSection
+                title="Shadow Variants"
+                description={`In-app cards are flat: leave shadowSize off. shadowSize="4" is for marketing and public pages. 6 and 8 have no Card callers.`}
+            >
                 <DocSection.Content>
                     <div className="space-y-3">
                         <Card className="p-4">
@@ -121,6 +134,31 @@ export default function CardPage() {
                 </DocSection.Code>
             </DocSection>
 
+            <DocSection
+                title="Header spacing"
+                description="Header → content is M/12 (gap-3 on the Card). Inside the header, title → description is XS/4 (gap-1, TitleBlock)."
+            >
+                <DocSection.Content>
+                    <Card className="flex flex-col gap-3 p-4">
+                        <TitleBlock title="Recover card funds" description="We send them to your Peanut wallet" />
+                        <p className="text-body-s">Body content starts 12px below the header.</p>
+                    </Card>
+                    <DesignNote type="info">
+                        Card.Header and Card.Content draw their own rule and padding instead. They are legacy: two
+                        callers (withdraw/manteca, [...recipient]/error).
+                    </DesignNote>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Header → content"
+                        code={`<Card className="flex flex-col gap-3 p-4">
+  <TitleBlock title="Recover card funds" description="We send them to your Peanut wallet" />
+  {content}
+</Card>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
             <SectionDivider />
 
             <DocSection
@@ -145,7 +183,7 @@ export default function CardPage() {
                         </Card>
                         <Card className="items-center gap-6 p-6 text-center">
                             <div className="flex flex-col items-center gap-2">
-                                <IconBubble icon="check" color="yellow" />
+                                <IconBubble {...CONCEPT_ICONS.verification} />
                                 <div className="flex flex-col items-center gap-1">
                                     <Card.Title className="pb-0 text-center">Verify to get started</Card.Title>
                                     <Card.Description className="text-center">
@@ -212,7 +250,7 @@ export default function CardPage() {
                             <IconBubble icon="check" color="green" />
                         </div>
                         <div className="space-y-1">
-                            <h1 className="text-body-s text-foreground-secondary">You sent to lucia</h1>
+                            <h1 className="text-body-s text-foreground-secondary">Sent to lucia</h1>
                             <p className="text-heading-s">$24.00</p>
                         </div>
                     </Card>

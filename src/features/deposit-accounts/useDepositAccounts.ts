@@ -152,9 +152,12 @@ export function useDepositAccounts({
             if (hasAccountStillWaiting(q.state.data?.accounts, provisioningPolls)) return PROVISIONING_POLL_MS
             // A corridor whose review is under way resolves on its own, and the
             // screen is waiting on exactly this read to continue into the claim.
-            return (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending')
-                ? ENDORSEMENT_POLL_MS
-                : false
+            // The same holds for the user's own review of a rail (`review-pending`):
+            // its wait drawer says the page updates by itself.
+            const reviewUnderWay =
+                (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending') ||
+                (q.state.data?.unavailable ?? []).some((corridor) => corridor.cause === 'review-pending')
+            return reviewUnderWay ? ENDORSEMENT_POLL_MS : false
         },
     })
 

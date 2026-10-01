@@ -197,15 +197,12 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                                 onClick: handleClose,
                             },
                         ]
-                      : [
-                            {
-                                text: t('cancel.keepCard'),
-                                variant: 'secondary',
-                                className: 'w-full',
-                                onClick: handleClose,
-                                disabled: phase === 'canceling',
-                            },
-                        ]
+                      : undefined
+            }
+            tertiaryCta={
+                isConfirm
+                    ? { text: t('cancel.keepCard'), onClick: handleClose, disabled: phase === 'canceling' }
+                    : undefined
             }
         />
     )

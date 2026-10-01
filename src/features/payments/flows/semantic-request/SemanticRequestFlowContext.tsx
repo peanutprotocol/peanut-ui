@@ -20,7 +20,7 @@ import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
 import type { TokenMeta } from '@/interfaces/chain-meta'
-import { isStableCoin } from '@/utils/general.utils'
+import { areEvmAddressesEqual, isStableCoin } from '@/utils/general.utils'
 
 // view states for semantic request flow
 export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT' | 'EXTERNAL_WALLET'
@@ -168,20 +168,30 @@ export function SemanticRequestFlowProvider({
 
     // derive recipient from parsed url OR charge
     const recipient = useMemo<SemanticRequestRecipient | null>(() => {
-        // If we have a charge, use its recipient address
-        if (charge?.requestLink?.recipientAddress) {
+        const urlRecipient = parsedUrl?.recipient
+        const chargeAddress = charge?.requestLink?.recipientAddress
+        // The charge is authoritative for the address; the URL is the only place the
+        // name survives. Keep the name while it resolves to the charge's address.
+        if (chargeAddress) {
+            if (urlRecipient && areEvmAddressesEqual(urlRecipient.resolvedAddress, chargeAddress)) {
+                return {
+                    identifier: urlRecipient.identifier,
+                    recipientType: urlRecipient.recipientType,
+                    resolvedAddress: chargeAddress as Address,
+                }
+            }
             return {
-                identifier: charge.requestLink.recipientAddress,
+                identifier: chargeAddress,
                 recipientType: 'ADDRESS' as RecipientType,
-                resolvedAddress: charge.requestLink.recipientAddress as Address,
+                resolvedAddress: chargeAddress as Address,
             }
         }
         // Otherwise use parsed URL recipient
-        if (!parsedUrl?.recipient) return null
+        if (!urlRecipient) return null
         return {
-            identifier: parsedUrl.recipient.identifier,
-            recipientType: parsedUrl.recipient.recipientType,
-            resolvedAddress: parsedUrl.recipient.resolvedAddress as Address,
+            identifier: urlRecipient.identifier,
+            recipientType: urlRecipient.recipientType,
+            resolvedAddress: urlRecipient.resolvedAddress as Address,
         }
     }, [parsedUrl, charge])
 

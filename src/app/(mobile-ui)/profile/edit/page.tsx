@@ -3,7 +3,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { ProfileEditView } from '@/components/Profile/views/ProfileEdit.view'
 
 export const metadata = generateMetadata({
-    title: 'Edit Profile | Peanut',
+    title: 'Edit profile | Peanut',
     description: 'Edit your Peanut profile details',
     image: '/metadata-img.png',
 })

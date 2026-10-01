@@ -11,8 +11,6 @@ import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { WhenToUse } from '../../_components/WhenToUse'
 
-const noop = () => {}
-
 export default function ToastStackPage() {
     return (
         <DocPage>
@@ -31,7 +29,7 @@ export default function ToastStackPage() {
                 ]}
                 dontUse={[
                     'Do not mount ToastStack yourself — AppFlowProviders wraps every app route in ToastProvider',
-                    'Do not pass toasts or dismiss by hand — call useToast()',
+                    'Do not pass toasts by hand — call useToast()',
                     'A message that must stay on screen — use an inline Callout',
                 ]}
             />
@@ -41,7 +39,6 @@ export default function ToastStackPage() {
             <PropsTable
                 rows={[
                     { name: 'toasts', type: 'ToastMessage[]', default: '(required)' },
-                    { name: 'dismiss', type: '(id) => void', default: '(required)' },
                     {
                         name: 'onShow',
                         type: '(id) => void',
@@ -70,7 +67,7 @@ export default function ToastStackPage() {
                     path="src/components/0_Bruddle/Toast.tsx"
                     description="ToastProvider mounts the stack inside its own fixed container — bottom right, above every overlay, sliding between a raised and a normal bottom offset — and only once a toast has been asked for. AppFlowProviders (src/context/appFlowProviders.tsx) wraps every app route in that provider, so the marketing site never loads the chunk. Recreated here with a static list, un-fixed, inside the box."
                     code={`<div className={twMerge(CONTAINER, toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM)}>
-    {rendererWanted && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
+    {rendererWanted && <ToastStack toasts={toasts} onShow={handleToastShown} />}
 </div>`}
                 >
                     <div className="flex flex-col items-end gap-2">
@@ -79,25 +76,23 @@ export default function ToastStackPage() {
                                 { id: 'usage-success', type: 'success', message: 'Details copied' },
                                 { id: 'usage-error', type: 'error', message: 'Could not copy — try again' },
                             ]}
-                            dismiss={noop}
                         />
                     </div>
                 </ProductUsage.Example>
 
                 <ProductUsage.Example
                     title="What a flow actually writes"
-                    path="src/features/deposit-accounts/components/DepositShareActions.tsx"
-                    description="A representative caller: no ToastStack, no props — the copy action reports through useToast() and the provider decides whether the stack has to exist. About 35 files call useToast() this way."
+                    path="src/components/Global/CopyToClipboard/index.tsx"
+                    description="A representative caller: no ToastStack, no props — a failed copy reports through useToast() and the provider decides whether the stack has to exist. A copy that works shows its own copied state on the control, never a toast. About 35 files call useToast() this way."
                     code={`const toast = useToast()
 
-if (copied) toast.success(t('share.copied'))
-else toast.error(t('share.copyFailed'))`}
+if (!didCopy) {
+    toast.error(t('copyToClipboard.copyFailed'))
+    return
+}`}
                 >
                     <div className="flex flex-col items-end gap-2">
-                        <ToastStack
-                            toasts={[{ id: 'usage-copied', type: 'success', message: 'Account details copied' }]}
-                            dismiss={noop}
-                        />
+                        <ToastStack toasts={[{ id: 'usage-copy-failed', type: 'error', message: 'Copy failed' }]} />
                     </div>
                 </ProductUsage.Example>
 

@@ -1,7 +1,7 @@
 'use client'
 
 import type { MantecaLimit } from '@/interfaces/interfaces'
-import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
+import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 import { formatExtendedNumber } from '@/utils/general.utils'
 import type { IconName } from '@/components/Global/Icons/Icon'
@@ -41,9 +41,9 @@ export type BridgeRegion = 'us' | 'mexico' | 'europe' | 'argentina' | 'brazil'
 
 // ux copy constants
 export const LIMITS_COPY = {
-    BLOCKING_TITLE: 'This amount exceeds your limit.',
-    WARNING_TITLE: "You're close to your limit.",
-    CHECK_LIMITS: 'Check my limits.',
+    BLOCKING_TITLE: 'This amount exceeds the limit',
+    WARNING_TITLE: 'Close to the limit',
+    CHECK_LIMITS: 'Check limits',
     SUPPORT_MESSAGE: 'Hi, I would like to increase my payment limits.',
 } as const
 
@@ -85,7 +85,7 @@ export function mapToLimitCurrency(currency?: string): LimitCurrency {
 
 /**
  * get currency symbol from currency code
- * uses centralized SYMBOLS_BY_CURRENCY_CODE from useCurrency
+ * uses centralized SYMBOLS_BY_CURRENCY_CODE
  */
 export function getCurrencySymbol(currency: string): string {
     return SYMBOLS_BY_CURRENCY_CODE[currency.toUpperCase()] || currency.toUpperCase()

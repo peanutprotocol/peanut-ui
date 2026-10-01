@@ -31,8 +31,8 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
             return {
                 title: t('wrapper.troubleTitle'),
                 description: t('wrapper.troubleDescription'),
+                tone: 'info' as const,
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('wrapper.chatWithSupport'),
@@ -40,21 +40,16 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                         variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
-                    {
-                        text: tCommon('cancel'),
-                        onClick: () => onDismiss(),
-                        variant: 'secondary' as ButtonVariant,
-                        className: 'w-full',
-                    },
                 ],
+                tertiaryCta: { text: tCommon('cancel'), onClick: () => onDismiss() },
             }
         }
 
         return {
             title: t('wrapper.exitForNowTitle'),
             description: t('wrapper.exitForNowDescription'),
+            tone: 'attention' as const,
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-background-icon-bubble-yellow',
             ctas: [
                 {
                     text: t('wrapper.exit'),
@@ -65,13 +60,8 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                     variant: 'primary' as ButtonVariant,
                     shadowSize: '4' as const,
                 },
-                {
-                    text: tCommon('continue'),
-                    onClick: () => onDismiss(),
-                    variant: 'secondary' as ButtonVariant,
-                    className: 'w-full',
-                },
             ],
+            tertiaryCta: { text: tCommon('continue'), onClick: () => onDismiss() },
         }
     }, [variant, onDismiss, onExit, setIsSupportModalOpen, t, tCommon])
 
@@ -81,14 +71,15 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
             onClose={onDismiss}
             title={modalDetails.title}
             description={modalDetails.description}
+            tone={modalDetails.tone}
             icon={modalDetails.icon}
-            iconContainerClassName={modalDetails.iconContainerClassName}
             modalPanelClassName="mx-0 max-w-full"
             ctaClassName="grid grid-cols-1 gap-3"
             contentContainerClassName="px-6 py-6"
             modalClassName="!z-[10001]"
             preventClose={true}
             ctas={modalDetails.ctas}
+            tertiaryCta={modalDetails.tertiaryCta}
         />
     )
 }

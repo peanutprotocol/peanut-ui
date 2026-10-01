@@ -39,6 +39,9 @@ export interface ChainRegistryEntry {
     /** Display key on deposit surfaces (the legacy `ChainName`). */
     displayName?: string
     logoUrl?: string
+    /** CoinGecko asset platform id (from `/api/v3/asset_platforms`). Absent =
+     *  CoinGecko does not list the chain, so token lookups are skipped. */
+    coingeckoPlatformId?: string
     /** Full transaction explorer prefix for chains that are not represented in
      *  chain-details.json. Keep this beside the chain identity so receipts do
      *  not grow a second network-name switch. */
@@ -66,6 +69,7 @@ const CHAIN_REGISTRY_LITERAL = [
     // ── legacy, always-on chains ────────────────────────────────────────────
     {
         id: '42161',
+        coingeckoPlatformId: 'arbitrum-one',
         aliasIds: ['421614'], // Arb Sepolia — same Rhino bucket for sandbox runs
         rhinoName: 'ARBITRUM',
         family: 'evm',
@@ -79,6 +83,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '1',
+        coingeckoPlatformId: 'ethereum',
         rhinoName: 'ETHEREUM',
         family: 'evm',
         displayName: 'ETHEREUM',
@@ -88,6 +93,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '8453',
+        coingeckoPlatformId: 'base',
         rhinoName: 'BASE',
         family: 'evm',
         displayName: 'BASE',
@@ -101,6 +107,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '10',
+        coingeckoPlatformId: 'optimistic-ethereum',
         rhinoName: 'OPTIMISM',
         family: 'evm',
         displayName: 'OPTIMISM',
@@ -110,6 +117,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '100',
+        coingeckoPlatformId: 'xdai',
         rhinoName: 'GNOSIS',
         family: 'evm',
         displayName: 'GNOSIS',
@@ -119,6 +127,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '137',
+        coingeckoPlatformId: 'polygon-pos',
         rhinoName: 'MATIC_POS', // Rhino's name for Polygon (display: POLYGON)
         family: 'evm',
         displayName: 'POLYGON',
@@ -128,6 +137,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '56',
+        coingeckoPlatformId: 'binance-smart-chain',
         rhinoName: 'BINANCE', // Rhino's name for BNB Chain (display: BNB)
         family: 'evm',
         displayName: 'BNB',
@@ -137,6 +147,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '42220',
+        coingeckoPlatformId: 'celo',
         rhinoName: 'CELO',
         family: 'evm',
         displayName: 'CELO',
@@ -148,6 +159,7 @@ const CHAIN_REGISTRY_LITERAL = [
         // SCROLL: display-only legacy — Rhino disabled it 2026-07 ("SCROLL is
         // disabled" InvalidRequest). No rhinoName = not routable anywhere.
         id: '534352',
+        coingeckoPlatformId: 'scroll',
         family: 'evm',
         displayName: 'SCROLL',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/153/standard/scroll.jpeg?1706606782',
@@ -157,24 +169,28 @@ const CHAIN_REGISTRY_LITERAL = [
     // ── Rhino prod: live quote + outflow SDA create ──────────────────────
     {
         id: '43114',
+        coingeckoPlatformId: 'avalanche',
         rhinoName: 'AVALANCHE',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
     },
     {
         id: '999',
+        coingeckoPlatformId: 'hyperevm',
         rhinoName: 'HYPEREVM',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
     },
     {
         id: '57073',
+        coingeckoPlatformId: 'ink',
         rhinoName: 'INK',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
     },
     {
         id: '747474',
+        coingeckoPlatformId: 'katana',
         rhinoName: 'KATANA',
         family: 'evm',
         displayName: 'KATANA',
@@ -184,18 +200,21 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '59144',
+        coingeckoPlatformId: 'linea',
         rhinoName: 'LINEA',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] },
     },
     {
         id: '5000',
+        coingeckoPlatformId: 'mantle',
         rhinoName: 'MANTLE',
         family: 'evm',
         withdraw: { tokens: ['USDC', 'USDT'] }, // USDT delivered as USDT0
     },
     {
         id: '9745',
+        coingeckoPlatformId: 'plasma',
         rhinoName: 'PLASMA',
         family: 'evm',
         displayName: 'PLASMA',
@@ -205,6 +224,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '988',
+        coingeckoPlatformId: 'stable',
         rhinoName: 'STABLE',
         family: 'evm',
         withdraw: { tokens: ['USDT'] }, // USDT0-only chain
@@ -220,6 +240,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: '8217',
+        coingeckoPlatformId: 'klay-token',
         rhinoName: 'KAIA',
         family: 'evm',
         displayName: 'KAIA',
@@ -231,6 +252,7 @@ const CHAIN_REGISTRY_LITERAL = [
     // ── non-EVM ─────────────────────────────────────────────────────────────
     {
         id: 'solana',
+        coingeckoPlatformId: 'solana',
         rhinoName: 'SOLANA',
         family: 'solana',
         displayName: 'SOLANA',
@@ -260,6 +282,7 @@ const CHAIN_REGISTRY_LITERAL = [
     },
     {
         id: 'tron',
+        coingeckoPlatformId: 'tron',
         rhinoName: 'TRON',
         family: 'tron',
         displayName: 'TRON',

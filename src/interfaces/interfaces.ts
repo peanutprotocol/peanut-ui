@@ -257,6 +257,13 @@ export interface Account {
     bic?: string
     routingNumber?: string
     sortCode?: string // uk bank accounts
+    /** Why the API switched the account off, when it did — see isUsableSavedAccount. */
+    deactivationReason?: string | null
+    /**
+     * Someone else's PIX key, saved from a payment. It can be paid again from
+     * Send, but the PIX withdrawal pays out only to the user's own account.
+     */
+    isPixRecipient?: boolean
 }
 
 interface userInvites {

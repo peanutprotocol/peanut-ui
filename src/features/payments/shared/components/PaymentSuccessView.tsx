@@ -37,6 +37,7 @@ import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useReturnTo } from '@/hooks/useSafeBack'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
@@ -66,6 +67,8 @@ type DirectSuccessViewProps = {
     type?: 'SEND' | 'REQUEST' | 'DEPOSIT'
     headerTitle?: string
     currencyAmount?: string
+    /** A second amount under the headline, already formatted: the other currency of a conversion. */
+    secondaryAmount?: string
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     /**
@@ -76,10 +79,6 @@ type DirectSuccessViewProps = {
      */
     isFromSendFlow?: boolean
     redirectTo?: string
-    // When true, the "Done"/cancel navigation replaces the current history entry instead of
-    // pushing. Use for terminal flows (e.g. deposit success) so browser/device back doesn't
-    // pop the user back into the now-completed flow.
-    replaceOnDone?: boolean
     onComplete?: () => void
     points?: number
     // props to receive data directly instead of from redux
@@ -99,11 +98,11 @@ const PaymentSuccessView = ({
     type,
     headerTitle,
     currencyAmount,
+    secondaryAmount,
     isExternalWalletFlow,
     isWithdrawFlow,
     isFromSendFlow,
     redirectTo = '/home',
-    replaceOnDone = false,
     onComplete,
     points,
     chargeDetails,
@@ -158,8 +157,8 @@ const PaymentSuccessView = ({
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!chargeDetails) return null
 
-        const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
-        const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
+        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
+        const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
@@ -275,15 +274,14 @@ const PaymentSuccessView = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryClient])
 
+    // Rewinds to the destination past every entry the flow pushed, or replaces
+    // this page with it. A push kept the finished flow under home, so back from
+    // home reopened the request or send just completed (QA-09); a replace
+    // still kept the flow's earlier entries.
+    const leaveFlow = useReturnTo(!!authUser?.user.userId ? redirectTo : '/setup')
     const handleDone = () => {
-        // Navigate first, then call onComplete - otherwise onComplete may reset state
-        // causing this component to unmount before router.push executes
-        const target = !!authUser?.user.userId ? redirectTo : '/setup'
-        if (replaceOnDone) {
-            router.replace(target)
-        } else {
-            router.push(target)
-        }
+        // navigate before onComplete, which may reset state and unmount this view first
+        leaveFlow()
         onComplete?.()
     }
 
@@ -341,6 +339,7 @@ const PaymentSuccessView = ({
                                 ))}
                         </h1>
                         <h2 className="text-heading-s">{displayAmount}</h2>
+                        {secondaryAmount && <p className="text-body-s text-foreground-secondary">{secondaryAmount}</p>}
                         {message && (
                             <p className="text-body-s text-foreground-secondary">
                                 {isWithdrawFlow ? t('success.toPrefix') : t('success.forPrefix')} {message}

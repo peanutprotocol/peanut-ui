@@ -6,6 +6,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
+    IN_SENTENCE_NAME_KEYS,
     SELF_DESCRIBING_NAME_KEYS,
     TRANSACTION_NAME_KEYS,
     translateTransactionName,
@@ -61,6 +62,10 @@ interface TransactionDetailsHeaderCardProps {
     showFullName?: boolean
     fullName?: string
     countryCode?: string | null
+    /** one line under the status badge, e.g. why a deposit was returned */
+    statusNote?: string
+    /** Identifies the counterparty beside its name in the title, e.g. a PIX key. */
+    nameDetail?: string
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -71,7 +76,12 @@ const getTitle = (
     userName: string,
     isLinkTransaction?: boolean,
     status?: StatusType,
-    nameKey?: TransactionNameKey
+    nameKey?: TransactionNameKey,
+    /** The name as it reads inside a sentence: the lowercase form of a
+     *  generic label, otherwise the same as `userName`. */
+    inSentenceName: string = userName,
+    /** Identifies the counterparty beside its name, e.g. a PIX key. */
+    nameDetail?: string
 ): React.ReactNode => {
     let titleText = userName
 
@@ -99,6 +109,7 @@ const getTitle = (
         // whose `identifier` arrives as a userId) so the header never renders
         // a 36-char string.
         const displayName = printableUserHandle(userName)
+        const sentenceName = printableUserHandle(inSentenceName)
 
         // check if this is a test transaction (setup confirmation)
         // note: bad check, but its a quick fix for now - kush (18 nov 2025), to be handled in the backend post devconnect.
@@ -116,7 +127,7 @@ const getTitle = (
                     // from outflow. Non-completed (pending / cancelled /
                     // failed) reads "Sending to".
                     titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                        name: displayName,
+                        name: sentenceName,
                     })
                 }
                 break
@@ -127,18 +138,18 @@ const getTitle = (
                 if (nameKey === TRANSACTION_NAME_KEYS.receivedViaLink) {
                     titleText = t('title.receivedViaLink')
                 } else {
-                    titleText = t('title.receivedFrom', { name: displayName })
+                    titleText = t('title.receivedFrom', { name: sentenceName })
                 }
                 break
             case 'request_sent':
                 titleText = t(status === 'completed' ? 'title.requestedFrom' : 'title.requestingFrom', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             case 'withdraw':
             case 'bank_withdraw':
                 titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             case 'bank_claim':
@@ -150,17 +161,17 @@ const getTitle = (
                     titleText = t('enjoyPeanut')
                 } else {
                     titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
-                        name: displayName,
+                        name: sentenceName,
                     })
                 }
                 break
             case 'claim_external':
                 if (status === 'completed') {
-                    titleText = t('title.claimedTo', { name: displayName })
+                    titleText = t('title.claimedTo', { name: sentenceName })
                 } else if (status === 'failed') {
-                    titleText = t('title.claimTo', { name: displayName })
+                    titleText = t('title.claimTo', { name: sentenceName })
                 } else {
-                    titleText = t('title.claimingTo', { name: displayName })
+                    titleText = t('title.claimingTo', { name: sentenceName })
                 }
                 break
             case 'qr_payment':
@@ -169,13 +180,15 @@ const getTitle = (
                     // direction words: "Payment to {merchant}" (board 17490:115877).
                     // The self-contained "Failed QR payment attempt" label is
                     // handled by the self-describing escape at the top.
-                    titleText = t('title.paymentTo', { name: displayName })
+                    titleText = t('title.paymentTo', { name: sentenceName })
                 } else {
                     // Board 17490:115877 (Activity/CardPayment pending drawer):
                     // the title keeps the type wording "Paid to {name}" in every
                     // non-failed state — the status badge, not the verb tense,
                     // carries pending/cancelled. ("Paying to" retired with it.)
-                    titleText = t('title.paidTo', { name: displayName })
+                    titleText = t('title.paidTo', {
+                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
+                    })
                 }
                 break
             case 'bank_request_fulfillment':
@@ -183,7 +196,7 @@ const getTitle = (
                 // money, worded like a send (PR #2813 review: direction must
                 // be readable from the receipt words, not the sign alone).
                 titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                    name: displayName,
+                    name: sentenceName,
                 })
                 break
             default:
@@ -234,6 +247,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     showFullName,
     fullName,
     countryCode,
+    statusNote,
+    nameDetail,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -246,6 +261,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // instead of a shortened 0x. No ENS → getTitle shortens the raw address.
     const { primaryName } = usePrimaryNameServer(isAddress(userName) ? userName : undefined)
     const resolvedUserName = normalizeEnsName(primaryName) ?? localizedUserName
+    const inSentenceKey =
+        nameKey && nameKey in IN_SENTENCE_NAME_KEYS
+            ? IN_SENTENCE_NAME_KEYS[nameKey as keyof typeof IN_SENTENCE_NAME_KEYS]
+            : undefined
+    const inSentenceName = inSentenceKey ? t(inSentenceKey) : resolvedUserName
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
@@ -281,7 +301,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             isLinkTransaction={isLinkTransaction}
             transactionType={typeForAvatar}
             status={status}
-            context="header"
             size="m"
             countryCode={countryCode}
         />
@@ -331,7 +350,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             )}
             <div className="flex w-full flex-col items-center gap-2">
                 <div className="flex w-full flex-col items-center gap-1">
-                    <h2 className="flex items-center justify-center text-body-xs text-foreground-secondary">
+                    {/* A PIX-key title carries a person's name and key: masked in session replay. */}
+                    <h2
+                        className={`flex items-center justify-center text-body-xs text-foreground-secondary ${nameDetail ? 'ph-mask ph-no-capture' : ''}`}
+                    >
                         {isTest ? (
                             t('enjoyPeanut')
                         ) : (
@@ -343,7 +365,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                         : isRequestPotTransaction
                                           ? // The pot rollup row only ever renders for the request's
                                             // owner — the generic "Request" label reads as their own
-                                            // ask: "You requested". Named pots keep their name.
+                                            // ask: "Requested". Named pots keep their name.
                                             nameKey === TRANSACTION_NAME_KEYS.request
                                               ? t('title.youRequested')
                                               : localizedUserName
@@ -353,7 +375,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                                 resolvedUserName,
                                                 isLinkTransaction,
                                                 status,
-                                                nameKey
+                                                nameKey,
+                                                inSentenceName,
+                                                nameDetail
                                             ) as string)
                                 }
                                 isVerified={isVerified}
@@ -376,7 +400,15 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         </h1>
                     )}
                 </div>
-                {showBadge && <Badge status={status!} size="medium" />}
+                {showBadge &&
+                    (actionLabelKey === 'type.returnedToSender' ? (
+                        // A bank deposit sent back to the payer is a fact with no
+                        // success tone, so `neutral`, in the heading's word.
+                        <Badge status="neutral" size="medium" customText={t('returnedStatus')} />
+                    ) : (
+                        <Badge status={status!} size="medium" />
+                    ))}
+                {statusNote && <p className="text-body-s text-foreground-secondary">{statusNote}</p>}
             </div>
         </div>
     )

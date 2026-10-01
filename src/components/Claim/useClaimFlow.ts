@@ -202,7 +202,7 @@ export const useClaimFlow = () => {
                   }
                 : undefined,
             peanutFeeDetails: {
-                amountDisplay: '$ 0.00',
+                amountDisplay: '$0',
             },
             isVerified: senderIsVerified,
             haveSentMoneyToUser: claimLinkData.sender?.userId

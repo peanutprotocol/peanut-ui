@@ -62,14 +62,14 @@ describe('PayByBankTransferDrawer', () => {
         renderRow({ rail: eurExact, remainingUsd: 108 })
 
         expect(screen.getByText('Pay in EUR · SEPA')).toBeInTheDocument()
-        expect(screen.getByText('100.00 EUR')).toBeInTheDocument()
+        expect(screen.getByText('€100')).toBeInTheDocument()
         expect(screen.getByText('Exact amount')).toBeInTheDocument()
     })
 
     it('marks a cross-currency amount as an estimate', () => {
         renderRow({ rail: eurEstimate, remainingUsd: 100 })
 
-        expect(screen.getByText('≈ 92.00 EUR')).toBeInTheDocument()
+        expect(screen.getByText('≈ €92')).toBeInTheDocument()
         expect(screen.getByText('Estimate')).toBeInTheDocument()
         // design.md badges: an estimate is a fact with no tone, so it is neutral, not accent
         expect(screen.getByText('Estimate')).toHaveClass('bg-background-badge-helper')
@@ -80,8 +80,8 @@ describe('PayByBankTransferDrawer', () => {
     it('shows the payer their own contribution, not the whole request', () => {
         renderRow({ rail: eurEstimate, usdAmount: '20', remainingUsd: 100 })
 
-        expect(screen.getByText('≈ 18.40 EUR')).toBeInTheDocument()
-        expect(screen.queryByText(/92\.00/)).not.toBeInTheDocument()
+        expect(screen.getByText('≈ €18.40')).toBeInTheDocument()
+        expect(screen.queryByText('≈ €92')).not.toBeInTheDocument()
     })
 
     it('stays generic when the API sent no figure for the rail', () => {

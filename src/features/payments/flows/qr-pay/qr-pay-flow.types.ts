@@ -1,4 +1,5 @@
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
+import type { ReceivedLock } from '@/utils/price-lock.utils'
 
 /** The scan this flow instance is for. A new scan remounts the whole provider
  * (the entry page keys it on qrCode+timestamp), so no reset function exists. */
@@ -26,8 +27,9 @@ export interface QrPayFlowBag {
      * identifier, never the localized string. Every set clears it unless a code
      * is passed explicitly. */
     setErrorMessage: (message: string | null, code?: string | null) => void
-    paymentLock: QrPaymentLock | null
-    setPaymentLock: (lock: QrPaymentLock | null) => void
+    /** Stamped with its device-clock deadline where it arrived (receiveLock). */
+    paymentLock: ReceivedLock<QrPaymentLock> | null
+    setPaymentLock: (lock: ReceivedLock<QrPaymentLock> | null) => void
     qrPayment: QrPayment | null
     setQrPayment: (payment: QrPayment | null) => void
     amount: string | undefined

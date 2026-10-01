@@ -42,6 +42,8 @@ export function BankTransferChooserDrawer({
                 position="solo"
                 title={t('title')}
                 body={t('description')}
+                // the payer reads this line to choose; at 375px it was cut in every locale
+                bodyWrap
                 onClick={() => setIsOpen(true)}
                 chevron
                 data-testid="bank-transfer-chooser"
