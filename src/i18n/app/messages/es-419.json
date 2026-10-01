@@ -1042,6 +1042,7 @@
             "guestDescriptionApp": "Necesitas la app de Peanut para enviarle una solicitud de pago a {username}."
         },
         "createRequest": "Crear solicitud",
+        "theyChooseAmount": "La persona elige el monto",
         "shareOpenRequest": "Compartir solicitud abierta",
         "shareAmountRequest": "Compartir solicitud de ${amount}",
         "shareCurrencyAmountRequest": "Compartir solicitud de {amount} {currency}",
@@ -3684,6 +3685,7 @@
             "isRequesting": "{name} está solicitando",
             "sendingTo": "Enviando a {name}",
             "payWhatYouWant": "Cualquier monto",
+            "youChooseAmount": "Tú eliges el monto",
             "sendExactAmount": "¡Envía el monto exacto!"
         },
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",

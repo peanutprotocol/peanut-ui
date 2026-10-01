@@ -82,7 +82,9 @@ jest.mock('@/components/Payment/Views/Error.validation.view', () => ({
 
 jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
     __esModule: true,
-    default: () => <div data-testid="payment-success" />,
+    default: ({ amount, currencyAmount }: { amount?: string; currencyAmount?: string }) => (
+        <div data-testid="payment-success">{currencyAmount ?? amount}</div>
+    ),
 }))
 
 jest.mock('@/components/Global/AmountInput', () => ({
@@ -201,6 +203,7 @@ describe('addressed requests', () => {
         expect(screen.getByRole('button', { name: 'Request' })).toBeEnabled()
         fireEvent.click(screen.getByRole('button', { name: 'Request' }))
         await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(screen.getByTestId('payment-success')).toHaveTextContent('They choose the amount')
         expect(mockRequestByUsername).toHaveBeenCalledWith(expect.objectContaining({ username: 'alice', amount: '' }))
     })
 

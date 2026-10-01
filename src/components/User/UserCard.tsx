@@ -27,6 +27,8 @@ interface UserCardProps {
     amount?: number
     amountCollected?: number
     isRequestPot?: boolean
+    /** A request sent with no amount: the person paying chooses it. */
+    isOpenAmount?: boolean
     contributors?: PotContributor[]
     /** The other person's picked avatar (TASK-22625). Read only when
      *  `recipientType` is USERNAME — an address has nobody behind it. */
@@ -46,6 +48,7 @@ const UserCard = ({
     amount,
     amountCollected,
     isRequestPot,
+    isOpenAmount,
     contributors,
     avatarKey,
 }: UserCardProps) => {
@@ -74,6 +77,7 @@ const UserCard = ({
     }, [type, fullName, username, t])
 
     const getAddressLinkTitle = () => {
+        if (isOpenAmount) return t('userCard.youChooseAmount')
         if (isRequestPot && amount && amount > 0) return `$${amount}` // If goal is set.
         if (!amount && isRequestPot) return t('userCard.payWhatYouWant') // If no goal is set.
 

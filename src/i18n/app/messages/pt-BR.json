@@ -1042,6 +1042,7 @@
             "guestDescriptionApp": "Você precisa do app da Peanut para enviar uma cobrança para {username}."
         },
         "createRequest": "Criar cobrança",
+        "theyChooseAmount": "A pessoa escolhe o valor",
         "shareOpenRequest": "Compartilhar cobrança aberta",
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
         "shareCurrencyAmountRequest": "Compartilhar cobrança de {amount} {currency}",
@@ -3684,6 +3685,7 @@
             "isRequesting": "{name} está cobrando",
             "sendingTo": "Enviando para {name}",
             "payWhatYouWant": "Qualquer valor",
+            "youChooseAmount": "Você escolhe o valor",
             "sendExactAmount": "Envie o valor exato!"
         },
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",

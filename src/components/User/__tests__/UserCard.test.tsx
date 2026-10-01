@@ -60,3 +60,14 @@ describe('UserCard avatar', () => {
         expect(screen.queryByRole('img')).not.toBeInTheDocument()
     })
 })
+
+describe('UserCard open-amount request', () => {
+    // TASK-22123: a request sent with no amount names the requester and tells
+    // the payer the amount is theirs to choose.
+    it('tells the payer they choose the amount', () => {
+        renderWithIntl(<UserCard type="request_pay" username="alice" recipientType="USERNAME" isOpenAmount />)
+
+        expect(screen.getByText('alice is requesting')).toBeInTheDocument()
+        expect(screen.getByText('You choose the amount')).toBeInTheDocument()
+    })
+})

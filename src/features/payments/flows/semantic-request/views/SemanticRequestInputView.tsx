@@ -183,8 +183,7 @@ export function SemanticRequestInputView() {
                         recipientType="USERNAME"
                         avatarKey={openAmountRequester.avatarKey}
                         isVerified={false}
-                        // a request pot with no goal reads "Any amount", which is what this is
-                        isRequestPot
+                        isOpenAmount
                         message={charge?.requestLink?.reference ?? undefined}
                     />
                 ) : (

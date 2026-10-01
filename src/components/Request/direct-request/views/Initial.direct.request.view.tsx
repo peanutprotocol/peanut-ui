@@ -41,7 +41,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const onBack = useRequestBack()
     const tMigration = useTranslations('migration')
     const tHome = useTranslations('home.drawers')
-    const tGlobal = useTranslations('global')
     // a guest on a broken request link is asked to join — during the migration
     // that means the app, not web signup
     const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
@@ -349,10 +348,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 <PageStack.Center className="gap-4">
                     <PaymentSuccessView
                         user={recipientUser}
-                        // currencyAmount is shown as given: "Any amount" when the requestee chooses it
+                        // currencyAmount is shown as given, in place of an amount the requestee chooses
                         {...(currentInputValue
                             ? { amount: formatAmount(currentInputValue) }
-                            : { currencyAmount: tGlobal('userCard.payWhatYouWant') })}
+                            : { currencyAmount: t('theyChooseAmount') })}
                         message={attachmentOptions.message}
                         type="REQUEST"
                     />

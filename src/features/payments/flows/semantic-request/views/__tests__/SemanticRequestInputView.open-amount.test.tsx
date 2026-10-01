@@ -30,8 +30,24 @@ jest.mock('@/features/payments/shared/components/PaymentMethodActionList', () =>
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/components/User/UserCard', () => ({
     __esModule: true,
-    default: ({ type, username, recipientType }: { type: string; username: string; recipientType: string }) => (
-        <div data-testid="user-card" data-type={type} data-username={username} data-recipient-type={recipientType} />
+    default: ({
+        type,
+        username,
+        recipientType,
+        isOpenAmount,
+    }: {
+        type: string
+        username: string
+        recipientType: string
+        isOpenAmount?: boolean
+    }) => (
+        <div
+            data-testid="user-card"
+            data-type={type}
+            data-username={username}
+            data-recipient-type={recipientType}
+            data-open-amount={String(!!isOpenAmount)}
+        />
     ),
 }))
 
@@ -83,6 +99,7 @@ describe('SemanticRequestInputView with an open-amount request', () => {
         expect(card).toHaveAttribute('data-type', 'request_pay')
         expect(card).toHaveAttribute('data-username', 'alice')
         expect(card).toHaveAttribute('data-recipient-type', 'USERNAME')
+        expect(card).toHaveAttribute('data-open-amount', 'true')
         // the charge names the token, so there is nothing to pick
         expect(screen.queryByTestId('token-selector')).not.toBeInTheDocument()
     })
