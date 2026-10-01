@@ -268,6 +268,7 @@
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar nombre completo",
             "backup": "Respaldo",
+            "statements": "Estados de cuenta",
             "exchangeRatesAndFees": "Tipos de cambio y comisiones",
             "starAlt": "estrella",
             "help": "Centro de Ayuda",
@@ -2379,6 +2380,38 @@
         "loadingMore": "Cargando más...",
         "today": "Hoy",
         "yesterday": "Ayer"
+    },
+    "statements": {
+        "title": "Estados de cuenta",
+        "format": "Formato",
+        "formatHints": {
+            "pdf": "Para compartir o imprimir",
+            "csv": "Para hojas de cálculo y contabilidad",
+            "xlsx": "Para Excel"
+        },
+        "period": "Período",
+        "periods": {
+            "allTime": "Todo el historial",
+            "last7d": "Últimos 7 días",
+            "last30d": "Últimos 30 días",
+            "last3m": "Últimos 3 meses",
+            "last6m": "Últimos 6 meses",
+            "ytd": "Este año",
+            "custom": "Período personalizado"
+        },
+        "customPeriod": {
+            "description": "Elige el primer y el último día."
+        },
+        "download": "Descargar",
+        "save": "Guardar archivo",
+        "downloaded": "Estado de cuenta descargado",
+        "errors": {
+            "tooLarge": "Este período es demasiado largo. Elige uno más corto.",
+            "unverified": "No pudimos verificar todas las transacciones de este período. Inténtalo de nuevo más tarde o contacta a soporte.",
+            "busy": "Hay varias descargas en curso. Inténtalo de nuevo en un momento.",
+            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descárgalo desde la app web.",
+            "failed": "La descarga falló. Intenta de nuevo."
+        }
     },
     "rewards": {
         "title": "Puntos",

@@ -377,6 +377,18 @@ export const ANALYTICS_EVENTS = {
     DEFERRED_LINK_RESTORED: 'deferred_link_restored',
     // Fired on the web side when a store bounce writes the hand-off.
     DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
+
+    // ── Statements (Profile → Statements): activity download ──
+    // `range_preset` is the named period (allTime, last30d, …) or 'custom',
+    // and `range_days` its length — never the dates themselves, which would
+    // describe when a person banks. RANGE_APPLIED fires on a preset pick or a
+    // finished custom period. STARTED and SAVED are separate because native
+    // delivery needs a second tap: the gap between them is the share sheet
+    // being dismissed. FAILED carries the server's reason code.
+    ACTIVITY_RANGE_APPLIED: 'activity_range_applied',
+    ACTIVITY_EXPORT_STARTED: 'activity_export_started',
+    ACTIVITY_EXPORT_SAVED: 'activity_export_saved',
+    ACTIVITY_EXPORT_FAILED: 'activity_export_failed',
 } as const
 
 /**
