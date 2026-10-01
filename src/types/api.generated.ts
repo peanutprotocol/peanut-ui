@@ -13444,6 +13444,8 @@ export interface paths {
                     /** @description Exclusive upper date-time bound */
                     to?: string;
                     timeZone?: string;
+                    /** @description Language of the PDF and XLSX labels, dates and amounts. CSV is always English. */
+                    locale?: "en" | "es-419" | "es-AR" | "pt-BR";
                 };
                 header?: never;
                 path?: never;
