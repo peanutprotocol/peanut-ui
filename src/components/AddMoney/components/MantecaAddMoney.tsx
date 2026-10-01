@@ -423,7 +423,7 @@ const MantecaAddMoney: FC = () => {
                 onBack={onBack}
                 // Terminal exit — `replace` so device/browser back can't pop into the
                 // finished deposit (whose step=showQR would redirect to a new one).
-                onDone={() => router.replace('/home')}
+                onDone={() => router.replace(readReturnTo(searchParams) ?? '/home')}
                 onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )

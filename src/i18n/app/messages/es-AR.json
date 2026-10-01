@@ -922,6 +922,21 @@
         "reveal": {
             "loadFailed": "No se pudieron cargar los datos de la tarjeta. Intentá de nuevo o contactá a soporte.",
             "rateLimited": "Por ahora no se pueden mostrar los datos de la tarjeta. Intentá más tarde."
+        },
+        "eligibility": {
+            "description": "Mantené presionado el botón. Te estamos buscando.",
+            "holdAriaLabel": "Mantené presionado para revisar si calificás"
+        },
+        "onboarding": {
+            "navTitle": "Obtener tarjeta",
+            "lookingUpTitle": "Te estamos buscando…",
+            "lookingUpBody": "Nos estamos ubicando.",
+            "availableTitle": "Ya estás adentro.",
+            "fundingBody": "Agregá al menos $10 a tu saldo de Peanut para obtener tu tarjeta.",
+            "addFunds": "Agregar dinero",
+            "issuedTitle": "Conocé tu tarjeta Peanut.",
+            "issuedBody": "Está lista para pagos en línea y sin contacto.",
+            "viewCard": "Ver tarjeta"
         }
     },
     "addMoney": {

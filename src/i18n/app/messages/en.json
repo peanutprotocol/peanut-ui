@@ -1740,6 +1740,25 @@
         "reveal": {
             "loadFailed": "Could not load card details. Please try again or contact support.",
             "rateLimited": "Card details are temporarily unavailable. Please try again later."
+        },
+        "eligibility": {
+            "navTitle": "The door",
+            "titleWithUsername": "Let's see, @{username}…",
+            "title": "Let's see if you qualify",
+            "description": "Press and hold the button. We're looking you up.",
+            "holdAriaLabel": "Press and hold to check eligibility",
+            "cta": "See if you qualify"
+        },
+        "onboarding": {
+            "navTitle": "Get a card",
+            "lookingUpTitle": "Looking you up…",
+            "lookingUpBody": "Checking your badges.",
+            "availableTitle": "You're in.",
+            "fundingBody": "Add at least $10 to your Peanut balance to get your card.",
+            "addFunds": "Add funds",
+            "issuedTitle": "Meet your Peanut card.",
+            "issuedBody": "It’s ready for online and contactless payments.",
+            "viewCard": "View card"
         }
     },
     "addMoney": {

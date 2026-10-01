@@ -150,6 +150,7 @@ export function useAddMoneyCryptoFlow() {
     }
 
     return {
+        successRedirectTo: returnTo ?? '/home',
         needsNetworkChoice,
         network,
         setNetworkParam,

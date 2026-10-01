@@ -12,6 +12,7 @@ import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { formatAmount } from '@/utils/general.utils'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
@@ -58,6 +59,10 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     const tCommon = useTranslations('common')
 
     // URL state - read amount from URL query params
+    const [rawReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
+    const exitTarget = isAddMoneyFlow
+        ? (readReturnTo({ get: (key) => (key === RETURN_TO_PARAM ? rawReturnTo : null) }) ?? '/home')
+        : '/home'
     const [amountFromUrl] = useQueryState('amount', parseAsString)
     const [countryFromQuery] = useQueryState('country', parseAsString)
 
@@ -472,7 +477,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             : t('bankDetails.etaSepa')}
                 </p>
 
-                <Button onClick={() => router.push('/home')} variant="primary" className="w-full" shadowSize="4">
+                <Button onClick={() => router.push(exitTarget)} variant="primary" className="w-full" shadowSize="4">
                     {t('bankDetails.sentTransfer')}
                 </Button>
 

@@ -9,6 +9,7 @@ import { useAddMoneyCryptoFlow } from './useAddMoneyCryptoFlow'
 export function AddMoneyCryptoPage() {
     const t = useTranslations('addMoney')
     const {
+        successRedirectTo,
         needsNetworkChoice,
         network,
         setNetworkParam,
@@ -42,6 +43,7 @@ export function AddMoneyCryptoPage() {
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
+                redirectTo={successRedirectTo}
                 replaceOnDone
                 onComplete={handleSuccessComplete}
             />

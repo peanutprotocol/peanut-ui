@@ -651,6 +651,33 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
         },
     },
+    'card-onboarding': {
+        route: '/card?card_step=eligibility',
+        about: 'Card onboarding: eligibility, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-available': {
+        route: '/card?card_step=available',
+        about: 'Card onboarding: available, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-funding': {
+        route: '/card?card_step=funding',
+        about: 'Card onboarding: funding, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
     'card-holder': {
         route: '/card',
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',

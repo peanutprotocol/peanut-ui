@@ -1740,6 +1740,25 @@
         "reveal": {
             "loadFailed": "Não foi possível carregar os dados do cartão. Tente novamente ou fale com o suporte.",
             "rateLimited": "Os dados do cartão estão temporariamente indisponíveis. Tente novamente mais tarde."
+        },
+        "eligibility": {
+            "navTitle": "A porta",
+            "titleWithUsername": "Vamos ver, @{username}…",
+            "title": "Vamos ver se você passa",
+            "description": "Pressione e segure o botão. Estamos procurando você.",
+            "holdAriaLabel": "Pressione e segure para conferir se você passa",
+            "cta": "Ver se você passa"
+        },
+        "onboarding": {
+            "navTitle": "Obter cartão",
+            "lookingUpTitle": "Procurando você…",
+            "lookingUpBody": "Estamos nos situando.",
+            "availableTitle": "Você está dentro.",
+            "fundingBody": "Adicione pelo menos $10 ao seu saldo Peanut para obter seu cartão.",
+            "addFunds": "Adicionar dinheiro",
+            "issuedTitle": "Conheça seu cartão Peanut.",
+            "issuedBody": "Ele está pronto para pagamentos online e por aproximação.",
+            "viewCard": "Ver cartão"
         }
     },
     "addMoney": {
