@@ -246,7 +246,12 @@ export function SemanticRequestInputView() {
 
                 {/* action list for non-logged in users */}
                 <PaymentMethodActionList
-                    onPayWithExternalWallet={handleOpenExternalWalletFlow}
+                    // Only the signed-in requestee can set an open amount, so a
+                    // signed-out visitor gets no wallet option here; the button
+                    // above takes them to sign in and back.
+                    onPayWithExternalWallet={
+                        charge?.openAmount && !isLoggedIn ? undefined : handleOpenExternalWalletFlow
+                    }
                     isAmountEntered={isAmountEntered}
                 />
             </PageStack.Center>

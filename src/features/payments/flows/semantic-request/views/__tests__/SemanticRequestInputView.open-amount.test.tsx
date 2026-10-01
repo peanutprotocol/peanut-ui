@@ -23,7 +23,9 @@ jest.mock('@/components/Global/AmountInput', () => ({
 }))
 jest.mock('@/features/payments/shared/components/SendWithPeanutCta', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/features/payments/shared/components/PaymentMethodActionList', () => ({
-    PaymentMethodActionList: () => null,
+    PaymentMethodActionList: ({ onPayWithExternalWallet }: { onPayWithExternalWallet?: () => void }) => (
+        <div data-testid="payment-methods" data-wallet-option={onPayWithExternalWallet ? 'shown' : 'hidden'} />
+    ),
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/components/User/UserCard', () => ({
@@ -83,6 +85,18 @@ describe('SemanticRequestInputView with an open-amount request', () => {
         expect(card).toHaveAttribute('data-recipient-type', 'USERNAME')
         // the charge names the token, so there is nothing to pick
         expect(screen.queryByTestId('token-selector')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        [true, 'shown'],
+        [false, 'hidden'],
+    ])('offers the external wallet when signed in is %s: %s', (isLoggedIn, option) => {
+        setCharge({ uuid: 'charge-1', tokenAmount: null, openAmount: true, requestLink })
+        flow.isLoggedIn = isLoggedIn
+        renderWithIntl(<SemanticRequestInputView />)
+
+        // setting the amount needs the signed-in requestee
+        expect(screen.getByTestId('payment-methods')).toHaveAttribute('data-wallet-option', option)
     })
 
     it('keeps the amount of a fixed request locked', () => {
