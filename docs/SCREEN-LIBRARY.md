@@ -180,6 +180,18 @@ ledger identifies app routes with scenarios and explicit website/provider/tool
 exclusions. It cannot discover every hidden state inside a route; review the
 scenario ledger alongside route coverage when adding features.
 
+Pixel comparisons ignore differences whose percentage rounds to `0.00%` at
+two decimal places (less than `0.005%` of the viewport). At 393 × 852 this
+ignores up to 16 differing pixels; 17 pixels still count as a change. Raw
+`pixels` and `percent` remain in the report, with `belowThreshold: true` for
+nonzero differences below this limit. Those rows are `unchanged`, have no diff
+asset, and are omitted from the changed-screens view. The viewer applies the
+same rule to older immutable reports, including collection comparisons.
+Added/removed screens and capture failures retain their own statuses.
+This is a small rendering-noise allowance, not proof that a larger difference
+is a product change. Capture still covers the full catalogue to catch shared
+component, styling, and translation regressions.
+
 ## Historical reconstruction
 
 The requested cutoff is August 27, 2026 at 23:59:59 Europe/Lisbon. The verified
