@@ -1,6 +1,7 @@
 import { FIXTURES } from '../fixtures/registry'
 import { SURFACE_META } from '../surfaces/list'
 import { PAGE_CAPTURES, type PageCapture } from './pages'
+import { MOCK_PAGE_CAPTURES } from './mock-receipt-groups'
 
 export type Screen = {
     id: string
@@ -85,7 +86,8 @@ const definitions: Screen[] = [
         clicks: [],
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
-    ...PAGE_CAPTURES.map((p) => ({
+    // receipt-groups mockups (branch mock/receipt-groups): each carries its rows layout in the route
+    ...[...PAGE_CAPTURES, ...MOCK_PAGE_CAPTURES].map((p) => ({
         ...p,
         flow: flow(p.route),
         kind: (p.route.startsWith('/dev/') ? 'component' : 'route') as Screen['kind'],

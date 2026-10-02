@@ -625,6 +625,16 @@ const REQUEST_PAY_EUR = {
     rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
 }
 
+// A UK sort-code account (TASK-23054), paid GBP over Faster Payments.
+const BANK_ACCOUNT_GB_SORT_CODE = {
+    ...BANK_ACCOUNTS[0],
+    id: 'fixture-gb-1',
+    type: 'gb',
+    identifier: '55555555',
+    sortCode: '202015',
+    details: { ...BANK_ACCOUNTS[0].details, countryCode: 'GBR', countryName: 'united-kingdom' },
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-pending': {
         route: '/setup',
@@ -804,14 +814,7 @@ export const FIXTURES: Record<string, Fixture> = {
                         identifier: 'GB33BUKB20201555555555',
                         details: { ...BANK_ACCOUNTS[0].details, countryCode: 'GBR', countryName: 'united-kingdom' },
                     },
-                    {
-                        ...BANK_ACCOUNTS[0],
-                        id: 'fixture-gb-1',
-                        type: 'gb',
-                        identifier: '55555555',
-                        sortCode: '202015',
-                        details: { ...BANK_ACCOUNTS[0].details, countryCode: 'GBR', countryName: 'united-kingdom' },
-                    },
+                    BANK_ACCOUNT_GB_SORT_CODE,
                 ],
             },
             'GET /bridge/offramp/quote': { rate: '0.8955', sourceAmount: '55.84' },
@@ -835,6 +838,16 @@ export const FIXTURES: Record<string, Fixture> = {
                     { rail: 'wire', feeUsd: '20.00' },
                 ],
             },
+        },
+    },
+    // mock/receipt-groups: the UK sort-code account alone, so the capture taps
+    // it by its number without matching the UK IBAN's last digits as well.
+    'mock-withdraw-gbp': {
+        route: '/withdraw',
+        about: 'Receipt-groups mock: withdraw to the UK sort-code account (paid GBP), the review in sterling.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, BANK_ACCOUNT_GB_SORT_CODE] },
+            'GET /bridge/offramp/quote': { rate: '0.8955', sourceAmount: '55.84' },
         },
     },
     // ?step=form names the screen; the amount is collected after it now.

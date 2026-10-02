@@ -51,7 +51,15 @@ export async function answer(fixture: string, path: string, method: string, body
             ...(query.has('sourceAmount') ? { netAmount: query.get('sourceAmount') } : {}),
         })
     }
-    const base = await demoRespond(path, { method, body }, { offline: true, strict: true })
+    let base: Response
+    try {
+        base = await demoRespond(path, { method, body }, { offline: true, strict: true })
+    } catch (error) {
+        // A path the demo API has no handler for is still answered when the fixture
+        // carries the whole response (withdraw-usd-speed's rail fees, for one).
+        if (state.responses?.[key] !== undefined) return Response.json(state.responses[key])
+        throw error
+    }
     let data = await base.json()
     if (key === 'GET /users/me') data = merge(data, { user: { activationCelebratedAt: '2026-01-01T00:00:00Z' } })
     return Response.json(state.responses?.[key] === undefined ? data : merge(data, state.responses[key]), {
