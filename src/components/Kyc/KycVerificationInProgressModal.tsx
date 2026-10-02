@@ -142,7 +142,7 @@ export const KycVerificationInProgressModal = ({
     }
 
     if (phase === 'bridge_tos') {
-        const description = tosError || <p>{t.rich('progress.bridgeTosDescription', termsLinks)}</p>
+        const description = tosError || <p>{t.rich('bridgeTos.description', termsLinks)}</p>
 
         return (
             <ActionModal

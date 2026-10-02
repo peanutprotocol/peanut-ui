@@ -95,11 +95,12 @@ describe('BridgeTosStep', () => {
         expect(screen.queryByTestId('tos-iframe')).not.toBeInTheDocument()
     })
 
-    it('links the same documents on the SEPA variant', () => {
+    it('keeps the body and the links on the SEPA variant and changes only the title', () => {
         mockVerifiedResidence = 'US'
         renderStep(jest.fn(), jest.fn(), 'bridge_tos_v2_required')
 
-        expect(screen.getByText(/Euro and British pound bank transfers/)).toBeInTheDocument()
+        expect(screen.getByText('Updated bank transfer terms')).toBeInTheDocument()
+        expect(screen.getByText(/Bridge, our payment partner/)).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/us-terms/bridge-building-inc'

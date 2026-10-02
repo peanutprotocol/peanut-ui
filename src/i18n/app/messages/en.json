@@ -2808,7 +2808,6 @@
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
             "bridgeTosTitle": "One more step",
-            "bridgeTosDescription": "Last step to unlock bank transfers in the US, Europe and Mexico. Read the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy> of Bridge, our payment partner. You accept them on the next screen.",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
@@ -2840,9 +2839,8 @@
         },
         "bridgeTos": {
             "baseTitle": "Bank transfer terms",
-            "baseDescription": "Bridge, our payment partner, provides bank transfers. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
             "sepaTitle": "Updated bank transfer terms",
-            "sepaDescription": "Euro and British pound bank transfers need the updated terms of Bridge, our payment partner. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
+            "description": "Bridge, our payment partner, provides bank transfers. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",

@@ -16,12 +16,13 @@ interface BridgeTosStepProps {
     onSkip: () => void
     /**
      * BE-emitted reason code from the rail capability (`reason.code`). Used
-     * solely to vary copy between Bridge's base ToS (`bridge_tos_required`,
+     * solely to vary the title between Bridge's base ToS (`bridge_tos_required`,
      * US/ACH/Wire) and the SEPA v2 ToS (`bridge_tos_v2_required`, EUR + GBP
-     * inherited). The Bridge `tos_acceptance_link` endpoint is opaque to
-     * endorsement — Bridge serves the correct ToS based on the customer's
-     * pending requirements — so this prop ONLY affects user-facing copy, not
-     * the endpoint we call. Defaults to base copy if absent.
+     * inherited); the body and the linked documents are the same for both.
+     * The Bridge `tos_acceptance_link` endpoint is opaque to endorsement —
+     * Bridge serves the correct ToS based on the customer's pending
+     * requirements — so this prop ONLY affects the title, not the endpoint we
+     * call. Defaults to the base title if absent.
      */
     reasonCode?: string
 }
@@ -113,13 +114,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
     const isSepa = reasonCode === BRIDGE_TOS_V2_REQUIRED
     const copy = {
         title: isSepa ? t('bridgeTos.sepaTitle') : t('bridgeTos.baseTitle'),
-        description: (
-            <p>
-                {isSepa
-                    ? t.rich('bridgeTos.sepaDescription', termsLinks)
-                    : t.rich('bridgeTos.baseDescription', termsLinks)}
-            </p>
-        ),
+        description: <p>{t.rich('bridgeTos.description', termsLinks)}</p>,
     }
 
     return (
