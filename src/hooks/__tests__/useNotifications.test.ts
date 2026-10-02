@@ -276,6 +276,19 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(screen.getByText('depositIntentTitle | depositIntentDescription')).toBeTruthy()
     })
 
+    it('keeps a moment that came before the user id and asks once it is known', async () => {
+        await renderInitialized()
+        mockUserId = ''
+        const rendered = renderHook(() => useNotifications())
+        await offer(CARD_READY)
+        expect(rendered.result.current.showPermissionModal).toBe(false)
+
+        mockUserId = 'user-3'
+        rendered.rerender()
+        await waitFor(() => expect(rendered.result.current.promptTrigger).toBe(CARD_READY))
+        expect(rendered.result.current.showPermissionModal).toBe(true)
+    })
+
     it('shows at most one pre-prompt per session', async () => {
         const rendered = await renderInitialized()
         await offer(DEPOSIT_INTENT)
