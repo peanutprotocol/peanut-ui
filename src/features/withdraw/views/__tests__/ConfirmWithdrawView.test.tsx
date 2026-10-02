@@ -190,3 +190,14 @@ describe('USDC confirmation precision', () => {
         expect(onConfirm).toHaveBeenCalledTimes(1)
     })
 })
+
+describe('ConfirmWithdrawView — address-book prompt placement', () => {
+    it('renders the prompt after the recipient and before the fee rows', () => {
+        renderWithIntl(<ConfirmWithdrawView {...baseProps} saveAddressPrompt={<div data-testid="save-prompt" />} />)
+        const recipient = screen.getByText(baseProps.toAddress)
+        const prompt = screen.getByTestId('save-prompt')
+        const fee = screen.getByText('Network fee')
+        expect(recipient.compareDocumentPosition(prompt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(prompt.compareDocumentPosition(fee) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+})
