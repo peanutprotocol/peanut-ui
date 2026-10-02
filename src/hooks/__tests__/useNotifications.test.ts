@@ -289,6 +289,20 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(true)
     })
 
+    it('a snoozed early moment does not block a later eligible one', async () => {
+        await renderInitialized()
+        mockPrefs = { notifPromptClosedAt: { [CARD_READY]: freshSnooze() } }
+        mockUserId = ''
+        const rendered = renderHook(() => useNotifications())
+        await offer(CARD_READY)
+        await offer(DEPOSIT_INTENT)
+
+        mockUserId = 'user-4'
+        rendered.rerender()
+        await waitFor(() => expect(rendered.result.current.promptTrigger).toBe(DEPOSIT_INTENT))
+        expect(rendered.result.current.showPermissionModal).toBe(true)
+    })
+
     it('shows at most one pre-prompt per session', async () => {
         const rendered = await renderInitialized()
         await offer(DEPOSIT_INTENT)

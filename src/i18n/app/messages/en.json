@@ -2705,14 +2705,14 @@
         "enable": "Enable notifications",
         "requesting": "Requesting...",
         "notNow": "Not now",
-        "depositIntentTitle": "Know the moment your money lands",
-        "depositIntentDescription": "We'll send one notification when your deposit arrives. Only about your money — a few a week at most.",
-        "requestCreatedTitle": "Know when they pay",
-        "requestCreatedDescription": "We'll tell you the moment your request is paid.",
-        "cardReadyTitle": "Every card payment, the instant it happens",
-        "cardReadyDescription": "We'll notify you for each payment and decline.",
-        "qrFirstScanTitle": "We'll confirm each payment",
-        "qrFirstScanDescription": "One notification when a QR payment goes through."
+        "depositIntentTitle": "Know when money lands",
+        "depositIntentDescription": "Just one notification, when the deposit arrives.",
+        "requestCreatedTitle": "Know when the request is paid",
+        "requestCreatedDescription": "One notification when it's paid.",
+        "cardReadyTitle": "Know every card payment",
+        "cardReadyDescription": "One notification per payment or decline.",
+        "qrFirstScanTitle": "Confirmation for each QR payment",
+        "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
         "statusDrawerTitle": "Verification status",

@@ -2705,14 +2705,14 @@
         "enable": "Ativar notificações",
         "requesting": "Solicitando...",
         "notNow": "Agora não",
-        "depositIntentTitle": "Saiba na hora quando seu dinheiro chegar",
-        "depositIntentDescription": "Enviamos uma notificação quando seu depósito chegar. Só sobre seu dinheiro, no máximo algumas por semana.",
-        "requestCreatedTitle": "Saiba quando te pagarem",
-        "requestCreatedDescription": "Avisamos na hora quando sua solicitação for paga.",
-        "cardReadyTitle": "Cada pagamento com cartão, na hora",
-        "cardReadyDescription": "Avisamos sobre cada pagamento e cada recusa.",
-        "qrFirstScanTitle": "Confirmamos cada pagamento",
-        "qrFirstScanDescription": "Uma notificação quando um pagamento por QR for concluído."
+        "depositIntentTitle": "Avisamos quando o depósito chegar",
+        "depositIntentDescription": "Só uma notificação, quando o depósito chegar.",
+        "requestCreatedTitle": "Avisamos quando pagarem a cobrança",
+        "requestCreatedDescription": "Uma notificação assim que pagarem sua cobrança.",
+        "cardReadyTitle": "Avisamos sobre cada pagamento no cartão",
+        "cardReadyDescription": "Uma notificação por pagamento, aprovado ou recusado.",
+        "qrFirstScanTitle": "Confirmamos cada pagamento QR",
+        "qrFirstScanDescription": "Uma notificação quando o pagamento for concluído."
     },
     "kyc": {
         "statusDrawerTitle": "Status da verificação",

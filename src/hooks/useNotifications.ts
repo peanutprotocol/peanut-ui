@@ -88,9 +88,10 @@ let disableExternalIdLogin = false
 // session count gates the Home fallback.
 let promptShownThisSession = false
 const countedSessions = new Set<string>()
-// a moment that came before OneSignal init or the user id (a cold deep link
-// into Add money or add-to-wallet); offered once both are ready
-let pendingPromptTrigger: PushPromptTrigger | null = null
+// moments that came before OneSignal init or the user id (a cold deep link
+// into Add money or add-to-wallet), in order; offered once both are ready. A
+// list, not one slot: the first may turn out snoozed while a later one is not.
+let pendingPromptTriggers: PushPromptTrigger[] = []
 // the moment behind the OS dialog, for the permission events that follow it
 let permissionRequestTrigger: PushPromptTrigger | null = null
 let initStarted = false
@@ -226,7 +227,7 @@ export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void>
     const userId = currentExternalId
     if (promptShownThisSession) return
     if (!state.oneSignalInitialized || !userId) {
-        pendingPromptTrigger ??= trigger
+        if (!pendingPromptTriggers.includes(trigger)) pendingPromptTriggers.push(trigger)
         return
     }
     const status = await readPushStatus()
@@ -238,11 +239,14 @@ export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void>
     posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
 }
 
-function offerPendingPrompt() {
-    const trigger = pendingPromptTrigger
-    if (!trigger || !state.oneSignalInitialized || !currentExternalId) return
-    pendingPromptTrigger = null
-    void offerPushPrompt(trigger)
+async function offerPendingPrompts() {
+    if (!state.oneSignalInitialized || !currentExternalId) return
+    const queued = pendingPromptTriggers
+    pendingPromptTriggers = []
+    for (const trigger of queued) {
+        if (promptShownThisSession) return
+        await offerPushPrompt(trigger)
+    }
 }
 
 // the trigger of the pre-prompt on screen, null for the carousel and waitlist asks
@@ -332,7 +336,7 @@ async function ensureInitialized() {
         setState({ oneSignalInitialized: true, sdkReady: true })
         await syncExternalIdLink()
         await evaluateVisibility()
-        offerPendingPrompt()
+        void offerPendingPrompts()
     } catch (e) {
         // Surface Brave/Shields SDK-block failures; previously silent.
         console.warn('OneSignal init failed', e)
@@ -352,7 +356,7 @@ function setExternalId(externalId: string | null) {
     if (externalId) countSession(externalId)
     syncExternalIdLink()
     evaluateVisibility()
-    offerPendingPrompt()
+    void offerPendingPrompts()
 }
 
 // update permission state from the platform adapter
@@ -431,7 +435,7 @@ async function afterPermissionAttempt() {
 
 export function resetPushPromptForTests() {
     promptShownThisSession = false
-    pendingPromptTrigger = null
+    pendingPromptTriggers = []
     permissionRequestTrigger = null
     setState({ showPermissionModal: false, promptTrigger: null })
 }
