@@ -71,7 +71,7 @@ interface WithdrawConfirmViewProps {
     isFromSendFlow?: boolean
     /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
     toNickname?: string | null
-    /** "Save to address book" prompt, rendered under the details card (only when not yet saved). */
+    /** "Save to address book" prompt, rendered under the recipient card (only when not yet saved). */
     saveAddressPrompt?: React.ReactNode
     /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
     confirmDisabled?: boolean
@@ -151,6 +151,30 @@ export default function ConfirmWithdrawView({
                     isFromSendFlow={isFromSendFlow}
                 />
 
+                {/* The recipient has its own card with the save prompt under it, so saving
+                    reads as saving the address, not the amount or fee. */}
+                <Card className="rounded-sm">
+                    <PaymentInfoRow
+                        hideBottomBorder
+                        label={t('confirm.to')}
+                        value={
+                            toNickname ? (
+                                <span className="text-foreground-primary">
+                                    {savedAddressLabel(toNickname, toAddress)}
+                                </span>
+                            ) : (
+                                <AddressLink
+                                    isLink={false}
+                                    address={toAddress}
+                                    className="text-foreground-primary no-underline"
+                                />
+                            )
+                        }
+                    />
+                </Card>
+
+                {saveAddressPrompt}
+
                 <Card className="rounded-sm">
                     {isCrossChain && (isCalculating || displayReceived) && (
                         <PaymentInfoRow
@@ -195,22 +219,6 @@ export default function ConfirmWithdrawView({
                             </div>
                         }
                     />
-                    <PaymentInfoRow
-                        label={t('confirm.to')}
-                        value={
-                            toNickname ? (
-                                <span className="text-foreground-primary">
-                                    {savedAddressLabel(toNickname, toAddress)}
-                                </span>
-                            ) : (
-                                <AddressLink
-                                    isLink={false}
-                                    address={toAddress}
-                                    className="text-foreground-primary no-underline"
-                                />
-                            )
-                        }
-                    />
                     <NetworkFeeRow
                         label={t('confirm.networkFee')}
                         feeUsd={networkFee}
@@ -238,8 +246,6 @@ export default function ConfirmWithdrawView({
                     )}
                     <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
-
-                {saveAddressPrompt}
 
                 {showHighFeeWarning && <Callout priority="info">{t('confirm.highFeeWarning')}</Callout>}
 
