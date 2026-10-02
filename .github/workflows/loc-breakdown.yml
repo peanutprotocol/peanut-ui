@@ -1,0 +1,73 @@
+# Posts one sticky PR comment breaking the "+N lines" down by category
+# (production / test / generated / …) and kind (code / comment / blank), so a
+# big number is not mistaken for big hand-written work. A raw +40k is often
+# mostly a reserialized openapi snapshot, lockfiles and tests. Deterministic,
+# zero AI tokens, and advisory — it never blocks a merge.
+name: LoC breakdown
+
+on:
+    pull_request:
+        types: [opened, synchronize, reopened]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    pull-requests: write # the sticky comment
+
+jobs:
+    breakdown:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  # Need the PR head and enough history to reach the merge-base
+                  # with the target branch; a shallow clone cannot compute it.
+                  ref: ${{ github.event.pull_request.head.sha }}
+                  fetch-depth: 0
+
+            - name: Compute the breakdown
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              run: |
+                  set -euo pipefail
+                  git fetch --quiet origin "$BASE_REF"
+                  BASE=$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")
+                  echo "merge-base: $BASE"
+                  node scripts/pr-loc-breakdown.mjs "$BASE" "$HEAD_SHA" > body.md
+                  cat body.md
+
+            - name: Upsert the sticky comment
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs')
+                      const body = fs.readFileSync('body.md', 'utf-8')
+                      const tag = '<!-- loc-breakdown -->'
+                      const final = tag + '\n' + body
+                      const { data: comments } = await github.rest.issues.listComments({
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                      })
+                      const existing = comments.find(
+                          (c) => c.user?.type === 'Bot' && c.body && c.body.includes(tag)
+                      )
+                      if (existing) {
+                          await github.rest.issues.updateComment({
+                              comment_id: existing.id,
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              body: final,
+                          })
+                      } else {
+                          await github.rest.issues.createComment({
+                              issue_number: context.issue.number,
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              body: final,
+                          })
+                      }
