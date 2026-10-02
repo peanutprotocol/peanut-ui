@@ -1,5 +1,7 @@
 'use client'
 
+// DEPRECATED (TASK-23085): the /limits page is unmaintained; delete it and point limit links at Profile → Accounts / Payments / Card.
+
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'

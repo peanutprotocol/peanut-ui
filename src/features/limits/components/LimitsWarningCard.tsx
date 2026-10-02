@@ -226,6 +226,7 @@ export default function LimitsWarningCard({
                        increase/support button above (the link's hit area extends 14px up) */
                     <div className="mt-2 flex items-center justify-between gap-2">
                         <FieldError className="m-0">{tCommon('genericError')}</FieldError>
+                        {/* DEPRECATED (TASK-23085): the /limits page is unmaintained; delete it and point limit links at Profile → Accounts / Payments / Card. */}
                         <LinkButton
                             onClick={() => handleLimitsNavigation('/limits')}
                             className="pointer-events-auto shrink-0"
