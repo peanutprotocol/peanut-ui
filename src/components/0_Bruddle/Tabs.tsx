@@ -167,7 +167,8 @@ const triggerRing = `${focusRing} focus-visible:outline-offset-[-3px]`
 // it stays under any positioned page chrome. The fix belongs here, not on the
 // one caller: raising that caller to `z-20` would leave the primitive able to
 // climb over the next piece of chrome it meets.
-const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hidden rounded-full -m-px p-px'
+const listBox =
+    'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hidden scrollbar-none rounded-full -m-px p-px'
 
 // the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
 // The transparent resting border keeps the chip's geometry identical in both

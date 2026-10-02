@@ -2379,7 +2379,31 @@
         "empty": "No transactions yet",
         "loadingMore": "Loading more...",
         "today": "Today",
-        "yesterday": "Yesterday"
+        "yesterday": "Yesterday",
+        "searchPlaceholder": "Search by name, note or amount",
+        "searchLabel": "Search activity",
+        "clearSearch": "Clear search",
+        "filterLabel": "Filter activity",
+        "noMatches": {
+            "query": "No results for “{query}”",
+            "queryInFilter": "No results for “{query}” in {filter}",
+            "inFilter": "Nothing under {filter} yet",
+            "hint": "Check the spelling, or try a name, note or amount.",
+            "showAll": "Show all activity",
+            "searchAll": "Search all activity",
+            "clearAll": "Clear search and filter"
+        },
+        "searchingOlder": "Searching older activity...",
+        "filter": {
+            "all": "All",
+            "sent": "Sent",
+            "received": "Received",
+            "payments": "Payments",
+            "added": "Deposits",
+            "withdrawn": "Withdrawals",
+            "requests": "Requests"
+        },
+        "searchOlder": "Search older activity"
     },
     "rewards": {
         "title": "Points",

@@ -2379,7 +2379,31 @@
         "empty": "Nenhuma transação ainda",
         "loadingMore": "Carregando mais...",
         "today": "Hoje",
-        "yesterday": "Ontem"
+        "yesterday": "Ontem",
+        "searchPlaceholder": "Busque por nome, nota ou valor",
+        "searchLabel": "Buscar na atividade",
+        "clearSearch": "Limpar busca",
+        "filterLabel": "Filtrar atividade",
+        "noMatches": {
+            "query": "Nenhum resultado para “{query}”",
+            "queryInFilter": "Nenhum resultado para “{query}” em {filter}",
+            "inFilter": "Ainda não há nada em {filter}",
+            "hint": "Confira a grafia ou tente um nome, uma nota ou um valor.",
+            "showAll": "Ver toda a atividade",
+            "searchAll": "Buscar em toda a atividade",
+            "clearAll": "Limpar busca e filtro"
+        },
+        "searchingOlder": "Buscando atividades anteriores...",
+        "filter": {
+            "all": "Todas",
+            "sent": "Enviado",
+            "received": "Recebido",
+            "payments": "Pagamentos",
+            "added": "Depósitos",
+            "withdrawn": "Saques",
+            "requests": "Pedidos"
+        },
+        "searchOlder": "Buscar atividades anteriores"
     },
     "rewards": {
         "title": "Pontos",

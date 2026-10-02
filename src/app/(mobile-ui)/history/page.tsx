@@ -19,7 +19,6 @@ import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
-import React, { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -32,6 +31,18 @@ import { twMerge } from '@/utils/tw'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { displayableBadges } from '@/constants/badges.consts'
+import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
+import { HistoryFilterBar } from '@/features/history/HistoryFilterBar'
+import { HistoryNoMatches } from '@/features/history/HistoryNoMatches'
+import { useHistoryFilters } from '@/features/history/useHistoryFilters'
+import { filterHistoryRows } from '@/features/history/historyFilters.utils'
+import { normalizeEnsName } from '@/utils/ens-name.utils'
+import { Button } from '@/components/0_Bruddle/Button'
+import { isAddress } from 'viem'
+import React, { useMemo, useState } from 'react'
+
+/** pages fetched on their own while a filter is on, before asking the user to go further */
+const FILTER_AUTO_PAGES = 3
 
 /**
  * the oldest timestamp history is known to be loaded through while more pages
@@ -56,6 +67,7 @@ function getLoadedThroughMs(pages: HistoryResponse[] | undefined): number {
  */
 const HistoryPage = () => {
     const t = useTranslations('history')
+    const tTransaction = useTranslations('transaction')
     const format = useFormatter()
     const { user } = useAuth()
     const queryClient = useQueryClient()
@@ -65,6 +77,7 @@ const HistoryPage = () => {
     const { fetchUser } = useAuth()
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
     const userId = user?.user.userId
+    const { searchQuery, activeFilter, isFiltering, setSearchQuery, setFilter, clearFilters } = useHistoryFilters()
     const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
 
     const {
@@ -80,9 +93,23 @@ const HistoryPage = () => {
         limit: 20,
     })
 
+    // A filter that matches little keeps the loader in view, and infinite scroll
+    // would then walk the user's whole history on a typo. While filtering, it
+    // gets a few pages each time filtering starts or the pill changes (not per
+    // keystroke), then waits for "Search older activity". State adjusted
+    // during render: React's pattern for resetting derived state.
+    const loadedPages = historyData?.pages.length ?? 0
+    const filterKey = isFiltering ? activeFilter : null
+    const [pageBudget, setPageBudget] = useState({ key: filterKey, limit: loadedPages + FILTER_AUTO_PAGES })
+    if (pageBudget.key !== filterKey) {
+        setPageBudget({ key: filterKey, limit: Math.max(pageBudget.limit, loadedPages + FILTER_AUTO_PAGES) })
+    }
+    const isAutoFetchPaused = isFiltering && !!hasNextPage && loadedPages >= pageBudget.limit
+    const searchOlder = () => setPageBudget({ key: filterKey, limit: loadedPages + FILTER_AUTO_PAGES })
+
     // infinite scroll hook
     const { loaderRef } = useInfiniteScroll({
-        hasNextPage,
+        hasNextPage: !!hasNextPage && !isAutoFetchPaused,
         isFetchingNextPage,
         fetchNextPage,
     })
@@ -241,6 +268,50 @@ const HistoryPage = () => {
         return m
     }, [combinedAndSortedEntries])
 
+    // Filters run over the pages loaded so far. Badge and identity rows are
+    // timeline markers, not transactions, so any filter hides them. While a
+    // filter is on and older pages remain, the loader below stays in view and
+    // infinite scroll keeps fetching, so sparse matches still surface.
+    const { visibleEntries, hasMatchesInAll } = useMemo(() => {
+        if (!isFiltering) return { visibleEntries: combinedAndSortedEntries, hasMatchesInAll: true }
+        const { visible, hasMatchesInAll } = filterHistoryRows(
+            combinedAndSortedEntries,
+            (item) => {
+                if (isKycStatusItem(item) || isBadgeHistoryItem(item)) return null
+                const mapped = drawerByUuid.get(item.uuid)
+                if (!mapped) return null
+                const { transactionDetails: details, transactionCardType } = mapped
+                // the name the row shows: its localized label, or the ENS name
+                // TransactionCard already resolved for an address (read from
+                // that query's cache, so filtering never starts a lookup)
+                const displayName = details.nameKey
+                    ? translateTransactionName(tTransaction, details.nameKey, details.nameParams)
+                    : isAddress(details.userName)
+                      ? (normalizeEnsName(
+                            queryClient.getQueryData<string | null>([
+                                'ens-primary-name',
+                                details.userName.toLowerCase(),
+                            ])
+                        ) ?? undefined)
+                      : undefined
+                return { type: transactionCardType, details, displayName }
+            },
+            activeFilter,
+            searchQuery,
+            { matchAmounts: !hideTxnAmount }
+        )
+        return { visibleEntries: visible, hasMatchesInAll }
+    }, [
+        isFiltering,
+        combinedAndSortedEntries,
+        drawerByUuid,
+        activeFilter,
+        searchQuery,
+        tTransaction,
+        queryClient,
+        hideTxnAmount,
+    ])
+
     if (isLoading && combinedAndSortedEntries.length === 0) {
         return <Loading variant="mascot" />
     }
@@ -279,10 +350,29 @@ const HistoryPage = () => {
     const today = new Date()
 
     return (
-        <PageStack>
+        <PageStack gap="6">
             <NavHeader title={t('title')} />
+            <HistoryFilterBar
+                query={searchQuery}
+                onQueryChange={setSearchQuery}
+                filter={activeFilter}
+                onFilterChange={setFilter}
+            />
             <div className="h-full w-full">
-                {combinedAndSortedEntries.map((item, index) => {
+                {isFiltering &&
+                    visibleEntries.length === 0 &&
+                    (!hasNextPage || isAutoFetchPaused) &&
+                    !isFetchingNextPage && (
+                        <HistoryNoMatches
+                            query={searchQuery}
+                            filter={activeFilter}
+                            hasMatchesInAll={hasMatchesInAll}
+                            onClearSearch={() => setSearchQuery('')}
+                            onShowAll={() => setFilter('all')}
+                            onClearAll={clearFilters}
+                        />
+                    )}
+                {visibleEntries.map((item, index) => {
                     const itemDate = new Date(item.timestamp)
                     const group = getDateGroup(itemDate, today)
                     const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
@@ -294,7 +384,7 @@ const HistoryPage = () => {
                     // corners are per DATE GROUP: peek at the next entry to see
                     // if it starts a new group
                     const isFirstInGroup = showHeader
-                    const nextItem = combinedAndSortedEntries[index + 1]
+                    const nextItem = visibleEntries[index + 1]
                     const isLastInGroup =
                         !nextItem ||
                         getDateGroupKey(
@@ -351,7 +441,16 @@ const HistoryPage = () => {
                 })}
 
                 <div ref={loaderRef} className="w-full py-4">
-                    {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
+                    {isFetchingNextPage && (
+                        <div className="w-full text-center">{isFiltering ? t('searchingOlder') : t('loadingMore')}</div>
+                    )}
+                    {isAutoFetchPaused && !isFetchingNextPage && (
+                        <div className="flex justify-center">
+                            <Button variant="secondary" size="small" className="w-fit" onClick={searchOlder}>
+                                {t('searchOlder')}
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
         </PageStack>
