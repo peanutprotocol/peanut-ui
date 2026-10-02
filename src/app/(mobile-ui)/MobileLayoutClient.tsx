@@ -26,6 +26,7 @@ import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
+import { RowLayoutPersist } from '@/features/receipt-groups/RowLayoutPersist'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { useLongPressGuard } from '@/hooks/useLongPressGuard'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
@@ -278,6 +279,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         {isUserLoggedIn && !isHome && <SetupNotificationsModal />}
                         {/* dev fixture warning strip — renders null outside fixture mode */}
                         <FixtureBanner />
+                        {/* mock/receipt-groups: keeps the ?rows= rendering across the flow's routes */}
+                        <RowLayoutPersist />
                     </>
                 }
             >
