@@ -63,6 +63,13 @@ export interface RainCardBalance {
 export type RainCardFunding = paths['/rain/cards/funding']['get']['responses'][200]['content']['application/json']
 export type RainFundingManagementStatus = RainCardFunding['management']['status']
 export type RainFundingMigration = NonNullable<RainCardFunding['management']['migration']>
+
+type CardLockResponse = paths['/rain/cards/{cardId}/lock']['post']['responses'][200]['content']['application/json']
+type CardCancelResponse = paths['/rain/cards/{cardId}/cancel']['post']['responses'][200]['content']['application/json']
+type CardActivateResponse =
+    paths['/rain/cards/{cardId}/activate']['post']['responses'][200]['content']['application/json']
+export type CardFundingStop = CardLockResponse['fundingStop']
+
 export type SubmitRainFundingGrantInput =
     paths['/rain/cards/funding/grant']['post']['requestBody']['content']['application/json']
 
@@ -876,31 +883,31 @@ export const rainApi = {
         })
     },
 
-    /** Activate a card (from locked or not-activated). Returns the new Rain status. */
-    activateCard: async (cardId: string): Promise<string> => {
-        const { status } = await rainRequest<{ status: string }>({
+    /**
+     * Activate a card (from locked or not-activated). `fundingStop` says whether
+     * the wallet payment stop this card's lock created was lifted (`resumed`) or
+     * is still in force (`kept`).
+     */
+    activateCard: async (cardId: string): Promise<CardActivateResponse> =>
+        rainRequest<CardActivateResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/activate`,
-        })
-        return status
-    },
+        }),
 
     /**
      * Lock an active card. When the user has positive spending power, the
      * caller MUST pass `verifiedWithdrawal` — the backend returns 400
      * otherwise. Funds are returned to the user's smart wallet before the
-     * lock so they stay liquid. Returns the new Rain status.
+     * lock so they stay liquid. Idempotent on an already locked card.
      */
-    lockCard: async (cardId: string, verifiedWithdrawal?: SignedRainWithdrawal): Promise<string> => {
-        const { status } = await rainRequest<{ status: string }>({
+    lockCard: async (cardId: string, verifiedWithdrawal?: SignedRainWithdrawal): Promise<CardLockResponse> =>
+        rainRequest<CardLockResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/lock`,
             body: verifiedWithdrawal ? { verifiedWithdrawal } : {},
             // Withdrawal path includes a UserOp wait — extend past the 10s default.
             timeoutMs: verifiedWithdrawal ? 120_000 : undefined,
-        })
-        return status
-    },
+        }),
 
     /**
      * Cancel a card. When the user has positive spending power, the caller
@@ -912,11 +919,11 @@ export const rainApi = {
     cancelCard: async (
         cardId: string,
         opts?: { feedback?: string; verifiedWithdrawal?: SignedRainWithdrawal }
-    ): Promise<string> => {
+    ): Promise<CardCancelResponse> => {
         const body: Record<string, unknown> = {}
         if (opts?.feedback) body.feedback = opts.feedback
         if (opts?.verifiedWithdrawal) body.verifiedWithdrawal = opts.verifiedWithdrawal
-        const { status } = await rainRequest<{ status: string }>({
+        return rainRequest<CardCancelResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/cancel`,
             // Always send an object — Fastify's schema validator rejects a
@@ -926,7 +933,6 @@ export const rainApi = {
             // Withdrawal path includes a UserOp wait — extend past the 10s default.
             timeoutMs: opts?.verifiedWithdrawal ? 120_000 : undefined,
         })
-        return status
     },
 
     /** Attach feedback to an already-canceled card. Non-fatal on failure. */

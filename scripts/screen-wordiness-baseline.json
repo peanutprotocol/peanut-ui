@@ -25,7 +25,7 @@
         "components/AddMoney/components/OnrampConfirmationModal.tsx": 97,
         "components/AddMoney/views/CryptoDeposit.view.tsx": 194,
         "components/AddMoney/views/RhinoDeposit.view.tsx": 109,
-        "components/Card/CancelCardModal.tsx": 83,
+        "components/Card/CancelCardModal.tsx": 87,
         "components/Card/CardPinScreen.tsx": 107,
         "components/Card/CardTermsScreen.tsx": 147,
         "components/Card/PhysicalCardScreen.tsx": 80,

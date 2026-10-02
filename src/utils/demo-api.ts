@@ -873,7 +873,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
                 termsVersion: 'rtf-2026-09-29',
                 authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
             },
-            management: { status: 'ready', reason: null, migration: null },
+            management: { status: 'ready', reason: null, migration: null, stop: null },
         }),
     },
     // per-card limits read — without this the card-limit fixture (and any

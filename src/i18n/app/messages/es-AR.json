@@ -857,6 +857,12 @@
             "lockSuccessBody": "Volvé cuando quieras para desbloquearla.",
             "slideToLock": "Deslizá y bloqueá"
         },
+        "stop": {
+            "pending": "Todavía se están deteniendo los pagos desde tu billetera. Puede tardar unos minutos.",
+            "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contactá a soporte.",
+            "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contactá a soporte si no se resuelve.",
+            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intentá desbloquear de nuevo."
+        },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",

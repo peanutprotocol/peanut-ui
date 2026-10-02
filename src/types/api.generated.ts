@@ -7427,6 +7427,10 @@ export interface paths {
                                 } | null;
                                 reason: string | null;
                                 status: "required" | "migration_required" | "pending" | "ready" | "temporarily_unavailable";
+                                stop: {
+                                    cause: "card_locked" | "card_canceled" | "card_action_pending" | "paused";
+                                    state: "pending" | "confirmed" | "unavailable";
+                                } | null;
                             };
                             operatorAddress: string;
                             permission: {
@@ -7535,6 +7539,10 @@ export interface paths {
                                 } | null;
                                 reason: string | null;
                                 status: "required" | "migration_required" | "pending" | "ready" | "temporarily_unavailable";
+                                stop: {
+                                    cause: "card_locked" | "card_canceled" | "card_action_pending" | "paused";
+                                    state: "pending" | "confirmed" | "unavailable";
+                                } | null;
                             };
                             operatorAddress: string;
                             permission: {
@@ -8642,7 +8650,99 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            fundingStop: {
+                                reason: string | null;
+                                state: "resumed" | "kept" | "none";
+                            } | null;
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -8696,7 +8796,99 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            fundingStop: {
+                                reason: string | null;
+                                state: "pending" | "unavailable" | "not_applicable";
+                            };
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -8965,7 +9157,99 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            fundingStop: {
+                                reason: string | null;
+                                state: "pending" | "unavailable" | "not_applicable";
+                            };
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
                 };
             };
         };

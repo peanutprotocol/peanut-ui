@@ -8,8 +8,13 @@ import { Field } from '@/components/0_Bruddle/Field'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { rainApi } from '@/services/rain'
+import CardStopNotice from '@/components/Card/CardStopNotice'
+import { apiErrorStatus } from '@/services/api-error'
+import { rainApi, type CardFundingStop } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { newStopAttemptId, type StopAttempt } from '@/hooks/useCardStopConfirmation'
+import { useStopAttemptReporter } from '@/hooks/useStopAttemptReporter'
+import { useCardWithdrawalProof } from '@/hooks/wallet/useCardWithdrawalProof'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -21,19 +26,23 @@ interface Props {
     cardId: string
     isOpen: boolean
     onClose: () => void
+    onStopAttempt?: (attempt: StopAttempt | null) => void
 }
 
-const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
+const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) => {
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
     const [phase, setPhase] = useState<Phase>('confirm')
     const [feedback, setFeedback] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [canceled, setCanceled] = useState(false)
+    const [stop, setStop] = useState<{ attemptId: string; stop?: CardFundingStop | null } | undefined>()
     const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { address: smartWalletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const withdrawalProof = useCardWithdrawalProof(cardId, smartWalletAddress)
+    const beginStopReport = useStopAttemptReporter(smartWalletAddress, onStopAttempt)
 
     useEffect(() => {
         if (!isOpen) {
@@ -42,6 +51,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             setFeedback('')
             setError(null)
             setCanceled(false)
+            setStop(undefined)
         }
     }, [isOpen])
 
@@ -59,6 +69,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
     const runCancel = async () => {
         setPhase('canceling')
         setError(null)
+        const report = beginStopReport()
         try {
             // An unloaded overview reads as zero spending power below, which
             // would skip the withdrawal and get the cancel rejected by the
@@ -70,8 +81,9 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             // become unreachable), so we MUST drain it BEFORE the cancel.
             // Backend enforces order — this just delivers the signed body.
             const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
-            let verifiedWithdrawal: import('@/hooks/wallet/useSignSpendBundle').SignedRainWithdrawal | undefined
-            if (spendingPowerUnits > 0n) {
+            // A retry reuses the proof: signing again could be a second withdrawal.
+            let verifiedWithdrawal = withdrawalProof.get()
+            if (!verifiedWithdrawal && spendingPowerUnits > 0n) {
                 if (!smartWalletAddress) {
                     throw new Error(t('errors.walletNotReady'))
                 }
@@ -87,14 +99,23 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     throw new Error(t('errors.unexpectedStrategy'))
                 }
                 verifiedWithdrawal = artifact.rainWithdrawal
+                withdrawalProof.save(verifiedWithdrawal)
             }
             // No draft back-out on a cancelCard throw: execution-ambiguous —
             // the probe-verified TTL sweep owns cleanup (TASK-21815 review).
-            await rainApi.cancelCard(cardId, { verifiedWithdrawal })
+            const result = await rainApi.cancelCard(cardId, { verifiedWithdrawal })
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_CONFIRMED)
+            withdrawalProof.clear()
+            const attemptId = newStopAttemptId()
+            const fundingStop = result?.fundingStop
+            // The card page keeps this once the card screen is gone.
+            if (fundingStop && fundingStop.state !== 'not_applicable') report({ attemptId, stop: fundingStop })
+            setStop({ attemptId, stop: fundingStop })
             setCanceled(true)
             setPhase('feedback')
         } catch (e) {
+            // An expired signature cannot be reused: sign again on the next try.
+            if (apiErrorStatus(e) === 410) withdrawalProof.clear()
             let message = e instanceof Error ? e.message : t('cancel.failed')
             if (e instanceof InsufficientSpendableError) {
                 message = t('errors.balanceReturnFailed')
@@ -163,19 +184,32 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                             disabled={phase === 'canceling'}
                         />
                     </>
-                ) : isFeedback ? (
-                    <Field label={t('cancel.feedbackLabel')} htmlFor="cancel-feedback">
-                        <textarea
-                            id="cancel-feedback"
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            placeholder={t('cancel.feedbackPlaceholder')}
-                            rows={4}
-                            maxLength={2000}
-                            className="input h-auto resize-y py-3"
-                            disabled={phase === 'submitting-feedback'}
-                        />
-                    </Field>
+                ) : isFeedback || stop ? (
+                    // The card is canceled; this says how far stopping wallet payments got.
+                    <>
+                        {stop && (
+                            <CardStopNotice
+                                key={stop.attemptId}
+                                stop={stop.stop}
+                                attemptId={stop.attemptId}
+                                wallet={smartWalletAddress}
+                            />
+                        )}
+                        {isFeedback && (
+                            <Field label={t('cancel.feedbackLabel')} htmlFor="cancel-feedback">
+                                <textarea
+                                    id="cancel-feedback"
+                                    value={feedback}
+                                    onChange={(e) => setFeedback(e.target.value)}
+                                    placeholder={t('cancel.feedbackPlaceholder')}
+                                    rows={4}
+                                    maxLength={2000}
+                                    className="input h-auto resize-y py-3"
+                                    disabled={phase === 'submitting-feedback'}
+                                />
+                            </Field>
+                        )}
+                    </>
                 ) : undefined
             }
             ctas={

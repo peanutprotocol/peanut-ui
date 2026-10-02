@@ -17,7 +17,7 @@
  *     (no passkey prompt when there is nothing to return).
  */
 import React, { type ReactNode } from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import LockCardModal from '@/components/Card/LockCardModal'
@@ -25,6 +25,7 @@ import CancelCardModal from '@/components/Card/CancelCardModal'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { ApiError } from '@/services/api-error'
 import { rainApi } from '@/services/rain'
 
 const WALLET = '0xafbea1a6a6036d7d827e08072cd4315248b77352'
@@ -37,6 +38,7 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: jest.fn(),
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
 }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-a' } } }) }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: jest.fn() }))
 jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({ useSignSpendBundle: jest.fn() }))
 jest.mock('@/services/rain', () => ({
@@ -46,6 +48,7 @@ jest.mock('@/services/rain', () => ({
         cancelCard: jest.fn(),
         submitCancellationFeedback: jest.fn(),
         getOverview: jest.fn(),
+        getCardFunding: jest.fn(),
     },
 }))
 // Modal chrome and the slide gesture are not under test — render passthroughs.
@@ -70,11 +73,12 @@ const mockLockCard = rainApi.lockCard as jest.Mock
 const mockActivateCard = rainApi.activateCard as jest.Mock
 const mockCancelCard = rainApi.cancelCard as jest.Mock
 const mockGetOverview = rainApi.getOverview as jest.Mock
+const mockGetCardFunding = rainApi.getCardFunding as jest.Mock
 const mockSignSpend = jest.fn()
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 const mockInvalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
 
-const RAIN_WITHDRAWAL = { preparationId: 'prep-1', amount: '10060000' }
+const RAIN_WITHDRAWAL = { preparationId: 'prep-1', amount: '10060000', expiresAt: 4_102_444_800 }
 // $10.06 spending power — the reporting user's exact state.
 const OVERVIEW = { balance: { spendingPower: 1006 } }
 const FORCED_SIGN_ARGS = {
@@ -84,6 +88,16 @@ const FORCED_SIGN_ARGS = {
     kind: 'CRYPTO_WITHDRAW',
     forceStrategy: 'collateral-only',
 }
+
+// The backend's answers about the wallet payment stop (TASK-22887 card-stop contract).
+const stopped = (state: 'pending' | 'unavailable' | 'not_applicable') => ({
+    status: 'LOCKED',
+    fundingStop: { state, reason: state === 'pending' ? 'card_locked' : null },
+})
+const funding = (state: 'pending' | 'confirmed' | 'unavailable' | null) => ({
+    walletAddress: WALLET,
+    management: { stop: state && { cause: 'card_locked', state } },
+})
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
     <IntlWrapper>
@@ -105,10 +119,12 @@ const renderCancel = () => render(<CancelCardModal cardId="card-1" isOpen onClos
 
 beforeEach(() => {
     jest.clearAllMocks()
+    queryClient.clear()
     mockSignSpend.mockResolvedValue({ strategy: 'collateral-only', rainWithdrawal: RAIN_WITHDRAWAL })
     mockLockCard.mockResolvedValue({})
     mockActivateCard.mockResolvedValue({})
     mockCancelCard.mockResolvedValue({})
+    mockGetCardFunding.mockResolvedValue(funding(null))
 })
 
 describe('LockCardModal — lock with spending power', () => {
@@ -144,7 +160,224 @@ describe('LockCardModal — lock with spending power', () => {
     })
 })
 
+/**
+ * Wallet payments stop with the card (TASK-22887). The lock/cancel response says
+ * the CARD is done; "payments stopped" is shown only when the live funding read
+ * confirms it. Pending, unavailable and an unreadable status never claim it.
+ */
+describe('LockCardModal — wallet payment stop', () => {
+    const lockNow = async () => {
+        setup({ balance: { spendingPower: 0 } })
+        renderLock()
+        fireEvent.click(screen.getByText('Slide to Lock'))
+    }
+    const STOPPED = /Payments from your wallet to this card are stopped/
+    const IN_PROGRESS = /still in progress/
+
+    afterEach(() => jest.useRealTimers())
+
+    it('stays open while the stop is pending, then confirms once the live read says zero', async () => {
+        jest.useFakeTimers()
+        mockLockCard.mockResolvedValue(stopped('pending'))
+        mockGetCardFunding.mockResolvedValueOnce(funding('pending')).mockResolvedValue(funding('confirmed'))
+        await lockNow()
+
+        expect(await screen.findByText(IN_PROGRESS)).toBeInTheDocument()
+        expect(screen.getByText('Card locked')).toBeInTheDocument()
+        expect(screen.queryByText(STOPPED)).not.toBeInTheDocument()
+        expect(mockOnClose).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+        expect(await screen.findByText(STOPPED)).toBeInTheDocument()
+        expect(screen.queryByText(IN_PROGRESS)).not.toBeInTheDocument()
+    })
+
+    it('a failed status read keeps the lock a success, says it could not check, and Check status recovers', async () => {
+        mockLockCard.mockResolvedValue(stopped('pending'))
+        mockGetCardFunding.mockRejectedValue(new Error('offline'))
+        await lockNow()
+
+        expect(await screen.findByText(/couldn't check yet/)).toBeInTheDocument()
+        expect(screen.getByText('Card locked')).toBeInTheDocument()
+        expect(screen.queryByText(/Failed to lock/)).not.toBeInTheDocument()
+        expect(screen.queryByText(STOPPED)).not.toBeInTheDocument()
+
+        mockGetCardFunding.mockResolvedValue(funding('confirmed'))
+        fireEvent.click(screen.getByRole('button', { name: 'Check status' }))
+        expect(await screen.findByText(STOPPED)).toBeInTheDocument()
+    })
+
+    it('keeps polling after a failed first read, within the one-minute window', async () => {
+        jest.useFakeTimers()
+        mockLockCard.mockResolvedValue(stopped('pending'))
+        mockGetCardFunding.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(funding('confirmed'))
+        await lockNow()
+        expect(await screen.findByText(/couldn't check yet/)).toBeInTheDocument()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+        expect(await screen.findByText(STOPPED)).toBeInTheDocument()
+    })
+
+    it('stops polling after the window and leaves Check status, never an endless "in progress"', async () => {
+        jest.useFakeTimers()
+        mockLockCard.mockResolvedValue(stopped('pending'))
+        mockGetCardFunding.mockResolvedValue(funding('pending'))
+        await lockNow()
+        expect(await screen.findByText(IN_PROGRESS)).toBeInTheDocument()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(65_000)
+        })
+        const reads = mockGetCardFunding.mock.calls.length
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(30_000)
+        })
+        expect(mockGetCardFunding).toHaveBeenCalledTimes(reads)
+        expect(screen.getByRole('button', { name: 'Check status' })).toBeInTheDocument()
+    })
+
+    it.each([
+        ['an action response', stopped('unavailable'), funding(null)],
+        ['the live read', stopped('pending'), funding('unavailable')],
+    ])('unavailable from %s: asks for support and never claims a stop', async (_from, response, live) => {
+        mockLockCard.mockResolvedValue(response)
+        mockGetCardFunding.mockResolvedValue(live)
+        await lockNow()
+
+        expect(
+            await screen.findByText(/couldn't confirm that payments from your wallet have stopped/)
+        ).toBeInTheDocument()
+        expect(screen.queryByText(STOPPED)).not.toBeInTheDocument()
+    })
+
+    it('a wallet with nothing managed says nothing about a stop: toast and close, no status read', async () => {
+        mockLockCard.mockResolvedValue(stopped('not_applicable'))
+        await lockNow()
+
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
+        expect(mockGetCardFunding).not.toHaveBeenCalled()
+    })
+
+    it('a retry after a failed attempt reuses the signed proof: no second signature', async () => {
+        setup(OVERVIEW)
+        mockLockCard.mockRejectedValueOnce(new Error('gateway timeout')).mockResolvedValue(stopped('not_applicable'))
+        renderLock()
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        expect(await screen.findByText('gateway timeout')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockLockCard).toHaveBeenCalledTimes(2)
+        expect(mockLockCard).toHaveBeenLastCalledWith('card-1', RAIN_WITHDRAWAL)
+    })
+
+    it('closing and reopening after a failed attempt still reuses the signed proof', async () => {
+        setup(OVERVIEW)
+        mockLockCard.mockRejectedValueOnce(new Error('gateway timeout')).mockResolvedValue(stopped('not_applicable'))
+        const { rerender } = renderLock()
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        expect(await screen.findByText('gateway timeout')).toBeInTheDocument()
+
+        rerender(<LockCardModal cardId="card-1" mode="lock" isOpen={false} onClose={mockOnClose} />)
+        rerender(<LockCardModal cardId="card-1" mode="lock" isOpen onClose={mockOnClose} />)
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockLockCard).toHaveBeenLastCalledWith('card-1', RAIN_WITHDRAWAL)
+    })
+
+    it('an expired proof (410) is not reused: the retry signs again', async () => {
+        setup(OVERVIEW)
+        mockLockCard
+            .mockRejectedValueOnce(new ApiError('expired', { status: 410 }))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderLock()
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        expect(await screen.findByText('expired')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+    })
+})
+
 describe('LockCardModal — unlock', () => {
+    it('keeps the modal open and says payments stay stopped when the backend kept the stop', async () => {
+        setup(OVERVIEW)
+        mockActivateCard.mockResolvedValue({ status: 'ACTIVE', fundingStop: { state: 'kept', reason: 'paused' } })
+        renderUnlock()
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+
+        expect(await screen.findByText(/payments from your wallet stay stopped for now/)).toBeInTheDocument()
+        expect(screen.getByText('Card unlocked')).toBeInTheDocument()
+        expect(mockOnClose).not.toHaveBeenCalled()
+        expect(mockGetCardFunding).not.toHaveBeenCalled()
+    })
+
+    it('a lift the backend could not finish (fundingStop null) is not "done": same notice, Unlock retries, nothing is withdrawn', async () => {
+        setup(OVERVIEW)
+        mockActivateCard
+            .mockResolvedValueOnce({ status: 'ACTIVE', fundingStop: null })
+            .mockResolvedValueOnce({ status: 'ACTIVE', fundingStop: { state: 'resumed', reason: null } })
+        renderUnlock()
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+
+        expect(await screen.findByText(/couldn't confirm that payments from your wallet resumed/)).toBeInTheDocument()
+        expect(mockOnClose).not.toHaveBeenCalled()
+        expect(mockToastSuccess).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockActivateCard).toHaveBeenCalledTimes(2)
+        expect(mockSignSpend).not.toHaveBeenCalled()
+    })
+
+    it.each(['card_action_in_progress', 'card_action_incomplete'])(
+        'a 409 %s is shown as the backend says it, and no withdrawal is signed',
+        async (code) => {
+            setup(OVERVIEW)
+            mockActivateCard.mockRejectedValue(new ApiError('backend says wait', { status: 409, code }))
+            renderUnlock()
+            fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+
+            expect(await screen.findByText('backend says wait')).toBeInTheDocument()
+            expect(mockSignSpend).not.toHaveBeenCalled()
+        }
+    )
+
+    it('a 409 card_action_in_progress on a lock keeps the signed proof: the retry signs nothing again', async () => {
+        setup(OVERVIEW)
+        mockLockCard
+            .mockRejectedValueOnce(
+                new ApiError('another action is running', { status: 409, code: 'card_action_in_progress' })
+            )
+            .mockResolvedValue(stopped('not_applicable'))
+        renderLock()
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        expect(await screen.findByText('another action is running')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Slide to Lock'))
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+    })
+
+    it('a resumed stop closes with the plain success toast and claims nothing about payments', async () => {
+        setup(OVERVIEW)
+        mockActivateCard.mockResolvedValue({ status: 'ACTIVE', fundingStop: { state: 'resumed', reason: null } })
+        renderUnlock()
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card unlocked')
+        expect(screen.queryByText(/wallet/)).not.toBeInTheDocument()
+    })
+
     it('activates the card, refreshes the overview, and closes with a success toast', async () => {
         setup(OVERVIEW)
         renderUnlock()
@@ -193,6 +426,47 @@ describe('CancelCardModal', () => {
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })
+    })
+
+    it('says the stop is in progress next to "Card canceled", and confirms only from the live read', async () => {
+        setup({ balance: { spendingPower: 0 } })
+        mockCancelCard.mockResolvedValue(stopped('pending'))
+        mockGetCardFunding.mockResolvedValue(funding('pending'))
+        renderCancel()
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
+
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(await screen.findByText(/still in progress/)).toBeInTheDocument()
+        expect(screen.queryByText(/are stopped/)).not.toBeInTheDocument()
+        // the feedback step is still offered
+        expect(screen.getByPlaceholderText('Why cancel?')).toBeInTheDocument()
+    })
+
+    it('a failed status read keeps "Card canceled" and shows no failure', async () => {
+        setup({ balance: { spendingPower: 0 } })
+        mockCancelCard.mockResolvedValue(stopped('pending'))
+        mockGetCardFunding.mockRejectedValue(new Error('offline'))
+        renderCancel()
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
+
+        expect(await screen.findByText(/couldn't check yet/)).toBeInTheDocument()
+        expect(screen.getByText('Card canceled')).toBeInTheDocument()
+        expect(screen.queryByText(/Failed to cancel/)).not.toBeInTheDocument()
+    })
+
+    it('a retry after a failed attempt reuses the signed proof: no second signature', async () => {
+        setup(OVERVIEW)
+        mockCancelCard.mockRejectedValueOnce(new Error('gateway timeout')).mockResolvedValue(stopped('not_applicable'))
+        renderCancel()
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
+        expect(await screen.findByText('gateway timeout')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockCancelCard).toHaveBeenLastCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
+        // nothing managed for this wallet: no claim and no status read
+        expect(mockGetCardFunding).not.toHaveBeenCalled()
     })
 })
 

@@ -216,6 +216,49 @@ test('cancelling a card is an ordinary cancel with no permission-removal step', 
     await shot(page, 'cancel-feedback')
 })
 
+// A card lock/cancel stops managed wallet payments too. The card is done at once; "stopped" shows only
+// when the funding read confirms it (fixtures answer both calls with static data).
+async function slideTo(page: Page, name: string) {
+    const handle = page.getByRole('button', { name, exact: true })
+    await expect(handle).toBeVisible()
+    await handle.focus()
+    for (let press = 0; press < 10; press++) await page.keyboard.press('ArrowRight')
+}
+
+test('a cancel whose wallet stop is still in progress says so, and the card page keeps saying it', async ({ page }) => {
+    await page.goto('/card?__fixture=card-cancel-stop-pending')
+    await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
+    await slideTo(page, 'Slide to cancel')
+    await expect(page.getByText('Card canceled', { exact: true })).toBeVisible()
+    const notice = page.getByTestId('card-stop-notice')
+    await expect(notice).toContainText('still in progress')
+    await expect(page.getByText(/payments from your wallet to this card are stopped/i)).toHaveCount(0)
+    await shot(page, 'cancel-stop-pending')
+    // the banner outlives the modal
+    await expect(page.getByTestId('card-stop-banner')).toBeVisible()
+})
+
+test('a lock confirmed by the funding read says payments from the wallet are stopped', async ({ page }) => {
+    await page.goto('/card?__fixture=card-lock-stop-confirmed')
+    await page.getByRole('button', { name: 'Lock card', exact: true }).click()
+    await slideTo(page, 'Slide to Lock')
+    await expect(page.getByText('Card locked', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('card-stop-notice')).toContainText(
+        'Payments from your wallet to this card are stopped'
+    )
+    await shot(page, 'lock-stop-confirmed')
+})
+
+test('a lock that cannot stop wallet payments asks for support and never says stopped', async ({ page }) => {
+    await page.goto('/card?__fixture=card-lock-stop-unavailable')
+    await page.getByRole('button', { name: 'Lock card', exact: true }).click()
+    await slideTo(page, 'Slide to Lock')
+    await expect(page.getByText('Card locked', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('card-stop-notice')).toContainText("couldn't confirm")
+    await expect(page.getByText(/are stopped/i)).toHaveCount(0)
+    await shot(page, 'lock-stop-unavailable')
+})
+
 // Guests have no fixture session; stub the API at the network layer so the
 // page settles as signed-out whatever API URL the build carries.
 async function stubSignedOutApi(page: Page) {

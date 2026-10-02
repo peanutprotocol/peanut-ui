@@ -54,7 +54,7 @@ describe('card funding fixtures', () => {
 
     it('a fixture with no funding override still answers, and its permission is ready (no prompt over other card screens)', async () => {
         const body = await read('home')
-        expect(body.management).toEqual({ status: 'ready', reason: null, migration: null })
+        expect(body.management).toEqual({ status: 'ready', reason: null, migration: null, stop: null })
     })
 
     it('the migration fixture carries a payload the app accepts to act on', async () => {
@@ -69,6 +69,7 @@ describe('card funding fixtures', () => {
             status: 'temporarily_unavailable',
             reason: 'withdrawal_in_flight',
             migration: null,
+            stop: null,
         })
     })
 

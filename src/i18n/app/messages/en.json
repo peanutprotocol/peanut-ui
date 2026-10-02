@@ -1566,6 +1566,15 @@
             "lockFailed": "Failed to lock card",
             "unlockFailed": "Failed to unlock card"
         },
+        "stop": {
+            "pending": "Stopping payments from your wallet is still in progress. This can take a few minutes.",
+            "confirmed": "Payments from your wallet to this card are stopped.",
+            "checkFailed": "We couldn't check yet whether payments from your wallet have stopped.",
+            "checkStatus": "Check status",
+            "unavailable": "We couldn't confirm that payments from your wallet have stopped. Please contact support.",
+            "unlockKept": "Your card is active, but payments from your wallet stay stopped for now. Contact support if this doesn't clear.",
+            "unlockUnknown": "Your card is active, but we couldn't confirm that payments from your wallet resumed. Try Unlock again."
+        },
         "errors": {
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
             "authorizationFailed": "Card authorization failed. Please try again or contact support.",

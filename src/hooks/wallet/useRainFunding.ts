@@ -9,6 +9,7 @@ import { peanutPublicClient } from '@/app/actions/clients'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { RAIN_CARD_FUNDING_QUERY_KEY } from '@/hooks/useCardStopConfirmation'
 import { signKernelPermission, PermissionWalletMismatchError } from '@/hooks/wallet/signKernelPermission'
 import {
     CollateralReturnError,
@@ -37,7 +38,6 @@ import {
     type RainFundingResult,
 } from '@/utils/rain-funding.utils'
 
-const RAIN_CARD_FUNDING_QUERY_KEY = 'rain-card-funding'
 /** Poll the backend while a grant it accepted is not confirmed on chain yet. */
 const PENDING_POLL_INTERVAL_MS = 3_000
 const PENDING_POLL_WINDOW_MS = 60_000

@@ -19,6 +19,7 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { DEMO_ADDRESS } from '@/constants/demo-data'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -675,8 +676,18 @@ const cardFunding = (
         termsVersion: 'rtf-2026-09-29',
         authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
     },
-    management: { status, reason: null, migration },
+    management: { status, reason: null, migration, stop: null },
 })
+
+// Match the demo wallet so the modals can verify the funding response's scope.
+const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending' | 'confirmed' | 'unavailable') => {
+    const base = cardFunding('temporarily_unavailable')
+    return {
+        ...base,
+        walletAddress: DEMO_ADDRESS,
+        management: { ...base.management, reason: cause, stop: { cause, state } },
+    }
+}
 
 export const FIXTURES: Record<string, Fixture> = {
     'setup-pending': {
@@ -1160,6 +1171,44 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /rain/cards': CARD_HOLDER_OVERVIEW,
             'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    // A card lock or cancel is a wallet-wide stop of managed payments. The card is done at once; whether
+    // the wallet stop is confirmed comes from the funding read. One fixture per visible state, static data.
+    'card-cancel-stop-pending': {
+        route: '/card',
+        about: 'Cardholder whose cancel answers "stop in progress": Card canceled, then payments stopping, and the card page banner.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding': cardStopFunding('card_canceled', 'pending'),
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 'CANCELED',
+                fundingStop: { state: 'pending', reason: 'card_canceled' },
+            },
+        },
+    },
+    'card-lock-stop-confirmed': {
+        route: '/card',
+        about: 'Cardholder whose lock is followed by a funding read confirming the wallet stop: "payments stopped".',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'confirmed'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'pending', reason: 'card_locked' },
+            },
+        },
+    },
+    'card-lock-stop-unavailable': {
+        route: '/card',
+        about: 'Cardholder whose lock cannot stop wallet payments (permission unusable): asks for support, never says stopped.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'unavailable'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'unavailable', reason: 'scope_retired' },
+            },
         },
     },
     'card-prohibited': {

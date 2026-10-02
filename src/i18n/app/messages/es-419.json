@@ -1566,6 +1566,15 @@
             "lockFailed": "No se pudo bloquear la tarjeta",
             "unlockFailed": "No se pudo desbloquear la tarjeta"
         },
+        "stop": {
+            "pending": "Aún se están deteniendo los pagos desde tu billetera. Puede tardar unos minutos.",
+            "confirmed": "Los pagos desde tu billetera a esta tarjeta están detenidos.",
+            "checkFailed": "Todavía no pudimos revisar si los pagos desde tu billetera se detuvieron.",
+            "checkStatus": "Revisar estado",
+            "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contacta a soporte.",
+            "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contacta a soporte si no se resuelve.",
+            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intenta desbloquear de nuevo."
+        },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Inténtalo de nuevo o contacta a soporte.",

@@ -25,6 +25,7 @@ import { useCardCollateralReturn } from '@/hooks/wallet/useCardCollateralReturn'
 import type { CollateralReturnFailure } from '@/hooks/wallet/cardCollateralReturn'
 import { cardBalanceDueCents, isRainBalanceKnown } from '@/utils/balance.utils'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
+import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 
 type CardAction = 'lock' | 'unlock' | 'cancel'
 
@@ -32,6 +33,8 @@ interface Props {
     overview: RainCardOverview
     card: RainCardSummary
     onPrev?: () => void
+    /** Lock/cancel/unlock report their wallet stop here, to the page that outlives this screen. */
+    onStopAttempt?: (attempt: StopAttempt | null) => void
 }
 
 const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiryCopied' | 'cvvCopied'> = {
@@ -54,7 +57,7 @@ const RETURN_ERROR_KEY: Record<
     failed: 'moveFailed',
 }
 
-const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
+const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) => {
     const t = useTranslations('card.yourCard')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
@@ -241,8 +244,14 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 mode={action === 'unlock' ? 'unlock' : 'lock'}
                 isOpen={action === 'lock' || action === 'unlock'}
                 onClose={closeAction}
+                onStopAttempt={onStopAttempt}
             />
-            <CancelCardModal cardId={card.id} isOpen={action === 'cancel'} onClose={closeAction} />
+            <CancelCardModal
+                cardId={card.id}
+                isOpen={action === 'cancel'}
+                onClose={closeAction}
+                onStopAttempt={onStopAttempt}
+            />
         </PageStack>
     )
 }

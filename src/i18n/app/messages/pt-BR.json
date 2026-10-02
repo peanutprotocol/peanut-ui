@@ -1566,6 +1566,15 @@
             "lockFailed": "Não foi possível bloquear o cartão",
             "unlockFailed": "Não foi possível desbloquear o cartão"
         },
+        "stop": {
+            "pending": "Ainda estamos interrompendo os pagamentos da sua carteira. Pode levar alguns minutos.",
+            "confirmed": "Os pagamentos da sua carteira para este cartão estão interrompidos.",
+            "checkFailed": "Ainda não conseguimos verificar se os pagamentos da sua carteira foram interrompidos.",
+            "checkStatus": "Verificar status",
+            "unavailable": "Não conseguimos confirmar que os pagamentos da sua carteira foram interrompidos. Fale com o suporte.",
+            "unlockKept": "Seu cartão está ativo, mas os pagamentos da sua carteira continuam interrompidos por enquanto. Fale com o suporte se não se resolver.",
+            "unlockUnknown": "Seu cartão está ativo, mas não conseguimos confirmar que os pagamentos da sua carteira foram retomados. Tente desbloquear de novo."
+        },
         "errors": {
             "balanceReturnFailed": "Não conseguimos devolver o saldo do seu cartão. Tente de novo ou fale com o suporte.",
             "authorizationFailed": "A autorização do cartão falhou. Tente de novo ou fale com o suporte.",
