@@ -9,6 +9,8 @@ import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { BankReviewGroupedCard } from '@/features/withdraw/components/BankReviewGroupedCard'
+import { useRowLayout } from '@/features/receipt-groups/useRowLayout'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { type ReviewPayout } from '@/features/withdraw/types'
@@ -112,6 +114,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tRate = useTranslations('exchangeRate.row')
+    const rowLayout = useRowLayout()
 
     // The flag is the account's own country, read off the IBAN, not the one
     // picked upstream (QA round 3, W1). The country never picks the currency:
@@ -176,7 +179,39 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 />
             )}
 
-            {usdSpeed ? (
+            {rowLayout === 'grouped' ? (
+                // mock/receipt-groups: every currency on one DataRow card, the rows grouped by theme
+                <BankReviewGroupedCard
+                    bankAccount={bankAccount}
+                    routingOrSortCode={getBicAndRoutingNumber()}
+                    exchangeRate={
+                        convertsCurrency
+                            ? {
+                                  loading: isRateLoading,
+                                  value: payout.rate
+                                      ? `1 USD = ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
+                                      : '-',
+                                  moreInfoText: tRate('approximate'),
+                              }
+                            : null
+                    }
+                    fee={
+                        usdSpeed
+                            ? Number(usdSpeed.feeUsd) > 0
+                                ? formatBankAmount(Number(usdSpeed.feeUsd), 'USD')
+                                : t('bank.speedFree')
+                            : '$0'
+                    }
+                    usd={
+                        usdSpeed
+                            ? {
+                                  arrives: t(`bank.${USD_ARRIVAL_KEY[usdSpeed.selected]}`),
+                                  bankReceives: formatBankAmount(Number(usdSpeed.receivedUsd), 'USD'),
+                              }
+                            : null
+                    }
+                />
+            ) : usdSpeed ? (
                 // A USD payout uses DataRow (design.md "receipt / detail card"). The
                 // fee is the chosen speed's, from the backend's fee table, and the
                 // bank receives the amount less it. Other currencies keep their
