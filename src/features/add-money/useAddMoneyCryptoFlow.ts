@@ -2,9 +2,11 @@
 
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { NETWORK_LABELS, CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -15,7 +17,7 @@ import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
 import posthog from 'posthog-js'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 /** An EVM transaction hash, the only shape the history route keys a receipt on. */
 const EVM_TX_HASH = /^0x[0-9a-f]{64}$/i
@@ -77,6 +79,10 @@ export function useAddMoneyCryptoFlow() {
         enabled: !!user && !!peanutWalletAddress && !needsNetworkChoice,
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
+
+    useEffect(() => {
+        if (depositAddressData) void offerPushPrompt(PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT)
+    }, [depositAddressData])
 
     const handleSuccess = useCallback(
         (amount: number, statusData?: DepositAddressStatusResponse) => {

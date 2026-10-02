@@ -2704,7 +2704,15 @@
         "migrationSetupDescription": "We'll ping you the moment money lands or someone asks you to pay.",
         "enable": "Enable notifications",
         "requesting": "Requesting...",
-        "notNow": "Not now"
+        "notNow": "Not now",
+        "depositIntentTitle": "Know when money lands",
+        "depositIntentDescription": "Just one notification, when the deposit arrives.",
+        "requestCreatedTitle": "Know when the request is paid",
+        "requestCreatedDescription": "One notification when it's paid.",
+        "cardReadyTitle": "Know every card payment",
+        "cardReadyDescription": "One notification per payment or decline.",
+        "qrFirstScanTitle": "Confirmation for each QR payment",
+        "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
         "statusDrawerTitle": "Verification status",

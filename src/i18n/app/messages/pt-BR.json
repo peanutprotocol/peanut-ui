@@ -2704,7 +2704,15 @@
         "migrationSetupDescription": "Avisamos na hora quando o dinheiro chegar ou alguém pedir um pagamento.",
         "enable": "Ativar notificações",
         "requesting": "Solicitando...",
-        "notNow": "Agora não"
+        "notNow": "Agora não",
+        "depositIntentTitle": "Avisamos quando o depósito chegar",
+        "depositIntentDescription": "Só uma notificação, quando o depósito chegar.",
+        "requestCreatedTitle": "Avisamos quando pagarem a cobrança",
+        "requestCreatedDescription": "Uma notificação assim que pagarem sua cobrança.",
+        "cardReadyTitle": "Avisamos sobre cada pagamento no cartão",
+        "cardReadyDescription": "Uma notificação por pagamento, aprovado ou recusado.",
+        "qrFirstScanTitle": "Confirmamos cada pagamento QR",
+        "qrFirstScanDescription": "Uma notificação quando o pagamento for concluído."
     },
     "kyc": {
         "statusDrawerTitle": "Status da verificação",

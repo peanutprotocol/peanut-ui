@@ -21,6 +21,7 @@ import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { resolveChainRegistryEntry } from '@/constants/chainRegistry.consts'
+import { type PushPromptTrigger } from '@/constants/push-prompt.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
@@ -422,6 +423,13 @@ export type UserPreferences = {
      *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
      *  during the migration window. */
     notifModalClosedAt?: string
+    /** ISO timestamp of the last "Not now" per push pre-prompt moment. Each
+     *  moment snoozes on its own entry, so a dismissed deposit prompt does not
+     *  silence the card prompt (TASK-23251). */
+    notifPromptClosedAt?: Partial<Record<PushPromptTrigger, string>>
+    /** App loads by this user on this device. The Home push fallback waits
+     *  for the third one. */
+    sessionCount?: number
     /** App-review nudge budget (see utils/app-review.ts). `moments` counts
      *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
      *  past OS review requests, oldest first. */

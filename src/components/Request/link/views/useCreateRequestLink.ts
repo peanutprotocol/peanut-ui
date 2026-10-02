@@ -3,6 +3,7 @@ import { fetchTokenDetails } from '@/app/actions/tokens'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
@@ -10,6 +11,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
@@ -485,6 +487,7 @@ export const useCreateRequestLink = () => {
         setGeneratedLink(link)
         const copied = await pendingCopy.resolve(link)
         toast.success(copied ? t('linkCreatedAndCopiedToast') : t('linkCreatedToast'))
+        void offerPushPrompt(PUSH_PROMPT_TRIGGERS.REQUEST_CREATED)
         return link
     }, [generatedLink, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest, toast, t])
 
