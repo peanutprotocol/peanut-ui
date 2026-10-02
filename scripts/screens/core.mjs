@@ -291,12 +291,17 @@ export function compare(beforeInput, afterInput, assetsDir) {
             bp = PNG.sync.read(bd),
             diff = new PNG({ width: after.width, height: after.height })
         const pixels = pixelmatch(ap.data, bp.data, diff.data, after.width, after.height, { threshold: 0.1 })
+        const percent = (pixels / (after.width * after.height)) * 100
+        // Match the viewer's two-decimal precision: a difference reported as
+        // 0.00% is below the visual-change threshold, not a changed screen.
+        const changed = Number(percent.toFixed(2)) > 0
         return {
             ...row,
-            status: pixels ? 'changed' : 'unchanged',
+            status: changed ? 'changed' : 'unchanged',
             pixels,
-            percent: (pixels / (after.width * after.height)) * 100,
-            ...(pixels ? { diff: storeAsset(assetsDir, PNG.sync.write(diff)) } : {}),
+            percent,
+            ...(pixels && !changed ? { belowThreshold: true } : {}),
+            ...(changed ? { diff: storeAsset(assetsDir, PNG.sync.write(diff)) } : {}),
         }
     })
     assert(before.locale === after.locale, 'Capture locales differ; compare the same locale')

@@ -31,6 +31,19 @@ const LEGACY_DEVICE_PROFILES = {
     '320x712': { platform: 'android', label: 'Android small' },
 }
 const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
+// Older immutable reports used any nonzero pixel count as a change. Apply the
+// same two-decimal threshold as core.mjs before filtering or counting their rows.
+const normalizeComparison = (comparison) => ({
+    ...comparison,
+    screens: comparison.screens.map((row) =>
+        row.status === 'changed' &&
+        Number.isFinite(row.percent) &&
+        row.percent >= 0 &&
+        Number(row.percent.toFixed(2)) === 0
+            ? { ...row, status: 'unchanged', belowThreshold: true, diff: undefined }
+            : row
+    ),
+})
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
@@ -347,7 +360,16 @@ function renderTile(row) {
     const link = el('a', 'Link to screen')
     link.href = `#${row.id}`
     foot.append(link)
-    if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% pixels changed`))
+    if (row.belowThreshold)
+        foot.append(
+            el(
+                'span',
+                Number.isInteger(row.pixels) && row.pixels > 0
+                    ? `${row.pixels} pixels below change threshold`
+                    : 'Below change threshold'
+            )
+        )
+    else if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% pixels changed`))
     tile.append(foot)
     return tile
 }
@@ -756,8 +778,9 @@ async function start() {
             !Array.isArray(comparison.screens)
         )
             throw new Error('Unsupported comparison for this collection')
-        activeComparison = comparison
+        activeComparison = normalizeComparison(comparison)
     }
+    if (report.type === 'comparison') report = normalizeComparison(report)
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
     $('filters-row').hidden = false

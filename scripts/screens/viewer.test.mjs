@@ -108,6 +108,60 @@ class Element {
 const versionGroups = (elements) => elements.get('versions').children
 const versionLinks = (elements) => versionGroups(elements).flatMap((group) => group.children[1]?.children ?? [])
 const imageSources = (element) => [element?.src, ...(element?.children ?? []).flatMap(imageSources)].filter(Boolean)
+const elementText = (element) => [element?.textContent, ...(element?.children ?? []).flatMap(elementText)].join(' ')
+
+test('legacy four-pixel false positives are hidden, counted as unchanged, and remain inspectable', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852 },
+        screens: [
+            ...[4, 16, 17].map((pixels) => ({
+                id: `pixels-${pixels}`,
+                name: `Pixels ${pixels}`,
+                flow: 'Home',
+                kind: 'component',
+                status: 'changed',
+                pixels,
+                percent: (pixels / (393 * 852)) * 100,
+                diff: image,
+                before: { image },
+                after: { image },
+            })),
+            ...['added', 'removed', 'failed'].map((status) => ({
+                id: status,
+                name: status,
+                flow: 'Home',
+                kind: 'component',
+                status,
+                percent: 0,
+                before: { image },
+                after: { image },
+            })),
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-10-02/pr-3558/en/' + 'b'.repeat(40) + '/', { report })
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['pixels-17', 'added', 'removed']
+    )
+    assert.match(elements.get('coverage').textContent, /2 unchanged/)
+    assert.match(elements.get('coverage').textContent, /1 changed/)
+    elements.get('view-mode').checked = true
+    elements.get('view-mode').dispatch('change')
+    const noiseTile = elements.get('screens').children.find(({ id }) => id === 'pixels-4')
+    assert.equal(noiseTile.children[0].children[0].textContent, 'unchanged')
+    assert.match(elementText(noiseTile), /4 pixels below change threshold/)
+    assert.doesNotMatch(elementText(noiseTile), /0\.00% pixels changed/)
+    assert.equal(
+        elements.get('screens').children.find(({ id }) => id === 'failed').children[0].children[0].textContent,
+        'failed'
+    )
+})
 
 async function loadLanding(
     pathname,
@@ -990,7 +1044,9 @@ test('a custom collection can show its selected screens side by side across two 
                 name: 'Send',
                 flow: 'Payments',
                 kind: 'route',
-                status: 'unchanged',
+                status: 'changed',
+                pixels: 4,
+                percent: (4 / (393 * 852)) * 100,
                 before: { image: beforeImage },
                 after: { image: afterImage },
             },
@@ -1024,6 +1080,8 @@ test('a custom collection can show its selected screens side by side across two 
         ['profile', 'send', 'card']
     )
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair')
+    assert.equal(elements.get('screens').children[1].children[0].children[0].textContent, 'unchanged')
+    assert.match(elementText(elements.get('screens').children[1]), /4 pixels below change threshold/)
     assert.deepEqual(imageSources(elements.get('screens').children[0]), [
         `/screen-data/assets/${beforeImage}`,
         `/screen-data/assets/${afterImage}`,
