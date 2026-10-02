@@ -2808,8 +2808,7 @@
             "preparingSlowTitle": "Ya casi",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Espera un momento.",
             "bridgeTosTitle": "Un paso más",
-            "bridgeTosDescription": "Último paso: acepta los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
-            "acceptTerms": "Aceptar términos",
+            "bridgeTosDescription": "Último paso para desbloquear las transferencias bancarias en Estados Unidos, Europa y México. Lee los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge, nuestro socio de pagos. Los aceptas en la siguiente pantalla.",
             "completeTitle": "Listo",
             "completeDescription": "Tu cuenta está lista para usarse.",
             "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Puedes cerrar esto y te avisaremos cuando haya una decisión.",
@@ -2840,16 +2839,15 @@
             "saveFailed": "Algo salió mal al guardar tu correo. Inténtalo de nuevo."
         },
         "bridgeTos": {
-            "baseTitle": "Aceptar los términos de servicio",
-            "baseDescription": "Para habilitar las transferencias bancarias, debes aceptar los términos de servicio de nuestro socio de pagos.",
-            "sepaTitle": "Aceptar los términos actualizados del proveedor de transferencias bancarias",
-            "sepaDescription": "Para habilitar las transferencias bancarias en euros y libras esterlinas, acepta los Términos de Servicio actualizados de nuestro proveedor de transferencias bancarias.",
+            "baseTitle": "Términos de transferencias bancarias",
+            "baseDescription": "Bridge, nuestro socio de pagos, ofrece las transferencias bancarias. Lee los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptas en la siguiente pantalla.",
+            "sepaTitle": "Términos actualizados de transferencias bancarias",
+            "sepaDescription": "Las transferencias bancarias en euros y libras esterlinas requieren los términos actualizados de Bridge, nuestro socio de pagos. Lee los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptas en la siguiente pantalla.",
             "errorTitle": "No se pudieron cargar los términos",
             "loadFailed": "No se pudieron cargar los términos. Puedes aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Inténtalo de nuevo.",
             "notAcceptedYet": "Parece que todavía no aceptaste los términos. Inténtalo de nuevo.",
-            "acceptTerms": "Aceptar términos",
             "notNow": "Ahora no"
         },
         "reverificationPending": {

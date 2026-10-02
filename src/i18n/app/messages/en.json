@@ -2808,8 +2808,7 @@
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
             "bridgeTosTitle": "One more step",
-            "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
-            "acceptTerms": "Accept terms",
+            "bridgeTosDescription": "Last step to unlock bank transfers in the US, Europe and Mexico. Read the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy> of Bridge, our payment partner. You accept them on the next screen.",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
@@ -2840,16 +2839,15 @@
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
         "bridgeTos": {
-            "baseTitle": "Accept terms of service",
-            "baseDescription": "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
-            "sepaTitle": "Accept updated bank transfer provider terms",
-            "sepaDescription": "To enable euro and British pound bank transfers, accept our bank transfer provider's updated Terms of Service.",
+            "baseTitle": "Bank transfer terms",
+            "baseDescription": "Bridge, our payment partner, provides bank transfers. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
+            "sepaTitle": "Updated bank transfer terms",
+            "sepaDescription": "Euro and British pound bank transfers need the updated terms of Bridge, our payment partner. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
             "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
-            "acceptTerms": "Accept terms",
             "notNow": "Not now"
         },
         "reverificationPending": {

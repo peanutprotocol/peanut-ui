@@ -2808,8 +2808,7 @@
             "preparingSlowTitle": "Quase lá",
             "preparingSlowDescription": "Isso está demorando um pouco mais do que o normal. Aguarde só um instante.",
             "bridgeTosTitle": "Mais um passo",
-            "bridgeTosDescription": "Último passo: aceite os termos de serviço para desbloquear as transferências bancárias nos Estados Unidos, na Europa e no México.",
-            "acceptTerms": "Aceitar termos",
+            "bridgeTosDescription": "Último passo para desbloquear as transferências bancárias nos Estados Unidos, na Europa e no México. Leia os <terms>Termos de Serviço</terms> e a <privacy>Política de Privacidade</privacy> da Bridge, nosso parceiro de pagamentos. Você aceita esses documentos na próxima tela.",
             "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso.",
             "verifyingStillGoing": "Ainda em andamento. A maioria termina rápido, então esta provavelmente está recebendo uma análise mais detalhada. Você pode fechar isto e avisaremos quando houver uma decisão.",
@@ -2840,16 +2839,15 @@
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
         "bridgeTos": {
-            "baseTitle": "Aceitar os termos de serviço",
-            "baseDescription": "Para ativar as transferências bancárias, você precisa aceitar os Termos de Serviço do nosso parceiro de pagamentos.",
-            "sepaTitle": "Aceitar os termos atualizados do provedor de transferências bancárias",
-            "sepaDescription": "Para ativar transferências bancárias em euros e libras esterlinas, aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias.",
+            "baseTitle": "Termos de transferências bancárias",
+            "baseDescription": "A Bridge, nosso parceiro de pagamentos, oferece as transferências bancárias. Leia os <terms>Termos de Serviço</terms> e a <privacy>Política de Privacidade</privacy> da Bridge. Você aceita esses documentos na próxima tela.",
+            "sepaTitle": "Termos atualizados de transferências bancárias",
+            "sepaDescription": "As transferências bancárias em euros e libras esterlinas exigem os termos atualizados da Bridge, nosso parceiro de pagamentos. Leia os <terms>Termos de Serviço</terms> e a <privacy>Política de Privacidade</privacy> da Bridge. Você aceita esses documentos na próxima tela.",
             "errorTitle": "Não foi possível carregar os termos",
             "loadFailed": "Não foi possível carregar os termos. Você pode aceitá-los depois pelo seu feed de atividades.",
             "genericError": "Algo deu errado. Você pode aceitar os termos depois pelo seu feed de atividades.",
             "confirmError": "Algo deu errado ao confirmar seus termos. Tente novamente.",
             "notAcceptedYet": "Parece que os termos ainda não foram aceitos. Tente novamente.",
-            "acceptTerms": "Aceitar termos",
             "notNow": "Agora não"
         },
         "reverificationPending": {

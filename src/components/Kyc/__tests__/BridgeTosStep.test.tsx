@@ -1,4 +1,7 @@
 /**
+ * The prompt names Bridge and links its documents before any consent action,
+ * and its own button accepts nothing (TASK-23262).
+ *
  * The android system-browser detour (Capacitor's WebView cancels third-party
  * subframe navigations, so the ToS iframe painted blank) gives the step no
  * acceptance signal — only "the user came back". These cover the resulting
@@ -18,8 +21,9 @@ jest.mock('@/app/actions/users', () => ({
 }))
 
 const mockFetchUser = jest.fn().mockResolvedValue(null)
+let mockVerifiedResidence: string | null = null
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ fetchUser: mockFetchUser }),
+    useAuth: () => ({ fetchUser: mockFetchUser, user: { residence: { verified: mockVerifiedResidence } } }),
 }))
 
 const mockConfirm = jest.fn<Promise<boolean>, [unknown, { observedAcceptance?: boolean }?]>()
@@ -39,26 +43,72 @@ jest.mock('@/components/Global/IframeWrapper', () => ({
 
 const openTos = async () => {
     await act(async () => {
-        screen.getByRole('button', { name: 'Accept terms' }).click()
+        screen.getByRole('button', { name: 'Continue' }).click()
     })
 }
 
 describe('BridgeTosStep', () => {
     beforeEach(() => {
         closeIframe = undefined
+        mockVerifiedResidence = null
         mockConfirm.mockReset()
         mockGetBridgeTosLink.mockReset()
         mockGetBridgeTosLink.mockResolvedValue({ data: { tosLink: 'https://compliance.test/tos' } })
     })
 
-    const renderStep = (onComplete = jest.fn(), onSkip = jest.fn()) => {
+    const renderStep = (onComplete = jest.fn(), onSkip = jest.fn(), reasonCode?: string) => {
         render(
             <IntlWrapper>
-                <BridgeTosStep visible onComplete={onComplete} onSkip={onSkip} />
+                <BridgeTosStep visible onComplete={onComplete} onSkip={onSkip} reasonCode={reasonCode} />
             </IntlWrapper>
         )
         return { onComplete, onSkip }
     }
+
+    it('names Bridge and links the documents for the verified residence before any consent action', () => {
+        mockVerifiedResidence = 'DE'
+        renderStep()
+
+        expect(screen.getByText(/Bridge, our payment partner/)).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
+            'href',
+            'https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a'
+        )
+        expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
+            'href',
+            'https://www.bridge.xyz/legal/eea-privacy-policy/bridge-building-s-a'
+        )
+        expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument()
+        expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+    })
+
+    it('opens a document in a new tab without starting the acceptance flow', () => {
+        renderStep()
+
+        const terms = screen.getByRole('link', { name: 'Terms of Service' })
+        expect(terms).toHaveAttribute('target', '_blank')
+        // jsdom does not navigate; the click must reach no handler of ours
+        terms.addEventListener('click', (e) => e.preventDefault())
+        terms.click()
+
+        expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('tos-iframe')).not.toBeInTheDocument()
+    })
+
+    it('links the same documents on the SEPA variant', () => {
+        mockVerifiedResidence = 'US'
+        renderStep(jest.fn(), jest.fn(), 'bridge_tos_v2_required')
+
+        expect(screen.getByText(/Euro and British pound bank transfers/)).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
+            'href',
+            'https://www.bridge.xyz/legal/us-terms/bridge-building-inc'
+        )
+        expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
+            'href',
+            'https://www.bridge.xyz/legal/us-privacy-policy/bridge-building-inc'
+        )
+    })
 
     it('completes when Bridge confirms the terms were signed', async () => {
         mockConfirm.mockResolvedValue(true)

@@ -5,6 +5,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { type KycModalPhase } from '@/interfaces/interfaces'
+import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
@@ -35,6 +36,7 @@ export const KycVerificationInProgressModal = ({
     const router = useRouter()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
+    const termsLinks = useBridgeTermsLinks()
 
     // At 90 seconds the waiting copy admits the check is probably getting a
     // closer look, instead of holding "usually fast" forever.
@@ -140,7 +142,7 @@ export const KycVerificationInProgressModal = ({
     }
 
     if (phase === 'bridge_tos') {
-        const description = tosError || t('progress.bridgeTosDescription')
+        const description = tosError || <p>{t.rich('progress.bridgeTosDescription', termsLinks)}</p>
 
         return (
             <ActionModal
@@ -152,7 +154,8 @@ export const KycVerificationInProgressModal = ({
                 description={description}
                 ctas={[
                     {
-                        text: tosError ? tCommon('continue') : t('progress.acceptTerms'),
+                        // Continue, not Accept: the user accepts on Bridge's page
+                        text: tCommon('continue'),
                         onClick: tosError ? onClose : (onAcceptTerms ?? onClose),
                         disabled: isLoadingTos,
                         variant: 'primary',
