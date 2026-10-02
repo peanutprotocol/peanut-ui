@@ -7,8 +7,8 @@
  * `?rows=<layout>` (src/features/receipt-groups/row-layout.ts), so one build
  * serves both. Routes, fixtures and taps are the catalogue's own
  * (p64-withdraw-europe and the not-us-UX set). The GBP review uses a fixture
- * that holds the UK sort-code account alone: the UK fixture's two accounts end
- * in the same digits and the pipeline taps by text.
+ * that holds the UK sort-code account alone: the UK fixture's two accounts both
+ * show as **** 5555 and the pipeline taps by text.
  */
 import { ROW_LAYOUT_PARAM, type RowLayout } from '@/features/receipt-groups/row-layout'
 import type { PageCapture } from './pages'
@@ -63,7 +63,8 @@ export const MOCK_PAGE_CAPTURES: PageCapture[] = LAYOUTS.flatMap((layout) => [
         entryRoute: withRows('/withdraw?amount=50', layout),
         fixture: 'mock-withdraw-gbp',
         toBottom: true,
-        actions: [...REVIEW_ACTIONS('55555555'), ...REACH_FOOTER],
+        // the saved-account row masks the number to its last four digits
+        actions: [...REVIEW_ACTIONS('5555'), ...REACH_FOOTER],
     },
     {
         id: `mock-rows-${layout}-receipt-wire-withdrawal`,
