@@ -97,9 +97,9 @@ export interface RainCardOverview {
 
 /**
  * FE-internal spend-flow vocabulary — analytics events and the collateral
- * preflight key on it. Since TASK-21815 the backend chooses the intent kind
- * itself (from the verified destination), so this NEVER goes on the wire;
- * `/rain/cards/withdraw/prepare` ignores a client-sent kind. Named
+ * preflight key on it. The backend chooses the intent kind from the verified
+ * destination. Only FIAT_OFFRAMP goes on the wire to distinguish bank
+ * withdrawals from QR payments at their shared provider address. Named
  * distinctly from the history renderer's `IntentKind` union in
  * strategies/registry.ts (the inbound wire shape).
  */
@@ -133,6 +133,9 @@ export interface PrepareRainWithdrawalInput {
     /** The Bridge offramp intent a collateral-only withdrawal funds. The backend
      *  links its collateral record to it, so Activity shows one row. */
     fundsIntentId?: string
+    /** Distinguishes bank withdrawals from QR payments at the shared provider
+     *  address. Other destinations keep their server-chosen kind. */
+    kind?: 'FIAT_OFFRAMP'
 }
 
 export interface PrepareRainWithdrawalResponse {
