@@ -1176,7 +1176,6 @@
             "verifyingDescription": "Las verificaciones suelen resolverse rápido. Si un revisor debe verla, de 1 a 3 días hábiles. Podés esperar acá o cerrar esto y te enviaremos una notificación.",
             "preparingTimedOutDescription": "Podés continuar y te avisaremos cuando esté listo.",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Esperá un momento.",
-            "bridgeTosDescription": "Último paso: aceptá los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
             "verifyingTitle": "Revisando la identificación",
             "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Podés cerrar esto y te avisaremos cuando haya una decisión.",
             "closeAndNotify": "Cerrar y avisarme"
@@ -1194,8 +1193,7 @@
             "saveFailed": "Algo salió mal al guardar tu correo. Intentalo de nuevo."
         },
         "bridgeTos": {
-            "baseDescription": "Para habilitar las transferencias bancarias, debés aceptar los términos de servicio de nuestro socio de pagos.",
-            "sepaDescription": "Para habilitar las transferencias bancarias en euros y libras esterlinas, aceptá los Términos de Servicio actualizados de nuestro proveedor de transferencias bancarias.",
+            "description": "Bridge, nuestro socio de pagos, ofrece las transferencias bancarias. Leé los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptás en la siguiente pantalla.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
