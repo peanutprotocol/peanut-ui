@@ -58,8 +58,9 @@ const EEA_ISO2 = new Set([
 ])
 
 // Bridge applies the EEA documents to the EEA "plus associated principalities
-// and territories" and does not list them, so the microstates get the overview.
-const EEA_ASSOCIATED_ISO2 = new Set(['AD', 'MC', 'SM', 'VA'])
+// and territories" and does not list them. The microstates and the EU
+// territories that carry their own country code get the overview.
+const EEA_ASSOCIATED_ISO2 = new Set(['AD', 'MC', 'SM', 'VA', 'AX', 'GF', 'GP', 'MQ', 'RE', 'YT', 'MF'])
 
 /**
  * The Bridge Terms of Service and Privacy Policy that apply to a resident of

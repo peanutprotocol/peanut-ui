@@ -24,7 +24,10 @@ describe('bridgeTermsDocuments', () => {
         })
     })
 
-    it.each([null, undefined, '', 'MC'])('falls back to the overview when the residence (%s) is not placed', (iso2) => {
-        expect(bridgeTermsDocuments(iso2)).toEqual({ terms: `${LEGAL}/overview`, privacy: `${LEGAL}/overview` })
-    })
+    it.each([null, undefined, '', 'MC', 'RE'])(
+        'falls back to the overview when the residence (%s) is not placed',
+        (iso2) => {
+            expect(bridgeTermsDocuments(iso2)).toEqual({ terms: `${LEGAL}/overview`, privacy: `${LEGAL}/overview` })
+        }
+    )
 })
