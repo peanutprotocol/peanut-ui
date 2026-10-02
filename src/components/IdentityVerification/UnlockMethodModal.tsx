@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
@@ -23,7 +22,7 @@ interface UnlockMethodModalProps {
  * Method-worded unlock sheet for the Unlock payments screen. The tap promised
  * a product ("Euro bank transfers · Unlock"), so the sheet speaks about that
  * product — never about regions. The body is the prep checklist: what to have
- * ready and how long it takes, stated BEFORE the SDK opens, so nobody starts
+ * ready, stated BEFORE the SDK opens, so nobody starts
  * the check and then goes hunting for documents halfway through.
  */
 const UnlockMethodModal = ({
@@ -62,6 +61,7 @@ const UnlockMethodModal = ({
                         <div className="w-full text-left">
                             <KycPrepChecklist path={path} />
                         </div>
+                        <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                         <Button
                             icon="check-circle"
                             shadowSize="4"
@@ -72,10 +72,9 @@ const UnlockMethodModal = ({
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
-                        <div className="mt-2 flex justify-center">
-                            <LinkButton onClick={onClose}>{t('notNow')}</LinkButton>
-                        </div>
-                        <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+                        <Button variant="ghost" className="w-full justify-center" onClick={onClose}>
+                            {t('notNow')}
+                        </Button>
                     </div>
                 </div>
             </DrawerContent>
