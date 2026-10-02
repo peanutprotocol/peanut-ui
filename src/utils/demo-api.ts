@@ -13,6 +13,7 @@ import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_US
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { RainCardFunding } from '@/services/rain'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -657,7 +658,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             amountWei: '0',
             amountCents: '0',
             dustWei: '0',
-            autoBalanceEnabled: false,
             hasRecoverableCard: false,
         }),
     },
@@ -852,6 +852,29 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             demoCardApplied
                 ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
                 : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // Managed card funding state, read by the Home prompt for any ACTIVE card.
+    // The demo card's permission is ready, so no consent modal covers the
+    // screens that show a card; a fixture overrides `management` (and the
+    // rest) to show the prompt. Fake operator and signer: nothing is signed here.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding',
+        handler: (): RainCardFunding => ({
+            chainId: CHAIN_ID,
+            tokenAddress: PEANUT_WALLET_TOKEN,
+            operatorAddress: '0x0000000000000000000000000000000000000001',
+            walletAddress: DEMO_ADDRESS,
+            allowance: '150000000',
+            sessionKeyAddress: '0x0000000000000000000000000000000000000002',
+            permission: {
+                scopeVersion: 2,
+                ceiling: '300000000',
+                termsVersion: 'rtf-2026-09-29',
+                authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+            },
+            management: { status: 'ready', reason: null, migration: null },
+        }),
     },
     // per-card limits read — without this the card-limit fixture (and any
     // demo/capture render of /card/limit) 404s into the error state.

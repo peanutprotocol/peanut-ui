@@ -117,7 +117,13 @@ jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ handleSendUserOpEn
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => undefined }))
 const mockGrant = jest.fn()
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ grant: mockGrant }) }))
-jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
+jest.mock('@/utils/rainWithdraw.utils', () => ({
+    ...jest.requireActual('@/utils/rainWithdraw.utils'),
+    buildRainWithdrawTypedData: jest.fn(() => ({})),
+    // The real signer builds typed data from a full prep; the account's own signer is what is under test.
+    signRainWithdrawAdmin: (account: { signTypedData: (data: unknown) => Promise<string> }) =>
+        account.signTypedData({}),
+}))
 jest.mock('@/services/rain', () => ({ rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn() } }))
 jest.mock('@/hooks/wallet/spendPreflight', () => ({
     ...jest.requireActual('@/hooks/wallet/spendPreflight'),

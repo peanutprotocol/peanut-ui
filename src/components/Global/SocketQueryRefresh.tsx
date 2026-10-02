@@ -68,14 +68,12 @@ export function SocketQueryRefresh() {
     )
 
     const handleRainCardBalanceChanged = useCallback(
-        (data: RainCardBalanceChangedData) => {
+        (_data: RainCardBalanceChangedData) => {
             refetchRainOverview()
-            // auto_balance_deposit moves USDC out of the smart account into Rain
-            // collateral — if only the rain side refreshes, the spendable sum
-            // inflates until useBalance's next 30s poll.
-            if (data.reason === 'auto_balance_deposit') {
-                queryClient.invalidateQueries({ queryKey: ['balance'] })
-            }
+            // Rain pulls every card payment out of the smart account, so a card
+            // event moves the wallet balance too. Refresh both so the spendable
+            // sum doesn't wait for useBalance's next 30s poll.
+            queryClient.invalidateQueries({ queryKey: ['balance'] })
         },
         [refetchRainOverview, queryClient]
     )

@@ -4,6 +4,8 @@ import {
     RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
     rainWithdrawEip712Types,
 } from '@/constants/rain.consts'
+import type { PrepareRainWithdrawalResponse, SubmitRainWithdrawalInput } from '@/services/rain'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 
 /** The fields of a `/rain/withdrawals/prepare` response the admin signature covers. */
 export interface RainWithdrawPrep {
@@ -41,3 +43,32 @@ export const buildRainWithdrawTypedData = (prep: RainWithdrawPrep, chainId: numb
             nonce: BigInt(prep.adminNonce),
         },
     }) as const
+
+/** Signs the admin withdrawal with the wallet's passkey, labelled for ceremony telemetry. */
+export const signRainWithdrawAdmin = async (
+    account: { signTypedData: (typedData: ReturnType<typeof buildRainWithdrawTypedData>) => Promise<Hex> },
+    prep: RainWithdrawPrep,
+    chainId: number
+): Promise<Hex> =>
+    (await withCeremonyPurpose('admin_eip712', () =>
+        account.signTypedData(buildRainWithdrawTypedData(prep, chainId))
+    )) as Hex
+
+/** The `/withdraw/submit` body for a prepared withdrawal and its admin signature. */
+export const toSubmitWithdrawalInput = (
+    prep: PrepareRainWithdrawalResponse,
+    adminSignature: Hex
+): SubmitRainWithdrawalInput => ({
+    // Hint only — the server never targets this address.
+    preparedCoordinatorAddress: prep.coordinatorAddress,
+    preparationId: prep.preparationId,
+    amount: prep.amount,
+    recipientAddress: prep.recipientAddress,
+    directTransfer: prep.directTransfer,
+    adminSalt: prep.adminSalt,
+    adminNonce: prep.adminNonce,
+    adminSignature,
+    executorSignature: prep.executorSignature,
+    executorSalt: prep.executorSalt,
+    expiresAt: prep.expiresAt,
+})

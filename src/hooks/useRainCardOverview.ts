@@ -12,10 +12,10 @@ export const RAIN_CARD_OVERVIEW_QUERY_KEY = 'rain-card-overview'
  *
  * Polls every 30s and refetches on window focus. `SocketQueryRefresh`, mounted
  * once for the app, invalidates it on `user_rail_status_changed` (rail
- * transitions) and `rain_card_balance_changed` (card txns, auto-balancer
- * deposits, collateral deployment). This hook opens no socket listener of its
- * own: it has dozens of consumers, and one listener each multiplied every
- * event into as many refetches.
+ * transitions) and `rain_card_balance_changed` (card txns, collateral
+ * deployment). This hook opens no socket listener of its own: it has dozens
+ * of consumers, and one listener each multiplied every event into as many
+ * refetches.
  */
 export const useRainCardOverview = () => {
     const { user } = useAuth()

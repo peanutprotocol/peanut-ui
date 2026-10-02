@@ -107,6 +107,13 @@ describe('SocketQueryRefresh', () => {
         expect(invalidateSpy).toHaveBeenCalledTimes(2)
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rain-card-overview', 'user-1'] })
         expect(invalidateSpy).toHaveBeenLastCalledWith({ queryKey: ['balance'] })
+
+        // a completed card payment refreshes the overview (and so the funding
+        // state read from it) and the balance the same way
+        emit('rain_card_balance_changed', { reason: 'transaction_completed' })
+        expect(invalidateSpy).toHaveBeenCalledTimes(4)
+        expect(invalidateSpy).toHaveBeenNthCalledWith(3, { queryKey: ['rain-card-overview', 'user-1'] })
+        expect(invalidateSpy).toHaveBeenLastCalledWith({ queryKey: ['balance'] })
     })
 
     /**

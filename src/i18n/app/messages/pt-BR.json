@@ -130,11 +130,21 @@
             "progress": "{done} de {total} concluídos",
             "welcomeTitleSpoken": "Boas-vindas ao Peanut!"
         },
-        "autoBalance": {
+        "fundingSetup": {
             "title": "Termine de configurar o cartão",
             "description": "Um toque com sua passkey para começar a usar seu cartão.",
-            "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto — vamos pedir de novo no seu primeiro pagamento com o cartão.",
-            "working": "Processando…"
+            "descriptionMigration": "Primeiro é preciso atualizar a permissão do seu cartão. Confirme duas vezes com sua passkey: uma para atualizar e outra para a nova permissão.",
+            "descriptionPending": "Autorização enviada, mas ainda não confirmada. Verifique o status em instantes. Não autorize duas vezes.",
+            "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto. Vamos pedir de novo na próxima vez que você abrir o Início.",
+            "descriptionReturn": "Primeiro, {amount} do saldo do cartão volta para sua carteira. Pode exigir mais de uma confirmação com sua passkey.",
+            "descriptionWithdrawalInFlight": "Um saque do cartão ainda está sendo confirmado. Verifique de novo em instantes ou pule por enquanto.",
+            "descriptionReturnPending": "A transferência do saldo do cartão para sua carteira ainda não foi confirmada. Verifique de novo em instantes ou pule por enquanto.",
+            "descriptionReturnWait": "O saldo do cartão não pode ser movido agora. Tente mais tarde ou pule por enquanto.",
+            "descriptionBalanceUnavailable": "Não conseguimos ler o saldo do cartão. Tente de novo ou pule por enquanto.",
+            "working": "Processando…",
+            "returningBalance": "Movendo o saldo do cartão…",
+            "confirmUpdate": "Confirme a atualização da permissão do cartão",
+            "checkStatus": "Verificar status"
         },
         "history": {
             "activity": "Atividade",
@@ -1490,7 +1500,7 @@
             "navTitle": "Cartão Peanut",
             "title": "Gaste onde a Visa é aceita",
             "description": "Use seu saldo em mais de 150M de lojas. Online, por aproximação, seu.",
-            "featureBalance": "Um saldo único",
+            "featureBalance": "Paga direto da sua carteira Peanut",
             "featureControl": "Controle total",
             "featureOnline": "Funciona online e por aproximação",
             "cta": "Pedir cartão"
@@ -1655,8 +1665,16 @@
             "autoRenewTitle": "O cartão renova em breve",
             "autoRenewBody": "Seu cartão vai renovar automaticamente em {days, plural, one {# dia} other {# dias}}, a data de validade vai mudar.",
             "dismiss": "Dispensar",
-            "balanceDueTitle": "{amount} serão debitados no próximo depósito",
-            "balanceDueBody": "Um pagamento recente com o cartão ficou maior que o valor reservado no momento da compra. Isso acontece com gorjetas ou totais atualizados. A gente cobre a diferença automaticamente.",
+            "cardFundsCollateral": "Os pagamentos com cartão usam só os dólares da sua carteira Peanut. Outros {amount} estão retidos como colateral do cartão. Novos pagamentos com cartão não podem usá-los. Eles ainda servem para enviar, sacar ou pagar com QR.",
+            "moveToWallet": "Mover o saldo do cartão para a carteira",
+            "movingToWallet": "Movendo…",
+            "moveFailed": "Não conseguimos terminar de mover o saldo do cartão. Confira seu saldo e tente de novo.",
+            "movePending": "A transferência do saldo do cartão ainda não foi confirmada. Verifique de novo em instantes.",
+            "moveWait": "O saldo do cartão não pode ser movido agora. Tente mais tarde.",
+            "moveBalanceUnavailable": "Não conseguimos ler o saldo do cartão. Tente de novo.",
+            "moveBusy": "Outra ação do cartão está em andamento. Tente de novo em instantes.",
+            "balanceDueTitle": "{amount} pendentes no seu cartão",
+            "balanceDueBody": "Um pagamento recente com o cartão ficou maior que o valor reservado no momento da compra. Isso acontece com gorjetas ou totais atualizados. A diferença continua pendente. Fale com o suporte para quitá-la.",
             "payAsCreditTitle": "Pague como crédito",
             "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu cartão Peanut roda na rede de crédito.",
             "managementTitle": "Gerenciar cartão",
@@ -1667,6 +1685,12 @@
             "lockCard": "Bloquear cartão",
             "unlockCard": "Desbloquear cartão",
             "cancelCard": "Cancelar cartão"
+        },
+        "funding": {
+            "body": "A Peanut gerencia quanto nosso provedor terceirizado pode retirar da sua carteira para pagamentos com o cartão. Isso é renovado automaticamente, inclusive para o dinheiro que você adicionar depois.",
+            "distinction": "A permissão continua valendo. O valor que ela permite em cada momento é limitado.",
+            "termsChanged": "Os termos mudaram. Leia de novo e confirme.",
+            "walletMismatch": "Este cartão está vinculado a outra carteira. Fale com o suporte."
         },
         "page": {
             "loadFailed": "Não foi possível carregar as informações do cartão. Tente de novo.",
@@ -1686,13 +1710,10 @@
             "viewTransaction": "Ver transação",
             "title": "Recupere o colateral do cartão",
             "noCardOnFile": "Nenhum cartão registrado",
-            "description": "Isso traz de volta para sua carteira peanut todo o USDC que está no contrato de colateral do seu cartão. O auto-balance é desligado como parte da recuperação para que o rebalanceador não recarregue entre agora e a transferência.",
+            "description": "Isso traz de volta para sua carteira peanut todo o USDC que está no contrato de colateral do seu cartão.",
             "recoverable": "Recuperável",
             "destination": "Destino",
             "dust": "Poeira restante no contrato",
-            "autoBalance": "Auto-balance",
-            "autoBalanceOn": "ligado — será desligado",
-            "autoBalanceOff": "desligado",
             "signWithPasskey": "Assinar com passkey…",
             "submitting": "Enviando…",
             "cta": "Recuperar fundos"
@@ -1701,7 +1722,7 @@
         "uploadIdentityDocuments": "Enviar documentos de identidade",
         "fixSignature": {
             "navTitle": "Reparar a assinatura do cartão",
-            "intro": "Esta ferramenta repara um problema no estado da carteira que impede o seu cartão de se recarregar automaticamente. Leva até duas confirmações rápidas com a passkey.",
+            "intro": "Esta ferramenta repara um problema no estado da carteira que bloqueia as permissões do seu cartão. Leva até duas confirmações rápidas com a passkey.",
             "checkingWallet": "Verificando a carteira…",
             "checkAgain": "Verificar novamente",
             "step1": "1. Reparar o estado da carteira",
@@ -1710,12 +1731,12 @@
             "undeployed": "Sua carteira precisa de uma ativação on-chain única antes que as permissões do cartão funcionem.",
             "repairing": "Reparando…",
             "repairNow": "Reparar agora",
-            "step2": "2. Reativar a recarga automática",
-            "allSet": "Tudo certo! A recarga automática está ativa novamente e uma recarga já foi iniciada — o saldo do seu cartão deve atualizar em alguns minutos.",
-            "oneMoreConfirmation": "Mais uma confirmação reativa a recarga automática do cartão com uma nova permissão.",
+            "step2": "2. Restaurar as permissões do cartão",
+            "allSet": "Tudo certo! Os saques do colateral do seu cartão funcionam de novo.",
+            "oneMoreConfirmation": "Mais uma confirmação renova a permissão para saques do colateral do seu cartão.",
             "waitingForConfirmation": "Aguardando a confirmação…",
             "loadingCard": "Carregando o cartão…",
-            "reEnableFunding": "Reativar a recarga",
+            "reEnablePermissions": "Restaurar permissões",
             "noActiveCard": "Nenhum cartão ativo encontrado nesta conta — entre em contato com o suporte.",
             "regrantFailed": "A reativação não foi concluída — tente novamente ou entre em contato com o suporte.",
             "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"

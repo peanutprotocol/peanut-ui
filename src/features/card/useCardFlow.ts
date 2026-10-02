@@ -12,7 +12,8 @@ import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardAp
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { cardConsentDocuments } from '@/services/consent'
-import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import { useRainFunding } from '@/hooks/wallet/useRainFunding'
+import type { RainFundingConsent } from '@/utils/rain-funding.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -41,7 +42,8 @@ export function useCardFlow() {
     })
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
-    const { serializeGrant } = useGrantSessionKey()
+    // Grant-only here: the Home prompt owns the funding state read.
+    const { grant: grantFunding } = useRainFunding({ enabled: false })
     const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
@@ -292,78 +294,69 @@ export function useCardFlow() {
         [advanceFromApplyResponse, t]
     )
 
-    const handleApply = useCallback(
-        async (termsAccepted = false, serializedApproval?: string) => {
+    // Returns the response only when the application went through to a state
+    // that can carry the funding permission; undefined on every other outcome.
+    const submitApplication = useCallback(
+        async (termsAccepted = false) => {
             setApplyError(null)
-            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
-                terms_accepted: termsAccepted,
-                with_session_key: !!serializedApproval,
-            })
+            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, { terms_accepted: termsAccepted })
             try {
                 // Consent-ledger echo: on acceptance, send the exact documents
                 // CardTermsScreen displayed for this region (version + hash).
                 const acceptedDocuments = termsAccepted
                     ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
                     : undefined
-                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
+                const res = await rainApi.applyForCard({ termsAccepted, acceptedDocuments })
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
                     posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
-                    return
+                    return undefined
                 }
                 advanceFromApplyResponse(res)
+                return res
             } catch (e) {
                 const message = e instanceof Error ? e.message : t('page.applyFailed')
                 console.error('[card apply] error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
+                return undefined
             }
         },
         [advanceFromApplyResponse, pendingTerms, t]
     )
 
-    const handleAcceptTerms = useCallback(async () => {
-        // If we already have the collateral contract (rail is ENABLED, re-issue
-        // path), collect the session-key permission in the same passkey tap
-        // before the backend creates the card. Fail closed: a cancelled /
-        // failed tap means no card gets issued.
-        const canGrant = !!overview?.status?.contractAddress && !!overview?.status?.coordinatorAddress
-        posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_ACCEPTED, {
-            is_reissue: canGrant,
-            is_us_resident: pendingTerms?.isUsResident ?? false,
-        })
+    const handleApply = useCallback(
+        async (termsAccepted = false) => {
+            await submitApplication(termsAccepted)
+        },
+        [submitApplication]
+    )
 
-        if (!canGrant) {
-            // First-time apply — no collateral proxy yet. Session-key grant
-            // happens the next time the user lands here (re-issue path).
+    const handleAcceptTerms = useCallback(
+        async (consent: RainFundingConsent) => {
+            posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_ACCEPTED, {
+                is_reissue: !!overview?.status?.contractAddress,
+                is_us_resident: pendingTerms?.isUsResident ?? false,
+            })
+
             setIsIssuing(true)
             try {
-                await handleApply(true)
+                const res = await submitApplication(true)
+                // The permission needs a card account with a wallet on file, so
+                // it follows the application. Best effort: a first-time applicant
+                // has no wallet on file yet, and a cancelled or failed tap leaves
+                // the card as it is. The Home prompt asks again in either case
+                // until the backend reports the permission ready.
+                if (res && (res.status === 'pending' || res.status === 'ENABLED')) {
+                    await grantFunding(consent)
+                }
             } finally {
                 setIsIssuing(false)
             }
-            return
-        }
-
-        const isUsResidentSnapshot = pendingTerms?.isUsResident ?? false
-        setIsIssuing(true)
-        setApplyError(null)
-        try {
-            const tap = await serializeGrant()
-            if (!tap.ok) {
-                // Back to the terms screen with a friendly error. Don't hit
-                // the backend — no card should be created without consent.
-                setIsIssuing(false)
-                setPendingTerms({ isUsResident: isUsResidentSnapshot })
-                setApplyError(tap.error.kind === 'user-cancelled' ? t('page.setupCancelled') : t('page.setupFailed'))
-                return
-            }
-            await handleApply(true, tap.serialized)
-        } finally {
-            setIsIssuing(false)
-        }
-    }, [handleApply, overview, pendingTerms, serializeGrant, t])
+        },
+        [submitApplication, overview, pendingTerms, grantFunding]
+    )
 
     // Distinguishes "user finished the applicant action" from "user closed the
     // modal without finishing" — without this both paths would fire

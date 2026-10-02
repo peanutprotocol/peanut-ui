@@ -130,11 +130,21 @@
             "progress": "{done} of {total} done",
             "welcomeTitleSpoken": "Welcome to Peanut!"
         },
-        "autoBalance": {
+        "fundingSetup": {
             "title": "Finish setting up the card",
             "description": "One passkey tap to start using your card.",
-            "descriptionError": "We couldn't finish setting up your card. Please try again, or skip for now — we'll prompt you again on your first card payment.",
-            "working": "Working…"
+            "descriptionMigration": "Your card permission needs an update first. Confirm twice with your passkey: once to update, once for the new permission.",
+            "descriptionPending": "Approval sent but not confirmed yet. Check the status shortly. Do not approve twice.",
+            "descriptionError": "We couldn't finish setting up your card. Try again, or skip for now. We'll ask again next time you open Home.",
+            "descriptionReturn": "First, {amount} of card balance moves back to your wallet. This may take more than one passkey confirmation.",
+            "descriptionWithdrawalInFlight": "A card withdrawal is still confirming. Check again shortly, or skip for now.",
+            "descriptionReturnPending": "Moving your card balance is not confirmed yet. Check again shortly, or skip for now.",
+            "descriptionReturnWait": "Your card balance cannot move right now. Try later, or skip for now.",
+            "descriptionBalanceUnavailable": "Couldn't read your card balance. Try again, or skip for now.",
+            "working": "Working…",
+            "returningBalance": "Moving card balance…",
+            "confirmUpdate": "Confirm the card permission update",
+            "checkStatus": "Check status"
         },
         "history": {
             "activity": "Activity",
@@ -1490,7 +1500,7 @@
             "navTitle": "Peanut Card",
             "title": "Spend anywhere Visa is accepted",
             "description": "Use your balance at 150M+ merchants. Online, contactless, yours.",
-            "featureBalance": "One unified balance",
+            "featureBalance": "Pays from your Peanut wallet",
             "featureControl": "Full control",
             "featureOnline": "Works online & contactless",
             "cta": "Get card"
@@ -1655,8 +1665,16 @@
             "autoRenewTitle": "Card auto renews soon",
             "autoRenewBody": "Your card will automatically renew in {days, plural, one {# day} other {# days}}, expiration date will change.",
             "dismiss": "Dismiss",
-            "balanceDueTitle": "{amount} will be debited from the next deposit",
-            "balanceDueBody": "A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. We'll cover the difference automatically.",
+            "cardFundsCollateral": "Card payments use only the dollars in your Peanut wallet. Another {amount} is held as card collateral. New card payments cannot use it. You can still send it, withdraw it or pay by QR with it.",
+            "moveToWallet": "Move card balance to wallet",
+            "movingToWallet": "Moving…",
+            "moveFailed": "Couldn't finish moving your card balance. Check your balance, then try again.",
+            "movePending": "Moving your card balance is not confirmed yet. Check again shortly.",
+            "moveWait": "Your card balance cannot move right now. Try again later.",
+            "moveBalanceUnavailable": "We couldn't read your card balance. Try again.",
+            "moveBusy": "Another card action is running. Try again shortly.",
+            "balanceDueTitle": "{amount} outstanding on your card",
+            "balanceDueBody": "A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. The difference is still owed. Contact support to settle it.",
             "payAsCreditTitle": "Pay as credit",
             "payAsCreditBody": "When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network.",
             "managementTitle": "Card management",
@@ -1667,6 +1685,12 @@
             "lockCard": "Lock card",
             "unlockCard": "Unlock card",
             "cancelCard": "Cancel card"
+        },
+        "funding": {
+            "body": "Peanut manages how much our third party provider can take from your wallet for card payments. This renews automatically, including for money you add later.",
+            "distinction": "The permission stays in place. The amount it allows at any one time is limited.",
+            "termsChanged": "The terms changed. Read them again and confirm.",
+            "walletMismatch": "This card is linked to a different wallet. Contact support."
         },
         "page": {
             "loadFailed": "Failed to load card info. Please try again.",
@@ -1686,13 +1710,10 @@
             "viewTransaction": "View transaction",
             "title": "Recover card collateral",
             "noCardOnFile": "No card on file",
-            "description": "This pulls every USDC currently held in your card collateral contract back to your peanut wallet. Auto-balance is turned off as part of recovery so the rebalancer can't top up between now and the transfer.",
+            "description": "This pulls every USDC currently held in your card collateral contract back to your peanut wallet.",
             "recoverable": "Recoverable",
             "destination": "Destination",
             "dust": "Dust left in contract",
-            "autoBalance": "Auto-balance",
-            "autoBalanceOn": "on — will be turned off",
-            "autoBalanceOff": "off",
             "signWithPasskey": "Sign with passkey…",
             "submitting": "Submitting…",
             "cta": "Recover funds"
@@ -1701,7 +1722,7 @@
         "uploadIdentityDocuments": "Upload identity documents",
         "fixSignature": {
             "navTitle": "Fix card signature",
-            "intro": "This tool repairs a wallet state issue that stops your card from funding itself automatically. It takes up to two quick passkey confirmations.",
+            "intro": "This tool repairs a wallet state issue that blocks your card permissions. It takes up to two quick passkey confirmations.",
             "checkingWallet": "Checking wallet…",
             "checkAgain": "Check again",
             "step1": "1. Repair wallet state",
@@ -1710,12 +1731,12 @@
             "undeployed": "Your wallet needs a one-time on-chain activation before card permissions can work.",
             "repairing": "Repairing…",
             "repairNow": "Repair now",
-            "step2": "2. Re-enable automatic funding",
-            "allSet": "All set! Automatic funding is back on and a funding run has been started — your card balance should update within a few minutes.",
-            "oneMoreConfirmation": "One more confirmation re-enables automatic card funding with a fresh permission.",
+            "step2": "2. Restore card permissions",
+            "allSet": "All set! Withdrawals from your card collateral work again.",
+            "oneMoreConfirmation": "One more confirmation renews the permission for withdrawals from your card collateral.",
             "waitingForConfirmation": "Waiting for confirmation…",
             "loadingCard": "Loading card…",
-            "reEnableFunding": "Re-enable funding",
+            "reEnablePermissions": "Restore permissions",
             "noActiveCard": "No active card found on this account — please contact support.",
             "regrantFailed": "Re-enabling did not complete — please try again or contact support.",
             "diagnostics": "Diagnostics: nonce {nonce} / floor {floor}"

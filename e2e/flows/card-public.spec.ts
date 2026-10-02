@@ -14,10 +14,35 @@ async function shot(page: Page, name: string) {
     await page.screenshot({
         path: `${process.env.CARD_SHOTS_OUT || '/tmp/card-public-shots'}/${name}.png`,
         animations: 'disabled',
+        // CSS pixels, not device pixels: the Pixel 7 DPR turns 390x844 into
+        // 1024x2216, past the 2000px cap on images an agent can read back.
+        scale: 'css',
     })
 }
 
 test.use({ storageState: { cookies: [], origins: [] } })
+
+test.beforeEach(async ({ page }) => {
+    // Fixture controls must not cover product controls or visual evidence.
+    await page.addInitScript(() => {
+        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+    })
+})
+
+/**
+ * Model a returning holder who dismissed Home's first-visit dialogs. The
+ * fixture balance would otherwise open a separate warning over the card
+ * prompt. These are the same stored values used by the screenshot fixtures.
+ */
+async function asReturningHomeVisitor(page: Page) {
+    await page.addInitScript(() => {
+        window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
+        window.localStorage.setItem(
+            'demo-user:user-preferences',
+            JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
+        )
+    })
+}
 
 test('an ordinary account reaches the application and card terms without a queue or deposit', async ({ page }) => {
     await page.goto('/card?__fixture=card-application')
@@ -50,7 +75,145 @@ test('an existing holder can manage their card even with a prohibited residence'
     await page.goto('/card?__fixture=card-holder')
     await expect(page.getByText('Card management', { exact: true })).toBeVisible()
     await expect(page.getByText("Cards aren't available in this region yet")).toHaveCount(0)
+    // permission already ready: the Home prompt has nothing to ask
+    await expect(page.getByTestId('card-funding-consent')).toHaveCount(0)
     await shot(page, 'holder')
+})
+
+test('an existing holder without the funding permission gets the centered Home prompt with one unchecked authorization', async ({
+    page,
+}) => {
+    await asReturningHomeVisitor(page)
+    await page.goto('/home?__fixture=card-funding-needed')
+    await expect(page.getByText('Finish setting up the card', { exact: true })).toBeVisible()
+    await expect(page.getByText('One passkey tap to start using your card.')).toBeVisible()
+    const boxes = page.getByRole('checkbox')
+    await expect(boxes).toHaveCount(1)
+    for (const box of await boxes.all()) await expect(box).not.toBeChecked()
+    await expect(page.getByText('I authorize transfers according to the Real-Time Funding Terms.')).toBeVisible()
+    const cont = page.getByRole('button', { name: 'Continue', exact: true })
+    await expect(cont).toBeDisabled()
+    // no way out before a failure: no close button and no skip
+    await expect(page.getByText('Skip for now')).toHaveCount(0)
+    await shot(page, 'funding-needed')
+    // ticking the authorization enables Continue. The native input is
+    // visually hidden (`sr-only`); a person taps the visible box, which is its label.
+    await page
+        .locator('label')
+        .filter({ has: page.getByRole('checkbox') })
+        .first()
+        .click()
+    await expect(boxes.first()).toBeChecked()
+    await expect(cont).toBeEnabled()
+    await shot(page, 'funding-needed-ticked')
+})
+
+test('a legacy holder is told there are two confirmations', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    await page.goto('/home?__fixture=card-funding-migration')
+    await expect(page.getByText(/confirm twice with your passkey/i)).toBeVisible()
+    await expect(page.getByText('One passkey tap to start using your card.')).toHaveCount(0)
+    await shot(page, 'funding-migration')
+})
+
+// A fixture cannot sign, so the return → retirement → grant order is covered by
+// useRainFunding.test.tsx; this pins what the person reads before Continue.
+test('card balance moving back first is named in the same prompt, without promising one tap', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    await page.goto('/home?__fixture=card-funding-return')
+    await expect(
+        page.getByText(
+            'First, $25.00 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
+        )
+    ).toBeVisible()
+    await expect(page.getByText('One passkey tap to start using your card.')).toHaveCount(0)
+    await expect(page.getByRole('checkbox')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+    await shot(page, 'funding-return')
+})
+
+test('a card withdrawal still confirming keeps the prompt as a wait, never as done', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    await page.clock.install()
+    await page.goto('/home?__fixture=card-funding-withdrawal-in-flight')
+    await expect(page.getByText(/A card withdrawal is still confirming/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Working…', exact: true })).toBeDisabled()
+    await shot(page, 'funding-withdrawal-in-flight')
+
+    await page.clock.fastForward(61_000)
+    await expect(page.getByRole('button', { name: 'Check status', exact: true })).toBeVisible()
+    // the description also says "skip for now": match the button only
+    await expect(page.getByRole('button', { name: 'Skip for now', exact: true })).toBeVisible()
+})
+
+test('the card screen offers Move card balance to wallet only while there is card balance', async ({ page }) => {
+    await page.goto('/card?__fixture=card-holder-collateral')
+    await expect(page.getByTestId('card-collateral')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Move card balance to wallet', exact: true })).toBeVisible()
+    await shot(page, 'holder-collateral')
+
+    await page.goto('/card?__fixture=card-holder')
+    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Move card balance to wallet', exact: true })).toHaveCount(0)
+})
+
+test('a pending grant waits as a disabled Working… button, then offers Check status and Skip', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    // The prompt's wait window is a page timer: control it instead of waiting 60s.
+    await page.clock.install()
+    await page.goto('/home?__fixture=card-funding-pending')
+    await expect(page.getByRole('button', { name: 'Working…', exact: true })).toBeDisabled()
+    await expect(page.getByRole('checkbox')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Check status', exact: true })).toHaveCount(0)
+    await expect(page.getByText('Skip for now')).toHaveCount(0)
+    await shot(page, 'funding-pending')
+
+    await page.clock.fastForward(61_000)
+    await expect(page.getByRole('button', { name: 'Check status', exact: true })).toBeVisible()
+    await expect(page.getByText('Skip for now')).toBeVisible()
+    await expect(page.getByRole('checkbox')).toHaveCount(0)
+    await shot(page, 'funding-pending-stalled')
+})
+
+test('Home asks for nothing when the permission is ready, paused, or its state cannot be read', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    for (const fixture of ['card-funding-enabled', 'card-funding-unavailable', 'card-funding-error']) {
+        await page.goto(`/home?__fixture=${fixture}`)
+        await expect(page.getByText('Activity', { exact: true }).first()).toBeVisible()
+        await expect(page.getByText('Finish setting up the card')).toHaveCount(0)
+    }
+})
+
+test('re-issuing a card ends the card terms with one unchecked funding authorization', async ({ page }) => {
+    await page.goto('/card?__fixture=card-reissue')
+    await page.getByRole('button', { name: 'Get card', exact: true }).click()
+    await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
+    const boxes = page.getByRole('checkbox')
+    // international: the four original rows, then the one funding authorization
+    await expect(boxes).toHaveCount(5)
+    for (const box of await boxes.all()) await expect(box).not.toBeChecked()
+    const statement = page.getByText('I authorize transfers according to the Real-Time Funding Terms.')
+    await expect(statement).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+    await statement.scrollIntoViewIfNeeded()
+    await shot(page, 'reissue-terms')
+})
+
+test('cancelling a card is an ordinary cancel with no permission-removal step', async ({ page }) => {
+    await page.goto('/card?__fixture=card-cancel')
+    await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
+    // The slide handle takes arrow keys (10% of the travel per press), so the
+    // confirm is deterministic. Keys go to the page, not to a locator: the
+    // handle disables and then unmounts as the cancel runs, and a locator
+    // action would wait on it.
+    const handle = page.getByRole('button', { name: 'Slide to cancel', exact: true })
+    await expect(handle).toBeVisible()
+    await handle.focus()
+    for (let press = 0; press < 10; press++) await page.keyboard.press('ArrowRight')
+    await expect(page.getByText('Card canceled', { exact: true })).toBeVisible()
+    await expect(page.getByText(/permission/i)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Not now', exact: true })).toHaveCount(0)
+    await shot(page, 'cancel-feedback')
 })
 
 // Guests have no fixture session; stub the API at the network layer so the

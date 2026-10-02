@@ -45,7 +45,7 @@ describe('holdsMoney', () => {
     it('is false with nothing in the wallet and no card balance', () => {
         expect(holdsMoney(0n, null)).toBe(false)
         expect(holdsMoney(undefined, undefined)).toBe(false)
-        expect(holdsMoney(0n, { spendingPower: 0, inTransitToCollateralCents: 0 })).toBe(false)
+        expect(holdsMoney(0n, { spendingPower: 0 })).toBe(false)
     })
 
     it('counts $0.17 in the wallet', () => {
@@ -54,10 +54,6 @@ describe('holdsMoney', () => {
 
     it('counts card collateral when the wallet is empty', () => {
         expect(holdsMoney(0n, { spendingPower: 2500 })).toBe(true)
-    })
-
-    it('counts a collateral top-up still in transit', () => {
-        expect(holdsMoney(0n, { spendingPower: 0, inTransitToCollateralCents: 17 })).toBe(true)
     })
 })
 

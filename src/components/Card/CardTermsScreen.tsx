@@ -7,12 +7,16 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import CardFundingConsent from '@/components/Card/CardFundingConsent'
+import { RTF_AUTHORIZATION_TEXT } from '@/constants/rain.consts'
 import { toMarketingLocale } from '@/i18n/localeBridge'
 import type { Locale as MarketingLocale } from '@/i18n/types'
+import type { RainFundingConsent } from '@/utils/rain-funding.utils'
 
 interface Props {
     isUsResident: boolean
-    onAccept: () => void | Promise<void>
+    /** Called with the funding authorization after all card agreements are accepted. */
+    onAccept: (consent: RainFundingConsent) => void | Promise<void>
     onPrev?: () => void
     submitError?: string | null
 }
@@ -50,6 +54,9 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [checked, setChecked] = useState<Record<string, boolean>>({})
+    // The funding authorization follows the card terms. Every box starts
+    // unticked and every one is required.
+    const [authorizationAccepted, setAuthorizationAccepted] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
     const links = useMemo(() => linksFor(toMarketingLocale(locale)), [locale])
@@ -95,13 +102,16 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
         })
     }, [isUsResident, terms.length])
 
-    const allAccepted = useMemo(() => terms.every((t) => checked[t.id]), [terms, checked])
+    const allAccepted = useMemo(
+        () => terms.every((t) => checked[t.id]) && authorizationAccepted,
+        [terms, checked, authorizationAccepted]
+    )
 
     const handleContinue = async () => {
         if (!allAccepted) return
         setSubmitting(true)
         try {
-            await onAccept()
+            await onAccept({ authorizationAccepted, authorizationText: RTF_AUTHORIZATION_TEXT })
         } finally {
             setSubmitting(false)
         }
@@ -131,6 +141,13 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
                     </li>
                 ))}
             </ul>
+
+            <CardFundingConsent
+                authorizationText={RTF_AUTHORIZATION_TEXT}
+                authorizationAccepted={authorizationAccepted}
+                onAuthorizationChange={setAuthorizationAccepted}
+                disabled={submitting}
+            />
 
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 

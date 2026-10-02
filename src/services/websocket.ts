@@ -37,7 +37,6 @@ export type RainCardBalanceChangeReason =
     | 'transaction_updated'
     | 'transaction_completed'
     | 'contract_created'
-    | 'auto_balance_deposit'
 
 export interface RainCardBalanceChangedData {
     reason: RainCardBalanceChangeReason

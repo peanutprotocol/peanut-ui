@@ -45,6 +45,7 @@ jest.mock('@/services/rain', () => ({
         activateCard: jest.fn(),
         cancelCard: jest.fn(),
         submitCancellationFeedback: jest.fn(),
+        getOverview: jest.fn(),
     },
 }))
 // Modal chrome and the slide gesture are not under test — render passthroughs.
@@ -68,6 +69,7 @@ const mockUseSignSpendBundle = useSignSpendBundle as jest.Mock
 const mockLockCard = rainApi.lockCard as jest.Mock
 const mockActivateCard = rainApi.activateCard as jest.Mock
 const mockCancelCard = rainApi.cancelCard as jest.Mock
+const mockGetOverview = rainApi.getOverview as jest.Mock
 const mockSignSpend = jest.fn()
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 const mockInvalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
@@ -118,6 +120,8 @@ describe('LockCardModal — lock with spending power', () => {
         expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockLockCard).toHaveBeenCalledWith('card-1', RAIN_WITHDRAWAL)
+        // a lock is reversible — it reads no card list beyond the overview
+        expect(mockGetOverview).not.toHaveBeenCalled()
     })
 
     it('fails closed before signing when the overview has not loaded', async () => {
@@ -189,5 +193,25 @@ describe('CancelCardModal', () => {
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })
+    })
+})
+
+/**
+ * Cancelling is an ordinary cancel. The card funding permission is Peanut's to
+ * manage: the person is offered no step to remove it, and cancelling never
+ * reads or changes it.
+ */
+describe('CancelCardModal — no permission removal step', () => {
+    it('goes straight from the cancel to the feedback step, with no removal offer', async () => {
+        setup({ balance: { spendingPower: 0 } })
+        renderCancel()
+        fireEvent.click(screen.getByRole('button', { name: /slide to cancel/i }))
+
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockCancelCard).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('button', { name: /remove permission|not now/i })).not.toBeInTheDocument()
+        expect(screen.queryByText(/permission/i)).not.toBeInTheDocument()
+        // the cancel flow reads no funding state and no card list beyond the overview
+        expect(mockGetOverview).not.toHaveBeenCalled()
     })
 })
