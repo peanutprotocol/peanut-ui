@@ -25,13 +25,21 @@ export function isPaymasterPreviewContext(context: unknown): boolean {
     )
 }
 
+// Preserve viem's entry-point union when removing the local context field.
+type WithoutPaymasterContext<T> = T extends unknown ? Omit<T, 'paymasterContext'> : never
+
 /**
- * Arguments for `zerodevPaymaster.sponsorUserOperation`. `userOperation` is
- * forwarded untouched (the SDK strips `context` itself); `shouldOverrideFee`
- * keeps the pre-existing behaviour.
+ * viem includes `paymasterContext` in callback arguments before it removes
+ * that field from the prepared operation. ZeroDev strips `context` but sends
+ * `paymasterContext` to its RPC, which rejects it. Remove it from a copy here.
  */
-export function sponsorUserOperationArgs<T extends { context?: unknown }>(
+export function sponsorUserOperationArgs<T extends { context?: unknown; paymasterContext?: unknown }>(
     userOperation: T
-): { userOperation: T; shouldOverrideFee: true; shouldConsume: boolean } {
-    return { userOperation, shouldOverrideFee: true, shouldConsume: !isPaymasterPreviewContext(userOperation.context) }
+): { userOperation: WithoutPaymasterContext<T>; shouldOverrideFee: true; shouldConsume: boolean } {
+    const { paymasterContext: _, ...operation } = userOperation
+    return {
+        userOperation: operation as WithoutPaymasterContext<T>,
+        shouldOverrideFee: true,
+        shouldConsume: !isPaymasterPreviewContext(userOperation.context),
+    }
 }
