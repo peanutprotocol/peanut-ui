@@ -3,7 +3,12 @@ import posthog from 'posthog-js'
 
 import type { ErrorEvent as SentryErrorEvent } from '@sentry/nextjs'
 
-import { getEventSearchTexts, isThirdPartyScriptFrame, isTransientCapgoNoise } from '../../sentry.utils'
+import {
+    getEventSearchTexts,
+    isPosthogRateLimitNotice,
+    isThirdPartyScriptFrame,
+    isTransientCapgoNoise,
+} from '../../sentry.utils'
 
 type EventProcessor = { processEvent?: (event: SentryErrorEvent) => SentryErrorEvent | null }
 
@@ -18,10 +23,12 @@ type EventProcessor = { processEvent?: (event: SentryErrorEvent) => SentryErrorE
  * visible. Suppression there is configured server-side (grouping, per-issue
  * rate limit, suppression rules) where it is tunable without a release.
  *
- * Two classes are worth stopping in the client. Injected third-party scripts:
+ * Three classes are worth stopping in the client. Injected third-party scripts:
  * nobody can act on them in either tool, and one wallet injector alone billed
- * ~3.7k events. And Capgo's transient updater chatter, which is retried on the
- * next launch and only ever means "the CDN hiccuped". Wrapping rather than
+ * ~3.7k events. Capgo's transient updater chatter, which is retried on the
+ * next launch and only ever means "the CDN hiccuped". And posthog-js's own
+ * rate-limit notice, which the mirror would turn into another rate-limited
+ * capture and so into another notice, until the session ends. Wrapping rather than
  * filtering inside beforeSend, because beforeSend is downstream of this hook
  * and cannot reach it.
  */
@@ -33,7 +40,9 @@ export function withoutNoise<T extends EventProcessor>(integration: T): T {
         processEvent: (event: SentryErrorEvent) => {
             const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
             if (frames.some((frame) => isThirdPartyScriptFrame(frame.filename || ''))) return event
-            if (isTransientCapgoNoise(getEventSearchTexts(event))) return event
+            const searchTexts = getEventSearchTexts(event)
+            if (isTransientCapgoNoise(searchTexts)) return event
+            if (isPosthogRateLimitNotice(searchTexts)) return event
             return inner(redactQrTelemetry(event))
         },
     }
