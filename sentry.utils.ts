@@ -99,6 +99,19 @@ const IGNORED_ERRORS = {
     ],
 }
 
+const POSTHOG_RATE_LIMIT_NOTICE = /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i
+
+/**
+ * posthog-js console.errors this each time its client rate limiter drops a
+ * capture. Mirrored into PostHog as a `$exception`, the notice is itself a
+ * capture the limiter drops, which logs the notice again: one slow session
+ * produced 544 of them in five minutes. Exported for the PostHog mirror
+ * wrapper, whose processEvent hook runs before beforeSend.
+ */
+export function isPosthogRateLimitNotice(searchTexts: string[]): boolean {
+    return searchTexts.some((text) => POSTHOG_RATE_LIMIT_NOTICE.test(text.trim()))
+}
+
 // Deliberate product and SDK outcomes. Keep these outside IGNORED_ERRORS' fuzzy
 // substring matcher: a technical error that merely includes similar prose must
 // remain visible. Error classes are exact; messages are anchored to the complete
@@ -115,7 +128,7 @@ const EXPECTED_BEHAVIOR_MESSAGES = [
     /^You reached the limit of (?:10|20|30) cross-chain (?:withdrawals|transfers) per (?:hour|day|30 days)\. Try again in .+$/i,
     /^You reached the limit for withdrawals to other networks(?:\..*)?$/i,
     /^Company has exceeded their debt limit\.?$/i,
-    /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i,
+    POSTHOG_RATE_LIMIT_NOTICE,
 ]
 
 function isExpectedBehaviorError(event: ErrorEvent, searchTexts: string[]): boolean {
