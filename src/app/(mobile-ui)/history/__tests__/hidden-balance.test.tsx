@@ -4,6 +4,17 @@ import { render, screen } from '@testing-library/react'
 const mockGetUserPreferences = jest.fn()
 const mockTransactionCard = jest.fn()
 
+jest.mock('@/features/history/useHistoryFilters', () => ({
+    useHistoryFilters: () => ({
+        searchQuery: '',
+        activeFilter: 'all',
+        isFiltering: false,
+        setSearchQuery: jest.fn(),
+        setFilter: jest.fn(),
+        clearFilters: jest.fn(),
+    }),
+}))
+jest.mock('@/features/history/HistoryFilterBar', () => ({ HistoryFilterBar: () => null }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next-intl', () => ({
     useTranslations: () => (key: string) => key,

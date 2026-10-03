@@ -15,6 +15,17 @@ const mockLoaderRef = { current: null as HTMLDivElement | null }
 // stable data per pages array, like the query cache, so memo deps are exercised
 const mockDataByPages = new WeakMap<Page[], { pages: Page[]; pageParams: unknown[] }>()
 
+jest.mock('@/features/history/useHistoryFilters', () => ({
+    useHistoryFilters: () => ({
+        searchQuery: '',
+        activeFilter: 'all',
+        isFiltering: false,
+        setSearchQuery: jest.fn(),
+        setFilter: jest.fn(),
+        clearFilters: jest.fn(),
+    }),
+}))
+jest.mock('@/features/history/HistoryFilterBar', () => ({ HistoryFilterBar: () => null }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next-intl', () => ({
     useTranslations: () => (key: string) => key,

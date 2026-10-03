@@ -1082,7 +1082,11 @@
     },
     "history": {
         "errorDescription": "Contactá a soporte.",
-        "empty": "Aún no hay transacciones"
+        "empty": "Aún no hay transacciones",
+        "searchPlaceholder": "Buscá por nombre, nota o monto",
+        "noMatches": {
+            "hint": "Revisá cómo lo escribiste o probá con un nombre, una nota o un monto."
+        }
     },
     "rewards": {
         "youHave": "Tenés",

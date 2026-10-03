@@ -18,6 +18,7 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { DEMO_HISTORY_ENTRIES } from '@/constants/demo-data'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -182,6 +183,89 @@ const WIRE_WITHDRAWAL_ENTRY = {
     currency: { amount: '80.00', code: 'USD' },
     extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
 }
+
+// Local fiat rails on Activity, mixed into the demo feed: what a user in
+// Argentina or Brazil actually sees. Manteca shapes follow
+// peanut-api-ts src/manteca/history.ts (the CBU deposit sender is the literal
+// 'Manteca Deposit'). Fixed dates, like the entries above, so captures of
+// this fixture don't change from one day to the next.
+const FIAT_BASE = {
+    type: 'TRANSACTION_INTENT',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+}
+const FIAT_SELF = { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' }
+const FIAT_HISTORY_ENTRIES = [
+    {
+        // ARS transfer in from the user's Mercado Pago account to their CVU
+        ...FIAT_BASE,
+        uuid: 'fixture-mp-deposit',
+        timestamp: new Date('2026-09-30T09:00:00.000Z'),
+        amount: '41.32',
+        status: 'COMPLETED',
+        userRole: 'RECIPIENT',
+        senderAccount: { identifier: 'Manteca Deposit', type: 'BANK_CBU', isUser: false },
+        recipientAccount: FIAT_SELF,
+        currency: { amount: '50000', code: 'ARS' },
+        extraData: { kind: 'ONRAMP', provider: 'MANTECA', usdAmount: '41.32' },
+    },
+    {
+        // Mercado Pago QR at a café, paid in ARS
+        ...FIAT_BASE,
+        uuid: 'fixture-mp-qr-pay',
+        timestamp: new Date('2026-09-29T10:00:00.000Z'),
+        amount: '10.33',
+        status: 'COMPLETED',
+        userRole: 'SENDER',
+        senderAccount: FIAT_SELF,
+        recipientAccount: { identifier: 'CAFE MARTINEZ PALERMO', type: 'BANK_CBU', isUser: false },
+        currency: { amount: '12500', code: 'ARS' },
+        extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10.33' },
+        memo: 'Cortado y medialunas',
+    },
+    {
+        // ARS withdrawal to a Mercado Pago CVU, still in flight
+        ...FIAT_BASE,
+        uuid: 'fixture-mp-withdraw',
+        timestamp: new Date('2026-09-28T15:00:00.000Z'),
+        amount: '99.17',
+        status: 'PENDING',
+        userRole: 'SENDER',
+        senderAccount: FIAT_SELF,
+        recipientAccount: { identifier: '0000003100012345678901', type: 'BANK_CBU', isUser: false },
+        currency: { amount: '120000', code: 'ARS' },
+        extraData: { kind: 'OFFRAMP', provider: 'MANTECA', usdAmount: '99.17' },
+    },
+    { ...PIX_KEY_PAYMENT_ENTRY, timestamp: new Date('2026-09-26T11:00:00.000Z') },
+    {
+        // EUR SEPA deposit through Bridge
+        ...FIAT_BASE,
+        uuid: 'fixture-sepa-deposit',
+        timestamp: new Date('2026-09-24T08:00:00.000Z'),
+        amount: '216.40',
+        status: 'COMPLETED',
+        userRole: 'RECIPIENT',
+        senderAccount: { identifier: 'Hans Müller', type: 'sepa', isUser: false },
+        recipientAccount: FIAT_SELF,
+        currency: { amount: '200.00', code: 'EUR' },
+        extraData: { kind: 'ONRAMP', provider: 'BRIDGE', bridgeFlow: 'ONRAMP', usdAmount: '216.40' },
+    },
+    { ...WIRE_WITHDRAWAL_ENTRY, timestamp: new Date('2026-09-21T14:00:00.000Z') },
+    {
+        // a Manteca withdrawal the bank rejected
+        ...FIAT_BASE,
+        uuid: 'fixture-mp-withdraw-failed',
+        timestamp: new Date('2026-09-18T16:00:00.000Z'),
+        amount: '25.00',
+        status: 'FAILED',
+        userRole: 'SENDER',
+        senderAccount: FIAT_SELF,
+        recipientAccount: { identifier: '0000003100098765432109', type: 'BANK_CBU', isUser: false },
+        currency: { amount: '30250', code: 'ARS' },
+        extraData: { kind: 'OFFRAMP', provider: 'MANTECA', usdAmount: '25.00' },
+    },
+]
 
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
@@ -706,6 +790,18 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Two-column badge collection, art scaled to the tile, earned badges first and locked goals.',
     },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
+    'history-fiat': {
+        route: '/history',
+        about: 'Activity with local fiat rails: Mercado Pago (ARS) deposit, QR pay and CVU withdrawals, PIX, SEPA and a US wire.',
+        responses: {
+            'GET /users/history': {
+                entries: [...FIAT_HISTORY_ENTRIES, ...DEMO_HISTORY_ENTRIES].sort(
+                    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                ),
+                hasMore: false,
+            },
+        },
+    },
     'add-money': {
         route: '/add-money?method=bank',
         about: 'Add money by bank: the accounts you hold, crypto, and every country you can send from.',
