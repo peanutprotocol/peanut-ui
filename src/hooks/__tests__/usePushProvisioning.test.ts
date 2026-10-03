@@ -98,6 +98,26 @@ describe('usePushProvisioning', () => {
         expect(mockedAvailability).toHaveBeenCalledWith('0420')
     })
 
+    it('enables iOS independently of the Google flag', async () => {
+        mockedFlag.mockImplementation((key: string) => key === 'push-provisioning-apple')
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        expect(mockedFlag).toHaveBeenCalledWith('push-provisioning-apple')
+        expect(mockedFlag).not.toHaveBeenCalledWith('push-provisioning-google')
+    })
+
+    it('does not enable Apple provisioning from the Google or retired shared flag', async () => {
+        mockedFlag.mockImplementation((key: string) => key !== 'push-provisioning-apple')
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await act(async () => {
+            expect(await result.current.addToWallet()).toEqual({ added: false, error: 'unavailable' })
+        })
+        expect(result.current.nativeAvailable).toBe(false)
+        expect(mockedAvailability).not.toHaveBeenCalled()
+        expect(mockedGetProvisioningData).not.toHaveBeenCalled()
+        expect(mockedAddCard).not.toHaveBeenCalled()
+    })
+
     it('keeps the manual carousel for a card already in the wallet', async () => {
         mockedAvailability.mockResolvedValue({ available: true, alreadyInWallet: true })
         const { result } = renderHook(() => usePushProvisioning(card))
@@ -468,9 +488,17 @@ describe('usePushProvisioning', () => {
     it('keeps the manual carousel on android binaries', async () => {
         mockedIsIOS.mockReturnValue(false)
         mockedIsAndroid.mockReturnValue(true)
+        mockedFlag.mockImplementation((key: string) => key === 'push-provisioning-google')
         const { result } = renderHook(() => usePushProvisioning(card))
 
         await waitFor(() => expect(result.current.nativeAvailable).toBe(false))
+        expect(mockedFlag).toHaveBeenCalledWith('push-provisioning-google')
+        expect(mockedFlag).not.toHaveBeenCalledWith('push-provisioning-apple')
+        await act(async () => {
+            expect(await result.current.addToWallet()).toEqual({ added: false, error: 'unavailable' })
+        })
         expect(mockedAvailability).not.toHaveBeenCalled()
+        expect(mockedGetProvisioningData).not.toHaveBeenCalled()
+        expect(mockedAddCard).not.toHaveBeenCalled()
     })
 })

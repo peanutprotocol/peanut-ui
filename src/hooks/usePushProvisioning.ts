@@ -6,12 +6,12 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { rainApi } from '@/services/rain'
 import { getClearEpoch } from '@/utils/auth-token'
 import { getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
-import { isIOSNative } from '@/utils/capacitor'
+import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
     clearWalletStateIfCardMatches,
     getPushProvisioningAvailability,
-    PUSH_PROVISIONING_FLAG,
+    PUSH_PROVISIONING_FLAGS,
     rememberCardForWallet,
     syncWalletAuthorizationToken,
     type AddCardToWalletResult,
@@ -26,11 +26,9 @@ import {
  */
 export function usePushProvisioning(card: { id: string; last4: string }) {
     const isFlagEnabled = useFeatureFlags()
-    // No nonProdBypass: the backend route (peanut-api-ts#1425) is not deployed
-    // anywhere yet, so bypassing on staging/preview/local would send every
-    // native build's tap through step-up into a 404 and the failure toast.
-    // Add the bypass back once the route is live.
-    const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAG)
+    const wallet = isIOSNative() ? 'apple' : isAndroidNative() ? 'google' : null
+    // Platform approvals and the API gate apply in every environment.
+    const flagOn = wallet !== null && isFlagEnabled(PUSH_PROVISIONING_FLAGS[wallet])
     const [nativeAvailable, setNativeAvailable] = useState(false)
     const [isAdding, setIsAdding] = useState(false)
     const availabilityScope = `${flagOn}:${card.id}:${card.last4}`
@@ -52,9 +50,8 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         // iOS only for now. Google requires its own supplied, localized "Add to
         // Google Wallet" button on any control that starts push provisioning, and
         // that asset ships with issuer onboarding — which is also the gate this
-        // path waits on. Until then Android keeps the manual carousel rather than
-        // starting the flow from a button Google has not sanctioned. The native
-        // Android path underneath is complete; re-enable it with the asset.
+        // path waits on. Keep Android manual until the approved control and
+        // onboarding are verified, even when its independent flag is enabled.
         if (!flagOn || !iosNative) {
             setNativeAvailable(false)
             return
@@ -68,9 +65,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     }, [flagOn, card.id, card.last4])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
+        // Android still needs its approved provisioning control and onboarding.
+        if (!flagOn || wallet !== 'apple') return { added: false, error: 'unavailable' }
         const scopeAtStart = availabilityScope
         const authEpochAtStart = getClearEpoch()
-        const wallet = isIOSNative() ? 'apple' : 'google'
         posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_TAPPED, { wallet })
         setIsAdding(true)
         try {
@@ -161,7 +159,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         } finally {
             setIsAdding(false)
         }
-    }, [availabilityScope, card.id, card.last4, flagOn])
+    }, [availabilityScope, card.id, card.last4, flagOn, wallet])
 
     return { nativeAvailable, isAdding, addToWallet }
 }
