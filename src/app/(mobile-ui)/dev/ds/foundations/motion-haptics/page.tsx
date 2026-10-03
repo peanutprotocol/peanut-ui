@@ -53,6 +53,13 @@ export default function MotionHapticsPage() {
                 </Card>
             </DocSection>
 
+            <DocSection title="Success moments">
+                <Card className="divide-y divide-dashed divide-border-default px-4">
+                    <DataRow label="Content" value="Appears in place. No zoom in, zoom out or scale" />
+                    <DataRow label="Celebration" value="Confetti + notifyHaptic('success'), as QR pay perks do" />
+                </Card>
+            </DocSection>
+
             <DocSection title="Haptic primitives">
                 <DocSection.Content>
                     <Card className="divide-y divide-dashed divide-border-default px-4">

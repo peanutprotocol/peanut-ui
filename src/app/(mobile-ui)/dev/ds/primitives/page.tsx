@@ -7,7 +7,7 @@ export default function PrimitivesPage() {
             <div>
                 <h1 className="text-heading-m">Primitives</h1>
                 <p className="mt-1 text-body-s text-foreground-secondary">
-                    Bruddle base components. The lowest-level building blocks of the UI.
+                    Building blocks. Start from Patterns: use a primitive directly only when no pattern fits the screen.
                 </p>
             </div>
 

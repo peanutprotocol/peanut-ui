@@ -2,6 +2,7 @@ const mockSentryIntegration = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { sentryIntegration: mockSentryIntegration } }))
 
 import { posthogErrorMirror } from '../sentry-posthog-mirror'
+import { beforeSendHandler } from '../../../sentry.utils'
 
 describe('posthogErrorMirror', () => {
     it('wraps the PostHog integration so Capgo noise never reaches the mirror', () => {
@@ -22,6 +23,25 @@ describe('posthogErrorMirror', () => {
         mirror.processEvent?.(real)
         expect(inner).toHaveBeenCalledWith(real)
     })
+})
+
+it('keeps the posthog-js rate-limit notice out of the mirror and out of Sentry', () => {
+    const inner = jest.fn((event) => event)
+    mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
+    // the shape captureConsoleIntegration gives a console.error
+    const notice = {
+        level: 'error',
+        logger: 'console',
+        message: '[PostHog.js] This capture call is ignored due to client rate limiting.',
+    } as never
+
+    expect(posthogErrorMirror().processEvent?.(notice)).toBe(notice)
+    expect(inner).not.toHaveBeenCalled()
+    expect(beforeSendHandler(notice)).toBeNull()
+
+    const other = { level: 'error', logger: 'console', message: '[PostHog.js] capture transport failed' } as never
+    posthogErrorMirror().processEvent?.(other)
+    expect(inner).toHaveBeenCalledWith(other)
 })
 
 it('redacts QR copies before the Sentry event reaches the PostHog integration', () => {

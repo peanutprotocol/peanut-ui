@@ -204,6 +204,8 @@ jest.mock('@/components/Global/InviteFriendsModal', () => ({
 const mockMantecaApi = {
     initiateQrPayment: jest.fn(),
     completeQrPaymentWithSignedTx: jest.fn(),
+    getPixKeyOwner: jest.fn(),
+    savePixKey: jest.fn(),
 }
 jest.mock('@/services/manteca', () => ({
     mantecaApi: mockMantecaApi,
@@ -608,9 +610,11 @@ function renderQrPay(params: Record<string, string> = {}) {
 
 function applyDefaults() {
     setCapabilitiesGate('proceed_to_pay')
+    // No owner name unless a test resolves one: the form falls back to the key.
+    mockMantecaApi.getPixKeyOwner.mockRejectedValue(new Error('PIX key lookup unavailable'))
 
     mockUseAuth.mockReturnValue({
-        user: { user: { username: 'test-user' } },
+        user: { user: { username: 'test-user' }, accounts: [] },
         isFetchingUser: false,
         fetchUser: jest.fn(),
     })
@@ -944,6 +948,141 @@ describe('GROUP 2: Payment Form States', () => {
         expect(await screen.findByText(pixKey)).toHaveClass('ph-mask', 'ph-no-capture')
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2500' } })
         await waitFor(() => expect(screen.getByText(/Transfer amount exceeds maximum/i)).toBeInTheDocument())
+    })
+
+    test("PIX-key transfer shows the resolved owner's name, with the key and masked tax ID below", async () => {
+        setupMantecaPayment({ code: '' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText('MARIA DA SILVA')).toHaveClass('ph-mask', 'ph-no-capture')
+        const ownerLine = screen.getByText(
+            (_, el) => el?.tagName === 'P' && el.textContent === `${pixKey} · CPF 12*******90`
+        )
+        expect(ownerLine).toHaveClass('ph-mask', 'ph-no-capture')
+        expect(screen.getByText('CPF 12*******90')).toHaveClass('whitespace-nowrap')
+        expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith(pixKey)
+    })
+
+    test('a CPF key shows once, in full, instead of the key and its masked copy', async () => {
+        setupMantecaPayment({ code: '' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******09' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = '12345678909'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText('MARIA DA SILVA')).toBeInTheDocument()
+        expect(screen.getByText('CPF 123.456.789-09').closest('p')).toHaveClass('ph-mask', 'ph-no-capture')
+        expect(screen.queryByText(/\*/)).not.toBeInTheDocument()
+    })
+
+    test('a punctuated CPF pasted into the scanner is looked up, shown and saved in its digits-only form', async () => {
+        setupMantecaPayment({ code: '' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******09' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = '123.456.789-09'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText('CPF 123.456.789-09')).toBeInTheDocument()
+        expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith('12345678909')
+        // The BR Code that is paid carries the same digits-only key (field 26, sub-field 01).
+        expect(mockMantecaApi.initiateQrPayment.mock.calls[0][0].qrCode).toContain('011112345678909')
+    })
+
+    test('a pasted PIX key the directory does not know stops before the amount step', async () => {
+        setupMantecaPayment({ code: '' })
+        const { ApiError } = require('@/services/api-error')
+        mockMantecaApi.getPixKeyOwner.mockRejectedValue(
+            new ApiError('PIX key not found', { status: 404, code: 'PAYMENT_DESTINATION_NOT_FOUND' })
+        )
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText(/No Pix account found for this key/i)).toBeInTheDocument()
+        expect(screen.queryByTestId('amount-field')).not.toBeInTheDocument()
+    })
+
+    test("Pay waits for a pasted key's owner lookup to answer", async () => {
+        setupMantecaPayment()
+        let answerOwner: (owner: unknown) => void = () => {}
+        mockMantecaApi.getPixKeyOwner.mockReturnValue(
+            new Promise((resolve) => {
+                answerOwner = resolve
+            })
+        )
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        expect(await screen.findByText(pixKey)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+
+        await act(async () => answerOwner({ name: 'MARIA DA SILVA', legalIdMasked: null }))
+
+        expect(await screen.findByText('MARIA DA SILVA')).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+    })
+
+    test('a PIX-key payment offers to save the key, named after its owner; Pay waits for a name', async () => {
+        setupMantecaPayment()
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        fireEvent.click(screen.getByLabelText('Save to address book'))
+        const name = screen.getByDisplayValue('MARIA DA SILVA')
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+
+        fireEvent.change(name, { target: { value: '' } })
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+    })
+
+    test('a PIX-key payment still settling saves the key the user asked to keep', async () => {
+        setupMantecaPayment()
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        mockMantecaApi.savePixKey.mockResolvedValue(undefined)
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue({
+            id: 'qp1',
+            externalId: 'ext1',
+            sessionId: 's1',
+            status: 'ACTIVE',
+            currentStage: 'processing',
+            stages: [],
+            type: 'PIX_PAYMENT',
+            details: { depositAddress: '0x123', merchant: { name: 'MARIA@SILVA.COM.BR' } },
+        })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        fireEvent.click(screen.getByLabelText('Save to address book'))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        expect(mockMantecaApi.savePixKey).toHaveBeenCalledWith(pixKey, 'MARIA DA SILVA')
+    })
+
+    test('a scanned merchant QR offers no address-book save', async () => {
+        setupMantecaPayment()
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+        await screen.findByText('PIX Merchant')
+        expect(screen.queryByLabelText('Save to address book')).not.toBeInTheDocument()
+    })
+
+    test('a scanned merchant QR never looks up a PIX key owner', async () => {
+        setupMantecaPayment()
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+        await screen.findByText('PIX Merchant')
+        expect(mockMantecaApi.getPixKeyOwner).not.toHaveBeenCalled()
     })
 
     test('Manteca PIX form ready shows merchant card + amount input + pay button', async () => {

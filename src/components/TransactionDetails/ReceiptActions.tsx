@@ -16,7 +16,7 @@ import { getCancelDepositKind } from './provider-actions/cancel-deposit.utils'
 import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
-import { openReceiptPdfUrl, receiptPdfPath } from './receipt-pdf-link.utils'
+import { openReceiptPdfUrl, receiptPdfPath, receiptPdfVersion } from './receipt-pdf-link.utils'
 import { useReceiptPdfFile } from './useReceiptPdfFile'
 import { useReceiptReferralAction } from './useReceiptReferralAction'
 import { type ReceiptViewModel } from './useReceiptViewModel'
@@ -121,7 +121,13 @@ export function ReceiptActions({
 
     // hooks are unconditional; finals fetch eagerly with the stored bearer so
     // the share sheet opens inside the click's user activation.
-    const pdfFile = useReceiptPdfFile({ entryId: transaction.id, kind: kind ?? '', prefetch: canSharePdf })
+    const pdfVersion = receiptPdfVersion(transaction)
+    const pdfFile = useReceiptPdfFile({
+        entryId: transaction.id,
+        kind: kind ?? '',
+        prefetch: canSharePdf,
+        version: pdfVersion,
+    })
     // invite row (TASK-22452 item 5): pre-#3159 eligibility, impression only
     // while the drawer is open with the row visible
     const referralAction = useReceiptReferralAction(transaction, {
@@ -222,7 +228,7 @@ export function ReceiptActions({
                 title: t('actions.downloadPdf'),
                 onSelect: () => {
                     setShowMoreActions(false)
-                    if (downloadViaUrl) openReceiptPdfUrl(receiptPdfPath(transaction.id, kind!, locale))
+                    if (downloadViaUrl) openReceiptPdfUrl(receiptPdfPath(transaction.id, kind!, locale, pdfVersion))
                     else void pdfFile.download()
                 },
                 disabled: !downloadViaUrl && (pdfFile.unavailable || pdfFile.busy !== null),
@@ -396,7 +402,7 @@ export function ReceiptActions({
                 reserves its own 44px target so the two cannot overlap */}
             {isPublic && canDownloadPdf && kind && (
                 <div className="flex flex-col gap-2 print:hidden">
-                    <DownloadReceiptPdfLink entryId={transaction.id} kind={kind} />
+                    <DownloadReceiptPdfLink entryId={transaction.id} kind={kind} version={pdfVersion} />
                     {isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : <ReceiptSupportLink />}
                 </div>
             )}

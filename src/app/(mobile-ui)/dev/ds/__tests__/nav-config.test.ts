@@ -42,6 +42,11 @@ describe('nav icons', () => {
         expect(new Set(icons).size).toBe(icons.length)
     })
 
+    // patterns are what most screens use, so the nav leads with them
+    it('lists patterns first, then primitives, then foundations', () => {
+        expect(TIERS.map((tier) => tier.key).slice(0, 3)).toEqual(['patterns', 'primitives', 'foundations'])
+    })
+
     it('points every tier at a config group', () => {
         TIERS.forEach((tier) => expect(SIDEBAR_CONFIG[tier.key]).toBeDefined())
     })
@@ -69,7 +74,7 @@ describe('filterNav', () => {
 
     it('searches across tiers', () => {
         const groups = filterNav('card')
-        expect(groups.map((g) => g.tier.key)).toEqual(['primitives', 'patterns', 'playground'])
+        expect(groups.map((g) => g.tier.key)).toEqual(['patterns', 'primitives', 'playground'])
     })
 
     it('matches a tier label and keeps that tier whole', () => {

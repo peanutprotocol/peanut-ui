@@ -24,6 +24,7 @@ import type {
     RailChannel,
     ResolvedRail,
 } from '@/types/capabilities'
+import type { IUserProfile } from '@/interfaces/interfaces'
 
 /**
  * A non-blocking advisory pre-empt riding on a `ready` gate. An ENABLED rail can
@@ -353,6 +354,20 @@ export interface CapabilityState {
     identityVerified: boolean
     /** True until the user query settles. Holds the gate in 'loading'. */
     isLoading: boolean
+}
+
+/**
+ * The gate's input, read off a user profile. The hook reads the rendered
+ * profile through it; a caller holding a profile it just fetched reads that
+ * one through it, so both resolve the same way.
+ */
+export function capabilityStateForProfile(user: IUserProfile | null | undefined, isLoading: boolean): CapabilityState {
+    return {
+        rails: user?.capabilities?.rails ?? [],
+        nextActions: user?.capabilities?.nextActions ?? [],
+        identityVerified: user?.identityVerification?.status === 'verified',
+        isLoading,
+    }
 }
 
 /**

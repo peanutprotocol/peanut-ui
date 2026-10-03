@@ -1,6 +1,7 @@
 'use client'
 
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { DocHeader } from '../../_components/DocHeader'
@@ -104,7 +105,10 @@ export default function IconBubblePage() {
                 ]}
             />
 
-            <DocSection title="Sizes" description="xs=24, s=32, m=48, l=72px.">
+            <DocSection
+                title="Sizes"
+                description="xs=24 beside text, s=32 ListItem leading, m=48 the head above a title (the default), l=72 the empty or error hero. The bubble sets the glyph: 16, 16, 24, 40."
+            >
                 <DocSection.Content>
                     <div className="flex items-end gap-4">
                         <IconBubble icon="check" size="xs" />
@@ -117,6 +121,8 @@ export default function IconBubblePage() {
                     <CodeBlock label="Sizes" code={`<IconBubble icon="check" size="m" />`} />
                 </DocSection.Code>
             </DocSection>
+
+            <LinkButton href="/dev/ds/patterns/cards-global">Building a card? Start from Patterns → Cards</LinkButton>
 
             <SectionDivider />
 

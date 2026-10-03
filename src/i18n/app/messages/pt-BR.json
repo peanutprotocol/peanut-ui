@@ -1042,6 +1042,7 @@
             "guestDescriptionApp": "Você precisa do app da Peanut para enviar uma cobrança para {username}."
         },
         "createRequest": "Criar cobrança",
+        "theirChoice": "A pessoa escolhe",
         "shareOpenRequest": "Compartilhar cobrança aberta",
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
         "shareCurrencyAmountRequest": "Compartilhar cobrança de {amount} {currency}",
@@ -1477,7 +1478,8 @@
                 "title": "Pagamento em processamento",
                 "description": "O pagamento ainda não foi confirmado. Confira Atividade antes de tentar novamente."
             }
-        }
+        },
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Adicionar cartão",
@@ -1925,7 +1927,8 @@
             "heading": "Digite a chave Pix",
             "placeholder": "Chave Pix",
             "info": "Envie para qualquer chave Pix: email, telefone (inclua +55), CPF/CNPJ ou chave aleatória.",
-            "invalid": "Chave Pix inválida"
+            "invalid": "Chave Pix inválida",
+            "notFound": "Nenhuma conta Pix encontrada para esta chave. Confira e tente de novo."
         },
         "bank": {
             "eurTitle": "Enviamos EUR para o banco",
@@ -2701,7 +2704,15 @@
         "migrationSetupDescription": "Avisamos na hora quando o dinheiro chegar ou alguém pedir um pagamento.",
         "enable": "Ativar notificações",
         "requesting": "Solicitando...",
-        "notNow": "Agora não"
+        "notNow": "Agora não",
+        "depositIntentTitle": "Avisamos quando o depósito chegar",
+        "depositIntentDescription": "Só uma notificação, quando o depósito chegar.",
+        "requestCreatedTitle": "Avisamos quando pagarem a cobrança",
+        "requestCreatedDescription": "Uma notificação assim que pagarem sua cobrança.",
+        "cardReadyTitle": "Avisamos sobre cada pagamento no cartão",
+        "cardReadyDescription": "Uma notificação por pagamento, aprovado ou recusado.",
+        "qrFirstScanTitle": "Confirmamos cada pagamento QR",
+        "qrFirstScanDescription": "Uma notificação quando o pagamento for concluído."
     },
     "kyc": {
         "statusDrawerTitle": "Status da verificação",
@@ -2754,6 +2765,7 @@
         "initiate": {
             "titleBlocked": "Não conseguimos desbloquear",
             "titleRestartIdentity": "Verifique com outro documento",
+            "titleIdentityDocumentMissing": "Conclua sua verificação",
             "titleProviderRejection": "Precisamos de documentos adicionais",
             "titleCrossRegion": "Desbloquear {region}",
             "titleCrossRegionGeneric": "Desbloquear esta região",
@@ -2796,8 +2808,6 @@
             "preparingSlowTitle": "Quase lá",
             "preparingSlowDescription": "Isso está demorando um pouco mais do que o normal. Aguarde só um instante.",
             "bridgeTosTitle": "Mais um passo",
-            "bridgeTosDescription": "Último passo: aceite os termos de serviço para desbloquear as transferências bancárias nos Estados Unidos, na Europa e no México.",
-            "acceptTerms": "Aceitar termos",
             "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso.",
             "verifyingStillGoing": "Ainda em andamento. A maioria termina rápido, então esta provavelmente está recebendo uma análise mais detalhada. Você pode fechar isto e avisaremos quando houver uma decisão.",
@@ -2828,16 +2838,14 @@
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
         "bridgeTos": {
-            "baseTitle": "Aceitar os termos de serviço",
-            "baseDescription": "Para ativar as transferências bancárias, você precisa aceitar os Termos de Serviço do nosso parceiro de pagamentos.",
-            "sepaTitle": "Aceitar os termos atualizados do provedor de transferências bancárias",
-            "sepaDescription": "Para ativar transferências bancárias em euros e libras esterlinas, aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias.",
+            "baseTitle": "Termos de transferências bancárias",
+            "sepaTitle": "Termos atualizados de transferências bancárias",
+            "description": "A Bridge, nosso parceiro de pagamentos, oferece as transferências bancárias. Leia os <terms>Termos de Serviço</terms> e a <privacy>Política de Privacidade</privacy> da Bridge. Você aceita esses documentos na próxima tela.",
             "errorTitle": "Não foi possível carregar os termos",
             "loadFailed": "Não foi possível carregar os termos. Você pode aceitá-los depois pelo seu feed de atividades.",
             "genericError": "Algo deu errado. Você pode aceitar os termos depois pelo seu feed de atividades.",
             "confirmError": "Algo deu errado ao confirmar seus termos. Tente novamente.",
             "notAcceptedYet": "Parece que os termos ainda não foram aceitos. Tente novamente.",
-            "acceptTerms": "Aceitar termos",
             "notNow": "Agora não"
         },
         "reverificationPending": {
@@ -3246,7 +3254,8 @@
             "tax_id_unresolved": "Não conseguimos ler o número de identificação fiscal que os depósitos e saques locais exigem. Você pode verificar novamente para fornecê-lo. Os pagamentos por QR não são afetados.",
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "residence_bank_restricted": "Transferências bancárias não estão disponíveis para residentes do seu país. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
-            "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado."
+            "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
+            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação."
         }
     },
     "recoverFunds": {
@@ -3682,6 +3691,7 @@
             "isRequesting": "{name} está cobrando",
             "sendingTo": "Enviando para {name}",
             "payWhatYouWant": "Qualquer valor",
+            "yourChoice": "Você escolhe",
             "sendExactAmount": "Envie o valor exato!"
         },
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",
@@ -3749,8 +3759,9 @@
         "sessionExpired": "Sua sessão expirou. Faça login novamente.",
         "connectionTimeout": "O Peanut está demorando para responder. Verifique sua conexão e tente novamente.",
         "genericSupport": "Ocorreu um problema com sua solicitação. Entre em contato com o suporte.",
-        "rainCooldownRetry": "Um saque anterior com o cartão ainda está ativo. Tente novamente em cerca de {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Um saque anterior com o cartão ainda está ativo. Tente novamente em instantes.",
+        "rainCooldownRetryLive": "Um saque anterior com o cartão ainda está ativo. Tente novamente em {time}.",
+        "rainCooldownRetryNow": "O resfriamento do cartão terminou. Você já pode tentar novamente.",
         "xchainWithdrawLimit": "Você atingiu o limite de saques para outras redes. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
         "xchainWithdrawLimitRetry": "Você atingiu o limite de saques para outras redes. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
         "xchainPaymentLimit": "Você fez muitas transferências para outras redes recentemente. Fale com o suporte para ampliar o seu limite.",

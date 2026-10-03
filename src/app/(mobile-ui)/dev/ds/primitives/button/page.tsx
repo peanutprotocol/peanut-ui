@@ -290,8 +290,8 @@ export default function ButtonPage() {
             <DocSection title="Design Rules">
                 <div className="space-y-4">
                     <DesignNote type="info">
-                        Sizes follow the figma board: large=48px, medium=44px (default), small=40px with a 44px hit
-                        area. The old &quot;large is shorter than default&quot; trap is gone.
+                        Sizes are set in code: large=48px, medium=44px (default), small=40px with a 44px hit area. The
+                        old &quot;large is shorter than default&quot; trap is gone.
                     </DesignNote>
                     <DesignNote type="info">
                         Primary CTA pattern: variant=&quot;primary&quot; className=&quot;w-full&quot; — no size prop, no
