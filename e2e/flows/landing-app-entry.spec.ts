@@ -1,13 +1,17 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
+import { MIGRATION_CUTOVER_DATE } from '../../src/constants/migration.consts'
 
 const desktopUA =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 const iphoneUA =
     'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
 const shots = process.env.LANDING_SHOTS_OUT ?? 'e2e/__shots__/landing-app-entry'
+const loginLink = '#hero a[href="/setup?step=login"]'
 async function landing(page: Page, route: string, on: boolean) {
+    // Pin the page clock inside the notice window: web login stays until the cutover.
+    await page.clock.setFixedTime(MIGRATION_CUTOVER_DATE.getTime() - 24 * 60 * 60 * 1000)
     await page.addInitScript((on) => {
         if (on) localStorage.setItem('pwa-sunset', 'true')
         else localStorage.removeItem('pwa-sunset')
@@ -15,7 +19,7 @@ async function landing(page: Page, route: string, on: boolean) {
     await page.goto(route, { waitUntil: 'domcontentloaded' })
     await expect(page.locator('#hero')).toBeVisible()
     if (on) await expect(page.getByTestId('landing-download-cta')).toBeVisible()
-    else await expect(page.locator('#hero a[href="/setup?step=login"]')).toBeVisible()
+    await expect(page.locator(loginLink)).toBeVisible()
 }
 test.beforeAll(async () => {
     await mkdir(shots, { recursive: true })
@@ -46,7 +50,10 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                         const cta = page.getByTestId('landing-download-cta')
                         await expect(cta.getByRole('link')).toHaveCount(1)
                         await expect(page.getByRole('dialog')).toHaveCount(0)
-                        await expect(page.locator('a[href^="/setup"], a[href="/send"]')).toHaveCount(0)
+                        // signup entries go to the app; the hero Log in link is the one web entry left
+                        await expect(
+                            page.locator('a[href^="/setup"]:not([href="/setup?step=login"]), a[href="/send"]')
+                        ).toHaveCount(0)
                         if (device !== 'desktop') {
                             await expect(cta.getByRole('link')).toHaveAttribute(
                                 'href',
