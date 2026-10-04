@@ -101,10 +101,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
     '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
-    '49-c-tokenandnetworkconfirmationmodal': {
-        name: 'TokenAndNetworkConfirmationDrawer',
-        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
-    },
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
         path: 'TransactionDetails/TransactionDetailsDrawer.tsx',

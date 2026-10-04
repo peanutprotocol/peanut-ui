@@ -203,7 +203,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/Card/LockCardModal.tsx',
                     'components/Card/CancelCardModal.tsx',
                     'components/AddMoney/components/OnrampConfirmationModal.tsx',
-                    'components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
                 ],
             },
             {
@@ -585,7 +584,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/AddMoney/views/CryptoDeposit.view.tsx',
                     'components/AddMoney/views/RhinoDeposit.view.tsx',
                     'components/AddMoney/components/EvmChainChips.tsx',
-                    'components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
                     'components/LandingPage/SupportedRailsFaqAnswer.tsx',
                 ],
                 verified: true,

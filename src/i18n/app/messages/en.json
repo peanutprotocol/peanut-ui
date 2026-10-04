@@ -3493,13 +3493,6 @@
             "copyErrorToast": "Failed to copy link.",
             "pasteHint": "Then paste it in your preferred browser."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Send only supported tokens on supported networks",
-            "warning": "Sending the wrong token or using the wrong network will result in permanent loss.",
-            "supportedNetworks": "Supported networks",
-            "supportedTokens": "Supported tokens",
-            "slideToProceed": "Slide to proceed"
-        },
         "rainCooldownIntroModal": {
             "title": "Please wait",
             "description": "Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can lower your card limit to be below your wallet balance; the extra will always be available.",

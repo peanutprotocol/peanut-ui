@@ -1552,10 +1552,6 @@
             "passkeyDescription": "Peanut necesita una llave de acceso para crear tu cuenta. Asegurate de que tu dispositivo tenga bloqueo de pantalla y las llaves de acceso activadas, y volvé a intentarlo. Si todavía no funciona, probá una vez desde otro teléfono o computadora.",
             "pasteHint": "Luego pegalo en tu navegador preferido."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Enviá solo tokens compatibles en redes compatibles",
-            "slideToProceed": "Deslizá y continuá"
-        },
         "rainCooldownIntroModal": {
             "title": "Esperá un momento",
             "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, podés bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible."

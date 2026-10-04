@@ -3493,13 +3493,6 @@
             "copyErrorToast": "No se pudo copiar el enlace.",
             "pasteHint": "Luego pégalo en tu navegador preferido."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Envía solo tokens compatibles en redes compatibles",
-            "warning": "Enviar el token equivocado o usar la red equivocada resultará en una pérdida permanente.",
-            "supportedNetworks": "Redes compatibles",
-            "supportedTokens": "Tokens compatibles",
-            "slideToProceed": "Desliza y continúa"
-        },
         "rainCooldownIntroModal": {
             "title": "Espera un momento",
             "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, puedes bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible.",

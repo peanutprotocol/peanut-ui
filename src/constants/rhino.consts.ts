@@ -38,10 +38,6 @@ export const RHINO_SUPPORTED_EVM_CHAINS = RHINO_SUPPORTED_CHAINS.filter((chain) 
     (SUPPORTED_EVM_CHAINS as readonly string[]).includes(chain.name)
 )
 
-export const RHINO_SUPPORTED_OTHER_CHAINS = RHINO_SUPPORTED_CHAINS.filter((chain) =>
-    (OTHER_SUPPORTED_CHAINS as readonly string[]).includes(chain.name)
-)
-
 export const NETWORK_LABELS: Record<RhinoChainType, string> = {
     EVM: 'EVM',
     SOL: 'Solana',
@@ -84,11 +80,6 @@ export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, TokenName[]
 /** returns supported tokens (with logos) for a given chain type */
 export const getSupportedTokens = (network: RhinoChainType): Array<{ name: TokenName; logoUrl: string }> =>
     SUPPORTED_TOKENS_BY_NETWORK[network].map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
-
-/** Union of every token advertised on at least one network (with logos) — for generic "supported tokens" surfaces */
-export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[])
-    .filter((name) => Object.values(SUPPORTED_TOKENS_BY_NETWORK).some((tokens) => tokens.includes(name)))
-    .map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
 
 /**
  * EVM numeric chainId → Rhino chain-name mapping. Source of truth: Rhino's

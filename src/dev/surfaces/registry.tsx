@@ -49,7 +49,6 @@ import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import OtaUpdateModal from '@/components/Profile/components/OtaUpdateModal'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import BalanceWarningDrawer from '@/components/Global/BalanceWarningDrawer'
-import TokenAndNetworkConfirmationDrawer from '@/components/Global/TokenAndNetworkConfirmationDrawer'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import CameraPermissionDrawer from '@/components/Global/QRScanner/CameraPermissionDrawer'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
@@ -408,11 +407,6 @@ export const SURFACES: Record<string, Surface> = {
         name: 'BalanceWarningDrawer',
         path: 'Global/BalanceWarningDrawer/index.tsx',
         render: () => <BalanceWarningDrawer visible onCloseAction={noop} />,
-    },
-    '49-c-tokenandnetworkconfirmationmodal': {
-        name: 'TokenAndNetworkConfirmationDrawer',
-        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
-        render: () => <TokenAndNetworkConfirmationDrawer isVisible onClose={noop} onAccept={noop} />,
     },
     '50-d-transactiondetailsdrawer': {
         ...SURFACE_META['50-d-transactiondetailsdrawer'],
