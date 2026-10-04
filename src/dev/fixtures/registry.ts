@@ -1293,6 +1293,44 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'identity-document-missing': {
+        route: '/add-money/argentina/manteca',
+        about: 'Approved with no identity document on file: the ARS top-up asks for an ID and a selfie and restarts the identity check, while the pool rail still pays.',
+        responses: {
+            'GET /users/me': {
+                // the AR residence keeps the residence gate out of the way
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                // what api#1776 answers for a marked approval: the identity asks
+                // for a document, the rails keep their status, and the restart
+                // is a top-level action attached to no rail
+                identityVerification: {
+                    status: 'action_required',
+                    actionMessage: 'We need an identity document and a selfie to complete your verification.',
+                    reviewPending: false,
+                    submittedAt: null,
+                    reviewedAt: '2026-07-20T10:00:00.000Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'manteca.bank_transfer_ar',
+                            provider: 'manteca',
+                            method: 'BANK_TRANSFER_AR',
+                            channel: 'bank',
+                            country: 'AR',
+                            currency: 'ARS',
+                            status: 'enabled',
+                            operations: { deposit: 'requires-info', withdraw: 'requires-info', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [
+                        { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+                    ],
+                    restrictions: [],
+                },
+            },
+        },
+    },
     'kyc-action-required': {
         route: '/profile/accounts',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
@@ -2312,6 +2350,27 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
+    },
+    'request-pay-open-amount': {
+        // The override keys on this charge id, so the route names it.
+        route: '/pay-request?chargeId=demo-open-charge',
+        about: 'Paying a request sent with no amount: the requestee types one before paying (TASK-22123).',
+        responses: {
+            'GET /request-charges/demo-open-charge': {
+                transactionType: 'REQUEST',
+                tokenAmount: null,
+                currencyAmount: null,
+                openAmount: true,
+                requestLink: {
+                    recipientAddress: '0x00000000000000000000000000000000000a11ce',
+                    recipientAccount: {
+                        userId: 'demo-alice',
+                        identifier: '0x00000000000000000000000000000000000a11ce',
+                        user: { username: 'alice' },
+                    },
+                },
+            },
+        },
     },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,

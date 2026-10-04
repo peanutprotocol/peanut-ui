@@ -1648,7 +1648,7 @@ export interface paths {
                         attachment?: unknown;
                         baseUrl?: string;
                         filename?: string;
-                        local_price: {
+                        local_price?: {
                             amount: string;
                             currency?: string;
                         };
@@ -1674,7 +1674,7 @@ export interface paths {
                         attachment?: unknown;
                         baseUrl?: string;
                         filename?: string;
-                        local_price: {
+                        local_price?: {
                             amount: string;
                             currency?: string;
                         };
@@ -1700,7 +1700,7 @@ export interface paths {
                         attachment?: unknown;
                         baseUrl?: string;
                         filename?: string;
-                        local_price: {
+                        local_price?: {
                             amount: string;
                             currency?: string;
                         };
@@ -1793,6 +1793,47 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/charges/{chargeId}/amount": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chargeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amount: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         trace?: never;
     };
     "/charges/{uuid}/payments": {

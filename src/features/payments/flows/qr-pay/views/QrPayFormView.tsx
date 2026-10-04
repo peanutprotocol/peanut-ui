@@ -146,6 +146,16 @@ export function QrPayFormView() {
                         </div>
                     </Card>
 
+                    {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
+                    {pixKeySave.isOffered && (
+                        <SaveAddressPrompt
+                            checked={pixKeySave.checked}
+                            nickname={pixKeySave.nickname}
+                            onCheckedChange={pixKeySave.setChecked}
+                            onNicknameChange={pixKeySave.setNickname}
+                        />
+                    )}
+
                     {/* Amount Card */}
                     {currency && (
                         <div className="flex flex-col gap-1">
@@ -229,16 +239,6 @@ export function QrPayFormView() {
                             hideBottomBorder
                         />
                     </GlobalCard>
-
-                    {/* Same place as the crypto review screen's address-book prompt. */}
-                    {pixKeySave.isOffered && (
-                        <SaveAddressPrompt
-                            checked={pixKeySave.checked}
-                            nickname={pixKeySave.nickname}
-                            onCheckedChange={pixKeySave.setChecked}
-                            onNicknameChange={pixKeySave.setNickname}
-                        />
-                    )}
 
                     {/* Send Button */}
                     <Button

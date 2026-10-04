@@ -15,6 +15,7 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
+import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
@@ -266,6 +267,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         </Suspense>
                         <QRScannerOverlay />
                         <SecurityVerificationOverlay />
+                        {/* push pre-prompt for money moments off Home; on Home it
+                        renders inside HomeModals' priority chain instead */}
+                        {isUserLoggedIn && !isHome && <SetupNotificationsModal />}
                         {/* dev fixture warning strip — renders null outside fixture mode */}
                         <FixtureBanner />
                     </>

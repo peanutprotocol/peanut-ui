@@ -33,7 +33,7 @@ const ctx = {
         identifier: 'alice',
         resolvedAddress: '0x1111111111111111111111111111111111111111',
     },
-    chargeIdFromUrl: null,
+    chargeIdFromUrl: null as string | null,
     isAmountFromUrl: false,
     isTokenFromUrl: false,
     isChainFromUrl: false,
@@ -60,10 +60,11 @@ const ctx = {
 jest.mock('../SemanticRequestFlowContext', () => ({ useSemanticRequestFlowContext: () => ctx }))
 
 const mockCreateCharge = jest.fn()
+const mockFetchCharge = jest.fn()
 jest.mock('@/features/payments/shared/hooks/useChargeManager', () => ({
     useChargeManager: () => ({
         createCharge: mockCreateCharge,
-        fetchCharge: jest.fn(),
+        fetchCharge: (...args: unknown[]) => mockFetchCharge(...args),
         isCreating: false,
         isFetching: false,
     }),
@@ -137,6 +138,10 @@ jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn(), refetchQueries: jest.fn() }),
 }))
 jest.mock('@/constants/query.consts', () => ({ TRANSACTIONS: 'transactions' }))
+const mockSetChargeAmount = jest.fn()
+jest.mock('@/services/charges', () => ({
+    chargesApi: { setAmount: (...args: unknown[]) => mockSetChargeAmount(...args) },
+}))
 jest.mock('@/utils/settled-tx-hash.utils', () => ({
     resolveSettledTxHash: (r: { txHash?: string }) => ({ hash: r.txHash ?? '0xmined' }),
 }))
@@ -390,5 +395,100 @@ describe('semantic request USD denomination with a selected token', () => {
         const payload = mockCreateCharge.mock.calls[0][0]
         expect(Number(payload.tokenAmount)).toBe(0.004)
         expect(payload.currencyAmount).toBe('10')
+    })
+})
+
+/**
+ * A request sent with no amount (TASK-22123): the requestee types one, and it
+ * is set on the charge before any money moves, because every payment path
+ * reads the amount from the charge.
+ */
+describe('open-amount requests', () => {
+    const ARB_USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ctx.charge = {
+            ...originalCharge,
+            chainId: '42161',
+            tokenAmount: null,
+            openAmount: true,
+            requestLink: { ...originalCharge.requestLink },
+        } as unknown as typeof originalCharge
+        ctx.currentView = 'INITIAL'
+        ctx.chargeIdFromUrl = null
+        // the field holds "12." while the requestee is still typing
+        ctx.amount = '12.'
+        ctx.usdAmount = ''
+        ctx.isTokenDenominated = false
+        ctx.urlToken = null
+        ctx.recipient.recipientType = 'USERNAME'
+        ctx.recipient.resolvedAddress = originalCharge.requestLink.recipientAddress
+        mockTokenSelection.selectedChainID = '42161'
+        mockTokenSelection.selectedTokenAddress = ARB_USDC
+        mockTokenSelection.selectedTokenData = {
+            address: ARB_USDC,
+            chainId: '42161',
+            decimals: 6,
+            symbol: 'USDC',
+            price: 1,
+        }
+        mockSetChargeAmount.mockResolvedValue(undefined)
+        mockSendMoney.mockResolvedValue({ txHash: '0xmined' })
+    })
+
+    it('sets the typed amount on the charge, then pays that amount', async () => {
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment()).toEqual({ success: true })
+        })
+        expect(mockSetChargeAmount).toHaveBeenCalledWith('charge-1', '12')
+        expect(mockSetChargeAmount.mock.invocationCallOrder[0]).toBeLessThan(mockSendMoney.mock.invocationCallOrder[0])
+        expect(mockSendMoney).toHaveBeenCalledWith(originalCharge.requestLink.recipientAddress, '12', {
+            kind: 'REQUEST_PAY',
+            chargeId: 'charge-1',
+        })
+        expect(ctx.setCharge).toHaveBeenCalledWith(
+            expect.objectContaining({ tokenAmount: '12', currencyAmount: '12', openAmount: true })
+        )
+        expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ chargeId: 'charge-1' }))
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+    })
+
+    it('moves no money when the amount cannot be set', async () => {
+        mockSetChargeAmount.mockRejectedValue(new Error('This request can no longer be changed'))
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment()).toEqual({ success: false })
+        })
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+
+    it('opens a fetched open-amount charge on the amount view, not the confirm', async () => {
+        const fetched = { ...ctx.charge, fulfillmentPayment: null }
+        ctx.charge = null
+        ctx.chargeIdFromUrl = 'charge-1'
+        ctx.currentView = 'CONFIRM'
+        mockFetchCharge.mockResolvedValue(fetched)
+        renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {})
+        expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
+        expect(ctx.setCurrentView).toHaveBeenCalledWith('INITIAL')
+    })
+
+    it('leaves a fixed-amount charge as it is', async () => {
+        ctx.charge = { ...originalCharge, chainId: '42161', requestLink: { ...originalCharge.requestLink } }
+        ctx.amount = '10'
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            await result.current.handlePayment()
+        })
+        expect(mockSetChargeAmount).not.toHaveBeenCalled()
+        expect(mockSendMoney).toHaveBeenCalledWith(originalCharge.requestLink.recipientAddress, '10', {
+            kind: 'REQUEST_PAY',
+            chargeId: 'charge-1',
+        })
     })
 })

@@ -782,12 +782,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         telemetry.stage('lock_ready', { outcome: 'success' })
 
         setLoadingState('Preparing transaction')
-        // Routing picks the funding SOURCE; execution runs on the mixed
-        // pipeline whenever collateral is involved (even a fully-collateral
-        // payment from an empty smart account), because that is the route with
-        // a durable reservation and definitive failure codes — so a late
-        // controller rotation is recoverable on this same lock. Cost: the
-        // passkey fallback is two taps, one where the ephemeral path is on.
+        // Direct collateral funding needs one admin signature. Mixed funding
+        // combines both balances and also needs a UserOp signature.
         // Same terms on a recovery re-sign: only the prep and the signature are
         // fresh — amount, recipient and the payment lock below are not.
         // Signing has only begun once the engine reports its preparation done

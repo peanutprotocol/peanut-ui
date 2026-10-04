@@ -3205,8 +3205,7 @@
                                                     }
                                                 },
                                                 "required": [
-                                                    "pricing_type",
-                                                    "local_price"
+                                                    "pricing_type"
                                                 ],
                                                 "type": "object"
                                             },
@@ -3343,8 +3342,7 @@
                                                     }
                                                 },
                                                 "required": [
-                                                    "pricing_type",
-                                                    "local_price"
+                                                    "pricing_type"
                                                 ],
                                                 "type": "object"
                                             },
@@ -3481,8 +3479,7 @@
                                                     }
                                                 },
                                                 "required": [
-                                                    "pricing_type",
-                                                    "local_price"
+                                                    "pricing_type"
                                                 ],
                                                 "type": "object"
                                             },
@@ -3585,6 +3582,45 @@
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/charges/{chargeId}/amount": {
+            "patch": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "chargeId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "amount": {
+                                        "pattern": "^\\d{1,12}(\\.\\d{1,6})?$",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "amount"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
                 "responses": {
                     "200": {
                         "description": "Default Response"

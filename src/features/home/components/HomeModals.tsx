@@ -3,10 +3,11 @@
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useNotifications } from '@/hooks/useNotifications'
+import { offerPushPrompt, useNotifications } from '@/hooks/useNotifications'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -34,7 +35,7 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
  * post-signup, and balance warning.
  */
 export function HomeModals() {
-    const { showPermissionModal } = useNotifications()
+    const { showPermissionModal, oneSignalInitialized } = useNotifications()
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user } = useAuth()
@@ -50,6 +51,12 @@ export function HomeModals() {
     useEffect(() => {
         if (showMigrationModal) setIsPostSignupActionModalVisible(false)
     }, [showMigrationModal])
+
+    // the context-free push ask, for users no money moment reached; it waits
+    // for the third session and its own snooze (see offerPushPrompt)
+    useEffect(() => {
+        if (oneSignalInitialized) void offerPushPrompt(PUSH_PROMPT_TRIGGERS.HOME_FALLBACK)
+    }, [oneSignalInitialized])
 
     // balance warning: only when balance is above threshold, unseen recently,
     // and no higher-priority modal is active
