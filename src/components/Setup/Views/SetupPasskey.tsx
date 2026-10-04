@@ -249,6 +249,7 @@ const SetupPasskey = () => {
     // re-auth guard then bounces back to /setup).
     useEffect(() => {
         if (address && registrationInitiatedRef.current) {
+            registrationInitiatedRef.current = false
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
             handleNext()
         }

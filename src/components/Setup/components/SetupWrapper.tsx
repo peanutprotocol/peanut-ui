@@ -1,3 +1,4 @@
+import OnboardingAnimation from './OnboardingAnimation'
 import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
@@ -268,7 +269,14 @@ const ImageSection = ({
 
     const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-    const imageKey = 'pose' in image ? image.pose : 'scene' in image ? image.scene : image.src
+    const imageKey =
+        'pose' in image
+            ? image.pose
+            : 'scene' in image
+              ? image.scene
+              : 'animation' in image
+                ? image.animation
+                : image.src
     const illustration =
         'pose' in image ? (
             <PeanutMascot
@@ -291,6 +299,8 @@ const ImageSection = ({
                 }
                 mascotClassName={image.scene === 'coins' ? 'h-56 md:h-64' : undefined}
             />
+        ) : 'animation' in image ? (
+            <OnboardingAnimation name={image.animation} />
         ) : (
             <Image
                 src={image.src}

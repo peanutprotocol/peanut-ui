@@ -142,6 +142,17 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
+    it('hands successful signup to celebration without consuming the saved destination', async () => {
+        const onComplete = jest.fn()
+        setRedirectUrl('/receipt?id=abc')
+        renderWithIntl(<SignTestTransaction onComplete={onComplete} />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+    })
+
     it('captures a Preferences-only journey after restart before clearing its native context', async () => {
         const order: string[] = []
         mockReadSignupAttributionAsync.mockResolvedValue({

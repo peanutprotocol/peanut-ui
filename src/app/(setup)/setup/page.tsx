@@ -61,7 +61,7 @@ function SetupPageContent() {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, setNoBackLockScreenId, setSignupEntryFlow } = useSetupFlowContext()
+    const { steps, setNoBackLockScreenId, setSignupEntryFlow, setSignupCompleted } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
     useEffect(() => {
         const nextImage = steps[currentStepIndex + 1]?.image
@@ -517,7 +517,16 @@ function SetupPageContent() {
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}
         >
-            <step.component />
+            <step.component
+                onComplete={
+                    step.screenId === 'sign-test-transaction'
+                        ? () => {
+                              setSignupCompleted(true)
+                              setScreenId('success')
+                          }
+                        : undefined
+                }
+            />
         </SetupWrapper>
     )
 }

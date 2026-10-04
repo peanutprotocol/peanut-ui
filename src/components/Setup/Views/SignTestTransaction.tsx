@@ -58,7 +58,7 @@ export function AccountReadyView({
     )
 }
 
-const SignTestTransaction = () => {
+const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { address, handleSendUserOpEncoded } = useZeroDev()
@@ -93,12 +93,11 @@ const SignTestTransaction = () => {
     }
 
     const completeSignup = async () => {
-        creatingAccountRef.current = false
         console.log('[SignTestTransaction] Account setup complete')
         // The final passkey confirmation has succeeded and the account exists.
-        // Fire while this screen is still visible; the shared canvas carries
-        // the burst through the immediate client-side redirect.
-        if (!completionCelebratedRef.current) {
+        // The finish route redirects immediately; setup celebrates on its
+        // dedicated final screen after the completion callback.
+        if (!onComplete && !completionCelebratedRef.current) {
             completionCelebratedRef.current = true
             confettiPresets.celebration()
         }
@@ -157,7 +156,12 @@ const SignTestTransaction = () => {
         // Completion is terminal for this screen. Keep both loading states
         // active until navigation unmounts it so a slow route transition
         // cannot expose a second completion attempt.
-        redirectToAccount()
+        if (onComplete) {
+            // Keep the account-exists effect from consuming the saved destination
+            // before the user leaves the dedicated celebration screen.
+            redirectingRef.current = true
+            onComplete()
+        } else redirectToAccount()
     }
 
     // ensure user is fetched when component mounts (important for new signups)

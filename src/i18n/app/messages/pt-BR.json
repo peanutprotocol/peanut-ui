@@ -716,8 +716,8 @@
                 "description": "Convide amigos e desbloqueie recompensas quando eles usarem o Peanut."
             },
             "passkey-permission": {
-                "title": "Vamos configurar uma passkey",
-                "description": "Use seu rosto ou sua digital para entrar. Sem senhas, sem complicação. Só você."
+                "title": "Só você tem o controle.",
+                "description": "Sua passkey coloca você no controle. Use seu rosto, impressão digital ou bloqueio de tela para acessar seu dinheiro e aprovar pagamentos."
             },
             "advantage-control": {
                 "title": "Seu dinheiro fica nas suas mãos.",
@@ -726,6 +726,30 @@
             "sign-test-transaction": {
                 "title": "Conta pronta",
                 "description": "É só confirmar que é você — um toque e pronto."
+            },
+            "advantage-card": {
+                "title": "Um cartão rosa para o seu dia a dia.",
+                "description": "Use seu saldo da Peanut online e em lojas. Disponível após verificar sua identidade, em países compatíveis."
+            },
+            "advantage-bank": {
+                "title": "Contas bancárias que viajam com você.",
+                "description": "Receba transferências bancárias em dólares e euros e use seu saldo com a Peanut. Disponível após verificar sua identidade, onde houver suporte."
+            },
+            "advantage-fees": {
+                "title": "Diga adeus às mensalidades.",
+                "description": "Mantenha sua conta da Peanut sem mensalidade. Confira qualquer tarifa de pagamento ou serviço antes de confirmar."
+            },
+            "notification-email": {
+                "title": "Suas novidades importantes, em um só lugar",
+                "description": "Adicione seu e-mail para não perder pagamentos nem notícias importantes da sua conta. Você escolhe quais notificações receber."
+            },
+            "notification-permission": {
+                "title": "Acompanhe seu dinheiro.",
+                "description": "Saiba quando receber dinheiro, um pagamento for concluído ou sua conta precisar de atenção."
+            },
+            "success": {
+                "title": "Tudo pronto!",
+                "description": "Sua conta da Peanut está pronta. Hora de deixá-la com a sua cara."
             }
         },
         "existingSession": {
@@ -927,6 +951,25 @@
             "laterTitle": "Para pagamentos bancários ou um cartão",
             "laterBody": "Vai ser preciso verificar sua identidade: alguns minutos, ou de 1 a 3 dias úteis se alguém revisar com calma.",
             "cta": "Ir para a conta"
+        },
+        "email": {
+            "label": "E-mail",
+            "placeholder": "voce@exemplo.com",
+            "continue": "Continuar",
+            "invalid": "Digite um e-mail válido.",
+            "notReady": "Sua conta ainda está carregando. Tente novamente em instantes.",
+            "saveFailed": "Não foi possível salvar seu e-mail. Tente novamente.",
+            "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações."
+        },
+        "notifications": {
+            "pushLabel": "Notificações push do app",
+            "pushDescription": "Novidades direto no seu celular.",
+            "emailLabel": "Notificações por e-mail",
+            "emailDescription": "Novidades na sua caixa de entrada.",
+            "continue": "Continuar",
+            "permissionHint": "Se o push estiver ativado, seu dispositivo pedirá permissão para enviar notificações.",
+            "pushUnavailable": "As notificações push ainda não estão prontas. Tente novamente ou desative o push para continuar.",
+            "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
         }
     },
     "loadingStates": {

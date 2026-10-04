@@ -1,13 +1,22 @@
+import type { OnboardingAnimationName } from './components/OnboardingAnimation'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { PeanutMascotSceneName } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 
 /** A setup screen leads with a still, an animated pose, or a composed mascot scene. */
-export type SetupIllustration = { src: string } | { pose: MascotPose } | { scene: PeanutMascotSceneName }
+export type SetupIllustration =
+    | { src: string }
+    | { pose: MascotPose }
+    | { scene: PeanutMascotSceneName }
+    | { animation: OnboardingAnimationName }
 
 export type ScreenId =
     | 'landing'
     | 'welcome'
     | 'signup'
+    | 'advantage-card'
+    | 'advantage-bank'
+    | 'advantage-fees'
+    | 'notification-email'
     | 'advantage-payments'
     | 'residence'
     | 'advantage-rewards'
@@ -26,6 +35,10 @@ export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    'advantage-card': undefined
+    'advantage-bank': undefined
+    'advantage-fees': undefined
+    'notification-email': undefined
     'advantage-payments': undefined
     residence: undefined
     'advantage-rewards': undefined
@@ -43,6 +56,7 @@ export type ScreenProps = {
 }
 
 export interface StepComponentProps {
+    onComplete?: () => void
     handle?: string
 }
 

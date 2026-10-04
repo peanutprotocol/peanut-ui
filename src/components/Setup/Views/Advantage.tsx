@@ -13,7 +13,9 @@ const AdvantageStep = () => {
             ? 'cta.payments'
             : step?.screenId === 'advantage-rewards'
               ? 'cta.rewards'
-              : 'cta.control'
+              : step?.screenId === 'advantage-control'
+                ? 'cta.control'
+                : 'next'
 
     return (
         <Button size="large" className="w-full" shadowSize="4" loading={isLoading} onClick={() => handleNext()}>

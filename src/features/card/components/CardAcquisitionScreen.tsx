@@ -10,7 +10,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import NavHeader from '@/components/Global/NavHeader'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
@@ -126,14 +127,14 @@ export function CardAcquisitionScreen({
                     <ListItem
                         title={tAdd('methods.bankTransfer')}
                         body={tAdd('methods.bankTransferDescription')}
-                        leading={<Icon name="bank" size={24} />}
+                        leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                         chevron
                         onClick={() => router.push(withReturnTo('/add-money?method=bank', '/card?card_step=funding'))}
                     />
                     <ListItem
                         title={tAdd('methods.crypto')}
                         body={tAdd('methods.cryptoDescription')}
-                        leading={<Icon name="coins" size={24} />}
+                        leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                         chevron
                         onClick={() => router.push(withReturnTo('/add-money/crypto', '/card?card_step=funding'))}
                     />

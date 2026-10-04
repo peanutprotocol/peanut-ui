@@ -2,7 +2,16 @@ import { serverFetch } from '@/utils/api-fetch'
 
 // the in-app notifications PAGE is gone; what stays is the unread badge and
 // mark-read plumbing the support drawer and bottom nav rely on
+export type NotificationPreferences = { push: boolean; email: boolean }
+
 export const notificationsApi = {
+    async savePreferences(preferences: NotificationPreferences): Promise<void> {
+        const response = await serverFetch('/notifications/preferences', {
+            method: 'PUT',
+            body: JSON.stringify(preferences),
+        })
+        if (!response.ok) throw new Error('Could not save notification preferences')
+    },
     /** Pass a category (e.g. 'support') to count only that category's unread rows. */
     async unreadCount(category?: string): Promise<{ count: number }> {
         const query = category ? `?category=${encodeURIComponent(category)}` : ''

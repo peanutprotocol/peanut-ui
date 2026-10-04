@@ -169,16 +169,22 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
-    it('places a tracked benefit step between each setup action', () => {
+    it('keeps email and notification choices after passkey creation and celebrates last', () => {
         expect(setupScreenIds).toEqual([
             'landing',
             'signup',
             'advantage-payments',
+            'advantage-card',
             'residence',
+            'advantage-bank',
             'advantage-rewards',
+            'advantage-fees',
             'passkey-permission',
+            'notification-email',
+            'notification-permission',
             'advantage-control',
             'sign-test-transaction',
+            'success',
         ])
     })
 

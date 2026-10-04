@@ -716,8 +716,8 @@
                 "description": "Invite friends and unlock rewards as they use Peanut."
             },
             "passkey-permission": {
-                "title": "Let's set up a passkey",
-                "description": "Use your face or fingerprint to log in. No passwords, no hassle. Just you."
+                "title": "Controlled only by you.",
+                "description": "Your passkey keeps you in control. Use your face, fingerprint, or screen lock to access your money and approve payments."
             },
             "advantage-control": {
                 "title": "Your money stays in your hands.",
@@ -726,6 +726,30 @@
             "sign-test-transaction": {
                 "title": "Account ready",
                 "description": "Just confirm it's you — one tap and you're in."
+            },
+            "advantage-card": {
+                "title": "A pink card for your everyday.",
+                "description": "Spend your Peanut balance online and in stores. Available after an ID check, in supported countries."
+            },
+            "advantage-bank": {
+                "title": "Bank accounts that travel with you.",
+                "description": "Receive bank transfers in dollars and euros, then use your balance with Peanut. Available after an ID check, where supported."
+            },
+            "advantage-fees": {
+                "title": "Say goodbye to monthly fees.",
+                "description": "No monthly fee to keep your Peanut account. See any payment or service fees before you confirm."
+            },
+            "notification-email": {
+                "title": "Your important updates, in one place",
+                "description": "Add your email so you don’t miss payments or important account news. You choose which notifications to receive."
+            },
+            "notification-permission": {
+                "title": "Keep track of your money.",
+                "description": "Know when money arrives, a payment goes through, or your account needs attention."
+            },
+            "success": {
+                "title": "You’re all set!",
+                "description": "Your Peanut account is ready. Time to make it yours."
             }
         },
         "existingSession": {
@@ -927,6 +951,25 @@
             "laterTitle": "For bank payments or a card",
             "laterBody": "An ID check will be required — a few minutes, or 1–3 business days if a reviewer takes a thorough look.",
             "cta": "Go to account"
+        },
+        "email": {
+            "label": "Email address",
+            "placeholder": "you@example.com",
+            "continue": "Continue",
+            "invalid": "Enter a valid email address.",
+            "notReady": "Your account is still loading. Try again in a moment.",
+            "saveFailed": "We couldn’t save your email. Please try again.",
+            "accessHint": "Your passkey controls account access. Your email is for notifications."
+        },
+        "notifications": {
+            "pushLabel": "App push notifications",
+            "pushDescription": "Updates straight to your phone.",
+            "emailLabel": "Email notifications",
+            "emailDescription": "Updates delivered to your inbox.",
+            "continue": "Continue",
+            "permissionHint": "If push is on, your device will ask you to allow notifications.",
+            "pushUnavailable": "Push notifications aren’t ready yet. Try again, or turn push off to continue.",
+            "saveFailed": "We couldn’t save your settings. Please try again."
         }
     },
     "loadingStates": {

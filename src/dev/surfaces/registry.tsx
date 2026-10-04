@@ -1,5 +1,7 @@
 'use client'
 
+import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
  * each mounted open so the visual-shot harness can photograph it.
@@ -193,6 +195,34 @@ export const SURFACES: Record<string, Surface> = {
     '07-a-setuppasskey': {
         ...SURFACE_META['07-a-setuppasskey'],
         render: () => <SetupScreen screenId="passkey-permission" />,
+    },
+    '02-b-advantage-card': {
+        ...SURFACE_META['02-b-advantage-card'],
+        render: () => <SetupScreen screenId="advantage-card" />,
+    },
+    '03-b-advantage-bank': {
+        ...SURFACE_META['03-b-advantage-bank'],
+        render: () => <SetupScreen screenId="advantage-bank" />,
+    },
+    '04-b-advantage-fees': {
+        ...SURFACE_META['04-b-advantage-fees'],
+        render: () => <SetupScreen screenId="advantage-fees" />,
+    },
+    '07-c-notification-email': {
+        ...SURFACE_META['07-c-notification-email'],
+        render: () => <SetupScreen screenId="notification-email" />,
+    },
+    '07-d-notification-settings': {
+        ...SURFACE_META['07-d-notification-settings'],
+        render: () => <SetupScreen screenId="notification-permission" />,
+    },
+    '07-e-setup-celebration': {
+        ...SURFACE_META['07-e-setup-celebration'],
+        render: () => (
+            <SetupScreen screenId="success">
+                <SetupCelebrationView onContinue={noop} />
+            </SetupScreen>
+        ),
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],

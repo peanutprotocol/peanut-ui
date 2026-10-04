@@ -18,6 +18,12 @@ type ManualInvite = { code: string; previousCode: string; previousType: EInviteT
  * clamps (TASK-21404).
  */
 interface SetupFlowContextType {
+    notificationEmail: string
+    setNotificationEmail: (email: string) => void
+    notificationChoices: { push: boolean; email: boolean }
+    setNotificationChoices: (choices: { push: boolean; email: boolean }) => void
+    signupCompleted: boolean
+    setSignupCompleted: (completed: boolean) => void
     /** Unfiltered setup order, injected by the registry owner. */
     masterScreenIds: readonly ScreenId[]
     steps: ISetupStep[]
@@ -58,6 +64,9 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     children,
     masterScreenIds,
 }) => {
+    const [notificationEmail, setNotificationEmail] = useState('')
+    const [notificationChoices, setNotificationChoices] = useState({ push: true, email: true })
+    const [signupCompleted, setSignupCompleted] = useState(false)
     const [steps, setSteps] = useState<ISetupStep[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
@@ -93,6 +102,9 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     // mounted through the logout, so the typed state clears explicitly
     const resetSetupFlow = useCallback(() => {
         setIsLoading(false)
+        setNotificationEmail('')
+        setNotificationChoices({ push: true, email: true })
+        setSignupCompleted(false)
         setDirection(0)
         setUsername('')
         setInviterUsername('')
@@ -104,6 +116,12 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
 
     const value = useMemo(
         () => ({
+            notificationEmail,
+            setNotificationEmail,
+            notificationChoices,
+            setNotificationChoices,
+            signupCompleted,
+            setSignupCompleted,
             masterScreenIds,
             steps,
             setSteps,
@@ -128,6 +146,9 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             resetSetupFlow,
         }),
         [
+            notificationEmail,
+            notificationChoices,
+            signupCompleted,
             masterScreenIds,
             steps,
             isLoading,
