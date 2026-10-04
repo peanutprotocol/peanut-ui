@@ -329,8 +329,8 @@ const ImageSection = ({
                         priority={index === 0}
                     />
                 ))}
-                {/* animated clouds background */}
-                <CloudsBackground minimal />
+                {/* Keep clouds on the landing screen so later illustrations stay clear. */}
+                {screenId === 'landing' && <CloudsBackground minimal />}
                 {animatedIllustration}
                 {step !== undefined && totalSteps !== undefined && totalSteps > 0 && step >= 0 && step < totalSteps && (
                     <CarouselDots
