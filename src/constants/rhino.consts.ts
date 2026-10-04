@@ -28,16 +28,6 @@ export const OTHER_SUPPORTED_CHAINS = CHAIN_REGISTRY.filter((c) => c.family !== 
     (c) => c.displayName as RegistryChainName
 )
 
-/** Rhino-supported chains with their logos */
-export const RHINO_SUPPORTED_CHAINS = (Object.keys(CHAIN_LOGOS) as ChainName[]).map((name) => ({
-    name,
-    logoUrl: CHAIN_LOGOS[name],
-}))
-
-export const RHINO_SUPPORTED_EVM_CHAINS = RHINO_SUPPORTED_CHAINS.filter((chain) =>
-    (SUPPORTED_EVM_CHAINS as readonly string[]).includes(chain.name)
-)
-
 export const NETWORK_LABELS: Record<RhinoChainType, string> = {
     EVM: 'EVM',
     SOL: 'Solana',
