@@ -3197,7 +3197,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 1,
         status: 'variant',
         source: 'src/components/AddMoney/components/OnrampConfirmationModal.tsx',
-        notes: 'The slide-to-confirm recipe is now shared — all five confirm modals use 0_Bruddle/SlideToConfirm (7 call sites). What is left is colour drift: bg-yellow-400 here vs bg-yellow-1 in TokenAndNetwork vs bg-background-icon-bubble-yellow in the Card modals.',
+        notes: 'The slide-to-confirm recipe is now shared — every confirm modal uses 0_Bruddle/SlideToConfirm (6 call sites). What is left is colour drift: bg-yellow-400 here vs bg-background-icon-bubble-yellow in the Card modals.',
     },
     {
         name: 'PerkClaimDrawer',
