@@ -182,7 +182,7 @@ describe('SetupWrapper transitions', () => {
         expect(container.querySelector('[data-mascot-scene="safe"]')).not.toHaveClass('h-64')
     })
 
-    it('updates the older Android status bar to the destination color', async () => {
+    it('keeps the older Android status bar blue throughout setup', async () => {
         jest.useFakeTimers()
         mockCapacitor.value = true
         mockReducedMotion.value = false
@@ -222,7 +222,7 @@ describe('SetupWrapper transitions', () => {
                 jest.advanceTimersByTime(220)
                 await Promise.resolve()
             })
-            expect(mockSetBackgroundColor).toHaveBeenLastCalledWith({ color: '#ff90e8' })
+            expect(mockSetBackgroundColor).toHaveBeenLastCalledWith({ color: '#90a8ed' })
         } finally {
             mockCapacitor.value = false
             mockReducedMotion.value = true
@@ -232,7 +232,7 @@ describe('SetupWrapper transitions', () => {
         }
     })
 
-    it('blends the hero from blue to pink across the journey and reverses on Back', () => {
+    it('keeps the original blue hero throughout the journey and on Back', () => {
         const { container, rerender } = renderWithIntl(
             <SetupWrapper
                 layoutType="signup"
@@ -246,7 +246,7 @@ describe('SetupWrapper transitions', () => {
         )
         const hero = container.querySelector('.setup-hero-background')
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
-            'color-mix(in oklab, var(--color-background-setup-hero) 100%, var(--color-action-primary))'
+            'var(--color-background-setup-hero)'
         )
         expect(hero).toHaveClass('transition-colors', 'motion-reduce:transition-none')
 
@@ -257,7 +257,7 @@ describe('SetupWrapper transitions', () => {
         )
         expect(container.querySelector('.setup-hero-background')).toBe(hero)
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
-            'color-mix(in oklab, var(--color-background-setup-hero) 60%, var(--color-action-primary))'
+            'var(--color-background-setup-hero)'
         )
 
         rerender(
@@ -272,7 +272,7 @@ describe('SetupWrapper transitions', () => {
             </SetupWrapper>
         )
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
-            'color-mix(in oklab, var(--color-background-setup-hero) 0%, var(--color-action-primary))'
+            'var(--color-background-setup-hero)'
         )
 
         rerender(
@@ -287,11 +287,11 @@ describe('SetupWrapper transitions', () => {
             </SetupWrapper>
         )
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
-            'color-mix(in oklab, var(--color-background-setup-hero) 100%, var(--color-action-primary))'
+            'var(--color-background-setup-hero)'
         )
     })
 
-    it('uses pink on the standalone finish route without a step cursor', () => {
+    it('uses blue on the standalone finish route without a step cursor', () => {
         const { container } = renderWithIntl(
             <SetupWrapper layoutType="signup" screenId="sign-test-transaction" image={{ pose: 'waving-chill' }}>
                 <div>Finish</div>
@@ -299,7 +299,7 @@ describe('SetupWrapper transitions', () => {
         )
         expect(container.querySelector('.setup-hero-background')).toBeInTheDocument()
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
-            'color-mix(in oklab, var(--color-background-setup-hero) 0%, var(--color-action-primary))'
+            'var(--color-background-setup-hero)'
         )
     })
 

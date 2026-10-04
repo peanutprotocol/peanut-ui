@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -45,25 +47,25 @@ export default function NotificationsStep() {
     }
     return (
         <div className="flex w-full flex-col gap-6">
-            <div className="flex flex-col gap-4">
+            <Card className="divide-y divide-dashed divide-border-default px-4">
                 {(['push', 'email'] as const).map((channel) => (
-                    <div key={channel} className="flex items-center justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-label-l">{t(`${channel}Label`)}</span>
-                            <p className="text-body-xs text-foreground-secondary">{t(`${channel}Description`)}</p>
-                        </div>
-                        <Toggle
-                            aria-label={t(`${channel}Label`)}
-                            checked={notificationChoices[channel]}
-                            onChange={(value) => {
-                                setNotificationChoices({ ...notificationChoices, [channel]: value })
-                                setError(undefined)
-                            }}
-                            disabled={saving}
-                        />
-                    </div>
+                    <DataRow
+                        key={channel}
+                        label={t(`${channel}Label`)}
+                        value={
+                            <Toggle
+                                aria-label={t(`${channel}Label`)}
+                                checked={notificationChoices[channel]}
+                                onChange={(value) => {
+                                    setNotificationChoices({ ...notificationChoices, [channel]: value })
+                                    setError(undefined)
+                                }}
+                                disabled={saving}
+                            />
+                        }
+                    />
                 ))}
-            </div>
+            </Card>
             {error && <Callout priority="error">{error}</Callout>}
             <Button onClick={save} shadowSize="4" loading={saving} disabled={saving}>
                 {t('continue')}
