@@ -3493,13 +3493,6 @@
             "copyErrorToast": "Não foi possível copiar o link.",
             "pasteHint": "Depois cole no seu navegador preferido."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Envie apenas tokens compatíveis em redes compatíveis",
-            "warning": "Enviar o token errado ou usar a rede errada vai resultar em perda permanente.",
-            "supportedNetworks": "Redes compatíveis",
-            "supportedTokens": "Tokens compatíveis",
-            "slideToProceed": "Deslize e continue"
-        },
         "rainCooldownIntroModal": {
             "title": "Aguarde um momento",
             "description": "Seu cartão precisa de um breve intervalo entre gastos seguidos. Para evitar isso no futuro, você pode baixar o limite do cartão para menos que o saldo da sua wallet; o restante fica sempre disponível.",
