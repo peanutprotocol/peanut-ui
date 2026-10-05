@@ -14,6 +14,7 @@ const loaders = {
     notifications: () => import('@/assets/onboarding/notifications.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
+const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = { bank: 40, email: 40, fees: 32 }
 
 /** Onboarding lab vectors plus the matching documents and email illustrations. */
 export default function OnboardingAnimation({
@@ -31,8 +32,8 @@ export default function OnboardingAnimation({
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
         const play = () => {
             if (!animation) return
-            // Keep the zero-total receipt visible without playing its printing loop.
-            if (reducedMotion.matches) animation.goToAndStop(name === 'fees' ? 32 : 0, true)
+            // Show the completed objects instead of blank paper or a closed envelope.
+            if (reducedMotion.matches) animation.goToAndStop(REDUCED_MOTION_FRAMES[name] ?? 0, true)
             else if (document.hidden) animation.pause()
             else animation.play()
         }
