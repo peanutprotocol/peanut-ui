@@ -177,6 +177,7 @@ describe('useSetupFlow (URL stepper)', () => {
             'advantage-card',
             'residence',
             'advantage-bank',
+            'funding-methods',
             'passkey-permission',
             'notification-email',
             'notification-permission',

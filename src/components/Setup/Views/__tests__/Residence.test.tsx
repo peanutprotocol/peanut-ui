@@ -6,7 +6,7 @@
  * the multi-doc link reveals a second selector, restricted residences
  * (CN/IR/RU/BY/GB) get the generic heads-up before handleNext can run,
  * unrestricted residences get the congrats screen before handleNext can run,
- * and the notify exit validates the email before capturing it.
+ * and residence outcomes respect the same eligibility data.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
@@ -105,7 +105,7 @@ describe('ResidenceStep', () => {
     it('reveals the second selector via the multi-doc link', () => {
         render(<ResidenceStep />)
         expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        fireEvent.click(screen.getByText('Have residence in more than one country?'))
         expect(screen.getByPlaceholderText('Second country')).toBeInTheDocument()
     })
 
@@ -114,7 +114,7 @@ describe('ResidenceStep', () => {
         // persisted after signup — collapsing must clear the stored pick.
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        const toggle = screen.getByRole('button', { name: /Have documents from more than one country/ })
+        const toggle = screen.getByRole('button', { name: /Have residence in more than one country/ })
         expect(toggle).toHaveAttribute('aria-expanded', 'true')
         fireEvent.click(toggle)
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
@@ -124,7 +124,7 @@ describe('ResidenceStep', () => {
 
     it('opening the selector clears nothing', () => {
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: /Have documents from more than one country/ }))
+        fireEvent.click(screen.getByRole('button', { name: /Have residence in more than one country/ }))
         expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
     })
 
@@ -185,7 +185,7 @@ describe('ResidenceStep', () => {
         expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         view.rerender(<ResidenceStep />)
-        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        fireEvent.click(screen.getByText('Have residence in more than one country?'))
         fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
         mockSetupState = { residenceCountry: 'DE', secondResidenceCountry: '' }
         view.rerender(<ResidenceStep />)
@@ -309,7 +309,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Good news')).not.toBeInTheDocument()
-        expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
+        expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
     })
 
     // TASK-23054 R1: HK was restricted for a Sumsub document rule, which never
@@ -410,40 +410,13 @@ describe('ResidenceStep', () => {
         expect(mockHandleNext).toHaveBeenCalled()
     })
 
-    it('captures a valid email on the notify exit and rejects an invalid one', () => {
-        mockSetupState.residenceCountry = 'RU'
-        render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        fireEvent.click(screen.getByRole('button', { name: 'Notify me when it is available' }))
-
-        const input = screen.getByPlaceholderText('you@example.com')
-        fireEvent.change(input, { target: { value: 'not-an-email' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Notify me' }))
-        expect(screen.getByText('Please enter a valid email address')).toBeInTheDocument()
-        expect(mockedCapture).not.toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_NOTIFY_SUBMITTED,
-            expect.anything()
-        )
-
-        fireEvent.change(input, { target: { value: 'nomad@example.com' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Notify me' }))
-        expect(mockedCapture).toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_NOTIFY_SUBMITTED,
-            expect.objectContaining({ residence_country: 'RU' })
-        )
-        expect(posthog.setPersonProperties).toHaveBeenCalledWith(
-            expect.objectContaining({ residence_notify_email: 'nomad@example.com' })
-        )
-        expect(screen.getByText("Got it. We'll email you when it's available.")).toBeInTheDocument()
-    })
-
     it('returns to the selector from the heads-up', () => {
         mockSetupState.residenceCountry = 'CN'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
-        expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
+        expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
     })
 
     describe('stepping back into the step', () => {
@@ -494,7 +467,7 @@ describe('ResidenceStep', () => {
             })
             expect(consumed).toBe(true)
             expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
-            expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
+            expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
         })
 
         it('returns to the selector from the congrats view', () => {

@@ -237,6 +237,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['02-b-advantage-card'],
         render: () => <SetupScreen screenId="advantage-card" />,
     },
+    '03-d-funding-methods': {
+        ...SURFACE_META['03-d-funding-methods'],
+        render: () => <SetupScreen screenId="funding-methods" />,
+    },
     '03-b-advantage-bank': {
         ...SURFACE_META['03-b-advantage-bank'],
         render: () => <SetupScreen screenId="advantage-bank" />,

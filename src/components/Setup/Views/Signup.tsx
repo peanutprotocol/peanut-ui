@@ -1,4 +1,5 @@
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
@@ -201,8 +202,8 @@ const SignupStep = () => {
 
     return (
         <>
-            <div className="flex h-full flex-col justify-between gap-10 md:pt-6">
-                <div className="mb-auto flex w-full flex-col gap-4">
+            <div className="flex h-full flex-1 flex-col justify-between gap-6">
+                <div className="flex w-full flex-1 flex-col justify-center gap-4">
                     <div className="flex flex-col gap-1">
                         <div
                             className="relative"
@@ -292,25 +293,29 @@ const SignupStep = () => {
                             </motion.div>
                         )}
                     </AnimatePresence>
-
-                    <Button
-                        size="medium"
-                        className="w-full"
-                        loading={isLoading}
-                        shadowSize="4"
-                        onClick={onNext}
-                        disabled={
-                            !isValid ||
-                            isChanging ||
-                            isLoading ||
-                            (showInviterInput && !!toInviteCode(inviterUsername) && (!inviterValid || inviterChanging))
-                        }
-                    >
-                        {t('cta.claimName')}
-                    </Button>
                 </div>
-                <div>
-                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
+                <SetupFooter
+                    actions={
+                        <Button
+                            size="medium"
+                            className="w-full"
+                            loading={isLoading}
+                            shadowSize="4"
+                            onClick={onNext}
+                            disabled={
+                                !isValid ||
+                                isChanging ||
+                                isLoading ||
+                                (showInviterInput &&
+                                    !!toInviteCode(inviterUsername) &&
+                                    (!inviterValid || inviterChanging))
+                            }
+                        >
+                            {t('cta.claimName')}
+                        </Button>
+                    }
+                >
+                    <p className="w-full border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
                                 <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">
@@ -324,7 +329,7 @@ const SignupStep = () => {
                             ),
                         })}
                     </p>
-                </div>
+                </SetupFooter>
             </div>
         </>
     )

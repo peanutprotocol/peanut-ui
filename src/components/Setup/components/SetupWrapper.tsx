@@ -671,6 +671,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             className={twMerge(
                                 'flex w-full flex-1 flex-col justify-between md:flex-none',
                                 contentClassName,
+                                screenId !== 'landing' && 'md:flex-1 md:justify-between',
                                 fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                             )}
                         >
@@ -715,7 +716,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                             <div
                                 className={twMerge(
                                     'mx-auto w-full',
-                                    fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs'
+                                    fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
+                                    screenId !== 'landing' && 'flex flex-1 flex-col'
                                 )}
                             >
                                 <SetupFullScreenContext.Provider value={setFullScreenForScreen}>

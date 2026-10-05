@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useTranslations } from 'next-intl'
 
@@ -18,9 +19,19 @@ const AdvantageStep = () => {
                 : 'next'
 
     return (
-        <Button size="medium" className="w-full" shadowSize="4" loading={isLoading} onClick={() => handleNext()}>
-            {t(cta)}
-        </Button>
+        <SetupFooter
+            actions={
+                <Button
+                    size="medium"
+                    className="w-full"
+                    shadowSize="4"
+                    loading={isLoading}
+                    onClick={() => handleNext()}
+                >
+                    {t(cta)}
+                </Button>
+            }
+        />
     )
 }
 

@@ -1,8 +1,10 @@
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { LinkButton, LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Icon } from '@/components/Global/Icons/Icon'
+import SetupFooter from '../components/SetupFooter'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { updateUserById } from '@/app/actions/users'
@@ -47,14 +49,20 @@ export function SetupConfirmationView({
                 <p className="text-body-s text-foreground-secondary">{t('steps.sign-test-transaction.description')}</p>
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
-            <PageStack.Footer>
-                <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
-                    {buttonText || t('testTransaction.confirmAndFinish')}
-                </Button>
+            <SetupFooter
+                actions={
+                    <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
+                        {buttonText || t('testTransaction.confirmAndFinish')}
+                    </Button>
+                }
+            >
                 <p className="pt-2 text-center text-body-xs text-foreground-secondary">
-                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>{t('passkey.learnMore')}</LinkButton>
+                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
+                        <Icon name="info" size={16} className="shrink-0" />
+                        {t('passkey.learnMore')}
+                    </LinkButton>
                 </p>
-            </PageStack.Footer>
+            </SetupFooter>
             <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
         </PageStack>
     )
@@ -71,6 +79,7 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
         secondResidenceCountry,
         setIsLoading: setSetupLoading,
         signupEntryFlow,
+        fundingMethods,
     } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
@@ -111,6 +120,7 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,
             ...signupAnalyticsContext(signupEntryFlow),
+            funding_methods: fundingMethods,
             ...(signupAttribution
                 ? {
                       signup_journey_id: signupAttribution.journeyId,
@@ -349,7 +359,8 @@ export const PasskeyDocsLink = ({ className }: { className?: string }) => {
             // them as colors and deletes the size (see LinkButton.tsx:40)
             className={`text-body-xs text-foreground-secondary ${twMerge('border-t border-border-subtle pt-2 text-center', className)}`}
         >
-            <SetupDocLink kind="passkeys" href="/en/help/passkeys" className="underline underline-offset-2">
+            <SetupDocLink kind="passkeys" href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
+                <Icon name="info" size={16} className="shrink-0" />
                 {t('passkey.learnMore')}
             </SetupDocLink>{' '}
         </p>

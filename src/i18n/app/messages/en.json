@@ -694,6 +694,16 @@
         }
     },
     "setup": {
+        "choicesLater": "You can update your choices later.",
+        "funding": {
+            "title": "How are you going to fund your account?",
+            "methods": {
+                "bank": "Bank transfer",
+                "cash": "Cash",
+                "crypto": "Crypto",
+                "peanut": "From someone on Peanut"
+            }
+        },
         "steps": {
             "landing": {
                 "title": "Peanut makes dollars easy.",
@@ -810,7 +820,7 @@
         "residenceStep": {
             "countryPlaceholder": "Select country",
             "secondCountryPlaceholder": "Second country",
-            "multiDocLink": "Have documents from more than one country?",
+            "multiDocLink": "Have residence in more than one country?",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
             },
@@ -887,7 +897,7 @@
             "interrupted": "Something interrupted the passkey prompt. Please try again.",
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
             "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
-            "learnMore": "Learn more about what Passkeys are",
+            "learnMore": "Learn more about Passkeys",
             "help": {
                 "titles": {
                     "notReadable": "Passkey Issue",

@@ -694,6 +694,16 @@
         }
     },
     "setup": {
+        "choicesLater": "Puedes cambiar tus opciones más adelante.",
+        "funding": {
+            "title": "¿Cómo vas a agregar dinero a tu cuenta?",
+            "methods": {
+                "bank": "Transferencia bancaria",
+                "cash": "Efectivo",
+                "crypto": "Cripto",
+                "peanut": "De otra persona en Peanut"
+            }
+        },
         "steps": {
             "landing": {
                 "title": "Peanut hace que los dólares sean fáciles.",
@@ -810,7 +820,7 @@
         "residenceStep": {
             "countryPlaceholder": "Selecciona el país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tienes documentos de más de un país?",
+            "multiDocLink": "¿Tienes residencia en más de un país?",
             "errors": {
                 "invalidEmail": "Ingresa un correo electrónico válido"
             },
@@ -887,7 +897,7 @@
             "interrupted": "Algo interrumpió la solicitud de la passkey. Inténtalo de nuevo.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisa tu conexión e inténtalo de nuevo.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",
-            "learnMore": "Aprende más sobre qué son las passkeys",
+            "learnMore": "Aprende más sobre las passkeys",
             "help": {
                 "titles": {
                     "notReadable": "Problema con la passkey",

@@ -1,6 +1,7 @@
 import EmailStep from './Views/Email'
 import NotificationsStep from './Views/Notifications'
 import CompleteSignupStep from './Views/CompleteSignup'
+import FundingStep from './Views/Funding'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { AdvantageStep, SetupPasskey, SignupStep, LandingStep, ResidenceStep } from '@/components/Setup/Views'
 
@@ -65,6 +66,17 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
     },
 
+    {
+        screenId: 'funding-methods',
+        layoutType: 'signup',
+        fullScreen: true,
+        titleInView: true,
+        descriptionInView: true,
+        image: { pose: 'thinking' },
+        component: FundingStep,
+        showBackButton: true,
+        contentClassName: 'flex flex-col gap-6 pt-2',
+    },
     {
         screenId: 'passkey-permission',
         layoutType: 'signup',

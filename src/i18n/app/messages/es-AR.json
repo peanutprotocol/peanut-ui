@@ -403,6 +403,16 @@
         "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda."
     },
     "setup": {
+        "choicesLater": "Podés cambiar tus opciones más adelante.",
+        "funding": {
+            "title": "¿Cómo vas a agregar plata a tu cuenta?",
+            "methods": {
+                "bank": "Transferencia bancaria",
+                "cash": "Efectivo",
+                "crypto": "Cripto",
+                "peanut": "De otra persona en Peanut"
+            }
+        },
         "steps": {
             "landing": {
                 "description": "Creá tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
@@ -493,7 +503,7 @@
         "residenceStep": {
             "countryPlaceholder": "Seleccioná el país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tenés documentos de más de un país?",
+            "multiDocLink": "¿Tenés residencia en más de un país?",
             "errors": {
                 "invalidEmail": "Ingresá un correo electrónico válido"
             },
@@ -558,7 +568,7 @@
             "interrupted": "Algo interrumpió la solicitud de la passkey. Intentalo de nuevo.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisá tu conexión e intentalo de nuevo.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste vos, tu passkey está lista: solo iniciá sesión.",
-            "learnMore": "Aprendé más sobre qué son las passkeys",
+            "learnMore": "Aprendé más sobre las passkeys",
             "help": {
                 "descriptions": {
                     "notReadable": "Hay un problema con la configuración de passkeys de tu dispositivo. Intentalo de nuevo.",

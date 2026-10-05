@@ -2,6 +2,8 @@ import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { isCapacitor } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -256,21 +258,13 @@ const SetupPasskey = () => {
     }, [address, handleNext, deviceType])
 
     return (
-        <div>
-            <div className="flex h-full flex-col justify-between gap-10 p-0 md:min-h-32">
-                <div className="flex h-full flex-col justify-end gap-2 text-center">
+        <div className="flex flex-1 flex-col">
+            <div className="flex flex-1 flex-col justify-between gap-6">
+                <div className="flex flex-1 flex-col justify-center gap-2 text-center">
                     {/* Stays enabled even with a preflight warning: handlePasskeySetup
                         re-checks support and surfaces an actionable message, so a tap is
                         never a silent no-op. Only disabled while actually working. */}
-                    <Button
-                        loading={isPreparing || isRegistering || isLoading}
-                        disabled={isPreparing || isRegistering || isLoading}
-                        onClick={handlePasskeySetup}
-                        className="text-nowrap"
-                        shadowSize="4"
-                    >
-                        {t('passkey.setItUp')}
-                    </Button>
+
                     {preflightWarning && <p className="text-label-l text-foreground-attention">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
@@ -289,13 +283,26 @@ const SetupPasskey = () => {
                     )}
                     {inlineError && <Callout priority="error">{inlineError}</Callout>}
                 </div>
-                <div>
+                <SetupFooter
+                    actions={
+                        <Button
+                            loading={isPreparing || isRegistering || isLoading}
+                            disabled={isPreparing || isRegistering || isLoading}
+                            onClick={handlePasskeySetup}
+                            className="text-nowrap"
+                            shadowSize="4"
+                        >
+                            {t('passkey.setItUp')}
+                        </Button>
+                    }
+                >
                     <p className="pt-2 text-center text-body-xs text-foreground-secondary">
                         <SetupDocLink kind="passkeys" href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
+                            <Icon name="info" size={16} className="shrink-0" />
                             {t('passkey.learnMore')}
                         </SetupDocLink>{' '}
                     </p>
-                </div>
+                </SetupFooter>
             </div>
 
             {/* help modal for passkey setup issues */}

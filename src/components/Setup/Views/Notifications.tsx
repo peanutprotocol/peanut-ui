@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
@@ -40,29 +41,36 @@ export default function NotificationsStep() {
         }
     }
     return (
-        <div className="flex w-full flex-col gap-6">
-            <Card className="divide-y divide-dashed divide-border-default px-4">
-                {(['push', 'email'] as const).map((channel) => (
-                    <DataRow
-                        key={channel}
-                        label={t(`${channel}Label`)}
-                        value={
-                            <Toggle
-                                aria-label={t(`${channel}Label`)}
-                                checked={notificationChoices[channel]}
-                                onChange={(value) => {
-                                    setNotificationChoices({ ...notificationChoices, [channel]: value })
-                                }}
-                                disabled={saving}
-                            />
-                        }
-                    />
-                ))}
-            </Card>
-            <Button onClick={save} shadowSize="4" loading={saving} disabled={saving}>
-                {t('continue')}
-            </Button>
-            <p className="text-body-xs text-foreground-secondary">{t('permissionHint')}</p>
+        <div className="flex w-full flex-1 flex-col gap-6">
+            <div className="flex flex-1 flex-col justify-center">
+                <Card className="divide-y divide-dashed divide-border-default px-4">
+                    {(['push', 'email'] as const).map((channel) => (
+                        <DataRow
+                            key={channel}
+                            label={t(`${channel}Label`)}
+                            value={
+                                <Toggle
+                                    aria-label={t(`${channel}Label`)}
+                                    checked={notificationChoices[channel]}
+                                    onChange={(value) => {
+                                        setNotificationChoices({ ...notificationChoices, [channel]: value })
+                                    }}
+                                    disabled={saving}
+                                />
+                            }
+                        />
+                    ))}
+                </Card>
+            </div>
+            <SetupFooter
+                actions={
+                    <Button onClick={save} shadowSize="4" loading={saving} disabled={saving}>
+                        {t('continue')}
+                    </Button>
+                }
+            >
+                <p className="text-body-xs text-foreground-secondary">{t('permissionHint')}</p>
+            </SetupFooter>
         </div>
     )
 }

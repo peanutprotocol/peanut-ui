@@ -15,9 +15,12 @@ import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { filterSetupStepsForResidence } from '@/features/setup/filterSetupSteps'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
-    const { setSteps } = useSetupFlowContext()
+    const { setSteps, residenceCountry } = useSetupFlowContext()
+    const residenceRestrictions = useResidenceRestrictionSets()
     const { deviceType } = useDeviceType()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
@@ -54,8 +57,8 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     }, [])
 
     useEffect(() => {
-        setSteps(setupSteps)
-    }, [setSteps])
+        setSteps(filterSetupStepsForResidence(setupSteps, residenceRestrictions, residenceCountry))
+    }, [setSteps, residenceRestrictions, residenceCountry])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 

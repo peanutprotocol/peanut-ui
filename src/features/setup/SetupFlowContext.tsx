@@ -7,6 +7,7 @@ import { EInviteType } from '@/services/services.types'
 import { clearInvite, readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
 
 type ManualInvite = { code: string; previousCode: string; previousType: EInviteType }
+export type SetupFundingMethod = 'bank' | 'cash' | 'crypto' | 'peanut'
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
@@ -18,6 +19,8 @@ type ManualInvite = { code: string; previousCode: string; previousType: EInviteT
  * clamps (TASK-21404).
  */
 interface SetupFlowContextType {
+    fundingMethods: SetupFundingMethod[]
+    setFundingMethods: (methods: SetupFundingMethod[]) => void
     notificationEmail: string
     setNotificationEmail: (email: string) => void
     notificationChoices: { push: boolean; email: boolean }
@@ -65,6 +68,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     masterScreenIds,
 }) => {
     const [notificationEmail, setNotificationEmail] = useState('')
+    const [fundingMethods, setFundingMethods] = useState<SetupFundingMethod[]>([])
     const [notificationChoices, setNotificationChoices] = useState({ push: true, email: true })
     const [signupCompleted, setSignupCompleted] = useState(false)
     const [steps, setSteps] = useState<ISetupStep[]>([])
@@ -102,6 +106,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     // mounted through the logout, so the typed state clears explicitly
     const resetSetupFlow = useCallback(() => {
         setIsLoading(false)
+        setFundingMethods([])
         setNotificationEmail('')
         setNotificationChoices({ push: true, email: true })
         setSignupCompleted(false)
@@ -116,6 +121,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
 
     const value = useMemo(
         () => ({
+            fundingMethods,
+            setFundingMethods,
             notificationEmail,
             setNotificationEmail,
             notificationChoices,
@@ -146,6 +153,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             resetSetupFlow,
         }),
         [
+            fundingMethods,
             notificationEmail,
             notificationChoices,
             signupCompleted,

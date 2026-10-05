@@ -39,7 +39,7 @@ const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: ()
                             <p>{t('what')}</p>
                             <p>{t('backup')}</p>
                             <p>{t('privacy')}</p>
-                            <p>
+                            <p className="text-center">
                                 <SetupDocLink
                                     kind="passkeys"
                                     href="/en/help/passkeys"

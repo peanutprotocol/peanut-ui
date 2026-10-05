@@ -6,6 +6,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Icon } from '@/components/Global/Icons/Icon'
 import Divider from '@/components/0_Bruddle/Divider'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -102,6 +103,7 @@ const LandingStep = () => {
             </Button>
             <div className="pt-1 text-center">
                 <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
+                    <Icon name="info" size={16} className="shrink-0" />
                     {t('landing.recoverWallet')}
                 </SetupDocLink>
             </div>

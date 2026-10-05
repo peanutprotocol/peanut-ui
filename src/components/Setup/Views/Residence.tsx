@@ -1,8 +1,6 @@
-import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
@@ -17,14 +15,13 @@ import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { isValidEmail } from '@/utils/format.utils'
 import { residenceAvailability } from '@/utils/residence-availability'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
-type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
+type ResidenceView = 'select' | 'restricted' | 'partial' | 'congrats'
 type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
 type PartialRestriction = 'card' | 'banking'
 
@@ -61,8 +58,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         restrictionSets.bankingOnly.has(residenceCountry) ? 'banking' : 'card'
     )
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
-    const [email, setEmail] = useState('')
-    const [emailError, setEmailError] = useState('')
+    const secondCountryId = useId()
     // whether the current selection came from the geo suggestion, untouched
     const wasPrefilledRef = useRef(false)
 
@@ -189,24 +185,6 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         void handleNext()
     }
 
-    const onNotifySubmit = () => {
-        if (!isValidEmail(email)) {
-            setEmailError(t('residenceStep.errors.invalidEmail'))
-            return
-        }
-        setEmailError('')
-        // No account exists yet, so the contact lives on the PostHog person
-        // until a pre-account waitlist endpoint exists.
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_NOTIFY_SUBMITTED, {
-            residence_country: residenceCountry,
-        })
-        posthog.setPersonProperties({
-            residence_notify_email: email,
-            residence_notify_country: residenceCountry,
-        })
-        setView('notify-done')
-    }
-
     useSetupFullScreen(view === 'congrats')
 
     /* The tier sets render from the bundled mirror and are replaced by the
@@ -292,38 +270,48 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                 <li key={feature.title} className="flex items-center gap-3 px-4 py-3">
                                     <Icon name={feature.icon} size={24} className="shrink-0" />
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-label-m">{feature.title}</p>
+                                        <div className="flex items-start justify-between gap-3">
+                                            <p className="text-label-m">{feature.title}</p>
+                                            <span
+                                                aria-hidden="true"
+                                                className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-action-primary"
+                                            >
+                                                <Icon name="check" size={16} />
+                                            </span>
+                                        </div>
                                         <p className="mt-1 text-body-xs text-foreground-secondary">
                                             {feature.description}
                                         </p>
                                     </div>
-                                    <span
-                                        aria-hidden="true"
-                                        className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-action-primary"
-                                    >
-                                        <Icon name="check" size={16} />
-                                    </span>
                                 </li>
                             ))}
                         </ul>
                     </Card>
+                    <p className="mt-2 text-center text-body-xs text-foreground-secondary">{t('choicesLater')}</p>
                 </div>
-                <div className="flex w-full flex-col gap-4">
-                    <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
-                        {t('residenceStep.congrats.continue')}
-                    </Button>
-                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
-                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
+                <SetupFooter
+                    actions={
+                        <Button
+                            shadowSize="4"
+                            onClick={() => void handleNext()}
+                            loading={isLoading}
+                            disabled={isLoading}
+                        >
+                            {t('residenceStep.congrats.continue')}
+                        </Button>
+                    }
+                >
+                    <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
                     </LinkButton>
-                </div>
+                </SetupFooter>
             </div>
         )
     }
 
     if (view === 'partial') {
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
+            <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.partial.title')}</h1>
                     <p className="text-body-m text-foreground-secondary">
@@ -332,68 +320,50 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                             : t('residenceStep.partial.bankingDescription')}
                     </p>
                 </div>
-                <div className="flex w-full flex-col gap-4">
-                    <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
-                        {t('residenceStep.partial.continue')}
-                    </Button>
-                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
-                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
+                <SetupFooter
+                    actions={
+                        <Button
+                            shadowSize="4"
+                            onClick={() => void handleNext()}
+                            loading={isLoading}
+                            disabled={isLoading}
+                        >
+                            {t('residenceStep.partial.continue')}
+                        </Button>
+                    }
+                >
+                    <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
                     </LinkButton>
-                </div>
+                </SetupFooter>
             </div>
         )
     }
 
-    if (view === 'restricted' || view === 'notify' || view === 'notify-done') {
+    if (view === 'restricted') {
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
+            <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.restricted.title')}</h1>
                     <p className="text-body-m text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
-                    {view === 'notify' && (
-                        <div className="mt-2 flex flex-col gap-2">
-                            <BaseInput
-                                type="email"
-                                inputMode="email"
-                                autoComplete="email"
-                                placeholder={t('residenceStep.restricted.emailPlaceholder')}
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                            {emailError && <FieldError>{emailError}</FieldError>}
-                        </div>
-                    )}
-                    {view === 'notify-done' && (
-                        <p className="text-label-l">{t('residenceStep.restricted.notifyDone')}</p>
-                    )}
                 </div>
-                <div className="flex w-full flex-col gap-4">
-                    {view === 'notify' ? (
-                        <Button shadowSize="4" onClick={onNotifySubmit}>
-                            {t('residenceStep.restricted.notifySubmit')}
-                        </Button>
-                    ) : (
+                <SetupFooter
+                    actions={
                         <Button shadowSize="4" onClick={onRestrictedContinue} loading={isLoading} disabled={isLoading}>
                             {t('residenceStep.restricted.continueAnyway')}
                         </Button>
-                    )}
-                    {view === 'restricted' && (
-                        <Button variant="secondary" onClick={() => setView('notify')}>
-                            {t('residenceStep.restricted.notifyMe')}
-                        </Button>
-                    )}
-                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
-                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
+                    }
+                >
+                    <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
                         {t('residenceStep.restricted.changeCountry')}
                     </LinkButton>
-                </div>
+                </SetupFooter>
             </div>
         )
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-between gap-6">
+        <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
             <div className="flex w-full flex-col gap-2">
                 {/* Rendered here, not by the step chrome, so the heads-up
                     sub-views can replace them with their own single heading
@@ -410,32 +380,30 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     onValueChange={onResidenceChange}
                     onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
                 />
-                <Accordion
-                    type="single"
-                    collapsible
-                    variant="link"
-                    value={showSecondCountry ? 'second-country' : ''}
-                    onValueChange={(value) => {
-                        // Collapsing must also clear the stored pick — an
-                        // invisible second residence would still be sent to
-                        // analytics and persisted after signup.
-                        if (!value && secondResidenceCountry) setSecondResidenceCountry('')
-                        setShowSecondCountry(!!value)
-                    }}
-                >
-                    <Accordion.Item value="second-country">
-                        <Accordion.Trigger>{t('residenceStep.multiDocLink')}</Accordion.Trigger>
-                        <Accordion.Content>
-                            <CountryCombobox
-                                options={countryOptions}
-                                placeholder={t('residenceStep.secondCountryPlaceholder')}
-                                value={secondResidenceCountry || undefined}
-                                onValueChange={(value) => setSecondResidenceCountry(value)}
-                                onClear={hasPair ? () => onRemoveCountry('second') : undefined}
-                            />
-                        </Accordion.Content>
-                    </Accordion.Item>
-                </Accordion>
+                <div className="py-3 text-center">
+                    <LinkButton
+                        aria-expanded={showSecondCountry}
+                        aria-controls={secondCountryId}
+                        onClick={() => {
+                            // An invisible second residence must not be persisted.
+                            if (showSecondCountry && secondResidenceCountry) setSecondResidenceCountry('')
+                            setShowSecondCountry(!showSecondCountry)
+                        }}
+                    >
+                        {t('residenceStep.multiDocLink')}
+                    </LinkButton>
+                </div>
+                <div id={secondCountryId}>
+                    {showSecondCountry && (
+                        <CountryCombobox
+                            options={countryOptions}
+                            placeholder={t('residenceStep.secondCountryPlaceholder')}
+                            value={secondResidenceCountry || undefined}
+                            onValueChange={(value) => setSecondResidenceCountry(value)}
+                            onClear={hasPair ? () => onRemoveCountry('second') : undefined}
+                        />
+                    )}
+                </div>
                 {/* Dual-residence comparison: facts about each residence, not a
                     menu of perks. The guidance leads with the truth norm; the
                     order is presentation only and eligibility stays with the
@@ -493,33 +461,37 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             </div>
             {/* One button per declared country: the tap IS the main-residence
                 declaration, so there is no separate order control to get wrong. */}
-            {hasPair ? (
-                <div className="flex w-full flex-col gap-3">
-                    {[residenceCountry, secondResidenceCountry].map((iso2) => (
+            <SetupFooter
+                actions={
+                    hasPair ? (
+                        <div className="flex w-full flex-col gap-3">
+                            {[secondResidenceCountry, residenceCountry].map((iso2) => (
+                                <Button
+                                    key={iso2}
+                                    shadowSize="4"
+                                    variant={iso2 === residenceCountry ? 'primary' : 'secondary'}
+                                    onClick={() => onSelectPrimary(iso2)}
+                                    disabled={isLoading}
+                                    loading={isLoading}
+                                >
+                                    {t('residenceStep.compare.selectCountry', {
+                                        country: countryOptions.find((option) => option.value === iso2)?.label ?? iso2,
+                                    })}
+                                </Button>
+                            ))}
+                        </div>
+                    ) : (
                         <Button
-                            key={iso2}
                             shadowSize="4"
-                            variant={iso2 === residenceCountry ? 'primary' : 'secondary'}
-                            onClick={() => onSelectPrimary(iso2)}
-                            disabled={isLoading}
+                            onClick={onContinue}
+                            disabled={!residenceCountry || isLoading}
                             loading={isLoading}
                         >
-                            {t('residenceStep.compare.selectCountry', {
-                                country: countryOptions.find((option) => option.value === iso2)?.label ?? iso2,
-                            })}
+                            {t('cta.home')}
                         </Button>
-                    ))}
-                </div>
-            ) : (
-                <Button
-                    shadowSize="4"
-                    onClick={onContinue}
-                    disabled={!residenceCountry || isLoading}
-                    loading={isLoading}
-                >
-                    {t('cta.home')}
-                </Button>
-            )}
+                    )
+                }
+            />
         </div>
     )
 }

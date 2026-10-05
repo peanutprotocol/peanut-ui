@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
 import ProfileEditField from '@/components/Profile/components/ProfileEditField'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -48,23 +49,29 @@ export default function EmailStep() {
         }
     }
     return (
-        <form onSubmit={save} noValidate className="flex w-full flex-col gap-4">
-            <ProfileEditField
-                label={t('label')}
-                type="email"
-                name="email"
-                autoComplete="email"
-                inputMode="email"
-                maxLength={254}
-                value={email}
-                onChange={setEmail}
-                placeholder={t('placeholder')}
-                error={error}
-                disabled={saving}
+        <form onSubmit={save} noValidate className="flex w-full flex-1 flex-col gap-4">
+            <div className="flex flex-1 flex-col justify-center">
+                <ProfileEditField
+                    label={t('label')}
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    maxLength={254}
+                    value={email}
+                    onChange={setEmail}
+                    placeholder={t('placeholder')}
+                    error={error}
+                    disabled={saving}
+                />
+            </div>
+            <SetupFooter
+                actions={
+                    <Button type="submit" shadowSize="4" loading={saving} disabled={saving || !email.trim()}>
+                        {t('continue')}
+                    </Button>
+                }
             />
-            <Button type="submit" shadowSize="4" loading={saving} disabled={saving || !email.trim()}>
-                {t('continue')}
-            </Button>
         </form>
     )
 }
