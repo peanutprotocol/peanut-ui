@@ -6,6 +6,7 @@ import { useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -45,11 +46,18 @@ export function CardMilestoneScreen({
     return (
         <PageStack>
             <NavHeader title={t('navTitle')} hideBackBtn />
-            <PageStack.Center className="text-center">
-                <h1 className="text-heading-s text-foreground-primary">
-                    {t(issued ? 'issuedTitle' : 'availableTitle')}
-                </h1>
-                <p className="text-body-m text-foreground-secondary">{t(issued ? 'issuedBody' : 'fundingBody')}</p>
+            <PageStack.Center>
+                {!issued && (
+                    <div className="mx-auto w-full max-w-sm px-2 pb-2" aria-hidden>
+                        <ScaledPixelatedCardFace last4="????" />
+                    </div>
+                )}
+                <TitleBlock
+                    title={<h1>{t(issued ? 'issuedTitle' : 'availableTitle')}</h1>}
+                    description={<p>{t(issued ? 'issuedBody' : 'fundingBody')}</p>}
+                    align={issued ? 'center' : 'start'}
+                    size="s"
+                />
             </PageStack.Center>
             <PageStack.Footer>
                 <Button variant="primary" className="w-full" onClick={onContinue}>
