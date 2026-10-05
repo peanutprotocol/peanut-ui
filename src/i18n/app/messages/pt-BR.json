@@ -2408,7 +2408,7 @@
         "downloaded": "Extrato baixado",
         "errors": {
             "tooLarge": "Este período é muito longo. Escolha um período menor.",
-            "unverified": "Não foi possível verificar todas as transações deste período. Tente novamente mais tarde ou fale com o suporte.",
+            "unverified": "Problema inesperado. Fale com o suporte.",
             "busy": "Há vários downloads em andamento. Tente novamente em instantes.",
             "saveUnavailable": "Não é possível salvar arquivos neste dispositivo. Baixe pelo app web.",
             "failed": "Falha no download. Tente de novo."

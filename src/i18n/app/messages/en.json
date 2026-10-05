@@ -2408,7 +2408,7 @@
         "downloaded": "Statement downloaded",
         "errors": {
             "tooLarge": "This period is too long. Choose a shorter one.",
-            "unverified": "We could not verify every transaction in this period. Try again later or contact support.",
+            "unverified": "Unexpected issue. Contact support.",
             "busy": "Downloads are busy. Please try again shortly.",
             "saveUnavailable": "File saving is unavailable on this device. Please download from the web app.",
             "failed": "Download failed. Try again."

@@ -1096,7 +1096,7 @@
         "downloaded": "Resumen descargado",
         "errors": {
             "tooLarge": "Este período es demasiado largo. Elegí uno más corto.",
-            "unverified": "No pudimos verificar todas las transacciones de este período. Intentá de nuevo más tarde o contactá a soporte.",
+            "unverified": "Problema inesperado. Contactá a soporte.",
             "busy": "Hay varias descargas en curso. Intentá de nuevo en un momento.",
             "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descargalo desde la app web.",
             "failed": "La descarga falló. Intentá de nuevo."
