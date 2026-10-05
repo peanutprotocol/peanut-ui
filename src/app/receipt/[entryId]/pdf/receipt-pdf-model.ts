@@ -97,7 +97,9 @@ function safeFileNamePart(id: string): string {
 export function buildReceiptPdfModel(
     transaction: TransactionDetails,
     t: PdfTranslate,
-    locale: string
+    locale: string,
+    /** the owner's verified residence; only the route's owner check passes one */
+    ownerResidence?: string | null
 ): ReceiptPdfModel {
     const rows: ReceiptPdfRow[] = []
     const push = (label: string, value: string | undefined | null) => {
@@ -168,8 +170,8 @@ export function buildReceiptPdfModel(
 
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
 
-    // rendered without the owner's session, so bridge gets its brand-only record
-    const providerId = providerIdForTransaction(transaction)
+    // without the owner's residence bridge gets its brand-only record
+    const providerId = providerIdForTransaction(transaction, ownerResidence)
     const provider = providerId ? PROVIDERS[providerId] : undefined
     if (provider) {
         push(

@@ -52,7 +52,7 @@ export const receiptPdfVersion = (transaction: TransactionDetails): string =>
             transaction.cancelledDate,
             transaction.txHash,
             transaction.extraDataForDrawer?.cardPayment?.dispute?.status,
-            // the pdf prints the provider without a residence, so this matches what it renders
+            // the shareable pdf prints the provider without a residence; the owner's copy (with it) is never cached
             providerIdForTransaction(transaction),
         ].join('\u0000')
     )
