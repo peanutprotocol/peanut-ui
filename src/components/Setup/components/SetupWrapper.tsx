@@ -591,7 +591,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                 {/* content section */}
                 <motion.div
                     initial={animatePanelIn ? { y: '100%' } : false}
-                    animate={intro.active ? { y: '100%' } : intro.played || animatePanelIn ? { y: 0 } : undefined}
+                    animate={intro.active ? { y: '100%' } : { y: 0 }}
                     transition={
                         prefersReducedMotion
                             ? { duration: 0 }

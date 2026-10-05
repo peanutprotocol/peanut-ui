@@ -41,6 +41,7 @@ jest.mock('framer-motion', () => ({
             variants,
             custom = 0,
             transition,
+            animate,
             'aria-hidden': ariaHidden,
             inert,
         }: {
@@ -54,6 +55,7 @@ jest.mock('framer-motion', () => ({
             }
             custom?: number
             transition?: { duration?: number }
+            animate?: { y?: string | number }
         }) => (
             <div
                 className={className}
@@ -62,6 +64,7 @@ jest.mock('framer-motion', () => ({
                 data-enter-x={variants?.enter(custom).x}
                 data-exit-x={variants?.exit(custom).x}
                 data-transition-duration={transition?.duration}
+                data-animate-y={animate?.y}
             >
                 {children}
             </div>
@@ -443,6 +446,12 @@ describe('SetupWrapper transitions', () => {
 })
 
 describe('First-launch landing handoff', () => {
+    it('returns the white panel to the viewport when a web landing skips the intro with reduced motion', () => {
+        mockReducedMotion.value = true
+        renderWrapper({ screenId: 'landing' })
+        expect(screen.getByTestId('step').closest('.bg-white')).toHaveAttribute('data-animate-y', '0')
+    })
+
     it('keeps one mascot mounted while the greeting gives way to accessible setup controls', async () => {
         jest.useFakeTimers()
         try {

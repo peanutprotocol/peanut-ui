@@ -122,13 +122,22 @@ const flowOrder = [
 const setupJourney: Record<string, { journey: string; step: number }> = {
     '01-b-first-launch-intro': { journey: 'Account setup', step: 5 },
     '01-a-landing': { journey: 'Account setup', step: 10 },
-    '03-c-residence-congrats': { journey: 'Account setup', step: 45 },
     '06-a-signup': { journey: 'Account setup', step: 30 },
+    '02-a-advantage-payments': { journey: 'Account setup', step: 35 },
+    '02-b-advantage-card': { journey: 'Account setup', step: 38 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
+    '03-c-residence-congrats': { journey: 'Account setup', step: 42 },
+    '03-b-advantage-bank': { journey: 'Account setup', step: 43 },
+    '04-a-advantage-rewards': { journey: 'Account setup', step: 44 },
+    '04-b-advantage-fees': { journey: 'Account setup', step: 46 },
     '07-a-setuppasskey': { journey: 'Account setup', step: 50 },
     '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 51 },
     '09-a-passkeyinfomodal': { journey: 'Account setup', step: 52 },
+    '07-c-notification-email': { journey: 'Account setup', step: 53 },
+    '07-d-notification-settings': { journey: 'Account setup', step: 54 },
+    '07-b-advantage-control': { journey: 'Account setup', step: 55 },
     '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
+    '07-e-setup-celebration': { journey: 'Account setup', step: 65 },
     '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
     'fixture-guest-invite': { journey: 'Invite entry', step: 210 },
     'p68-invite': { journey: 'Invite entry', step: 220 },
@@ -139,10 +148,12 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
 }
 const orderedDefinitions = definitions
     .map((screen, catalogueIndex) => {
-        const flowIndex = flowOrder.indexOf(screen.flow)
         const journey = setupJourney[screen.id]
+        const screenFlow = journey?.journey === 'Account setup' ? 'Setup and login' : screen.flow
+        const flowIndex = flowOrder.indexOf(screenFlow)
         return {
             ...screen,
+            flow: screenFlow,
             ...(journey ? { journey: journey.journey } : {}),
             order:
                 (flowIndex === -1 ? flowOrder.length : flowIndex) * 10_000 + (journey?.step ?? 1_000 + catalogueIndex),
