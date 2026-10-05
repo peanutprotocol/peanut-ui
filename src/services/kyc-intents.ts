@@ -23,8 +23,14 @@ export const kycIntentsApi = {
     getConfig: async (residence: string, idCountry?: string): Promise<KycIntentsConfig> => {
         const params = new URLSearchParams({ residence })
         if (idCountry) params.set('idCountry', idCountry)
-        // public config: no auth, so it must not queue behind token hydration
-        const response = await apiFetch(`/config/kyc-intents?${params.toString()}`, { includeAuth: false })
+        // Public config: no auth, so it must not queue behind token hydration.
+        // The URL names the passport country, which stays out of telemetry:
+        // a failed request would otherwise report the raw URL to Sentry and
+        // its PostHog mirror.
+        const response = await apiFetch(`/config/kyc-intents?${params.toString()}`, {
+            includeAuth: false,
+            redactTelemetry: true,
+        })
         if (!response.ok) throw new Error(`Failed to load kyc intents: ${response.status}`)
         return (await response.json()) as KycIntentsConfig
     },
