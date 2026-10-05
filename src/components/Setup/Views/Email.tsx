@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import SetupFooter from '../components/SetupFooter'
@@ -10,10 +11,13 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { updateUserById } from '@/app/actions/users'
 import { isValidEmail } from '@/utils/format.utils'
+import { USER } from '@/constants/query.consts'
+import type { IUserProfile } from '@/interfaces/interfaces'
 
 export default function EmailStep() {
     const t = useTranslations('setup.email')
     const { user, fetchUser } = useAuth()
+    const queryClient = useQueryClient()
     const { notificationEmail, setNotificationEmail } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
     const [email, setEmail] = useState(notificationEmail || user?.user.email || '')
@@ -45,6 +49,12 @@ export default function EmailStep() {
                     setError(t('saveFailed'))
                     return
                 }
+                // Profile and KYC read this shared account cache. Reflect the
+                // acknowledged write even if the background refresh fails.
+                queryClient.setQueryData<IUserProfile | null>([USER], (profile) => {
+                    if (profile?.user.userId !== user.user.userId) return profile
+                    return { ...profile, user: { ...profile.user, email: value } }
+                })
                 void fetchUser().catch(() => {})
             }
             await handleNext()

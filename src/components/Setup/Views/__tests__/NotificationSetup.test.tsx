@@ -1,5 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { USER } from '@/constants/query.consts'
 import { renderWithIntl } from '@/test-utils/intl'
 import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
@@ -14,6 +16,7 @@ const mockPermission = jest.fn(async () => 'denied')
 const mockAfterPermission = jest.fn(async () => {})
 let mockReady = true
 let mockUser: { user: { userId: string; email: string } } | null
+let queryClient: QueryClient
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUser(...args) }))
 jest.mock('@/services/notifications', () => ({
@@ -35,12 +38,17 @@ jest.mock('@/components/Setup/Setup.consts', () => ({
 }))
 
 const renderStep = (view: React.ReactNode) =>
-    renderWithIntl(<SetupFlowProvider masterScreenIds={setupScreenIds}>{view}</SetupFlowProvider>)
+    renderWithIntl(
+        <QueryClientProvider client={queryClient}>
+            <SetupFlowProvider masterScreenIds={setupScreenIds}>{view}</SetupFlowProvider>
+        </QueryClientProvider>
+    )
 beforeEach(() => {
     jest.clearAllMocks()
     mockNext.mockReset()
     mockReady = true
     mockUser = { user: { userId: 'new-user', email: '' } }
+    queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } })
     mockSave.mockResolvedValue(undefined)
     mockUpdateUser.mockResolvedValue({})
 })
@@ -68,6 +76,15 @@ it('restores the entered email after Next and Back remount the step', async () =
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Back' }))
     expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveValue('money@example.com')
+})
+it('updates the shared profile email after acknowledgement even if refreshing the profile fails', async () => {
+    queryClient.setQueryData([USER], mockUser)
+    mockFetchUser.mockRejectedValueOnce(new Error('refresh unavailable'))
+    renderStep(<EmailStep />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(queryClient.getQueryData([USER])).toEqual({ user: { userId: 'new-user', email: 'money@example.com' } })
 })
 it('keeps the entered email on a failed save and only advances after a successful retry', async () => {
     mockUpdateUser.mockResolvedValueOnce({ error: 'failed' })

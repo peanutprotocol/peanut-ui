@@ -30,6 +30,7 @@ declare global {
     interface SNSMobileSDKBuilder {
         withHandlers(handlers: SNSMobileSDKHandlers): SNSMobileSDKBuilder
         withLocale(locale: string): SNSMobileSDKBuilder
+        withApplicantConf(conf: { email?: string; phone?: string }): SNSMobileSDKBuilder
         withDebug(debug: boolean): SNSMobileSDKBuilder
         withAnalyticsEnabled(enabled: boolean): SNSMobileSDKBuilder
         withAutoCloseOnApprove(seconds: number): SNSMobileSDKBuilder
