@@ -87,7 +87,7 @@ interface SetupWrapperProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'h-[32dvh] shrink-0 xs:h-[40dvh] md:h-dvh',
+    signup: 'h-[40dvh] shrink-0 md:h-dvh',
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
@@ -354,7 +354,7 @@ const ImageSection = ({
         window.addEventListener('resize', measure)
         return () => window.removeEventListener('resize', measure)
     }, [introPresentation])
-    const restingHeight = introLayout ? (introLayout.mobile ? introLayout.viewport * 0.47 : introLayout.viewport) : 0
+    const restingHeight = introLayout ? (introLayout.mobile ? introLayout.viewport * 0.4 : introLayout.viewport) : 0
 
     if (!image) return null
 
@@ -454,12 +454,6 @@ const ImageSection = ({
                 transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className={twMerge(
                     containerClass,
-                    // Long notification copy and two spacious rows must fit above the pinned CTA.
-                    screenId === 'notification-permission' && 'h-[23dvh] xs:h-[28dvh]',
-                    // Keep the checklist rows and pinned footer visible below a compact illustration.
-                    (screenId === 'funding-methods' ||
-                        ('animation' in image && image.animation === 'phone-to-phone')) &&
-                        'h-[18dvh] xs:h-[20dvh]',
                     'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}

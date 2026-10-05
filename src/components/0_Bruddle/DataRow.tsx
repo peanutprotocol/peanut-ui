@@ -15,6 +15,7 @@ interface DataRowProps {
     trailing?: React.ReactNode
     wrapLabel?: boolean
     spacious?: boolean
+    compact?: boolean
 }
 
 /**
@@ -36,11 +37,13 @@ export const DataRow = ({
     trailing,
     wrapLabel = false,
     spacious = false,
+    compact = false,
 }: DataRowProps) => (
     <div
         className={twMerge(
             'ds-data-row flex w-full items-center justify-between gap-3 py-3',
             spacious && 'min-h-20 py-4',
+            compact && 'h-12 py-1',
             onClick &&
                 'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled'
         )}

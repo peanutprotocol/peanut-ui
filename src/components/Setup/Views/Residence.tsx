@@ -263,14 +263,12 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.congrats.title')}</h1>
-                    <p className="text-body-s leading-7 text-foreground-secondary">
-                        {t('residenceStep.congrats.checklist.intro')}
-                    </p>
                     <Card className="mt-6 px-4">
                         <ul role="list" className="divide-y divide-dashed divide-border-default">
                             {features.map((feature) => (
                                 <li key={feature.title}>
                                     <DataRow
+                                        compact
                                         wrapLabel
                                         label={
                                             <label
@@ -313,7 +311,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                             loading={isLoading}
                             disabled={isLoading}
                         >
-                            {t('residenceStep.congrats.continue')}
+                            {t('cta.features')}
                         </Button>
                     }
                 >

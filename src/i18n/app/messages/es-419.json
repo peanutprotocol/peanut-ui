@@ -799,7 +799,14 @@
             "home": "Aquí vivo",
             "rewards": "¡Quiero recompensas!",
             "control": "Vamos a terminar",
-            "fees": "Suena bien"
+            "fees": "Suena bien",
+            "features": "Se ve bien",
+            "bank": "¡Eso sí me gusta!",
+            "card": "Me encanta el rosa",
+            "exchange": "Es una buena oferta",
+            "local": "Vamos a pagar como locales",
+            "people": "Tiene sentido",
+            "funding": "Sigamos"
         },
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
@@ -858,7 +865,6 @@
                 },
                 "continue": "Continuar",
                 "checklist": {
-                    "intro": "Conoce tu cuenta, llena de posibilidades.",
                     "dollars": "Cuenta en dólares digitales",
                     "ready": "Listo para usar. Sin verificar tu identidad.",
                     "banking": "Cuentas y transferencias bancarias",
@@ -1000,7 +1006,7 @@
             "pushDescription": "Novedades directamente en tu teléfono.",
             "emailLabel": "Notificaciones por correo",
             "emailDescription": "Novedades en tu bandeja de entrada.",
-            "continue": "Continuar",
+            "continue": "Suena bien",
             "pushUnavailable": "Las notificaciones push aún no están listas. Inténtalo de nuevo o desactívalas para continuar.",
             "saveFailed": "No pudimos guardar tu configuración. Inténtalo de nuevo."
         }

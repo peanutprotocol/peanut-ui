@@ -39,6 +39,6 @@ it('starts unchecked, keeps multiple choices through remounts, and clears them f
     expect(screen.getByLabelText('Bank transfer')).not.toBeChecked()
     fireEvent.click(screen.getByRole('button', { name: 'Reset signup' }))
     screen.getAllByRole('checkbox').forEach((checkbox) => expect(checkbox).not.toBeChecked())
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Let’s keep going' }))
     expect(mockNext).toHaveBeenCalledTimes(1)
 })

@@ -269,10 +269,10 @@ describe('ResidenceStep', () => {
         expect(screen.getByText('Peanut card')).toBeInTheDocument()
         expect(screen.queryByText(/A quick ID check/)).not.toBeInTheDocument()
         expect(screen.queryByText(/after verifying your identity/)).not.toBeInTheDocument()
-        expect(screen.getByText('Meet your account, full of possibilities.')).toBeInTheDocument()
+        expect(screen.queryByText('Meet your account, full of possibilities.')).not.toBeInTheDocument()
         // Rain §7 bans availability framing keyed to a place — no country here
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
 
@@ -558,6 +558,6 @@ it('lets users uncheck available features without changing residence or progress
     expect(features[0]).not.toBeChecked()
     expect(mockSetResidenceCountry).not.toHaveBeenCalled()
     expect(mockHandleNext).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
     expect(mockHandleNext).toHaveBeenCalledTimes(1)
 })

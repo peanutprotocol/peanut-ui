@@ -492,7 +492,14 @@
             "home": "Acá vivo",
             "rewards": "¡Quiero recompensas!",
             "control": "Terminemos",
-            "fees": "Me gusta"
+            "fees": "Me gusta",
+            "features": "Está buenísimo",
+            "bank": "¡Ahora sí!",
+            "card": "Me encanta el rosa",
+            "exchange": "Es una buena oferta",
+            "local": "Vamos a pagar como locales",
+            "people": "Tiene sentido",
+            "funding": "Sigamos"
         },
         "landing": {
             "signUp": "Registrate",
@@ -532,7 +539,6 @@
                 "descriptionNoRail": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
                 "cardClause": "También podés solicitar una tarjeta Peanut después de verificar tu identidad.",
                 "checklist": {
-                    "intro": "Conocé tu cuenta, llena de posibilidades.",
                     "dollars": "Cuenta en dólares digitales",
                     "ready": "Listo para usar. Sin verificar tu identidad.",
                     "banking": "Cuentas y transferencias bancarias",
@@ -656,7 +662,7 @@
             "pushDescription": "Novedades directamente en tu teléfono.",
             "emailLabel": "Notificaciones por email",
             "emailDescription": "Novedades en tu bandeja de entrada.",
-            "continue": "Continuar",
+            "continue": "Me gusta",
             "pushUnavailable": "Las notificaciones push todavía no están listas. Probá de nuevo o desactivalas para continuar.",
             "saveFailed": "No pudimos guardar tu configuración. Probá de nuevo."
         },

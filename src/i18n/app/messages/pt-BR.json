@@ -799,7 +799,14 @@
             "home": "É aqui que moro",
             "rewards": "Oba, recompensas!",
             "control": "Vamos terminar",
-            "fees": "Gostei"
+            "fees": "Gostei",
+            "features": "Gostei",
+            "bank": "Agora sim!",
+            "card": "Adorei o rosa",
+            "exchange": "É um bom negócio",
+            "local": "Vamos pagar como os locais",
+            "people": "Faz sentido",
+            "funding": "Vamos continuar"
         },
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {
@@ -858,7 +865,6 @@
                 },
                 "continue": "Continuar",
                 "checklist": {
-                    "intro": "Conheça sua conta, cheia de possibilidades.",
                     "dollars": "Conta em dólares digitais",
                     "ready": "Pronto para usar.",
                     "banking": "Contas e transferências bancárias",
@@ -1000,7 +1006,7 @@
             "pushDescription": "Novidades direto no seu celular.",
             "emailLabel": "Notificações por e-mail",
             "emailDescription": "Novidades na sua caixa de entrada.",
-            "continue": "Continuar",
+            "continue": "Gostei",
             "pushUnavailable": "As notificações push ainda não estão prontas. Tente novamente ou desative o push para continuar.",
             "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
         }

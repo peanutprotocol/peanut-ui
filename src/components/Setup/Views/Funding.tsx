@@ -31,7 +31,7 @@ export default function FundingStep() {
                 <Card className="divide-y divide-dashed divide-border-default px-4">
                     {METHODS.map((method) => (
                         <DataRow
-                            spacious
+                            compact
                             key={method}
                             wrapLabel
                             label={
@@ -67,7 +67,7 @@ export default function FundingStep() {
             <SetupFooter
                 actions={
                     <Button onClick={() => void handleNext()} loading={isLoading} disabled={isLoading} shadowSize="4">
-                        {t('next')}
+                        {t('cta.funding')}
                     </Button>
                 }
             />

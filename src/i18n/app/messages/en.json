@@ -799,7 +799,14 @@
             "home": "That's my home",
             "rewards": "Ooh, rewards",
             "control": "Let's finish",
-            "fees": "Sounds good"
+            "fees": "Sounds good",
+            "features": "Looks good",
+            "bank": "Now we’re talking",
+            "card": "Love the pink",
+            "exchange": "That’s a good deal",
+            "local": "Let’s go local",
+            "people": "That makes sense",
+            "funding": "Let’s keep going"
         },
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
@@ -858,7 +865,6 @@
                 },
                 "continue": "Continue",
                 "checklist": {
-                    "intro": "Meet your account, full of possibilities.",
                     "dollars": "Digital dollars account",
                     "ready": "Ready to use. No ID check needed.",
                     "banking": "Bank accounts & transfers",
@@ -1000,7 +1006,7 @@
             "pushDescription": "Updates straight to your phone.",
             "emailLabel": "Email notifications",
             "emailDescription": "Updates delivered to your inbox.",
-            "continue": "Continue",
+            "continue": "Sounds good",
             "pushUnavailable": "Push notifications aren’t ready yet. Try again, or turn push off to continue.",
             "saveFailed": "We couldn’t save your settings. Please try again."
         }
