@@ -221,7 +221,13 @@ export const TransactionDetailsReceipt = ({
 
             {/* the one receipt-style card (dates, conversion, fee, memo,
                 provider rows, pot progress + contributors) */}
-            <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={shouldShowQrShare} />
+            <ReceiptDetailsCard
+                transaction={transaction}
+                vm={vm}
+                shouldShowQrShare={shouldShowQrShare}
+                // only the drawer passes setIsModalOpen; vaul's nested root throws outside a drawer
+                nested={!!setIsModalOpen}
+            />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

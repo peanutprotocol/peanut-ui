@@ -16,6 +16,8 @@ import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
+import { PROVIDERS } from '@/constants/providers.consts'
+import { providerIdForTransaction } from '@/utils/provider.utils'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
  *  the exact strings the receipt page renders. */
@@ -35,6 +37,13 @@ export interface ReceiptPdfModel {
     amountDisplay: string
     convertedAmountDisplay?: string
     rows: ReceiptPdfRow[]
+    /** small print naming the provider that moved the money */
+    provider?: {
+        intro: string
+        name: string
+        addressLines: readonly string[]
+        termsUrl?: string
+    }
     fileName: string
 }
 
@@ -159,6 +168,16 @@ export function buildReceiptPdfModel(
 
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
 
+    // rendered without the owner's session, so bridge gets its brand-only record
+    const providerId = providerIdForTransaction(transaction)
+    const provider = providerId ? PROVIDERS[providerId] : undefined
+    if (provider) {
+        push(
+            t(providerId === 'third-national' ? 'provider.label.cardIssuer' : 'provider.label.provider'),
+            provider.brand
+        )
+    }
+
     if (transaction.txHash) {
         push(t('transaction.rows.txId'), transaction.txHash)
     }
@@ -192,6 +211,13 @@ export function buildReceiptPdfModel(
         amountDisplay: `${headline.sign}${formatBankAmount(safeAmount, 'USD')}`,
         convertedAmountDisplay: converted && !isSettledConversion(transaction) ? `≈ ${converted}` : converted,
         rows,
+        provider: provider && {
+            intro: t('provider.sheetIntro', { brand: provider.brand }),
+            name: provider.legalName ?? provider.brand,
+            addressLines: provider.registeredOffice ?? [],
+            // only terms the user accepted; peanut alone contracts with rhino
+            termsUrl: provider.userContract ? provider.termsUrl : undefined,
+        },
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }
 }

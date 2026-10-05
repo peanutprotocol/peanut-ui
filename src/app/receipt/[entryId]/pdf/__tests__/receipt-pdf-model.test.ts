@@ -446,3 +446,35 @@ describe('buildReceiptPdfModel — bank deposit sender reference', () => {
         expect(JSON.stringify(model)).not.toContain('INVOICE 4471')
     })
 })
+
+describe('buildReceiptPdfModel — provider', () => {
+    test('a bridge offramp names bridge by brand, with its legal page in the small print', () => {
+        const model = buildReceiptPdfModel(withOverrides({}, { provider: 'BRIDGE' }), t, 'en')
+        expect(row(model, 'provider.label.provider')).toBe('Bridge')
+        expect(model.provider).toEqual({
+            intro: 'provider.sheetIntro:{"brand":"Bridge"}',
+            name: 'Bridge',
+            addressLines: [],
+            termsUrl: 'https://www.bridge.xyz/legal',
+        })
+    })
+
+    test('a card spend names the card issuer with its legal name and office', () => {
+        const model = buildReceiptPdfModel(withOverrides({}, { provider: 'RAIN' }), t, 'en')
+        expect(row(model, 'provider.label.cardIssuer')).toBe('Third National')
+        expect(model.provider?.name).toBe('Nimbus LLC, doing business as Third National')
+        expect(model.provider?.addressLines).toContain('San Juan, PR 00917')
+    })
+
+    test('a rhino transfer names rhino but never prints terms the user did not accept', () => {
+        const model = buildReceiptPdfModel(withOverrides({}, { provider: 'RHINO' }), t, 'en')
+        expect(row(model, 'provider.label.provider')).toBe('Rhino.fi')
+        expect(model.provider?.termsUrl).toBeUndefined()
+    })
+
+    test('a peanut-only transfer has no provider row and no small print', () => {
+        const model = buildReceiptPdfModel(baseTx, t, 'en')
+        expect(labels(model)).not.toContain('provider.label.provider')
+        expect(model.provider).toBeUndefined()
+    })
+})

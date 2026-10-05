@@ -9,7 +9,10 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 
 jest.mock('@/hooks/usePrimaryNameServer', () => ({ usePrimaryNameServer: () => ({ primaryName: undefined }) }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ invitedUsernamesSet: new Set(), user: null }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ invitedUsernamesSet: new Set(), user: null }),
+    useOptionalAuth: () => null,
+}))
 jest.mock('../ReceiptActions', () => ({ ReceiptActions: () => null }))
 jest.mock('../ReceiptDetailsCard', () => ({ ReceiptDetailsCard: () => null }))
 jest.mock('../provider-rows/LocalRailNudge', () => ({ LocalRailNudge: () => null }))

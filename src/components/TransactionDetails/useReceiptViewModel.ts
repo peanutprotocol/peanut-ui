@@ -30,6 +30,9 @@ import { hasCardPaymentRowsContent } from '@/components/TransactionDetails/provi
 import { countryData } from '@/components/AddMoney/consts'
 import { getContributorsFromCharge, formatCurrency } from '@/utils/general.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
+import { useOptionalAuth } from '@/context/authContext'
+import type { ProviderId } from '@/types/provider.types'
+import { providerIdForTransaction } from '@/utils/provider.utils'
 
 const ALL_ROWS_HIDDEN = transactionDetailsRowKeys.reduce(
     (acc, key) => {
@@ -53,6 +56,9 @@ export interface ReceiptViewModel {
     /** Country resolved from the transaction's currency code (used by the
      *  Manteca deposit-info row for the country-specific address label). */
     country: (typeof countryData)[number] | undefined
+
+    /** The provider that moved the money, for the receipt's provider row. */
+    providerId: ProviderId | null
 
     /** Per-row visibility config — drives rendering. Dividers between rows
      *  come from the details card's `divide-y`, so no last-row border logic. */
@@ -151,6 +157,15 @@ export function useReceiptViewModel(
             isSendLinkEntry(transaction) &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER,
         [transaction]
+    )
+
+    // the in-app receipt is always the signed-in user's own, so their residence
+    // picks the Bridge entity. the /receipt page can be anyone's, so it gets the
+    // brand-only record rather than the viewer's entity.
+    const viewerResidence = useOptionalAuth()?.user?.residence?.verified
+    const providerId = useMemo(
+        () => (transaction ? providerIdForTransaction(transaction, isPublic ? null : viewerResidence) : null),
+        [transaction, isPublic, viewerResidence]
     )
 
     const rowVisibilityConfig = useMemo<Record<TransactionDetailsRowKey, boolean>>(() => {
@@ -271,8 +286,9 @@ export function useReceiptViewModel(
             // otherwise an "all-data-absent" card spend leaves the slot
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
+            provider: !!providerId,
         }
-    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
+    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled, providerId])
 
     // Every activity kind gets a receipt once it is no longer waiting for an
     // interactive send/request action. Existing public receipt kinds share a
@@ -315,6 +331,7 @@ export function useReceiptViewModel(
         isQRPayment,
         isCardSpend,
         country,
+        providerId,
         rowVisibilityConfig,
         shouldShowShareReceipt,
         shouldShowDownloadPdf,

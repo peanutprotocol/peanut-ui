@@ -2,6 +2,7 @@ import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
 import { fnv1a64 } from '@/utils/qr-payment.utils'
 import type { TransactionDetails } from './transactionTransformer'
+import { providerIdForTransaction } from '@/utils/provider.utils'
 
 /** the pdf route path with the locale and receipt state in the url — the
  *  bytes vary by both and final receipts are cdn-cached by url (see the
@@ -32,7 +33,7 @@ export function openReceiptPdfUrl(pdfPath: `/${string}`): void {
 
 /** the receipt state the pdf renders; when it changes, a file fetched for the
  *  earlier state is outdated (pending → completed, refunds, amount or rate
- *  fixes, a new status date, tx hash or card dispute). it rides the pdf url,
+ *  fixes, a new status date, tx hash, card dispute or provider). it rides the pdf url,
  *  so it is an opaque digest — amounts and dates never land in request logs. */
 export const receiptPdfVersion = (transaction: TransactionDetails): string =>
     fnv1a64(
@@ -51,5 +52,7 @@ export const receiptPdfVersion = (transaction: TransactionDetails): string =>
             transaction.cancelledDate,
             transaction.txHash,
             transaction.extraDataForDrawer?.cardPayment?.dispute?.status,
+            // the pdf prints the provider without a residence, so this matches what it renders
+            providerIdForTransaction(transaction),
         ].join('\u0000')
     )

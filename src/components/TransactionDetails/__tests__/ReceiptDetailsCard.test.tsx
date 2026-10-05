@@ -150,3 +150,37 @@ describe('ReceiptDetailsCard — dates and document rows', () => {
         expect(screen.queryByText('Completed')).not.toBeInTheDocument()
     })
 })
+
+describe('ReceiptDetailsCard — provider row', () => {
+    const providerTx = (drawer: Record<string, unknown>, overrides: Record<string, unknown> = {}) =>
+        vaDeposit({ direction: 'bank_withdraw', ...overrides }, { isDepositAccountDeposit: false, ...drawer })
+
+    it('names Bridge on a bridge offramp', () => {
+        renderWithIntl(<Card transaction={providerTx({ provider: 'BRIDGE', kind: 'OFFRAMP' })} />)
+        expect(screen.getByText('Provider')).toBeInTheDocument()
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
+    })
+
+    it('names Manteca on a BRL transfer', () => {
+        renderWithIntl(
+            <Card
+                transaction={providerTx(
+                    { provider: 'MANTECA', kind: 'OFFRAMP' },
+                    { currency: { code: 'BRL', amount: '50' } }
+                )}
+            />
+        )
+        expect(screen.getByText('Manteca')).toBeInTheDocument()
+    })
+
+    it('labels the card issuer on a card spend', () => {
+        renderWithIntl(<Card transaction={providerTx({ provider: 'RAIN', kind: 'CARD_PAYMENT' })} />)
+        expect(screen.getByText('Card issuer')).toBeInTheDocument()
+        expect(screen.getByText('Third National')).toBeInTheDocument()
+    })
+
+    it('shows no provider row on a peanut-to-peanut send', () => {
+        renderWithIntl(<Card transaction={providerTx({ kind: 'P2P_SEND' }, { direction: 'send' })} />)
+        expect(screen.queryByText('Provider')).not.toBeInTheDocument()
+    })
+})
