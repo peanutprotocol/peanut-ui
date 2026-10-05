@@ -23,7 +23,7 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
     it('names Bridge and links the documents for the verified residence', () => {
         renderTosPhase()
 
-        expect(screen.getByText(/Bridge, our payment partner/)).toBeInTheDocument()
+        expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/row-user-terms/bridge-building-limited'

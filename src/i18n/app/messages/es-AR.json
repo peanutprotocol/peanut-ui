@@ -1193,7 +1193,7 @@
             "saveFailed": "Algo salió mal al guardar tu correo. Intentalo de nuevo."
         },
         "bridgeTos": {
-            "description": "Bridge, nuestro socio de pagos, ofrece las transferencias bancarias. Leé los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptás en la siguiente pantalla.",
+            "description": "Bridge ofrece las transferencias bancarias. Leé los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptás en la siguiente pantalla.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
@@ -1852,5 +1852,9 @@
             "providerRefused": "No pudimos abrir esta cuenta, y volver a intentarlo no lo va a cambiar. Contactá a soporte y lo revisamos.",
             "tooManyAttempts": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
         }
+    },
+    "provider": {
+        "sheetIntro": "{brand} presta este servicio, no Peanut. Tenés una relación directa con {brand} bajo sus términos.",
+        "cardSheetIntro": "{brand} emite tu tarjeta Peanut. Tenés una relación directa con ellos bajo los términos de la tarjeta."
     }
 }

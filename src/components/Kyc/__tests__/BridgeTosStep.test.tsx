@@ -69,7 +69,7 @@ describe('BridgeTosStep', () => {
         mockVerifiedResidence = 'DE'
         renderStep()
 
-        expect(screen.getByText(/Bridge, our payment partner/)).toBeInTheDocument()
+        expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a'
@@ -100,7 +100,7 @@ describe('BridgeTosStep', () => {
         renderStep(jest.fn(), jest.fn(), 'bridge_tos_v2_required')
 
         expect(screen.getByText('Updated bank transfer terms')).toBeInTheDocument()
-        expect(screen.getByText(/Bridge, our payment partner/)).toBeInTheDocument()
+        expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/us-terms/bridge-building-inc'

@@ -1368,8 +1368,8 @@
             "exchangeRate": "Exchange Rate",
             "exchangeRateTooltip": "Rate shown is current but may vary slightly until payment is confirmed.",
             "saveVsCard": "Save vs card",
-            "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
-            "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
+            "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Manteca pays via PIX at the current market rate.",
+            "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Manteca pays via MercadoPago at the current market rate."
         },
         "success": {
             "youPaid": "Paid to {merchant}",
@@ -1807,7 +1807,7 @@
             "cuit": "CUIT",
             "exchangeRate": "Exchange rate",
             "providerFees": "Provider fees",
-            "providerFeesInfo": "Our providers and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see.",
+            "providerFeesInfo": "Manteca and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see.",
             "flagAlt": "flag",
             "shareTitle": "Bank transfer details",
             "shareDetails": "Share details",
@@ -1931,7 +1931,7 @@
             "notFound": "No Pix account found for this key. Check it and try again."
         },
         "bank": {
-            "eurTitle": "We send EUR to the bank",
+            "eurTitle": "Bridge sends EUR to the bank",
             "eurDescription": "Withdrawals are sent in EUR. Your bank may charge conversion fees or reject the transaction if EUR deposits are not supported.",
             "accountOwner": "Account owner",
             "iban": "IBAN",
@@ -1966,12 +1966,12 @@
             "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
             "referenceInvalidCharsAch": "Use only letters a-z, numbers and spaces.",
             "referenceInvalidCharsSpei": "Use only letters a-z, numbers and spaces.",
-            "payoutReferenceReplacesDefaultSepa": "A reference you type replaces the default text we send with the payment.",
+            "payoutReferenceReplacesDefaultSepa": "A reference you type replaces the default text Bridge sends with the payment.",
             "payoutDefaultReferenceCarriesNameSepa": "That default text carries your name.",
             "referenceFormattingMayChange": "The spacing and capital letters may change on the way.",
-            "payoutSenderAch": "The payment arrives from our payment partner, not from your own name. Your bank statement shows Peanut.",
-            "payoutSenderSpei": "The payment arrives from our payment partner's local bank, not from your own name.",
-            "payoutSenderWire": "The payment arrives from Peanut, not from your own name.",
+            "payoutSenderAch": "The payment arrives from Bridge, not from your own name. Your bank statement shows Peanut.",
+            "payoutSenderSpei": "The payment arrives from Bridge's local bank, not from your own name.",
+            "payoutSenderWire": "The payment arrives from Bridge, not from your own name.",
             "bankAccount": "Bank account",
             "transferProcessing": "Transfer processing",
             "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
@@ -2840,7 +2840,7 @@
         "bridgeTos": {
             "baseTitle": "Bank transfer terms",
             "sepaTitle": "Updated bank transfer terms",
-            "description": "Bridge, our payment partner, provides bank transfers. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
+            "description": "Bridge provides bank transfers. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
@@ -4351,5 +4351,37 @@
             "converted": "Converted to USD at the exchange rate. A conversion fee applies.",
             "seeRates": "See exchange rates"
         }
+    },
+    "provider": {
+        "label": {
+            "provider": "Provider",
+            "accountProvider": "Account provider",
+            "cardIssuer": "Card issuer"
+        },
+        "sheetIntro": "{brand} provides this service, not Peanut. You have a direct relationship with {brand} under their terms.",
+        "cardSheetIntro": "{brand} issues your Peanut card. You have a direct relationship with them under the card terms.",
+        "field": {
+            "legalName": "Legal name",
+            "registeredOffice": "Registered office",
+            "registration": "Registration",
+            "regulator": "Regulator",
+            "role": "What they do",
+            "terms": "Terms",
+            "privacy": "Privacy policy",
+            "identityCheck": "Identity check",
+            "peanut": "Peanut",
+            "paidFrom": "Paid from"
+        },
+        "role": {
+            "bridge": "Bank transfers and accounts in your name",
+            "manteca": "Local bank transfers, Pix and QR payments",
+            "rhino": "Moves your funds between networks",
+            "thirdNational": "Issues your Peanut card",
+            "sumsub": "Checks your identity"
+        },
+        "peanutValue": "Self-custodial wallet software by Squirrel Labs Ltd. Peanut never holds your money.",
+        "pooledAccount": "Peanut's account at Manteca",
+        "about": "About {brand}",
+        "note": "Provider: {brand}"
     }
 }

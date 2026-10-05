@@ -171,7 +171,7 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         // sender_name, so the old "arrives from our payment partner" claim is
         // gone rather than replaced by the opposite claim.
         renderWithIntl(<Harness rail="sepa" />)
-        expect(screen.getByText(/replaces the default text we send/)).toBeInTheDocument()
+        expect(screen.getByText(/replaces the default text Bridge sends/)).toBeInTheDocument()
         expect(screen.queryByText(/arrives from/)).not.toBeInTheDocument()
     })
 
@@ -187,7 +187,7 @@ describe('WithdrawBankReviewView — the optional reference', () => {
 
     it('names who the recipient bank shows as the sender on the rails we can confirm', () => {
         renderWithIntl(<Harness rail="ach" />)
-        expect(screen.getByText(/arrives from our payment partner/)).toBeInTheDocument()
+        expect(screen.getByText(/arrives from Bridge,/)).toBeInTheDocument()
     })
 
     it('says nothing about the sender on a rail we cannot confirm', () => {
@@ -232,7 +232,7 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         // what tells the user they gave the name up.
         fireEvent.change(referenceInput()!, { target: { value: 'RENT SEPTEMBER' } })
         expect(screen.queryByText(/default text carries your name/)).not.toBeInTheDocument()
-        expect(screen.getByText(/replaces the default text we send/)).toBeInTheDocument()
+        expect(screen.getByText(/replaces the default text Bridge sends/)).toBeInTheDocument()
     })
 
     it('SEPA: whitespace alone is not a reference, so the sentence stays', () => {
@@ -262,7 +262,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
             />
         )
 
-        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
         expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
     })
 
@@ -285,7 +285,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
         expect(screen.getByTestId('secondary')).toHaveTextContent('≈ €44.78')
         expect(screen.queryByText(/GBP|PLN|SEK|CHF|£/)).not.toBeInTheDocument()
-        expect(screen.getByText('We send EUR to the bank')).toBeInTheDocument()
+        expect(screen.getByText('Bridge sends EUR to the bank')).toBeInTheDocument()
     })
 
     it('a UK sort-code account is paid GBP: GBP rate, no EUR notice', () => {
@@ -299,7 +299,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
 
         expect(screen.getByText('1 USD = 0.7508 GBP')).toBeInTheDocument()
         expect(screen.getByTestId('secondary')).toHaveTextContent('≈ £37.54')
-        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
     })
 
     it("a Lithuanian IBAN is euro, so it never borrows another country's currency", () => {
@@ -313,7 +313,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         )
 
         expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
-        expect(screen.queryByText('We send EUR to the bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
     })
 
     it('a US account converts nothing: no rate row, one amount', () => {
