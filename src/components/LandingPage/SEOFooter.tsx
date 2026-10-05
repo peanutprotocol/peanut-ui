@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import manifest from '@/content/generated/footer-manifest.json'
+import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
@@ -121,7 +122,10 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
 export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {}) {
     const i18n = getTranslations(locale)
     const sendTo = (manifest.sendMoney?.to ?? []) as ManifestEntry[]
-    const sendFrom = (manifest.sendMoney?.from ?? []) as ManifestEntry[]
+    // The manifest may still list a retired corridor; it answers 410.
+    const sendFrom = ((manifest.sendMoney?.from ?? []) as ManifestEntry[]).filter(
+        (entry) => !isGoneMarketingPath(entry.href)
+    )
     const compare = (manifest.compare ?? []) as ManifestEntry[]
     const articles = (((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]).filter(
         (entry) => !ARTICLES_DROPPED_AS_DUPLICATES.has(entry.slug)

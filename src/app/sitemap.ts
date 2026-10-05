@@ -1,5 +1,6 @@
 import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
+import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import {
     COUNTRIES_SEO,
     CORRIDORS,
@@ -287,12 +288,15 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Team pages excluded from production sitemap (not yet launched)
     }
 
-    return pages.map((page) => ({
-        url: `${BASE_URL}${page.path}`,
-        lastModified: page.lastModified ?? BUILD_DATE,
-        changeFrequency: page.changeFrequency,
-        priority: page.priority,
-    }))
+    // A retired page answers 410 even while its content files still exist.
+    return pages
+        .filter((page) => !isGoneMarketingPath(page.path))
+        .map((page) => ({
+            url: `${BASE_URL}${page.path}`,
+            lastModified: page.lastModified ?? BUILD_DATE,
+            changeFrequency: page.changeFrequency,
+            priority: page.priority,
+        }))
 }
 
 export default generateSitemap
