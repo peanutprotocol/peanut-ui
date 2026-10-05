@@ -673,8 +673,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                     aria-hidden={intro.active}
                     inert={intro.active}
                     className={twMerge(
-                        'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-4 pb-6 md:h-dvh md:justify-center',
-                        screenId === 'landing' && 'pt-3 pb-3',
+                        'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
+                        screenId === 'landing' && 'pb-3',
                         fullScreen && 'md:h-auto md:flex-1'
                     )}
                 >
@@ -684,7 +684,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             direction={transitionDirection}
                             prefersReducedMotion={!!prefersReducedMotion}
                             className={twMerge(
-                                'flex w-full flex-1 flex-col justify-between md:flex-none',
+                                'flex w-full flex-1 flex-col justify-between md:flex-1',
                                 contentClassName,
                                 screenId !== 'landing' && 'md:flex-1 md:justify-between',
                                 fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'

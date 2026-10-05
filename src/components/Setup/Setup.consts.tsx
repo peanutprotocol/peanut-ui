@@ -13,7 +13,7 @@ export const setupSteps: ISetupStep[] = [
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-3',
+        contentClassName: 'flex flex-col items-center justify-start gap-3',
     },
     {
         screenId: 'signup',
@@ -22,7 +22,7 @@ export const setupSteps: ISetupStep[] = [
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-2 gap-6 md:justify-center',
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
 
     {
@@ -32,7 +32,7 @@ export const setupSteps: ISetupStep[] = [
         component: AdvantageStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
         screenId: 'advantage-card',
@@ -41,7 +41,7 @@ export const setupSteps: ISetupStep[] = [
         component: AdvantageStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
         screenId: 'residence',
@@ -54,7 +54,7 @@ export const setupSteps: ISetupStep[] = [
         // renders the title and description itself.
         descriptionInView: true,
         titleInView: true,
-        contentClassName: 'flex flex-col items-end pt-2 gap-6 md:justify-center',
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
     {
         screenId: 'advantage-bank',
@@ -63,7 +63,7 @@ export const setupSteps: ISetupStep[] = [
         component: AdvantageStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
 
     {
@@ -75,7 +75,7 @@ export const setupSteps: ISetupStep[] = [
         image: { pose: 'thinking' },
         component: FundingStep,
         showBackButton: true,
-        contentClassName: 'flex flex-col gap-6 pt-2',
+        contentClassName: 'flex flex-col gap-6',
     },
     {
         screenId: 'passkey-permission',
@@ -84,7 +84,7 @@ export const setupSteps: ISetupStep[] = [
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-2 gap-6 md:justify-center',
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
     {
         screenId: 'notification-email',
@@ -93,7 +93,7 @@ export const setupSteps: ISetupStep[] = [
         component: EmailStep,
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
         screenId: 'notification-permission',
@@ -103,7 +103,7 @@ export const setupSteps: ISetupStep[] = [
         // Later mailbox changes use Profile verification.
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
         screenId: 'advantage-control',
@@ -112,7 +112,7 @@ export const setupSteps: ISetupStep[] = [
         component: AdvantageStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
         screenId: 'sign-test-transaction',
@@ -127,7 +127,7 @@ export const setupSteps: ISetupStep[] = [
         descriptionInView: true,
         // items-end, like every other signup step — centering this one alone
         // left its copy off the setup flow's left-aligned column.
-        contentClassName: 'flex flex-col items-end pt-2 gap-6 md:justify-center',
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
 ]
 
