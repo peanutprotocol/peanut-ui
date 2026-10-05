@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { Card, CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
-import { useSetupFullScreen } from '@/components/Setup/components/SetupWrapper'
+import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -194,7 +194,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         void handleNext()
     }
 
-    useSetupFullScreen(view === 'congrats')
+    useSetupImageOverride(view === 'congrats' ? { animation: 'phone-to-phone' } : null)
 
     /* The tier sets render from the bundled mirror and are replaced by the
        server-authoritative lists asynchronously. A congrats view reached
@@ -232,24 +232,16 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     if (view === 'congrats') {
         const availability = residenceAvailability(restrictionSets, residenceCountry)
         const rails = availability.available.filter((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
-        const features: { icon: IconName; title: string; description: string }[] = [
+        const features: { icon: IconName; title: string }[] = [
             {
                 icon: 'dollar',
                 title: t('residenceStep.congrats.checklist.dollars'),
-                description: t('residenceStep.congrats.checklist.ready'),
             },
             ...(rails.length
                 ? [
                       {
                           icon: 'bank' as const,
                           title: t('residenceStep.congrats.checklist.banking'),
-                          description: availability.multiCurrency
-                              ? t('residenceStep.congrats.checklist.unlockMultiCurrency')
-                              : t('residenceStep.congrats.checklist.unlockRails', {
-                                    rails: new Intl.ListFormat(locale).format(
-                                        rails.map((rail) => t(`residenceStep.congrats.rails.${rail}`))
-                                    ),
-                                }),
                       },
                   ]
                 : []),
@@ -258,14 +250,12 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                       {
                           icon: 'credit-card' as const,
                           title: t('residenceStep.compare.items.card'),
-                          description: t('residenceStep.congrats.checklist.applyCard'),
                       },
                   ]
                 : []),
             {
                 icon: 'users',
                 title: t('residenceStep.compare.items.p2p'),
-                description: t('residenceStep.congrats.checklist.ready'),
             },
         ]
         return (
@@ -298,9 +288,6 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                                 }
                                             />
                                         </div>
-                                        <p className="text-body-xs leading-relaxed text-foreground-secondary">
-                                            {feature.description}
-                                        </p>
                                     </div>
                                 </li>
                             ))}

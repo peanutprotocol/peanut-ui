@@ -49,7 +49,7 @@ const SetupImageContext = createContext<(illustration: SetupIllustration | null)
  */
 export const useSetupImageOverride = (illustration: SetupIllustration | null) => {
     const setImage = useContext(SetupImageContext)
-    useEffect(() => {
+    useLayoutEffect(() => {
         setImage(illustration)
         return () => setImage(null)
     }, [illustration, setImage])
@@ -456,6 +456,10 @@ const ImageSection = ({
                     containerClass,
                     // Long notification copy and two spacious rows must fit above the pinned CTA.
                     screenId === 'notification-permission' && 'h-[23dvh] xs:h-[28dvh]',
+                    // Keep the checklist rows and pinned footer visible below a compact illustration.
+                    (screenId === 'funding-methods' ||
+                        ('animation' in image && image.animation === 'phone-to-phone')) &&
+                        'h-[18dvh] xs:h-[20dvh]',
                     'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}

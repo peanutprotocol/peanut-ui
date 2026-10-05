@@ -96,10 +96,9 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'funding-methods',
         layoutType: 'signup',
-        fullScreen: true,
         titleInView: true,
         descriptionInView: true,
-        image: { pose: 'thinking' },
+        image: { animation: 'topup' },
         component: FundingStep,
         showBackButton: true,
         contentClassName: 'flex flex-col gap-6',

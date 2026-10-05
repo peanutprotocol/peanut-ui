@@ -263,30 +263,28 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
-        // gates stay separated in prose: no-ID features first, the bank rail
-        // behind the ID check (named per country), then the card application
-        // behind verification. The retired virtual-card queue is absent.
-        expect(screen.getByText(/A quick ID check unlocks PIX transfers/)).toBeInTheDocument()
+        // Keep the available feature titles, without supporting descriptions.
         expect(screen.getAllByRole('listitem')).toHaveLength(4)
+        expect(screen.getByText('Bank accounts & transfers')).toBeInTheDocument()
         expect(screen.getByText('Peanut card')).toBeInTheDocument()
-        expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
+        expect(screen.queryByText(/A quick ID check/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/after verifying your identity/)).not.toBeInTheDocument()
+        expect(screen.getByText('Meet your account, full of possibilities.')).toBeInTheDocument()
         // Rain §7 bans availability framing keyed to a place — no country here
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
 
-    it('drops the ID-check clause for a country with no fiat rail', () => {
-        // NG is in no restriction set, but no fiat rail serves it (blockchain
-        // only): the congrats screen must not frame the ID check as unlocking
-        // bank transfers there — the rail clause disappears entirely.
+    it('omits bank accounts for a country with no fiat rail', () => {
+        // NG is in no restriction set, but no fiat rail serves it.
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        // the rail clause disappears; the card clause is self-contained, so the
-        // same string serves both branches
-        expect(screen.getAllByText('Ready to use. No ID check needed.')).toHaveLength(2)
-        expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
+        expect(screen.getAllByRole('listitem')).toHaveLength(3)
+        expect(screen.getByText('Digital dollars account')).toBeInTheDocument()
+        expect(screen.getByText('Peanut card')).toBeInTheDocument()
+        expect(screen.queryByText('Bank accounts & transfers')).not.toBeInTheDocument()
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()

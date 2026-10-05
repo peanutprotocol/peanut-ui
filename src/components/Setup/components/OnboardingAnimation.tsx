@@ -15,9 +15,17 @@ const loaders = {
     documents: () => import('@/assets/onboarding/documents.json'),
     email: () => import('@/assets/illustrations/lottie/envelope-verify.json'),
     notifications: () => import('@/assets/onboarding/notifications.json'),
+    'phone-to-phone': () => import('@/assets/illustrations/lottie/phone-to-phone.json'),
+    topup: () => import('@/assets/illustrations/lottie/wallet-topup.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
-const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = { email: 40, fees: 32, exchange: 0 }
+const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = {
+    email: 40,
+    fees: 32,
+    exchange: 0,
+    'phone-to-phone': 36,
+    topup: 32,
+}
 
 /** Onboarding lab vectors plus the matching documents and email illustrations. */
 export default function OnboardingAnimation({
