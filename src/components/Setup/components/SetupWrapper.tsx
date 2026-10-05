@@ -87,7 +87,7 @@ interface SetupWrapperProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'h-[47dvh] shrink-0 md:h-dvh',
+    signup: 'h-[32dvh] shrink-0 xs:h-[40dvh] md:h-dvh',
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
@@ -454,7 +454,7 @@ const ImageSection = ({
                 className={twMerge(
                     containerClass,
                     // Long notification copy and two spacious rows must fit above the pinned CTA.
-                    screenId === 'notification-permission' && 'h-[28dvh]',
+                    screenId === 'notification-permission' && 'h-[23dvh] xs:h-[28dvh]',
                     'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}
@@ -685,7 +685,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     inert={intro.active}
                     className={twMerge(
                         'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
-                        screenId === 'landing' && 'pb-3',
+
                         fullScreen && 'md:h-auto md:flex-1'
                     )}
                 >
@@ -697,6 +697,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             className={twMerge(
                                 'flex w-full flex-1 flex-col justify-between md:flex-1',
                                 contentClassName,
+                                'gap-8',
                                 screenId !== 'landing' && 'md:flex-1 md:justify-between',
                                 fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                             )}
@@ -729,7 +730,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     {description && (
                                         <p
                                             className={twMerge(
-                                                'text-body-m leading-relaxed text-foreground-primary',
+                                                'text-body-m leading-7 text-foreground-secondary',
                                                 sunsetLanding && 'md:text-center'
                                             )}
                                         >

@@ -56,7 +56,7 @@ export function SetupConfirmationView({
                 <p
                     className={
                         merged
-                            ? 'text-body-m leading-relaxed text-foreground-primary'
+                            ? 'text-body-m leading-7 text-foreground-secondary'
                             : 'text-body-s leading-relaxed text-foreground-secondary'
                     }
                 >

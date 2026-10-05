@@ -65,7 +65,7 @@ const LandingStep = () => {
     }
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
             {blockSignup ? (
                 <div className="space-y-2 pb-2">
                     {/* heading only above the desktop QR — a lone store button
@@ -101,7 +101,7 @@ const LandingStep = () => {
             >
                 {t('logIn')}
             </Button>
-            <div className="pt-6 pb-6 text-center">
+            <div className="pt-8 pb-8 text-center">
                 <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
                     <Icon name="info" size={16} className="shrink-0" />
                     {t('landing.recoverWallet')}
