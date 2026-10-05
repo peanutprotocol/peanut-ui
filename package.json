@@ -77,7 +77,7 @@
         "@capgo/capacitor-in-app-review": "8.2.3",
         "@capgo/capacitor-native-biometric": "8.6.0",
         "@capgo/capacitor-passkey": "^8.2.2",
-        "@capgo/capacitor-updater": "8.51.14",
+        "@capgo/capacitor-updater": "8.51.23",
         "@headlessui/react": "^2.2.9",
         "@headlessui/tailwindcss": "^0.2.1",
         "@justaname.id/react": "0.4.0",
