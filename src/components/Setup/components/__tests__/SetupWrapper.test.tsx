@@ -266,7 +266,7 @@ describe('SetupWrapper transitions', () => {
                 <div>Signup</div>
             </SetupWrapper>
         )
-        expect(container.querySelector('.setup-hero-background')).toBe(hero)
+        expect(container.querySelector('.setup-hero-background')).toHaveClass('setup-hero-background')
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
             'var(--color-background-setup-hero)'
         )
@@ -344,9 +344,10 @@ describe('SetupWrapper transitions', () => {
                 <div>Residence</div>
             </SetupWrapper>
         )
-        expect(screen.getByRole('group', { name: 'Step 2 of 5' })).toBe(dots)
-        expect(dots.children[0]).toHaveClass('bg-border-subtle')
-        expect(dots.children[1]).toHaveClass('w-6', 'bg-border-default')
+        const nextDots = screen.getByRole('group', { name: 'Step 2 of 5' })
+        expect(nextDots.children).toHaveLength(5)
+        expect(nextDots.children[0]).toHaveClass('bg-border-subtle')
+        expect(nextDots.children[1]).toHaveClass('w-6', 'bg-border-default')
     })
 
     it.each([
@@ -367,7 +368,7 @@ describe('SetupWrapper transitions', () => {
         expect(screen.getByRole('group', { name: label as string })).toBeInTheDocument()
     })
 
-    it('keeps the hero and panel mounted while sliding the mascot and step content forward', () => {
+    it('keeps the outer shell while transitioning each complete screen layout', () => {
         mockReducedMotion.value = false
         const { container, rerender } = renderWithIntl(
             <SetupWrapper
@@ -401,9 +402,13 @@ describe('SetupWrapper transitions', () => {
 
         expect(container.firstElementChild).toBe(shell)
         expect(shell).not.toHaveClass('bg-background-setup-hero')
-        expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toBe(hero)
-        expect(screen.getByText('Second step').closest('.bg-white')).toBe(panel)
-        expect(hero).toHaveClass('h-[47dvh]', 'shrink-0')
+        expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toHaveClass(
+            'h-[32dvh]',
+            'xs:h-[40dvh]',
+            'shrink-0'
+        )
+        expect(screen.getByText('Second step').closest('.bg-white')).not.toBe(panel)
+        expect(hero).not.toBeInTheDocument()
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '100%')
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '-100%')
         expect(screen.getByText('Next step').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '48')

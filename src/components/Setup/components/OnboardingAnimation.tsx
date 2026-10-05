@@ -80,7 +80,11 @@ export default function OnboardingAnimation({
                     ? 'h-full w-full'
                     : name === 'fees'
                       ? 'aspect-square h-full w-auto max-w-none scale-[1.2]'
-                      : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
+                      : name === 'card' || name === 'security'
+                        ? 'aspect-square h-full w-auto max-w-none scale-[1.68] md:scale-[1.44]'
+                        : name === 'notifications'
+                          ? 'aspect-square h-full w-auto max-w-none scale-[1.54] md:scale-[1.32]'
+                          : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
             }
         />
     )

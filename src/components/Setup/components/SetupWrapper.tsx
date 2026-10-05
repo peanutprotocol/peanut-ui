@@ -155,6 +155,7 @@ const TransitioningContent = ({
             transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
             className={twMerge(className, !isPresent && 'pointer-events-none')}
             aria-hidden={!isPresent}
+            inert={!isPresent}
         >
             {children}
         </motion.div>
@@ -623,7 +624,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     const [slideUpPanel] = useState(
         () => screenId === 'landing' && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
     )
-    const animatePanelIn = slideUpPanel && !prefersReducedMotion
+    const animatePanelIn = slideUpPanel && screenId === 'landing' && !prefersReducedMotion
 
     return (
         <div
@@ -650,50 +651,53 @@ export const SetupWrapper = memo(function SetupWrapper({
             />
 
             {/* content container */}
-            <div className={twMerge('mx-auto flex w-full flex-grow flex-col', !fullScreen && 'md:flex-row')}>
-                {/* illustration section */}
-                {fullScreen ? (
-                    showProgress && (
-                        <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} compact />
-                    )
-                ) : (
-                    <ImageSection
-                        imageClassName={imageClassName}
-                        screenId={screenId}
-                        layoutType={layoutType}
-                        image={imageOverride?.screenId === screenId ? imageOverride.image : image}
-                        step={step}
-                        totalSteps={totalSteps}
-                        direction={transitionDirection}
-                        prefersReducedMotion={!!prefersReducedMotion}
-                        intro={intro}
-                    />
-                )}
-
-                {/* content section */}
-                <motion.div
-                    initial={animatePanelIn ? { y: '100%' } : false}
-                    animate={intro.active ? { y: '100%' } : { y: 0 }}
-                    transition={
-                        prefersReducedMotion
-                            ? { duration: 0 }
-                            : intro.played
-                              ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-                              : { type: 'spring', stiffness: 260, damping: 30 }
-                    }
-                    aria-hidden={intro.active}
-                    inert={intro.active}
-                    className={twMerge(
-                        'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
-
-                        fullScreen && 'md:h-auto md:flex-1'
-                    )}
+            {/* Keep the outgoing hero and content together until exit completes. */}
+            <AnimatePresence initial={false} custom={transitionDirection} mode="wait">
+                <TransitioningContent
+                    key={screenId}
+                    direction={transitionDirection}
+                    prefersReducedMotion={!!prefersReducedMotion}
+                    className={twMerge('mx-auto flex w-full flex-grow flex-col', !fullScreen && 'md:flex-row')}
                 >
-                    <AnimatePresence initial={false} custom={transitionDirection} mode="wait">
-                        <TransitioningContent
-                            key={screenId}
+                    {/* illustration section */}
+                    {fullScreen ? (
+                        showProgress && (
+                            <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} compact />
+                        )
+                    ) : (
+                        <ImageSection
+                            imageClassName={imageClassName}
+                            screenId={screenId}
+                            layoutType={layoutType}
+                            image={imageOverride?.screenId === screenId ? imageOverride.image : image}
+                            step={step}
+                            totalSteps={totalSteps}
                             direction={transitionDirection}
                             prefersReducedMotion={!!prefersReducedMotion}
+                            intro={intro}
+                        />
+                    )}
+
+                    {/* content section */}
+                    <motion.div
+                        initial={animatePanelIn ? { y: '100%' } : false}
+                        animate={intro.active ? { y: '100%' } : { y: 0 }}
+                        transition={
+                            prefersReducedMotion
+                                ? { duration: 0 }
+                                : intro.played
+                                  ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+                                  : { type: 'spring', stiffness: 260, damping: 30 }
+                        }
+                        aria-hidden={intro.active}
+                        inert={intro.active}
+                        className={twMerge(
+                            'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
+
+                            fullScreen && 'md:h-auto md:flex-1'
+                        )}
+                    >
+                        <div
                             className={twMerge(
                                 'flex w-full flex-1 flex-col justify-between md:flex-1',
                                 contentClassName,
@@ -753,10 +757,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     </SetupImageContext.Provider>
                                 </SetupFullScreenContext.Provider>
                             </div>
-                        </TransitioningContent>
-                    </AnimatePresence>
-                </motion.div>
-            </div>
+                        </div>
+                    </motion.div>
+                </TransitioningContent>
+            </AnimatePresence>
         </div>
     )
 })

@@ -509,7 +509,6 @@ function SetupPageContent() {
             description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
-            showLogoutButton={step.screenId === 'advantage-control' && !signupCompleted}
             imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
             // back, so a step's sub-view (residence heads-up) collapses first

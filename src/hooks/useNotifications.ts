@@ -379,14 +379,34 @@ async function refreshPermissionState() {
 // request notification permission from user
 async function requestPermission(): Promise<NotificationPermissionState> {
     if (typeof window === 'undefined' || isDemoMode()) return 'default'
-    if (!state.oneSignalInitialized) await ensureInitialized()
-    if (!state.oneSignalInitialized) return 'default'
-
     setState({ isRequestingPermission: true })
     permissionRequestTrigger = activePromptTrigger()
     posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED, { trigger: permissionRequestTrigger })
 
     try {
+        if (!isCapacitor() && typeof Notification !== 'undefined') {
+            // Start the browser prompt in the Continue/click gesture, before
+            // any SDK import, initialization or network await. Permission is
+            // independent of OneSignal availability and preview-domain setup.
+            const newPermission =
+                Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
+            setState({ permissionState: newPermission })
+            void evaluateVisibility()
+            if (newPermission === 'granted') {
+                // Register delivery separately; a slow/unavailable provider
+                // must not suppress the system prompt or hold signup here.
+                void ensureInitialized()
+                    .then(async () => {
+                        if (!state.oneSignalInitialized) return
+                        const adapter = await getOneSignalAdapter()
+                        await adapter.requestPermission()
+                    })
+                    .catch(() => {})
+            }
+            return newPermission
+        }
+        if (!state.oneSignalInitialized) await ensureInitialized()
+        if (!state.oneSignalInitialized) return 'default'
         const adapter = await getOneSignalAdapter()
         const newPermission = await adapter.requestPermission()
         setState({ permissionState: newPermission })

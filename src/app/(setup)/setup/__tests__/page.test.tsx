@@ -86,7 +86,12 @@ jest.mock('@/components/Setup/setup-entry', () => ({
 }))
 jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    SetupWrapper: ({ children, showLogoutButton }: { children: React.ReactNode; showLogoutButton?: boolean }) => (
+        <div>
+            {showLogoutButton && <button>Logout</button>}
+            {children}
+        </div>
+    ),
 }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
 jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
@@ -540,4 +545,18 @@ it('does not reinitialize the entry when residence eligibility changes the step 
     await advance(200)
     expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
     expect(screen.getByText('Card step')).toBeInTheDocument()
+})
+
+it('hides Logout on the final ready-to-start confirmation screen', async () => {
+    const ready: ISetupStep = {
+        ...landing,
+        screenId: 'advantage-control',
+        component: () => <div>Ready confirmation</div>,
+    }
+    mockStore.steps = [landing, ready]
+    mockFlow.step = ready
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.getByText('Ready confirmation')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
 })
