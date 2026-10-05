@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
+import { filterSetupStepsForResidence } from '../filterSetupSteps'
 
 // native detection is mocked so the history-mode contract below can flip it
 let mockIsNativeBridge = false
@@ -50,6 +51,26 @@ const seedSteps = async (
 }
 
 describe('useSetupFlow (URL stepper)', () => {
+    it.each([
+        ['PT', 'advantage-bank', 'advantage-card'],
+        ['AR', 'advantage-bank', 'advantage-local'],
+        ['IN', 'advantage-bank', 'advantage-exchange'],
+        ['JP', 'advantage-exchange', 'advantage-card'],
+        ['RU', 'advantage-exchange', 'advantage-people'],
+    ])('walks both selected feature screens and reaches funding for %s', async (country, first, second) => {
+        const { result } = renderFlow({ screen: 'residence' })
+        const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country))
+        for (const expected of [first, second, 'funding-methods']) {
+            await act(async () => {
+                await result.current.flow.handleNext()
+            })
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
+        await act(async () => result.current.flow.handleBack())
+        expect(result.current.flow.step?.screenId).toBe(second)
+    })
+
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
         const { result } = renderFlow({ screen: 'signup' })
 
@@ -177,6 +198,9 @@ describe('useSetupFlow (URL stepper)', () => {
             'residence',
             'advantage-bank',
             'advantage-card',
+            'advantage-exchange',
+            'advantage-local',
+            'advantage-people',
             'funding-methods',
             'passkey-permission',
             'notification-email',

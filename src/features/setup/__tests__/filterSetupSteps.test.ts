@@ -1,31 +1,25 @@
 import { setupSteps } from '@/components/Setup/Setup.consts'
-import { filterSetupStepsForResidence } from '../filterSetupSteps'
+import { filterSetupStepsForResidence, setupFeatureScreensForResidence } from '../filterSetupSteps'
 
 const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
-const idsFor = (residence: string) =>
-    filterSetupStepsForResidence(setupSteps, restrictions, residence).map((step) => step.screenId)
-
-it('shows bank then card before funding for an eligible residence', () => {
-    const ids = idsFor('PT')
-    expect(ids.slice(ids.indexOf('residence'), ids.indexOf('funding-methods') + 1)).toEqual([
-        'residence',
-        'advantage-bank',
-        'advantage-card',
-        'funding-methods',
-    ])
+it.each([
+    ['PT', ['advantage-bank', 'advantage-card']],
+    ['AR', ['advantage-bank', 'advantage-local']],
+    ['BR', ['advantage-bank', 'advantage-local']],
+    [' ar ', ['advantage-bank', 'advantage-local']],
+    ['IN', ['advantage-bank', 'advantage-exchange']],
+    ['JP', ['advantage-exchange', 'advantage-card']],
+    ['RU', ['advantage-exchange', 'advantage-people']],
+    ['', ['advantage-exchange', 'advantage-people']],
+])('keeps exactly two ordered feature screens for %s', (residence, expected) => {
+    expect(setupFeatureScreensForResidence(restrictions, residence as string)).toEqual(expected)
+    const ids = filterSetupStepsForResidence(setupSteps, restrictions, residence as string).map((step) => step.screenId)
+    expect(ids.slice(ids.indexOf('residence') + 1, ids.indexOf('funding-methods'))).toEqual(expected)
     expect(ids).not.toContain('sign-test-transaction')
     expect(setupSteps.find((step) => step.screenId === 'advantage-control')?.showBackButton).toBe(false)
 })
-it('shows bank without card for a card-restricted residence', () => {
-    const ids = idsFor('IN')
-    expect(ids[ids.indexOf('funding-methods') - 1]).toBe('advantage-bank')
-    expect(ids).not.toContain('advantage-card')
-})
-it('shows an eligible card without banking for Japan', () => {
-    expect(idsFor('JP')).not.toContain('advantage-bank')
-    expect(idsFor('JP')).toContain('advantage-card')
-})
-it.each(['RU', ''])('skips both benefits when unavailable or residence unknown (%s)', (residence) => {
-    expect(idsFor(residence)).not.toContain('advantage-bank')
-    expect(idsFor(residence)).not.toContain('advantage-card')
+it('replaces a restricted bank slot with a backup even for Argentina and Brazil', () => {
+    const sets = { ...restrictions, bankingOnly: new Set(['AR', 'BR']) }
+    for (const residence of ['AR', 'BR'])
+        expect(setupFeatureScreensForResidence(sets, residence)).toEqual(['advantage-exchange', 'advantage-local'])
 })

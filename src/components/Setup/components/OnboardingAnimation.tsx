@@ -4,6 +4,9 @@ import type { AnimationItem } from 'lottie-web'
 import { useEffect, useRef, useState } from 'react'
 
 const loaders = {
+    local: () => import('@/assets/onboarding/local.json'),
+    exchange: () => import('@/assets/illustrations/lottie/rate-chart.json'),
+    people: () => import('@/assets/onboarding/people.json'),
     username: () => import('@/assets/onboarding/username-at.json'),
     card: () => import('@/assets/onboarding/card.json'),
     bank: () => import('@/assets/onboarding/bank.json'),
@@ -14,7 +17,7 @@ const loaders = {
     notifications: () => import('@/assets/onboarding/notifications.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
-const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = { email: 40, fees: 32 }
+const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = { email: 40, fees: 32, exchange: 48 }
 
 /** Onboarding lab vectors plus the matching documents and email illustrations. */
 export default function OnboardingAnimation({
@@ -48,7 +51,8 @@ export default function OnboardingAnimation({
                     animationData: data.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
-                if (name === 'fees' || name === 'email' || name === 'bank') animation.setSpeed(0.5)
+                if (name === 'fees' || name === 'email' || name === 'bank' || name === 'exchange')
+                    animation.setSpeed(0.5)
                 animation.addEventListener('DOMLoaded', () => {
                     setReady(true)
                     play()

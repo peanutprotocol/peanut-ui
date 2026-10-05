@@ -246,6 +246,18 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['03-d-funding-methods'],
         render: () => <SetupScreen screenId="funding-methods" />,
     },
+    '03-e-advantage-local': {
+        ...SURFACE_META['03-e-advantage-local'],
+        render: () => <SetupScreen screenId="advantage-local" />,
+    },
+    '03-f-advantage-exchange': {
+        ...SURFACE_META['03-f-advantage-exchange'],
+        render: () => <SetupScreen screenId="advantage-exchange" />,
+    },
+    '03-g-advantage-people': {
+        ...SURFACE_META['03-g-advantage-people'],
+        render: () => <SetupScreen screenId="advantage-people" />,
+    },
     '03-b-advantage-bank': {
         ...SURFACE_META['03-b-advantage-bank'],
         render: () => <SetupScreen screenId="advantage-bank" />,

@@ -349,6 +349,24 @@ describe('SetupWrapper transitions', () => {
         expect(dots.children[1]).toHaveClass('w-6', 'bg-border-default')
     })
 
+    it.each([
+        [4, 'Step 2 of 5'],
+        [5, 'Step 3 of 5'],
+    ])('keeps exchange-rate progress aligned with feature slot %s', (step, label) => {
+        renderWithIntl(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="advantage-exchange"
+                step={step}
+                totalSteps={12}
+                image={{ pose: 'thinking' }}
+            >
+                <div>Exchange rates</div>
+            </SetupWrapper>
+        )
+        expect(screen.getByRole('group', { name: label as string })).toBeInTheDocument()
+    })
+
     it('keeps the hero and panel mounted while sliding the mascot and step content forward', () => {
         mockReducedMotion.value = false
         const { container, rerender } = renderWithIntl(

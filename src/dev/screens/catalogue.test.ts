@@ -39,7 +39,7 @@ describe('screen catalogue', () => {
 
     it('orders setup screens by their product journey and keeps rewards invites in Rewards', () => {
         const setupIds = SCREENS.filter(({ flow }) => flow === 'Setup and login').map(({ id }) => id)
-        expect(setupIds.slice(0, 18)).toEqual([
+        expect(setupIds.slice(0, 21)).toEqual([
             '01-b-first-launch-intro',
             '01-a-landing',
             '06-a-signup',
@@ -47,7 +47,10 @@ describe('screen catalogue', () => {
             '03-a-residence-select',
             '03-c-residence-congrats',
             '03-b-advantage-bank',
+            '03-f-advantage-exchange',
             '02-b-advantage-card',
+            '03-e-advantage-local',
+            '03-g-advantage-people',
             '03-d-funding-methods',
             '07-a-setuppasskey',
             '08-a-passkeysetuphelpmodal',

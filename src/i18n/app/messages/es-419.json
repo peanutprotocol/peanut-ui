@@ -760,6 +760,18 @@
             "success": {
                 "title": "¡Todo listo!",
                 "description": "Tu cuenta de Peanut está lista. Es hora de hacerla tuya."
+            },
+            "advantage-local": {
+                "title": "Paga como un local.",
+                "description": "Usa redes de pago locales, como Pix y Mercado Pago."
+            },
+            "advantage-exchange": {
+                "title": "Consigue las mejores tasas de cambio",
+                "description": "Paga sin esfuerzo, dondequiera que te lleven tus viajes."
+            },
+            "advantage-people": {
+                "title": "Paga a personas, no a números de cuenta.",
+                "description": "Encuentra a un amigo por su @usuario y envía un pago en segundos."
             }
         },
         "existingSession": {

@@ -247,7 +247,7 @@ function UsernameBackground() {
 }
 
 // Count the residence checklist as a screen, while keeping five stable groups
-// when country eligibility skips the bank-account introduction.
+// across the two residence-dependent feature slots.
 const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
     landing: 0,
     signup: 1,
@@ -255,6 +255,9 @@ const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
     'advantage-card': 6,
     residence: 3,
     'advantage-bank': 5,
+    'advantage-exchange': 5,
+    'advantage-local': 6,
+    'advantage-people': 6,
     'funding-methods': 7,
     'passkey-permission': 8,
     'notification-email': 9,
@@ -277,7 +280,13 @@ function SetupProgressHeader({
     compact?: boolean
 }) {
     const t = useTranslations('setup.wrapper')
-    const progressGroup = Math.min(4, Math.floor((SETUP_PROGRESS_SCREEN_INDEX[screenId] ?? step ?? 0) / 3))
+    const screenIndex =
+        screenId === 'advantage-exchange' && step !== undefined
+            ? step === 4
+                ? 5
+                : 6
+            : (SETUP_PROGRESS_SCREEN_INDEX[screenId] ?? step ?? 0)
+    const progressGroup = Math.min(4, Math.floor(screenIndex / 3))
     return (
         <div
             aria-hidden={hidden}
