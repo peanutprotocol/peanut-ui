@@ -48,7 +48,7 @@ export function CardMilestoneScreen({
             <NavHeader title={t('navTitle')} hideBackBtn />
             <PageStack.Center>
                 {!issued && (
-                    <div className="mx-auto w-full max-w-sm px-2 pb-2" aria-hidden>
+                    <div className="w-full pb-2" aria-hidden>
                         <ScaledPixelatedCardFace last4="????" />
                     </div>
                 )}
