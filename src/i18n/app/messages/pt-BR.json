@@ -2851,9 +2851,9 @@
             "rows": {
                 "qr": "Pagamentos QR",
                 "qrMethods": {
-                    "AR": "Mercado Pago e MODO",
+                    "AR": "Mercado Pago",
                     "BR": "Pix",
-                    "default": "Pix, Mercado Pago e MODO"
+                    "default": "Pix e Mercado Pago"
                 },
                 "local": {
                     "AR": "Transferências bancárias em ARS",
@@ -2870,7 +2870,7 @@
             "notNow": "Agora não",
             "saveFailed": "Não foi possível salvar sua escolha. Tente de novo.",
             "exploreTitle": "Explorar primeiro?",
-            "exploreDescription": "Receber, guardar e resgatar dinheiro continuam funcionando. Os recursos que você escolheu ficam bloqueados até você verificar sua identidade.",
+            "exploreDescription": "Receber, guardar e enviar dinheiro para outras pessoas continuam funcionando. Os recursos que você escolheu ficam bloqueados até você verificar sua identidade.",
             "exploreFirst": "Explorar primeiro"
         },
         "bridgeTos": {

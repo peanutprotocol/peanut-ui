@@ -11,10 +11,11 @@ import { defaultIntentSet, isQrOnly, unlockRows } from './unlock-checklist.utils
 /** The ID the user will show: one issued by the residence country, or a passport from another. */
 export type IdDocumentAnswer = 'local' | 'passport'
 
-// country code only: the document answer never carries a document number
-const analyticsProps = (residence: string, idCountry: string | undefined, set: KycIntentSet) => ({
+// the document answer, never the country: a passport country is a nationality
+// signal, which is more than the privacy policy lists for analytics
+const analyticsProps = (residence: string, document: IdDocumentAnswer, set: KycIntentSet) => ({
     residence,
-    document_country: idCountry,
+    document,
     intent_qr: set.qr,
     intent_local: set.local,
     intent_card: set.card,
@@ -54,19 +55,19 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
         viewed.current = true
         posthog.capture(
             ANALYTICS_EVENTS.ONBOARDING_UNLOCK_VIEWED,
-            analyticsProps(residence, idCountry, defaultIntentSet(rows))
+            analyticsProps(residence, document, defaultIntentSet(rows))
         )
-    }, [config.data, rows, residence, idCountry])
+    }, [config.data, rows, residence, document])
 
     const save = useMutation({
         mutationFn: () => kycIntentsApi.set(intents),
         onSuccess: () => {
-            posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED, analyticsProps(residence, idCountry, intents))
+            posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED, analyticsProps(residence, document, intents))
             onVerify()
         },
     })
     const skip = () =>
-        posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_SKIPPED, analyticsProps(residence, idCountry, intents))
+        posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_SKIPPED, analyticsProps(residence, document, intents))
 
     return {
         document,

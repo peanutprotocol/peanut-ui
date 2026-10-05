@@ -85,6 +85,10 @@
         "shhhhh.hero.title": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "brand line, kept in English (Konrad 24 Sep 2026)"
+        },
+        "kyc.unlock.rows.qrMethods.AR": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Mercado Pago is a brand name, no words to translate"
         }
     }
 }

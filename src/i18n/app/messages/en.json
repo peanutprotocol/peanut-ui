@@ -2851,9 +2851,9 @@
             "rows": {
                 "qr": "QR payments",
                 "qrMethods": {
-                    "AR": "Mercado Pago and MODO",
+                    "AR": "Mercado Pago",
                     "BR": "Pix",
-                    "default": "Pix, Mercado Pago and MODO"
+                    "default": "Pix and Mercado Pago"
                 },
                 "local": {
                     "AR": "ARS bank transfers",
@@ -2870,7 +2870,7 @@
             "notNow": "Not now",
             "saveFailed": "Could not save your choices. Please try again.",
             "exploreTitle": "Explore first?",
-            "exploreDescription": "Receiving, holding and claiming money keep working. The features you picked stay locked until you verify.",
+            "exploreDescription": "Receiving, holding and sending money to other people keep working. The features you picked stay locked until you verify.",
             "exploreFirst": "Explore first"
         },
         "bridgeTos": {

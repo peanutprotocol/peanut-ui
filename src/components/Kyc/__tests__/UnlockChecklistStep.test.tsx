@@ -93,7 +93,7 @@ describe('UnlockChecklistStep', () => {
         expect(setIntents).toHaveBeenCalledWith({ qr: true, local: true, card: false, bank: true })
         expect(capture).toHaveBeenCalledWith(
             'onboarding_unlock_continued',
-            expect.objectContaining({ residence: 'AR', document_country: 'AR', intent_card: false })
+            expect.objectContaining({ residence: 'AR', document: 'local', intent_card: false })
         )
     })
 
