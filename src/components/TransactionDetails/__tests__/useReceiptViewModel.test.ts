@@ -313,7 +313,15 @@ describe("From row (deposits into the user's bank details)", () => {
 })
 
 describe('useReceiptViewModel — provider', () => {
-    const bridgeOfframp = withDrawer({ direction: 'bank_withdraw' }, { kind: 'OFFRAMP', provider: 'BRIDGE' })
+    const bridgeOfframp = withDrawer(
+        { direction: 'bank_withdraw' },
+        { kind: 'OFFRAMP', provider: 'BRIDGE', bridgeFlow: 'OFFRAMP' }
+    )
+    // the claimer may not be the bridge customer, so their residence says nothing
+    const bridgeSendLinkClaim = withDrawer(
+        { direction: 'bank_withdraw' },
+        { kind: 'OFFRAMP', provider: 'BRIDGE', bridgeFlow: 'BANK_SEND_LINK_CLAIM' }
+    )
     const providerOf = (tx: TransactionDetails, isPublic: boolean) =>
         renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.providerId
 
@@ -324,6 +332,11 @@ describe('useReceiptViewModel — provider', () => {
     test("the owner's in-app receipt names the bridge entity for their residence", () => {
         mockResidence = 'US'
         expect(providerOf(bridgeOfframp, false)).toBe('bridge-us')
+    })
+
+    test('a send-link claim names the bridge brand only', () => {
+        mockResidence = 'US'
+        expect(providerOf(bridgeSendLinkClaim, false)).toBe('bridge')
     })
 
     test("the public receipt never uses the viewer's residence", () => {

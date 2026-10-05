@@ -159,9 +159,10 @@ export function useReceiptViewModel(
         [transaction]
     )
 
-    // the in-app receipt is always the signed-in user's own, so their residence
-    // picks the Bridge entity. the /receipt page can be anyone's, so it gets the
-    // brand-only record rather than the viewer's entity.
+    // the in-app receipt is the signed-in user's own history, so their residence
+    // picks the Bridge entity, but only on their own on/off-ramp
+    // (providerIdForTransaction checks the flow). the /receipt page can be
+    // anyone's, so it gets the brand-only record rather than the viewer's entity.
     const viewerResidence = useOptionalAuth()?.user?.residence?.verified
     const providerId = useMemo(
         () => (transaction ? providerIdForTransaction(transaction, isPublic ? null : viewerResidence) : null),

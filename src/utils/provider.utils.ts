@@ -21,9 +21,19 @@ export function bridgeProviderIdForResidence(residenceIso2: string | null | unde
 }
 
 /**
+ * True for the Bridge flows that only ever carry the account holder: their own
+ * on-ramp or off-ramp. A send-link claim or guest send can involve someone who
+ * is not the Bridge customer, so the viewer's residence says nothing there.
+ */
+export function isOwnBridgeAccountFlow(bridgeFlow: string | undefined): boolean {
+    return bridgeFlow === 'ONRAMP' || bridgeFlow === 'OFFRAMP'
+}
+
+/**
  * The provider a transaction went through, for the receipt's provider row.
  * Null means no row: the money never left Peanut's own rails, or we cannot
- * tell which entity handled it.
+ * tell which entity handled it. `residenceIso2` must be the entry owner's;
+ * it only picks the Bridge entity on the owner's own on/off-ramp.
  */
 export function providerIdForTransaction(
     tx: Pick<TransactionDetails, 'extraDataForDrawer' | 'currency'>,
@@ -31,7 +41,9 @@ export function providerIdForTransaction(
 ): ProviderId | null {
     switch (tx.extraDataForDrawer?.provider) {
         case 'BRIDGE':
-            return bridgeProviderIdForResidence(residenceIso2)
+            return isOwnBridgeAccountFlow(tx.extraDataForDrawer.bridgeFlow)
+                ? bridgeProviderIdForResidence(residenceIso2)
+                : 'bridge'
         case 'MANTECA': {
             const code = tx.currency?.code?.toUpperCase()
             if (code === 'ARS') return 'manteca-ar'

@@ -460,7 +460,12 @@ describe('buildReceiptPdfModel — provider', () => {
     })
 
     test("with the owner's residence a bridge receipt prints the serving entity", () => {
-        const model = buildReceiptPdfModel(withOverrides({}, { provider: 'BRIDGE' }), t, 'en', 'DE')
+        const model = buildReceiptPdfModel(
+            withOverrides({}, { provider: 'BRIDGE', bridgeFlow: 'OFFRAMP' }),
+            t,
+            'en',
+            'DE'
+        )
         expect(model.provider?.name).toBe('Bridge Building S.A.')
         expect(model.provider?.addressLines).toEqual(['33, Boulevard Prince Henri', 'L-1724 Luxembourg'])
     })

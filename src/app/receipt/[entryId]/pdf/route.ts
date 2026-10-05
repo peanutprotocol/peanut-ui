@@ -8,6 +8,7 @@ import { servesAnonymousReceipt } from '@/components/TransactionDetails/transact
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { isFinalState, type HistoryEntry } from '@/utils/history.utils'
 import { serverFetch } from '@/utils/api-fetch'
+import { isOwnBridgeAccountFlow } from '@/utils/provider.utils'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
 import { loadMessages } from '@/i18n/app/messages'
@@ -60,8 +61,11 @@ function writeRenderCache(key: string, bytes: Buffer, ttlMs: number): void {
  * another user, so it keeps the brand-only record. Any doubt answers null.
  */
 async function ownerResidenceForBridge(entry: HistoryEntry, authorization: string | undefined): Promise<string | null> {
-    const flow = entry.extraData?.bridgeFlow
-    if (!authorization || entry.extraData?.provider !== 'BRIDGE' || (flow !== 'ONRAMP' && flow !== 'OFFRAMP')) {
+    if (
+        !authorization ||
+        entry.extraData?.provider !== 'BRIDGE' ||
+        !isOwnBridgeAccountFlow(entry.extraData?.bridgeFlow)
+    ) {
         return null
     }
     const partyIds = [entry.senderAccount?.userId, entry.recipientAccount?.userId].filter(Boolean)
