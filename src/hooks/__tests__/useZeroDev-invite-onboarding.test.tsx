@@ -20,6 +20,17 @@ const mockEnsureSignupAttributionForRegistration = jest.fn()
 const mockMarkSignupAttributionPending = jest.fn()
 const mockAttachSignupAttribution = jest.fn()
 const mockSignupAnalyticsState = jest.fn()
+const mockNativeCallback = jest.fn()
+const mockCreateNativeSignMessageCallback = jest.fn((_rpId: string, _credentialId: string) => mockNativeCallback)
+var mockAndroidNative = false
+jest.mock('@/utils/passkeyCeremony.utils', () => ({
+    ...jest.requireActual('@/utils/passkeyCeremony.utils'),
+    guardPasskeyCeremony: (ceremony: () => unknown) => ceremony(),
+}))
+jest.mock('@/utils/native-webauthn', () => ({
+    createNativeSignMessageCallback: (...args: unknown[]) =>
+        mockCreateNativeSignMessageCallback(args[0] as string, args[1] as string),
+}))
 let mockPendingBadgeCampaigns: string[] = []
 
 jest.mock('@/context/authContext', () => ({
@@ -103,10 +114,15 @@ jest.mock('@/utils/webauthn.utils', () => ({
     capturePasskeySignFailure: jest.fn(),
     classifyPasskeyError: () => ({ code: 'UNKNOWN', message: 'unknown' }),
     normalizePasskeyServerError: (e: unknown) => e,
+    normalizeNativePasskeyError: (e: unknown) => e,
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'localhost' }))
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => mockAndroidNative,
+    isAndroidNative: () => mockAndroidNative,
+    getNativeRpId: () => 'peanut.me',
+}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/signup-attribution', () => ({
     ensureSignupAttributionForRegistration: (...args: unknown[]) => mockEnsureSignupAttributionForRegistration(...args),
@@ -121,6 +137,7 @@ describe('useZeroDev registration invite boundary', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockPendingBadgeCampaigns = []
+        mockAndroidNative = false
         mockToWebAuthnKey.mockResolvedValue({ id: 'new-passkey' })
         mockSettleAcceptedInviteAcquisition.mockReturnValue({ destination: '/home', pending: [] })
         mockSettleShhhhhCampaignContinuation.mockReturnValue(undefined)
@@ -168,6 +185,22 @@ describe('useZeroDev registration invite boundary', () => {
 
         expect(mockMarkSignupAttributionPending).not.toHaveBeenCalled()
         expect(mockAttachSignupAttribution).toHaveBeenCalledWith('registered-user')
+    })
+
+    it('pins the newly registered Android key before publishing the wallet client', async () => {
+        mockAndroidNative = true
+        const key = { authenticatorId: 'fresh-credential', rpID: 'peanut.me' }
+        mockToWebAuthnKey.mockResolvedValue(key)
+        mockAcceptInvite.mockResolvedValue({
+            success: true,
+            onboardingResolved: true,
+            attributionResolved: true,
+            claims: [],
+        })
+        const { result } = renderHook(() => useZeroDev())
+        await act(async () => result.current.handleRegister('new-user'))
+        expect(mockCreateNativeSignMessageCallback).toHaveBeenCalledWith('peanut.me', 'fresh-credential')
+        expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ ...key, signMessageCallback: mockNativeCallback })
     })
 
     it.each(['awarded', 'inactive'] as const)(

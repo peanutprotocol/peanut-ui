@@ -53,6 +53,9 @@ import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
 import * as otaGate from '@/utils/ota-native-gate'
 import * as chunkRecovery from '@/utils/chunk-error-recovery'
 
+// Format-valid metadata; native signature verification is mocked in this suite.
+const signedSessionKey = `${Buffer.alloc(16, 1).toString('base64')}:${Buffer.alloc(256, 1).toString('base64')}`
+
 const STAGED = { id: 'b-2', version: '1.2.0', downloaded: '', checksum: '', status: 'pending' as const }
 
 const wrapper = ({ children }: { children: React.ReactNode }) => <OtaUpdateProvider>{children}</OtaUpdateProvider>
@@ -96,7 +99,9 @@ afterEach(() => {
 
 /** The recovery path after a rejected set(): a genuinely newer bundle to re-stage. */
 const withRestageableBundle = () => {
-    mockUpdater.getLatest.mockReset().mockResolvedValue({ url: 'https://cdn.test/b-3.zip', version: '1.3.0' })
+    mockUpdater.getLatest
+        .mockReset()
+        .mockResolvedValue({ url: 'https://cdn.test/b-3.zip', version: '1.3.0', sessionKey: signedSessionKey })
     mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
 }
 
@@ -405,7 +410,7 @@ it('drops the marker while the recovery re-stage is in flight, so a kill is not 
     let markerDuringRestage: string | null | undefined
     mockUpdater.getLatest.mockReset().mockImplementation(async () => {
         markerDuringRestage = window.localStorage.getItem('capgoPendingApply')
-        return { url: 'https://cdn.test/b-3.zip', version: '1.3.0' }
+        return { url: 'https://cdn.test/b-3.zip', version: '1.3.0', sessionKey: signedSessionKey }
     })
     mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
     const { result } = await withStagedBundle()
@@ -425,7 +430,8 @@ it('does not exit while the fallback re-download is still running after set() re
     let finishDownload!: () => void
     mockUpdater.getLatest.mockReset().mockReturnValue(
         new Promise((resolve) => {
-            finishDownload = () => resolve({ url: 'https://cdn.test/b-3.zip', version: '1.3.0' })
+            finishDownload = () =>
+                resolve({ url: 'https://cdn.test/b-3.zip', version: '1.3.0', sessionKey: signedSessionKey })
         })
     )
     mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
