@@ -72,9 +72,6 @@ const UnlockMethodModal = ({
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
-                        <Button variant="ghost" className="w-full justify-center" onClick={onClose}>
-                            {t('notNow')}
-                        </Button>
                     </div>
                 </div>
             </DrawerContent>
