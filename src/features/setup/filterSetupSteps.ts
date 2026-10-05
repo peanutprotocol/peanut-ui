@@ -8,6 +8,10 @@ export function filterSetupStepsForResidence(
     restrictions: ResidenceRestrictionSets,
     residence: string
 ) {
-    const showBank = !!residence && !deriveResidenceRestrictionsFrom(restrictions, residence).banking
-    return steps.filter((step) => step.screenId !== 'advantage-bank' || showBank)
+    const availability = deriveResidenceRestrictionsFrom(restrictions, residence)
+    return steps.filter((step) => {
+        if (step.screenId === 'advantage-bank') return !!residence && !availability.banking
+        if (step.screenId === 'advantage-card') return !!residence && !availability.card
+        return true
+    })
 }

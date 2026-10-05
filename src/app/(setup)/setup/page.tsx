@@ -305,11 +305,13 @@ function SetupPageContent() {
         searchParamsString,
     ])
 
+    const resolvedEntry = useRef<string | null>(null)
     useEffect(() => {
         let cancelled = false
         const isObsolete = () => cancelled || initializationExpired.current
         const determineInitialStep = async () => {
-            if (isObsolete()) return
+            const entryKey = JSON.stringify([inviteCodeParam, legacyStepParam])
+            if (isObsolete() || resolvedEntry.current === entryKey) return
             // wait for layout to populate steps after logout/mount
             if (!steps || steps.length === 0) {
                 console.log('[SetupPage] waiting for steps to be initialized by layout...')
@@ -362,6 +364,7 @@ function SetupPageContent() {
             if (webSignupClosed) {
                 const targetStep = resolveSetupEntryStep(entryInput)
                 if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
+                resolvedEntry.current = entryKey
                 setScreenIdRef.current(targetStep, { history: 'replace' })
                 setIsLoading(false)
                 return
@@ -374,6 +377,7 @@ function SetupPageContent() {
                 // ?screen= from a reload or shared link — the URL is only the
                 // source of truth for IN-FLOW navigation (TASK-21460)
                 if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
+                resolvedEntry.current = entryKey
                 setScreenIdRef.current(targetStep, { history: 'replace' })
                 setIsLoading(false)
                 return
@@ -446,6 +450,7 @@ function SetupPageContent() {
             if (!determinedSetupInitialStepId || !steps.some((s) => s.screenId === determinedSetupInitialStepId)) {
                 throw new Error('Setup entry step is missing')
             }
+            resolvedEntry.current = entryKey
             setScreenIdRef.current(determinedSetupInitialStepId, { history: 'replace' })
 
             setIsLoading(false)
@@ -504,7 +509,7 @@ function SetupPageContent() {
             description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
-            showLogoutButton={step.screenId === 'sign-test-transaction' && !signupCompleted}
+            showLogoutButton={step.screenId === 'advantage-control' && !signupCompleted}
             imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
             // back, so a step's sub-view (residence heads-up) collapses first
@@ -522,7 +527,7 @@ function SetupPageContent() {
         >
             <step.component
                 onComplete={
-                    step.screenId === 'sign-test-transaction'
+                    step.screenId === 'advantage-control'
                         ? () => {
                               setSignupCompleted(true)
                           }

@@ -4,6 +4,7 @@ import SetupFooter from '../components/SetupFooter'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
+import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { Card, CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
@@ -60,6 +61,8 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     )
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const secondCountryId = useId()
+    const featureId = useId()
+    const [uncheckedFeatures, setUncheckedFeatures] = useState<string[]>([])
     // whether the current selection came from the geo suggestion, untouched
     const wasPrefilledRef = useRef(false)
     const prefillSourceRef = useRef<string | null>(null)
@@ -269,7 +272,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.congrats.title')}</h1>
-                    <p className="text-body-s text-foreground-secondary">
+                    <p className="text-body-s leading-relaxed text-foreground-secondary">
                         {t('residenceStep.congrats.checklist.intro')}
                     </p>
                     <Card className="mt-2 divide-y divide-border-default">
@@ -279,15 +282,25 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                     <Icon name={feature.icon} size={24} className="shrink-0" />
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-start justify-between gap-3">
-                                            <p className="text-label-m">{feature.title}</p>
-                                            <span
-                                                aria-hidden="true"
-                                                className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-action-primary"
-                                            >
-                                                <Icon name="check" size={16} />
-                                            </span>
+                                            <label htmlFor={`${featureId}-${feature.icon}`} className="text-label-m">
+                                                {feature.title}
+                                            </label>
+                                            <Checkbox
+                                                id={`${featureId}-${feature.icon}`}
+                                                aria-label={feature.title}
+                                                value={!uncheckedFeatures.includes(feature.icon)}
+                                                onChange={(event) =>
+                                                    setUncheckedFeatures((previous) =>
+                                                        event.target.checked
+                                                            ? previous.filter((key) => key !== feature.icon)
+                                                            : [...previous, feature.icon]
+                                                    )
+                                                }
+                                            />
                                         </div>
-                                        <p className="text-body-xs text-foreground-secondary">{feature.description}</p>
+                                        <p className="text-body-xs leading-relaxed text-foreground-secondary">
+                                            {feature.description}
+                                        </p>
                                     </div>
                                 </li>
                             ))}
@@ -323,7 +336,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.partial.title')}</h1>
-                    <p className="text-body-m text-foreground-secondary">
+                    <p className="text-body-m leading-relaxed text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
                             : t('residenceStep.partial.bankingDescription')}
@@ -354,7 +367,9 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.restricted.title')}</h1>
-                    <p className="text-body-m text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
+                    <p className="text-body-m leading-relaxed text-foreground-secondary">
+                        {t('residenceStep.restricted.description')}
+                    </p>
                 </div>
                 <SetupFooter
                     actions={
@@ -378,7 +393,9 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
                 <h1 className="w-full text-left text-heading-s">{t('steps.residence.title')}</h1>
-                <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
+                <p className="mb-1 text-body-s leading-relaxed text-foreground-secondary">
+                    {t('steps.residence.description')}
+                </p>
                 <CountryCombobox
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}

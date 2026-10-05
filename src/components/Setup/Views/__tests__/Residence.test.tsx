@@ -546,3 +546,20 @@ describe('ResidenceStep', () => {
         })
     })
 })
+
+it('lets users uncheck available features without changing residence or progression', () => {
+    jest.clearAllMocks()
+    mockIsLoading = false
+    mockRestrictionSets = undefined
+    mockRestrictionSetsSettled = true
+    mockSetupState = { residenceCountry: 'PT', secondResidenceCountry: '' }
+    render(<ResidenceStep initialView="congrats" />)
+    const features = screen.getAllByRole('checkbox')
+    features.forEach((feature) => expect(feature).toBeChecked())
+    fireEvent.click(features[0])
+    expect(features[0]).not.toBeChecked()
+    expect(mockSetResidenceCountry).not.toHaveBeenCalled()
+    expect(mockHandleNext).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(mockHandleNext).toHaveBeenCalledTimes(1)
+})

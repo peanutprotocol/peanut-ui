@@ -731,7 +731,7 @@
             },
             "advantage-control": {
                 "title": "Your money stays in your hands.",
-                "description": "See your balance and confirm actions with your passkey."
+                "description": "Ready to get started? Confirm with your passkey to finish setup. Your money stays yours, and you decide what happens next."
             },
             "sign-test-transaction": {
                 "title": "Account ready",
@@ -750,12 +750,12 @@
                 "description": "No monthly fee to keep your Peanut account. See any payment or service fees before you confirm."
             },
             "notification-email": {
-                "title": "Your important updates, in one place",
-                "description": "Add your email so you don’t miss payments or important account news. You choose which notifications to receive."
+                "title": "Please add your email",
+                "description": "We never spam our users. Your email will be used for important account news and updates."
             },
             "notification-permission": {
-                "title": "Keep track of your money.",
-                "description": "Know when money arrives, a payment goes through, or your account needs attention."
+                "title": "Your funds may need your attention.",
+                "description": "Make sure to turn on the notifications. Know instantly when money arrives, a payment goes through, or your account requires attention."
             },
             "success": {
                 "title": "You’re all set!",
@@ -786,7 +786,8 @@
             "payments": "Sounds good",
             "home": "That's my home",
             "rewards": "Ooh, rewards",
-            "control": "Let's finish"
+            "control": "Let's finish",
+            "fees": "Sounds good"
         },
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {

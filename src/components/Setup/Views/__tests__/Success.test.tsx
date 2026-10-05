@@ -1,11 +1,13 @@
 import { StrictMode } from 'react'
-import { fireEvent, screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import SuccessStep from '../Success'
 
 let mockCompleted = false
 const mockRedirect = jest.fn()
 const mockCelebrate = jest.fn()
+const mockHaptic = jest.fn()
+jest.mock('@/utils/haptics', () => ({ notifyHaptic: (...args: unknown[]) => mockHaptic(...args) }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupCompleted: mockCompleted }),
 }))
@@ -17,10 +19,12 @@ jest.mock('@/components/Global/PeanutMascot', () => ({
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: () => mockCelebrate() } }))
 
 beforeEach(() => {
+    jest.useFakeTimers()
     jest.clearAllMocks()
     mockCompleted = false
 })
-it('celebrates only a completed signup, once under StrictMode, and waits for the user to continue', () => {
+afterEach(() => jest.useRealTimers())
+it('celebrates and haptics once, then enters the account after five seconds', () => {
     const view = renderWithIntl(
         <StrictMode>
             <SuccessStep />
@@ -36,9 +40,12 @@ it('celebrates only a completed signup, once under StrictMode, and waits for the
     )
     expect(mockCelebrate).toHaveBeenCalledTimes(1)
     expect(mockRedirect).not.toHaveBeenCalled()
-    const button = screen.getByRole('button', { name: 'Go to account' })
-    fireEvent.click(button)
-    fireEvent.click(button)
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(mockHaptic).toHaveBeenCalledTimes(1)
+    expect(mockHaptic).toHaveBeenCalledWith('success')
+    act(() => jest.advanceTimersByTime(4999))
+    expect(mockRedirect).not.toHaveBeenCalled()
+    act(() => jest.advanceTimersByTime(1))
     expect(mockRedirect).toHaveBeenCalledTimes(1)
     expect(mockRedirect).toHaveBeenCalledWith({ isNewAccount: true })
 })

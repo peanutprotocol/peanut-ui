@@ -252,14 +252,14 @@ const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
     landing: 0,
     signup: 1,
     'advantage-fees': 2,
-    'advantage-card': 3,
-    residence: 4,
-    'advantage-bank': 6,
+    'advantage-card': 6,
+    residence: 3,
+    'advantage-bank': 5,
     'funding-methods': 7,
     'passkey-permission': 8,
     'notification-email': 9,
     'notification-permission': 10,
-    'advantage-control': 11,
+    'advantage-control': 12,
     'sign-test-transaction': 12,
 }
 
@@ -444,6 +444,8 @@ const ImageSection = ({
                 transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className={twMerge(
                     containerClass,
+                    // Long notification copy and two spacious rows must fit above the pinned CTA.
+                    screenId === 'notification-permission' && 'h-[28dvh]',
                     'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}
@@ -718,7 +720,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     {description && (
                                         <p
                                             className={twMerge(
-                                                'text-body-m text-foreground-primary',
+                                                'text-body-m leading-relaxed text-foreground-primary',
                                                 sunsetLanding && 'md:text-center'
                                             )}
                                         >

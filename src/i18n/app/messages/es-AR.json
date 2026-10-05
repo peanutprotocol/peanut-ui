@@ -439,7 +439,7 @@
             },
             "advantage-control": {
                 "title": "Tu dinero está en tus manos.",
-                "description": "Mirá tu saldo y confirmá acciones con tu passkey."
+                "description": "¿Todo listo para empezar? Confirmá con tu passkey para terminar la configuración. Tu plata sigue siendo tuya y vos decidís qué hacer después."
             },
             "sign-test-transaction": {
                 "description": "Solo confirmá que sos vos: un toque y listo."
@@ -457,12 +457,12 @@
                 "description": "Mantené tu cuenta de Peanut sin cuota mensual. Revisá cualquier comisión de pago o servicio antes de confirmar."
             },
             "notification-email": {
-                "title": "Tus novedades importantes, en un solo lugar",
-                "description": "Agregá tu email para no perderte pagos ni noticias importantes de tu cuenta. Vos elegís qué notificaciones recibir."
+                "title": "Agregá tu correo electrónico",
+                "description": "Nunca enviamos spam. Usaremos tu correo para noticias y actualizaciones importantes de tu cuenta."
             },
             "notification-permission": {
-                "title": "Seguí de cerca tu plata.",
-                "description": "Enterate cuando recibas plata, se complete un pago o tu cuenta necesite atención."
+                "title": "Tu plata puede necesitar tu atención.",
+                "description": "Activá las notificaciones. Enterate al instante cuando llega plata, se completa un pago o tu cuenta necesita atención."
             },
             "success": {
                 "title": "¡Todo listo!",
@@ -479,7 +479,8 @@
             "payments": "Me gusta",
             "home": "Acá vivo",
             "rewards": "¡Quiero recompensas!",
-            "control": "Terminemos"
+            "control": "Terminemos",
+            "fees": "Me gusta"
         },
         "landing": {
             "signUp": "Registrate",

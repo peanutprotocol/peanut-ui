@@ -31,6 +31,7 @@ export default function FundingStep() {
                 <Card className="divide-y divide-dashed divide-border-default px-4">
                     {METHODS.map((method) => (
                         <DataRow
+                            spacious
                             key={method}
                             wrapLabel
                             label={

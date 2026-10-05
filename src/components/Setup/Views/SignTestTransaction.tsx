@@ -34,20 +34,34 @@ export function SetupConfirmationView({
     error,
     buttonText,
     showTitle = true,
+    merged = false,
 }: {
     onConfirm: () => void
     isLoading?: boolean
     error?: string | null
     buttonText?: string
     showTitle?: boolean
+    merged?: boolean
 }) {
     const t = useTranslations('setup')
     const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
     return (
         <PageStack className="flex-1">
-            <PageStack.Center>
-                {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
-                <p className="text-body-s text-foreground-secondary">{t('steps.sign-test-transaction.description')}</p>
+            <PageStack.Center className={merged ? 'my-0' : undefined}>
+                {showTitle && (
+                    <h1 className="text-heading-s">
+                        {t(merged ? 'steps.advantage-control.title' : 'testTransaction.confirmTitle')}
+                    </h1>
+                )}
+                <p
+                    className={
+                        merged
+                            ? 'text-body-m leading-relaxed text-foreground-primary'
+                            : 'text-body-s leading-relaxed text-foreground-secondary'
+                    }
+                >
+                    {t(merged ? 'steps.advantage-control.description' : 'steps.sign-test-transaction.description')}
+                </p>
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
             <SetupFooter
@@ -69,7 +83,7 @@ export function SetupConfirmationView({
     )
 }
 
-const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
+const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () => void; merged?: boolean }) => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { address, handleSendUserOpEncoded } = useZeroDev()
@@ -355,6 +369,7 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
             isLoading={isLoading}
             error={displayError}
             buttonText={getButtonText()}
+            merged={merged}
             showTitle={!!onComplete}
         />
     )

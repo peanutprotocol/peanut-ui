@@ -528,3 +528,16 @@ it('bounces a completed session home without showing the recovery screen', async
     expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
 })
+
+it('does not reinitialize the entry when residence eligibility changes the step list', async () => {
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
+    const card = { ...landing, screenId: 'advantage-card' as const, component: () => <div>Card step</div> }
+    mockStore.steps = [landing, card]
+    mockFlow.step = card
+    view.rerender(<SetupPage />)
+    await advance(200)
+    expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Card step')).toBeInTheDocument()
+})

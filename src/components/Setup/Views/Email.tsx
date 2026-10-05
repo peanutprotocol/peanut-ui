@@ -49,7 +49,7 @@ export default function EmailStep() {
         }
     }
     return (
-        <form onSubmit={save} noValidate className="flex w-full flex-1 flex-col gap-4">
+        <form onSubmit={save} noValidate className="flex w-full flex-1 flex-col">
             <div className="flex flex-1 flex-col justify-center">
                 <ProfileEditField
                     label={t('label')}

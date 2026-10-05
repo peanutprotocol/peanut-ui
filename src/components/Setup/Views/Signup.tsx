@@ -315,7 +315,7 @@ const SignupStep = () => {
                         </Button>
                     }
                 >
-                    <p className="w-full border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
                                 <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">

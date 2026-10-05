@@ -16,7 +16,7 @@ export default function NotificationsStep() {
     const t = useTranslations('setup.notifications')
     const { notificationChoices, setNotificationChoices } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
-    const { requestPermission, afterPermissionAttempt, oneSignalInitialized } = useNotifications()
+    const { requestPermission, afterPermissionAttempt } = useNotifications()
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
     const save = async () => {
@@ -27,7 +27,7 @@ export default function NotificationsStep() {
         // the signup flow, even when its request never settles.
         void notificationsApi.savePreferences(notificationChoices).catch(() => {})
         try {
-            if (notificationChoices.push && oneSignalInitialized) {
+            if (notificationChoices.push) {
                 // Ask on Continue. SDK errors and OS denial also allow signup.
                 try {
                     await requestPermission()
@@ -46,6 +46,7 @@ export default function NotificationsStep() {
                 <Card className="divide-y divide-dashed divide-border-default px-4">
                     {(['push', 'email'] as const).map((channel) => (
                         <DataRow
+                            spacious
                             key={channel}
                             label={t(`${channel}Label`)}
                             value={

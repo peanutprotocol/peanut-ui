@@ -18,7 +18,7 @@ jest.mock('@/utils/capacitor', () => ({
 // and the point of no return after a no-back step renders.
 
 const STEPS = setupSteps.filter((s) =>
-    ['landing', 'welcome', 'signup', 'residence', 'passkey-permission', 'sign-test-transaction'].includes(s.screenId)
+    ['landing', 'welcome', 'signup', 'residence', 'passkey-permission', 'advantage-control'].includes(s.screenId)
 )
 
 const wrapperFor = (searchParams: Record<string, string>) =>
@@ -77,13 +77,13 @@ describe('useSetupFlow (URL stepper)', () => {
         await act(async () => {
             await result.current.flow.handleNext()
         })
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
         expect(result.current.flow.isLastStep).toBe(true)
         // at the end, next is a no-op rather than a silent re-render of the same index
         await act(async () => {
             await result.current.flow.handleNext()
         })
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
     it('handleNext(screenId) jumps to a named screen', async () => {
@@ -116,27 +116,27 @@ describe('useSetupFlow (URL stepper)', () => {
     })
 
     it('point of no return: once the page arms the lock for a VISIBLE no-back step, earlier screens bounce back', async () => {
-        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result)
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
         // the page arms the lock only when stepRendered confirms visibility
         await act(async () => {
-            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+            result.current.context.setNoBackLockScreenId('advantage-control')
         })
         // a backward URL move (browser back / hand edit) may not re-enter the forms
         await act(async () => {
             await result.current.flow.setScreenId('signup')
         })
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
     it('a STALE terminal URL never locks: with no rendered lock, entry resolution can replace it (Chip round 2)', async () => {
-        // fresh logged-out session lands on /setup?screen=sign-test-transaction
+        // fresh logged-out session lands on /setup?screen=advantage-control
         // (a copied/reloaded stale URL) — the page is still on its loading
         // screen, so no lock is armed and the entry resolver moves freely
-        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result)
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
         await act(async () => {
             await result.current.flow.setScreenId('signup')
         })
@@ -174,23 +174,22 @@ describe('useSetupFlow (URL stepper)', () => {
             'landing',
             'signup',
             'advantage-fees',
-            'advantage-card',
             'residence',
             'advantage-bank',
+            'advantage-card',
             'funding-methods',
             'passkey-permission',
             'notification-email',
             'notification-permission',
             'advantage-control',
-            'sign-test-transaction',
         ])
     })
 
     it('resetSetupFlow disarms the lock (start-fresh on the existing-session interstitial)', async () => {
-        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result)
         await act(async () => {
-            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+            result.current.context.setNoBackLockScreenId('advantage-control')
         })
         await act(async () => {
             result.current.context.resetSetupFlow()

@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
@@ -35,24 +36,25 @@ const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: ()
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        <div className="flex flex-col gap-3 text-left text-body-s text-foreground-primary">
+                        <div className="flex flex-col gap-3 text-left text-body-s leading-relaxed text-foreground-primary">
                             <p>{t('what')}</p>
                             <p>{t('backup')}</p>
                             <p>{t('privacy')}</p>
-                            <p className="text-center">
-                                <SetupDocLink
-                                    kind="passkeys"
-                                    href="/en/help/passkeys"
-                                    className={LINK_BUTTON_CLASSES}
-                                    onBeforeOpen={onClose}
-                                >
-                                    {t('fullGuide')}
-                                </SetupDocLink>
-                            </p>
                         </div>
                         <Button variant="primary" shadowSize="4" className="w-full justify-center" onClick={onClose}>
                             {tCommon('gotIt')}
                         </Button>
+                        <p className="text-center">
+                            <SetupDocLink
+                                kind="passkeys"
+                                href="/en/help/passkeys"
+                                className={LINK_BUTTON_CLASSES}
+                                onBeforeOpen={onClose}
+                            >
+                                <Icon name="info" size={16} className="shrink-0" />
+                                {t('fullGuide')}
+                            </SetupDocLink>
+                        </p>
                     </div>
                 </div>
             </DrawerContent>

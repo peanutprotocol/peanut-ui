@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
@@ -177,24 +177,25 @@ describe('SignTestTransaction — setup completion', () => {
         recordSetupIpCountry(null)
     })
 
-    it('changes the final confirmation into one celebration and preserves its destination until Continue', async () => {
+    it('changes the final confirmation into one celebration and preserves its destination through the celebration', async () => {
         const onComplete = jest.fn(() => {
             mockSignupCompleted = true
         })
         setRedirectUrl('/receipt?id=abc')
         const view = renderWithIntl(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.getByRole('heading', { name: 'One last step' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Your money stays in your hands.' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        jest.useFakeTimers()
         view.rerender(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.queryByRole('heading', { name: 'One last step' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'Your money stays in your hands.' })).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'You’re all set!' })).toBeInTheDocument()
-        expect(screen.getByText('Works right now')).toBeInTheDocument()
+        expect(screen.queryByText('Works right now')).not.toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
-        const continueButton = screen.getByRole('button', { name: 'Go to account' })
-        fireEvent.click(continueButton)
-        fireEvent.click(continueButton)
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        act(() => jest.advanceTimersByTime(5000))
+        jest.useRealTimers()
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
         expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
     })

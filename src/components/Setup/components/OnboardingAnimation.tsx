@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 const loaders = {
     username: () => import('@/assets/onboarding/username-at.json'),
     card: () => import('@/assets/onboarding/card.json'),
-    bank: () => import('@/assets/illustrations/lottie/account-details.json'),
+    bank: () => import('@/assets/onboarding/bank.json'),
     fees: () => import('@/assets/illustrations/lottie/receipt.json'),
     security: () => import('@/assets/onboarding/security.json'),
     documents: () => import('@/assets/onboarding/documents.json'),
@@ -14,7 +14,7 @@ const loaders = {
     notifications: () => import('@/assets/onboarding/notifications.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
-const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = { bank: 40, email: 40, fees: 32 }
+const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = { email: 40, fees: 32 }
 
 /** Onboarding lab vectors plus the matching documents and email illustrations. */
 export default function OnboardingAnimation({

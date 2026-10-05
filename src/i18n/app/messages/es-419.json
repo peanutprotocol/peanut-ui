@@ -731,7 +731,7 @@
             },
             "advantage-control": {
                 "title": "Tu dinero está en tus manos.",
-                "description": "Consulta tu saldo y confirma acciones con tu passkey."
+                "description": "¿Todo listo para empezar? Confirma con tu passkey para terminar la configuración. Tu dinero sigue siendo tuyo y tú decides qué hacer después."
             },
             "sign-test-transaction": {
                 "title": "Cuenta lista",
@@ -750,12 +750,12 @@
                 "description": "Mantén tu cuenta de Peanut sin cuota mensual. Revisa cualquier comisión de pago o servicio antes de confirmar."
             },
             "notification-email": {
-                "title": "Tus novedades importantes, en un solo lugar",
-                "description": "Agrega tu correo para no perderte pagos ni noticias importantes de tu cuenta. Tú eliges qué notificaciones recibir."
+                "title": "Agrega tu correo electrónico",
+                "description": "Nunca enviamos spam. Usaremos tu correo para noticias y actualizaciones importantes de tu cuenta."
             },
             "notification-permission": {
-                "title": "Mantente al tanto de tu dinero.",
-                "description": "Entérate cuando recibas dinero, se complete un pago o tu cuenta necesite atención."
+                "title": "Tu dinero puede necesitar tu atención.",
+                "description": "Activa las notificaciones. Entérate al instante cuando llega dinero, se completa un pago o tu cuenta necesita atención."
             },
             "success": {
                 "title": "¡Todo listo!",
@@ -786,7 +786,8 @@
             "payments": "Suena bien",
             "home": "Aquí vivo",
             "rewards": "¡Quiero recompensas!",
-            "control": "Vamos a terminar"
+            "control": "Vamos a terminar",
+            "fees": "Suena bien"
         },
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {

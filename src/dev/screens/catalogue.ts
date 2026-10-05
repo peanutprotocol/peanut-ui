@@ -123,7 +123,7 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '01-b-first-launch-intro': { journey: 'Account setup', step: 5 },
     '01-a-landing': { journey: 'Account setup', step: 10 },
     '06-a-signup': { journey: 'Account setup', step: 30 },
-    '02-b-advantage-card': { journey: 'Account setup', step: 38 },
+    '02-b-advantage-card': { journey: 'Account setup', step: 43.5 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
     '03-c-residence-congrats': { journey: 'Account setup', step: 42 },
     '03-d-funding-methods': { journey: 'Account setup', step: 44 },

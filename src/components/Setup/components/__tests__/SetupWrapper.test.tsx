@@ -336,7 +336,7 @@ describe('SetupWrapper transitions', () => {
         rerender(
             <SetupWrapper
                 layoutType="signup"
-                screenId="advantage-card"
+                screenId="residence"
                 step={3}
                 totalSteps={12}
                 image={{ pose: 'waving-hello' }}

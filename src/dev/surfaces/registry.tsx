@@ -89,11 +89,13 @@ function SetupScreen({
     children,
     firstLaunchIntroPreview,
     showProgress = true,
+    forceFullScreen = false,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
+    forceFullScreen?: boolean
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -101,6 +103,7 @@ function SetupScreen({
                 screenId={screenId}
                 firstLaunchIntroPreview={firstLaunchIntroPreview}
                 showProgress={showProgress}
+                forceFullScreen={forceFullScreen}
             >
                 {children}
             </SetupScreenBody>
@@ -112,11 +115,13 @@ function SetupScreenBody({
     children,
     firstLaunchIntroPreview,
     showProgress = true,
+    forceFullScreen = false,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
+    forceFullScreen?: boolean
 }) {
     const t = useTranslations('setup')
     const { setSteps } = useSetupFlowContext()
@@ -128,7 +133,7 @@ function SetupScreenBody({
     const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
     return (
         <SetupWrapper
-            fullScreen={step.fullScreen}
+            fullScreen={forceFullScreen || step.fullScreen}
             showProgress={showProgress}
             layoutType={step.layoutType}
             firstLaunchIntroPreview={firstLaunchIntroPreview}
@@ -223,8 +228,8 @@ export const SURFACES: Record<string, Surface> = {
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
         render: () => (
-            <SetupScreen screenId="sign-test-transaction">
-                <SetupConfirmationView onConfirm={noop} />
+            <SetupScreen screenId="advantage-control">
+                <SetupConfirmationView merged onConfirm={noop} />
             </SetupScreen>
         ),
     },
@@ -260,14 +265,18 @@ export const SURFACES: Record<string, Surface> = {
     '07-e-setup-celebration': {
         ...SURFACE_META['07-e-setup-celebration'],
         render: () => (
-            <SetupScreen screenId="sign-test-transaction" showProgress={false}>
-                <SetupCelebrationView onContinue={noop} />
+            <SetupScreen screenId="advantage-control" showProgress={false} forceFullScreen>
+                <SetupCelebrationView />
             </SetupScreen>
         ),
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],
-        render: () => <SetupScreen screenId="advantage-control" />,
+        render: () => (
+            <SetupScreen screenId="advantage-control">
+                <SetupConfirmationView merged onConfirm={noop} />
+            </SetupScreen>
+        ),
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],

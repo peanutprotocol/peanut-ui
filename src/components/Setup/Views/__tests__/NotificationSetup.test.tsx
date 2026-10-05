@@ -93,12 +93,12 @@ it('continues while the preferences backend never responds', async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
-it('continues silently when the push SDK is unavailable', async () => {
+it('requests enabled push even while the SDK is initializing', async () => {
     mockReady = false
     renderStep(<NotificationsStep />)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-    expect(mockPermission).not.toHaveBeenCalled()
+    expect(mockPermission).toHaveBeenCalledTimes(1)
     expect(screen.queryByText(/aren’t ready yet/)).not.toBeInTheDocument()
 })
 it('continues silently if the push SDK rejects its permission request', async () => {

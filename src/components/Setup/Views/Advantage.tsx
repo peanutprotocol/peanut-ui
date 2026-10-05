@@ -16,7 +16,9 @@ const AdvantageStep = () => {
               ? 'cta.rewards'
               : step?.screenId === 'advantage-control'
                 ? 'cta.control'
-                : 'next'
+                : step?.screenId === 'advantage-fees'
+                  ? 'cta.fees'
+                  : 'next'
 
     return (
         <SetupFooter
