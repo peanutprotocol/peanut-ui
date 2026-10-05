@@ -11,4 +11,4 @@ The shared onboarding player pauses when the page is hidden and holds a still fr
 
 Security uses #255’s existing mascot-on-safe variant. Notifications uses `13-notifications-object-alt-2.json` (a phone receiving an update), copied unchanged from the same PR.
 
-Regional/fallback features also reuse #255 exports: `local.json` = `05-local-object` (QR scanning), `people.json` = `07-username-object-alt-3` (payment to a username). No new animation artwork was created.
+The local-payments feature reuses #255’s `local.json` = `05-local-object` (QR scanning). “Pay people, not account numbers” imports the unchanged `plane-delivery.json` illustration from [UI #3579](https://github.com/peanutprotocol/peanut-ui/pull/3579), commit `ea98dbd816f459b75aa552482bf67dfadeeae5fe`. It shows a banknote plane delivering money into a phone, using the existing compact feature scale and a reduced-motion still frame at 30. No new animation artwork was created.

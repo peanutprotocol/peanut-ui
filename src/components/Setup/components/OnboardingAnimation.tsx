@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 const loaders = {
     local: () => import('@/assets/onboarding/local.json'),
     exchange: () => import('@/assets/illustrations/lottie/coin-swap.json'),
-    people: () => import('@/assets/onboarding/people.json'),
+    people: () => import('@/assets/illustrations/lottie/plane-delivery.json'),
     username: () => import('@/assets/onboarding/username-at.json'),
     card: () => import('@/assets/illustrations/lottie/card-flip.json'),
     bank: () => import('@/assets/illustrations/lottie/globe-world-route.json'),
@@ -30,6 +30,7 @@ const COMPACT_ANIMATIONS = new Set<OnboardingAnimationName>([
     'email',
 ])
 const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = {
+    people: 30,
     email: 40,
     fees: 32,
     exchange: 0,
