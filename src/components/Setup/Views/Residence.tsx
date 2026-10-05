@@ -229,21 +229,18 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 title: t('residenceStep.congrats.checklist.dollars'),
                 description: t('residenceStep.congrats.checklist.ready'),
             },
-            {
-                icon: 'users',
-                title: t('residenceStep.compare.items.p2p'),
-                description: t('residenceStep.congrats.checklist.ready'),
-            },
             ...(rails.length
                 ? [
                       {
                           icon: 'bank' as const,
                           title: t('residenceStep.congrats.checklist.banking'),
-                          description: t('residenceStep.congrats.checklist.unlockRails', {
-                              rails: new Intl.ListFormat(locale).format(
-                                  rails.map((rail) => t(`residenceStep.congrats.rails.${rail}`))
-                              ),
-                          }),
+                          description: availability.multiCurrency
+                              ? t('residenceStep.congrats.checklist.unlockMultiCurrency')
+                              : t('residenceStep.congrats.checklist.unlockRails', {
+                                    rails: new Intl.ListFormat(locale).format(
+                                        rails.map((rail) => t(`residenceStep.congrats.rails.${rail}`))
+                                    ),
+                                }),
                       },
                   ]
                 : []),
@@ -256,6 +253,11 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                       },
                   ]
                 : []),
+            {
+                icon: 'users',
+                title: t('residenceStep.compare.items.p2p'),
+                description: t('residenceStep.congrats.checklist.ready'),
+            },
         ]
         return (
             <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
@@ -279,15 +281,16 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                                 <Icon name="check" size={16} />
                                             </span>
                                         </div>
-                                        <p className="mt-1 text-body-xs text-foreground-secondary">
-                                            {feature.description}
-                                        </p>
+                                        <p className="text-body-xs text-foreground-secondary">{feature.description}</p>
                                     </div>
                                 </li>
                             ))}
                         </ul>
                     </Card>
-                    <p className="mt-2 text-center text-body-xs text-foreground-secondary">{t('choicesLater')}</p>
+                    <p className="mt-2 flex items-center justify-center gap-2 text-center text-body-xs text-foreground-secondary">
+                        <Icon name="info" size={16} className="shrink-0" />
+                        {t('choicesLater')}
+                    </p>
                 </div>
                 <SetupFooter
                     actions={
@@ -424,14 +427,15 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                         <BulletList
                                             size="xs"
                                             items={[
-                                                ...summary.available.map((item) =>
-                                                    t(`residenceStep.compare.items.${item}`)
-                                                ),
+                                                ...summary.available
+                                                    .filter((item) => item !== 'p2p')
+                                                    .map((item) => t(`residenceStep.compare.items.${item}`)),
                                                 ...summary.unavailable.map((item) => (
                                                     <span key={item} className="line-through">
                                                         {t(`residenceStep.compare.missing.${item}`)}
                                                     </span>
                                                 )),
+                                                t('residenceStep.compare.items.p2p'),
                                             ]}
                                         />
                                         {/* One verification enrols every rail in the region's

@@ -6,11 +6,18 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useSetupFlowContext, type SetupFundingMethod } from '@/features/setup/SetupFlowContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import SetupFooter from '../components/SetupFooter'
 
 const METHODS: SetupFundingMethod[] = ['bank', 'cash', 'crypto', 'peanut']
+const METHOD_ICONS: Record<SetupFundingMethod, IconName> = {
+    bank: 'bank',
+    cash: 'currency',
+    crypto: 'coins',
+    peanut: 'users',
+}
 
 export default function FundingStep() {
     const t = useTranslations('setup')
@@ -25,7 +32,13 @@ export default function FundingStep() {
                     {METHODS.map((method) => (
                         <DataRow
                             key={method}
-                            label={<label htmlFor={`${id}-${method}`}>{t(`funding.methods.${method}`)}</label>}
+                            wrapLabel
+                            label={
+                                <label htmlFor={`${id}-${method}`} className="flex items-center gap-3">
+                                    <Icon name={METHOD_ICONS[method]} size={24} className="shrink-0" />
+                                    <span>{t(`funding.methods.${method}`)}</span>
+                                </label>
+                            }
                             value={
                                 <Checkbox
                                     id={`${id}-${method}`}
@@ -42,7 +55,10 @@ export default function FundingStep() {
                         />
                     ))}
                 </Card>
-                <p className="text-center text-body-xs text-foreground-secondary">{t('choicesLater')}</p>
+                <p className="flex items-center justify-center gap-2 text-center text-body-xs text-foreground-secondary">
+                    <Icon name="info" size={16} className="shrink-0" />
+                    {t('choicesLater')}
+                </p>
             </div>
             <SetupFooter
                 actions={

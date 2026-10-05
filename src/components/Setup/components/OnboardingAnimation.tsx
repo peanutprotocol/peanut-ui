@@ -7,9 +7,9 @@ const loaders = {
     username: () => import('@/assets/onboarding/username-at.json'),
     card: () => import('@/assets/onboarding/card.json'),
     bank: () => import('@/assets/onboarding/bank.json'),
-    fees: () => import('@/assets/onboarding/fees.json'),
+    fees: () => import('@/assets/illustrations/lottie/receipt.json'),
     security: () => import('@/assets/onboarding/security.json'),
-    documents: () => import('@/assets/illustrations/lottie/id-card.json'),
+    documents: () => import('@/assets/onboarding/documents.json'),
     email: () => import('@/assets/illustrations/lottie/envelope-verify.json'),
     notifications: () => import('@/assets/onboarding/notifications.json'),
 }
@@ -31,7 +31,8 @@ export default function OnboardingAnimation({
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
         const play = () => {
             if (!animation) return
-            if (reducedMotion.matches) animation.goToAndStop(0, true)
+            // Keep the zero-total receipt visible without playing its printing loop.
+            if (reducedMotion.matches) animation.goToAndStop(name === 'fees' ? 32 : 0, true)
             else if (document.hidden) animation.pause()
             else animation.play()
         }
@@ -70,7 +71,11 @@ export default function OnboardingAnimation({
             data-onboarding-animation={name}
             data-lottie-ready={ready}
             className={
-                background ? 'h-full w-full' : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
+                background
+                    ? 'h-full w-full'
+                    : name === 'fees'
+                      ? 'aspect-square h-full w-auto max-w-none scale-[1.2]'
+                      : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
             }
         />
     )

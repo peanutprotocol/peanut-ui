@@ -246,6 +246,23 @@ function UsernameBackground() {
     )
 }
 
+// Count the residence checklist as a screen, while keeping five stable groups
+// when country eligibility skips the bank-account introduction.
+const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
+    landing: 0,
+    signup: 1,
+    'advantage-fees': 2,
+    'advantage-card': 3,
+    residence: 4,
+    'advantage-bank': 6,
+    'funding-methods': 7,
+    'passkey-permission': 8,
+    'notification-email': 9,
+    'notification-permission': 10,
+    'advantage-control': 11,
+    'sign-test-transaction': 12,
+}
+
 function SetupProgressHeader({
     step,
     totalSteps,
@@ -260,6 +277,7 @@ function SetupProgressHeader({
     compact?: boolean
 }) {
     const t = useTranslations('setup.wrapper')
+    const progressGroup = Math.min(4, Math.floor((SETUP_PROGRESS_SCREEN_INDEX[screenId] ?? step ?? 0) / 3))
     return (
         <div
             aria-hidden={hidden}
@@ -275,13 +293,10 @@ function SetupProgressHeader({
             <div className="flex min-w-0 flex-1 justify-center">
                 {step !== undefined && totalSteps !== undefined && totalSteps > 0 && step >= 0 && step < totalSteps && (
                     <CarouselDots
-                        count={totalSteps}
-                        activeIndex={step}
-                        className={twMerge(
-                            'pointer-events-none gap-1',
-                            screenId === 'sign-test-transaction' && 'gap-0.5'
-                        )}
-                        aria-label={t('stepIndicator', { current: step + 1, total: totalSteps })}
+                        count={5}
+                        activeIndex={progressGroup}
+                        className="pointer-events-none"
+                        aria-label={t('stepIndicator', { current: progressGroup + 1, total: 5 })}
                     />
                 )}
             </div>

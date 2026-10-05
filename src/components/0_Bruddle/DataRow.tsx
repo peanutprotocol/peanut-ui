@@ -13,6 +13,7 @@ interface DataRowProps {
     copyValue?: string
     onClick?: () => void
     trailing?: React.ReactNode
+    wrapLabel?: boolean
 }
 
 /**
@@ -32,6 +33,7 @@ export const DataRow = ({
     copyValue,
     onClick,
     trailing,
+    wrapLabel = false,
 }: DataRowProps) => (
     <div
         className={twMerge(
@@ -54,7 +56,7 @@ export const DataRow = ({
         }
         translate="no"
     >
-        <div className="relative flex shrink-0 items-center">
+        <div className={twMerge('relative flex shrink-0 items-center', wrapLabel && 'min-w-0 flex-1 shrink')}>
             <span className="ds-data-row-label text-body-s text-foreground-secondary">{label}</span>
             {moreInfoText && (
                 <div className="relative z-20 flex items-center justify-center px-2">
@@ -67,7 +69,12 @@ export const DataRow = ({
         {loading ? (
             <Loading />
         ) : (
-            <div className="ds-data-row-value flex min-w-0 items-center justify-end gap-2 text-right text-label-l text-foreground-primary">
+            <div
+                className={twMerge(
+                    'ds-data-row-value flex min-w-0 items-center justify-end gap-2 text-right text-label-l text-foreground-primary',
+                    wrapLabel && 'shrink-0'
+                )}
+            >
                 {/* min-w-0 + break-words: a single unbreakable token (wallet
                     address, tx hash) must wrap inside the card, not stretch
                     the row and escape the layout. */}

@@ -219,7 +219,7 @@ describe('ResidenceStep', () => {
         )
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })).toBeInTheDocument()
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
@@ -261,7 +261,7 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(mockHandleNext).toHaveBeenCalled()
-        expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+        expect(screen.queryByText('Here’s what you get with Peanut')).not.toBeInTheDocument()
         expect(mockedCapture).not.toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
             expect.anything()
@@ -275,7 +275,7 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'BR'
         const view = render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })).toBeInTheDocument()
         const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
         const local = actual.LOCAL_RESIDENCE_RESTRICTION_SETS
         mockRestrictionSets = { ...local, bankingOnly: new Set([...local.bankingOnly, 'BR']) }
@@ -296,7 +296,7 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Select Brazil' }))
         expect(mockHandleNext).toHaveBeenCalled()
-        expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+        expect(screen.queryByText('Here’s what you get with Peanut')).not.toBeInTheDocument()
         expect(mockedCapture).not.toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
             expect.anything()
@@ -308,7 +308,7 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
-        expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+        expect(screen.queryByText('Here’s what you get with Peanut')).not.toBeInTheDocument()
         expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
     })
 
@@ -318,7 +318,7 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'HK'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })).toBeInTheDocument()
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
     })
 
@@ -474,12 +474,14 @@ describe('ResidenceStep', () => {
             mockSetupState.residenceCountry = 'BR'
             render(<ResidenceStep />)
             fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-            expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })
+            ).toBeInTheDocument()
 
             act(() => {
                 dispatchBackPress()
             })
-            expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+            expect(screen.queryByText('Here’s what you get with Peanut')).not.toBeInTheDocument()
             expect(screen.getByRole('button', { name: "That's my home" })).toBeInTheDocument()
         })
 

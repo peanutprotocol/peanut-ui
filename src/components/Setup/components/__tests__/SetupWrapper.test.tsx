@@ -314,33 +314,39 @@ describe('SetupWrapper transitions', () => {
         )
     })
 
-    it('keeps contrasting progress dots above the mascot and updates the active step', () => {
+    it('shows five progress groups and advances after three screens', () => {
         const { rerender } = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="signup" step={2} totalSteps={6} image={{ pose: 'thinking' }}>
+            <SetupWrapper
+                layoutType="signup"
+                screenId="advantage-fees"
+                step={2}
+                totalSteps={12}
+                image={{ pose: 'thinking' }}
+            >
                 <div>Sign up</div>
             </SetupWrapper>
         )
-        const dots = screen.getByRole('group', { name: 'Step 3 of 6' })
+        const dots = screen.getByRole('group', { name: 'Step 1 of 5' })
         expect(dots.parentElement?.parentElement).toHaveClass('absolute', 'top-4', 'z-20')
         expect(dots.closest('.setup-hero-background')).toContainElement(screen.getByTestId('mascot'))
-        expect(dots.children).toHaveLength(6)
-        expect(dots.children[2]).toHaveClass('w-6', 'bg-border-default')
-        expect(dots.children[3]).toHaveClass('bg-border-subtle')
+        expect(dots.children).toHaveLength(5)
+        expect(dots.children[0]).toHaveClass('w-6', 'bg-border-default')
+        expect(dots.children[1]).toHaveClass('bg-border-subtle')
 
         rerender(
             <SetupWrapper
                 layoutType="signup"
-                screenId="residence"
+                screenId="advantage-card"
                 step={3}
-                totalSteps={6}
+                totalSteps={12}
                 image={{ pose: 'waving-hello' }}
             >
                 <div>Residence</div>
             </SetupWrapper>
         )
-        expect(screen.getByRole('group', { name: 'Step 4 of 6' })).toBe(dots)
-        expect(dots.children[2]).toHaveClass('bg-border-subtle')
-        expect(dots.children[3]).toHaveClass('w-6', 'bg-border-default')
+        expect(screen.getByRole('group', { name: 'Step 2 of 5' })).toBe(dots)
+        expect(dots.children[0]).toHaveClass('bg-border-subtle')
+        expect(dots.children[1]).toHaveClass('w-6', 'bg-border-default')
     })
 
     it('keeps the hero and panel mounted while sliding the mascot and step content forward', () => {

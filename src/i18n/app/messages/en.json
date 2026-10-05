@@ -831,7 +831,7 @@
                 "continue": "Continue"
             },
             "congrats": {
-                "title": "Good news",
+                "title": "Here’s what you get with Peanut",
                 "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}.",
                 "descriptionNoRail": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away.",
                 "cardClause": "You can also apply for a Peanut Card after verifying your identity.",
@@ -845,11 +845,12 @@
                 },
                 "continue": "Continue",
                 "checklist": {
-                    "intro": "Here’s what you can use with Peanut.",
-                    "dollars": "Digital dollars",
+                    "intro": "Meet your account, full of possibilities.",
+                    "dollars": "Digital dollars account",
                     "ready": "Ready to use. No ID check needed.",
                     "banking": "Bank accounts & transfers",
                     "unlockRails": "A quick ID check unlocks {rails}.",
+                    "unlockMultiCurrency": "A quick ID check unlocks bank transfers in multiple currencies.",
                     "applyCard": "Apply after verifying your identity."
                 }
             },

@@ -831,7 +831,7 @@
                 "continue": "Continuar"
             },
             "congrats": {
-                "title": "Boas notícias",
+                "title": "Veja o que você ganha com o Peanut",
                 "description": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já, e uma verificação rápida de identidade libera {rail}.",
                 "descriptionNoRail": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
                 "cardClause": "Você também pode solicitar um cartão Peanut após verificar sua identidade.",
@@ -845,11 +845,12 @@
                 },
                 "continue": "Continuar",
                 "checklist": {
-                    "intro": "Veja o que você pode usar com o Peanut.",
-                    "dollars": "Dólares digitais",
+                    "intro": "Conheça sua conta, cheia de possibilidades.",
+                    "dollars": "Conta em dólares digitais",
                     "ready": "Pronto para usar.",
                     "banking": "Contas e transferências bancárias",
                     "unlockRails": "Uma verificação rápida de identidade libera {rails}.",
+                    "unlockMultiCurrency": "Uma verificação rápida de identidade libera transferências bancárias em várias moedas.",
                     "applyCard": "Solicite seu cartão após verificar sua identidade."
                 }
             },
