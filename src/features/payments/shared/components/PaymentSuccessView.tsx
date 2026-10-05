@@ -309,7 +309,7 @@ const PaymentSuccessView = ({
 
     return (
         <PageStack>
-            <SoundPlayer sound="success" />
+            {type !== 'REQUEST' && <SoundPlayer sound="success" />}
             {(type === 'SEND' || type === 'DEPOSIT') && (
                 <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
             )}

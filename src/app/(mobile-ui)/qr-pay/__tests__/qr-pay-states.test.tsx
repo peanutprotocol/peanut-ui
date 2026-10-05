@@ -880,15 +880,15 @@ describe('GROUP 1: Loading & KYC Gate', () => {
     // operations.pay='enabled', so `canDo('pay')` returns true and the existing
     // PROCEED_TO_PAY tests cover this path. No FE special-case to test anymore.
 
-    test('KYC passed but payment data still loading shows PeanutLoading', async () => {
+    test('KYC passed but payment data still loading explains the details fetch', async () => {
         // KYC passed, but Manteca payment lock hasn't loaded yet
         mockMantecaApi.initiateQrPayment.mockReturnValue(new Promise(() => {})) // never resolves
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-        // Should show loading because payment data is not available yet
+        // Caption the actual scan stage while the API is pending.
         await waitFor(() => {
-            expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+            expect(screen.getByText(en.loadingStates.fetchingDetails)).toBeInTheDocument()
         })
     })
 
@@ -1223,7 +1223,7 @@ describe('GROUP 2: Payment Form States', () => {
 // GROUP 3: Processing States
 // ============================================================
 describe('GROUP 3: Processing States', () => {
-    test('Manteca payment processing shows PeanutLoading', async () => {
+    test('Manteca submission immediately explains payment processing', async () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValue({
             code: 'LOCK123',
             type: 'QR3_PAYMENT',
@@ -1259,12 +1259,9 @@ describe('GROUP 3: Processing States', () => {
             fireEvent.click(payButton)
         })
 
-        // after clicking pay the flow shows the shared processing screen
-        // (signSpend resolves, then completeQrPayment hangs) — TASK-22452
         await waitFor(() => {
-            const loadingEl = screen.queryByTestId('peanut-loading')
-            const loadingButton = screen.queryByText('Loading...')
-            expect(loadingEl || loadingButton).toBeTruthy()
+            expect(screen.getByText(en.qrPay.processingPaymentTitle)).toBeInTheDocument()
+            expect(screen.getByText(en.qrPay.processingPaymentBody)).toBeInTheDocument()
         })
     })
 

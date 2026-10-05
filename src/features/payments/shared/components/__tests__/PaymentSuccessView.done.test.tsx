@@ -57,7 +57,7 @@ jest.mock('next-intl', () => ({
 
 // Presentational children pull in icons/haptics/media that jsdom can't render;
 // the receipt id is built in the parent, so stub them to focus the test.
-jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
+jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => <div data-testid="success-sound" /> }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/0_Bruddle/PageStack', () => ({
     PageStack: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
@@ -92,6 +92,16 @@ beforeEach(() => {
 })
 
 describe('PaymentSuccessView done', () => {
+    it('does not play the money sound for a newly created request', () => {
+        render(<PaymentSuccessView type="REQUEST" amount="5" />)
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
+    it.each(['SEND', 'DEPOSIT'] as const)('keeps the money sound for %s', (type) => {
+        render(<PaymentSuccessView type={type} amount="5" />)
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+    })
+
     it.each(['SEND', 'REQUEST', 'DEPOSIT'] as const)(
         '%s: back to home replaces when home is not in history, never pushes',
         (type) => {
