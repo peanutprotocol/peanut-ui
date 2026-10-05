@@ -14,7 +14,7 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
  */
 
 import React from 'react'
-import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
+import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { useTranslations } from 'next-intl'
@@ -111,6 +111,8 @@ function SetupScreenBody({
     firstLaunchIntroPreview?: 'play' | 'still'
 }) {
     const t = useTranslations('setup')
+    const { setSteps } = useSetupFlowContext()
+    React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     if (!step) return null
     const View = step.component
