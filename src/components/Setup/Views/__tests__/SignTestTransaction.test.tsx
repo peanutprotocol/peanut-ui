@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
+import CompleteSignupStep from '../CompleteSignup'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -17,6 +18,8 @@ const mockAddAccount = jest.fn()
 const mockSendUserOp = jest.fn()
 const mockReadSignupAttributionAsync = jest.fn()
 const mockClearSignupAttribution = jest.fn()
+
+let mockSignupCompleted = false
 
 let accounts: Array<{ type: AccountType }> = []
 
@@ -44,6 +47,7 @@ jest.mock('@/context/authContext', () => ({
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
+        signupCompleted: mockSignupCompleted,
         residenceCountry: '',
         secondResidenceCountry: '',
         setIsLoading: jest.fn(),
@@ -54,6 +58,10 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: () => <div data-testid="celebration-mascot" />,
+}))
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: jest.fn() } }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/signup-attribution', () => ({
@@ -74,6 +82,7 @@ describe('SignTestTransaction — setup completion', () => {
         jest.clearAllMocks()
         localStorage.clear()
         accounts = []
+        mockSignupCompleted = false
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
         mockReadSignupAttributionAsync.mockResolvedValue(null)
         mockClearSignupAttribution.mockResolvedValue(undefined)
@@ -151,6 +160,28 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(getRedirectUrl()).toBe('/receipt?id=abc')
         expect(confettiPresets.celebration).not.toHaveBeenCalled()
+    })
+
+    it('changes the final confirmation into one celebration and preserves its destination until Continue', async () => {
+        const onComplete = jest.fn(() => {
+            mockSignupCompleted = true
+        })
+        setRedirectUrl('/receipt?id=abc')
+        const view = renderWithIntl(<CompleteSignupStep onComplete={onComplete} />)
+        expect(screen.getByRole('heading', { name: 'One last step' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        view.rerender(<CompleteSignupStep onComplete={onComplete} />)
+        expect(screen.queryByRole('heading', { name: 'One last step' })).not.toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'You’re all set!' })).toBeInTheDocument()
+        expect(screen.getByText('Works right now')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
+        const continueButton = screen.getByRole('button', { name: 'Go to account' })
+        fireEvent.click(continueButton)
+        fireEvent.click(continueButton)
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
     })
 
     it('captures a Preferences-only journey after restart before clearing its native context', async () => {

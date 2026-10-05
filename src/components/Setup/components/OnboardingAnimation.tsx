@@ -4,18 +4,25 @@ import type { AnimationItem } from 'lottie-web'
 import { useEffect, useRef, useState } from 'react'
 
 const loaders = {
+    username: () => import('@/assets/onboarding/username-at.json'),
     card: () => import('@/assets/onboarding/card.json'),
     bank: () => import('@/assets/onboarding/bank.json'),
-    fees: () => import('@/assets/onboarding/fees.json'),
+    fees: () => import('@/assets/illustrations/lottie/fee-scissors.json'),
     security: () => import('@/assets/onboarding/security.json'),
-    documents: () => import('@/assets/onboarding/documents.json'),
-    email: () => import('@/assets/onboarding/email.json'),
+    documents: () => import('@/assets/illustrations/lottie/id-card.json'),
+    email: () => import('@/assets/illustrations/lottie/envelope-verify.json'),
     notifications: () => import('@/assets/onboarding/notifications.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
 
 /** Onboarding lab vectors plus the matching documents and email illustrations. */
-export default function OnboardingAnimation({ name }: { name: OnboardingAnimationName }) {
+export default function OnboardingAnimation({
+    name,
+    background = false,
+}: {
+    name: OnboardingAnimationName
+    background?: boolean
+}) {
     const container = useRef<HTMLDivElement>(null)
     const [ready, setReady] = useState(false)
     useEffect(() => {
@@ -39,6 +46,7 @@ export default function OnboardingAnimation({ name }: { name: OnboardingAnimatio
                     animationData: data.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
+                if (name === 'fees' || name === 'email') animation.setSpeed(0.5)
                 animation.addEventListener('DOMLoaded', () => {
                     setReady(true)
                     play()
@@ -61,7 +69,9 @@ export default function OnboardingAnimation({ name }: { name: OnboardingAnimatio
             aria-hidden="true"
             data-onboarding-animation={name}
             data-lottie-ready={ready}
-            className="aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]"
+            className={
+                background ? 'h-full w-full' : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
+            }
         />
     )
 }

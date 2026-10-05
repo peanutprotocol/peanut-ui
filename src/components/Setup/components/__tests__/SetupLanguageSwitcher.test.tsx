@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { AppLocaleContext } from '@/i18n/app/locale-context'
 import { SetupLanguageSwitcher } from '../SetupLanguageSwitcher'
@@ -16,15 +16,15 @@ it('shows a short language name and applies the selected locale', async () => {
         </AppLocaleContext.Provider>
     )
 
-    const selector = screen.getByRole('combobox', { name: 'Language' })
+    const selector = screen.getByRole('button', { name: 'Language' })
     expect(selector).toHaveTextContent('EN')
-    fireEvent.keyDown(selector, { key: 'ArrowDown' })
-    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual([
-        'English',
-        'Español',
-        'Español (Argentina)',
-        'Português (Brasil)',
-    ])
-    fireEvent.click(screen.getByRole('option', { name: 'Español (Argentina)' }))
+    fireEvent.click(selector)
+    expect(
+        (await screen.findAllByRole('button', { name: /English|Español|Português/ })).map(
+            (option) => option.textContent
+        )
+    ).toEqual(['English', 'Español', 'Español (Argentina)', 'Português (Brasil)'])
+    fireEvent.click(screen.getByRole('button', { name: 'Español (Argentina)' }))
     expect(setLocale).toHaveBeenCalledWith('es-AR')
+    await waitFor(() => expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'closed'))
 })

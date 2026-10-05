@@ -10,6 +10,10 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupCompleted: mockCompleted }),
 }))
 jest.mock('@/hooks/useAccountSetup', () => ({ useAccountSetup: () => ({ handleRedirect: mockRedirect }) }))
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: () => <div data-testid="celebration-mascot" />,
+}))
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: () => mockCelebrate() } }))
 
 beforeEach(() => {

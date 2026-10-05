@@ -6,7 +6,7 @@
 import React from 'react'
 import { act, fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
-import { SetupWrapper, useSetupImageOverride } from '../SetupWrapper'
+import { SetupWrapper, useSetupImageOverride, useSetupFullScreen } from '../SetupWrapper'
 
 const mockReducedMotion = { value: true }
 const mockCapacitor = { value: false }
@@ -154,7 +154,7 @@ const StepWithImageOverride = () => {
 }
 
 describe('SetupWrapper transitions', () => {
-    it('sizes the landing pose down while keeping the other setup illustrations comparable', () => {
+    it('uses the same mascot scale on landing and username while keeping later illustrations comparable', () => {
         const { rerender, container } = renderWithIntl(
             <SetupWrapper layoutType="signup" screenId="landing" image={{ pose: 'waving-chill' }}>
                 <div>Landing</div>
@@ -167,7 +167,7 @@ describe('SetupWrapper transitions', () => {
                 <div>Signup</div>
             </SetupWrapper>
         )
-        expect(screen.getByTestId('mascot')).not.toHaveClass('scale-[0.8]')
+        expect(screen.getByTestId('mascot')).toHaveClass('scale-[0.8]')
 
         rerender(
             <SetupWrapper layoutType="signup" screenId="sign-test-transaction" image={{ pose: 'waving-chill' }}>
@@ -425,6 +425,32 @@ describe('SetupWrapper transitions', () => {
         expect(screen.getByText('Pick a handle').closest('[data-enter-x]')).toHaveAttribute(
             'data-transition-duration',
             '0'
+        )
+    })
+
+    it('uses a full-page checklist and restores the illustration when leaving the outcome', () => {
+        const FullPage = () => {
+            useSetupFullScreen(true)
+            return <h1>Good news</h1>
+        }
+        const { container, rerender } = renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="residence" image={{ pose: 'thinking' }}>
+                <FullPage />
+            </SetupWrapper>
+        )
+        expect(container.querySelector('.setup-hero-background')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('mascot')).not.toBeInTheDocument()
+        expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
+            'var(--color-background-default)'
+        )
+        rerender(
+            <SetupWrapper layoutType="signup" screenId="residence" image={{ pose: 'thinking' }}>
+                <div>Country picker</div>
+            </SetupWrapper>
+        )
+        expect(screen.getByTestId('mascot')).toBeInTheDocument()
+        expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
+            'var(--color-background-setup-hero)'
         )
     })
 

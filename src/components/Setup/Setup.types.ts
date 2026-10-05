@@ -64,6 +64,8 @@ export interface ISetupStep {
     screenId: ScreenId
     layoutType: LayoutType
     image: SetupIllustration
+    /** Full-page checklist or final confirmation, without the split illustration hero. */
+    fullScreen?: boolean
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
     showSkipButton?: boolean

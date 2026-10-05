@@ -1,7 +1,7 @@
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
-import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -25,36 +25,38 @@ import { useTranslations } from 'next-intl'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
 import { confettiPresets } from '@/utils/confetti'
 
-export function AccountReadyView({
-    onContinue,
-    isRedirecting = false,
+export function SetupConfirmationView({
+    onConfirm,
+    isLoading = false,
+    error,
+    buttonText,
+    showTitle = true,
 }: {
-    onContinue: () => void
-    isRedirecting?: boolean
+    onConfirm: () => void
+    isLoading?: boolean
+    error?: string | null
+    buttonText?: string
+    showTitle?: boolean
 }) {
     const t = useTranslations('setup')
+    const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
     return (
-        <div className="flex w-full flex-col gap-4 text-left">
-            {/* Neither block is a warning or caveat, so keep them as plain
-                text under grey mini-headers rather than tinted notifications. */}
-            <div className="flex flex-col gap-1">
-                <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
-                <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-                <MiniHeader>{t('accountReady.laterTitle')}</MiniHeader>
-                <p className="text-body-s text-foreground-primary">{t('accountReady.laterBody')}</p>
-            </div>
-            <Button
-                onClick={onContinue}
-                loading={isRedirecting}
-                disabled={isRedirecting}
-                shadowSize="4"
-                className="mt-2"
-            >
-                {t('accountReady.cta')}
-            </Button>
-        </div>
+        <PageStack className="flex-1">
+            <PageStack.Center>
+                {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
+                <p className="text-body-s text-foreground-secondary">{t('steps.sign-test-transaction.description')}</p>
+                {error && <Callout priority="error">{error}</Callout>}
+            </PageStack.Center>
+            <PageStack.Footer>
+                <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
+                    {buttonText || t('testTransaction.confirmAndFinish')}
+                </Button>
+                <p className="pt-2 text-center text-body-xs text-foreground-secondary">
+                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>{t('passkey.learnMore')}</LinkButton>
+                </p>
+            </PageStack.Footer>
+            <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
+        </PageStack>
     )
 }
 
@@ -73,7 +75,6 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
-    const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
     const creatingAccountRef = useRef(false)
     /*
      * handleRedirect CONSUMES the stored post-auth route, so it must fire once.
@@ -320,7 +321,6 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
     }
 
     const isLoading = isSigning || isProcessing || isFetchingUser || !user
-    const isDisabled = isLoading
     const displayError = error || setupError
 
     // determine button text based on state
@@ -331,33 +331,13 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
     }
 
     return (
-        <div>
-            <div className="flex h-full flex-col justify-between gap-6 p-0 md:min-h-32">
-                <div className="flex h-full flex-col justify-end gap-2">
-                    <p className="mb-1 text-body-s text-foreground-secondary">
-                        {t('steps.sign-test-transaction.description')}
-                    </p>
-                    {displayError && <Callout priority="error">{displayError}</Callout>}
-                    <Button
-                        loading={isLoading}
-                        disabled={isDisabled}
-                        onClick={handleTestTransaction}
-                        className="text-nowrap"
-                        shadowSize="4"
-                    >
-                        {getButtonText()}
-                    </Button>
-                </div>
-                <div>
-                    {/* In-app explainer instead of a browser redirect — leaving
-                        the app mid-signup loses users (full guide inside). */}
-                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
-                        <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>{t('passkey.learnMore')}</LinkButton>
-                    </p>
-                </div>
-            </div>
-            <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
-        </div>
+        <SetupConfirmationView
+            onConfirm={handleTestTransaction}
+            isLoading={isLoading}
+            error={displayError}
+            buttonText={getButtonText()}
+            showTitle={!!onComplete}
+        />
     )
 }
 

@@ -598,6 +598,7 @@
             "loginError": "No pudimos verificar tu passkey. Intentalo de nuevo o contactá a soporte si sigue pasando."
         },
         "testTransaction": {
+            "confirmTitle": "Un último paso",
             "errors": {
                 "loadUserFailed": "No pudimos cargar tus datos. Recargá la página.",
                 "noWalletAddress": "No se encontró la dirección de la billetera. Intentá recargar la página.",

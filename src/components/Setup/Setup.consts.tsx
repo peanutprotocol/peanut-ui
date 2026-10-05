@@ -1,15 +1,8 @@
 import EmailStep from './Views/Email'
 import NotificationsStep from './Views/Notifications'
-import SuccessStep from './Views/Success'
+import CompleteSignupStep from './Views/CompleteSignup'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import {
-    AdvantageStep,
-    SetupPasskey,
-    SignupStep,
-    LandingStep,
-    ResidenceStep,
-    SignTestTransaction,
-} from '@/components/Setup/Views'
+import { AdvantageStep, SetupPasskey, SignupStep, LandingStep, ResidenceStep } from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -30,10 +23,11 @@ export const setupSteps: ISetupStep[] = [
         showSkipButton: false,
         contentClassName: 'flex flex-col items-end pt-2 gap-6 md:justify-center',
     },
+
     {
-        screenId: 'advantage-payments',
+        screenId: 'advantage-fees',
         layoutType: 'signup',
-        image: { pose: 'pointing' },
+        image: { animation: 'fees' },
         component: AdvantageStep,
         showBackButton: true,
         showSkipButton: false,
@@ -70,24 +64,7 @@ export const setupSteps: ISetupStep[] = [
         showSkipButton: false,
         contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
     },
-    {
-        screenId: 'advantage-rewards',
-        layoutType: 'signup',
-        image: { scene: 'coins' },
-        component: AdvantageStep,
-        showBackButton: true,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
-    },
-    {
-        screenId: 'advantage-fees',
-        layoutType: 'signup',
-        image: { animation: 'fees' },
-        component: AdvantageStep,
-        showBackButton: true,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
-    },
+
     {
         screenId: 'passkey-permission',
         layoutType: 'signup',
@@ -128,8 +105,10 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'sign-test-transaction',
         layoutType: 'signup',
+        fullScreen: true,
+        titleInView: true,
         image: { pose: 'waving-chill' },
-        component: SignTestTransaction,
+        component: CompleteSignupStep,
         showBackButton: false,
         showSkipButton: false,
         // The view renders the confirmation prompt itself.
@@ -137,15 +116,6 @@ export const setupSteps: ISetupStep[] = [
         // items-end, like every other signup step — centering this one alone
         // left its copy off the setup flow's left-aligned column.
         contentClassName: 'flex flex-col items-end pt-2 gap-6 md:justify-center',
-    },
-    {
-        screenId: 'success',
-        layoutType: 'signup',
-        image: { pose: 'cheering' },
-        component: SuccessStep,
-        showBackButton: false,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',
     },
 ]
 

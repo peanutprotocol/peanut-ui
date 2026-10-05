@@ -18,7 +18,7 @@ const AdvantageStep = () => {
                 : 'next'
 
     return (
-        <Button size="large" className="w-full" shadowSize="4" loading={isLoading} onClick={() => handleNext()}>
+        <Button size="medium" className="w-full" shadowSize="4" loading={isLoading} onClick={() => handleNext()}>
             {t(cta)}
         </Button>
     )

@@ -29,13 +29,23 @@ import {
 } from 'react'
 import { twMerge } from '@/utils/tw'
 
+const SetupFullScreenContext = createContext<(enabled: boolean) => void>(() => {})
+
+/** Residence outcomes share a step but need their own full-page layout. */
+export const useSetupFullScreen = (enabled: boolean) => {
+    const setFullScreen = useContext(SetupFullScreenContext)
+    useLayoutEffect(() => {
+        setFullScreen(enabled)
+        return () => setFullScreen(false)
+    }, [enabled, setFullScreen])
+}
+
 const SetupImageContext = createContext<(illustration: SetupIllustration | null) => void>(() => {})
 
 /**
  * Lets a step's sub-view swap the wrapper's illustration for as long as it is
- * mounted — the residence step's "Good news" outcome celebrates, while the
- * selector it shares a step with keeps the neutral greeting. Sub-views are not
- * steps, so they have no step config of their own to carry an image.
+ * mounted. Sub-views are not steps, so they have no step config of their own
+ * to carry an image.
  */
 export const useSetupImageOverride = (illustration: SetupIllustration | null) => {
     const setImage = useContext(SetupImageContext)
@@ -71,6 +81,8 @@ interface SetupWrapperProps {
     direction?: number
     /** Isolated Screen Library presentation; never reads or writes install state. */
     firstLaunchIntroPreview?: 'play' | 'still'
+    fullScreen?: boolean
+    showProgress?: boolean
 }
 
 // define responsive height classes for different layout types
@@ -81,9 +93,11 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
 
 /** The older Android OS status bar needs the blue token as a hex value. */
-const setupHeroNativeHex = (): string | null => {
-    const blue = getComputedStyle(document.documentElement).getPropertyValue('--color-background-setup-hero').trim()
-    return /^#[\da-f]{6}$/i.test(blue) ? blue : null
+const setupHeroNativeHex = (fullScreen: boolean): string | null => {
+    const color = getComputedStyle(document.documentElement)
+        .getPropertyValue(fullScreen ? '--color-background-default' : '--color-background-setup-hero')
+        .trim()
+    return /^#[\da-f]{6}$/i.test(color) ? color : null
 }
 
 const stepVariants = {
@@ -224,6 +238,58 @@ const Navigation = memo(function Navigation({
     )
 })
 
+function UsernameBackground() {
+    return (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0" data-username-background>
+            <OnboardingAnimation name="username" background />
+        </div>
+    )
+}
+
+function SetupProgressHeader({
+    step,
+    totalSteps,
+    screenId,
+    hidden = false,
+    compact = false,
+}: {
+    step?: number
+    totalSteps?: number
+    screenId: ScreenId
+    hidden?: boolean
+    compact?: boolean
+}) {
+    const t = useTranslations('setup.wrapper')
+    return (
+        <div
+            aria-hidden={hidden}
+            inert={hidden}
+            className={twMerge(
+                hidden && 'invisible',
+                'pointer-events-none z-20 flex h-11 w-full items-center gap-3 px-4 md:px-6',
+                compact ? 'relative my-4 shrink-0' : 'absolute inset-x-0 top-4 md:top-8',
+                screenId === 'sign-test-transaction' && 'pr-16 md:pr-16'
+            )}
+        >
+            <div className="w-9 shrink-0" aria-hidden="true" />
+            <div className="flex min-w-0 flex-1 justify-center">
+                {step !== undefined && totalSteps !== undefined && totalSteps > 0 && step >= 0 && step < totalSteps && (
+                    <CarouselDots
+                        count={totalSteps}
+                        activeIndex={step}
+                        className={twMerge(
+                            'pointer-events-none gap-1',
+                            screenId === 'sign-test-transaction' && 'gap-0.5'
+                        )}
+                        aria-label={t('stepIndicator', { current: step + 1, total: totalSteps })}
+                    />
+                )}
+            </div>
+            <SetupLanguageSwitcher />
+        </div>
+    )
+}
+
 /**
  * ImageSection component handles the illustrations and animations
  * renders differently based on layout type with optional animated decorations
@@ -285,9 +351,8 @@ const ImageSection = ({
                 alt={t('illustrationAlt')}
                 className={twMerge(
                     imageClassName || 'relative h-full max-w-full',
-                    // The wide landing pose reads much larger horizontally. Scale
-                    // only this first appearance down by 20%.
-                    screenId === 'landing' && 'scale-[0.8]'
+                    // Keep the welcome and username mascots at the same height.
+                    (screenId === 'landing' || screenId === 'signup') && 'scale-[0.8]'
                 )}
             />
         ) : 'scene' in image ? (
@@ -384,6 +449,7 @@ const ImageSection = ({
                     ))}
                 {/* Keep clouds on the landing screen so later illustrations stay clear. */}
                 {screenId === 'landing' && !intro.active && <CloudsBackground minimal />}
+                {screenId === 'signup' && <UsernameBackground />}
                 {animatedIllustration}
                 <AnimatePresence>
                     {intro.active && intro.greetingVisible && (
@@ -400,35 +466,7 @@ const ImageSection = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
-                <div
-                    aria-hidden={intro.active}
-                    inert={intro.active}
-                    className={twMerge(
-                        intro.active && 'invisible',
-                        'pointer-events-none absolute inset-x-0 top-4 z-20 flex h-11 items-center gap-3 px-4 md:top-8 md:px-6',
-                        screenId === 'sign-test-transaction' && 'pr-16 md:pr-16'
-                    )}
-                >
-                    <div className="w-9 shrink-0" aria-hidden="true" />
-                    <div className="flex min-w-0 flex-1 justify-center">
-                        {step !== undefined &&
-                            totalSteps !== undefined &&
-                            totalSteps > 0 &&
-                            step >= 0 &&
-                            step < totalSteps && (
-                                <CarouselDots
-                                    count={totalSteps}
-                                    activeIndex={step}
-                                    className={twMerge(
-                                        'pointer-events-none gap-1',
-                                        screenId === 'sign-test-transaction' && 'gap-0.5'
-                                    )}
-                                    aria-label={t('stepIndicator', { current: step + 1, total: totalSteps })}
-                                />
-                            )}
-                    </div>
-                    <SetupLanguageSwitcher />
-                </div>
+                <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} hidden={intro.active} />
             </motion.div>
         )
     }
@@ -473,6 +511,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     totalSteps,
     direction = 0,
     firstLaunchIntroPreview,
+    fullScreen: fullScreenProp = false,
+    showProgress = true,
 }: SetupWrapperProps) {
     const [imageOverride, setImageOverride] = useState<{ screenId: ScreenId; image: SetupIllustration } | null>(null)
     const setImageForScreen = useCallback(
@@ -480,6 +520,12 @@ export const SetupWrapper = memo(function SetupWrapper({
             setImageOverride(illustration ? { screenId, image: illustration } : null),
         [screenId]
     )
+    const [fullScreenOverride, setFullScreenOverride] = useState<ScreenId | null>(null)
+    const setFullScreenForScreen = useCallback(
+        (enabled: boolean) => setFullScreenOverride(enabled ? screenId : null),
+        [screenId]
+    )
+    const fullScreen = fullScreenProp || fullScreenOverride === screenId
     const prefersReducedMotion = useReducedMotion()
     const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)
@@ -516,16 +562,19 @@ export const SetupWrapper = memo(function SetupWrapper({
         }
     }, [])
     useLayoutEffect(() => {
-        // Keep every hero and safe-area strip on the original setup blue.
-        document.documentElement.style.setProperty('--setup-hero-background', SETUP_HERO_BACKGROUND)
+        // Safe-area strips follow the full-page checklist/celebration or blue hero.
+        document.documentElement.style.setProperty(
+            '--setup-hero-background',
+            fullScreen ? 'var(--color-background-default)' : SETUP_HERO_BACKGROUND
+        )
         return () => {
             document.documentElement.style.removeProperty('--setup-hero-background')
         }
-    }, [])
+    }, [fullScreen])
     useEffect(() => {
         if (!isCapacitor()) return
         let cancelled = false
-        const color = setupHeroNativeHex()
+        const color = setupHeroNativeHex(fullScreen)
         if (!color) return
         void import('@capacitor/status-bar')
             .then(async ({ StatusBar }) => {
@@ -535,7 +584,7 @@ export const SetupWrapper = memo(function SetupWrapper({
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [fullScreen])
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
     // migration notice window's download-only landing: drop the fixed-height
@@ -559,6 +608,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                 // The first panel rises from below the viewport. Fill the exposed
                 // space with the same blue as the hero, not the page beige.
                 screenId === 'landing' && 'bg-background-setup-hero',
+                fullScreen && 'bg-background-default',
                 intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] overflow-y-hidden'
             )}
         >
@@ -574,19 +624,25 @@ export const SetupWrapper = memo(function SetupWrapper({
             />
 
             {/* content container */}
-            <div className="mx-auto flex w-full flex-grow flex-col md:flex-row">
+            <div className={twMerge('mx-auto flex w-full flex-grow flex-col', !fullScreen && 'md:flex-row')}>
                 {/* illustration section */}
-                <ImageSection
-                    imageClassName={imageClassName}
-                    screenId={screenId}
-                    layoutType={layoutType}
-                    image={imageOverride?.screenId === screenId ? imageOverride.image : image}
-                    step={step}
-                    totalSteps={totalSteps}
-                    direction={transitionDirection}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                    intro={intro}
-                />
+                {fullScreen ? (
+                    showProgress && (
+                        <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} compact />
+                    )
+                ) : (
+                    <ImageSection
+                        imageClassName={imageClassName}
+                        screenId={screenId}
+                        layoutType={layoutType}
+                        image={imageOverride?.screenId === screenId ? imageOverride.image : image}
+                        step={step}
+                        totalSteps={totalSteps}
+                        direction={transitionDirection}
+                        prefersReducedMotion={!!prefersReducedMotion}
+                        intro={intro}
+                    />
+                )}
 
                 {/* content section */}
                 <motion.div
@@ -603,7 +659,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                     inert={intro.active}
                     className={twMerge(
                         'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-4 pb-6 md:h-dvh md:justify-center',
-                        screenId === 'landing' && 'pt-3 pb-3'
+                        screenId === 'landing' && 'pt-3 pb-3',
+                        fullScreen && 'md:h-auto md:flex-1'
                     )}
                 >
                     <AnimatePresence initial={false} custom={transitionDirection} mode="wait">
@@ -613,7 +670,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                             prefersReducedMotion={!!prefersReducedMotion}
                             className={twMerge(
                                 'flex w-full flex-1 flex-col justify-between md:flex-none',
-                                contentClassName
+                                contentClassName,
+                                fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                             )}
                         >
                             {/* title and description container. Skipped entirely when
@@ -654,10 +712,17 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 </div>
                             )}
                             {/* main content area */}
-                            <div className="mx-auto w-full md:max-w-xs">
-                                <SetupImageContext.Provider value={setImageForScreen}>
-                                    {children}
-                                </SetupImageContext.Provider>
+                            <div
+                                className={twMerge(
+                                    'mx-auto w-full',
+                                    fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs'
+                                )}
+                            >
+                                <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
+                                    <SetupImageContext.Provider value={setImageForScreen}>
+                                        {children}
+                                    </SetupImageContext.Provider>
+                                </SetupFullScreenContext.Provider>
                             </div>
                         </TransitioningContent>
                     </AnimatePresence>

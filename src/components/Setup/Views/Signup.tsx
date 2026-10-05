@@ -294,7 +294,7 @@ const SignupStep = () => {
                     </AnimatePresence>
 
                     <Button
-                        size="large"
+                        size="medium"
                         className="w-full"
                         loading={isLoading}
                         shadowSize="4"

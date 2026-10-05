@@ -940,6 +940,7 @@
             "loginError": "No pudimos verificar tu passkey. Inténtalo de nuevo o contacta a soporte si sigue pasando."
         },
         "testTransaction": {
+            "confirmTitle": "Un último paso",
             "confirmAndFinish": "Confirmar y terminar",
             "retryAccountSetup": "Reintentar la configuración de la cuenta",
             "errors": {

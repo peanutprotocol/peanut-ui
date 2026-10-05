@@ -940,6 +940,7 @@
             "loginError": "We couldn’t verify your passkey. Please try again, or contact support if it keeps happening."
         },
         "testTransaction": {
+            "confirmTitle": "One last step",
             "confirmAndFinish": "Confirm & finish",
             "retryAccountSetup": "Retry account setup",
             "errors": {

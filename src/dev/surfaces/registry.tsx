@@ -15,7 +15,7 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
 
 import React from 'react'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
+import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { useTranslations } from 'next-intl'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
@@ -88,14 +88,20 @@ function SetupScreen({
     screenId,
     children,
     firstLaunchIntroPreview,
+    showProgress = true,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
+    showProgress?: boolean
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
-            <SetupScreenBody screenId={screenId} firstLaunchIntroPreview={firstLaunchIntroPreview}>
+            <SetupScreenBody
+                screenId={screenId}
+                firstLaunchIntroPreview={firstLaunchIntroPreview}
+                showProgress={showProgress}
+            >
                 {children}
             </SetupScreenBody>
         </SetupFlowProvider>
@@ -105,10 +111,12 @@ function SetupScreenBody({
     screenId,
     children,
     firstLaunchIntroPreview,
+    showProgress = true,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
+    showProgress?: boolean
 }) {
     const t = useTranslations('setup')
     const { setSteps } = useSetupFlowContext()
@@ -120,6 +128,8 @@ function SetupScreenBody({
     const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
     return (
         <SetupWrapper
+            fullScreen={step.fullScreen}
+            showProgress={showProgress}
             layoutType={step.layoutType}
             firstLaunchIntroPreview={firstLaunchIntroPreview}
             screenId={step.screenId}
@@ -128,7 +138,7 @@ function SetupScreenBody({
             description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
-            showLogoutButton={step.screenId === 'sign-test-transaction'}
+            showLogoutButton={step.screenId === 'sign-test-transaction' && showProgress}
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}
@@ -196,10 +206,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
     },
-    '02-a-advantage-payments': {
-        ...SURFACE_META['02-a-advantage-payments'],
-        render: () => <SetupScreen screenId="advantage-payments" />,
-    },
+
     '03-c-residence-congrats': {
         ...SURFACE_META['03-c-residence-congrats'],
         render: () => (
@@ -212,15 +219,12 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
     },
-    '04-a-advantage-rewards': {
-        ...SURFACE_META['04-a-advantage-rewards'],
-        render: () => <SetupScreen screenId="advantage-rewards" />,
-    },
+
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
         render: () => (
             <SetupScreen screenId="sign-test-transaction">
-                <AccountReadyView onContinue={noop} />
+                <SetupConfirmationView onConfirm={noop} />
             </SetupScreen>
         ),
     },
@@ -252,7 +256,7 @@ export const SURFACES: Record<string, Surface> = {
     '07-e-setup-celebration': {
         ...SURFACE_META['07-e-setup-celebration'],
         render: () => (
-            <SetupScreen screenId="success">
+            <SetupScreen screenId="sign-test-transaction" showProgress={false}>
                 <SetupCelebrationView onContinue={noop} />
             </SetupScreen>
         ),

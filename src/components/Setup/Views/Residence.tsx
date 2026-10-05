@@ -9,7 +9,7 @@ import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { Card, CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
-import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
+import { useSetupFullScreen } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -207,9 +207,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         setView('notify-done')
     }
 
-    // celebration illustration for the "Good news" outcome only — the selector
-    // it shares a step with keeps the step's neutral greeting
-    useSetupImageOverride(useMemo(() => (view === 'congrats' ? { pose: 'cheering' as const } : null), [view]))
+    useSetupFullScreen(view === 'congrats')
 
     /* The tier sets render from the bundled mirror and are replaced by the
        server-authoritative lists asynchronously. A congrats view reached
@@ -282,7 +280,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 : []),
         ]
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
+            <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.congrats.title')}</h1>
                     <p className="text-body-s text-foreground-secondary">

@@ -61,7 +61,8 @@ function SetupPageContent() {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, setNoBackLockScreenId, setSignupEntryFlow, setSignupCompleted } = useSetupFlowContext()
+    const { steps, setNoBackLockScreenId, setSignupEntryFlow, setSignupCompleted, signupCompleted } =
+        useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
     useEffect(() => {
         const nextImage = steps[currentStepIndex + 1]?.image
@@ -494,6 +495,8 @@ function SetupPageContent() {
 
     return (
         <SetupWrapper
+            fullScreen={step.fullScreen}
+            showProgress={!signupCompleted}
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
@@ -501,7 +504,7 @@ function SetupPageContent() {
             description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
-            showLogoutButton={step.screenId === 'sign-test-transaction'}
+            showLogoutButton={step.screenId === 'sign-test-transaction' && !signupCompleted}
             imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
             // back, so a step's sub-view (residence heads-up) collapses first
@@ -522,7 +525,6 @@ function SetupPageContent() {
                     step.screenId === 'sign-test-transaction'
                         ? () => {
                               setSignupCompleted(true)
-                              setScreenId('success')
                           }
                         : undefined
                 }

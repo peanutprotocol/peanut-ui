@@ -173,18 +173,15 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(setupScreenIds).toEqual([
             'landing',
             'signup',
-            'advantage-payments',
+            'advantage-fees',
             'advantage-card',
             'residence',
             'advantage-bank',
-            'advantage-rewards',
-            'advantage-fees',
             'passkey-permission',
             'notification-email',
             'notification-permission',
             'advantage-control',
             'sign-test-transaction',
-            'success',
         ])
     })
 
