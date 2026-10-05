@@ -5,6 +5,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Card, CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
@@ -265,16 +266,22 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     <p className="text-body-s leading-7 text-foreground-secondary">
                         {t('residenceStep.congrats.checklist.intro')}
                     </p>
-                    <Card className="mt-6 divide-y divide-border-default">
-                        <ul role="list" className="divide-y divide-border-default">
+                    <Card className="mt-6 px-4">
+                        <ul role="list" className="divide-y divide-dashed divide-border-default">
                             {features.map((feature) => (
-                                <li key={feature.title} className="flex items-center gap-3 px-4 py-3">
-                                    <Icon name={feature.icon} size={24} className="shrink-0" />
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <label htmlFor={`${featureId}-${feature.icon}`} className="text-label-m">
-                                                {feature.title}
+                                <li key={feature.title}>
+                                    <DataRow
+                                        wrapLabel
+                                        label={
+                                            <label
+                                                htmlFor={`${featureId}-${feature.icon}`}
+                                                className="flex items-center gap-3 text-foreground-primary"
+                                            >
+                                                <Icon name={feature.icon} size={24} className="shrink-0" />
+                                                <span>{feature.title}</span>
                                             </label>
+                                        }
+                                        value={
                                             <Checkbox
                                                 id={`${featureId}-${feature.icon}`}
                                                 aria-label={feature.title}
@@ -287,8 +294,8 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                                     )
                                                 }
                                             />
-                                        </div>
-                                    </div>
+                                        }
+                                    />
                                 </li>
                             ))}
                         </ul>

@@ -35,7 +35,10 @@ export default function FundingStep() {
                             key={method}
                             wrapLabel
                             label={
-                                <label htmlFor={`${id}-${method}`} className="flex items-center gap-3">
+                                <label
+                                    htmlFor={`${id}-${method}`}
+                                    className="flex items-center gap-3 text-foreground-primary"
+                                >
                                     <Icon name={METHOD_ICONS[method]} size={24} className="shrink-0" />
                                     <span>{t(`funding.methods.${method}`)}</span>
                                 </label>
