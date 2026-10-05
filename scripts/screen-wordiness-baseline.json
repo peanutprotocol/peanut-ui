@@ -47,7 +47,7 @@
         "components/Profile/views/MoneySettings.view.tsx": 679,
         "components/Profile/views/ProfileEdit.view.tsx": 293,
         "components/Profile/views/ResidenceChangeDrawer.tsx": 86,
-        "components/Provider/ProviderSheet.tsx": 111,
+        "components/Provider/ProviderSheet.tsx": 113,
         "components/Request/direct-request/views/Initial.direct.request.view.tsx": 183,
         "components/Send/link/views/Initial.link.send.view.tsx": 68,
         "components/Send/views/Contacts.view.tsx": 96,

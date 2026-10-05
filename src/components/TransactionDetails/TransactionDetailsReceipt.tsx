@@ -32,6 +32,7 @@ import { receiptHeadlineAmount } from './transaction-details.utils'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { isPooledAccountPayment } from '@/utils/provider.utils'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -262,7 +263,11 @@ export const TransactionDetailsReceipt = ({
 
             {vm.providerId && (
                 // only the drawer passes setIsModalOpen; vaul's nested root throws outside a drawer
-                <ProviderNote providerId={vm.providerId} nested={!!setIsModalOpen} />
+                <ProviderNote
+                    providerId={vm.providerId}
+                    nested={!!setIsModalOpen}
+                    pooledAccount={isPooledAccountPayment(transaction)}
+                />
             )}
         </div>
     )

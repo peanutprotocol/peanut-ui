@@ -147,7 +147,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             >
                 {tCommon('continue')}
             </Button>
-            <ProviderNote providerId="third-national" />
+            <ProviderNote providerId="third-national" prospective />
         </PageStack>
     )
 }

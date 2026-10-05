@@ -78,6 +78,15 @@ describe('ProviderNote', () => {
         expect(within(sheet).getByRole('button', { name: 'Privacy policy' })).toBeInTheDocument()
     })
 
+    it('uses the prospective card intro before the card terms are accepted', () => {
+        withIntl(<ProviderNote providerId="third-national" prospective />)
+        const sheet = openSheet('Third National')
+        expect(
+            within(sheet).getByText(/When you accept the card terms, your relationship is directly with them\./)
+        ).toBeInTheDocument()
+        expect(within(sheet).queryByText(/Third National issues your Peanut card/)).not.toBeInTheDocument()
+    })
+
     it('fills the currency in the account line', () => {
         withIntl(<ProviderNote providerId="bridge-us" line="account" currency="USD" />)
         expect(screen.getByText(/Your USD account is with Bridge\./)).toBeInTheDocument()

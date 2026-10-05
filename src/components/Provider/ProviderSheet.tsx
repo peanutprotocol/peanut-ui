@@ -75,7 +75,9 @@ export const ProviderSheet = ({
                     <div className="flex w-full flex-col gap-4 text-left">
                         <Callout priority="info">
                             {isCard
-                                ? t('cardSheetIntro', { brand: provider.brand })
+                                ? t(prospective ? 'cardSheetIntroProspective' : 'cardSheetIntro', {
+                                      brand: provider.brand,
+                                  })
                                 : `${t('sheetIntro', { brand: provider.brand })} ${t('peanutValue')}`}
                         </Callout>
                         <Card position="solo" className={receiptDataRowCardClassName}>

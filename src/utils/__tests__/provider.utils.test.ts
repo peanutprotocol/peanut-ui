@@ -1,4 +1,4 @@
-import { bridgeProviderIdForResidence, providerIdForTransaction } from '../provider.utils'
+import { bridgeProviderIdForResidence, isPooledAccountPayment, providerIdForTransaction } from '../provider.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
 const tx = (provider: string | undefined, code?: string, bridgeFlow?: string) =>
@@ -54,5 +54,17 @@ describe('providerIdForTransaction', () => {
 
     it.each(['PEANUT', 'ONCHAIN', 'DEPRECATED_SQUID', undefined])('shows no provider for %s', (provider) => {
         expect(providerIdForTransaction(tx(provider))).toBeNull()
+    })
+})
+
+describe('isPooledAccountPayment', () => {
+    const entry = (kind: string, provider: string) =>
+        ({ extraDataForDrawer: { kind, provider } }) as Pick<TransactionDetails, 'extraDataForDrawer'>
+
+    it('is true only for a manteca qr payment', () => {
+        expect(isPooledAccountPayment(entry('QR_PAY', 'MANTECA'))).toBe(true)
+        expect(isPooledAccountPayment(entry('ONRAMP', 'MANTECA'))).toBe(false)
+        expect(isPooledAccountPayment(entry('QR_PAY', 'DEPRECATED_SIMPLEFI'))).toBe(false)
+        expect(isPooledAccountPayment({})).toBe(false)
     })
 })

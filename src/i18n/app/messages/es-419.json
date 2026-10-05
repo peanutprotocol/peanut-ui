@@ -4360,6 +4360,7 @@
         "sheetIntro": "{brand} presta este servicio, no Peanut.",
         "relationship": "Tienes una relación directa con {brand} bajo sus términos.",
         "relationshipProspective": "Cuando aceptes, tu relación será directamente con {brand}, bajo sus términos.",
+        "cardSheetIntroProspective": "{brand} emite la tarjeta Peanut. Cuando aceptes los términos de la tarjeta, tu relación será directamente con ellos.",
         "cardSheetIntro": "{brand} emite tu tarjeta Peanut. Tienes una relación directa con ellos bajo los términos de la tarjeta.",
         "field": {
             "legalName": "Razón social",

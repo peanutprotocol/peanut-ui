@@ -483,6 +483,23 @@ describe('buildReceiptPdfModel — provider', () => {
         expect(model.provider?.termsUrl).toBeUndefined()
     })
 
+    test("a manteca qr payment names manteca but prints no manteca terms: it left peanut's own account", () => {
+        const qr = buildReceiptPdfModel(
+            withOverrides({ currency: { amount: '1000', code: 'ARS' } }, { provider: 'MANTECA', kind: 'QR_PAY' }),
+            t,
+            'en'
+        )
+        expect(row(qr, 'provider.label.provider')).toBe('Manteca')
+        expect(qr.provider?.termsUrl).toBeUndefined()
+
+        const onramp = buildReceiptPdfModel(
+            withOverrides({ currency: { amount: '1000', code: 'ARS' } }, { provider: 'MANTECA', kind: 'ONRAMP' }),
+            t,
+            'en'
+        )
+        expect(onramp.provider?.termsUrl).toBeDefined()
+    })
+
     test('a peanut-only transfer has no provider row and no small print', () => {
         const model = buildReceiptPdfModel(baseTx, t, 'en')
         expect(labels(model)).not.toContain('provider.label.provider')

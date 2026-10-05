@@ -8,7 +8,7 @@
  * the raw locale — is what this pins down.
  */
 import React, { type ReactNode } from 'react'
-import { render as rtlRender, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { AppLocale } from '@/i18n/app/config'
 import { deepMerge } from '@/i18n/app/messages'
@@ -81,5 +81,28 @@ describe('CardTermsScreen card issuer', () => {
     it('names Third National as the card issuer', () => {
         renderAt('en')
         expect(screen.getByText(/Your Peanut card is issued by Third National\./)).toBeInTheDocument()
+    })
+
+    it('speaks of the issuer relationship as ahead, since the terms are not accepted yet', () => {
+        window.matchMedia ??= (query: string) =>
+            ({
+                matches: false,
+                media: query,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+                onchange: null,
+            }) as MediaQueryList
+        renderAt('en')
+        fireEvent.click(screen.getByRole('button', { name: 'About Third National' }))
+        const sheet = screen.getByRole('dialog')
+        expect(
+            within(sheet).getByText(
+                'Third National issues the Peanut card. When you accept the card terms, your relationship is directly with them.'
+            )
+        ).toBeInTheDocument()
+        expect(within(sheet).queryByText(/You have a direct relationship/)).not.toBeInTheDocument()
     })
 })
