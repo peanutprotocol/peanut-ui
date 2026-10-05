@@ -20,7 +20,7 @@ import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { getStoredRedirect, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { useGeoLocation } from '@/hooks/useGeoLocation'
+import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -87,7 +87,7 @@ function SetupPageContent() {
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
     // what lets that select render its suggestion already filled in.
-    useGeoLocation()
+    useSetupCountrySignals()
     const searchParams = useSearchParams()
     // The init effect must key on the VALUES it reads, not the searchParams
     // object: the stepper rewrites ?screen= on every step, and a dep on the

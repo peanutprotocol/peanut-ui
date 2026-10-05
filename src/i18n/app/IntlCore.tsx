@@ -36,6 +36,7 @@ export function IntlCore({
     base,
     load,
     gatesSplash = false,
+    startupFallback,
 }: {
     children: React.ReactNode
     base: AppMessages
@@ -46,6 +47,8 @@ export function IntlCore({
      * otherwise release the splash before the app copy is on screen.
      */
     gatesSplash?: boolean
+    /** Setup's first language switcher waits until its initial locale is applied. */
+    startupFallback?: React.ReactNode
 }) {
     /* SSR and the first client render must both use English so the hydration
        passes match; the real locale is resolved and swapped in an effect. */
@@ -54,6 +57,7 @@ export function IntlCore({
         messages: base,
     })
     const startupLocale = useRef<AppLocale | null>(null)
+    const [startupSettled, setStartupSettled] = useState(false)
 
     useEffect(() => {
         let cancelled = false
@@ -70,6 +74,7 @@ export function IntlCore({
                     // the startup value would record a language nobody sees.
                     if (!currentAppLocale()) emitLocaleToAnalytics(resolved)
                     if (gatesSplash) markLocaleApplied()
+                    if (!cancelled) setStartupSettled(true)
                     return
                 }
                 if (cancelled) return
@@ -79,12 +84,14 @@ export function IntlCore({
                     // emit only after the catalog loaded — analytics report the
                     // language the user actually sees, not a failed swap
                     emitLocaleToAnalytics(resolved)
+                    setStartupSettled(true)
                 }
             })
             .catch((error) => {
                 // the splash must never wait on a failed catalog: English stays up
                 console.error('Startup catalog failed to load', error)
                 if (gatesSplash) markLocaleApplied()
+                if (!cancelled) setStartupSettled(true)
             })
         return () => {
             cancelled = true
@@ -127,7 +134,7 @@ export function IntlCore({
                 timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
                 onError={onIntlError}
             >
-                {children}
+                {!startupSettled && startupFallback !== undefined ? startupFallback : children}
             </NextIntlClientProvider>
         </AppLocaleContext.Provider>
     )

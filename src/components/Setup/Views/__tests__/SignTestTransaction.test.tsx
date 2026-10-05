@@ -9,6 +9,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AccountSetupError } from '@/services/account-setup'
 import { AccountType } from '@/interfaces/interfaces'
 import { confettiPresets } from '@/utils/confetti'
+import { recordSetupIpCountry } from '@/features/setup/country-signals'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 
@@ -160,6 +161,20 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(getRedirectUrl()).toBe('/receipt?id=abc')
         expect(confettiPresets.celebration).not.toHaveBeenCalled()
+    })
+
+    it('attaches independently captured country hints to completion and the identified profile', async () => {
+        recordSetupIpCountry('BR')
+        const onComplete = jest.fn()
+        renderWithIntl(<SignTestTransaction onComplete={onComplete} />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(posthog.capture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_COMPLETED,
+            expect.objectContaining({ signup_ip_country: 'BR' })
+        )
+        expect(posthog.setPersonProperties).toHaveBeenCalledWith(expect.objectContaining({ signup_ip_country: 'BR' }))
+        recordSetupIpCountry(null)
     })
 
     it('changes the final confirmation into one celebration and preserves its destination until Continue', async () => {

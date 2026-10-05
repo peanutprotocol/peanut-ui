@@ -37,10 +37,20 @@ jest.mock('@/hooks/useSetupFlow', () => ({
 }))
 
 let mockGeoCountry: string | null = null
+let mockEdgeCountry: string | null = null
+let mockEdgeSettled = true
 let mockRestrictionSets: unknown
 let mockRestrictionSetsSettled = true
-jest.mock('@/hooks/useGeoLocation', () => ({
-    useGeoLocation: () => ({ countryCode: mockGeoCountry, isLoading: false, error: null }),
+jest.mock('@/features/setup/useSetupCountrySignals', () => ({
+    useSetupCountrySignals: () => ({
+        vercelIpCountry: mockEdgeCountry,
+        edgeSettled: mockEdgeSettled,
+        ipCountry: mockGeoCountry?.toUpperCase() ?? null,
+        deviceLanguage: 'en-us',
+        browserLanguages: ['en-us'],
+        deviceTimezone: 'UTC',
+        collectedAt: '2026-10-05T10:00:00Z',
+    }),
 }))
 
 jest.mock('posthog-js', () => ({ capture: jest.fn(), setPersonProperties: jest.fn() }))
@@ -71,6 +81,8 @@ describe('ResidenceStep', () => {
         mockDirection = 1
         mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
         mockGeoCountry = null
+        mockEdgeCountry = null
+        mockEdgeSettled = true
         mockRestrictionSets = undefined
         mockRestrictionSetsSettled = true
     })
@@ -99,6 +111,34 @@ describe('ResidenceStep', () => {
         mockGeoCountry = 'br'
         mockSetupState.residenceCountry = 'AR'
         render(<ResidenceStep />)
+        expect(mockSetResidenceCountry).not.toHaveBeenCalled()
+    })
+
+    it('prefers Vercel country when it disagrees with the IP lookup', () => {
+        mockEdgeCountry = 'AR'
+        mockGeoCountry = 'BR'
+        render(<ResidenceStep />)
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('AR')
+        expect(mockHandleNext).not.toHaveBeenCalled()
+    })
+
+    it('waits for the higher-priority edge signal before prefilling from IP', () => {
+        mockEdgeSettled = false
+        mockGeoCountry = 'BR'
+        const { rerender } = render(<ResidenceStep />)
+        expect(mockSetResidenceCountry).not.toHaveBeenCalled()
+        mockEdgeSettled = true
+        rerender(<ResidenceStep />)
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
+    })
+
+    it('retains a manual choice when the edge country resolves late', () => {
+        mockEdgeSettled = false
+        mockSetupState.residenceCountry = 'DE'
+        const { rerender } = render(<ResidenceStep />)
+        mockEdgeSettled = true
+        mockEdgeCountry = 'AR'
+        rerender(<ResidenceStep />)
         expect(mockSetResidenceCountry).not.toHaveBeenCalled()
     })
 

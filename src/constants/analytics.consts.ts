@@ -8,6 +8,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── Signup funnel ──
     SIGNUP_STEP_VIEWED: 'signup_step_viewed',
+    SIGNUP_COUNTRY_SIGNALS_CAPTURED: 'signup_country_signals_captured',
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
     SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',

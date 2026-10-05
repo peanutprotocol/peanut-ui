@@ -18,6 +18,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
+import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
@@ -117,6 +118,7 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
         // terminal event or deleting it.
         const signupAttribution = await readSignupAttributionAsync()
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+            ...setupCountrySignalProperties(),
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,
             ...signupAnalyticsContext(signupEntryFlow),
@@ -133,6 +135,13 @@ const SignTestTransaction = ({ onComplete }: { onComplete?: () => void }) => {
         // the bounded context through this capture so signup_completed carries
         // the same journey join key, then remove both web and native copies.
         await clearSignupAttribution()
+        // Keep the independently observed hints on the identified analytics
+        // profile. Only the user's declared residences go to /update-user.
+        try {
+            posthog.setPersonProperties(setupCountrySignalProperties())
+        } catch {
+            // Country-signal analytics must never hold account completion.
+        }
 
         // Persist the residence answer from the residence step, now that
         // the account exists. Fire-and-forget: prequalification data,

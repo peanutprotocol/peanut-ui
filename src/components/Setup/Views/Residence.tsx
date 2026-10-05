@@ -11,7 +11,8 @@ import { useSetupFullScreen } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
-import { useGeoLocation } from '@/hooks/useGeoLocation'
+import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
+import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -31,7 +32,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
         useSetupFlowContext()
     const { handleNext, isLoading, direction } = useSetupFlow()
-    const { countryCode: geoCountryCode } = useGeoLocation()
+    const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
     const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
 
@@ -61,6 +62,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const secondCountryId = useId()
     // whether the current selection came from the geo suggestion, untouched
     const wasPrefilledRef = useRef(false)
+    const prefillSourceRef = useRef<string | null>(null)
 
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
@@ -73,17 +75,19 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
 
     // The geo guess, only if it is actually offered in the list.
     const geoSuggestion = useMemo(() => {
-        if (!geoCountryCode) return undefined
-        const suggested = geoCountryCode.toUpperCase()
-        return countryOptions.some((option) => option.value === suggested) ? suggested : undefined
-    }, [geoCountryCode, countryOptions])
+        return setupCountrySuggestion(
+            countrySignals,
+            countryOptions.map((option) => option.value)
+        )
+    }, [countrySignals, countryOptions])
 
     // Geo is a suggestion only: preselect the dropdown when nothing is chosen
     // yet, never auto-advance, and never trigger the restricted screen from it.
     useEffect(() => {
         if (residenceCountry || !geoSuggestion) return
         wasPrefilledRef.current = true
-        setResidenceCountry(geoSuggestion)
+        prefillSourceRef.current = geoSuggestion.source
+        setResidenceCountry(geoSuggestion.country)
     }, [geoSuggestion, residenceCountry, setResidenceCountry])
 
     const onResidenceChange = (value: string) => {
@@ -100,7 +104,9 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             residence_country: primary,
             second_residence_country: second || undefined,
             was_prefilled: wasPrefilledRef.current,
-            geo_country: geoCountryCode?.toUpperCase() || undefined,
+            geo_country: countrySignals.ipCountry || undefined,
+            residence_prefill_source: wasPrefilledRef.current ? prefillSourceRef.current : null,
+            ...setupCountrySignalProperties(countrySignals),
         })
         if (restrictionSets.full.has(primary)) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
@@ -379,7 +385,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     // Falls back to the suggestion for the one frame between
                     // mount and the effect below committing it, so the field
                     // opens already filled instead of visibly changing itself.
-                    value={residenceCountry || geoSuggestion}
+                    value={residenceCountry || geoSuggestion?.country}
                     onValueChange={onResidenceChange}
                     onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
                 />

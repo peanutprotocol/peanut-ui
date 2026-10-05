@@ -64,6 +64,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
+jest.mock('@/features/setup/useSetupCountrySignals', () => ({ useSetupCountrySignals: jest.fn() }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web' },
     useDeviceType: () => ({ deviceType: 'android' }),
