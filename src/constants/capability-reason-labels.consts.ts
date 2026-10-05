@@ -49,6 +49,10 @@ export const REASON_CODE_KEYS = {
     // identity (Sumsub) terminal causes — sibling of the rail codes above, but
     // sourced from `user.identityVerification.reason` rather than a rail.
     identity_region_restricted: 'reasons.identity_region_restricted',
+    // An approval with no identity document on file. No resolver reason
+    // carries it: deriveProviderRejection takes it from the top-level
+    // restart action's purpose, so the restart copy can tell this cause apart.
+    identity_document_missing: 'reasons.identity_document_missing',
     // restrictions
     manteca_us_nationality: 'reasons.manteca_us_nationality',
     country_not_supported: 'reasons.country_not_supported',

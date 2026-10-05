@@ -104,6 +104,27 @@ function queueUpdateCheck(callbacks: OtaUpdateCallbacks = {}): Promise<OtaCheckO
     return queueOtaWork(() => checkAndStageUpdate(callbacks))
 }
 
+function requireSignedSessionKey(sessionKey: unknown): void {
+    // Capgo v2 carries a base64 AES IV and an RSA-encrypted AES key. All
+    // supported Peanut binaries embed the same 2048-bit RSA public key.
+    // Older Android updaters accept plaintext when sessionKey is absent;
+    // reject that downgrade here for ZIP and manifest downloads alike.
+    // This checks the wire format only. The native plugin verifies the key,
+    // signed checksums and bundle contents; it still needs the native upgrade.
+    const parts = typeof sessionKey === 'string' ? sessionKey.split(':') : []
+    const isBase64Block = (value: string, bytes: number): boolean => {
+        if (value.length !== 4 * Math.ceil(bytes / 3) || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return false
+        try {
+            return atob(value).length === bytes
+        } catch {
+            return false
+        }
+    }
+    if (parts.length !== 2 || !isBase64Block(parts[0], 16) || !isBase64Block(parts[1], 256)) {
+        throw new Error('OTA signing metadata is missing or invalid')
+    }
+}
+
 async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<OtaCheckOutcome> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     try {
@@ -144,6 +165,7 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
                 callbacks.onStoreUpdateRequired?.()
                 return 'store-update-required'
             }
+            requireSignedSessionKey(latest.sessionKey)
             const existing = await readStagedBundleImpl()
             if (existing?.version === latest.version) {
                 callbacks.onUpdateAvailable?.(existing)
@@ -649,7 +671,7 @@ function isUpToDateRejection(message: string): boolean {
 // disable_auto_update_under_native: the served bundle semver-sorts below the
 // installed binary, so every device refuses it. Checksum mismatch: the bundle
 // arrived corrupt. Neither retries its way out.
-const OTA_BROKEN_ERRORS = ['disable_auto_update_under_native', 'Checksum mismatch']
+const OTA_BROKEN_ERRORS = ['disable_auto_update_under_native', 'Checksum mismatch', 'OTA signing metadata']
 
 const FAILURE_STREAK_KEY = 'capgoUpdateFailureStreak'
 const PERSISTENT_FAILURE_THRESHOLD = 3

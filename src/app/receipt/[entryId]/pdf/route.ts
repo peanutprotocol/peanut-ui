@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { captureException } from '@sentry/nextjs'
 import { createTranslator } from 'next-intl'
@@ -104,7 +105,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const t = createTranslator({ locale, messages }) as PdfTranslate
         const model = buildReceiptPdfModel(transactionDetails, t, locale)
         const isFinal = isFinalState(entry)
-        const cacheKey = `${entryId}|${kind}|${locale}`
+        // the model is everything the bytes are rendered from, so its hash
+        // keeps a render (cached or in flight) from answering for a later
+        // state of the same receipt — pending → completed, a refund, an
+        // amount fix — and pending bytes never land under a final-state key
+        const modelHash = createHash('sha256').update(JSON.stringify(model)).digest('base64url')
+        const cacheKey = `${entryId}|${kind}|${locale}|${modelHash}`
         // Authenticated renders may contain participant-only fields and can
         // differ by viewer. Keep them out of the shared process/CDN cache.
         let pdf = authorization ? undefined : readRenderCache(cacheKey)

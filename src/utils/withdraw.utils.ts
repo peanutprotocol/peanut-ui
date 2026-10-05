@@ -257,12 +257,21 @@ export const isPixRecurringCode = (code: string): boolean => {
 
 /**
  * Normalizes a raw PIX key as the user types: keep an EMVCo QR verbatim,
- * otherwise strip whitespace and canonicalize a phone number to its +55 form.
- * Shared by every PIX-key input so they can't drift.
+ * otherwise strip whitespace, canonicalize a phone number to its +55 form, and
+ * reduce a punctuated CPF or CNPJ to its digits, the form the PIX directory
+ * stores. Shared by every PIX-key input so they can't drift.
  */
 export const normalizePixInput = (value: string): string => {
     const normalized = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
-    return isPixPhoneNumber(normalized) ? normalizePixPhoneNumber(normalized) : normalized
+    if (isPixPhoneNumber(normalized)) return normalizePixPhoneNumber(normalized)
+    return isPunctuatedCpfOrCnpj(normalized) ? normalized.replace(/\D/g, '') : normalized
+}
+
+/** "123.456.789-09" or "12.345.678/0001-95": digits and CPF/CNPJ punctuation only, 11 or 14 digits. */
+const isPunctuatedCpfOrCnpj = (value: string): boolean => {
+    if (!/^[\d./-]+$/.test(value) || !/[./-]/.test(value)) return false
+    const digits = value.replace(/\D/g, '').length
+    return digits === 11 || digits === 14
 }
 
 /**

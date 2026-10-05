@@ -148,6 +148,24 @@ const HUGE_HISTORY_ENTRY = {
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
 }
 
+// A PIX-key payment the payer looked up first (TASK-23198): the API sends the
+// owner as fullName beside the key, to the payer only.
+const PIX_KEY_PAYMENT_ENTRY = {
+    uuid: 'fixture-pix-key-payment',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-09-29T10:00:00.000Z'),
+    amount: '10',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'maria@silva.com.br', fullName: 'MARIA DA SILVA', type: 'BANK_CBU', isUser: false },
+    currency: { amount: '51.30', code: 'BRL' },
+    extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10' },
+}
+
 // A USD wire withdrawal (TASK-23054): $100 sent, a $20 wire fee withheld.
 const WIRE_WITHDRAWAL_ENTRY = {
     uuid: 'fixture-wire-withdrawal',
@@ -888,6 +906,45 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: 'p[role="alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
+    // A PIX-key send after the key screen resolved the owner: the owner's name is
+    // the heading, and the key with the masked CPF/CNPJ sits underneath.
+    'qr-pay-pix-key-owner': {
+        route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&pixKey=maria%40silva.com.br&t=1',
+        about: "PIX-key payment showing the key owner's name, with the key and masked CPF/CNPJ below it.",
+        waitFor: 'p.text-body-s.ph-mask',
+        responses: {
+            'POST /manteca/qr-payment/init': {
+                type: 'PIX',
+                paymentRecipientName: 'MARIA@SILVA.COM.BR',
+                paymentAsset: 'BRL',
+                paymentAgainst: 'USDC',
+                paymentPrice: '5.5',
+            },
+            'POST /manteca/pix-key/owner': { name: 'MARIA DA SILVA', legalIdMasked: '12*******90' },
+        },
+    },
+    // A CPF key is the owner's own tax ID: it shows once, in full, labelled CPF.
+    'qr-pay-pix-key-cpf': {
+        route: '/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1',
+        about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
+        waitFor: 'p.text-body-s.ph-mask',
+        responses: {
+            'POST /manteca/qr-payment/init': {
+                type: 'PIX',
+                paymentRecipientName: '12345678909',
+                paymentAsset: 'BRL',
+                paymentAgainst: 'USDC',
+                paymentPrice: '5.5',
+            },
+            'POST /manteca/pix-key/owner': { name: 'MARIA DA SILVA', legalIdMasked: '12*******09' },
+        },
+    },
+    // Activity after a PIX-key payment: the owner's name, not the key.
+    'history-pix-key-owner': {
+        route: '/history',
+        about: 'Activity row for a PIX-key payment, named after the key owner.',
+        responses: { 'GET /users/history': { entries: [PIX_KEY_PAYMENT_ENTRY], hasMore: false } },
+    },
     // Named bank accounts beside the named address book: destinationLabel on
     // every row, masked identifier underneath.
     'withdraw-destination-names': {
@@ -1211,6 +1268,44 @@ export const FIXTURES: Record<string, Fixture> = {
                     reviewedAt: null,
                 },
                 capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'identity-document-missing': {
+        route: '/add-money/argentina/manteca',
+        about: 'Approved with no identity document on file: the ARS top-up asks for an ID and a selfie and restarts the identity check, while the pool rail still pays.',
+        responses: {
+            'GET /users/me': {
+                // the AR residence keeps the residence gate out of the way
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                // what api#1776 answers for a marked approval: the identity asks
+                // for a document, the rails keep their status, and the restart
+                // is a top-level action attached to no rail
+                identityVerification: {
+                    status: 'action_required',
+                    actionMessage: 'We need an identity document and a selfie to complete your verification.',
+                    reviewPending: false,
+                    submittedAt: null,
+                    reviewedAt: '2026-07-20T10:00:00.000Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'manteca.bank_transfer_ar',
+                            provider: 'manteca',
+                            method: 'BANK_TRANSFER_AR',
+                            channel: 'bank',
+                            country: 'AR',
+                            currency: 'ARS',
+                            status: 'enabled',
+                            operations: { deposit: 'requires-info', withdraw: 'requires-info', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [
+                        { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+                    ],
+                    restrictions: [],
+                },
             },
         },
     },
@@ -2233,6 +2328,27 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
+    },
+    'request-pay-open-amount': {
+        // The override keys on this charge id, so the route names it.
+        route: '/pay-request?chargeId=demo-open-charge',
+        about: 'Paying a request sent with no amount: the requestee types one before paying (TASK-22123).',
+        responses: {
+            'GET /request-charges/demo-open-charge': {
+                transactionType: 'REQUEST',
+                tokenAmount: null,
+                currencyAmount: null,
+                openAmount: true,
+                requestLink: {
+                    recipientAddress: '0x00000000000000000000000000000000000a11ce',
+                    recipientAccount: {
+                        userId: 'demo-alice',
+                        identifier: '0x00000000000000000000000000000000000a11ce',
+                        user: { username: 'alice' },
+                    },
+                },
+            },
+        },
     },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,

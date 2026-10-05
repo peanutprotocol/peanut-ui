@@ -274,7 +274,9 @@ export const useSignUserOp = () => {
                     entryPointAddress: USER_OP_ENTRY_POINT.address,
                 }
             } catch (error) {
-                console.error('[useSignUserOp] Error signing calls UserOperation:', error)
+                // The explicit capture below owns this failure. console.error
+                // would generate a second Sentry/PostHog exception for it.
+                console.warn('[useSignUserOp] Error signing calls UserOperation:', error)
                 capturePasskeySignFailure(error, 'sign-user-op')
                 captureException(error, {
                     tags: { feature: 'sign-user-op' },

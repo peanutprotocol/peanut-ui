@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import GlobalCard from '@/components/Global/Card'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -27,17 +28,23 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
+import { pixKeyOwnerDetails } from '@/utils/pix.utils'
+import SaveAddressPrompt from '@/features/withdraw/components/AddressBook/SaveAddressPrompt'
 
 export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
     const {
         paymentProcessor,
         paymentLock,
         qrPayment,
         merchantName,
         pixKeyLabel,
+        pixKeyOwner,
+        isAwaitingPixKeyOwner,
+        pixKeySave,
         methodIcon,
         currency,
         currencyAmount,
@@ -50,6 +57,7 @@ export function QrPayFormView() {
         balanceErrorMessage,
         shouldBlockPay,
         isLoading,
+        loadingState,
         quoteUpdatedNotice,
         isQuoteRecovering,
         payQR,
@@ -78,6 +86,8 @@ export function QrPayFormView() {
         onSuccess: refetchQrLimits,
         onNeedsSupport: () => openSupportForLimits('Hi, I would like to increase my payment limits.'),
     })
+
+    const ownerDetails = pixKeyOwner && pixKeyLabel ? pixKeyOwnerDetails(pixKeyLabel, pixKeyOwner.legalIdMasked) : null
 
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
@@ -119,9 +129,35 @@ export function QrPayFormView() {
                                 >
                                     {merchantName}
                                 </p>
+                                {/* The heading is the owner's name; this line names the key and tax ID it belongs to. */}
+                                {ownerDetails && (
+                                    <p className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary">
+                                        {ownerDetails.pixKey}
+                                        {ownerDetails.pixKey && ownerDetails.taxId && ' · '}
+                                        {/* "CPF 12*******90" never breaks between the label and the number. */}
+                                        {ownerDetails.taxId && (
+                                            <span className="whitespace-nowrap">
+                                                {t('pixKeyOwnerTaxId', {
+                                                    taxIdKind: ownerDetails.taxId.kind,
+                                                    taxId: ownerDetails.taxId.value,
+                                                })}
+                                            </span>
+                                        )}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </Card>
+
+                    {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
+                    {pixKeySave.isOffered && (
+                        <SaveAddressPrompt
+                            checked={pixKeySave.checked}
+                            nickname={pixKeySave.nickname}
+                            onCheckedChange={pixKeySave.setChecked}
+                            onNicknameChange={pixKeySave.setNickname}
+                        />
+                    )}
 
                     {/* Amount Card */}
                     {currency && (
@@ -222,13 +258,21 @@ export function QrPayFormView() {
                             isQuoteRecovering ||
                             !!balanceErrorMessage ||
                             shouldBlockPay ||
+                            isAwaitingPixKeyOwner ||
+                            pixKeySave.blocksPay ||
                             !usdAmount ||
                             usdAmount === '0.00' ||
                             limitsValidation.isBlocking
                         }
                     >
-                        {isLoading ? tCommon('loading') : tNav('pay')}
+                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
+
+                    {isLoading && (
+                        <p role="status" className="text-center text-body-s text-foreground-secondary">
+                            {tLoading(loadingStateKey(loadingState))}
+                        </p>
+                    )}
 
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (

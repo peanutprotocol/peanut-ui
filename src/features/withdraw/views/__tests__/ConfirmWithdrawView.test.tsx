@@ -97,6 +97,50 @@ describe('ConfirmWithdrawView — the gates hold on both CTAs', () => {
         expect(onConfirm).not.toHaveBeenCalled()
     })
 
+    it('disables Confirm when the live-fee message appears and re-enables it once cleared', () => {
+        const onConfirm = jest.fn()
+        const message =
+            'The network fee to Solana is $3.00, which would leave nothing to deliver. Enter a larger amount.'
+        const view = renderWithIntl(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="2"
+                payAmount="2"
+                receiveAmount="1.5"
+                networkFee={0.5}
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeEnabled()
+
+        view.rerender(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="2"
+                payAmount="2"
+                receiveAmount="0"
+                networkFee={3}
+                belowMinimumMessage={message}
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeDisabled()
+        expect(screen.getByText(message)).toBeInTheDocument()
+
+        view.rerender(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="4"
+                networkFee={3}
+                receiveAmount="1"
+                payAmount="4"
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeEnabled()
+        expect(screen.queryByText(message)).not.toBeInTheDocument()
+    })
+
     it('keeps Retry alive once the funds moved — it only replays the record', () => {
         // a full-balance withdrawal empties the wallet, so the balance gate
         // would otherwise disable the only recovery from a failed record
@@ -144,5 +188,16 @@ describe('USDC confirmation precision', () => {
         expect(screen.getAllByText(`$${amount}`)).toHaveLength(2)
         fireEvent.click(screen.getByRole('button', { name: /withdraw/i }))
         expect(onConfirm).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('ConfirmWithdrawView — address-book prompt placement', () => {
+    it('renders the prompt after the recipient and before the fee rows', () => {
+        renderWithIntl(<ConfirmWithdrawView {...baseProps} saveAddressPrompt={<div data-testid="save-prompt" />} />)
+        const recipient = screen.getByText(baseProps.toAddress)
+        const prompt = screen.getByTestId('save-prompt')
+        const fee = screen.getByText('Network fee')
+        expect(recipient.compareDocumentPosition(prompt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(prompt.compareDocumentPosition(fee) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 })

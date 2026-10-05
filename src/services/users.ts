@@ -9,7 +9,7 @@ import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { serverFetch } from '@/utils/api-fetch'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { chargesApi } from './charges'
-import { type TCharge } from './services.types'
+import { type CreateChargeRequest, type TCharge } from './services.types'
 import { BASE_URL } from '@/constants/general.consts'
 import { ApiError } from '@/services/api-error'
 
@@ -112,13 +112,16 @@ export const usersApi = {
         attachment,
     }: {
         username: string
+        /** blank leaves the amount to the requestee, who chooses it before paying */
         amount: string
         toAddress: string
         attachment?: IAttachmentOptions
     }): Promise<TCharge> => {
+        const price: Pick<CreateChargeRequest, 'pricing_type' | 'local_price'> = amount
+            ? { pricing_type: 'fixed_price', local_price: { amount, currency: 'USD' } }
+            : { pricing_type: 'no_price' }
         return chargesApi.create({
-            pricing_type: 'fixed_price',
-            local_price: { amount, currency: 'USD' },
+            ...price,
             baseUrl: BASE_URL,
             requestId: undefined,
             requestProps: {

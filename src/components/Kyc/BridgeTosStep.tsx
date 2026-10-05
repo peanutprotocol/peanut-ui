@@ -8,6 +8,7 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
+import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -15,12 +16,13 @@ interface BridgeTosStepProps {
     onSkip: () => void
     /**
      * BE-emitted reason code from the rail capability (`reason.code`). Used
-     * solely to vary copy between Bridge's base ToS (`bridge_tos_required`,
+     * solely to vary the title between Bridge's base ToS (`bridge_tos_required`,
      * US/ACH/Wire) and the SEPA v2 ToS (`bridge_tos_v2_required`, EUR + GBP
-     * inherited). The Bridge `tos_acceptance_link` endpoint is opaque to
-     * endorsement — Bridge serves the correct ToS based on the customer's
-     * pending requirements — so this prop ONLY affects user-facing copy, not
-     * the endpoint we call. Defaults to base copy if absent.
+     * inherited); the body and the linked documents are the same for both.
+     * The Bridge `tos_acceptance_link` endpoint is opaque to endorsement —
+     * Bridge serves the correct ToS based on the customer's pending
+     * requirements — so this prop ONLY affects the title, not the endpoint we
+     * call. Defaults to the base title if absent.
      */
     reasonCode?: string
 }
@@ -31,11 +33,13 @@ interface BridgeTosStepProps {
 const BRIDGE_TOS_V2_REQUIRED = 'bridge_tos_v2_required' as const
 
 // shown immediately after sumsub kyc approval when bridge rails need ToS acceptance.
-// displays a prompt, then opens the bridge ToS iframe.
+// displays a prompt that names and links Bridge's documents, then opens the
+// bridge ToS iframe. The prompt accepts nothing: the user accepts on Bridge's page.
 export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: BridgeTosStepProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const { fetchUser } = useAuth()
+    const termsLinks = useBridgeTermsLinks()
     const [showIframe, setShowIframe] = useState(false)
     const [tosLink, setTosLink] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -52,7 +56,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
         }
     }, [visible])
 
-    const handleAcceptTerms = useCallback(async () => {
+    const handleContinue = useCallback(async () => {
         setIsLoading(true)
         setError(null)
 
@@ -110,7 +114,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
     const isSepa = reasonCode === BRIDGE_TOS_V2_REQUIRED
     const copy = {
         title: isSepa ? t('bridgeTos.sepaTitle') : t('bridgeTos.baseTitle'),
-        description: isSepa ? t('bridgeTos.sepaDescription') : t('bridgeTos.baseDescription'),
+        description: <p>{t.rich('bridgeTos.description', termsLinks)}</p>,
     }
 
     return (
@@ -125,8 +129,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                 description={error || copy.description}
                 ctas={[
                     {
-                        text: isLoading ? tCommon('loading') : error ? tCommon('tryAgain') : t('bridgeTos.acceptTerms'),
-                        onClick: handleAcceptTerms,
+                        text: isLoading ? tCommon('loading') : error ? tCommon('tryAgain') : tCommon('continue'),
+                        onClick: handleContinue,
                         disabled: isLoading,
                         variant: 'primary',
                         className: 'w-full',

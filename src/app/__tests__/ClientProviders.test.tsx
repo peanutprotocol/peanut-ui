@@ -5,10 +5,11 @@
  * useWallet → useSendMoney), so AppIntlProvider must wrap it. When it didn't,
  * every route 500'd with "context from NextIntlClientProvider was not found" —
  * and no unit test caught it, because each one wraps its own subject in a
- * provider. This walks the real element tree instead of rendering it, so the
- * contract is checked without mocking the wallet/kernel/Capacitor stack.
+ * provider. This invokes the component inside a React render, then walks its
+ * returned element tree without mounting the wallet/kernel/Capacitor stack.
  */
 import React from 'react'
+import { renderHook } from '@testing-library/react'
 import { ClientProviders } from '../ClientProviders'
 
 jest.mock('@/hooks/useSplashGate', () => ({ useSplashGate: jest.fn() }))
@@ -22,8 +23,8 @@ jest.mock('@/config/peanut.config', () => ({
         return children
     },
 }))
-// The component is invoked as a plain function rather than rendered, so the
-// router hook it now calls has no context. An app route is what keeps the full
+// The component's returned tree is inspected without mounting a router, so the
+// router hook has no context. An app route is what keeps the full
 // provider tree in the chain being asserted.
 let pathname = '/home'
 jest.mock('next/navigation', () => ({ usePathname: () => pathname }))
@@ -53,7 +54,10 @@ function providerChain(node: React.ReactNode, acc: string[] = []): string[] {
 describe('ClientProviders provider order', () => {
     const chainFor = (path: string) => {
         pathname = path
-        return providerChain(ClientProviders({ children: <div data-testid="app" /> }))
+        const { result, unmount } = renderHook(() => ClientProviders({ children: <div data-testid="app" /> }))
+        const chain = providerChain(result.current)
+        unmount()
+        return chain
     }
 
     it('mounts the intl provider outside ContextProvider on app routes', () => {

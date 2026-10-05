@@ -19,6 +19,29 @@ export default function MiniHeaderPage() {
                 status="limited"
             />
 
+            <DocSection
+                title="How it looks"
+                description="From signup, the account-ready step (Setup SignTestTransaction view): two grey uppercase labels, plain prose under each."
+            >
+                <DocSection.Content>
+                    <div className="flex w-full flex-col gap-4 text-left">
+                        <div className="flex flex-col gap-1">
+                            <MiniHeader>Works right now</MiniHeader>
+                            <p className="text-body-s text-foreground-primary">
+                                Receive dollars, send to any @username, hold your balance — no ID needed.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <MiniHeader>For bank payments or a card</MiniHeader>
+                            <p className="text-body-s text-foreground-primary">
+                                An ID check will be required — a few minutes, or 1–3 business days if a reviewer takes a
+                                thorough look.
+                            </p>
+                        </div>
+                    </div>
+                </DocSection.Content>
+            </DocSection>
+
             <WhenToUse
                 use={[
                     'A quiet label over a block of plain prose — form groups, drawer copy',

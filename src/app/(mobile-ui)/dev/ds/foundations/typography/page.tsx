@@ -124,7 +124,7 @@ export default function TypographyPage() {
             {/* Semantic type scale */}
             <DocSection title="Semantic Type Scale">
                 <p className="text-body-s text-foreground-secondary">
-                    1:1 with the figma Heading/Body/Label/Button styles. New screens use these — e.g.{' '}
+                    New screens use these — e.g.{' '}
                     <code className="font-mono text-label-m text-foreground-primary">text-heading-m</code>,{' '}
                     <code className="font-mono text-label-m text-foreground-primary">text-body-s</code>.
                 </p>

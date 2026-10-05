@@ -38,7 +38,10 @@ export function QrPaySuccessView() {
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo('/home')
     const { user } = useAuth()
-    const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, pointsData, pointsDivRef } = useQrPayFlow()
+    const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, pointsData, pointsDivRef, pixKeyOwner } =
+        useQrPayFlow()
+    // A looked-up PIX key names its owner, as the payment screen did.
+    const paidTo = pixKeyOwner?.name ?? qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? ''
     const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
         usePerkHoldToClaim(qrPayment, setQrPayment)
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
@@ -88,11 +91,10 @@ export function QrPaySuccessView() {
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <h1 className="text-body-s font-normal text-foreground-secondary">
-                                {t('success.youPaid', {
-                                    merchant:
-                                        qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? '',
-                                })}
+                            <h1
+                                className={`text-body-s font-normal text-foreground-secondary ${pixKeyOwner ? 'ph-mask ph-no-capture' : ''}`}
+                            >
+                                {t('success.youPaid', { merchant: paidTo })}
                             </h1>
                             <div className="text-heading-s">
                                 {currency.symbol}{' '}
@@ -227,9 +229,11 @@ export function QrPaySuccessView() {
                                     onClick={() => {
                                         // same query-builder shape as withdraw's downstreamQuery —
                                         // /request seeds its form from these params
+                                        // A person's name paid by PIX key stays out of the URL,
+                                        // which analytics records and a request can be shared from.
                                         const params = new URLSearchParams({
                                             amount: String(usdAmount ?? ''),
-                                            merchant: qrPayment.details.merchant.name,
+                                            ...(pixKeyOwner ? {} : { merchant: paidTo }),
                                         })
                                         const splitBillUrl = `/request?${params.toString()}`
                                         router.push(splitBillUrl)

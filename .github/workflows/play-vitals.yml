@@ -1,0 +1,63 @@
+name: Play Vitals monitor
+
+# Reuses the Play publisher identity already held by this Production environment.
+# This workflow calls only the read-only Play Developer Reporting API. It sends
+# a minimal artifact to Chip's prod-watch; no Google key leaves this environment.
+on:
+    schedule:
+        - cron: '17 */6 * * *'
+    workflow_dispatch:
+        inputs:
+            dry_run:
+                description: Query Play without posting or saving state
+                type: boolean
+                default: true
+
+permissions:
+    contents: read
+
+concurrency:
+    group: play-vitals
+    cancel-in-progress: false
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        environment: Production
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+            - name: Restore previous issue state
+              uses: actions/cache/restore@v4
+              with:
+                  path: ${{ runner.temp }}/play-vitals-state.json
+                  key: play-vitals-v2-${{ github.run_id }}
+                  restore-keys: |
+                      play-vitals-v2-
+            - name: Check user-perceived Android crashes
+              env:
+                  PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+                  STATE_FILE: ${{ runner.temp }}/play-vitals-state.json
+                  OUTPUT_FILE: ${{ runner.temp }}/play-vitals-events.json
+                  DRY_RUN: ${{ inputs.dry_run }}
+              run: |
+                  set -euo pipefail
+                  if [ "${{ github.event_name }}" = workflow_dispatch ] && [ "$DRY_RUN" != false ]; then
+                    python3 scripts/play_vitals_alert.py --state "$STATE_FILE" --output "$OUTPUT_FILE" --dry-run
+                  else
+                    python3 scripts/play_vitals_alert.py --state "$STATE_FILE" --output "$OUTPUT_FILE"
+                  fi
+            - name: Save issue state
+              if: success() && (github.event_name == 'schedule' || inputs.dry_run == false)
+              uses: actions/cache/save@v4
+              with:
+                  path: ${{ runner.temp }}/play-vitals-state.json
+                  key: play-vitals-v2-${{ github.run_id }}
+            - name: Publish minimal signal for Chip
+              if: success() && (github.event_name == 'schedule' || inputs.dry_run == false)
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              with:
+                  name: play-vitals-signals
+                  path: ${{ runner.temp }}/play-vitals-events.json
+                  if-no-files-found: error
+                  retention-days: 2

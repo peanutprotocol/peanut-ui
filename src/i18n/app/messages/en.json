@@ -1043,6 +1043,7 @@
             "guestDescriptionApp": "You need the Peanut app to send {username} a payment request."
         },
         "createRequest": "Create request",
+        "theirChoice": "Their choice",
         "shareOpenRequest": "Share open request",
         "shareAmountRequest": "Share ${amount} request",
         "shareCurrencyAmountRequest": "Share {amount} {currency} request",
@@ -1478,7 +1479,8 @@
                 "title": "Payment is processing",
                 "description": "The payment has not been confirmed yet. Check Activity before trying again."
             }
-        }
+        },
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Add card",
@@ -1926,7 +1928,8 @@
             "heading": "Enter Pix key",
             "placeholder": "Pix key",
             "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
-            "invalid": "Invalid Pix key"
+            "invalid": "Invalid Pix key",
+            "notFound": "No Pix account found for this key. Check it and try again."
         },
         "bank": {
             "eurTitle": "We send EUR to the bank",
@@ -2734,7 +2737,15 @@
         "migrationSetupDescription": "We'll ping you the moment money lands or someone asks you to pay.",
         "enable": "Enable notifications",
         "requesting": "Requesting...",
-        "notNow": "Not now"
+        "notNow": "Not now",
+        "depositIntentTitle": "Know when money lands",
+        "depositIntentDescription": "Just one notification, when the deposit arrives.",
+        "requestCreatedTitle": "Know when the request is paid",
+        "requestCreatedDescription": "One notification when it's paid.",
+        "cardReadyTitle": "Know every card payment",
+        "cardReadyDescription": "One notification per payment or decline.",
+        "qrFirstScanTitle": "Confirmation for each QR payment",
+        "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
         "statusDrawerTitle": "Verification status",
@@ -2787,6 +2798,7 @@
         "initiate": {
             "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
+            "titleIdentityDocumentMissing": "Complete your verification",
             "titleProviderRejection": "We need extra documents",
             "titleCrossRegion": "Unlock {region}",
             "titleCrossRegionGeneric": "Unlock this region",
@@ -2829,8 +2841,6 @@
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
             "bridgeTosTitle": "One more step",
-            "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
-            "acceptTerms": "Accept terms",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
@@ -2861,16 +2871,14 @@
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
         "bridgeTos": {
-            "baseTitle": "Accept terms of service",
-            "baseDescription": "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
-            "sepaTitle": "Accept updated bank transfer provider terms",
-            "sepaDescription": "To enable euro and British pound bank transfers, accept our bank transfer provider's updated Terms of Service.",
+            "baseTitle": "Bank transfer terms",
+            "sepaTitle": "Updated bank transfer terms",
+            "description": "Bridge, our payment partner, provides bank transfers. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
             "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
-            "acceptTerms": "Accept terms",
             "notNow": "Not now"
         },
         "reverificationPending": {
@@ -3279,7 +3287,8 @@
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
-            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
+            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
+            "identity_document_missing": "We need an identity document and a selfie to complete your verification."
         }
     },
     "recoverFunds": {
@@ -3517,13 +3526,6 @@
             "copyErrorToast": "Failed to copy link.",
             "pasteHint": "Then paste it in your preferred browser."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Send only supported tokens on supported networks",
-            "warning": "Sending the wrong token or using the wrong network will result in permanent loss.",
-            "supportedNetworks": "Supported networks",
-            "supportedTokens": "Supported tokens",
-            "slideToProceed": "Slide to proceed"
-        },
         "rainCooldownIntroModal": {
             "title": "Please wait",
             "description": "Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can lower your card limit to be below your wallet balance; the extra will always be available.",
@@ -3715,6 +3717,7 @@
             "isRequesting": "{name} is requesting",
             "sendingTo": "Sending {name}",
             "payWhatYouWant": "Any amount",
+            "yourChoice": "Your choice",
             "sendExactAmount": "Send the exact amount!"
         },
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",

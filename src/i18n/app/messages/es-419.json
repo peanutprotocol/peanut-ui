@@ -1043,6 +1043,7 @@
             "guestDescriptionApp": "Necesitas la app de Peanut para enviarle una solicitud de pago a {username}."
         },
         "createRequest": "Crear solicitud",
+        "theirChoice": "La persona elige",
         "shareOpenRequest": "Compartir solicitud abierta",
         "shareAmountRequest": "Compartir solicitud de ${amount}",
         "shareCurrencyAmountRequest": "Compartir solicitud de {amount} {currency}",
@@ -1478,7 +1479,8 @@
                 "title": "Pago en proceso",
                 "description": "El pago todavía no se ha confirmado. Revisa Actividad antes de volver a intentarlo."
             }
-        }
+        },
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Agregar tarjeta",
@@ -1926,7 +1928,8 @@
             "heading": "Ingresa la clave Pix",
             "placeholder": "Clave Pix",
             "info": "Envía a cualquier clave Pix: email, teléfono (incluye +55), CPF/CNPJ o clave aleatoria.",
-            "invalid": "Clave Pix inválida"
+            "invalid": "Clave Pix inválida",
+            "notFound": "No encontramos una cuenta Pix con esta clave. Revísala e intenta de nuevo."
         },
         "bank": {
             "eurTitle": "Enviamos EUR al banco",
@@ -2734,7 +2737,15 @@
         "migrationSetupDescription": "Te avisamos al instante cuando llegue dinero o alguien te pida un pago.",
         "enable": "Activar notificaciones",
         "requesting": "Solicitando...",
-        "notNow": "Ahora no"
+        "notNow": "Ahora no",
+        "depositIntentTitle": "Avisamos cuando llegue el depósito",
+        "depositIntentDescription": "Una sola notificación, cuando llegue el depósito.",
+        "requestCreatedTitle": "Avisamos cuando paguen la solicitud",
+        "requestCreatedDescription": "Una notificación apenas paguen tu solicitud.",
+        "cardReadyTitle": "Avisamos de cada pago con tarjeta",
+        "cardReadyDescription": "Una notificación por cada pago con tarjeta, aprobado o rechazado.",
+        "qrFirstScanTitle": "Confirmamos cada pago QR",
+        "qrFirstScanDescription": "Una notificación cuando se complete el pago."
     },
     "kyc": {
         "statusDrawerTitle": "Estado de la verificación",
@@ -2787,6 +2798,7 @@
         "initiate": {
             "titleBlocked": "No pudimos desbloquear esto",
             "titleRestartIdentity": "Verifícate con otro documento",
+            "titleIdentityDocumentMissing": "Completa tu verificación",
             "titleProviderRejection": "Necesitamos documentos adicionales",
             "titleCrossRegion": "Desbloquea {region}",
             "titleCrossRegionGeneric": "Desbloquea esta región",
@@ -2829,8 +2841,6 @@
             "preparingSlowTitle": "Ya casi",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Espera un momento.",
             "bridgeTosTitle": "Un paso más",
-            "bridgeTosDescription": "Último paso: acepta los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
-            "acceptTerms": "Aceptar términos",
             "completeTitle": "Listo",
             "completeDescription": "Tu cuenta está lista para usarse.",
             "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Puedes cerrar esto y te avisaremos cuando haya una decisión.",
@@ -2861,16 +2871,14 @@
             "saveFailed": "Algo salió mal al guardar tu correo. Inténtalo de nuevo."
         },
         "bridgeTos": {
-            "baseTitle": "Aceptar los términos de servicio",
-            "baseDescription": "Para habilitar las transferencias bancarias, debes aceptar los términos de servicio de nuestro socio de pagos.",
-            "sepaTitle": "Aceptar los términos actualizados del proveedor de transferencias bancarias",
-            "sepaDescription": "Para habilitar las transferencias bancarias en euros y libras esterlinas, acepta los Términos de Servicio actualizados de nuestro proveedor de transferencias bancarias.",
+            "baseTitle": "Términos de transferencias bancarias",
+            "sepaTitle": "Términos actualizados de transferencias bancarias",
+            "description": "Bridge, nuestro socio de pagos, ofrece las transferencias bancarias. Lee los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptas en la siguiente pantalla.",
             "errorTitle": "No se pudieron cargar los términos",
             "loadFailed": "No se pudieron cargar los términos. Puedes aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Inténtalo de nuevo.",
             "notAcceptedYet": "Parece que todavía no aceptaste los términos. Inténtalo de nuevo.",
-            "acceptTerms": "Aceptar términos",
             "notNow": "Ahora no"
         },
         "reverificationPending": {
@@ -3279,7 +3287,8 @@
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que requieren los depósitos y retiros locales. Puedes verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
-            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado."
+            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado.",
+            "identity_document_missing": "Necesitamos un documento de identidad y una selfie para completar tu verificación."
         }
     },
     "recoverFunds": {
@@ -3517,13 +3526,6 @@
             "copyErrorToast": "No se pudo copiar el enlace.",
             "pasteHint": "Luego pégalo en tu navegador preferido."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Envía solo tokens compatibles en redes compatibles",
-            "warning": "Enviar el token equivocado o usar la red equivocada resultará en una pérdida permanente.",
-            "supportedNetworks": "Redes compatibles",
-            "supportedTokens": "Tokens compatibles",
-            "slideToProceed": "Desliza y continúa"
-        },
         "rainCooldownIntroModal": {
             "title": "Espera un momento",
             "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, puedes bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible.",
@@ -3715,6 +3717,7 @@
             "isRequesting": "{name} está solicitando",
             "sendingTo": "Enviando a {name}",
             "payWhatYouWant": "Cualquier monto",
+            "yourChoice": "Tú eliges",
             "sendExactAmount": "¡Envía el monto exacto!"
         },
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",

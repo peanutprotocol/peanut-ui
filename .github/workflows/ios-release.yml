@@ -216,6 +216,8 @@ jobs:
 
             - name: Build web + sync iOS
               env:
+                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+                  SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
                   # postsync stamps project.pbxproj; without this it would stamp
                   # package.json's version, which no longer tracks releases.
                   IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}

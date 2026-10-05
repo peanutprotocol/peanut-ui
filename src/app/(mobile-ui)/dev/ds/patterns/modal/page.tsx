@@ -242,7 +242,7 @@ export default function ModalPage() {
                 <ProductUsage.Example
                     title="KYC — Bridge terms of service"
                     path="src/components/Kyc/BridgeTosStep.tsx"
-                    description="One full-width primary with the defer action as the tertiary link, and the same modal carries the error state: icon, title and description all swap when the accept call fails."
+                    description="One full-width primary with the defer action as the tertiary link, and the same modal carries the error state: icon, title and description all swap when the terms fail to load. The description names the documents and links them, and the primary says Continue because the user accepts on the next screen."
                     code={`<ActionModal
   visible={visible && !showIframe && !isConfirming}
   onClose={onSkip}
@@ -252,8 +252,8 @@ export default function ModalPage() {
   description={error || copy.description}
   ctas={[
     {
-      text: t('bridgeTos.acceptTerms'),
-      onClick: handleAcceptTerms,
+      text: tCommon('continue'),
+      onClick: handleContinue,
       variant: 'primary',
       className: 'w-full',
       shadowSize: '4',
@@ -270,11 +270,33 @@ export default function ModalPage() {
                         onClose={() => setBridgeTosModal(false)}
                         tone="info"
                         icon="badge"
-                        title="Accept Bridge terms"
-                        description="Bridge is our banking partner. Accept their terms to finish verification."
+                        title="Bank transfer terms"
+                        description={
+                            <p>
+                                Bridge, our payment partner, provides bank transfers. Read Bridge&apos;s{' '}
+                                <a
+                                    href="https://www.bridge.xyz/legal/overview"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-foreground-primary underline"
+                                >
+                                    Terms of Service
+                                </a>{' '}
+                                and{' '}
+                                <a
+                                    href="https://www.bridge.xyz/legal/overview"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-foreground-primary underline"
+                                >
+                                    Privacy Policy
+                                </a>
+                                . You accept them on the next screen.
+                            </p>
+                        }
                         ctas={[
                             {
-                                text: 'Accept terms',
+                                text: 'Continue',
                                 onClick: () => setBridgeTosModal(false),
                                 variant: 'primary',
                                 className: 'w-full',

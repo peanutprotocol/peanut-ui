@@ -12,6 +12,8 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { offerPushPrompt } from '@/hooks/useNotifications'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { useAuth } from '@/context/authContext'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
@@ -93,8 +95,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const isButtonDisabled = useMemo(() => {
+        // A blank amount is valid: the requestee chooses it before paying.
         const parsedAmount = parseFloat(currentInputValue)
-        const isAmountInvalid = isNaN(parsedAmount) || parsedAmount <= 0
+        const isAmountInvalid = currentInputValue !== '' && (isNaN(parsedAmount) || parsedAmount <= 0)
         return (
             !recipientUser?.username ||
             recipientUser.username.toLowerCase() !== username?.toLowerCase() ||
@@ -136,6 +139,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             })
             setLoadingState('Idle')
             setView('success')
+            void offerPushPrompt(PUSH_PROMPT_TRIGGERS.REQUEST_CREATED)
         } catch (error) {
             const status = apiErrorStatus(error)
             let errorMessage = t('errors.createRequestFailed')
@@ -347,7 +351,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 <PageStack.Center className="gap-4">
                     <PaymentSuccessView
                         user={recipientUser}
-                        amount={formatAmount(currentInputValue)}
+                        // currencyAmount is shown as given, in place of an amount the requestee chooses
+                        {...(currentInputValue
+                            ? { amount: formatAmount(currentInputValue) }
+                            : { currencyAmount: t('theirChoice') })}
                         message={attachmentOptions.message}
                         type="REQUEST"
                     />

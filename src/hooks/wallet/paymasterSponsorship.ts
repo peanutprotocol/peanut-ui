@@ -26,12 +26,20 @@ export function isPaymasterPreviewContext(context: unknown): boolean {
 }
 
 /**
- * Arguments for `zerodevPaymaster.sponsorUserOperation`. `userOperation` is
- * forwarded untouched (the SDK strips `context` itself); `shouldOverrideFee`
- * keeps the pre-existing behaviour.
+ * Arguments for `zerodevPaymaster.sponsorUserOperation`.
+ * viem passes preparation-only fields to the callback before removing them
+ * from the final op. ZeroDev 5.5.7 strips `context` but serializes the remaining
+ * fields, so `paymasterContext` reached the provider and failed validation.
  */
-export function sponsorUserOperationArgs<T extends { context?: unknown }>(
-    userOperation: T
-): { userOperation: T; shouldOverrideFee: true; shouldConsume: boolean } {
-    return { userOperation, shouldOverrideFee: true, shouldConsume: !isPaymasterPreviewContext(userOperation.context) }
+export function sponsorUserOperationArgs<
+    T extends { context?: unknown; paymasterContext?: unknown; parameters?: unknown },
+>(userOperation: T): { userOperation: T; shouldOverrideFee: true; shouldConsume: boolean } {
+    const { paymasterContext: _paymasterContext, parameters: _parameters, ...rpcOperation } = userOperation
+    return {
+        // Both removed fields are optional callback metadata. Retain T's
+        // discriminated EntryPoint union, which a plain Omit would collapse.
+        userOperation: rpcOperation as T,
+        shouldOverrideFee: true,
+        shouldConsume: !isPaymasterPreviewContext(userOperation.context),
+    }
 }

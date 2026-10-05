@@ -321,6 +321,9 @@ jobs:
                   EOF
 
             - name: Build native static export
+              env:
+                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+                  SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
               run: node scripts/native-build.js
 
             # A queued run can finish building after a newer commit lands on
