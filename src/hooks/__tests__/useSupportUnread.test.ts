@@ -4,7 +4,7 @@ import { useSupportUnread } from '@/hooks/useSupportUnread'
 const mockUnreadCount = jest.fn()
 jest.mock('@/services/notifications', () => ({
     notificationsApi: {
-        unreadCount: (category?: string) => mockUnreadCount(category),
+        unreadCount: (category?: string, signal?: AbortSignal) => mockUnreadCount(category, signal),
     },
 }))
 
@@ -14,9 +14,68 @@ beforeEach(() => {
 })
 
 describe('useSupportUnread', () => {
+    it('does not request an optional badge while logged out or hidden', async () => {
+        const { rerender } = renderHook(({ enabled }) => useSupportUnread(enabled), {
+            initialProps: { enabled: false },
+        })
+        expect(mockUnreadCount).not.toHaveBeenCalled()
+        const hidden = jest.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+        rerender({ enabled: true })
+        expect(mockUnreadCount).not.toHaveBeenCalled()
+        hidden.mockRestore()
+    })
+
+    it('cancels an in-flight badge request on backgrounding and ignores its late result', async () => {
+        let finish!: (result: { count: number }) => void
+        mockUnreadCount.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve
+                })
+        )
+        const { result } = renderHook(() => useSupportUnread())
+        await waitFor(() => expect(mockUnreadCount).toHaveBeenCalledTimes(1))
+        const signal = mockUnreadCount.mock.calls[0][1] as AbortSignal
+        const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+        act(() => document.dispatchEvent(new Event('visibilitychange')))
+        expect(signal.aborted).toBe(true)
+        await act(async () => finish({ count: 1 }))
+        expect(result.current).toBe(false)
+        visibility.mockRestore()
+    })
+
+    it('backs off repeated failure triggers and keeps the last successful badge value', async () => {
+        mockUnreadCount.mockResolvedValueOnce({ count: 1 })
+        const { result } = renderHook(() => useSupportUnread())
+        await waitFor(() => expect(result.current).toBe(true))
+        jest.useFakeTimers()
+        try {
+            mockUnreadCount.mockRejectedValue(new Error('timeout'))
+            await act(async () => {
+                window.dispatchEvent(new CustomEvent('notifications:updated'))
+                jest.advanceTimersByTime(250)
+            })
+            expect(mockUnreadCount).toHaveBeenCalledTimes(2)
+            await act(async () => {
+                window.dispatchEvent(new CustomEvent('notifications:updated'))
+                jest.advanceTimersByTime(250)
+            })
+            expect(mockUnreadCount).toHaveBeenCalledTimes(2)
+            expect(result.current).toBe(true)
+            mockUnreadCount.mockResolvedValue({ count: 0 })
+            await act(async () => {
+                jest.advanceTimersByTime(5_000)
+                window.dispatchEvent(new CustomEvent('notifications:updated'))
+                jest.advanceTimersByTime(250)
+            })
+            expect(result.current).toBe(false)
+        } finally {
+            jest.useRealTimers()
+        }
+    })
     it('asks only for the support category', async () => {
         renderHook(() => useSupportUnread())
-        await waitFor(() => expect(mockUnreadCount).toHaveBeenCalledWith('support'))
+        await waitFor(() => expect(mockUnreadCount).toHaveBeenCalledWith('support', expect.any(AbortSignal)))
     })
 
     it('is false while nothing is unread', async () => {

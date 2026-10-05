@@ -25,7 +25,7 @@ import { isMarketingRoute } from '@/utils/marketing-routes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useSyncExternalStore } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
 import { AppHelpProvider } from '@/components/Global/AppHelpProvider'
@@ -64,14 +64,16 @@ if (typeof window !== 'undefined') applyLegacyAndroidSafeAreaZeroFromUserAgent()
 
 // Decided once at load, client only. A WebView that cannot parse the
 // stylesheet gets the inline-styled update screen in place of the app tree.
-const UNSUPPORTED_WEBVIEW =
-    typeof window !== 'undefined' && isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
+const subscribeWebViewSupport = () => () => {}
+const unsupportedWebView = () => isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
+const serverUnsupportedWebView = () => false
 
 const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
 const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
+    const unsupported = useSyncExternalStore(subscribeWebViewSupport, unsupportedWebView, serverUnsupportedWebView)
     useSplashGate()
     // App Links + push-tap routing must be registered on EVERY cold-start
     // destination (including logged-out /setup), hence here and not (mobile-ui).
@@ -93,7 +95,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         </Suspense>
     )
 
-    if (UNSUPPORTED_WEBVIEW) {
+    if (unsupported) {
         // notifyAppReady still has to run here, or the plugin's app-ready
         // timeout rolls the active OTA bundle back on this screen.
         return (

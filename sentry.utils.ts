@@ -1,4 +1,5 @@
 import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
+import { isExpectedCancellation } from './src/utils/expected-exception'
 // Shared Sentry utilities for filtering noise across all configs
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
@@ -277,6 +278,7 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // a defect, and those would drown out the real failures.
     const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const searchTexts = getEventSearchTexts(event)
+    if (searchTexts.some(isExpectedCancellation)) return true
 
     /*
      * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo

@@ -53,3 +53,22 @@ it('redacts QR copies before the Sentry event reaches the PostHog integration', 
     expect(inner).toHaveBeenCalledTimes(1)
     expect(JSON.stringify(inner.mock.calls)).not.toContain('private-payload')
 })
+
+it('skips cancellations and duplicate wrappers but retains first-party failures before Sentry filtering', () => {
+    const inner = jest.fn((event) => event)
+    mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
+    const mirror = posthogErrorMirror()
+    for (const value of ['User canceled the request', '[16] Canceled on BiometricPromptFragment.']) {
+        mirror.processEvent?.({ exception: { values: [{ type: 'Error', value }] } } as never)
+    }
+    mirror.processEvent?.({ exception: { values: [{ type: 'PasskeyError', value: 'Please try again' }] } } as never)
+    expect(inner).not.toHaveBeenCalled()
+    for (const value of [
+        'Failed to fetch exchange rate from bridge',
+        'Minified React error #418',
+        'Invalid sponsorship request',
+    ]) {
+        mirror.processEvent?.({ exception: { values: [{ type: 'Error', value }] } } as never)
+    }
+    expect(inner).toHaveBeenCalledTimes(3)
+})

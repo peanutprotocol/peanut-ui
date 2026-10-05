@@ -27,7 +27,7 @@ const REFRESH_COALESCE_MS = 250
  * foreground, or a foreground push arrived (dispatched wherever OneSignal is
  * wired: useNativeAppLinks on native, useNotifications on web).
  */
-export const useSupportUnread = (): boolean => {
+export const useSupportUnread = (enabled = true, userId?: string): boolean => {
     const [hasUnread, setHasUnread] = useState(false)
     /*
      * Responses can land out of order, and the stale one would win. Tapping a
@@ -38,17 +38,34 @@ export const useSupportUnread = (): boolean => {
      * polling nothing corrects it until the next foreground.
      */
     const latestRequestId = useRef(0)
+    const activeRequest = useRef<AbortController | null>(null)
+    const retryAfter = useRef(0)
+    const failures = useRef(0)
+    const invalidateActiveRequest = useCallback(() => {
+        ++latestRequestId.current
+        activeRequest.current?.abort()
+    }, [])
 
     const refresh = useCallback(() => {
+        if (!enabled || document.hidden || !navigator.onLine || Date.now() < retryAfter.current) return
+        activeRequest.current?.abort()
+        const controller = new AbortController()
+        activeRequest.current = controller
         const requestId = ++latestRequestId.current
         notificationsApi
-            .unreadCount('support')
+            .unreadCount('support', controller.signal)
             .then(({ count }) => {
-                if (requestId === latestRequestId.current) setHasUnread(count > 0)
+                if (requestId !== latestRequestId.current || controller.signal.aborted) return
+                failures.current = 0
+                retryAfter.current = 0
+                setHasUnread(count > 0)
             })
             // A failed count must never break the nav bar.
-            .catch(() => {})
-    }, [])
+            .catch(() => {
+                if (requestId !== latestRequestId.current || controller.signal.aborted) return
+                retryAfter.current = Date.now() + Math.min(5_000 * 2 ** failures.current++, 60_000)
+            })
+    }, [enabled])
 
     const coalesceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
     const scheduleRefresh = useCallback(() => {
@@ -56,26 +73,38 @@ export const useSupportUnread = (): boolean => {
         // happened inside refresh() on the same tick as the trigger; without
         // it, a count fetched before the trigger can resolve inside the
         // coalesce window and win back state the trigger just made stale.
-        ++latestRequestId.current
+        invalidateActiveRequest()
         clearTimeout(coalesceTimer.current)
         coalesceTimer.current = setTimeout(refresh, REFRESH_COALESCE_MS)
-    }, [refresh])
+    }, [refresh, invalidateActiveRequest])
 
     useEffect(() => {
+        retryAfter.current = 0
+        failures.current = 0
+        setHasUnread(false)
+        if (!enabled) {
+            setHasUnread(false)
+            return
+        }
         refresh()
 
         const onVisibilityChange = () => {
             if (document.visibilityState === 'visible') scheduleRefresh()
+            else {
+                invalidateActiveRequest()
+                clearTimeout(coalesceTimer.current)
+            }
         }
 
         window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, scheduleRefresh)
         document.addEventListener('visibilitychange', onVisibilityChange)
         return () => {
+            invalidateActiveRequest()
             clearTimeout(coalesceTimer.current)
             window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, scheduleRefresh)
             document.removeEventListener('visibilitychange', onVisibilityChange)
         }
-    }, [refresh, scheduleRefresh])
+    }, [enabled, userId, refresh, scheduleRefresh, invalidateActiveRequest])
 
     return hasUnread
 }
