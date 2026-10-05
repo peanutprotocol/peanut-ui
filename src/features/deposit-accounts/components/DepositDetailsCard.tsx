@@ -1,7 +1,5 @@
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import Card from '@/components/Global/Card'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
-import type { ProviderId } from '@/types/provider.types'
 import type { DepositDetailRow } from '../types'
 
 /**
@@ -13,14 +11,7 @@ import type { DepositDetailRow } from '../types'
  * second line, which only the label-above-value row holds. PaymentInfoRow is
  * the DS row for deposit details and draws its own dashed divider.
  */
-export function DepositDetailsCard({
-    rows,
-    providerId,
-}: {
-    rows: DepositDetailRow[]
-    /** the provider that holds the account, named after the bank rows */
-    providerId?: ProviderId | null
-}) {
+export function DepositDetailsCard({ rows }: { rows: DepositDetailRow[] }) {
     return (
         <Card position="solo" className="px-4 py-0">
             {rows.map((row, index) => (
@@ -29,12 +20,9 @@ export function DepositDetailsCard({
                     label={row.label}
                     value={row.value}
                     allowCopy={row.copyable !== false}
-                    hideBottomBorder={!providerId && index === rows.length - 1}
+                    hideBottomBorder={index === rows.length - 1}
                 />
             ))}
-            {providerId && (
-                <ProviderRow providerId={providerId} label="accountProvider" variant="stacked" hideBottomBorder />
-            )}
         </Card>
     )
 }

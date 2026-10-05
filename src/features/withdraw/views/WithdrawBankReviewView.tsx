@@ -9,7 +9,7 @@ import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 import type { ProviderId } from '@/types/provider.types'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { AccountType, type Account } from '@/interfaces/interfaces'
@@ -72,7 +72,7 @@ interface WithdrawBankReviewViewProps {
     onRetryQuote?: () => void
     /** Set when the provider refused the saved account for good: add it again replaces Retry. */
     onAddBankAccountAgain?: () => void
-    /** The Bridge entity that makes the payout, named as the card's last row. */
+    /** The Bridge entity that makes the payout, named in the fine print at the end. */
     providerId: ProviderId
     /** USD only: same-day ACH or wire, the fee and what the bank receives. */
     usdSpeed?: {
@@ -205,7 +205,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         label={t('bank.bankReceives')}
                         value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
                     />
-                    <ProviderRow providerId={providerId} />
                 </Card>
             ) : (
                 <Card className="rounded-sm">
@@ -262,8 +261,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             moreInfoText={tRate('approximate')}
                         />
                     )}
-                    <PaymentInfoRow label={t('bank.fee')} value="$0" />
-                    <ProviderRow providerId={providerId} variant="stacked" hideBottomBorder />
+                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
                 </Card>
             )}
 
@@ -362,6 +360,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 )
             )}
             {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
+            <ProviderNote providerId={providerId} line="sendsTransfer" />
         </div>
     )
 }

@@ -344,8 +344,7 @@ describe('useReceiptViewModel — provider', () => {
         expect(providerOf(bridgeOfframp, true)).toBe('bridge')
     })
 
-    test('a peanut-only send has no provider row', () => {
+    test('a peanut-only send names no provider', () => {
         expect(providerOf(baseTx, false)).toBeNull()
-        expect(renderConfig(baseTx).provider).toBe(false)
     })
 })

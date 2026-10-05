@@ -4,8 +4,6 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
-import type { ProviderId } from '@/types/provider.types'
 
 export type KycPrepPath = 'standard' | 'extended' | 'hosted'
 
@@ -24,18 +22,7 @@ export type KycPrepPath = 'standard' | 'extended' | 'hosted'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({
-    path,
-    taxIdCountry,
-    providerId,
-    nested,
-}: {
-    path: KycPrepPath
-    taxIdCountry?: 'AR' | 'BR'
-    /** the provider that will hold the account; named under the intro when known */
-    providerId?: ProviderId | null
-    nested?: boolean
-}) => {
+const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCountry?: 'AR' | 'BR' }) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
     const items =
@@ -54,7 +41,6 @@ const KycPrepChecklist = ({
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
             {!isHosted && <p className="text-body-s">{t(`intro.${path}`)}</p>}
-            {providerId && <ProviderNote providerId={providerId} label="accountProvider" nested={nested} prospective />}
             {/* The requirements are label + value pairs, not claims, so they read
                 as DataRows in a card rather than a tinted checklist. The label is
                 the short document name so the value has room, and what counts as

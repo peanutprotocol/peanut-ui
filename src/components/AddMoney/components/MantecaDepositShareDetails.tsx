@@ -21,7 +21,7 @@ import {
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -142,7 +142,6 @@ const MantecaDepositShareDetails = ({
                         <>
                             <PaymentInfoRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
                             <PaymentInfoRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
-                            <ProviderRow providerId="manteca-ar" variant="stacked" />
                         </>
                     )}
                     <PaymentInfoRow
@@ -171,6 +170,7 @@ const MantecaDepositShareDetails = ({
             >
                 {t('manteca.shareDetails')}
             </ShareButton>
+            {currentCountryDetails?.id === 'AR' && <ProviderNote providerId="manteca-ar" line="bankTransfers" />}
         </div>
     )
 }

@@ -83,17 +83,14 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
 
             {revealError && <Callout priority="error">{revealError}</Callout>}
 
-            <div className="flex flex-col gap-2">
-                <CardFace
-                    last4={card.last4}
-                    isLocked={isLocked}
-                    revealed={revealed}
-                    loading={isRevealing}
-                    onToggleReveal={isLocked || isRevealing ? undefined : toggle}
-                    onCopy={handleCopy}
-                />
-                <ProviderNote providerId="third-national" label="cardIssuer" className="justify-center" />
-            </div>
+            <CardFace
+                last4={card.last4}
+                isLocked={isLocked}
+                revealed={revealed}
+                loading={isRevealing}
+                onToggleReveal={isLocked || isRevealing ? undefined : toggle}
+                onCopy={handleCopy}
+            />
 
             {showAutoRenew && (
                 <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>
@@ -180,6 +177,8 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                     </ListGroup>
                 </Section>
             </div>
+
+            <ProviderNote providerId="third-national" />
 
             <LockCardModal
                 cardId={card.id}

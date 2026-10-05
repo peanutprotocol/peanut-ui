@@ -30,4 +30,12 @@ export interface ProviderRecord {
     privacyUrl?: string
 }
 
-export type ProviderRowLabel = 'provider' | 'accountProvider' | 'cardIssuer'
+/** key under `provider.finePrint`: the sentence before "About <brand>" */
+export type ProviderFinePrint =
+    | 'bankTransfers'
+    | 'payments'
+    | 'crossChain'
+    | 'card'
+    | 'sendsTransfer'
+    | 'sentTransfer'
+    | 'account'

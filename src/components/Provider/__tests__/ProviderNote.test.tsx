@@ -2,8 +2,13 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import type { ProviderId } from '@/types/provider.types'
-import { ProviderRow } from '../ProviderRow'
+import { openExternalUrl } from '@/utils/capacitor'
 import { ProviderNote } from '../ProviderNote'
+
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    openExternalUrl: jest.fn(() => Promise.resolve()),
+}))
 
 beforeAll(() => {
     window.matchMedia =
@@ -33,25 +38,22 @@ const openSheet = (brand: string) => {
     return screen.getByRole('dialog')
 }
 
-describe('ProviderRow', () => {
-    it('shows the label and brand, and opens the sheet on (?)', () => {
-        withIntl(<ProviderRow providerId="bridge-eea" label="accountProvider" />)
-        expect(screen.getByText('Account provider')).toBeInTheDocument()
-        expect(screen.getByText('Bridge')).toBeInTheDocument()
+describe('ProviderNote', () => {
+    it('names the service and opens the sheet from "About <brand>"', () => {
+        withIntl(<ProviderNote providerId="bridge-eea" />)
+        expect(screen.getByText(/Bank transfers by Bridge\./)).toBeInTheDocument()
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
         const sheet = openSheet('Bridge')
         expect(within(sheet).getByText('Bridge Building S.A.')).toBeInTheDocument()
         expect(within(sheet).getByText('CSSF: MiCA CASP N00000012, EMI W00000024')).toBeInTheDocument()
         expect(within(sheet).getByText('Sumsub (Sum and Substance Ltd)')).toBeInTheDocument()
-        expect(within(sheet).getByRole('link', { name: /Terms/ })).toHaveAttribute(
-            'href',
-            'https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a'
-        )
+        fireEvent.click(within(sheet).getByRole('button', { name: 'Terms' }))
+        expect(openExternalUrl).toHaveBeenCalledWith('https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a')
     })
 
     it('hides fields the registry leaves out', () => {
-        withIntl(<ProviderRow providerId="bridge" />)
+        withIntl(<ProviderNote providerId="bridge" />)
         const sheet = openSheet('Bridge')
         for (const label of ['Legal name', 'Registered office', 'Registration', 'Regulator', 'Privacy policy']) {
             expect(within(sheet).queryByText(label)).not.toBeInTheDocument()
@@ -61,18 +63,24 @@ describe('ProviderRow', () => {
     })
 
     it.each<ProviderId>(['manteca-ar', 'rhino', 'third-national'])('shows no identity check line for %s', (id) => {
-        withIntl(<ProviderRow providerId={id} variant="stacked" />)
+        withIntl(<ProviderNote providerId={id} />)
         const sheet = openSheet(id === 'rhino' ? 'Rhino.fi' : id === 'third-national' ? 'Third National' : 'Manteca')
         expect(within(sheet).queryByText('Identity check')).not.toBeInTheDocument()
     })
 
-    it('uses the card intro for the card issuer and drops the missing terms link', () => {
-        withIntl(<ProviderRow providerId="third-national" label="cardIssuer" />)
-        expect(screen.getByText('Card issuer')).toBeInTheDocument()
+    it('uses the card intro for the card issuer and drops the missing terms row', () => {
+        withIntl(<ProviderNote providerId="third-national" />)
+        expect(screen.getByText(/Your Peanut card is issued by Third National\./)).toBeInTheDocument()
         const sheet = openSheet('Third National')
         expect(within(sheet).getByText(/Third National issues your Peanut card/)).toBeInTheDocument()
-        expect(within(sheet).queryByRole('link', { name: /^Terms/ })).not.toBeInTheDocument()
-        expect(within(sheet).getByRole('link', { name: /Privacy policy/ })).toBeInTheDocument()
+        expect(within(sheet).getByText('Documents')).toBeInTheDocument()
+        expect(within(sheet).queryByRole('button', { name: 'Terms' })).not.toBeInTheDocument()
+        expect(within(sheet).getByRole('button', { name: 'Privacy policy' })).toBeInTheDocument()
+    })
+
+    it('fills the currency in the account line', () => {
+        withIntl(<ProviderNote providerId="bridge-us" line="account" currency="USD" />)
+        expect(screen.getByText(/Your USD account is with Bridge\./)).toBeInTheDocument()
     })
 })
 
@@ -80,14 +88,14 @@ describe('ProviderSheet intro', () => {
     const relationship = /You have a direct relationship/
 
     it('states the direct relationship when the user accepted the provider terms', () => {
-        withIntl(<ProviderRow providerId="bridge-eea" />)
+        withIntl(<ProviderNote providerId="bridge-eea" />)
         const sheet = openSheet('Bridge')
         expect(within(sheet).getByText(/Bridge provides this service, not Peanut\./)).toBeInTheDocument()
         expect(within(sheet).getByText(relationship)).toBeInTheDocument()
     })
 
     it('speaks of the relationship as ahead before the user accepts', () => {
-        withIntl(<ProviderRow providerId="bridge-eea" prospective />)
+        withIntl(<ProviderNote providerId="bridge-eea" prospective />)
         const sheet = openSheet('Bridge')
         expect(
             within(sheet).getByText('When you accept, your relationship is directly with Bridge, under their terms.')
@@ -96,7 +104,7 @@ describe('ProviderSheet intro', () => {
     })
 
     it('puts the intro in an info callout and the legal facts in one card', () => {
-        withIntl(<ProviderRow providerId="bridge-eea" />)
+        withIntl(<ProviderNote providerId="bridge-eea" />)
         const sheet = openSheet('Bridge')
         expect(within(sheet).getByRole('status')).toHaveTextContent(
             'Bridge provides this service, not Peanut. Peanut is self-custodial wallet software by Squirrel Labs Ltd and never holds your money.'
@@ -108,33 +116,24 @@ describe('ProviderSheet intro', () => {
     })
 
     it('leaves it out for rhino, where peanut is the customer', () => {
-        withIntl(<ProviderRow providerId="rhino" />)
+        withIntl(<ProviderNote providerId="rhino" />)
         const sheet = openSheet('Rhino.fi')
         expect(within(sheet).getByText(/^Rhino\.fi provides this service, not Peanut\./)).toBeInTheDocument()
         expect(within(sheet).queryByText(relationship)).not.toBeInTheDocument()
+        expect(within(sheet).getByText('Documents')).toBeInTheDocument()
     })
 
     it('leaves it out for a qr payment from the pooled account', () => {
-        withIntl(<ProviderRow providerId="manteca-ar" pooledAccount />)
+        withIntl(<ProviderNote providerId="manteca-ar" pooledAccount />)
         const sheet = openSheet('Manteca')
         expect(within(sheet).queryByText(relationship)).not.toBeInTheDocument()
     })
 })
 
-describe('ProviderNote', () => {
-    it('names the card issuer on the card screen', () => {
-        withIntl(<ProviderNote providerId="third-national" label="cardIssuer" />)
-        expect(screen.getByText('Card issuer: Third National')).toBeInTheDocument()
-    })
-
-    it('names the account provider', () => {
-        withIntl(<ProviderNote providerId="bridge-us" label="accountProvider" />)
-        expect(screen.getByText('Account provider: Bridge')).toBeInTheDocument()
-    })
-
+describe('ProviderNote pooled account', () => {
     it('shows the pooled account line when asked', () => {
         withIntl(<ProviderNote providerId="manteca-br" pooledAccount />)
-        expect(screen.getByText('Provider: Manteca')).toBeInTheDocument()
+        expect(screen.getByText(/Payments by Manteca\./)).toBeInTheDocument()
         const sheet = openSheet('Manteca')
         expect(within(sheet).getByText("Peanut's account at Manteca")).toBeInTheDocument()
         expect(within(sheet).getByText('CNPJ 63.653.001/0001-55')).toBeInTheDocument()

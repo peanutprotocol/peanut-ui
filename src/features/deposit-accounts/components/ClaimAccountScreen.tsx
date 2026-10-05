@@ -223,12 +223,7 @@ export function ClaimAccountScreen({
                         </p>
                         {/* the provider sits with the terms the tap agrees to */}
                         {providerId && (
-                            <ProviderNote
-                                providerId={providerId}
-                                label="accountProvider"
-                                prospective
-                                className="justify-center"
-                            />
+                            <ProviderNote providerId={providerId} line="account" currency={rail.currency} prospective />
                         )}
                     </>
                 )}

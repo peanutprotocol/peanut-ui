@@ -57,7 +57,7 @@ export interface ReceiptViewModel {
      *  Manteca deposit-info row for the country-specific address label). */
     country: (typeof countryData)[number] | undefined
 
-    /** The provider that moved the money, for the receipt's provider row. */
+    /** The provider that moved the money, named in the receipt's fine print. */
     providerId: ProviderId | null
 
     /** Per-row visibility config — drives rendering. Dividers between rows
@@ -287,9 +287,8 @@ export function useReceiptViewModel(
             // otherwise an "all-data-absent" card spend leaves the slot
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
-            provider: !!providerId,
         }
-    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled, providerId])
+    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 
     // Every activity kind gets a receipt once it is no longer waiting for an
     // interactive send/request action. Existing public receipt kinds share a

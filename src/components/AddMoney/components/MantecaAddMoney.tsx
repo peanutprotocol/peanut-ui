@@ -401,7 +401,10 @@ const MantecaAddMoney: FC = () => {
                     onBack={onBack}
                     providerNote={
                         residenceGatedCountry && (
-                            <ProviderNote providerId={residenceGatedCountry === 'AR' ? 'manteca-ar' : 'manteca-br'} />
+                            <ProviderNote
+                                providerId={residenceGatedCountry === 'AR' ? 'manteca-ar' : 'manteca-br'}
+                                line="bankTransfers"
+                            />
                         )
                     }
                 />

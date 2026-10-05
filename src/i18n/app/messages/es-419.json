@@ -4355,7 +4355,6 @@
     "provider": {
         "label": {
             "provider": "Proveedor",
-            "accountProvider": "Proveedor de la cuenta",
             "cardIssuer": "Emisor de la tarjeta"
         },
         "sheetIntro": "{brand} presta este servicio, no Peanut.",
@@ -4370,7 +4369,8 @@
             "terms": "Términos",
             "privacy": "Política de privacidad",
             "identityCheck": "Verificación de identidad",
-            "paidFrom": "Pagado desde"
+            "paidFrom": "Pagado desde",
+            "documents": "Documentos"
         },
         "role": {
             "bridge": "Transferencias bancarias y cuentas a tu nombre",
@@ -4381,9 +4381,15 @@
         },
         "peanutValue": "Peanut es un software de billetera autocustodiada de Squirrel Labs Ltd y nunca guarda tu dinero.",
         "pooledAccount": "La cuenta de Peanut en Manteca",
-        "about": "Sobre {brand}",
-        "note": "Proveedor: {brand}",
-        "noteCardIssuer": "Emisor de la tarjeta: {brand}",
-        "noteAccountProvider": "Proveedor de la cuenta: {brand}"
+        "finePrint": {
+            "bankTransfers": "{brand} hace las transferencias bancarias.",
+            "payments": "{brand} procesa los pagos.",
+            "crossChain": "{brand} hace los depósitos entre redes.",
+            "card": "{brand} emite tu tarjeta Peanut.",
+            "sendsTransfer": "{brand} envía esta transferencia bancaria.",
+            "sentTransfer": "{brand} envió esta transferencia bancaria.",
+            "account": "Tu cuenta en {currency} la ofrece {brand}."
+        },
+        "about": "Sobre {brand}"
     }
 }

@@ -7,6 +7,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { instructionRows } from '../instructionRows'
 import type { DepositRuleKey } from '../ruleLines'
@@ -148,10 +149,7 @@ export function DepositAccountDetailsScreen({
                 ) : (
                     <>
                         <div className="flex flex-col gap-2">
-                            <DepositDetailsCard
-                                rows={rows}
-                                providerId={rail.provider === 'bridge' ? bridgeProviderId : null}
-                            />
+                            <DepositDetailsCard rows={rows} />
                             {/* Only a line that decides whether a transfer lands at
                                 all stays outside the toggle: a transfer without the
                                 reference is not matched, and an own-name-only rule
@@ -191,6 +189,9 @@ export function DepositAccountDetailsScreen({
 
             {/* Keep both sharing actions behind the same eligibility check. */}
             {canShare && <DepositShareActions rail={rail} account={account} userName={userName} />}
+            {rail.provider === 'bridge' && (
+                <ProviderNote providerId={bridgeProviderId} line="account" currency={rail.currency} />
+            )}
         </PageStack>
     )
 }

@@ -4355,7 +4355,6 @@
     "provider": {
         "label": {
             "provider": "Provider",
-            "accountProvider": "Account provider",
             "cardIssuer": "Card issuer"
         },
         "sheetIntro": "{brand} provides this service, not Peanut.",
@@ -4370,7 +4369,8 @@
             "terms": "Terms",
             "privacy": "Privacy policy",
             "identityCheck": "Identity check",
-            "paidFrom": "Paid from"
+            "paidFrom": "Paid from",
+            "documents": "Documents"
         },
         "role": {
             "bridge": "Bank transfers and accounts in your name",
@@ -4381,9 +4381,15 @@
         },
         "peanutValue": "Peanut is self-custodial wallet software by Squirrel Labs Ltd and never holds your money.",
         "pooledAccount": "Peanut's account at Manteca",
-        "about": "About {brand}",
-        "note": "Provider: {brand}",
-        "noteCardIssuer": "Card issuer: {brand}",
-        "noteAccountProvider": "Account provider: {brand}"
+        "finePrint": {
+            "bankTransfers": "Bank transfers by {brand}.",
+            "payments": "Payments by {brand}.",
+            "crossChain": "Cross-chain deposits by {brand}.",
+            "card": "Your Peanut card is issued by {brand}.",
+            "sendsTransfer": "{brand} sends this bank transfer.",
+            "sentTransfer": "{brand} sent this bank transfer.",
+            "account": "Your {currency} account is with {brand}."
+        },
+        "about": "About {brand}"
     }
 }

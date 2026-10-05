@@ -71,9 +71,9 @@ describe('InitiateKycModal — country_payments', () => {
         expect(screen.getByText('CPF. Needed for local bank transfers.')).toBeInTheDocument()
     })
 
-    it('names the account provider under the intro: Manteca from the country, Bridge from the caller', () => {
+    it('names the account provider in the fine print: Manteca from the country, Bridge from the caller', () => {
         const { unmount } = renderModal({ variant: 'country_payments', prepPath: 'extended', taxIdCountry: 'AR' })
-        expect(screen.getByText('Account provider: Manteca')).toBeInTheDocument()
+        expect(screen.getByText(/Payments by Manteca\./)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'About Manteca' })).toBeInTheDocument()
         unmount()
 
@@ -83,6 +83,6 @@ describe('InitiateKycModal — country_payments', () => {
 
         // a caller that does not know the provider names none
         renderModal()
-        expect(screen.queryByText(/Account provider/)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /^About / })).not.toBeInTheDocument()
     })
 })

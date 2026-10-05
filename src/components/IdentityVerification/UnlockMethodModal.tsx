@@ -8,6 +8,7 @@ import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChec
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 import { providerForRegionIntent } from '@/utils/regions.utils'
 
 interface UnlockMethodModalProps {
@@ -77,7 +78,7 @@ const UnlockMethodModal = ({
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
                         <div className="w-full text-left">
-                            <KycPrepChecklist path={path} providerId={providerId} nested />
+                            <KycPrepChecklist path={path} />
                         </div>
                         <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                         <Button
@@ -90,6 +91,7 @@ const UnlockMethodModal = ({
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
+                        {providerId && <ProviderNote providerId={providerId} nested prospective />}
                     </div>
                 </div>
             </DrawerContent>

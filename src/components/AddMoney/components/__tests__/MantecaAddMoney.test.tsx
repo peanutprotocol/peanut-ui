@@ -194,7 +194,7 @@ describe('provider note', () => {
     test.each([
         ['argentina', 'manteca-ar'],
         ['brazil', 'manteca-br'],
-    ])('%s names the matching Manteca entity under the amount', (path, providerId) => {
+    ])('%s names the matching Manteca entity in the amount step fine print', (path, providerId) => {
         setCountry(path)
         render(<MantecaAddMoney />)
 

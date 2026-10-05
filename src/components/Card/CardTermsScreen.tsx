@@ -117,7 +117,6 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             <div className="flex flex-col gap-2">
                 <h1 className="text-heading-s text-foreground-primary">{t('title')}</h1>
                 <p className="text-foreground-secondary">{t('description')}</p>
-                <ProviderNote providerId="third-national" label="cardIssuer" />
             </div>
 
             <ul className="flex flex-col gap-3">
@@ -148,6 +147,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             >
                 {tCommon('continue')}
             </Button>
+            <ProviderNote providerId="third-national" />
         </PageStack>
     )
 }

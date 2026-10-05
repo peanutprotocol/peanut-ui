@@ -40,7 +40,6 @@ import { formatPoints } from '@/utils/format.utils'
 import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
 import { RequestPotContributorRows } from './provider-rows/RequestPotContributorRows'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
 
 // IBAN / CLABE are the standard scheme names — same in every locale.
 const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> = {
@@ -59,19 +58,16 @@ export function ReceiptDetailsCard({
     transaction,
     vm,
     shouldShowQrShare,
-    nested = false,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
-    /** set when the receipt sits inside a drawer, so the provider sheet stacks on top */
-    nested?: boolean
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
-    const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country, providerId } = vm
+    const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country } = vm
 
     const bankAccountLabel = (type: string) => {
         const key = bankAccountLabelKey(type)
@@ -213,14 +209,6 @@ export function ReceiptDetailsCard({
 
             {rowVisibilityConfig.exchangeRate && exchangeRate && (
                 <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
-            )}
-
-            {rowVisibilityConfig.provider && providerId && (
-                <ProviderRow
-                    providerId={providerId}
-                    label={providerId === 'third-national' ? 'cardIssuer' : 'provider'}
-                    nested={nested}
-                />
             )}
 
             {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (

@@ -16,7 +16,7 @@ import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorTex
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
@@ -96,7 +96,7 @@ export function QrPayFormView() {
     if (!currency) return null
 
     // qr payments leave peanut's own account at manteca, hence pooledAccount
-    const showProviderRow = paymentProcessor === 'MANTECA' && !!targetMantecaCountry
+    const showProviderNote = paymentProcessor === 'MANTECA' && !!targetMantecaCountry
 
     return (
         <>
@@ -244,16 +244,8 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder={!showProviderRow}
+                            hideBottomBorder
                         />
-                        {showProviderRow && (
-                            <ProviderRow
-                                providerId={targetMantecaCountry === 'BR' ? 'manteca-br' : 'manteca-ar'}
-                                variant="stacked"
-                                pooledAccount
-                                hideBottomBorder
-                            />
-                        )}
                     </GlobalCard>
 
                     {/* Send Button */}
@@ -299,6 +291,13 @@ export function QrPayFormView() {
                         <Callout priority="error" data-testid="error-alert">
                             <CooldownErrorText message={errorMessage} />
                         </Callout>
+                    )}
+
+                    {showProviderNote && (
+                        <ProviderNote
+                            providerId={targetMantecaCountry === 'BR' ? 'manteca-br' : 'manteca-ar'}
+                            pooledAccount
+                        />
                     )}
                 </PageStack.Center>
             </PageStack>

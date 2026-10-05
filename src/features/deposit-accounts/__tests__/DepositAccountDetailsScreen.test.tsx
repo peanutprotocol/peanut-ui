@@ -212,9 +212,9 @@ describe('the details screen, collapsed and open', () => {
             DEPOSIT_RAILS.SEPA_EU
         )
 
-    it('names Bridge as the account provider after the bank rows', () => {
+    it('names Bridge in the fine print at the end', () => {
         renderEur()
-        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByText(/Your EUR account is with Bridge\./)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
     })
 

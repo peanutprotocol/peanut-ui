@@ -20,6 +20,7 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import type { ProviderId } from '@/types/provider.types'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 
 type InitiateKycVariant =
     | 'default'
@@ -298,16 +299,7 @@ export const InitiateKycModal = ({
     const description = showPrepChecklist ? (
         <div className="flex flex-col gap-3 text-left">
             <p>{getDescription()}</p>
-            <KycPrepChecklist
-                path={prepPath}
-                taxIdCountry={taxIdCountry}
-                providerId={
-                    prepPath === 'extended'
-                        ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br')
-                        : providerId
-                }
-                nested={presentation === 'modal'}
-            />
+            <KycPrepChecklist path={prepPath} taxIdCountry={taxIdCountry} />
         </div>
     ) : (
         getDescription()
@@ -318,6 +310,13 @@ export const InitiateKycModal = ({
     const isErrorState =
         !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable || isBankUnavailable
     const iconName = (isErrorState ? 'alert' : 'badge') as IconName
+    const prepProviderId =
+        prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
+    // the account provider, named last on the screen that leads into its check
+    const providerNote = (nested: boolean) =>
+        showPrepChecklist && prepProviderId ? (
+            <ProviderNote providerId={prepProviderId} nested={nested} prospective />
+        ) : null
     const footer =
         isProviderRejection ||
         isBlocked ||
@@ -360,6 +359,7 @@ export const InitiateKycModal = ({
                     {cta.text}
                 </Button>
                 {footer}
+                {providerNote(false)}
             </div>
         )
     }
@@ -399,6 +399,7 @@ export const InitiateKycModal = ({
                             {cta.text}
                         </Button>
                         {footer}
+                        {providerNote(true)}
                     </div>
                 </div>
             </DrawerContent>

@@ -6,12 +6,15 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import Card from '@/components/Global/Card'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { PROVIDERS } from '@/constants/providers.consts'
 import type { ProviderId, ProviderRole } from '@/types/provider.types'
+import { openExternalUrl } from '@/utils/capacitor'
 
 interface ProviderSheetProps {
     providerId: ProviderId
@@ -50,6 +53,7 @@ export const ProviderSheet = ({
     const provider = PROVIDERS[providerId]
     const sumsub = PROVIDERS.sumsub
     const isCard = provider.role === 'thirdNational'
+    const { termsUrl, privacyUrl } = provider
 
     return (
         <Drawer
@@ -99,25 +103,33 @@ export const ProviderSheet = ({
                             )}
                             {pooledAccount && <DataRow label={t('field.paidFrom')} value={t('pooledAccount')} />}
                         </Card>
-                        {/* only true when the user accepted the provider's terms; a qr payment
-                            leaves peanut's own account, so it never applies there */}
-                        {!isCard && provider.userContract && !pooledAccount && (
-                            <p className="text-body-s text-foreground-primary">
-                                {t(prospective ? 'relationshipProspective' : 'relationship', { brand: provider.brand })}
-                            </p>
-                        )}
-                        {(provider.termsUrl || provider.privacyUrl) && (
-                            <div className="flex gap-6">
-                                {provider.termsUrl && (
-                                    <LinkButton href={provider.termsUrl} external icon>
-                                        {t('field.terms')}
-                                    </LinkButton>
-                                )}
-                                {provider.privacyUrl && (
-                                    <LinkButton href={provider.privacyUrl} external icon>
-                                        {t('field.privacy')}
-                                    </LinkButton>
-                                )}
+                        {(termsUrl || privacyUrl) && (
+                            <div className="flex flex-col gap-2">
+                                {/* only true when the user accepted the provider's terms; a qr payment
+                                    leaves peanut's own account, so it never applies there */}
+                                <p className="text-body-s text-foreground-primary">
+                                    {!isCard && provider.userContract && !pooledAccount
+                                        ? t(prospective ? 'relationshipProspective' : 'relationship', {
+                                              brand: provider.brand,
+                                          })
+                                        : t('field.documents')}
+                                </p>
+                                <ListGroup>
+                                    {termsUrl && (
+                                        <ListItem
+                                            title={t('field.terms')}
+                                            trailing={<Icon name="arrow-up-right" size={20} />}
+                                            onClick={() => void openExternalUrl(termsUrl)}
+                                        />
+                                    )}
+                                    {privacyUrl && (
+                                        <ListItem
+                                            title={t('field.privacy')}
+                                            trailing={<Icon name="arrow-up-right" size={20} />}
+                                            onClick={() => void openExternalUrl(privacyUrl)}
+                                        />
+                                    )}
+                                </ListGroup>
                             </div>
                         )}
                         <Button variant="primary" className="w-full justify-center" onClick={onClose}>

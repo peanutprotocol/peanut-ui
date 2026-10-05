@@ -90,7 +90,7 @@ type DirectSuccessViewProps = {
     usdAmount?: string
     // optional pre-built transaction details (e.g. for deposit receipts where chargeDetails doesn't exist)
     transactionDetails?: TransactionDetails | null
-    /** The provider that moved the money; names it under the success card. */
+    /** The provider that moved the money; named in the fine print at the end. */
     providerId?: ProviderId
 }
 
@@ -353,8 +353,6 @@ const PaymentSuccessView = ({
                     </div>
                 </Card>
 
-                {providerId && <ProviderNote providerId={providerId} className="justify-center" />}
-
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
                 <div className="flex w-full flex-col gap-4">
@@ -379,6 +377,8 @@ const PaymentSuccessView = ({
                         </Button>
                     )}
                 </div>
+
+                {providerId && <ProviderNote providerId={providerId} />}
             </PageStack.Center>
 
             {/* Transaction Details Drawer */}

@@ -80,6 +80,6 @@ describe('CardTermsScreen legal links', () => {
 describe('CardTermsScreen card issuer', () => {
     it('names Third National as the card issuer', () => {
         renderAt('en')
-        expect(screen.getByText('Card issuer: Third National')).toBeInTheDocument()
+        expect(screen.getByText(/Your Peanut card is issued by Third National\./)).toBeInTheDocument()
     })
 })

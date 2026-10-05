@@ -283,8 +283,6 @@ const CryptoDepositView = ({
                             </p>
                         </div>
 
-                        <ProviderNote providerId="rhino" />
-
                         {/* how to deposit button */}
                         <Button
                             variant="secondary"
@@ -295,6 +293,8 @@ const CryptoDepositView = ({
                             <Icon name="info" size={16} className="mr-1" />
                             {tAddMoney('howToDeposit.title')}
                         </Button>
+
+                        <ProviderNote providerId="rhino" />
                     </>
                 )}
             </div>

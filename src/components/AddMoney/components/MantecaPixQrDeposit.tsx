@@ -108,8 +108,6 @@ const MantecaPixQrDeposit: FC<{
                             </p>
                         )}
 
-                        <ProviderNote providerId="manteca-br" className="justify-center" />
-
                         {isExpired ? (
                             <div className="flex flex-col gap-3 text-center">
                                 <p className="text-body-s text-foreground-secondary">{t('pix.qrExpired')}</p>
@@ -125,6 +123,8 @@ const MantecaPixQrDeposit: FC<{
                                 <CopyToClipboard textToCopy={qr} type="button" className="w-full" />
                             </div>
                         )}
+
+                        <ProviderNote providerId="manteca-br" />
                     </>
                 )}
             </PageStack.Center>
