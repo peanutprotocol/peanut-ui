@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
+import { SEND_TO_COUNTRIES, countryIso2, getCountryName } from '@/data/seo'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { localizedPath } from '@/i18n/config'
 import { CARD_HOVER } from '@/components/Marketing/constants'
@@ -21,7 +21,7 @@ interface DestinationGridProps {
 
 export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LOCALE }: DestinationGridProps) {
     const heading = title ?? getTranslations(locale).sendMoney
-    let slugs = countries ?? Object.keys(COUNTRIES_SEO)
+    let slugs = countries ?? SEND_TO_COUNTRIES
     if (exclude) slugs = slugs.filter((s) => s !== exclude)
 
     return (
@@ -29,11 +29,11 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
             {heading && <h2 className="mb-6 text-heading-l md:text-heading-xl">{heading}</h2>}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {slugs.map((slug) => {
-                    const seo = COUNTRIES_SEO[slug]
-                    if (!seo) return null
+                    // Every card links to /send-money-to, so only a country with that page gets one.
+                    if (!SEND_TO_COUNTRIES.includes(slug)) return null
 
                     const countryName = getCountryName(slug, locale)
-                    const flagCode = seo.iso2
+                    const flagCode = countryIso2(slug)
 
                     return (
                         <Link

@@ -4,7 +4,7 @@ import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
-import { COUNTRIES_SEO } from '@/data/seo/corridors'
+import { countryIso2 } from '@/data/seo/corridors'
 import { localizedCountryName, ptBrFromPreposition } from '@/utils/country-name.utils'
 
 // Server-only SEO footer driven by the content manifest
@@ -142,11 +142,11 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
     const countryName = (entry: ManifestEntry) =>
         locale === DEFAULT_LOCALE
             ? entry.name
-            : localizedCountryName(locale, COUNTRIES_SEO[entry.slug]?.iso2?.toUpperCase(), entry.name)
+            : localizedCountryName(locale, countryIso2(entry.slug)?.toUpperCase(), entry.name)
     // pt-BR footerSendFrom is "Enviar {name}": the preposition carries the article.
     const fromName = (entry: ManifestEntry) =>
         locale === 'pt-br'
-            ? `${ptBrFromPreposition(COUNTRIES_SEO[entry.slug]?.iso2)} ${countryName(entry)}`
+            ? `${ptBrFromPreposition(countryIso2(entry.slug))} ${countryName(entry)}`
             : countryName(entry)
     const learnMoreLabel = (entry: ManifestEntry) => {
         const key = LEARN_MORE_LABELS[entry.slug]

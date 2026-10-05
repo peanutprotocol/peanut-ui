@@ -5,6 +5,7 @@ import {
     COUNTRIES_SEO,
     CORRIDORS,
     RECEIVE_SOURCES,
+    SEND_TO_COUNTRIES,
     COMPETITORS,
     EXCHANGES,
     DEPOSIT_RAILS,
@@ -112,7 +113,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         }
 
         // Send-money-to country pages
-        for (const country of Object.keys(COUNTRIES_SEO)) {
+        for (const country of SEND_TO_COUNTRIES) {
             if (!hasPageContent('send-to', country, locale)) continue
             pages.push({
                 path: `/${locale}/send-money-to/${country}`,
