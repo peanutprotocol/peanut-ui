@@ -54,3 +54,11 @@ Object animations for banking concepts, drawn to the setup mascot's rules
 | `bank-pipe.json` | Bank transfer | Coins ride a bendy pipe from a bank into a phone, which bounces as each one arrives. | Deposit from bank, ACH/SEPA top up, link bank account | 72 |
 | `currency-flip.json` | Multi-currency | One coin keeps flipping over, showing a new currency on every turn: $, €, £, ¥. | Multi-currency account, hold several currencies, local currency | 80 |
 | `converter.json` | Multi-currency | A dollar coin rolls into a little machine; the gears whirr and a euro coin pops out the other side. | Convert currency, exchange at the real rate, FX | 72 |
+| `bill-fold-plane.json` | Money planes | A dollar bill floats, folds itself into a paper plane and zips off; a fresh bill pops in. | Send money, transfer sent, “your money is on its way” | 80 |
+| `plane-coin-drop.json` | Money planes | A banknote plane flies across and drops coins that tumble into an open wallet below. | Payout received, cashback, money arriving | 80 |
+| `plane-skywriting.json` | Money planes | A banknote plane loops through the sky, writing a big dollar sign with its dashed trail. | Earn / get paid, money celebration, welcome | 96 |
+| `plane-squadron.json` | Money planes | Three banknote planes fly in a V formation through passing clouds, bobbing out of sync. | Bulk payouts, pay many people, team payments | 64 |
+| `plane-delivery.json` | Money planes | A banknote plane swoops down into a phone screen; the phone bounces and a check pops. | Payment delivered, money received, transfer complete | 80 |
+| `globe-latam.json` | Money around the world | A globe turned to the Americas while five LATAM currency coins orbit it: $, R$, S/, Bs and Q. | Send across Latin America, local currencies, LATAM coverage | 120 |
+| `globe-latam-route.json` | Money around the world | Pins pop up on Mexico, Brazil and Argentina and a coin hops between them, switching to each country’s currency as it lands. | Cross-border LATAM transfers, local payouts, country coverage | 110 |
+| `globe-world-route.json` | Money around the world | The LATAM pin route plays, the globe slowly turns to Europe for € and £ stops, then whips back round to Latin America. | Global transfers, LATAM ↔ Europe corridors, send in local currency | 196 |
