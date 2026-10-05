@@ -438,8 +438,8 @@
                 "description": "Tu passkey te da el control. Usá tu rostro, huella o bloqueo de pantalla para acceder a tu plata y aprobar pagos."
             },
             "advantage-control": {
-                "title": "Tu dinero está en tus manos.",
-                "description": "¿Todo listo para empezar? Confirmá con tu passkey para terminar la configuración. Tu plata sigue siendo tuya y vos decidís qué hacer después."
+                "title": "¿Todo listo para empezar?",
+                "description": "Confirmá con tu passkey para terminar la configuración. Tu plata sigue siendo tuya y vos decidís qué hacer después."
             },
             "sign-test-transaction": {
                 "description": "Solo confirmá que sos vos: un toque y listo."

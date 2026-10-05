@@ -730,8 +730,8 @@
                 "description": "Sua passkey coloca você no controle. Use seu rosto, impressão digital ou bloqueio de tela para acessar seu dinheiro e aprovar pagamentos."
             },
             "advantage-control": {
-                "title": "Seu dinheiro fica nas suas mãos.",
-                "description": "Tudo pronto para começar? Confirme com sua passkey para concluir a configuração. Seu dinheiro continua sendo seu, e você decide o que acontece depois."
+                "title": "Tudo pronto para começar?",
+                "description": "Confirme com sua passkey para concluir a configuração. Seu dinheiro continua sendo seu, e você decide o que acontece depois."
             },
             "sign-test-transaction": {
                 "title": "Conta pronta",

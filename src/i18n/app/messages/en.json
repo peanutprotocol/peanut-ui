@@ -730,8 +730,8 @@
                 "description": "Your passkey keeps you in control. Use your face, fingerprint, or screen lock to access your money and approve payments."
             },
             "advantage-control": {
-                "title": "Your money stays in your hands.",
-                "description": "Ready to get started? Confirm with your passkey to finish setup. Your money stays yours, and you decide what happens next."
+                "title": "Ready to get started?",
+                "description": "Confirm with your passkey to finish setup. Your money stays yours, and you decide what happens next."
             },
             "sign-test-transaction": {
                 "title": "Account ready",
