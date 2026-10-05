@@ -41,8 +41,12 @@ jest.mock('framer-motion', () => ({
             variants,
             custom = 0,
             transition,
+            'aria-hidden': ariaHidden,
+            inert,
         }: {
             children: React.ReactNode
+            'aria-hidden'?: boolean
+            inert?: boolean
             className?: string
             variants?: {
                 enter: (direction: number) => { x: string | number }
@@ -53,6 +57,8 @@ jest.mock('framer-motion', () => ({
         }) => (
             <div
                 className={className}
+                aria-hidden={ariaHidden}
+                inert={inert}
                 data-enter-x={variants?.enter(custom).x}
                 data-exit-x={variants?.exit(custom).x}
                 data-transition-duration={transition?.duration}
@@ -433,5 +439,48 @@ describe('SetupWrapper transitions', () => {
             </SetupWrapper>
         )
         expect(screen.getByTestId('mascot')).toHaveAttribute('data-mascot-pose', 'too-cool')
+    })
+})
+
+describe('First-launch landing handoff', () => {
+    it('keeps one mascot mounted while the greeting gives way to accessible setup controls', async () => {
+        jest.useFakeTimers()
+        try {
+            const { container } = renderWithIntl(
+                <SetupWrapper
+                    layoutType="signup"
+                    screenId="landing"
+                    image={{ pose: 'waving-chill' }}
+                    firstLaunchIntroPreview="play"
+                >
+                    <button type="button">Sign up</button>
+                </SetupWrapper>
+            )
+            const mascot = screen.getByTestId('mascot')
+            expect(screen.queryByRole('button', { name: 'Sign up' })).not.toBeInTheDocument()
+            await act(async () => {
+                await Promise.resolve()
+            })
+            await act(async () => {
+                jest.advanceTimersByTime(1500)
+            })
+            await act(async () => {
+                jest.advanceTimersByTime(700)
+            })
+            expect(screen.getByText('Hey, I’m Peanut')).toBeInTheDocument()
+            expect(container.querySelector('[data-first-launch-intro]')).toHaveAttribute(
+                'data-first-launch-intro',
+                'intro'
+            )
+            await act(async () => {
+                jest.advanceTimersByTime(4300)
+            })
+            expect(screen.queryByText('Hey, I’m Peanut')).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
+            expect(screen.getByTestId('mascot')).toBe(mascot)
+            expect(container.querySelector('[data-first-launch-intro]')).toBeNull()
+        } finally {
+            jest.useRealTimers()
+        }
     })
 })

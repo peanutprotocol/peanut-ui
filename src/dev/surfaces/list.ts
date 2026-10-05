@@ -24,8 +24,13 @@ export type SurfaceMeta = {
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    '01-b-first-launch-intro': {
+        name: 'First launch — animated Peanut intro',
+        path: 'Setup/components/SetupWrapper.tsx',
+    },
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '02-a-advantage-payments': { name: 'Setup benefit — payments', path: 'Setup/Views/Advantage.tsx' },
+    '03-c-residence-congrats': { name: 'Residence — available features checklist', path: 'Setup/Views/Residence.tsx' },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '04-a-advantage-rewards': { name: 'Setup benefit — rewards', path: 'Setup/Views/Advantage.tsx' },
     '05-a-signtesttransaction': {

@@ -634,6 +634,9 @@
             "permissionHint": "Si activás push, tu dispositivo te va a pedir permiso para enviar notificaciones.",
             "pushUnavailable": "Las notificaciones push todavía no están listas. Probá de nuevo o desactivalas para continuar.",
             "saveFailed": "No pudimos guardar tu configuración. Probá de nuevo."
+        },
+        "wrapper": {
+            "introGreeting": "¡Hola! Soy Peanut"
         }
     },
     "loadingStates": {

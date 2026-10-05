@@ -766,7 +766,8 @@
         "wrapper": {
             "starAlt": "star",
             "illustrationAlt": "Section illustration",
-            "stepIndicator": "Step {current} of {total}"
+            "stepIndicator": "Step {current} of {total}",
+            "introGreeting": "Hey, I’m Peanut"
         },
         "next": "Next",
         "logIn": "Log In",

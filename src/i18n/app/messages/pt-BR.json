@@ -766,7 +766,8 @@
         "wrapper": {
             "starAlt": "estrela",
             "illustrationAlt": "Ilustração da seção",
-            "stepIndicator": "Passo {current} de {total}"
+            "stepIndicator": "Passo {current} de {total}",
+            "introGreeting": "Oi, eu sou o Peanut"
         },
         "next": "Avançar",
         "logIn": "Entrar",
@@ -836,7 +837,7 @@
                 "checklist": {
                     "intro": "Veja o que você pode usar com o Peanut.",
                     "dollars": "Dólares digitais",
-                    "ready": "Pronto para usar. Sem verificar sua identidade.",
+                    "ready": "Pronto para usar.",
                     "banking": "Contas e transferências bancárias",
                     "unlockRails": "Uma verificação rápida de identidade libera {rails}.",
                     "applyCard": "Solicite seu cartão após verificar sua identidade."

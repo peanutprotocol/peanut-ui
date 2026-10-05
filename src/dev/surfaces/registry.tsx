@@ -84,14 +84,32 @@ import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-
  * are the app's, not the harness's. Mounting the view bare (which this harness
  * did first) drops all of that and photographs a naked form.
  */
-function SetupScreen({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
+function SetupScreen({
+    screenId,
+    children,
+    firstLaunchIntroPreview,
+}: {
+    screenId: ScreenId
+    children?: React.ReactNode
+    firstLaunchIntroPreview?: 'play' | 'still'
+}) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
-            <SetupScreenBody screenId={screenId}>{children}</SetupScreenBody>
+            <SetupScreenBody screenId={screenId} firstLaunchIntroPreview={firstLaunchIntroPreview}>
+                {children}
+            </SetupScreenBody>
         </SetupFlowProvider>
     )
 }
-function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
+function SetupScreenBody({
+    screenId,
+    children,
+    firstLaunchIntroPreview,
+}: {
+    screenId: ScreenId
+    children?: React.ReactNode
+    firstLaunchIntroPreview?: 'play' | 'still'
+}) {
     const t = useTranslations('setup')
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     if (!step) return null
@@ -101,6 +119,7 @@ function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?
     return (
         <SetupWrapper
             layoutType={step.layoutType}
+            firstLaunchIntroPreview={firstLaunchIntroPreview}
             screenId={step.screenId}
             image={step.image}
             title={!step.titleInView ? t(titleKey) : undefined}
@@ -167,6 +186,10 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    '01-b-first-launch-intro': {
+        ...SURFACE_META['01-b-first-launch-intro'],
+        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="still" />,
+    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -174,6 +197,14 @@ export const SURFACES: Record<string, Surface> = {
     '02-a-advantage-payments': {
         ...SURFACE_META['02-a-advantage-payments'],
         render: () => <SetupScreen screenId="advantage-payments" />,
+    },
+    '03-c-residence-congrats': {
+        ...SURFACE_META['03-c-residence-congrats'],
+        render: () => (
+            <SetupScreen screenId="residence">
+                <ResidenceStep initialView="congrats" />
+            </SetupScreen>
+        ),
     },
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
@@ -854,6 +885,10 @@ export const SURFACES: Record<string, Surface> = {
 
 /** The open reworks, one render per option, so a choice can be made by eye. */
 export const OPTION_SURFACES: Record<string, { name: string; render: () => React.ReactNode }> = {
+    'opt-first-launch-play': {
+        name: 'First launch — play five-second handoff',
+        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="play" />,
+    },
     'opt-passkey-a': { name: 'PasskeySetupHelpDrawer — A', render: () => <PasskeyHelpA /> },
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },

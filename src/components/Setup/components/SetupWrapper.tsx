@@ -10,6 +10,7 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useFirstLaunchIntro } from '@/hooks/useFirstLaunchIntro'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion'
@@ -68,6 +69,8 @@ interface SetupWrapperProps {
     step?: number
     totalSteps?: number
     direction?: number
+    /** Isolated Screen Library presentation; never reads or writes install state. */
+    firstLaunchIntroPreview?: 'play' | 'still'
 }
 
 // define responsive height classes for different layout types
@@ -234,13 +237,33 @@ const ImageSection = ({
     totalSteps,
     direction = 0,
     prefersReducedMotion,
+    intro,
 }: Pick<
     SetupWrapperProps,
     'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'step' | 'totalSteps' | 'direction'
 > & {
     prefersReducedMotion: boolean
+    intro: ReturnType<typeof useFirstLaunchIntro>
 }) => {
     const t = useTranslations('setup.wrapper')
+    const introPresentation = intro.active || intro.played
+    const [introLayout, setIntroLayout] = useState<{ viewport: number; available: number; mobile: boolean } | null>(
+        null
+    )
+    useLayoutEffect(() => {
+        if (!introPresentation) return
+        const measure = () => {
+            const styles = getComputedStyle(document.documentElement)
+            const viewport = window.innerHeight
+            const safeTop = parseFloat(styles.getPropertyValue('--safe-top')) || 0
+            const safeBottom = parseFloat(styles.getPropertyValue('--safe-bottom')) || 0
+            setIntroLayout({ viewport, available: viewport - safeTop - safeBottom, mobile: window.innerWidth < 768 })
+        }
+        measure()
+        window.addEventListener('resize', measure)
+        return () => window.removeEventListener('resize', measure)
+    }, [introPresentation])
+    const restingHeight = introLayout ? (introLayout.mobile ? introLayout.viewport * 0.47 : introLayout.viewport) : 0
 
     if (!image) return null
 
@@ -258,6 +281,7 @@ const ImageSection = ({
         'pose' in image ? (
             <PeanutMascot
                 pose={image.pose}
+                onReady={intro.onMascotReady}
                 alt={t('illustrationAlt')}
                 className={twMerge(
                     imageClassName || 'relative h-full max-w-full',
@@ -298,10 +322,29 @@ const ImageSection = ({
                 custom={direction}
                 variants={mascotVariants}
                 initial="enter"
-                animate="center"
                 exit="exit"
-                transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
-                className="absolute inset-x-0 top-16 bottom-2 flex items-center justify-center md:top-20 md:bottom-8"
+                animate={
+                    intro.played && introLayout
+                        ? {
+                              top: intro.active ? (introLayout.available - introLayout.viewport * 0.44) / 2 : 64,
+                              height: intro.active ? introLayout.viewport * 0.44 : restingHeight - 72,
+                              opacity: intro.phase === 'checking' ? 0 : 1,
+                              x: 0,
+                          }
+                        : 'center'
+                }
+                transition={
+                    prefersReducedMotion
+                        ? { duration: 0 }
+                        : intro.played
+                          ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+                          : STEP_TRANSITION
+                }
+                className={twMerge(
+                    'absolute inset-x-0 flex items-center justify-center',
+                    intro.active && !intro.played && 'invisible top-[calc(50%_-_22dvh)] h-[44dvh]',
+                    !introPresentation && 'top-16 bottom-2 md:top-20 md:bottom-8'
+                )}
             >
                 {illustration}
             </motion.div>
@@ -311,14 +354,23 @@ const ImageSection = ({
     // special rendering for welcome/signup screens with animated decorations
     if (isSignup) {
         return (
-            <div
+            <motion.div
+                initial={false}
+                animate={
+                    intro.played && introLayout
+                        ? { height: intro.active ? introLayout.available : restingHeight }
+                        : undefined
+                }
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className={twMerge(
                     containerClass,
-                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6'
+                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
+                    intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}
             >
                 {/* render animated star decorations */}
                 {screenId === 'landing' &&
+                    !intro.active &&
                     STAR_POSITIONS.map((positions, index) => (
                         <Image
                             key={index}
@@ -331,10 +383,28 @@ const ImageSection = ({
                         />
                     ))}
                 {/* Keep clouds on the landing screen so later illustrations stay clear. */}
-                {screenId === 'landing' && <CloudsBackground minimal />}
+                {screenId === 'landing' && !intro.active && <CloudsBackground minimal />}
                 {animatedIllustration}
+                <AnimatePresence>
+                    {intro.active && intro.greetingVisible && (
+                        <motion.div
+                            key="intro-greeting"
+                            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
+                            className="absolute inset-x-0 top-[calc(50%_+_16dvh)] px-6 text-center text-heading-s"
+                            role="status"
+                        >
+                            {t('introGreeting')}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 <div
+                    aria-hidden={intro.active}
+                    inert={intro.active}
                     className={twMerge(
+                        intro.active && 'invisible',
                         'pointer-events-none absolute inset-x-0 top-4 z-20 flex h-11 items-center gap-3 px-4 md:top-8 md:px-6',
                         screenId === 'sign-test-transaction' && 'pr-16 md:pr-16'
                     )}
@@ -359,7 +429,7 @@ const ImageSection = ({
                     </div>
                     <SetupLanguageSwitcher />
                 </div>
-            </div>
+            </motion.div>
         )
     }
 
@@ -402,6 +472,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     step,
     totalSteps,
     direction = 0,
+    firstLaunchIntroPreview,
 }: SetupWrapperProps) {
     const [imageOverride, setImageOverride] = useState<{ screenId: ScreenId; image: SetupIllustration } | null>(null)
     const setImageForScreen = useCallback(
@@ -410,6 +481,7 @@ export const SetupWrapper = memo(function SetupWrapper({
         [screenId]
     )
     const prefersReducedMotion = useReducedMotion()
+    const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)
     const transitionDirection =
         step !== undefined && previousStep.current !== undefined && step !== previousStep.current
@@ -481,11 +553,13 @@ export const SetupWrapper = memo(function SetupWrapper({
     return (
         <div
             data-setup-flow="true"
+            data-first-launch-intro={intro.active ? intro.phase : undefined}
             className={twMerge(
                 'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto',
                 // The first panel rises from below the viewport. Fill the exposed
                 // space with the same blue as the hero, not the page beige.
-                screenId === 'landing' && 'bg-background-setup-hero'
+                screenId === 'landing' && 'bg-background-setup-hero',
+                intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] overflow-y-hidden'
             )}
         >
             {/* navigation buttons */}
@@ -511,13 +585,22 @@ export const SetupWrapper = memo(function SetupWrapper({
                     totalSteps={totalSteps}
                     direction={transitionDirection}
                     prefersReducedMotion={!!prefersReducedMotion}
+                    intro={intro}
                 />
 
                 {/* content section */}
                 <motion.div
                     initial={animatePanelIn ? { y: '100%' } : false}
-                    animate={animatePanelIn ? { y: 0 } : undefined}
-                    transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+                    animate={intro.active ? { y: '100%' } : intro.played || animatePanelIn ? { y: 0 } : undefined}
+                    transition={
+                        prefersReducedMotion
+                            ? { duration: 0 }
+                            : intro.played
+                              ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+                              : { type: 'spring', stiffness: 260, damping: 30 }
+                    }
+                    aria-hidden={intro.active}
+                    inert={intro.active}
                     className={twMerge(
                         'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-4 pb-6 md:h-dvh md:justify-center',
                         screenId === 'landing' && 'pt-3 pb-3'

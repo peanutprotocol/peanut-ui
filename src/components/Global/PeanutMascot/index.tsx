@@ -13,7 +13,9 @@ import {
 import type { PeanutMascotProps } from './PeanutMascot.types'
 import { getMascotPlacement, jitterFrame, subscribeToMascotClock } from './PeanutMascot.utils'
 
-export default function PeanutMascot({ pose, className, alt, loop = true }: PeanutMascotProps) {
+export default function PeanutMascot({ pose, className, alt, loop = true, onReady }: PeanutMascotProps) {
+    const onReadyRef = useRef(onReady)
+    onReadyRef.current = onReady
     const hostRef = useRef<HTMLDivElement>(null)
     const stageRef = useRef<HTMLDivElement>(null)
     // Survives visibility toggles: scrolling a mascot out and back should resume the loop,
@@ -41,6 +43,9 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
                     autoplay: false,
                     animationData: animationData.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
+                })
+                instance.addEventListener('DOMLoaded', () => {
+                    if (!cancelled) onReadyRef.current?.()
                 })
                 setAnimation(instance)
             })
