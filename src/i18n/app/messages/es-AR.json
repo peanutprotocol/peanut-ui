@@ -1,5 +1,6 @@
 {
     "common": {
+        "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
         "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
@@ -822,7 +823,6 @@
         },
         "manteca": {
             "enterAccountDetails": "Ingresá los datos bancarios",
-            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
             "errors": {
                 "withdrawalProcessing": "¡Retiro exitoso! Tus fondos se están procesando. Si la transacción no aparece en tu historial en 5 minutos, contactá a soporte.",
                 "generic": "Algo salió mal. Contactá a soporte"
@@ -1110,7 +1110,6 @@
         "manteca": {
             "selectAccountType": "Seleccioná el tipo de cuenta",
             "selectBank": "Seleccioná el banco",
-            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
             "enterAccountDetails": "Ingresá los datos del banco o billetera",
             "accountDetailsHint": "{country, select, BR {Las claves de teléfono empiezan con +55.} other {Las cuentas de Mercado Pago también sirven.}}"
         },
@@ -1155,7 +1154,6 @@
             "lockRateFailed": "No pudimos fijar el tipo de cambio. Intentalo de nuevo.",
             "cardAuthFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",
             "confirmTransaction": "Confirmá la transacción.",
-            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contactá a soporte",
             "completeAccountSetup": "Completá la configuración de tu cuenta. Andá a Ajustes para actualizar tu perfil."
         }
@@ -1516,7 +1514,7 @@
         "correction": {
             "title": "Corregí los datos de verificación bancaria",
             "taxId": "Tu identidad está verificada, pero no pudimos validar tu identificación fiscal para este país. Revisala y corregila para habilitar las transferencias bancarias.",
-            "details": "Hay información que debés corregir para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
+            "details": "Hay información que debés actualizar para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
             "correct": "Corregir datos"
         }
     },

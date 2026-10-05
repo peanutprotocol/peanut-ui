@@ -1,5 +1,7 @@
 {
     "common": {
+        "ownAccountOnly": "You can only withdraw to accounts under your name.",
+        "exchangeRateInfo": "This is the current exchange rate. It may change slightly before your payment is confirmed.",
         "fundsOnTheWay": "Funds on the way",
         "cancel": "Cancel",
         "continue": "Continue",
@@ -1416,7 +1418,6 @@
             "youWillReceive": "Receiving",
             "receiveIn": "Receive in {method}",
             "enterAccountDetails": "Enter bank details",
-            "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "destinationAddress": "Destination Address",
             "exchangeRate": "Exchange Rate",
             "errors": {
@@ -1462,10 +1463,9 @@
         },
         "info": {
             "exchangeRate": "Exchange Rate",
-            "exchangeRateTooltip": "Rate shown is current but may vary slightly until payment is confirmed.",
             "saveVsCard": "Save vs card",
             "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
-            "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
+            "saveVsCardTooltipArs": "With Peanut, your payment goes through Mercado Pago at the current market rate. Foreign cards may use the official rate and add around 3% in issuer fees."
         },
         "success": {
             "youPaid": "Paid to {merchant}",
@@ -2097,10 +2097,8 @@
             "youreWithdrawing": "Withdrawing",
             "selectAccountType": "Select account type",
             "selectBank": "Select bank",
-            "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "redirecting": "Redirecting...",
             "exchangeRate": "Exchange rate",
-            "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits.",
             "enterAccountDetails": "Enter bank or wallet details",
@@ -2203,7 +2201,6 @@
             "cardAuthFailed": "Card authorization failed. Please try again or contact support.",
             "confirmTransaction": "Please confirm the transaction.",
             "signFailed": "Could not sign the transaction.",
-            "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "unexpected": "Withdraw failed unexpectedly. If problem persists contact support",
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
             "minWithdrawAmount": "Withdraw amount must be at least ${amount}",
@@ -3281,7 +3278,7 @@
         "correction": {
             "title": "Correct bank verification details",
             "taxId": "Your identity is verified, but we could not validate your tax ID for this country. Check and correct it to enable bank transfers.",
-            "details": "Some information needs correcting before bank transfers can be enabled. Your identity verification is saved.",
+            "details": "Some information needs updating before bank transfers can be enabled. Your identity verification is saved.",
             "correct": "Correct details"
         }
     },

@@ -1,5 +1,7 @@
 {
     "common": {
+        "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
+        "exchangeRateInfo": "Este es el tipo de cambio actual. Puede cambiar ligeramente antes de que se confirme tu pago.",
         "fundsOnTheWay": "Fondos en camino",
         "cancel": "Cancelar",
         "continue": "Continuar",
@@ -1416,7 +1418,6 @@
             "youWillReceive": "Recibiendo",
             "receiveIn": "Recibir en {method}",
             "enterAccountDetails": "Ingresa los datos bancarios",
-            "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "destinationAddress": "Dirección de destino",
             "exchangeRate": "Tipo de cambio",
             "errors": {
@@ -1462,10 +1463,9 @@
         },
         "info": {
             "exchangeRate": "Tipo de cambio",
-            "exchangeRateTooltip": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
             "saveVsCard": "Ahorro vs. tarjeta",
             "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa PIX al tipo de cambio actual del mercado.",
-            "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa MercadoPago al tipo de cambio actual del mercado."
+            "saveVsCardTooltipArs": "Con Peanut, tu pago se procesa a través de Mercado Pago al tipo de cambio actual del mercado. Las tarjetas extranjeras pueden usar el tipo de cambio oficial y añadir alrededor de un 3% en comisiones del emisor."
         },
         "success": {
             "youPaid": "Pagado a {merchant}",
@@ -2097,10 +2097,8 @@
             "youreWithdrawing": "Retirando",
             "selectAccountType": "Selecciona el tipo de cuenta",
             "selectBank": "Selecciona el banco",
-            "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "redirecting": "Redirigiendo...",
             "exchangeRate": "Tipo de cambio",
-            "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
             "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago.",
             "enterAccountDetails": "Ingresa los datos del banco o billetera",
@@ -2203,7 +2201,6 @@
             "cardAuthFailed": "Falló la autorización de la tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "confirmTransaction": "Confirma la transacción.",
             "signFailed": "No se pudo firmar la transacción.",
-            "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contacta a soporte",
             "completeAccountSetup": "Completa la configuración de tu cuenta. Ve a Ajustes para actualizar tu perfil.",
             "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}",
@@ -3281,7 +3278,7 @@
         "correction": {
             "title": "Corrige los datos de verificación bancaria",
             "taxId": "Tu identidad está verificada, pero no pudimos validar tu identificación fiscal para este país. Revísala y corrígela para habilitar las transferencias bancarias.",
-            "details": "Hay información que debes corregir para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
+            "details": "Hay información que debes actualizar para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
             "correct": "Corregir datos"
         }
     },

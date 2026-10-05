@@ -1,5 +1,7 @@
 {
     "common": {
+        "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
+        "exchangeRateInfo": "Esta é a taxa de câmbio atual. Ela pode mudar ligeiramente antes da confirmação do seu pagamento.",
         "fundsOnTheWay": "Fundos a caminho",
         "cancel": "Cancelar",
         "continue": "Continuar",
@@ -1416,7 +1418,6 @@
             "youWillReceive": "Recebendo",
             "receiveIn": "Receber no {method}",
             "enterAccountDetails": "Digite os dados bancários",
-            "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
             "destinationAddress": "Endereço de destino",
             "exchangeRate": "Taxa de câmbio",
             "errors": {
@@ -1462,10 +1463,9 @@
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",
-            "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "saveVsCard": "Economia vs. cartão",
             "saveVsCardTooltipBrl": "Cartões estrangeiros pagam IOF (~3,5%) mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o PIX na taxa atual de mercado.",
-            "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o MercadoPago na taxa atual de mercado."
+            "saveVsCardTooltipArs": "Com o Peanut, seu pagamento é processado pelo Mercado Pago à taxa de câmbio atual de mercado. Cartões estrangeiros podem usar a taxa oficial e acrescentar cerca de 3% em tarifas do emissor."
         },
         "success": {
             "youPaid": "Pago para {merchant}",
@@ -2097,10 +2097,8 @@
             "youreWithdrawing": "Sacando",
             "selectAccountType": "Selecione o tipo de conta",
             "selectBank": "Selecione o banco",
-            "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
             "redirecting": "Redirecionando...",
             "exchangeRate": "Taxa de câmbio",
-            "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "flagAlt": "bandeira",
             "increaseLimitsMessage": "Oi, eu gostaria de aumentar meus limites de pagamento.",
             "enterAccountDetails": "Insira os dados do banco ou da carteira",
@@ -2203,7 +2201,6 @@
             "cardAuthFailed": "A autorização do cartão falhou. Tente de novo ou fale com o suporte.",
             "confirmTransaction": "Confirme a transação.",
             "signFailed": "Não foi possível assinar a transação.",
-            "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
             "unexpected": "O saque falhou inesperadamente. Se o problema continuar, fale com o suporte",
             "completeAccountSetup": "Complete a configuração da sua conta. Vá em Configurações para atualizar seu perfil.",
             "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}",
@@ -3281,7 +3278,7 @@
         "correction": {
             "title": "Corrija os dados da verificação bancária",
             "taxId": "Sua identidade foi verificada, mas não conseguimos validar seu documento fiscal para este país. Confira e corrija os dados para habilitar transferências bancárias.",
-            "details": "Algumas informações precisam ser corrigidas para habilitar transferências bancárias. Sua verificação de identidade está salva.",
+            "details": "Algumas informações precisam ser atualizadas para habilitar transferências bancárias. Sua verificação de identidade está salva.",
             "correct": "Corrigir dados"
         }
     },
