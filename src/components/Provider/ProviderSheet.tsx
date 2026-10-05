@@ -48,6 +48,15 @@ export const ProviderSheet = ({ providerId, open, onClose, nested, pooledAccount
         rows.push({ label: t('field.identityCheck'), value: `${sumsub.brand} (${sumsub.legalName})` })
     rows.push({ label: t('field.peanut'), value: t('peanutValue') })
 
+    // the relationship line is only true when the user accepted the provider's terms.
+    // a qr payment leaves peanut's own account, so it never applies there
+    const intro =
+        provider.role === 'thirdNational'
+            ? t('cardSheetIntro', { brand: provider.brand })
+            : provider.userContract && !pooledAccount
+              ? `${t('sheetIntro', { brand: provider.brand })} ${t('relationship', { brand: provider.brand })}`
+              : t('sheetIntro', { brand: provider.brand })
+
     return (
         <Drawer
             nested={nested}
@@ -61,11 +70,7 @@ export const ProviderSheet = ({ providerId, open, onClose, nested, pooledAccount
                     <DrawerHeader className="gap-2 p-0 text-left sm:text-left">
                         <DrawerTitle>{provider.brand}</DrawerTitle>
                     </DrawerHeader>
-                    <p className="text-body-s text-foreground-primary">
-                        {provider.role === 'thirdNational'
-                            ? t('cardSheetIntro', { brand: provider.brand })
-                            : t('sheetIntro', { brand: provider.brand })}
-                    </p>
+                    <p className="text-body-s text-foreground-primary">{intro}</p>
                     <div>
                         {rows.map((row, index) => (
                             <PaymentInfoRow

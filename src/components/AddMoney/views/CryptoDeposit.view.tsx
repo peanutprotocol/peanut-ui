@@ -28,6 +28,7 @@ import type {
 } from '@/services/services.types'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Tooltip } from '@/components/Tooltip'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
 import { useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -251,6 +252,10 @@ const CryptoDepositView = ({
                                         />
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="border-t border-border-default px-4">
+                                <ProviderRow providerId="rhino" />
                             </div>
                         </div>
 

@@ -10,6 +10,7 @@ import { KycVerificationInProgressModal } from '../KycVerificationInProgressModa
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { residence: { verified: 'MX' } } }),
+    useOptionalAuth: () => ({ user: { residence: { verified: 'MX' } } }),
 }))
 
 const renderTosPhase = (props: { onAcceptTerms?: () => void; tosError?: string | null } = {}) =>
@@ -24,6 +25,8 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
         renderTosPhase()
 
         expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/row-user-terms/bridge-building-limited'
@@ -47,6 +50,7 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
         renderTosPhase({ tosError: 'Could not load terms.' })
 
         expect(screen.getByText('Could not load terms.')).toBeInTheDocument()
+        expect(screen.queryByText('Account provider')).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'Terms of Service' })).not.toBeInTheDocument()
     })
 })

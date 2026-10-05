@@ -4358,7 +4358,8 @@
             "accountProvider": "Provedor da conta",
             "cardIssuer": "Emissor do cartão"
         },
-        "sheetIntro": "Quem presta este serviço é a {brand}, não o Peanut. Você tem uma relação direta com a {brand}, nos termos dela.",
+        "sheetIntro": "Quem presta este serviço é a {brand}, não o Peanut.",
+        "relationship": "Você tem uma relação direta com a {brand}, nos termos dela.",
         "cardSheetIntro": "A {brand} emite seu cartão Peanut. Você tem uma relação direta com ela, nos termos do cartão.",
         "field": {
             "legalName": "Razão social",
@@ -4382,6 +4383,7 @@
         "peanutValue": "Software de carteira autocustodial da Squirrel Labs Ltd. O Peanut nunca guarda seu dinheiro.",
         "pooledAccount": "Conta do Peanut na Manteca",
         "about": "Sobre a {brand}",
-        "note": "Provedor: {brand}"
+        "note": "Provedor: {brand}",
+        "noteCardIssuer": "Emissor do cartão: {brand}"
     }
 }

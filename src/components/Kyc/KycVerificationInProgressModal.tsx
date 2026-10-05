@@ -6,6 +6,9 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { type KycModalPhase } from '@/interfaces/interfaces'
 import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import Card from '@/components/Global/Card'
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
@@ -37,6 +40,7 @@ export const KycVerificationInProgressModal = ({
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const termsLinks = useBridgeTermsLinks()
+    const providerId = useBridgeProviderId()
 
     // At 90 seconds the waiting copy admits the check is probably getting a
     // closer look, instead of holding "usually fast" forever.
@@ -152,6 +156,13 @@ export const KycVerificationInProgressModal = ({
                 icon={'check' as IconName}
                 title={t('progress.bridgeTosTitle')}
                 description={description}
+                content={
+                    tosError ? undefined : (
+                        <Card position="solo" className="px-4 py-0 text-left">
+                            <ProviderRow providerId={providerId} label="accountProvider" />
+                        </Card>
+                    )
+                }
                 ctas={[
                     {
                         // Continue, not Accept: the user accepts on Bridge's page

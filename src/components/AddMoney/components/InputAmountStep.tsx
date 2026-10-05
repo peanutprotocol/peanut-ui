@@ -37,6 +37,8 @@ interface InputAmountStepProps {
     onBack: () => void
     // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
     maintenanceBanner?: React.ReactNode
+    // who provides the deposit, shown under the amount (TASK-23295)
+    providerNote?: React.ReactNode
 }
 
 const InputAmountStep = ({
@@ -55,6 +57,7 @@ const InputAmountStep = ({
     limitsCurrency,
     onBack,
     maintenanceBanner,
+    providerNote,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -115,6 +118,7 @@ const InputAmountStep = ({
                         hideBalance
                     />
                 </Field>
+                {providerNote}
 
                 {/* limits warning/error card */}
                 {limitsCardProps && (

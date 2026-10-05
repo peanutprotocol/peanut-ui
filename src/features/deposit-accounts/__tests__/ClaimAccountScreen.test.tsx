@@ -252,11 +252,14 @@ describe('the timing row on the claim screen', () => {
 
 /** The tap that opens the account agrees to its terms, so the step links them under the button. */
 describe('the terms line on the claim screen', () => {
-    it('links the virtual account terms under the button', () => {
+    it('names the account provider and links its terms under the button', () => {
         claim()
 
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        // no verified residence here, so the brand-wide terms page
         const link = screen.getByRole('link', { name: 'EUR account terms' })
-        expect(link.getAttribute('href')).toContain('/terms#virtual-accounts')
+        expect(link).toHaveAttribute('href', 'https://www.bridge.xyz/legal')
         const cta = screen.getByRole('button', { name: /Open EUR account/i })
         expect(cta.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })

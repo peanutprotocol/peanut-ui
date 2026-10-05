@@ -80,6 +80,9 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Global/AddressLink', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/CreateAccountButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Provider/ProviderNote', () => ({
+    ProviderNote: ({ providerId }: { providerId: string }) => <p>provider:{providerId}</p>,
+}))
 
 beforeEach(() => {
     mockPush.mockClear()
@@ -123,5 +126,12 @@ describe('PaymentSuccessView done', () => {
 
         expect(mockReplace).toHaveBeenCalledWith('/request')
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('names the provider only when the flow passes one', () => {
+        const { rerender } = render(<PaymentSuccessView type="SEND" amount="5" />)
+        expect(screen.queryByText(/^provider:/)).not.toBeInTheDocument()
+        rerender(<PaymentSuccessView isWithdrawFlow amount="5" providerId="bridge-eea" />)
+        expect(screen.getByText('provider:bridge-eea')).toBeInTheDocument()
     })
 })

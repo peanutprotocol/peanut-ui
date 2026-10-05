@@ -19,6 +19,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import type { ProviderId } from '@/types/provider.types'
 
 type InitiateKycVariant =
     | 'default'
@@ -66,6 +67,8 @@ interface InitiateKycModalProps {
     /** page form only — the step's back affordance and header title */
     onBack?: () => void
     navTitle?: string
+    /** Bridge callers name the entity here; the Manteca flows get theirs from `taxIdCountry` */
+    providerId?: ProviderId
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -99,6 +102,7 @@ export const InitiateKycModal = ({
     presentation = 'modal',
     onBack,
     navTitle,
+    providerId,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -294,7 +298,16 @@ export const InitiateKycModal = ({
     const description = showPrepChecklist ? (
         <div className="flex flex-col gap-3 text-left">
             <p>{getDescription()}</p>
-            <KycPrepChecklist path={prepPath} taxIdCountry={taxIdCountry} />
+            <KycPrepChecklist
+                path={prepPath}
+                taxIdCountry={taxIdCountry}
+                providerId={
+                    prepPath === 'extended'
+                        ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br')
+                        : providerId
+                }
+                nested={presentation === 'modal'}
+            />
         </div>
     ) : (
         getDescription()

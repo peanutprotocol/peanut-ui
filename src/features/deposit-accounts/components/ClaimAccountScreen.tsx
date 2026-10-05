@@ -9,8 +9,12 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import Card from '@/components/Global/Card'
 import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { PROVIDERS } from '@/constants/providers.consts'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { corridorNeedsReference } from '../instructionRows'
 import type { ClaimableCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -70,6 +74,11 @@ export function ClaimAccountScreen({
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
     const tGlobal = useTranslations('global')
+    const bridgeProviderId = useBridgeProviderId()
+    // only bridge corridors are claimable, but the rail says so rather than this screen assuming it
+    const providerId = rail.provider === 'bridge' ? bridgeProviderId : null
+    // the account is opened at the provider, so the tap agrees to the provider's terms
+    const termsHref = providerId ? PROVIDERS[providerId].termsUrl : undefined
 
     // The floor is one of these lines, and the screen states each rule once.
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
@@ -90,20 +99,27 @@ export function ClaimAccountScreen({
                     description={t('claim.subheading')}
                 />
 
-                <ListGroup>
-                    <ListItem
-                        leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
-                        title={t('claim.benefitBalance')}
-                    />
-                    <ListItem
-                        leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
-                        title={arrivalShort(rail.corridor)}
-                    />
-                    <ListItem
-                        leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
-                        title={t('claim.benefitStable')}
-                    />
-                </ListGroup>
+                <div className="flex flex-col gap-2">
+                    {providerId && (
+                        <Card position="solo" className="px-4 py-0">
+                            <ProviderRow providerId={providerId} label="accountProvider" />
+                        </Card>
+                    )}
+                    <ListGroup>
+                        <ListItem
+                            leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
+                            title={t('claim.benefitBalance')}
+                        />
+                        <ListItem
+                            leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
+                            title={arrivalShort(rail.corridor)}
+                        />
+                        <ListItem
+                            leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
+                            title={t('claim.benefitStable')}
+                        />
+                    </ListGroup>
+                </div>
 
                 {rules && (
                     <Accordion type="single" collapsible>
@@ -193,14 +209,24 @@ export function ClaimAccountScreen({
                         <p className="text-center text-body-xs text-foreground-secondary">
                             {t.rich('claim.termsAgreement', {
                                 currency: rail.currency,
-                                terms: (chunks) => (
-                                    <DocsLink
-                                        href={VIRTUAL_ACCOUNT_TERMS_HREF}
-                                        className="underline underline-offset-2"
-                                    >
-                                        {chunks}
-                                    </DocsLink>
-                                ),
+                                terms: (chunks) =>
+                                    termsHref ? (
+                                        <a
+                                            href={termsHref}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="underline underline-offset-2"
+                                        >
+                                            {chunks}
+                                        </a>
+                                    ) : (
+                                        <DocsLink
+                                            href={VIRTUAL_ACCOUNT_TERMS_HREF}
+                                            className="underline underline-offset-2"
+                                        >
+                                            {chunks}
+                                        </DocsLink>
+                                    ),
                             })}
                         </p>
                     </>

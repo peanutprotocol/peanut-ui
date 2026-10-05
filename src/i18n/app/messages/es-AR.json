@@ -1854,7 +1854,7 @@
         }
     },
     "provider": {
-        "sheetIntro": "{brand} presta este servicio, no Peanut. Tenés una relación directa con {brand} bajo sus términos.",
+        "relationship": "Tenés una relación directa con {brand} bajo sus términos.",
         "cardSheetIntro": "{brand} emite tu tarjeta Peanut. Tenés una relación directa con ellos bajo los términos de la tarjeta."
     }
 }

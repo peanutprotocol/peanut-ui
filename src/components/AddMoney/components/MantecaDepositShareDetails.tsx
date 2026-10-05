@@ -21,6 +21,7 @@ import {
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -151,6 +152,7 @@ const MantecaDepositShareDetails = ({
                         value={networkFees}
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
+                    {currentCountryDetails?.id === 'AR' && <ProviderRow providerId="manteca-ar" variant="stacked" />}
                     <PaymentInfoRow
                         label={tCommon('peanutFee')}
                         value={tCommon('sponsoredByPeanut')}

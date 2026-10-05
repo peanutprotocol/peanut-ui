@@ -22,9 +22,10 @@ jest.mock('@/app/actions/users', () => ({
 
 const mockFetchUser = jest.fn().mockResolvedValue(null)
 let mockVerifiedResidence: string | null = null
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ fetchUser: mockFetchUser, user: { residence: { verified: mockVerifiedResidence } } }),
-}))
+jest.mock('@/context/authContext', () => {
+    const auth = () => ({ fetchUser: mockFetchUser, user: { residence: { verified: mockVerifiedResidence } } })
+    return { useAuth: auth, useOptionalAuth: auth }
+})
 
 const mockConfirm = jest.fn<Promise<boolean>, [unknown, { observedAcceptance?: boolean }?]>()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
@@ -70,6 +71,8 @@ describe('BridgeTosStep', () => {
         renderStep()
 
         expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a'

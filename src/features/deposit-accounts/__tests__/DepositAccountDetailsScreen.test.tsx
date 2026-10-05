@@ -212,6 +212,12 @@ describe('the details screen, collapsed and open', () => {
             DEPOSIT_RAILS.SEPA_EU
         )
 
+    it('names Bridge as the account provider after the bank rows', () => {
+        renderEur()
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+    })
+
     it('shows only the title, the card, the toggle and the actions while closed', () => {
         renderEur()
 

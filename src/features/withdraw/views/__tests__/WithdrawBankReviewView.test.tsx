@@ -77,6 +77,7 @@ const Harness = ({
             onDone={jest.fn()}
             onRetryQuote={onRetryQuote}
             onAddBankAccountAgain={onAddBankAccountAgain}
+            providerId="bridge-eea"
         />
     )
 }
@@ -329,6 +330,14 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
  * The form stopped asking for a BIC, so a euro account added after that change
  * carries none. An unconditional row read "BIC: N/A" on every new account.
  */
+describe('WithdrawBankReviewView — the provider row (TASK-23295)', () => {
+    it('names Bridge as the provider in the details card', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByText('Provider')).toBeInTheDocument()
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
+    })
+})
+
 describe('WithdrawBankReviewView — the BIC row', () => {
     it('shows the BIC of a saved account that still carries one', () => {
         renderWithIntl(<Harness rail="sepa" />)
@@ -482,6 +491,7 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
                 onReferenceChange={jest.fn()}
                 onSubmit={jest.fn()}
                 onDone={jest.fn()}
+                providerId="bridge-us"
                 usdSpeed={{
                     options: [
                         { speed: 'ach', feeUsd: '0.00', minimumUsd: '1.00', block: null },
@@ -531,6 +541,7 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
         expect(row('Fee')).toHaveTextContent('Free')
         expect(row('Bank receives')).toHaveTextContent(/\$50(\.00)?/)
         expect(row('Routing number')).toHaveTextContent('021000021')
+        expect(row('Provider')).toHaveTextContent('Bridge')
     })
 
     it('turning same day on picks ach_same_day; off goes back to ach', () => {

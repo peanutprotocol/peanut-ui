@@ -24,6 +24,8 @@ export interface ProviderRecord {
     registration?: string
     regulator?: string
     role: ProviderRole
+    /** true when the user accepted this provider's own terms, so the sheet can say they deal with it directly */
+    userContract: boolean
     termsUrl?: string
     privacyUrl?: string
 }

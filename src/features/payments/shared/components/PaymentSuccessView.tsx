@@ -49,6 +49,8 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
+import type { ProviderId } from '@/types/provider.types'
 import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 // minimal user info needed for display
@@ -88,6 +90,8 @@ type DirectSuccessViewProps = {
     usdAmount?: string
     // optional pre-built transaction details (e.g. for deposit receipts where chargeDetails doesn't exist)
     transactionDetails?: TransactionDetails | null
+    /** The provider that moved the money; names it under the success card. */
+    providerId?: ProviderId
 }
 
 const PaymentSuccessView = ({
@@ -110,6 +114,7 @@ const PaymentSuccessView = ({
     parsedPaymentData,
     usdAmount,
     transactionDetails: transactionDetailsProp,
+    providerId,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const t = useTranslations('payment')
@@ -347,6 +352,8 @@ const PaymentSuccessView = ({
                         )}
                     </div>
                 </Card>
+
+                {providerId && <ProviderNote providerId={providerId} />}
 
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 

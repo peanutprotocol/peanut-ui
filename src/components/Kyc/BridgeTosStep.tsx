@@ -9,6 +9,9 @@ import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
 import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import Card from '@/components/Global/Card'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -40,6 +43,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
     const tCommon = useTranslations('common')
     const { fetchUser } = useAuth()
     const termsLinks = useBridgeTermsLinks()
+    const providerId = useBridgeProviderId()
     const [showIframe, setShowIframe] = useState(false)
     const [tosLink, setTosLink] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -127,6 +131,13 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? t('bridgeTos.errorTitle') : copy.title}
                 description={error || copy.description}
+                content={
+                    error ? undefined : (
+                        <Card position="solo" className="px-4 py-0 text-left">
+                            <ProviderRow providerId={providerId} label="accountProvider" />
+                        </Card>
+                    )
+                }
                 ctas={[
                     {
                         text: isLoading ? tCommon('loading') : error ? tCommon('tryAgain') : tCommon('continue'),

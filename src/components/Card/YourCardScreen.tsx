@@ -15,6 +15,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useCardReveal } from '@/hooks/useCardReveal'
@@ -82,14 +83,17 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
 
             {revealError && <Callout priority="error">{revealError}</Callout>}
 
-            <CardFace
-                last4={card.last4}
-                isLocked={isLocked}
-                revealed={revealed}
-                loading={isRevealing}
-                onToggleReveal={isLocked || isRevealing ? undefined : toggle}
-                onCopy={handleCopy}
-            />
+            <div className="flex flex-col gap-2">
+                <CardFace
+                    last4={card.last4}
+                    isLocked={isLocked}
+                    revealed={revealed}
+                    loading={isRevealing}
+                    onToggleReveal={isLocked || isRevealing ? undefined : toggle}
+                    onCopy={handleCopy}
+                />
+                <ProviderNote providerId="third-national" label="cardIssuer" />
+            </div>
 
             {showAutoRenew && (
                 <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>

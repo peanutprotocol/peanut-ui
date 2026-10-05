@@ -4,6 +4,8 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import type { ProviderId } from '@/types/provider.types'
 
 export type KycPrepPath = 'standard' | 'extended' | 'hosted'
 
@@ -22,7 +24,18 @@ export type KycPrepPath = 'standard' | 'extended' | 'hosted'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCountry?: 'AR' | 'BR' }) => {
+const KycPrepChecklist = ({
+    path,
+    taxIdCountry,
+    providerId,
+    nested,
+}: {
+    path: KycPrepPath
+    taxIdCountry?: 'AR' | 'BR'
+    /** the provider that will hold the account; heads the list when known */
+    providerId?: ProviderId | null
+    nested?: boolean
+}) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
     const items =
@@ -47,6 +60,7 @@ const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCoun
                 that document stays on screen under its row — it is the part a
                 user gets wrong, so it does not belong behind a tooltip. */}
             <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                {providerId && <ProviderRow providerId={providerId} label="accountProvider" nested={nested} />}
                 {items.map((item) => (
                     <div key={item} className="pb-3">
                         <DataRow label={t(`items.${item}.label`)} value={t(`items.${item}.title`)} />

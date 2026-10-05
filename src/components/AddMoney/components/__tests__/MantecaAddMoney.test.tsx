@@ -137,6 +137,7 @@ type InputStepProps = {
     initialDenomination?: string
     setCurrentDenomination: (denomination: string) => void
     onSubmit: () => Promise<void>
+    providerNote?: React.ReactElement<{ providerId: string }>
 }
 let lastInputStepProps: InputStepProps | null = null
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
@@ -186,6 +187,18 @@ describe('denomination default', () => {
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toHaveAttribute('data-denomination', 'USD')
+    })
+})
+
+describe('provider note', () => {
+    test.each([
+        ['argentina', 'manteca-ar'],
+        ['brazil', 'manteca-br'],
+    ])('%s names the matching Manteca entity under the amount', (path, providerId) => {
+        setCountry(path)
+        render(<MantecaAddMoney />)
+
+        expect(lastInputStepProps!.providerNote?.props.providerId).toBe(providerId)
     })
 })
 

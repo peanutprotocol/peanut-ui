@@ -15,6 +15,7 @@ import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorTex
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
@@ -36,6 +37,7 @@ export function QrPayFormView() {
     const tCommon = useTranslations('common')
     const {
         paymentProcessor,
+        targetMantecaCountry,
         paymentLock,
         qrPayment,
         merchantName,
@@ -89,6 +91,9 @@ export function QrPayFormView() {
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
+
+    // qr payments leave peanut's own account at manteca, hence pooledAccount
+    const showProviderRow = paymentProcessor === 'MANTECA' && !!targetMantecaCountry
 
     return (
         <>
@@ -236,8 +241,16 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder
+                            hideBottomBorder={!showProviderRow}
                         />
+                        {showProviderRow && (
+                            <ProviderRow
+                                providerId={targetMantecaCountry === 'BR' ? 'manteca-br' : 'manteca-ar'}
+                                variant="stacked"
+                                pooledAccount
+                                hideBottomBorder
+                            />
+                        )}
                     </GlobalCard>
 
                     {/* Send Button */}

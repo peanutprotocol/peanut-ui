@@ -4358,7 +4358,8 @@
             "accountProvider": "Account provider",
             "cardIssuer": "Card issuer"
         },
-        "sheetIntro": "{brand} provides this service, not Peanut. You have a direct relationship with {brand} under their terms.",
+        "sheetIntro": "{brand} provides this service, not Peanut.",
+        "relationship": "You have a direct relationship with {brand} under their terms.",
         "cardSheetIntro": "{brand} issues your Peanut card. You have a direct relationship with them under the card terms.",
         "field": {
             "legalName": "Legal name",
@@ -4382,6 +4383,7 @@
         "peanutValue": "Self-custodial wallet software by Squirrel Labs Ltd. Peanut never holds your money.",
         "pooledAccount": "Peanut's account at Manteca",
         "about": "About {brand}",
-        "note": "Provider: {brand}"
+        "note": "Provider: {brand}",
+        "noteCardIssuer": "Card issuer: {brand}"
     }
 }

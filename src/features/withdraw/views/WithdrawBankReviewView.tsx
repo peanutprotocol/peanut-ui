@@ -9,6 +9,8 @@ import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import type { ProviderId } from '@/types/provider.types'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { type ReviewPayout } from '@/features/withdraw/types'
@@ -71,6 +73,8 @@ interface WithdrawBankReviewViewProps {
     /** Set when the provider refused the saved account for good: add it again replaces Retry. */
     onAddBankAccountAgain?: () => void
     /** USD only: same-day ACH or wire, the fee and what the bank receives. */
+    /** The Bridge entity that makes the payout, named as the card's last row. */
+    providerId: ProviderId
     usdSpeed?: {
         options: UsdPayoutSpeedOption[]
         selected: UsdPayoutSpeed
@@ -105,6 +109,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     onRetryQuote,
     onAddBankAccountAgain,
     usdSpeed,
+    providerId,
 }) => {
     // a half-typed reference is not an error yet — name the problem on blur
     const [referenceTouched, setReferenceTouched] = useState(false)
@@ -200,6 +205,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         label={t('bank.bankReceives')}
                         value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
                     />
+                    <ProviderRow providerId={providerId} />
                 </Card>
             ) : (
                 <Card className="rounded-sm">
@@ -256,7 +262,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             moreInfoText={tRate('approximate')}
                         />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
+                    <PaymentInfoRow label={t('bank.fee')} value="$0" />
+                    <ProviderRow providerId={providerId} variant="stacked" hideBottomBorder />
                 </Card>
             )}
 

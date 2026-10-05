@@ -28,6 +28,8 @@ import {
 } from '@/utils/capability-gate'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeBankFlow } from '../useBridgeBankFlow'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { getBankRegionIntent, providerForRegionIntent } from '@/utils/regions.utils'
 
 // The Bridge SEPA bank deposit page. Only mounted for non-Manteca countries — the
 // AddMoneyBankPage wrapper bounces BR/AR away before this ever renders, so none of
@@ -72,6 +74,10 @@ export function BridgeBankOnrampView() {
         setShowKycModal,
         onrampData,
     } = useBridgeBankFlow()
+    const bridgeProviderId = useBridgeProviderId()
+    // the destination's intent; a residence no bank onboards gets the bank-unavailable screen, which names no provider
+    const kycProviderId =
+        providerForRegionIntent(getBankRegionIntent(selectedCountry)) === 'bridge' ? bridgeProviderId : undefined
 
     // Show loading while user is being fetched and no step in URL yet
     if (!urlState.step && user === null) {
@@ -137,6 +143,7 @@ export function BridgeBankOnrampView() {
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
+                    providerId={kycProviderId}
                 />
             </>
         )
@@ -252,6 +259,7 @@ export function BridgeBankOnrampView() {
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
+                    providerId={kycProviderId}
                 />
 
                 <KycReverificationPendingModal

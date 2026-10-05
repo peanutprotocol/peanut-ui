@@ -76,7 +76,36 @@ describe('ProviderRow', () => {
     })
 })
 
+describe('ProviderSheet intro', () => {
+    const relationship = /You have a direct relationship/
+
+    it('states the direct relationship when the user accepted the provider terms', () => {
+        withIntl(<ProviderRow providerId="bridge-eea" />)
+        const sheet = openSheet('Bridge')
+        expect(within(sheet).getByText(/Bridge provides this service, not Peanut\./)).toBeInTheDocument()
+        expect(within(sheet).getByText(relationship)).toBeInTheDocument()
+    })
+
+    it('leaves it out for rhino, where peanut is the customer', () => {
+        withIntl(<ProviderRow providerId="rhino" />)
+        const sheet = openSheet('Rhino.fi')
+        expect(within(sheet).getByText('Rhino.fi provides this service, not Peanut.')).toBeInTheDocument()
+        expect(within(sheet).queryByText(relationship)).not.toBeInTheDocument()
+    })
+
+    it('leaves it out for a qr payment from the pooled account', () => {
+        withIntl(<ProviderRow providerId="manteca-ar" pooledAccount />)
+        const sheet = openSheet('Manteca')
+        expect(within(sheet).queryByText(relationship)).not.toBeInTheDocument()
+    })
+})
+
 describe('ProviderNote', () => {
+    it('names the card issuer on the card screen', () => {
+        withIntl(<ProviderNote providerId="third-national" label="cardIssuer" />)
+        expect(screen.getByText('Card issuer: Third National')).toBeInTheDocument()
+    })
+
     it('shows the pooled account line when asked', () => {
         withIntl(<ProviderNote providerId="manteca-br" pooledAccount />)
         expect(screen.getByText('Provider: Manteca')).toBeInTheDocument()

@@ -139,6 +139,7 @@ const mockFetchUser = jest.fn().mockResolvedValue(undefined)
 let mockAuthUser: unknown = { accounts: [] }
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockAuthUser, fetchUser: mockFetchUser }),
+    useOptionalAuth: () => ({ user: mockAuthUser }),
 }))
 // The submit resolves its gate from the profile the fetch returns, through the
 // real deriveGate — so a fetched profile says what its own bank rail allows.
@@ -223,7 +224,10 @@ jest.mock('@/features/destinations/country-rails', () => {
 })
 
 jest.mock('@/utils/bridge.utils', () => ({ railJurisdictionForBank: () => 'US' }))
-jest.mock('@/utils/regions.utils', () => ({ getBankRegionIntent: () => 'STANDARD' }))
+jest.mock('@/utils/regions.utils', () => ({
+    getBankRegionIntent: () => 'STANDARD',
+    providerForRegionIntent: jest.requireActual('@/utils/regions.utils').providerForRegionIntent,
+}))
 
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: any) => (

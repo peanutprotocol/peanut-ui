@@ -11,6 +11,7 @@ import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { useTranslations } from 'next-intl'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 
 const MantecaPixQrDeposit: FC<{
     depositDetails: MantecaDepositResponseData
@@ -106,6 +107,8 @@ const MantecaPixQrDeposit: FC<{
                                 {t('pix.expiresIn', { time: countdownLabel })}
                             </p>
                         )}
+
+                        <ProviderNote providerId="manteca-br" />
 
                         {isExpired ? (
                             <div className="flex flex-col gap-3 text-center">

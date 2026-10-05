@@ -8,9 +8,10 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
 import { useEffect, useState, type ReactNode } from 'react'
-import { railIdFor } from './rails'
+import { DEPOSIT_RAILS, railIdFor } from './rails'
 import type { DepositCorridor } from './types'
 
 /**
@@ -33,6 +34,7 @@ export function useDepositGateRemediation(): {
     const { gateFor } = useCapabilities()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
+    const bridgeProviderId = useBridgeProviderId()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [kycModalGate, setKycModalGate] = useState<GateState | undefined>()
     // The corridor the verification is for. It is what the backend opens the
@@ -120,6 +122,9 @@ export function useDepositGateRemediation(): {
                 variant={kycModalGate ? resolveKycModalVariant(kycModalGate) : undefined}
                 providerMessage={(kycModalGate && getGateUserMessage(kycModalGate)) || undefined}
                 reasonCode={(kycModalGate && getGateReasonCode(kycModalGate)) || undefined}
+                providerId={
+                    kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'bridge' ? bridgeProviderId : undefined
+                }
             />
             <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} reasonCode={tosReasonCode} />
             <ProvideEmailStep
