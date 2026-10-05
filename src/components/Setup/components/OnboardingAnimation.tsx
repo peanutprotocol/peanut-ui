@@ -19,6 +19,16 @@ const loaders = {
     topup: () => import('@/assets/illustrations/lottie/wallet-topup.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
+// Checklist, feature and email illustrations use 80% of their previous scale.
+const COMPACT_ANIMATIONS = new Set<OnboardingAnimationName>([
+    'phone-to-phone',
+    'bank',
+    'exchange',
+    'local',
+    'people',
+    'topup',
+    'email',
+])
 const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = {
     email: 40,
     fees: 32,
@@ -88,11 +98,15 @@ export default function OnboardingAnimation({
                     ? 'h-full w-full'
                     : name === 'fees'
                       ? 'aspect-square h-full w-auto max-w-none scale-[1.2]'
-                      : name === 'card' || name === 'security'
-                        ? 'aspect-square h-full w-auto max-w-none scale-[1.68] md:scale-[1.44]'
-                        : name === 'notifications'
-                          ? 'aspect-square h-full w-auto max-w-none scale-[1.54] md:scale-[1.32]'
-                          : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
+                      : name === 'card'
+                        ? 'aspect-square h-full w-auto max-w-none scale-[1.344] md:scale-[1.152]'
+                        : COMPACT_ANIMATIONS.has(name)
+                          ? 'aspect-square h-full w-auto max-w-none scale-[1.12] md:scale-[0.96]'
+                          : name === 'security'
+                            ? 'aspect-square h-full w-auto max-w-none scale-[1.68] md:scale-[1.44]'
+                            : name === 'notifications'
+                              ? 'aspect-square h-full w-auto max-w-none scale-[1.54] md:scale-[1.32]'
+                              : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
             }
         />
     )
