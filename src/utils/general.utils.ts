@@ -402,6 +402,8 @@ export interface RecentMethod {
 
 export type UserPreferences = {
     balanceHidden?: boolean
+    /** Welcome card only: first usable Home render, Home visits, and permanent dismissal on this device. */
+    homeWelcome?: { firstSeenAt: number; visits: number; hidden: boolean }
     recentAddMethods?: RecentMethod[]
     webAuthnKey?: Awaited<ReturnType<typeof toWebAuthnKey>>
     notifBannerShowAt?: number

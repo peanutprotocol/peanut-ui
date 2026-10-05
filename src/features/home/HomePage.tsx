@@ -40,6 +40,7 @@ export function HomePage() {
         isActivated,
         onboarding,
         isOnboardingComplete,
+        showWelcome,
         isChecklistHidden,
         hideChecklist,
         hiddenHomeCtas,
@@ -88,6 +89,7 @@ export function HomePage() {
                             ) : (
                                 <ActivationCTAs
                                     onboarding={onboarding}
+                                    showWelcome={showWelcome}
                                     onHideChecklist={hideChecklist}
                                     onHideBlockedCard={hideCta}
                                 />
