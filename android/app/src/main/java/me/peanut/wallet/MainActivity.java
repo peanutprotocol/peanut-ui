@@ -85,10 +85,25 @@ public class MainActivity extends BridgeActivity {
     }
 
     private boolean recoverRenderer(WebView view, RenderProcessGoneDetail detail) {
-        if (!rendererRecovery.onRendererGone(SystemClock.elapsedRealtime())) return false;
-        if (bridge == null) return true;
-
-        Sentry.captureMessage("Android WebView renderer " + (detail.didCrash() ? "crashed" : "was killed"), SentryLevel.WARNING);
+        final boolean foreground = rendererRecovery.isForeground();
+        final boolean didCrash = detail.didCrash();
+        final boolean recoverable = rendererRecovery.onRendererGone(SystemClock.elapsedRealtime());
+        if (bridge == null) return recoverable;
+        final boolean backgroundReclamation = RendererLoss.isBackgroundReclamation(didCrash, foreground);
+        // Android routinely reclaims a background WebView under memory
+        // pressure. Recovery waits for resume; keep the diagnostic, but report
+        // genuine crashes and foreground losses at error severity.
+        Sentry.captureMessage(
+                backgroundReclamation ? "Android WebView renderer reclaimed in background"
+                        : "Android WebView renderer " + (didCrash ? "crashed" : "was killed"),
+                backgroundReclamation && recoverable ? SentryLevel.INFO : SentryLevel.ERROR,
+                scope -> {
+                    scope.setTag("renderer.did_crash", Boolean.toString(didCrash));
+                    scope.setTag("renderer.foreground", Boolean.toString(foreground));
+                    scope.setTag("renderer.recovery_scheduled", Boolean.toString(recoverable));
+                    scope.setExtra("renderer.priority_at_exit", Integer.toString(detail.rendererPriorityAtExit()));
+                });
+        if (!recoverable) return false;
 
         // The dead WebView cannot be reloaded. Tear down its plugins and detach
         // it, then let a fresh Activity build a fresh Capacitor bridge. Clearing
