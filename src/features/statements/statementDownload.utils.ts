@@ -71,8 +71,11 @@ export async function prepareStatement(options: {
     let disposition: string | null
     if (isCapacitor()) {
         await authReady()
+        // No readable token here is either a signed-out app or a legacy session
+        // whose JWT lives only in the OS cookie jar (unreadable from JS on
+        // Android). The OS HTTP client attaches that cookie, as apiFetch does
+        // (preferNativeTransport); the API answers 401 when there is no session.
         const headers = getAuthHeaders()
-        if (!headers.Authorization) throw new StatementDownloadError('EXPORT_FAILED')
         const { CapacitorHttp } = await import('@capacitor/core')
         const response = await CapacitorHttp.request({
             url: `${PEANUT_API_URL}${path}`,

@@ -6,9 +6,10 @@ import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn() }))
+const mockAuthHeaders = jest.fn((): Record<string, string> => ({ Authorization: 'Bearer owner-token' }))
 jest.mock('@/utils/auth-token', () => ({
     authReady: jest.fn().mockResolvedValue(undefined),
-    getAuthHeaders: () => ({ Authorization: 'Bearer owner-token' }),
+    getAuthHeaders: () => mockAuthHeaders(),
 }))
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.example.test' }))
 jest.mock('@capacitor/core', () => ({ CapacitorHttp: { request: jest.fn() } }))
@@ -142,6 +143,24 @@ describe('statement downloads', () => {
         expect(file.blob.type).toContain('spreadsheetml.sheet')
         expect(file.fileName).toBe('activity.xlsx')
         expect(downloadBlob).not.toHaveBeenCalled()
+    })
+
+    // a legacy native session keeps its JWT only in the OS cookie jar, which the
+    // OS HTTP client attaches; no readable token must not stop the download
+    it('sends the native request on the cookie transport when no bearer token is readable', async () => {
+        native.mockReturnValue(true)
+        mockAuthHeaders.mockReturnValueOnce({})
+        ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({ status: 200, data: btoa('%PDF'), headers: {} })
+        const file = await prepareStatement({ format: 'pdf', locale: 'en' })
+        expect(CapacitorHttp.request).toHaveBeenCalledWith(expect.objectContaining({ headers: {} }))
+        expect(file.fileName).toBe('peanut-activity.pdf')
+    })
+
+    it('reports a signed-out native session as a plain failure', async () => {
+        native.mockReturnValue(true)
+        mockAuthHeaders.mockReturnValueOnce({})
+        ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({ status: 401, data: btoa('{}'), headers: {} })
+        await expect(prepareStatement({ format: 'pdf', locale: 'en' })).rejects.toThrow('EXPORT_FAILED')
     })
 
     it('does not claim success when the native share sheet is cancelled', async () => {

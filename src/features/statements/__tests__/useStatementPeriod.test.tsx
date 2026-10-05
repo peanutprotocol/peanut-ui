@@ -140,12 +140,14 @@ describe('useStatementPeriod', () => {
         expect(result.current.option).toBe('custom')
     })
 
-    it('leaves nothing to download after the calendar is cleared, and keeps the URL', async () => {
-        const { result, updates } = renderPeriod('?from=2026-08-03&to=2026-08-03')
+    it('leaves nothing to download after the calendar is cleared, and clears the period from the URL', async () => {
+        const { result, url } = renderPeriod('?from=2026-08-03&to=2026-08-03')
         act(() => result.current.selectDays(undefined))
 
-        await settle()
-        expect(updates).toHaveLength(0)
+        // a refresh or a shared link must not bring the cleared days back
+        await waitFor(() => expect(url()?.has('from')).toBe(false))
+        expect(url()?.has('to')).toBe(false)
+        expect(result.current.option).toBe('custom')
         expect(result.current.days).toBeUndefined()
         expect(result.current.isComplete).toBe(false)
     })

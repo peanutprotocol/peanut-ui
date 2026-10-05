@@ -42,7 +42,7 @@ export function useStatementPeriod() {
     const [from, to] = url.from && url.to && url.from <= url.to ? [url.from, url.to] : [null, null]
     const [customChosen, setCustomChosen] = useState(false)
     // null: the calendar shows the URL period. `days: undefined` is a cleared
-    // calendar, which leaves nothing to download until the next pick.
+    // calendar: nothing to download until the next pick, and no period in the URL.
     const [draft, setDraft] = useState<{ days: DateRange | undefined } | null>(null)
 
     const preset = useMemo(() => matchPeriodPreset(from, to), [from, to])
@@ -79,7 +79,10 @@ export function useStatementPeriod() {
             // days happen to match a preset
             setCustomChosen(true)
             if (!range?.from) {
+                // the URL loses the period too, so a refresh or a shared link
+                // does not bring the cleared days back
                 setDraft({ days: undefined })
+                void setUrlState({ from: null, to: null })
                 return
             }
             const fromDay = toLocalDateString(range.from)
