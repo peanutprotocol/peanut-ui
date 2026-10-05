@@ -16,12 +16,24 @@ do not add their session counts or percentage-point estimates.
 | Optional service worker registration/update | Catch `registration.update()` rejection; record registration/update failures as warnings rather than extra exception events. | Online app use can continue. Native service-worker eviction remains. This does not repair all browser network failures. |
 | Repeated display FX requests | Share a cache-miss request across concurrent consumers; cache only a successful rate. Remove the exchange-rate action's duplicate console exception. | Concurrent/failure/currency isolation tests and existing currency tests. Money-commit quotes remain live and uncached; no fabricated/stale fallback rate. |
 | Support badge request timeouts | Fetch only for an authenticated user while visible and online; cancel stale/background requests; coalesce triggers and back off failures. Optional timeouts retain API timing and breadcrumbs. | Preserve the last known badge on failure; reset on account switch. Request/auth/foreground/backoff/late-response regressions. There is no polling loop. |
+| Optional ENS reverse-name timeouts (`PEANUT-UI-T0M`) | Retain the existing on-chain/cached-name/raw-address display fallback without capturing its server timeout as an exception. Pass the query cancellation signal and stop before fallback RPC when the query is no longer needed. | Timeout fallback, cache preservation and cancellation regressions. API timing and timeout breadcrumbs remain; forward ENS recipient resolution is unchanged. |
 | Unreadable native JS frames | Generate hidden maps, inject debug IDs, privately upload to Sentry in Android/iOS/staging-OTA/production-OTA release lanes, then delete all export maps. Release lanes fail on missing credentials/maps or upload failure. | Full native export and installed CLI debug-ID linkage pass. Local/PR builds need no upload token. Real authenticated upload still needs release-lane verification. |
 
 Hydration-only sessions were about 383 (4.8 percentage points of the initial observed
 denominator), and sponsor-only sessions about 280 (3.5 points). These are ceilings for
 eliminating the respective historical issue families, not promised improvements.
 They overlap and require successful rollout, adoption, and post-release measurement.
+
+`PEANUT-UI-T0M` groups timeouts across many routes and is only partly addressed here.
+The October 5 follow-up sample had 1,089 cumulative events / 325 users; its latest
+event was an optional `GET /ens/reverse/{hash}` lookup. The seven-day route breakdown
+also included `/rain/cards` (69), `/users/me` (60), support unread count (39),
+`/card` (37), history (25), and QR-payment initiation (19). These are event counts,
+not distinct failed sessions. Only the support badge and reverse display-name
+fallbacks qualify for optional-timeout classification. Critical account, card,
+authentication and payment failures remain reported; their backend/transport
+causes still need investigation. This change does not resolve the whole issue or
+prove the deployed app is repaired.
 
 ## Separate Android binary change
 
