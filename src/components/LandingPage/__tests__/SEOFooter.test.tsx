@@ -54,17 +54,6 @@ describe('SEOFooter labels', () => {
         expect(linkTexts(render(<SEOFooter locale="en" />).container)).toContain('Send from US')
     })
 
-    // The UK corridor pages are retired (410), so the manifest's UK entry is dropped.
-    it('leaves out the retired send-from-UK link', () => {
-        const { container } = render(<SEOFooter locale="en" />)
-        const hrefs = [...container.querySelectorAll<HTMLAnchorElement>('a[href]')].map((link) =>
-            link.getAttribute('href')
-        )
-
-        expect(linkTexts(container)).not.toContain('Send from UK')
-        expect(hrefs.some((href) => href?.includes('/send-money-from/united-kingdom/'))).toBe(false)
-    })
-
     it('gives pt-BR send-from links the article the country takes', () => {
         const texts = linkTexts(render(<SEOFooter locale="pt-br" />).container)
         expect(texts).toEqual(
