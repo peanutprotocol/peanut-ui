@@ -11,6 +11,7 @@ const { execSync } = require('child_process')
 const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
+const { processNativeSourceMaps } = require('./native-source-maps')
 
 const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 
@@ -661,6 +662,7 @@ async function main() {
         }
 
         pruneExportedAssets()
+        processNativeSourceMaps()
 
         // A value present in the file but absent from out/ means the export never saw
         // it — the exact shape of the OTA outage, just one step further down the lane.

@@ -10,6 +10,7 @@ import { whenIdle } from '@/utils/defer-analytics'
 import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
+import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
@@ -64,6 +65,9 @@ if (
             // this class server-side; exception autocapture must not double-report
             // it here (TASK-22408).
             if (isNativeFetchRejectionExceptionEvent(event)) return null
+            if (event?.event === '$exception' && Array.isArray(event.properties?.$exception_list)) {
+                if (isExpectedExceptionChain(event.properties.$exception_list)) return null
+            }
             if (event?.event) noteAppReviewFriction(event.event)
             // Once-per-session login: runs here, after capture assigned/rotated
             // $session_id — a pre-capture get_session_id() guard misses idle-
