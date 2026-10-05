@@ -1,5 +1,5 @@
 import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
-import { isExpectedCancellation } from './src/utils/expected-exception'
+import { isExpectedCancellation, isExpectedCancellationChain } from './src/utils/expected-exception'
 // Shared Sentry utilities for filtering noise across all configs
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
@@ -278,7 +278,14 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // a defect, and those would drown out the real failures.
     const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const searchTexts = getEventSearchTexts(event)
-    if (searchTexts.some(isExpectedCancellation)) return true
+    const exceptions = (event.exception?.values ?? []).filter((exception) => exception.type || exception.value)
+    const isCancellationChain = isExpectedCancellationChain(exceptions)
+    if (isCancellationChain || (!exceptions.length && isExpectedCancellation(event.message))) return true
+    const isMixedCancellationChain =
+        !isCancellationChain &&
+        exceptions.length > 0 &&
+        (isExpectedCancellation(event.message) ||
+            exceptions.some((exception) => isExpectedCancellation(exception.value)))
 
     /*
      * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo
@@ -323,6 +330,9 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
 
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
+        // The legacy fuzzy cancellation patterns must not undo the chain-wide
+        // policy above by matching the canceled root cause of a technical error.
+        if (group === 'userRejected' && isMixedCancellationChain) continue
         if (isCriticalFlow && group !== 'userRejected') continue
         for (const pattern of patterns) {
             if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {

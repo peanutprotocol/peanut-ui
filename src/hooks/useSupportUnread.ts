@@ -24,8 +24,10 @@ const REFRESH_COALESCE_MS = 250
  *
  * No polling. It refetches on mount; after that, refetches are event-driven —
  * the notifications list changed, the tab or native app came back to the
- * foreground, or a foreground push arrived (dispatched wherever OneSignal is
- * wired: useNativeAppLinks on native, useNotifications on web).
+ * foreground, connectivity returns, or a foreground push arrived (dispatched
+ * wherever OneSignal is wired: useNativeAppLinks on native, useNotifications
+ * on web). A trigger during backoff waits until its deadline; a failed request
+ * does not start an automatic retry loop.
  */
 export const useSupportUnread = (enabled = true, userId?: string): boolean => {
     const [hasUnread, setHasUnread] = useState(false)
@@ -41,33 +43,45 @@ export const useSupportUnread = (enabled = true, userId?: string): boolean => {
     const activeRequest = useRef<AbortController | null>(null)
     const retryAfter = useRef(0)
     const failures = useRef(0)
+    const coalesceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
     const invalidateActiveRequest = useCallback(() => {
         ++latestRequestId.current
         activeRequest.current?.abort()
     }, [])
 
-    const refresh = useCallback(() => {
-        if (!enabled || document.hidden || !navigator.onLine || Date.now() < retryAfter.current) return
-        activeRequest.current?.abort()
-        const controller = new AbortController()
-        activeRequest.current = controller
-        const requestId = ++latestRequestId.current
-        notificationsApi
-            .unreadCount('support', controller.signal)
-            .then(({ count }) => {
-                if (requestId !== latestRequestId.current || controller.signal.aborted) return
-                failures.current = 0
-                retryAfter.current = 0
-                setHasUnread(count > 0)
-            })
-            // A failed count must never break the nav bar.
-            .catch(() => {
-                if (requestId !== latestRequestId.current || controller.signal.aborted) return
-                retryAfter.current = Date.now() + Math.min(5_000 * 2 ** failures.current++, 60_000)
-            })
-    }, [enabled])
+    const refresh = useCallback(
+        function refreshCount() {
+            coalesceTimer.current = undefined
+            if (!enabled || document.hidden || !navigator.onLine) return
+            const remainingBackoff = retryAfter.current - Date.now()
+            if (remainingBackoff > 0) {
+                // Keep one pending event-driven refresh rather than discarding the
+                // last push until another event happens to arrive. scheduleRefresh
+                // and lifecycle cleanup share this single timer.
+                coalesceTimer.current = setTimeout(refreshCount, remainingBackoff)
+                return
+            }
+            activeRequest.current?.abort()
+            const controller = new AbortController()
+            activeRequest.current = controller
+            const requestId = ++latestRequestId.current
+            notificationsApi
+                .unreadCount('support', controller.signal)
+                .then(({ count }) => {
+                    if (requestId !== latestRequestId.current || controller.signal.aborted) return
+                    failures.current = 0
+                    retryAfter.current = 0
+                    setHasUnread(count > 0)
+                })
+                // A failed count must never break the nav bar.
+                .catch(() => {
+                    if (requestId !== latestRequestId.current || controller.signal.aborted) return
+                    retryAfter.current = Date.now() + Math.min(5_000 * 2 ** failures.current++, 60_000)
+                })
+        },
+        [enabled]
+    )
 
-    const coalesceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
     const scheduleRefresh = useCallback(() => {
         // Invalidate any in-flight response NOW. Before the coalescer this
         // happened inside refresh() on the same tick as the trigger; without
@@ -88,20 +102,25 @@ export const useSupportUnread = (enabled = true, userId?: string): boolean => {
         }
         refresh()
 
+        const pauseRefresh = () => {
+            invalidateActiveRequest()
+            clearTimeout(coalesceTimer.current)
+        }
         const onVisibilityChange = () => {
             if (document.visibilityState === 'visible') scheduleRefresh()
-            else {
-                invalidateActiveRequest()
-                clearTimeout(coalesceTimer.current)
-            }
+            else pauseRefresh()
         }
 
         window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, scheduleRefresh)
+        window.addEventListener('online', scheduleRefresh)
+        window.addEventListener('offline', pauseRefresh)
         document.addEventListener('visibilitychange', onVisibilityChange)
         return () => {
             invalidateActiveRequest()
             clearTimeout(coalesceTimer.current)
             window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, scheduleRefresh)
+            window.removeEventListener('online', scheduleRefresh)
+            window.removeEventListener('offline', pauseRefresh)
             document.removeEventListener('visibilitychange', onVisibilityChange)
         }
     }, [enabled, userId, refresh, scheduleRefresh, invalidateActiveRequest])

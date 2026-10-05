@@ -13,9 +13,13 @@ export function isExpectedCancellation(value: string | undefined): boolean {
     )
 }
 
+export function isExpectedCancellationChain(exceptions: readonly Exception[]): boolean {
+    return exceptions.length > 0 && exceptions.every((exception) => isExpectedCancellation(exception.value))
+}
+
 export function isExpectedExceptionChain(exceptions: readonly Exception[]): boolean {
     // Our wrappers follow a fetch-site or classified passkey capture. Seeing
     // the same cause again at the global handler adds no new failure.
     if (exceptions.some((exception) => REPORTED_WRAPPERS.has(exception.type ?? ''))) return true
-    return exceptions.length > 0 && exceptions.every((exception) => isExpectedCancellation(exception.value))
+    return isExpectedCancellationChain(exceptions)
 }

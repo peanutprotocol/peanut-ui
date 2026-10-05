@@ -14,6 +14,114 @@ beforeEach(() => {
 })
 
 describe('useSupportUnread', () => {
+    it('refreshes after an offline mount reconnects without another push or visibility change', async () => {
+        jest.useFakeTimers()
+        const online = jest.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+        const { result, unmount } = renderHook(() => useSupportUnread())
+        try {
+            expect(mockUnreadCount).not.toHaveBeenCalled()
+            mockUnreadCount.mockResolvedValue({ count: 1 })
+            online.mockReturnValue(true)
+            await act(async () => {
+                window.dispatchEvent(new Event('online'))
+                jest.advanceTimersByTime(250)
+            })
+            expect(mockUnreadCount).toHaveBeenCalledTimes(1)
+            expect(result.current).toBe(true)
+        } finally {
+            unmount()
+            online.mockRestore()
+            jest.useRealTimers()
+        }
+    })
+
+    it('retains one refresh triggered during backoff and runs it at the deadline', async () => {
+        jest.useFakeTimers()
+        mockUnreadCount.mockResolvedValueOnce({ count: 1 }).mockRejectedValueOnce(new Error('timeout'))
+        const { result, unmount } = renderHook(() => useSupportUnread())
+        try {
+            await act(async () => {})
+            await act(async () => {
+                window.dispatchEvent(new CustomEvent('notifications:updated'))
+                jest.advanceTimersByTime(250)
+            })
+            expect(mockUnreadCount).toHaveBeenCalledTimes(2)
+            expect(result.current).toBe(true)
+            await act(async () => {
+                window.dispatchEvent(new CustomEvent('notifications:updated'))
+                window.dispatchEvent(new CustomEvent('notifications:updated'))
+                jest.advanceTimersByTime(250)
+            })
+            await act(async () => jest.advanceTimersByTime(4_749))
+            expect(mockUnreadCount).toHaveBeenCalledTimes(2)
+            await act(async () => jest.advanceTimersByTime(1))
+            expect(mockUnreadCount).toHaveBeenCalledTimes(3)
+            expect(result.current).toBe(false)
+            await act(async () => jest.advanceTimersByTime(60_000))
+            expect(mockUnreadCount).toHaveBeenCalledTimes(3)
+        } finally {
+            unmount()
+            jest.useRealTimers()
+        }
+    })
+
+    it.each(['unmount', 'logout', 'background', 'offline'])(
+        'cancels a pending backoff refresh on %s',
+        async (reason) => {
+            jest.useFakeTimers()
+            const online = jest.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
+            const hidden = jest.spyOn(document, 'hidden', 'get').mockReturnValue(false)
+            const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+            mockUnreadCount.mockRejectedValue(new Error('timeout'))
+            const { rerender, unmount } = renderHook(({ enabled }) => useSupportUnread(enabled), {
+                initialProps: { enabled: true },
+            })
+            try {
+                await act(async () => {})
+                await act(async () => {
+                    window.dispatchEvent(new CustomEvent('notifications:updated'))
+                    jest.advanceTimersByTime(250)
+                })
+                expect(mockUnreadCount).toHaveBeenCalledTimes(1)
+                act(() => {
+                    if (reason === 'unmount') unmount()
+                    if (reason === 'logout') rerender({ enabled: false })
+                    if (reason === 'background') {
+                        hidden.mockReturnValue(true)
+                        visibility.mockReturnValue('hidden')
+                        document.dispatchEvent(new Event('visibilitychange'))
+                    }
+                    if (reason === 'offline') {
+                        online.mockReturnValue(false)
+                        window.dispatchEvent(new Event('offline'))
+                    }
+                })
+                await act(async () => jest.advanceTimersByTime(60_000))
+                expect(mockUnreadCount).toHaveBeenCalledTimes(1)
+            } finally {
+                unmount()
+                online.mockRestore()
+                hidden.mockRestore()
+                visibility.mockRestore()
+                jest.useRealTimers()
+            }
+        }
+    )
+
+    it('does not poll after a failed count when no later trigger arrives', async () => {
+        jest.useFakeTimers()
+        mockUnreadCount.mockRejectedValue(new Error('timeout'))
+        const { unmount } = renderHook(() => useSupportUnread())
+        try {
+            await act(async () => {})
+            await act(async () => jest.advanceTimersByTime(60_000))
+            expect(mockUnreadCount).toHaveBeenCalledTimes(1)
+        } finally {
+            unmount()
+            jest.useRealTimers()
+        }
+    })
+
     it('does not request an optional badge while logged out or hidden', async () => {
         const { rerender } = renderHook(({ enabled }) => useSupportUnread(enabled), {
             initialProps: { enabled: false },

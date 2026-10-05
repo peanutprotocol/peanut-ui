@@ -45,7 +45,8 @@ export function withoutNoise<T extends EventProcessor>(integration: T): T {
             const searchTexts = getEventSearchTexts(event)
             if (isTransientCapgoNoise(searchTexts)) return event
             if (isPosthogRateLimitNotice(searchTexts)) return event
-            if (isExpectedExceptionChain(event.exception?.values ?? []) || isExpectedCancellation(event.message)) {
+            const exceptions = (event.exception?.values ?? []).filter((exception) => exception.type || exception.value)
+            if (isExpectedExceptionChain(exceptions) || (!exceptions.length && isExpectedCancellation(event.message))) {
                 return event
             }
             return inner(redactQrTelemetry(event))

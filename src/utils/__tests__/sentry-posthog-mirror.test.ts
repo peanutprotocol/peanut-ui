@@ -72,3 +72,53 @@ it('skips cancellations and duplicate wrappers but retains first-party failures 
     }
     expect(inner).toHaveBeenCalledTimes(3)
 })
+
+it.each([true, false])('retains a mixed cancellation/defect in both telemetry paths (message: %s)', (withMessage) => {
+    const inner = jest.fn((event) => event)
+    mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
+    const event = {
+        message: withMessage ? 'User rejected the request' : undefined,
+        exception: {
+            values: [
+                { type: 'Error', value: 'User rejected the request' },
+                { type: 'TypeError', value: 'Cannot read properties of undefined' },
+            ],
+        },
+    } as never
+    posthogErrorMirror().processEvent?.(event)
+    expect(inner).toHaveBeenCalledWith(event)
+    expect(beforeSendHandler(event)).not.toBeNull()
+})
+
+it('retains a technical exception despite a top-level cancellation message', () => {
+    const inner = jest.fn((event) => event)
+    mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
+    const event = {
+        message: 'User rejected the request',
+        exception: { values: [{ type: 'TypeError', value: 'Cannot read properties of undefined' }] },
+    } as never
+    posthogErrorMirror().processEvent?.(event)
+    expect(inner).toHaveBeenCalledWith(event)
+    expect(beforeSendHandler(event)).not.toBeNull()
+})
+
+it('skips a standalone cancellation message and an all-cancellation chain in both telemetry paths', () => {
+    const inner = jest.fn((event) => event)
+    mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
+    const mirror = posthogErrorMirror()
+    for (const event of [
+        { message: 'User canceled the request' },
+        {
+            exception: {
+                values: [
+                    { type: 'Error', value: '[16] Canceled on BiometricPromptFragment.' },
+                    { type: 'Error', value: 'User canceled the request' },
+                ],
+            },
+        },
+    ]) {
+        mirror.processEvent?.(event as never)
+        expect(beforeSendHandler(event as never)).toBeNull()
+    }
+    expect(inner).not.toHaveBeenCalled()
+})
