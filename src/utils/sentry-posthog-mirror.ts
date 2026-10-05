@@ -1,5 +1,6 @@
 import { redactQrTelemetry } from './qr-telemetry-privacy'
 import posthog from 'posthog-js'
+import { isExpectedCancellation, isExpectedExceptionChain } from './expected-exception'
 
 import type { ErrorEvent as SentryErrorEvent } from '@sentry/nextjs'
 
@@ -23,14 +24,15 @@ type EventProcessor = { processEvent?: (event: SentryErrorEvent) => SentryErrorE
  * visible. Suppression there is configured server-side (grouping, per-issue
  * rate limit, suppression rules) where it is tunable without a release.
  *
- * Three classes are worth stopping in the client. Injected third-party scripts:
+ * The classes worth stopping in the client are injected third-party scripts:
  * nobody can act on them in either tool, and one wallet injector alone billed
  * ~3.7k events. Capgo's transient updater chatter, which is retried on the
  * next launch and only ever means "the CDN hiccuped". And posthog-js's own
  * rate-limit notice, which the mirror would turn into another rate-limited
  * capture and so into another notice, until the session ends. Wrapping rather than
  * filtering inside beforeSend, because beforeSend is downstream of this hook
- * and cannot reach it.
+ * and cannot reach it. Expected passkey cancellations and our already-reported
+ * rethrow wrappers also stop here, keeping the original actionable capture.
  */
 export function withoutNoise<T extends EventProcessor>(integration: T): T {
     const inner = integration.processEvent?.bind(integration)
@@ -43,6 +45,10 @@ export function withoutNoise<T extends EventProcessor>(integration: T): T {
             const searchTexts = getEventSearchTexts(event)
             if (isTransientCapgoNoise(searchTexts)) return event
             if (isPosthogRateLimitNotice(searchTexts)) return event
+            const exceptions = (event.exception?.values ?? []).filter((exception) => exception.type || exception.value)
+            if (isExpectedExceptionChain(exceptions) || (!exceptions.length && isExpectedCancellation(event.message))) {
+                return event
+            }
             return inner(redactQrTelemetry(event))
         },
     }

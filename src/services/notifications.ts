@@ -13,10 +13,14 @@ export const notificationsApi = {
         if (!response.ok) throw new Error('Could not save notification preferences')
     },
     /** Pass a category (e.g. 'support') to count only that category's unread rows. */
-    async unreadCount(category?: string): Promise<{ count: number }> {
+    async unreadCount(category?: string, signal?: AbortSignal): Promise<{ count: number }> {
         const query = category ? `?category=${encodeURIComponent(category)}` : ''
         const response = await serverFetch(`/notifications/unread-count${query}`, {
             method: 'GET',
+            signal,
+            // The optional badge keeps its cached value when this GET times out.
+            // API timing events and a Sentry breadcrumb retain the diagnostic.
+            silentTimeout: true,
         })
         if (!response.ok) throw new Error('failed to fetch unread count')
         return await response.json()

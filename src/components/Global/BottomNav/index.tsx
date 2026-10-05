@@ -8,6 +8,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useForegroundPushRefresh } from '@/hooks/useForegroundPushRefresh'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
+import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -85,7 +86,8 @@ export const BottomNav = () => {
     const router = useRouter()
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { triggerHaptic } = useAppHaptic()
-    const hasUnreadSupport = useSupportUnread()
+    const { user } = useAuth()
+    const hasUnreadSupport = useSupportUnread(!!user?.user.userId, user?.user.userId)
     // the badge above is event-driven; this makes sure a web session that
     // never mounts useNotifications (direct /card or /history load) still
     // gets the foreground-push event the badge listens for
