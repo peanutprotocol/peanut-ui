@@ -2837,6 +2837,42 @@
             "stillLoading": "Ainda estamos carregando sua conta — tente novamente em instantes.",
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
+        "unlock": {
+            "navTitle": "Recursos para desbloquear",
+            "title": "{country}: o que desbloquear",
+            "idQuestion": "Qual documento usar?",
+            "idLocal": {
+                "AR": "DNI argentino",
+                "BR": "Documento brasileiro (RG ou CNH)",
+                "default": "Documento de identidade: {country}"
+            },
+            "idPassport": "Passaporte de outro país",
+            "passportCountryPlaceholder": "País do passaporte",
+            "rows": {
+                "qr": "Pagamentos QR",
+                "qrMethods": {
+                    "AR": "Mercado Pago e MODO",
+                    "BR": "Pix",
+                    "default": "Pix, Mercado Pago e MODO"
+                },
+                "local": {
+                    "AR": "Transferências bancárias em ARS",
+                    "BR": "Transferências bancárias em BRL",
+                    "default": "Transferências bancárias locais"
+                },
+                "card": "Cartão Peanut",
+                "bank": "Contas em USD e EUR"
+            },
+            "note": "Uma única configuração para os recursos que você escolher. Se adicionar mais depois, reaproveitamos sua verificação de identidade.",
+            "loadFailed": "Não foi possível carregar os recursos para desbloquear.",
+            "cta": "Desbloqueie recursos",
+            "ctaQrOnly": "Desbloqueie pagamentos com QR",
+            "notNow": "Agora não",
+            "saveFailed": "Não foi possível salvar sua escolha. Tente de novo.",
+            "exploreTitle": "Explorar primeiro?",
+            "exploreDescription": "Receber, guardar e resgatar dinheiro continuam funcionando. Os recursos que você escolheu ficam bloqueados até você verificar sua identidade.",
+            "exploreFirst": "Explorar primeiro"
+        },
         "bridgeTos": {
             "baseTitle": "Termos de transferências bancárias",
             "sepaTitle": "Termos atualizados de transferências bancárias",
@@ -3255,7 +3291,10 @@
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "residence_bank_restricted": "Transferências bancárias não estão disponíveis para residentes do seu país. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
-            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação."
+            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação.",
+            "document_country_unsupported": "Precisa de um documento de identidade do país: {country}",
+            "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
+            "under_minimum_age": "Somente a partir de 18 anos"
         }
     },
     "recoverFunds": {

@@ -71,6 +71,15 @@ export const REASON_CODE_KEYS = {
     // neutral on purpose: the UK line names UK regulation, which is false for
     // a Japanese or Sudanese resident.
     residence_bank_restricted: 'reasons.residence_bank_restricted',
+    // GET /config/kyc-intents (TASK-23329): why a feature is closed on the
+    // unlock checklist. Only the reasons the person can change get a line;
+    // residence reasons hide the row instead (SHOWN_CLOSED_REASONS).
+    // `document_country_unsupported` takes a `{country}` argument: the
+    // residence country whose ID would open the feature.
+    document_country_unsupported: 'reasons.document_country_unsupported',
+    local_tax_id_missing: 'reasons.local_tax_id_missing',
+    under_minimum_age: 'reasons.under_minimum_age',
+    manteca_us_nationality_restricted: 'reasons.manteca_us_nationality',
 } as const
 
 export type KnownReasonCode = keyof typeof REASON_CODE_KEYS

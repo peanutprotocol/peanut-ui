@@ -1239,6 +1239,56 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // One-shot onboarding (TASK-23329): the server flagged the user, so the
+    // fresh unlock offer is the checklist of features for the declared
+    // residence. The rows come from GET /config/kyc-intents, which the demo
+    // API does not know, so the fixture answers it in full.
+    'one-shot-unlock-checklist': {
+        route: '/add-money/spain/bank?step=verify',
+        about: 'One-shot onboarding: the unlock checklist for a Spanish resident, every open feature ticked.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'not_started', oneShot: true },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+                residence: { declared: 'ES', verified: null },
+            },
+            'GET /config/kyc-intents': {
+                residence: 'ES',
+                intents: {
+                    qr: { available: true },
+                    local: { available: false, reason: 'local_residence_unsupported' },
+                    card: { available: true },
+                    bank: { available: true },
+                },
+            },
+        },
+    },
+    // The same checklist from the Home "Verify" row, which opens the drawer
+    // form, for an Argentine resident whose document the bank and card
+    // partners refuse (the answer for a Venezuelan passport): QR stays open,
+    // the other rows say which ID would open them.
+    'one-shot-unlock-foreign-passport': {
+        route: '/home',
+        about: 'One-shot onboarding from Home: a foreign passport in Argentina leaves QR open and names the ID the rest needs.',
+        // no balance: the demo balance opens the high-balance prompt over the checklist
+        balance: '0',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'not_started', oneShot: true },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+                residence: { declared: 'AR', verified: null },
+            },
+            'GET /config/kyc-intents': {
+                residence: 'AR',
+                intents: {
+                    qr: { available: true },
+                    local: { available: false, reason: 'document_country_unsupported' },
+                    card: { available: false, reason: 'document_country_unsupported' },
+                    bank: { available: false, reason: 'document_country_unsupported' },
+                },
+            },
+        },
+    },
     'identity-awaiting-upload': {
         route: '/profile/accounts',
         about: 'ID upload still required: no in-review notice or support escalation.',

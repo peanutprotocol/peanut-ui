@@ -2837,6 +2837,42 @@
             "stillLoading": "Still loading your account — please try again in a moment.",
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
+        "unlock": {
+            "navTitle": "Features to unlock",
+            "title": "What to unlock in {country}",
+            "idQuestion": "Which ID to use?",
+            "idLocal": {
+                "AR": "Argentine DNI",
+                "BR": "Brazilian ID (RG or CNH)",
+                "default": "ID issued by {country}"
+            },
+            "idPassport": "Passport from another country",
+            "passportCountryPlaceholder": "Passport country",
+            "rows": {
+                "qr": "QR payments",
+                "qrMethods": {
+                    "AR": "Mercado Pago and MODO",
+                    "BR": "Pix",
+                    "default": "Pix, Mercado Pago and MODO"
+                },
+                "local": {
+                    "AR": "ARS bank transfers",
+                    "BR": "BRL bank transfers",
+                    "default": "Local bank transfers"
+                },
+                "card": "Peanut Card",
+                "bank": "USD and EUR accounts"
+            },
+            "note": "One setup for the features you choose. We reuse your identity check if you add more later.",
+            "loadFailed": "Could not load the features to unlock.",
+            "cta": "Unlock features",
+            "ctaQrOnly": "Unlock QR payments",
+            "notNow": "Not now",
+            "saveFailed": "Could not save your choices. Please try again.",
+            "exploreTitle": "Explore first?",
+            "exploreDescription": "Receiving, holding and claiming money keep working. The features you picked stay locked until you verify.",
+            "exploreFirst": "Explore first"
+        },
         "bridgeTos": {
             "baseTitle": "Bank transfer terms",
             "sepaTitle": "Updated bank transfer terms",
@@ -3255,7 +3291,10 @@
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
-            "identity_document_missing": "We need an identity document and a selfie to complete your verification."
+            "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
+            "document_country_unsupported": "Needs an ID issued by {country}",
+            "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
+            "under_minimum_age": "Only from age 18"
         }
     },
     "recoverFunds": {

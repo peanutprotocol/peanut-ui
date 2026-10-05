@@ -6,6 +6,7 @@ export const CLAIM_LINK = 'claimLink'
 export const CLAIM_LINK_XCHAIN = 'claimLinkXChain'
 export const LIMITS = 'limits'
 export const BADGE_CATALOG = 'badge-catalog'
+export const KYC_INTENTS = 'kyc-intents'
 
 // Balance-decreasing operations (for mutation tracking)
 export const BALANCE_DECREASE = 'balance-decrease'

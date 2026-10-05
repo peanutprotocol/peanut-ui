@@ -238,6 +238,12 @@ export interface IdentityVerification {
      * Absent on an older API: the labels decide (isTerminalRejection).
      */
     rejectType?: 'RETRY' | 'FINAL'
+    /**
+     * The server put this user on one-shot onboarding (TASK-23329): one
+     * identity check for every feature they tick. Absent or false is today's
+     * flow. Read via useIdentityVerification().oneShotResidence.
+     */
+    oneShot?: boolean
     /** ISO timestamp the user submitted their verification. */
     submittedAt?: string
     /** Set by the API only for an uploaded identity check awaiting a decision. */
