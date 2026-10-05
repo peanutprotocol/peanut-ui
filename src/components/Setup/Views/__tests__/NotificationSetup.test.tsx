@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
@@ -12,6 +13,7 @@ const mockFetchUser = jest.fn(async () => {})
 const mockPermission = jest.fn(async () => 'denied')
 const mockAfterPermission = jest.fn(async () => {})
 let mockReady = true
+let mockUser: { user: { userId: string; email: string } } | null
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUser(...args) }))
 jest.mock('@/services/notifications', () => ({
@@ -25,7 +27,7 @@ jest.mock('@/hooks/useNotifications', () => ({
     }),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'new-user', email: '' } }, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }),
 }))
 // Registry imports server-only content and other screens; only its order matters here.
 jest.mock('@/components/Setup/Setup.consts', () => ({
@@ -36,7 +38,9 @@ const renderStep = (view: React.ReactNode) =>
     renderWithIntl(<SetupFlowProvider masterScreenIds={setupScreenIds}>{view}</SetupFlowProvider>)
 beforeEach(() => {
     jest.clearAllMocks()
+    mockNext.mockReset()
     mockReady = true
+    mockUser = { user: { userId: 'new-user', email: '' } }
     mockSave.mockResolvedValue(undefined)
     mockUpdateUser.mockResolvedValue({})
 })
@@ -53,14 +57,48 @@ it('requires and saves a valid trimmed email before advancing', async () => {
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
     expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'new-user', email: 'money@example.com' })
 })
-it('keeps the entered email and advances silently if saving fails', async () => {
+it('restores the entered email after Next and Back remount the step', async () => {
+    const RoundTrip = () => {
+        const [next, setNext] = useState(false)
+        mockNext.mockImplementation(() => setNext(true))
+        return next ? <button onClick={() => setNext(false)}>Back</button> : <EmailStep />
+    }
+    renderStep(<RoundTrip />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  money@example.com  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveValue('money@example.com')
+})
+it('keeps the entered email on a failed save and only advances after a successful retry', async () => {
     mockUpdateUser.mockResolvedValueOnce({ error: 'failed' })
     renderStep(<EmailStep />)
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-    expect(screen.queryByText('We couldn’t save your email. Please try again.')).not.toBeInTheDocument()
+    await screen.findByText('We couldn’t save your email. Please try again.')
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockFetchUser).not.toHaveBeenCalled()
     expect(screen.getByRole('textbox')).toHaveValue('money@example.com')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockUpdateUser).toHaveBeenCalledTimes(2)
+})
+it('keeps the email step retryable after a rejected request', async () => {
+    mockUpdateUser.mockRejectedValueOnce(new Error('network'))
+    renderStep(<EmailStep />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await screen.findByText('We couldn’t save your email. Please try again.')
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+})
+it('does not leave the email step before the authenticated user is available', async () => {
+    mockUser = null
+    renderStep(<EmailStep />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await screen.findByText('Your account is still loading. Try again in a moment.')
+    expect(mockUpdateUser).not.toHaveBeenCalled()
+    expect(mockNext).not.toHaveBeenCalled()
 })
 it('defaults both channels on and continues after OS denial', async () => {
     renderStep(<NotificationsStep />)
@@ -78,6 +116,44 @@ it('saves both off without opening the system prompt', async () => {
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
     expect(mockSave).toHaveBeenCalledWith({ push: false, email: false })
     expect(mockPermission).not.toHaveBeenCalled()
+})
+it.each(['push', 'email'])(
+    'does not advance after a failed %s opt-out, and retries the same choice',
+    async (channel) => {
+        mockSave.mockRejectedValueOnce(new Error('network'))
+        renderStep(<NotificationsStep />)
+        fireEvent.click(
+            screen.getByRole('switch', {
+                name: channel === 'push' ? 'App push notifications' : 'Email notifications',
+            })
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await screen.findByText('We couldn’t save your settings. Please try again.')
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(mockSave).toHaveBeenCalledWith({ push: channel !== 'push', email: channel !== 'email' })
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave).toHaveBeenCalledTimes(2)
+    }
+)
+it('requests push within the click gesture while waiting for an email opt-out acknowledgement', async () => {
+    let resolveSave!: () => void
+    mockSave.mockReturnValueOnce(
+        new Promise<void>((resolve) => {
+            resolveSave = resolve
+        })
+    )
+    renderStep(<NotificationsStep />)
+    fireEvent.click(screen.getByRole('switch', { name: 'Email notifications' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(mockPermission).toHaveBeenCalledTimes(1)
+    await act(async () => {})
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /Continue$/ })).toBeDisabled()
+    await act(async () => {
+        resolveSave()
+    })
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
 it('continues and requests enabled push silently after a settings save failure', async () => {
     mockSave.mockRejectedValueOnce(new Error('network'))
@@ -107,10 +183,21 @@ it('continues silently if the push SDK rejects its permission request', async ()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
-it('keeps email validation local even if the backend never responds', async () => {
-    mockUpdateUser.mockReturnValueOnce(new Promise(() => {}))
+it('waits for the email save acknowledgement before advancing', async () => {
+    let resolveSave!: (result: object) => void
+    mockUpdateUser.mockReturnValueOnce(
+        new Promise((resolve) => {
+            resolveSave = resolve
+        })
+    )
     renderStep(<EmailStep />)
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await act(async () => {})
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /Continue$/ })).toBeDisabled()
+    await act(async () => {
+        resolveSave({})
+    })
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })

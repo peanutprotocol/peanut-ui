@@ -19,6 +19,7 @@ const mockAddAccount = jest.fn()
 const mockSendUserOp = jest.fn()
 const mockReadSignupAttributionAsync = jest.fn()
 const mockClearSignupAttribution = jest.fn()
+const mockHasPendingSignupAttribution = jest.fn()
 
 let mockSignupCompleted = false
 
@@ -68,6 +69,7 @@ jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/signup-attribution', () => ({
     readSignupAttributionAsync: (...args: unknown[]) => mockReadSignupAttributionAsync(...args),
     clearSignupAttribution: (...args: unknown[]) => mockClearSignupAttribution(...args),
+    hasPendingSignupAttribution: (...args: unknown[]) => mockHasPendingSignupAttribution(...args),
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('posthog-js', () => ({
@@ -87,6 +89,7 @@ describe('SignTestTransaction — setup completion', () => {
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
         mockReadSignupAttributionAsync.mockResolvedValue(null)
         mockClearSignupAttribution.mockResolvedValue(undefined)
+        mockHasPendingSignupAttribution.mockResolvedValue(false)
         // addAccount refetches the user, so the account appears before the
         // completion redirect — the pre-existing-account effect must not race it.
         mockAddAccount.mockImplementation(async () => {
@@ -227,6 +230,24 @@ describe('SignTestTransaction — setup completion', () => {
             })
         )
         expect(order).toEqual(['capture', 'clear'])
+    })
+
+    it('preserves unacknowledged attribution for an authenticated retry after completion', async () => {
+        mockHasPendingSignupAttribution.mockResolvedValue(true)
+        mockReadSignupAttributionAsync.mockResolvedValue({
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            captureMethod: 'browser',
+        })
+        const onComplete = jest.fn()
+        renderWithIntl(<SignTestTransaction onComplete={onComplete} />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(posthog.capture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_COMPLETED,
+            expect.objectContaining({ signup_journey_id: '33333333-3333-4333-8333-333333333333' })
+        )
+        expect(mockClearSignupAttribution).not.toHaveBeenCalled()
     })
 
     /*

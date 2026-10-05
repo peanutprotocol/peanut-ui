@@ -29,20 +29,27 @@ export default function EmailStep() {
             setError(t('invalid'))
             return
         }
+        if (!user?.user.userId) {
+            setError(t('notReady'))
+            return
+        }
         savingRef.current = true
         setSaving(true)
-        // Keep the contact in this flow and proceed regardless of backend
-        // availability. Later mailbox changes use Profile verification.
+        // The flow retains the draft across Next/Back remounts. Only leave
+        // after the API confirms the required contact has been saved.
         setNotificationEmail(value)
-        if (user?.user.userId && user.user.email !== value) {
-            void updateUserById({ userId: user.user.userId, email: value })
-                .then((result) => {
-                    if (!result.error) void fetchUser().catch(() => {})
-                })
-                .catch(() => {})
-        }
         try {
+            if (user.user.email !== value) {
+                const result = await updateUserById({ userId: user.user.userId, email: value })
+                if (result.error) {
+                    setError(t('saveFailed'))
+                    return
+                }
+                void fetchUser().catch(() => {})
+            }
             await handleNext()
+        } catch {
+            setError(t('saveFailed'))
         } finally {
             savingRef.current = false
             setSaving(false)

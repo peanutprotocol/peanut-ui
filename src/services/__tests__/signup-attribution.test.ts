@@ -27,11 +27,18 @@ beforeEach(() => {
 })
 
 describe('signup attribution attachment', () => {
-    it('keeps the durable device copy when the API does not acknowledge the write', async () => {
-        mockApiFetch.mockResolvedValue({ ok: false, status: 503 })
+    it('keeps the durable device copy and retry marker until a retry is acknowledged', async () => {
+        mockApiFetch.mockResolvedValueOnce({ ok: false, status: 503 }).mockResolvedValueOnce({ ok: true, status: 200 })
 
         await expect(attachSignupAttribution('user-a')).rejects.toThrow('signup attribution attach failed: 503')
 
+        expect(mockClearSignupAttribution).not.toHaveBeenCalled()
+        expect(mockClearPendingSignupAttribution).not.toHaveBeenCalled()
+
+        await expect(attachSignupAttribution('user-a')).resolves.toBe(true)
+
+        expect(mockApiFetch).toHaveBeenCalledTimes(2)
+        expect(mockClearPendingSignupAttribution).toHaveBeenCalledWith('user-a')
         expect(mockClearSignupAttribution).not.toHaveBeenCalled()
     })
 

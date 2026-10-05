@@ -22,7 +22,11 @@ import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
-import { clearSignupAttribution, readSignupAttributionAsync } from '@/utils/signup-attribution'
+import {
+    clearSignupAttribution,
+    hasPendingSignupAttribution,
+    readSignupAttributionAsync,
+} from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
@@ -147,10 +151,12 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                   }
                 : {}),
         })
-        // The authenticated API attachment only clears its retry marker. Keep
-        // the bounded context through this capture so signup_completed carries
-        // the same journey join key, then remove both web and native copies.
-        await clearSignupAttribution()
+        // The attachment clears its retry marker only after acknowledgement.
+        // Keep failed deliveries user-bound and durable through completion so
+        // the authenticated recovery path can retry after an app restart.
+        if (user && !(await hasPendingSignupAttribution(user.user.userId))) {
+            await clearSignupAttribution()
+        }
         // Keep the independently observed hints on the identified analytics
         // profile. Only the user's declared residences go to /update-user.
         try {
