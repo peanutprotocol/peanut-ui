@@ -108,7 +108,7 @@ const MantecaPixQrDeposit: FC<{
                             </p>
                         )}
 
-                        <ProviderNote providerId="manteca-br" />
+                        <ProviderNote providerId="manteca-br" className="justify-center" />
 
                         {isExpired ? (
                             <div className="flex flex-col gap-3 text-center">

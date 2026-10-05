@@ -80,7 +80,6 @@ describe('CardTermsScreen legal links', () => {
 describe('CardTermsScreen card issuer', () => {
     it('names Third National as the card issuer', () => {
         renderAt('en')
-        expect(screen.getByText('Card issuer')).toBeInTheDocument()
-        expect(screen.getByText('Third National')).toBeInTheDocument()
+        expect(screen.getByText('Card issuer: Third National')).toBeInTheDocument()
     })
 })

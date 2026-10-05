@@ -10,8 +10,7 @@ import { useAuth } from '@/context/authContext'
 import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
 import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
-import Card from '@/components/Global/Card'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -133,9 +132,12 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                 description={error || copy.description}
                 content={
                     error ? undefined : (
-                        <Card position="solo" className="px-4 py-0 text-left">
-                            <ProviderRow providerId={providerId} label="accountProvider" />
-                        </Card>
+                        <ProviderNote
+                            providerId={providerId}
+                            label="accountProvider"
+                            prospective
+                            className="justify-center"
+                        />
                     )
                 }
                 ctas={[

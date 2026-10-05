@@ -4,7 +4,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 import type { ProviderId } from '@/types/provider.types'
 
 export type KycPrepPath = 'standard' | 'extended' | 'hosted'
@@ -32,7 +32,7 @@ const KycPrepChecklist = ({
 }: {
     path: KycPrepPath
     taxIdCountry?: 'AR' | 'BR'
-    /** the provider that will hold the account; heads the list when known */
+    /** the provider that will hold the account; named under the intro when known */
     providerId?: ProviderId | null
     nested?: boolean
 }) => {
@@ -54,13 +54,13 @@ const KycPrepChecklist = ({
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
             {!isHosted && <p className="text-body-s">{t(`intro.${path}`)}</p>}
+            {providerId && <ProviderNote providerId={providerId} label="accountProvider" nested={nested} prospective />}
             {/* The requirements are label + value pairs, not claims, so they read
                 as DataRows in a card rather than a tinted checklist. The label is
                 the short document name so the value has room, and what counts as
                 that document stays on screen under its row — it is the part a
                 user gets wrong, so it does not belong behind a tooltip. */}
             <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
-                {providerId && <ProviderRow providerId={providerId} label="accountProvider" nested={nested} />}
                 {items.map((item) => (
                     <div key={item} className="pb-3">
                         <DataRow label={t(`items.${item}.label`)} value={t(`items.${item}.title`)} />

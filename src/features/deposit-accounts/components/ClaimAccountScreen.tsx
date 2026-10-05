@@ -9,10 +9,9 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import Card from '@/components/Global/Card'
 import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { corridorNeedsReference } from '../instructionRows'
@@ -99,27 +98,20 @@ export function ClaimAccountScreen({
                     description={t('claim.subheading')}
                 />
 
-                <div className="flex flex-col gap-2">
-                    {providerId && (
-                        <Card position="solo" className="px-4 py-0">
-                            <ProviderRow providerId={providerId} label="accountProvider" />
-                        </Card>
-                    )}
-                    <ListGroup>
-                        <ListItem
-                            leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
-                            title={t('claim.benefitBalance')}
-                        />
-                        <ListItem
-                            leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
-                            title={arrivalShort(rail.corridor)}
-                        />
-                        <ListItem
-                            leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
-                            title={t('claim.benefitStable')}
-                        />
-                    </ListGroup>
-                </div>
+                <ListGroup>
+                    <ListItem
+                        leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
+                        title={t('claim.benefitBalance')}
+                    />
+                    <ListItem
+                        leading={<IconBubble icon="clock" size="s" color="blue" className="self-start" />}
+                        title={arrivalShort(rail.corridor)}
+                    />
+                    <ListItem
+                        leading={<IconBubble icon="link" size="s" color="blue" className="self-start" />}
+                        title={t('claim.benefitStable')}
+                    />
+                </ListGroup>
 
                 {rules && (
                     <Accordion type="single" collapsible>
@@ -229,6 +221,15 @@ export function ClaimAccountScreen({
                                     ),
                             })}
                         </p>
+                        {/* the provider sits with the terms the tap agrees to */}
+                        {providerId && (
+                            <ProviderNote
+                                providerId={providerId}
+                                label="accountProvider"
+                                prospective
+                                className="justify-center"
+                            />
+                        )}
                     </>
                 )}
             </PageStack.Footer>

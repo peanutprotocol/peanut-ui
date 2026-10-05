@@ -353,7 +353,7 @@ const PaymentSuccessView = ({
                     </div>
                 </Card>
 
-                {providerId && <ProviderNote providerId={providerId} />}
+                {providerId && <ProviderNote providerId={providerId} className="justify-center" />}
 
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 

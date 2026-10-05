@@ -11,10 +11,12 @@ interface ProviderInfoButtonProps {
     providerId: ProviderId
     nested?: boolean
     pooledAccount?: boolean
+    /** shown before the user accepts the provider's terms: the relationship line speaks of it as ahead */
+    prospective?: boolean
 }
 
-/** The (?) next to a provider name. Opens the provider's legal details. */
-export const ProviderInfoButton = ({ providerId, nested, pooledAccount }: ProviderInfoButtonProps) => {
+/** The (i) next to a provider name. Opens the provider's legal details. */
+export const ProviderInfoButton = ({ providerId, nested, pooledAccount, prospective }: ProviderInfoButtonProps) => {
     const t = useTranslations('provider')
     const [open, setOpen] = useState(false)
 
@@ -30,7 +32,7 @@ export const ProviderInfoButton = ({ providerId, nested, pooledAccount }: Provid
                     setOpen(true)
                 }}
             >
-                <Icon name="question-mark" size={16} />
+                <Icon name="info" size={16} />
             </button>
             <ProviderSheet
                 providerId={providerId}
@@ -38,6 +40,7 @@ export const ProviderInfoButton = ({ providerId, nested, pooledAccount }: Provid
                 onClose={() => setOpen(false)}
                 nested={nested}
                 pooledAccount={pooledAccount}
+                prospective={prospective}
             />
         </>
     )

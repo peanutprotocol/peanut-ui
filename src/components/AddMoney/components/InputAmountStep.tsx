@@ -37,7 +37,7 @@ interface InputAmountStepProps {
     onBack: () => void
     // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
     maintenanceBanner?: React.ReactNode
-    // who provides the deposit, shown under the amount (TASK-23295)
+    // who provides the deposit, shown above continue (TASK-23295)
     providerNote?: React.ReactNode
 }
 
@@ -97,7 +97,11 @@ const InputAmountStep = ({
                 <div className="text-label-l">{t('howMuchToAdd')}</div>
 
                 {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
-                <Field error={!limitsValidation?.isBlocking ? validationError : undefined} errorTestId="error-alert">
+                <Field
+                    helper={t('mustMatchBankTransfer')}
+                    error={!limitsValidation?.isBlocking ? validationError : undefined}
+                    errorTestId="error-alert"
+                >
                     <AmountInput
                         initialAmount={tokenAmount}
                         initialDenomination={initialDenomination}
@@ -118,16 +122,13 @@ const InputAmountStep = ({
                         hideBalance
                     />
                 </Field>
-                {providerNote}
 
                 {/* limits warning/error card */}
                 {limitsCardProps && (
                     <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
                 )}
 
-                <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                    <span>{t('mustMatchBankTransfer')}</span>
-                </div>
+                {providerNote}
                 <Button
                     variant="primary"
                     shadowSize="4"

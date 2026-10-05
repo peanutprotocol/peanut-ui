@@ -255,7 +255,7 @@ describe('the terms line on the claim screen', () => {
     it('names the account provider and links its terms under the button', () => {
         claim()
 
-        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByText('Account provider: Bridge')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
         // no verified residence here, so the brand-wide terms page
         const link = screen.getByRole('link', { name: 'EUR account terms' })

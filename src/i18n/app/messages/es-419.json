@@ -1815,7 +1815,7 @@
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
             "minDepositAmount": "El monto del depósito debe ser de al menos ${amount}",
-            "etaInstant": "Los depósitos suelen llegar en minutos."
+            "etaInstant": "Normalmente en minutos"
         },
         "processingDepositTitle": "Procesando el depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
@@ -4360,17 +4360,16 @@
         },
         "sheetIntro": "{brand} presta este servicio, no Peanut.",
         "relationship": "Tienes una relación directa con {brand} bajo sus términos.",
+        "relationshipProspective": "Cuando aceptes, tu relación será directamente con {brand}, bajo sus términos.",
         "cardSheetIntro": "{brand} emite tu tarjeta Peanut. Tienes una relación directa con ellos bajo los términos de la tarjeta.",
         "field": {
             "legalName": "Razón social",
             "registeredOffice": "Domicilio legal",
             "registration": "Registro",
             "regulator": "Regulador",
-            "role": "Qué hace",
             "terms": "Términos",
             "privacy": "Política de privacidad",
             "identityCheck": "Verificación de identidad",
-            "peanut": "Peanut",
             "paidFrom": "Pagado desde"
         },
         "role": {
@@ -4380,10 +4379,11 @@
             "thirdNational": "Emite tu tarjeta Peanut",
             "sumsub": "Verifica tu identidad"
         },
-        "peanutValue": "Software de billetera autocustodiada de Squirrel Labs Ltd. Peanut nunca guarda tu dinero.",
+        "peanutValue": "Peanut es un software de billetera autocustodiada de Squirrel Labs Ltd y nunca guarda tu dinero.",
         "pooledAccount": "La cuenta de Peanut en Manteca",
         "about": "Sobre {brand}",
         "note": "Proveedor: {brand}",
-        "noteCardIssuer": "Emisor de la tarjeta: {brand}"
+        "noteCardIssuer": "Emisor de la tarjeta: {brand}",
+        "noteAccountProvider": "Proveedor de la cuenta: {brand}"
     }
 }

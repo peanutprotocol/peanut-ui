@@ -57,7 +57,7 @@ describe('ProviderRow', () => {
             expect(within(sheet).queryByText(label)).not.toBeInTheDocument()
         }
         expect(within(sheet).getByText('Identity check')).toBeInTheDocument()
-        expect(within(sheet).getByText('Peanut')).toBeInTheDocument()
+        expect(within(sheet).getByText(/never holds your money/)).toBeInTheDocument()
     })
 
     it.each<ProviderId>(['manteca-ar', 'rhino', 'third-national'])('shows no identity check line for %s', (id) => {
@@ -86,10 +86,31 @@ describe('ProviderSheet intro', () => {
         expect(within(sheet).getByText(relationship)).toBeInTheDocument()
     })
 
+    it('speaks of the relationship as ahead before the user accepts', () => {
+        withIntl(<ProviderRow providerId="bridge-eea" prospective />)
+        const sheet = openSheet('Bridge')
+        expect(
+            within(sheet).getByText('When you accept, your relationship is directly with Bridge, under their terms.')
+        ).toBeInTheDocument()
+        expect(within(sheet).queryByText(relationship)).not.toBeInTheDocument()
+    })
+
+    it('puts the intro in an info callout and the legal facts in one card', () => {
+        withIntl(<ProviderRow providerId="bridge-eea" />)
+        const sheet = openSheet('Bridge')
+        expect(within(sheet).getByRole('status')).toHaveTextContent(
+            'Bridge provides this service, not Peanut. Peanut is self-custodial wallet software by Squirrel Labs Ltd and never holds your money.'
+        )
+        expect(within(sheet).getByText('Bank transfers and accounts in your name')).toBeInTheDocument()
+        const legalCard = within(sheet).getByText('Legal name').closest('.ds-data-row')?.parentElement as HTMLElement
+        expect(within(legalCard).getByText('Bridge Building S.A.')).toBeInTheDocument()
+        expect(within(legalCard).getByText('Identity check')).toBeInTheDocument()
+    })
+
     it('leaves it out for rhino, where peanut is the customer', () => {
         withIntl(<ProviderRow providerId="rhino" />)
         const sheet = openSheet('Rhino.fi')
-        expect(within(sheet).getByText('Rhino.fi provides this service, not Peanut.')).toBeInTheDocument()
+        expect(within(sheet).getByText(/^Rhino\.fi provides this service, not Peanut\./)).toBeInTheDocument()
         expect(within(sheet).queryByText(relationship)).not.toBeInTheDocument()
     })
 
@@ -104,6 +125,11 @@ describe('ProviderNote', () => {
     it('names the card issuer on the card screen', () => {
         withIntl(<ProviderNote providerId="third-national" label="cardIssuer" />)
         expect(screen.getByText('Card issuer: Third National')).toBeInTheDocument()
+    })
+
+    it('names the account provider', () => {
+        withIntl(<ProviderNote providerId="bridge-us" label="accountProvider" />)
+        expect(screen.getByText('Account provider: Bridge')).toBeInTheDocument()
     })
 
     it('shows the pooled account line when asked', () => {

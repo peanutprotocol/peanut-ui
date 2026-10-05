@@ -7,8 +7,7 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import { type KycModalPhase } from '@/interfaces/interfaces'
 import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
-import Card from '@/components/Global/Card'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
@@ -158,9 +157,12 @@ export const KycVerificationInProgressModal = ({
                 description={description}
                 content={
                     tosError ? undefined : (
-                        <Card position="solo" className="px-4 py-0 text-left">
-                            <ProviderRow providerId={providerId} label="accountProvider" />
-                        </Card>
+                        <ProviderNote
+                            providerId={providerId}
+                            label="accountProvider"
+                            prospective
+                            className="justify-center"
+                        />
                     )
                 }
                 ctas={[

@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { toMarketingLocale } from '@/i18n/localeBridge'
 import type { Locale as MarketingLocale } from '@/i18n/types'
 import { PROVIDERS } from '@/constants/providers.consts'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { ProviderNote } from '@/components/Provider/ProviderNote'
 
 interface Props {
     isUsResident: boolean
@@ -117,9 +117,8 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             <div className="flex flex-col gap-2">
                 <h1 className="text-heading-s text-foreground-primary">{t('title')}</h1>
                 <p className="text-foreground-secondary">{t('description')}</p>
+                <ProviderNote providerId="third-national" label="cardIssuer" />
             </div>
-
-            <ProviderRow providerId="third-national" label="cardIssuer" />
 
             <ul className="flex flex-col gap-3">
                 {terms.map((term) => (

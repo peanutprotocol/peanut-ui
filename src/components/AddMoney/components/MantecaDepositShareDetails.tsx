@@ -36,6 +36,7 @@ const MantecaDepositShareDetails = ({
     const params = useParams()
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+    const tWithdraw = useTranslations('withdraw')
     const currentCountryName = params.country as string
 
     const currentCountryDetails = useMemo(() => {
@@ -141,6 +142,7 @@ const MantecaDepositShareDetails = ({
                         <>
                             <PaymentInfoRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
                             <PaymentInfoRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
+                            <ProviderRow providerId="manteca-ar" variant="stacked" />
                         </>
                     )}
                     <PaymentInfoRow
@@ -152,16 +154,14 @@ const MantecaDepositShareDetails = ({
                         value={networkFees}
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
-                    {currentCountryDetails?.id === 'AR' && <ProviderRow providerId="manteca-ar" variant="stacked" />}
+                    <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
                     <PaymentInfoRow
-                        label={tCommon('peanutFee')}
-                        value={tCommon('sponsoredByPeanut')}
+                        label={tWithdraw('bank.arrives')}
+                        value={t('manteca.etaInstant')}
                         hideBottomBorder
                     />
                 </Card>
             </div>
-
-            <p className="text-body-xs text-foreground-secondary">{t('manteca.etaInstant')}</p>
 
             <ShareButton
                 generateText={async () => generateShareText()}

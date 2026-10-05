@@ -71,7 +71,7 @@ describe('BridgeTosStep', () => {
         renderStep()
 
         expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
-        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByText('Account provider: Bridge')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
             'href',

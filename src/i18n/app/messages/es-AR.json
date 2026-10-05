@@ -935,7 +935,7 @@
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde cuenta propia",
-            "etaInstant": "Los depósitos suelen llegar en minutos."
+            "etaInstant": "Normalmente en minutos"
         },
         "pix": {
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
@@ -1855,6 +1855,7 @@
     },
     "provider": {
         "relationship": "Tenés una relación directa con {brand} bajo sus términos.",
+        "relationshipProspective": "Cuando aceptes, tu relación va a ser directamente con {brand}, bajo sus términos.",
         "cardSheetIntro": "{brand} emite tu tarjeta Peanut. Tenés una relación directa con ellos bajo los términos de la tarjeta."
     }
 }

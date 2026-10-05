@@ -1815,7 +1815,7 @@
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
-            "etaInstant": "Os depósitos costumam chegar em minutos."
+            "etaInstant": "Normalmente em minutos"
         },
         "processingDepositTitle": "Processando o depósito",
         "processingDepositBody": "Estamos confirmando seu depósito.",
@@ -4360,17 +4360,16 @@
         },
         "sheetIntro": "Quem presta este serviço é a {brand}, não o Peanut.",
         "relationship": "Você tem uma relação direta com a {brand}, nos termos dela.",
+        "relationshipProspective": "Ao aceitar, sua relação passa a ser diretamente com a {brand}, nos termos dela.",
         "cardSheetIntro": "A {brand} emite seu cartão Peanut. Você tem uma relação direta com ela, nos termos do cartão.",
         "field": {
             "legalName": "Razão social",
             "registeredOffice": "Sede",
             "registration": "Registro",
             "regulator": "Regulador",
-            "role": "O que faz",
             "terms": "Termos",
             "privacy": "Política de privacidade",
             "identityCheck": "Verificação de identidade",
-            "peanut": "Peanut",
             "paidFrom": "Pago com"
         },
         "role": {
@@ -4380,10 +4379,11 @@
             "thirdNational": "Emite seu cartão Peanut",
             "sumsub": "Verifica sua identidade"
         },
-        "peanutValue": "Software de carteira autocustodial da Squirrel Labs Ltd. O Peanut nunca guarda seu dinheiro.",
+        "peanutValue": "O Peanut é um software de carteira autocustodial da Squirrel Labs Ltd e nunca guarda seu dinheiro.",
         "pooledAccount": "Conta do Peanut na Manteca",
         "about": "Sobre a {brand}",
         "note": "Provedor: {brand}",
-        "noteCardIssuer": "Emissor do cartão: {brand}"
+        "noteCardIssuer": "Emissor do cartão: {brand}",
+        "noteAccountProvider": "Provedor da conta: {brand}"
     }
 }

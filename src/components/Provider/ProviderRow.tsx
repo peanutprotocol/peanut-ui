@@ -15,6 +15,8 @@ interface ProviderRowProps {
     /** 'stacked' matches PaymentInfoRow cards; a card never mixes row shapes */
     variant?: 'inline' | 'stacked'
     pooledAccount?: boolean
+    /** shown before the user accepts the provider's terms: the relationship line speaks of it as ahead */
+    prospective?: boolean
     /** stacked only: PaymentInfoRow owns its own bottom border */
     hideBottomBorder?: boolean
 }
@@ -26,11 +28,19 @@ export const ProviderRow = ({
     nested,
     variant = 'inline',
     pooledAccount,
+    prospective,
     hideBottomBorder,
 }: ProviderRowProps) => {
     const t = useTranslations('provider')
     const brand = PROVIDERS[providerId].brand
-    const button = <ProviderInfoButton providerId={providerId} nested={nested} pooledAccount={pooledAccount} />
+    const button = (
+        <ProviderInfoButton
+            providerId={providerId}
+            nested={nested}
+            pooledAccount={pooledAccount}
+            prospective={prospective}
+        />
+    )
 
     if (variant === 'stacked') {
         return (

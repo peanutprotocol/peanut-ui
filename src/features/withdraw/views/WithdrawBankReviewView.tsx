@@ -267,19 +267,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Card>
             )}
 
-            {payoutNoteKey && (
-                <p className="text-body-xs text-foreground-secondary">
-                    {t(`bank.${payoutNoteKey}`)}
-                    {/* The default reference carries the user's name, and a
-                        reference they type replaces it. Say so only while they
-                        have typed none — after that the note above is the whole
-                        story. */}
-                    {payoutDefaultReferenceNoteKey && !reference.trim() && (
-                        <> {t(`bank.${payoutDefaultReferenceNoteKey}`)}</>
-                    )}
-                </p>
-            )}
-
             {referenceSpec && (
                 <Field
                     label={t('bank.reference')}
@@ -290,6 +277,13 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             {/* The rail rewrites the text on some rails — the
                                 receipt is where the user reads the final value. */}
                             {referenceSpec.rewrittenKey && <> {t(`bank.${referenceSpec.rewrittenKey}`)}</>}
+                            {/* every rail with a payout note also takes a reference, so the
+                                note rides in this helper. the default-reference sentence
+                                holds only while the user has typed none. */}
+                            {payoutNoteKey && <> {t(`bank.${payoutNoteKey}`)}</>}
+                            {payoutNoteKey && payoutDefaultReferenceNoteKey && !reference.trim() && (
+                                <> {t(`bank.${payoutDefaultReferenceNoteKey}`)}</>
+                            )}
                         </>
                     }
                     // After a failed submit there is nothing left to finish
