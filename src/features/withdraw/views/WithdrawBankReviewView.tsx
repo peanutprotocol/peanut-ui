@@ -72,9 +72,9 @@ interface WithdrawBankReviewViewProps {
     onRetryQuote?: () => void
     /** Set when the provider refused the saved account for good: add it again replaces Retry. */
     onAddBankAccountAgain?: () => void
-    /** USD only: same-day ACH or wire, the fee and what the bank receives. */
     /** The Bridge entity that makes the payout, named as the card's last row. */
     providerId: ProviderId
+    /** USD only: same-day ACH or wire, the fee and what the bank receives. */
     usdSpeed?: {
         options: UsdPayoutSpeedOption[]
         selected: UsdPayoutSpeed
