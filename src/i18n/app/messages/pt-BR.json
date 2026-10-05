@@ -988,7 +988,6 @@
             "emailLabel": "Notificações por e-mail",
             "emailDescription": "Novidades na sua caixa de entrada.",
             "continue": "Continuar",
-            "permissionHint": "Se o push estiver ativado, seu dispositivo pedirá permissão para enviar notificações.",
             "pushUnavailable": "As notificações push ainda não estão prontas. Tente novamente ou desative o push para continuar.",
             "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
         }

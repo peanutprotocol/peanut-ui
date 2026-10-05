@@ -988,7 +988,6 @@
             "emailLabel": "Email notifications",
             "emailDescription": "Updates delivered to your inbox.",
             "continue": "Continue",
-            "permissionHint": "If push is on, your device will ask you to allow notifications.",
             "pushUnavailable": "Push notifications aren’t ready yet. Try again, or turn push off to continue.",
             "saveFailed": "We couldn’t save your settings. Please try again."
         }

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 const loaders = {
     username: () => import('@/assets/onboarding/username-at.json'),
     card: () => import('@/assets/onboarding/card.json'),
-    bank: () => import('@/assets/onboarding/bank.json'),
+    bank: () => import('@/assets/illustrations/lottie/account-details.json'),
     fees: () => import('@/assets/illustrations/lottie/receipt.json'),
     security: () => import('@/assets/onboarding/security.json'),
     documents: () => import('@/assets/onboarding/documents.json'),
@@ -47,7 +47,7 @@ export default function OnboardingAnimation({
                     animationData: data.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
-                if (name === 'fees' || name === 'email') animation.setSpeed(0.5)
+                if (name === 'fees' || name === 'email' || name === 'bank') animation.setSpeed(0.5)
                 animation.addEventListener('DOMLoaded', () => {
                     setReady(true)
                     play()

@@ -68,9 +68,7 @@ export default function NotificationsStep() {
                         {t('continue')}
                     </Button>
                 }
-            >
-                <p className="text-body-xs text-foreground-secondary">{t('permissionHint')}</p>
-            </SetupFooter>
+            />
         </div>
     )
 }
