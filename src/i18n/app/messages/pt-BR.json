@@ -739,15 +739,15 @@
             },
             "advantage-card": {
                 "title": "Um cartão rosa para o seu dia a dia.",
-                "description": "Use seu saldo da Peanut online e em lojas. Disponível após verificar sua identidade, em países compatíveis."
+                "description": "Use seu saldo da Peanut online e em lojas."
             },
             "advantage-bank": {
                 "title": "Contas bancárias que viajam com você.",
-                "description": "Receba transferências bancárias em dólares e euros e use seu saldo com a Peanut. Disponível após verificar sua identidade, onde houver suporte."
+                "description": "Receba transferências bancárias em várias moedas e use seu saldo com a Peanut."
             },
             "advantage-fees": {
                 "title": "Diga adeus às mensalidades.",
-                "description": "Mantenha sua conta da Peanut sem mensalidade. Confira qualquer tarifa de pagamento ou serviço antes de confirmar."
+                "description": "Mantenha sua conta da Peanut sem mensalidade. Você controla cada pagamento, com todas as tarifas claramente indicadas antes de confirmar."
             },
             "notification-email": {
                 "title": "Adicione seu e-mail",

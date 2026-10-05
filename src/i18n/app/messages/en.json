@@ -739,15 +739,15 @@
             },
             "advantage-card": {
                 "title": "A pink card for your everyday.",
-                "description": "Spend your Peanut balance online and in stores. Available after an ID check, in supported countries."
+                "description": "Spend your Peanut balance online and in stores."
             },
             "advantage-bank": {
                 "title": "Bank accounts that travel with you.",
-                "description": "Receive bank transfers in dollars and euros, then use your balance with Peanut. Available after an ID check, where supported."
+                "description": "Receive bank transfers in multiple currencies, then use your balance with Peanut."
             },
             "advantage-fees": {
                 "title": "Say goodbye to monthly fees.",
-                "description": "No monthly fee to keep your Peanut account. See any payment or service fees before you confirm."
+                "description": "No monthly fee to keep your Peanut account. You’re in control of every payment, with all fees clearly shown before you confirm."
             },
             "notification-email": {
                 "title": "Please add your email",
