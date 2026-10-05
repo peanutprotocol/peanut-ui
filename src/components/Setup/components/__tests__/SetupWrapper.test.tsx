@@ -12,6 +12,8 @@ const mockReducedMotion = { value: true }
 const mockCapacitor = { value: false }
 const mockSetBackgroundColor = jest.fn()
 
+jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
+
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/utils/capacitor', () => ({
@@ -187,7 +189,7 @@ describe('SetupWrapper transitions', () => {
         mockCapacitor.value = true
         mockReducedMotion.value = false
         mockSetBackgroundColor.mockClear()
-        document.documentElement.style.setProperty('--color-background-setup-hero', '#90a8ed')
+        document.documentElement.style.setProperty('--color-background-setup-hero', '#d8e7ff')
         document.documentElement.style.setProperty('--color-action-primary', '#ff90e8')
         try {
             const { rerender } = renderWithIntl(
@@ -205,7 +207,7 @@ describe('SetupWrapper transitions', () => {
                 jest.advanceTimersByTime(220)
                 await Promise.resolve()
             })
-            expect(mockSetBackgroundColor).toHaveBeenCalledWith({ color: '#90a8ed' })
+            expect(mockSetBackgroundColor).toHaveBeenCalledWith({ color: '#d8e7ff' })
 
             rerender(
                 <SetupWrapper
@@ -222,7 +224,7 @@ describe('SetupWrapper transitions', () => {
                 jest.advanceTimersByTime(220)
                 await Promise.resolve()
             })
-            expect(mockSetBackgroundColor).toHaveBeenLastCalledWith({ color: '#90a8ed' })
+            expect(mockSetBackgroundColor).toHaveBeenLastCalledWith({ color: '#d8e7ff' })
         } finally {
             mockCapacitor.value = false
             mockReducedMotion.value = true
@@ -303,18 +305,18 @@ describe('SetupWrapper transitions', () => {
         )
     })
 
-    it('keeps white progress dots above the mascot and updates the active step', () => {
+    it('keeps contrasting progress dots above the mascot and updates the active step', () => {
         const { rerender } = renderWithIntl(
             <SetupWrapper layoutType="signup" screenId="signup" step={2} totalSteps={6} image={{ pose: 'thinking' }}>
                 <div>Sign up</div>
             </SetupWrapper>
         )
         const dots = screen.getByRole('group', { name: 'Step 3 of 6' })
-        expect(dots).toHaveClass('absolute', 'top-8', 'z-20')
+        expect(dots.parentElement?.parentElement).toHaveClass('absolute', 'top-4', 'z-20')
         expect(dots.closest('.setup-hero-background')).toContainElement(screen.getByTestId('mascot'))
         expect(dots.children).toHaveLength(6)
-        expect(dots.children[2]).toHaveClass('w-6', 'bg-white')
-        expect(dots.children[3]).toHaveClass('bg-white/60')
+        expect(dots.children[2]).toHaveClass('w-6', 'bg-border-default')
+        expect(dots.children[3]).toHaveClass('bg-border-subtle')
 
         rerender(
             <SetupWrapper
@@ -328,8 +330,8 @@ describe('SetupWrapper transitions', () => {
             </SetupWrapper>
         )
         expect(screen.getByRole('group', { name: 'Step 4 of 6' })).toBe(dots)
-        expect(dots.children[2]).toHaveClass('bg-white/60')
-        expect(dots.children[3]).toHaveClass('w-6', 'bg-white')
+        expect(dots.children[2]).toHaveClass('bg-border-subtle')
+        expect(dots.children[3]).toHaveClass('w-6', 'bg-border-default')
     })
 
     it('keeps the hero and panel mounted while sliding the mascot and step content forward', () => {

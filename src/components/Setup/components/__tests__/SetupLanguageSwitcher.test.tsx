@@ -4,7 +4,11 @@ import { renderWithIntl } from '@/test-utils/intl'
 import { AppLocaleContext } from '@/i18n/app/locale-context'
 import { SetupLanguageSwitcher } from '../SetupLanguageSwitcher'
 
-it('offers every app language and applies the selected locale', () => {
+beforeAll(() => {
+    Element.prototype.scrollIntoView = jest.fn()
+})
+
+it('shows a short language name and applies the selected locale', async () => {
     const setLocale = jest.fn(async () => {})
     renderWithIntl(
         <AppLocaleContext.Provider value={{ locale: 'en', setLocale }}>
@@ -13,12 +17,14 @@ it('offers every app language and applies the selected locale', () => {
     )
 
     const selector = screen.getByRole('combobox', { name: 'Language' })
-    expect(screen.getAllByRole('option').map((option) => option.getAttribute('value'))).toEqual([
-        'en',
-        'es-419',
-        'es-AR',
-        'pt-BR',
+    expect(selector).toHaveTextContent('EN')
+    fireEvent.keyDown(selector, { key: 'ArrowDown' })
+    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual([
+        'English',
+        'Español',
+        'Español (Argentina)',
+        'Português (Brasil)',
     ])
-    fireEvent.change(selector, { target: { value: 'es-AR' } })
+    fireEvent.click(screen.getByRole('option', { name: 'Español (Argentina)' }))
     expect(setLocale).toHaveBeenCalledWith('es-AR')
 })

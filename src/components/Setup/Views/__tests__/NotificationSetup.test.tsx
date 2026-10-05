@@ -53,14 +53,14 @@ it('requires and saves a valid trimmed email before advancing', async () => {
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
     expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'new-user', email: 'money@example.com' })
 })
-it('keeps the entered email and stays on the screen if saving fails', async () => {
+it('keeps the entered email and advances silently if saving fails', async () => {
     mockUpdateUser.mockResolvedValueOnce({ error: 'failed' })
     renderStep(<EmailStep />)
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText('We couldn’t save your email. Please try again.')
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText('We couldn’t save your email. Please try again.')).not.toBeInTheDocument()
     expect(screen.getByRole('textbox')).toHaveValue('money@example.com')
-    expect(mockNext).not.toHaveBeenCalled()
 })
 it('defaults both channels on and continues after OS denial', async () => {
     renderStep(<NotificationsStep />)
@@ -79,23 +79,38 @@ it('saves both off without opening the system prompt', async () => {
     expect(mockSave).toHaveBeenCalledWith({ push: false, email: false })
     expect(mockPermission).not.toHaveBeenCalled()
 })
-it('does not prompt or advance after a settings save failure, and retries safely', async () => {
+it('continues and requests enabled push silently after a settings save failure', async () => {
     mockSave.mockRejectedValueOnce(new Error('network'))
     renderStep(<NotificationsStep />)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText('We couldn’t save your settings. Please try again.')
-    expect(mockNext).not.toHaveBeenCalled()
-    expect(mockPermission).not.toHaveBeenCalled()
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockPermission).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('We couldn’t save your settings. Please try again.')).not.toBeInTheDocument()
+})
+it('continues while the preferences backend never responds', async () => {
+    mockSave.mockReturnValueOnce(new Promise(() => {}))
+    renderStep(<NotificationsStep />)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
-it('does not silently skip an enabled push request while the SDK is unavailable', async () => {
+it('continues silently when the push SDK is unavailable', async () => {
     mockReady = false
     renderStep(<NotificationsStep />)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText('Push notifications aren’t ready yet. Try again, or turn push off to continue.')
-    expect(mockNext).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('switch', { name: 'App push notifications' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockPermission).not.toHaveBeenCalled()
+    expect(screen.queryByText(/aren’t ready yet/)).not.toBeInTheDocument()
+})
+it('continues silently if the push SDK rejects its permission request', async () => {
+    mockPermission.mockRejectedValueOnce(new Error('SDK unavailable'))
+    renderStep(<NotificationsStep />)
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+})
+it('keeps email validation local even if the backend never responds', async () => {
+    mockUpdateUser.mockReturnValueOnce(new Promise(() => {}))
+    renderStep(<EmailStep />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })

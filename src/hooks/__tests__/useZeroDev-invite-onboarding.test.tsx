@@ -118,6 +118,8 @@ jest.mock('@/utils/webauthn.utils', () => ({
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
+jest.mock('@/utils/deferred-link', () => ({ restoreDeferredContext: jest.fn(async () => {}) }))
+
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockAndroidNative,
     isAndroidNative: () => mockAndroidNative,

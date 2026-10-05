@@ -6,7 +6,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -18,28 +17,23 @@ export default function NotificationsStep() {
     const { handleNext } = useSetupFlow()
     const { requestPermission, afterPermissionAttempt, oneSignalInitialized } = useNotifications()
     const [saving, setSaving] = useState(false)
-    const [error, setError] = useState<string>()
     const savingRef = useRef(false)
     const save = async () => {
         if (savingRef.current) return
         savingRef.current = true
         setSaving(true)
-        setError(undefined)
+        // Preferences are best-effort: an unavailable backend must not hold
+        // the signup flow, even when its request never settles.
+        void notificationsApi.savePreferences(notificationChoices).catch(() => {})
         try {
-            await notificationsApi.savePreferences(notificationChoices)
-            if (notificationChoices.push) {
-                if (!oneSignalInitialized) {
-                    setError(t('pushUnavailable'))
-                    return
-                }
-                // Ask only after the explanation, on the user's Continue action.
-                // Denial or dismissal is a valid answer and never blocks signup.
-                await requestPermission()
-                await afterPermissionAttempt()
+            if (notificationChoices.push && oneSignalInitialized) {
+                // Ask on Continue. SDK errors and OS denial also allow signup.
+                try {
+                    await requestPermission()
+                    await afterPermissionAttempt()
+                } catch {}
             }
             await handleNext()
-        } catch {
-            setError(t('saveFailed'))
         } finally {
             savingRef.current = false
             setSaving(false)
@@ -58,7 +52,6 @@ export default function NotificationsStep() {
                                 checked={notificationChoices[channel]}
                                 onChange={(value) => {
                                     setNotificationChoices({ ...notificationChoices, [channel]: value })
-                                    setError(undefined)
                                 }}
                                 disabled={saving}
                             />
@@ -66,7 +59,6 @@ export default function NotificationsStep() {
                     />
                 ))}
             </Card>
-            {error && <Callout priority="error">{error}</Callout>}
             <Button onClick={save} shadowSize="4" loading={saving} disabled={saving}>
                 {t('continue')}
             </Button>

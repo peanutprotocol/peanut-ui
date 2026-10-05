@@ -8,11 +8,13 @@ const loaders = {
     bank: () => import('@/assets/onboarding/bank.json'),
     fees: () => import('@/assets/onboarding/fees.json'),
     security: () => import('@/assets/onboarding/security.json'),
+    documents: () => import('@/assets/onboarding/documents.json'),
+    email: () => import('@/assets/onboarding/email.json'),
     notifications: () => import('@/assets/onboarding/notifications.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
 
-/** Vector exports from mono/projects/onboarding-animations (onboarding lab). */
+/** Onboarding lab vectors plus the matching documents and email illustrations. */
 export default function OnboardingAnimation({ name }: { name: OnboardingAnimationName }) {
     const container = useRef<HTMLDivElement>(null)
     const [ready, setReady] = useState(false)
@@ -59,7 +61,7 @@ export default function OnboardingAnimation({ name }: { name: OnboardingAnimatio
             aria-hidden="true"
             data-onboarding-animation={name}
             data-lottie-ready={ready}
-            className="aspect-square h-full max-h-[95%] w-full max-w-md"
+            className="aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]"
         />
     )
 }

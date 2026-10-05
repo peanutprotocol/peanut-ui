@@ -51,7 +51,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'residence',
         layoutType: 'signup',
-        image: { pose: 'waving-hello' },
+        image: { animation: 'documents' },
         component: ResidenceStep,
         showBackButton: true,
         showSkipButton: false,
@@ -100,7 +100,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'notification-email',
         layoutType: 'signup',
-        image: { scene: 'paper-planes' },
+        image: { animation: 'email' },
         component: EmailStep,
         showBackButton: false,
         showSkipButton: false,
@@ -111,7 +111,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         image: { animation: 'notifications' },
         component: NotificationsStep,
-        // The email has been saved; later mailbox changes use Profile verification.
+        // Later mailbox changes use Profile verification.
         showBackButton: false,
         showSkipButton: false,
         contentClassName: 'flex flex-col gap-6 pt-2 md:justify-center',

@@ -832,7 +832,15 @@
                     "eurSepa": "transferencias bancarias en euros",
                     "gbpFps": "transferencias bancarias en libras esterlinas"
                 },
-                "continue": "Continuar"
+                "continue": "Continuar",
+                "checklist": {
+                    "intro": "Esto es lo que puedes usar con Peanut.",
+                    "dollars": "Dólares digitales",
+                    "ready": "Listo para usar. Sin verificar tu identidad.",
+                    "banking": "Cuentas y transferencias bancarias",
+                    "unlockRails": "Una verificación rápida de identidad habilita {rails}.",
+                    "applyCard": "Solicita tu tarjeta después de verificar tu identidad."
+                }
             },
             "restricted": {
                 "title": "Atención",

@@ -6,7 +6,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
-import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import { Card, CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -244,47 +245,70 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     }, [restrictionSets, view, residenceCountry, secondResidenceCountry])
 
     if (view === 'congrats') {
-        /* One paragraph, gates kept honest: dollars and @username sends need
-           no ID check; the bank rail unlocks with verification. The card IS
-           named here as of 2026-09-05 (slava's call, reversing the earlier
-           product direction that kept it unnamed in onboarding), and the
-           clause describes the identity verification needed to apply.
-
-           The clause carries no country framing, which is what Rain's
-           §7 forbids (content/_system/guidelines/partners/rain/marketing-compliance.md:
-           acceptance framing only, never availability or issuance keyed to a
-           place). Naming the card at all is still gated on the restriction
-           sets — a residence Rain prohibits, or GB, never reaches this branch.
-
-           The gate itself reads the KYC-time residence geo
-           (product/card.md), not the residence declared here, so a
-           declaration that does not survive verification can still be
-           refused later — which is why this sentence promises a process, not
-           an entitlement.
-
-           The rail phrase comes from the same per-country map the compare cards render and is
-           named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
-           the rest of the world the map falls back to 'bank', which here means
-           blockchain-only — so the ID-check clause is dropped entirely rather
-           than promising a rail verification cannot deliver. */
         const availability = residenceAvailability(restrictionSets, residenceCountry)
-        const railItem = availability.available.find((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
-        // Read off the same restriction sets the compare cards use rather than
-        // trusting that reaching this view implies an unrestricted card: a
-        // routing change upstream must not turn this into a false claim.
-        const hasCard = availability.available.includes('card')
+        const rails = availability.available.filter((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
+        const features: { icon: IconName; title: string; description: string }[] = [
+            {
+                icon: 'dollar',
+                title: t('residenceStep.congrats.checklist.dollars'),
+                description: t('residenceStep.congrats.checklist.ready'),
+            },
+            {
+                icon: 'users',
+                title: t('residenceStep.compare.items.p2p'),
+                description: t('residenceStep.congrats.checklist.ready'),
+            },
+            ...(rails.length
+                ? [
+                      {
+                          icon: 'bank' as const,
+                          title: t('residenceStep.congrats.checklist.banking'),
+                          description: t('residenceStep.congrats.checklist.unlockRails', {
+                              rails: new Intl.ListFormat(locale).format(
+                                  rails.map((rail) => t(`residenceStep.congrats.rails.${rail}`))
+                              ),
+                          }),
+                      },
+                  ]
+                : []),
+            ...(availability.available.includes('card')
+                ? [
+                      {
+                          icon: 'credit-card' as const,
+                          title: t('residenceStep.compare.items.card'),
+                          description: t('residenceStep.congrats.checklist.applyCard'),
+                      },
+                  ]
+                : []),
+        ]
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="w-full text-left text-heading-s">{t('residenceStep.congrats.title')}</h1>
-                    <p className="text-body-m text-foreground-secondary">
-                        {railItem
-                            ? t('residenceStep.congrats.description', {
-                                  rail: t(`residenceStep.congrats.rails.${railItem}`),
-                              })
-                            : t('residenceStep.congrats.descriptionNoRail')}
-                        {hasCard && ` ${t('residenceStep.congrats.cardClause')}`}
+                    <p className="text-body-s text-foreground-secondary">
+                        {t('residenceStep.congrats.checklist.intro')}
                     </p>
+                    <Card className="mt-2 divide-y divide-border-default">
+                        <ul role="list" className="divide-y divide-border-default">
+                            {features.map((feature) => (
+                                <li key={feature.title} className="flex items-center gap-3 px-4 py-3">
+                                    <Icon name={feature.icon} size={24} className="shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-label-m">{feature.title}</p>
+                                        <p className="mt-1 text-body-xs text-foreground-secondary">
+                                            {feature.description}
+                                        </p>
+                                    </div>
+                                    <span
+                                        aria-hidden="true"
+                                        className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-action-primary"
+                                    >
+                                        <Icon name="check" size={16} />
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </Card>
                 </div>
                 <div className="flex w-full flex-col gap-4">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>

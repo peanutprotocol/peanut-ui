@@ -1,4 +1,5 @@
 import OnboardingAnimation from './OnboardingAnimation'
+import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
@@ -7,7 +8,6 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
-import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
@@ -260,7 +260,7 @@ const ImageSection = ({
                 pose={image.pose}
                 alt={t('illustrationAlt')}
                 className={twMerge(
-                    imageClassName || MASCOT_HERO_CLASS,
+                    imageClassName || 'relative h-full max-w-full',
                     // The wide landing pose reads much larger horizontally. Scale
                     // only this first appearance down by 20%.
                     screenId === 'landing' && 'scale-[0.8]'
@@ -301,7 +301,7 @@ const ImageSection = ({
                 animate="center"
                 exit="exit"
                 transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
-                className="absolute inset-0 flex items-center justify-center"
+                className="absolute inset-x-0 top-16 bottom-2 flex items-center justify-center md:top-20 md:bottom-8"
             >
                 {illustration}
             </motion.div>
@@ -318,29 +318,47 @@ const ImageSection = ({
                 )}
             >
                 {/* render animated star decorations */}
-                {STAR_POSITIONS.map((positions, index) => (
-                    <Image
-                        key={index}
-                        src={starImage.src}
-                        alt={t('starAlt')}
-                        width={56}
-                        height={56}
-                        className={twMerge(positions, 'absolute z-10')}
-                        priority={index === 0}
-                    />
-                ))}
+                {screenId === 'landing' &&
+                    STAR_POSITIONS.map((positions, index) => (
+                        <Image
+                            key={index}
+                            src={starImage.src}
+                            alt={t('starAlt')}
+                            width={56}
+                            height={56}
+                            className={twMerge(positions, 'absolute z-10')}
+                            priority={index === 0}
+                        />
+                    ))}
                 {/* Keep clouds on the landing screen so later illustrations stay clear. */}
                 {screenId === 'landing' && <CloudsBackground minimal />}
                 {animatedIllustration}
-                {step !== undefined && totalSteps !== undefined && totalSteps > 0 && step >= 0 && step < totalSteps && (
-                    <CarouselDots
-                        count={totalSteps}
-                        activeIndex={step}
-                        variant="white"
-                        className="pointer-events-none absolute top-8 left-1/2 z-20 -translate-x-1/2"
-                        aria-label={t('stepIndicator', { current: step + 1, total: totalSteps })}
-                    />
-                )}
+                <div
+                    className={twMerge(
+                        'pointer-events-none absolute inset-x-0 top-4 z-20 flex h-11 items-center gap-3 px-4 md:top-8 md:px-6',
+                        screenId === 'sign-test-transaction' && 'pr-16 md:pr-16'
+                    )}
+                >
+                    <div className="w-9 shrink-0" aria-hidden="true" />
+                    <div className="flex min-w-0 flex-1 justify-center">
+                        {step !== undefined &&
+                            totalSteps !== undefined &&
+                            totalSteps > 0 &&
+                            step >= 0 &&
+                            step < totalSteps && (
+                                <CarouselDots
+                                    count={totalSteps}
+                                    activeIndex={step}
+                                    className={twMerge(
+                                        'pointer-events-none gap-1',
+                                        screenId === 'sign-test-transaction' && 'gap-0.5'
+                                    )}
+                                    aria-label={t('stepIndicator', { current: step + 1, total: totalSteps })}
+                                />
+                            )}
+                    </div>
+                    <SetupLanguageSwitcher />
+                </div>
             </div>
         )
     }

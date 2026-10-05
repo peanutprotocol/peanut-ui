@@ -20,7 +20,6 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { SetupLanguageSwitcher } from '@/components/Setup/components/SetupLanguageSwitcher'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
@@ -106,7 +105,6 @@ const LandingStep = () => {
                     {t('landing.recoverWallet')}
                 </SetupDocLink>
             </div>
-            <SetupLanguageSwitcher />
         </div>
     )
 }

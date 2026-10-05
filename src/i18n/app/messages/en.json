@@ -832,7 +832,15 @@
                     "eurSepa": "Euro bank transfers",
                     "gbpFps": "British pound bank transfers"
                 },
-                "continue": "Continue"
+                "continue": "Continue",
+                "checklist": {
+                    "intro": "Here’s what you can use with Peanut.",
+                    "dollars": "Digital dollars",
+                    "ready": "Ready to use. No ID check needed.",
+                    "banking": "Bank accounts & transfers",
+                    "unlockRails": "A quick ID check unlocks {rails}.",
+                    "applyCard": "Apply after verifying your identity."
+                }
             },
             "restricted": {
                 "title": "Heads up",

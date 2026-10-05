@@ -226,8 +226,9 @@ describe('ResidenceStep', () => {
         // gates stay separated in prose: no-ID features first, the bank rail
         // behind the ID check (named per country), then the card application
         // behind verification. The retired virtual-card queue is absent.
-        expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.getByText(/apply for a Peanut Card/)).toBeInTheDocument()
+        expect(screen.getByText(/A quick ID check unlocks PIX transfers/)).toBeInTheDocument()
+        expect(screen.getAllByRole('listitem')).toHaveLength(4)
+        expect(screen.getByText('Peanut card')).toBeInTheDocument()
         expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
         // Rain §7 bans availability framing keyed to a place — no country here
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
@@ -244,7 +245,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         // the rail clause disappears; the card clause is self-contained, so the
         // same string serves both branches
-        expect(screen.getByText(/work right away\./)).toBeInTheDocument()
+        expect(screen.getAllByText('Ready to use. No ID check needed.')).toHaveLength(2)
         expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()

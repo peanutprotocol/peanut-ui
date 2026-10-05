@@ -506,7 +506,15 @@
             "congrats": {
                 "description": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}.",
                 "descriptionNoRail": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
-                "cardClause": "También podés solicitar una tarjeta Peanut después de verificar tu identidad."
+                "cardClause": "También podés solicitar una tarjeta Peanut después de verificar tu identidad.",
+                "checklist": {
+                    "intro": "Esto es lo que podés usar con Peanut.",
+                    "dollars": "Dólares digitales",
+                    "ready": "Listo para usar. Sin verificar tu identidad.",
+                    "banking": "Cuentas y transferencias bancarias",
+                    "unlockRails": "Una verificación rápida de identidad habilita {rails}.",
+                    "applyCard": "Pedí tu tarjeta después de verificar tu identidad."
+                }
             },
             "restricted": {
                 "title": "Atención",
