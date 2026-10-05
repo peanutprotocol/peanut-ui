@@ -79,7 +79,7 @@ export const UnlockChecklistStep = ({
 
     const answers: Array<{ id: IdDocumentAnswer; label: string }> = [
         { id: 'local', label: t(`idLocal.${variant}`, { country }) },
-        { id: 'passport', label: t('idPassport') },
+        { id: 'foreign', label: t('idForeign') },
     ]
 
     const rowTitle = (key: KycIntentKey) =>
@@ -140,13 +140,13 @@ export const UnlockChecklistStep = ({
                         )
                     })}
                 </div>
-                {checklist.document === 'passport' && (
+                {checklist.document === 'foreign' && (
                     <CountryCombobox
                         options={countryOptions}
-                        placeholder={t('passportCountryPlaceholder')}
-                        aria-label={t('passportCountryPlaceholder')}
-                        value={checklist.passportCountry}
-                        onValueChange={checklist.setPassportCountry}
+                        placeholder={t('foreignIdCountryPlaceholder')}
+                        aria-label={t('foreignIdCountryPlaceholder')}
+                        value={checklist.foreignIdCountry}
+                        onValueChange={checklist.setForeignIdCountry}
                     />
                 )}
             </div>

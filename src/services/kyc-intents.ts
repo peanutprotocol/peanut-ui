@@ -24,9 +24,9 @@ export const kycIntentsApi = {
         const params = new URLSearchParams({ residence })
         if (idCountry) params.set('idCountry', idCountry)
         // Public config: no auth, so it must not queue behind token hydration.
-        // The URL names the passport country, which stays out of telemetry:
-        // a failed request would otherwise report the raw URL to Sentry and
-        // its PostHog mirror.
+        // The URL names the issuing country of a foreign ID, which stays out of
+        // telemetry: a failed request would otherwise report the raw URL to
+        // Sentry and its PostHog mirror.
         const response = await apiFetch(`/config/kyc-intents?${params.toString()}`, {
             includeAuth: false,
             redactTelemetry: true,

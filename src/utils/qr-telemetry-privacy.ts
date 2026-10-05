@@ -32,12 +32,13 @@ export function redactQrTelemetryString(value: string): string {
 }
 
 /*
- * The unlock checklist's config request names the passport country in its
- * query (GET /config/kyc-intents?idCountry=, TASK-23329). That is a nationality
- * signal tied to an identified user, so its value is dropped wherever a URL
- * lands in telemetry. It lives here because fetch breadcrumbs, tracing spans,
- * the PostHog mirror and replay network capture all pass through this one
- * walk. The parameter name stays, so the request is still recognisable.
+ * The unlock checklist's config request names the issuing country of a foreign
+ * ID in its query (GET /config/kyc-intents?idCountry=, TASK-23329). That is a
+ * nationality signal tied to an identified user, so its value is dropped
+ * wherever a URL lands in telemetry. It lives here because fetch breadcrumbs,
+ * tracing spans, the PostHog mirror and replay network capture all pass
+ * through this one walk. The parameter name stays, so the request is still
+ * recognisable.
  */
 const DOCUMENT_COUNTRY_QUERY = /([?&]idCountry=)[^&#\s"']*/g
 export function redactDocumentCountry(value: string): string {

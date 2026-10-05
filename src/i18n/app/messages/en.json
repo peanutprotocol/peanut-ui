@@ -2846,8 +2846,8 @@
                 "BR": "Brazilian ID (RG or CNH)",
                 "default": "ID issued by {country}"
             },
-            "idPassport": "Passport from another country",
-            "passportCountryPlaceholder": "Passport country",
+            "idForeign": "ID issued by another country",
+            "foreignIdCountryPlaceholder": "Issuing country",
             "rows": {
                 "qr": "QR payments",
                 "qrMethods": {

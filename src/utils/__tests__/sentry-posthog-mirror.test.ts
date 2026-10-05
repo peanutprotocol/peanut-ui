@@ -56,7 +56,7 @@ it('redacts QR copies before the Sentry event reaches the PostHog integration', 
 
 // TASK-23329: the mirror runs before beforeSend, so the fetch breadcrumb of the
 // unlock checklist's config request must already be scrubbed when it arrives.
-it('drops the passport country from fetch breadcrumbs before the event reaches the PostHog integration', () => {
+it('drops the issuing country of a foreign ID from fetch breadcrumbs before the event reaches the PostHog integration', () => {
     const inner = jest.fn((event) => event)
     mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
     const url = 'https://api.peanut.me/config/kyc-intents?residence=AR&idCountry=VE'

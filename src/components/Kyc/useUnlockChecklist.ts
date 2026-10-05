@@ -8,11 +8,11 @@ import { KYC_INTENTS } from '@/constants/query.consts'
 import { kycIntentsApi, type KycIntentKey, type KycIntentSet } from '@/services/kyc-intents'
 import { defaultIntentSet, isQrOnly, unlockRows } from './unlock-checklist.utils'
 
-/** The ID the user will show: one issued by the residence country, or a passport from another. */
-export type IdDocumentAnswer = 'local' | 'passport'
+/** The ID the user will show: one issued by the residence country, or one issued by another country. */
+export type IdDocumentAnswer = 'local' | 'foreign'
 
-// the document answer, never the country: a passport country is a nationality
-// signal, which is more than the privacy policy lists for analytics
+// the document answer, never the country: the issuing country of a foreign ID
+// is a nationality signal, which is more than the privacy policy lists for analytics
 const analyticsProps = (residence: string, document: IdDocumentAnswer, set: KycIntentSet) => ({
     residence,
     document,
@@ -30,13 +30,13 @@ const analyticsProps = (residence: string, document: IdDocumentAnswer, set: KycI
  */
 export function useUnlockChecklist(residence: string, onVerify: () => void) {
     const [document, setDocument] = useState<IdDocumentAnswer>('local')
-    const [passportCountry, setPassportCountry] = useState<string>()
-    // the country whose ID the rows are computed for; unset until a passport country is picked
-    const idCountry = document === 'local' ? residence : passportCountry
+    const [foreignIdCountry, setForeignIdCountry] = useState<string>()
+    // the country whose ID the rows are computed for; unset until the issuing country of a foreign ID is picked
+    const idCountry = document === 'local' ? residence : foreignIdCountry
 
     const config = useQuery({
         queryKey: [KYC_INTENTS, residence, idCountry],
-        queryFn: () => kycIntentsApi.getConfig(residence, document === 'passport' ? idCountry : undefined),
+        queryFn: () => kycIntentsApi.getConfig(residence, document === 'foreign' ? idCountry : undefined),
         enabled: !!idCountry,
         staleTime: 5 * 60 * 1000,
     })
@@ -72,8 +72,8 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
     return {
         document,
         setDocument,
-        passportCountry,
-        setPassportCountry,
+        foreignIdCountry,
+        setForeignIdCountry,
         rows,
         intents,
         toggle,

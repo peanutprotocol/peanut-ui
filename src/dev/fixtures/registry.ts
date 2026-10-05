@@ -1267,9 +1267,9 @@ export const FIXTURES: Record<string, Fixture> = {
     // form, for an Argentine resident whose document the bank and card
     // partners refuse (the answer for a Venezuelan passport): QR stays open,
     // the other rows say which ID would open them.
-    'one-shot-unlock-foreign-passport': {
+    'one-shot-unlock-foreign-id': {
         route: '/home',
-        about: 'One-shot onboarding from Home: a foreign passport in Argentina leaves QR open and names the ID the rest needs.',
+        about: 'One-shot onboarding from Home: in Argentina, an ID issued by another country leaves QR open and names the ID the rest needs.',
         // no balance: the demo balance opens the high-balance prompt over the checklist
         balance: '0',
         responses: {

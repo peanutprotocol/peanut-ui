@@ -2846,8 +2846,8 @@
                 "BR": "Documento brasileiro (RG ou CNH)",
                 "default": "Documento de identidade: {country}"
             },
-            "idPassport": "Passaporte de outro país",
-            "passportCountryPlaceholder": "País do passaporte",
+            "idForeign": "Documento emitido por outro país",
+            "foreignIdCountryPlaceholder": "País emissor",
             "rows": {
                 "qr": "Pagamentos QR",
                 "qrMethods": {

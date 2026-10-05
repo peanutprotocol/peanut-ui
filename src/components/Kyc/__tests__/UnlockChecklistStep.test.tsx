@@ -1,7 +1,7 @@
 /**
  * The unlock checklist on screen (TASK-23329): the rows the config answers,
- * every open row ticked, the ID answer re-querying with the passport country,
- * and Continue storing the ticked set before the SDK opens.
+ * every open row ticked, the ID answer re-querying with the issuing country of
+ * a foreign ID, and Continue storing the ticked set before the SDK opens.
  */
 /** @jest-environment jsdom */
 import React from 'react'
@@ -97,10 +97,10 @@ describe('UnlockChecklistStep', () => {
         )
     })
 
-    it('re-queries with the passport country and closes the rows that document cannot open', async () => {
+    it('re-queries with the issuing country of a foreign ID and closes the rows that ID cannot open', async () => {
         renderStep('AR')
         await screen.findAllByRole('switch')
-        fireEvent.click(screen.getByRole('radio', { name: 'Passport from another country' }))
+        fireEvent.click(screen.getByRole('radio', { name: 'ID issued by another country' }))
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Venezuela' } })
         fireEvent.click(await screen.findByRole('option', { name: 'Venezuela' }))
 

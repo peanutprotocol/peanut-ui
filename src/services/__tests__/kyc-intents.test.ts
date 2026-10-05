@@ -1,10 +1,10 @@
 /**
  * The two calls behind the unlock checklist (TASK-23329).
  *
- * The config URL carries the passport country, so the request opts out of URL
- * telemetry: a failed load would otherwise put that country in the Sentry
- * message and its PostHog mirror, which fetchWithSentry builds from the raw
- * URL. The redaction itself is pinned in utils/__tests__/sentry.utils.test.ts;
+ * The config URL carries the issuing country of a foreign ID, so the request
+ * opts out of URL telemetry: a failed load would otherwise put that country in
+ * the Sentry message and its PostHog mirror, which fetchWithSentry builds from
+ * the raw URL. The redaction itself is pinned in utils/__tests__/sentry.utils.test.ts;
  * this pins that the config call asks for it.
  */
 import { kycIntentsApi } from '@/services/kyc-intents'
@@ -33,7 +33,7 @@ describe('kycIntentsApi.getConfig', () => {
         })
     })
 
-    it('sends the passport country to the API and keeps the URL out of telemetry', async () => {
+    it('sends the issuing country of a foreign ID to the API and keeps the URL out of telemetry', async () => {
         mockApiFetch.mockResolvedValue(response(200, config))
         await kycIntentsApi.getConfig('AR', 'VE')
         expect(mockApiFetch).toHaveBeenCalledWith(

@@ -99,8 +99,8 @@ it('masks replay history URLs and drops bodies and headers before the custom cal
     })
 })
 
-// TASK-23329: GET /config/kyc-intents names the passport country in its query.
-describe('the passport country of the unlock checklist config request', () => {
+// TASK-23329: GET /config/kyc-intents names the issuing country of a foreign ID in its query.
+describe('the issuing country of a foreign ID in the unlock checklist config request', () => {
     const configUrl = 'https://api.peanut.me/config/kyc-intents?residence=AR&idCountry=VE'
     const scrubbed = 'https://api.peanut.me/config/kyc-intents?residence=AR&idCountry=[redacted]'
 
