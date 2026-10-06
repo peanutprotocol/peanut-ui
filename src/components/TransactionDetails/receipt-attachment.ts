@@ -107,7 +107,11 @@ export function canDeliverReceiptAttachment(): boolean {
     return !isNativeBridge() || (Capacitor.isPluginAvailable('Filesystem') && Capacitor.isPluginAvailable('Share'))
 }
 
-export async function deliverReceiptAttachment(file: ReceiptAttachment): Promise<void> {
+export async function deliverReceiptAttachment(file: ReceiptAttachment, signal: AbortSignal): Promise<void> {
+    const assertActive = () => {
+        if (signal.aborted) throw new DOMException('Attachment delivery cancelled', 'AbortError')
+    }
+    assertActive()
     if (!canDeliverReceiptAttachment()) throw new Error('An app update is required')
     if (!isNativeBridge()) {
         downloadBlob(new Blob([file.bytes], { type: file.mimeType }), `peanut-attachment.${file.extension}`)
@@ -117,6 +121,7 @@ export async function deliverReceiptAttachment(file: ReceiptAttachment): Promise
         import('@capacitor/filesystem'),
         import('@capacitor/share'),
     ])
+    assertActive()
     // the receiving app may read after the chooser resolves; keep recent files until the next cleanup.
     try {
         const { files } = await Filesystem.readdir({ path: CACHE_DIRECTORY, directory: Directory.Cache })
@@ -130,6 +135,7 @@ export async function deliverReceiptAttachment(file: ReceiptAttachment): Promise
     } catch {
         // the cache directory does not exist before the first download.
     }
+    assertActive()
     let binary = ''
     for (let offset = 0; offset < file.bytes.length; offset += 32_768)
         binary += String.fromCharCode(...file.bytes.subarray(offset, offset + 32_768))
@@ -137,17 +143,23 @@ export async function deliverReceiptAttachment(file: ReceiptAttachment): Promise
         byte.toString(16).padStart(2, '0')
     ).join('')
     const path = `${CACHE_DIRECTORY}/peanut-attachment-${id}.${file.extension}`
-    const { uri } = await Filesystem.writeFile({
-        path,
-        directory: Directory.Cache,
-        data: btoa(binary),
-        recursive: true,
-    })
     try {
+        const { uri } = await Filesystem.writeFile({
+            path,
+            directory: Directory.Cache,
+            data: btoa(binary),
+            recursive: true,
+        })
+        assertActive()
         await Share.share({ files: [uri] })
     } catch (error) {
         await Filesystem.deleteFile({ path, directory: Directory.Cache }).catch(() => {})
-        if (error instanceof Error && (error.message === 'Share canceled' || error.name === 'AbortError')) return
+        if (
+            !signal.aborted &&
+            error instanceof Error &&
+            (error.message === 'Share canceled' || error.name === 'AbortError')
+        )
+            return
         throw error
     }
 }

@@ -79,7 +79,7 @@ describe('verified attachment files', () => {
         const file = await fetchReceiptAttachment(url, signal())
         expect(file).toEqual({ bytes, mimeType: 'application/pdf', extension: 'pdf' })
         expect(fetch).toHaveBeenCalledWith(url, expect.objectContaining({ credentials: 'omit', redirect: 'error' }))
-        await deliverReceiptAttachment(file)
+        await deliverReceiptAttachment(file, signal())
         expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'peanut-attachment.pdf')
     })
 
@@ -88,7 +88,7 @@ describe('verified attachment files', () => {
         ;(isNativeBridge as jest.Mock).mockReturnValue(false)
         ;(Capacitor.isPluginAvailable as jest.Mock).mockReturnValue(false)
         expect(canDeliverReceiptAttachment()).toBe(true)
-        await deliverReceiptAttachment(await fetchReceiptAttachment(url, signal()))
+        await deliverReceiptAttachment(await fetchReceiptAttachment(url, signal()), signal())
         expect(fetch).toHaveBeenCalled()
         expect(downloadBlob).toHaveBeenCalled()
         expect(CapacitorHttp.request).not.toHaveBeenCalled()
@@ -141,7 +141,7 @@ describe('verified attachment files', () => {
             url,
         })
         const file = await fetchReceiptAttachment(url, signal())
-        await deliverReceiptAttachment(file)
+        await deliverReceiptAttachment(file, signal())
         expect(CapacitorHttp.request).toHaveBeenCalledWith(
             expect.objectContaining({ url, responseType: 'arraybuffer', disableRedirects: true })
         )
@@ -173,7 +173,7 @@ describe('verified attachment files', () => {
         ;(Capacitor.isPluginAvailable as jest.Mock).mockReturnValue(false)
         expect(canDeliverReceiptAttachment()).toBe(false)
         await expect(
-            deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' })
+            deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' }, signal())
         ).rejects.toThrow()
         expect(downloadBlob).not.toHaveBeenCalled()
         expect(Share.share).not.toHaveBeenCalled()
@@ -204,9 +204,34 @@ describe('verified attachment files', () => {
         ;(isNativeBridge as jest.Mock).mockReturnValue(true)
         ;(Share.share as jest.Mock).mockRejectedValue(new Error('Share canceled'))
         await expect(
-            deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' })
+            deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' }, signal())
         ).resolves.toBeUndefined()
         expect(Filesystem.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ directory: 'CACHE' }))
+    })
+
+    test('cancelling during a native file write deletes the file without opening the share sheet', async () => {
+        ;(isNativeBridge as jest.Mock).mockReturnValue(true)
+        const controller = new AbortController()
+        let finishWrite!: (result: { uri: string }) => void
+        let writeStarted!: () => void
+        const started = new Promise<void>((resolve) => (writeStarted = resolve))
+        ;(Filesystem.writeFile as jest.Mock).mockImplementation(() => {
+            writeStarted()
+            return new Promise((resolve) => (finishWrite = resolve))
+        })
+        const pending = deliverReceiptAttachment(
+            { bytes, mimeType: 'application/pdf', extension: 'pdf' },
+            controller.signal
+        )
+        await started
+        controller.abort()
+        finishWrite({ uri: 'file:///cache/attachment.pdf' })
+        await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+        expect(Share.share).not.toHaveBeenCalled()
+        expect(Filesystem.deleteFile).toHaveBeenCalledWith({
+            directory: 'CACHE',
+            path: (Filesystem.writeFile as jest.Mock).mock.calls[0][0].path,
+        })
     })
 
     test('only stale cached attachments are deleted before sharing', async () => {
@@ -217,7 +242,7 @@ describe('verified attachment files', () => {
                 { name: 'recent.pdf', type: 'file', mtime: Date.now() },
             ],
         })
-        await deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' })
+        await deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' }, signal())
         expect(Filesystem.deleteFile).toHaveBeenCalledTimes(1)
         expect(Filesystem.deleteFile).toHaveBeenCalledWith({ path: 'receipt-attachments/old.pdf', directory: 'CACHE' })
     })

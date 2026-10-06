@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
@@ -25,10 +25,18 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
     const [state, setState] = useState<AttachmentState>({ url, status: 'loading' })
     const [attempt, setAttempt] = useState(0)
     const [busy, setBusy] = useState(false)
-    const busyRef = useRef(false)
+    const deliveryController = useRef<AbortController | null>(null)
     const urlRef = useRef(url)
     urlRef.current = url
     const current = state.url === url ? state : { url, status: 'loading' as const }
+
+    useLayoutEffect(() => {
+        setBusy(false)
+        return () => {
+            deliveryController.current?.abort()
+            deliveryController.current = null
+        }
+    }, [url])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -49,17 +57,20 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
     }, [url, attempt])
 
     const download = async () => {
-        if (!current.file || busyRef.current) return
-        busyRef.current = true
+        if (!current.file || deliveryController.current) return
+        const controller = new AbortController()
+        deliveryController.current = controller
         setBusy(true)
         try {
-            await deliverReceiptAttachment(current.file)
-            if (urlRef.current === url) setState({ ...current, status: 'ready' })
+            await deliverReceiptAttachment(current.file, controller.signal)
+            if (!controller.signal.aborted && urlRef.current === url) setState({ ...current, status: 'ready' })
         } catch {
-            if (urlRef.current === url) setState({ ...current, status: 'error' })
+            if (!controller.signal.aborted && urlRef.current === url) setState({ ...current, status: 'error' })
         } finally {
-            busyRef.current = false
-            setBusy(false)
+            if (deliveryController.current === controller) {
+                deliveryController.current = null
+                if (!controller.signal.aborted) setBusy(false)
+            }
         }
     }
 

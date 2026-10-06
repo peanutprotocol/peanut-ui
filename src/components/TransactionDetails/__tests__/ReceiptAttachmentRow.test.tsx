@@ -28,7 +28,7 @@ test('offers Download only after the attachment bytes have been verified', async
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
     await act(async () => resolve(file))
     fireEvent.click(await screen.findByRole('button', { name: 'Download' }))
-    await waitFor(() => expect(deliverReceiptAttachment).toHaveBeenCalledWith(file))
+    await waitFor(() => expect(deliverReceiptAttachment).toHaveBeenCalledWith(file, expect.any(AbortSignal)))
     expect(fetchReceiptAttachment).toHaveBeenCalledTimes(1)
 })
 
@@ -76,6 +76,39 @@ test('two quick taps cannot launch two native share sheets', async () => {
     fireEvent.click(download)
     expect(deliverReceiptAttachment).toHaveBeenCalledTimes(1)
     expect(download).toBeDisabled()
+})
+
+test.each(['URL change', 'unmount'])('invalidates native delivery on %s', async (change) => {
+    let finishDelivery!: () => void
+    ;(deliverReceiptAttachment as jest.Mock).mockReturnValue(new Promise<void>((resolve) => (finishDelivery = resolve)))
+    const { rerender, unmount } = renderWithIntl(<ReceiptAttachmentRow url={url} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Download' }))
+    const deliverySignal = (deliverReceiptAttachment as jest.Mock).mock.calls[0][1]
+    if (change === 'unmount') unmount()
+    else rerender(<ReceiptAttachmentRow url={`${url}?version=2`} />)
+    expect(deliverySignal).toBeInstanceOf(AbortSignal)
+    expect(deliverySignal.aborted).toBe(true)
+    await act(async () => finishDelivery())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+})
+
+test('an old delivery completion cannot clear the new receipt download state', async () => {
+    let finishOld!: () => void
+    let finishNew!: () => void
+    ;(deliverReceiptAttachment as jest.Mock)
+        .mockReturnValueOnce(new Promise<void>((resolve) => (finishOld = resolve)))
+        .mockReturnValueOnce(new Promise<void>((resolve) => (finishNew = resolve)))
+    const { rerender } = renderWithIntl(<ReceiptAttachmentRow url={url} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Download' }))
+    rerender(<ReceiptAttachmentRow url={`${url}?version=2`} />)
+    const newDownload = await screen.findByRole('button', { name: 'Download' })
+    fireEvent.click(newDownload)
+    await act(async () => finishOld())
+    expect(newDownload).toBeDisabled()
+    fireEvent.click(newDownload)
+    expect(deliverReceiptAttachment).toHaveBeenCalledTimes(2)
+    await act(async () => finishNew())
+    expect(newDownload).toBeEnabled()
 })
 
 test('a delivery failure keeps the cached bytes available for retry', async () => {
