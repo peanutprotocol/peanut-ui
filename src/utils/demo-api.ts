@@ -13,6 +13,7 @@ import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_US
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import { EURC_ASSET } from '@/constants/currency-accounts.consts'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -417,6 +418,8 @@ let demoAvatarKey: string | null = null
 // demo state: applying for the card flips the overview to a PENDING
 // application so the entry screen advances like the real flow
 let demoCardApplied = false
+let demoEurcEnabled = false
+const DEMO_EURC_ACCOUNT = { ...EURC_ASSET, id: 'demo-eurc', address: DEMO_ADDRESS, isDefault: false }
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
@@ -452,6 +455,34 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
 } satisfies DepositAccount
 
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
+    {
+        method: 'GET',
+        pattern: '/users/currency-accounts',
+        handler: () => ({
+            accounts: [
+                {
+                    id: 'demo-usdc',
+                    asset: 'USDC',
+                    currency: 'USD',
+                    chainId: CHAIN_ID,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+                    address: DEMO_ADDRESS,
+                    isDefault: true,
+                },
+                ...(demoEurcEnabled ? [DEMO_EURC_ACCOUNT] : []),
+            ],
+            available: [],
+        }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/currency-accounts',
+        handler: () => {
+            demoEurcEnabled = true
+            return { account: DEMO_EURC_ACCOUNT }
+        },
+    },
     // user
     {
         method: 'GET',

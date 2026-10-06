@@ -14,7 +14,7 @@ import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
 import { useHomeFlow } from './useHomeFlow'
-import { BalanceSection } from './views/BalanceSection'
+import { CurrencyAccountsHome } from './components/CurrencyAccountsHome'
 import { HomeTopNav } from './views/HomeTopNav'
 import { useHomeViewAnalytics } from './useHomeViewAnalytics'
 
@@ -71,37 +71,40 @@ export function HomePage() {
         <PageContainer>
             <div className="flex h-full w-full flex-col gap-6">
                 <HomeTopNav showRewards={isActivated} />
-                <BalanceSection
-                    balance={spendableBalance}
-                    isFetching={isFetchingSpendableBalance}
-                    isStale={isSpendableBalanceStale}
-                    isHidden={isBalanceHidden}
-                    onToggleVisibility={toggleBalanceVisibility}
-                />
-                <div className="flex flex-col gap-2">
-                    <EnableAutoBalanceBanner />
-                    <PendingVerificationTasks
-                        placement="home"
-                        whenEmptyShowsDocumentRequest={showCarousel}
-                        whenEmpty={
-                            showCarousel ? (
-                                <HomeCarouselCTA documentRequest={documentSlide} />
-                            ) : (
-                                <ActivationCTAs
-                                    onboarding={onboarding}
-                                    showWelcome={showWelcome}
-                                    onHideChecklist={hideChecklist}
-                                    onHideBlockedCard={hideCta}
-                                />
-                            )
-                        }
-                    />
-                    <HomeHistory
-                        username={username ?? undefined}
-                        hideTxnAmount={isBalanceHidden}
-                        hideEmptyState={!showCarousel}
-                    />
-                </div>
+                <CurrencyAccountsHome
+                    balanceProps={{
+                        balance: spendableBalance,
+                        isFetching: isFetchingSpendableBalance,
+                        isStale: isSpendableBalanceStale,
+                        isHidden: isBalanceHidden,
+                        onToggleVisibility: toggleBalanceVisibility,
+                    }}
+                >
+                    <div className="flex flex-col gap-2">
+                        <EnableAutoBalanceBanner />
+                        <PendingVerificationTasks
+                            placement="home"
+                            whenEmptyShowsDocumentRequest={showCarousel}
+                            whenEmpty={
+                                showCarousel ? (
+                                    <HomeCarouselCTA documentRequest={documentSlide} />
+                                ) : (
+                                    <ActivationCTAs
+                                        onboarding={onboarding}
+                                        showWelcome={showWelcome}
+                                        onHideChecklist={hideChecklist}
+                                        onHideBlockedCard={hideCta}
+                                    />
+                                )
+                            }
+                        />
+                        <HomeHistory
+                            username={username ?? undefined}
+                            hideTxnAmount={isBalanceHidden}
+                            hideEmptyState={!showCarousel}
+                        />
+                    </div>
+                </CurrencyAccountsHome>
             </div>
             <HomeModals />
             <HomeActionDrawers />

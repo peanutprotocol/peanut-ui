@@ -4493,5 +4493,18 @@
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",
         "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
+    },
+    "currencyAccounts": {
+        "accounts": "Currency accounts",
+        "addAccount": "Add a currency account",
+        "addEurc": "Add EURC account",
+        "eurcAccount": "EURC account",
+        "description": "A separate euro balance held in EURC on Base. Your USDC account stays your default.",
+        "availability": "EURC deposits, transfers and currency exchange are coming next. Your card and existing payments use USDC.",
+        "adding": "Adding…",
+        "cancel": "Cancel",
+        "addError": "We couldn’t add your EURC account. Please try again.",
+        "balanceError": "Your EURC balance is unavailable. Please try again.",
+        "retry": "Try again"
     }
 }

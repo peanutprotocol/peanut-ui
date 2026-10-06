@@ -69,6 +69,9 @@ jest.mock('@/hooks/useProviderRejection', () => ({
 jest.mock('../components/HomeActionDrawers', () => ({ HomeActionDrawers: () => null }))
 jest.mock('../components/HomeModals', () => ({ HomeModals: () => null }))
 jest.mock('../views/BalanceSection', () => ({ BalanceSection: () => null }))
+jest.mock('../components/CurrencyAccountsHome', () => ({
+    CurrencyAccountsHome: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
 jest.mock('../views/HomeTopNav', () => ({ HomeTopNav: () => null }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => ({
     __esModule: true,

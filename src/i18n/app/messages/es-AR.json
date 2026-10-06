@@ -1976,5 +1976,18 @@
             "rhino": "Lo firmás vos, {brand} hace el puente"
         },
         "cardRelationship": "Tenés una relación directa con Third National bajo los términos de la tarjeta."
+    },
+    "currencyAccounts": {
+        "accounts": "Cuentas por moneda",
+        "addAccount": "Agregar una cuenta en otra moneda",
+        "addEurc": "Agregar cuenta EURC",
+        "eurcAccount": "Cuenta EURC",
+        "description": "Un saldo separado en euros, mantenido en EURC en Base. Tu cuenta USDC sigue siendo la predeterminada.",
+        "availability": "Los depósitos, las transferencias y el cambio de moneda con EURC estarán disponibles próximamente. Tu tarjeta y los pagos actuales usan USDC.",
+        "adding": "Agregando…",
+        "cancel": "Cancelar",
+        "addError": "No pudimos agregar tu cuenta EURC. Intentá de nuevo.",
+        "balanceError": "Tu saldo EURC no está disponible. Intentá de nuevo.",
+        "retry": "Intentar de nuevo"
     }
 }
