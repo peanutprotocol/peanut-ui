@@ -3,6 +3,7 @@ import { EurcActionError } from './EurcActionError'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { isAddress, parseUnits, zeroAddress } from 'viem'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
@@ -169,9 +170,9 @@ export function EurcMoneyFormView({
             <Button onClick={prepare} disabled={!valid || pending} loading={pending}>
                 {t('review')}
             </Button>
-            <Button variant="ghost" onClick={onClose} disabled={pending}>
+            <LinkButton className="my-3" onClick={onClose} disabled={pending}>
                 {t('cancel')}
-            </Button>
+            </LinkButton>
         </Card>
     )
 }

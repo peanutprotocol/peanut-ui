@@ -5,6 +5,7 @@ import { useAuth } from '@/context/authContext'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useCurrencyAccounts, useEurcBalance } from '@/hooks/wallet/useCurrencyAccounts'
 import { BalanceSection } from '../views/BalanceSection'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
@@ -107,14 +108,13 @@ function CurrencyAccountsHomeSession({ userId, balanceProps, children }: Props &
                         >
                             {accounts.add.isPending ? t('adding') : t('addEurc')}
                         </Button>
-                        <Button
-                            type="button"
+                        <LinkButton
+                            className="my-3"
                             disabled={accounts.add.isPending}
                             onClick={() => setIsAdding(false)}
-                            variant="ghost"
                         >
                             {t('cancel')}
-                        </Button>
+                        </LinkButton>
                     </div>
                 </Card>
             )}

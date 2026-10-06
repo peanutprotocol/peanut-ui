@@ -5,6 +5,7 @@ import { peekActiveFixture } from '@/dev/fixtures/active'
 import { useRef, useState } from 'react'
 import { decodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import { formatUserOperationRequest, type UserOperation } from 'viem/account-abstraction'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -165,9 +166,9 @@ export function EurcMoneyReviewView({
                 </>
             )}
             <EurcActionError error={error} />
-            <Button variant="ghost" onClick={cancel} disabled={pending || !!signedRef.current}>
+            <LinkButton className="my-3" onClick={cancel} disabled={pending || !!signedRef.current}>
                 {t('cancel')}
-            </Button>
+            </LinkButton>
         </Card>
     )
 }
