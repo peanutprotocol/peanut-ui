@@ -19,6 +19,8 @@ import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { writeStoredValue } from '@/utils/safe-storage'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
@@ -29,6 +31,12 @@ export function useCardFlow() {
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
+    const { hasSufficientSpendableBalance } = useWallet()
+    const isCardFunded = hasSufficientSpendableBalance(10)
+    const [fundingRequired, setFundingRequired] = useState(false)
+    useEffect(() => {
+        if (isCardFunded) setFundingRequired(false)
+    }, [isCardFunded])
 
     const {
         data: cardInfo,
@@ -297,6 +305,13 @@ export function useCardFlow() {
 
     const handleApply = useCallback(
         async (termsAccepted = false, serializedApproval?: string) => {
+            // A cached display balance cannot unlock a new application. Existing
+            // applications and approved reissues retain their recovery paths.
+            if (!overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded) {
+                setFundingRequired(true)
+                setPendingTerms(null)
+                return
+            }
             setApplyError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
                 terms_accepted: termsAccepted,
@@ -309,6 +324,9 @@ export function useCardFlow() {
                     ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
                     : undefined
                 const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
+                if (termsAccepted && res.status === 'pending' && userId) {
+                    writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
+                }
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
@@ -323,7 +341,7 @@ export function useCardFlow() {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, pendingTerms, t]
+        [advanceFromApplyResponse, pendingTerms, overview, isCardFunded, userId, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -506,6 +524,8 @@ export function useCardFlow() {
     return {
         // data
         user,
+        isCardFunded,
+        fundingRequired,
         fetchUser,
         cardInfo,
         cardInfoError,

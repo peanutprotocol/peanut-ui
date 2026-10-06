@@ -23746,6 +23746,127 @@
                     "offramp"
                 ]
             }
+        },
+        "/notifications/preferences": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "email": {
+                                            "type": "boolean"
+                                        },
+                                        "push": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "push",
+                                        "email"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "notifications"
+                ]
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "email": {
+                                        "type": "boolean"
+                                    },
+                                    "push": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "push",
+                                    "email"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "email": {
+                                            "type": "boolean"
+                                        },
+                                        "push": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "push",
+                                        "email"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "notifications"
+                ]
+            }
         }
     },
     "servers": [

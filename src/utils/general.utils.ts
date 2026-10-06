@@ -402,6 +402,8 @@ export interface RecentMethod {
 
 export type UserPreferences = {
     balanceHidden?: boolean
+    /** Welcome card only: first usable Home render, Home visits, and permanent dismissal on this device. */
+    homeWelcome?: { firstSeenAt: number; visits: number; hidden: boolean }
     recentAddMethods?: RecentMethod[]
     webAuthnKey?: Awaited<ReturnType<typeof toWebAuthnKey>>
     notifBannerShowAt?: number
@@ -1216,8 +1218,8 @@ export function checkIfInternalNavigation(): boolean {
  * the backend (peanut-api-ts `extractUsernameFromInvite` uppercases the input
  * and matches the old suffixes), so existing shared links keep working.
  *
- * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
- * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
+ * Also tolerates copied profile handles (`@alice ` or ` Alice`): trims
+ * whitespace and strips a leading @.
  */
 export { toInviteCode }
 export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'

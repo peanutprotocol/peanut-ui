@@ -1,5 +1,7 @@
 {
     "common": {
+        "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
+        "exchangeRateInfo": "Esta é a taxa de câmbio atual. Ela pode mudar ligeiramente antes da confirmação do seu pagamento.",
         "fundsOnTheWay": "Fundos a caminho",
         "cancel": "Cancelar",
         "continue": "Continuar",

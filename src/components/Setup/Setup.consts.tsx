@@ -1,6 +1,9 @@
+import EmailStep from './Views/Email'
+import NotificationsStep from './Views/Notifications'
+import CompleteSignupStep from './Views/CompleteSignup'
+import FundingStep from './Views/Funding'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { SetupPasskey, SignupStep, LandingStep, ResidenceStep, SignTestTransaction } from '@/components/Setup/Views'
-import JoinWaitlist from './Views/JoinWaitlist'
+import { AdvantageStep, SetupPasskey, SignupStep, LandingStep, ResidenceStep } from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -10,16 +13,7 @@ export const setupSteps: ISetupStep[] = [
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-6',
-    },
-    {
-        screenId: 'welcome',
-        layoutType: 'signup',
-        image: { pose: 'pointing' },
-        component: JoinWaitlist,
-        showBackButton: true,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-6',
+        contentClassName: 'flex flex-col items-center justify-start gap-8',
     },
     {
         screenId: 'signup',
@@ -28,12 +22,22 @@ export const setupSteps: ISetupStep[] = [
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
+    },
+
+    {
+        screenId: 'advantage-fees',
+        layoutType: 'signup',
+        image: { animation: 'fees' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
         screenId: 'residence',
         layoutType: 'signup',
-        image: { pose: 'waving-hello' },
+        image: { animation: 'documents' },
         component: ResidenceStep,
         showBackButton: true,
         showSkipButton: false,
@@ -41,29 +45,102 @@ export const setupSteps: ISetupStep[] = [
         // renders the title and description itself.
         descriptionInView: true,
         titleInView: true,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
+    },
+    {
+        screenId: 'advantage-bank',
+        layoutType: 'signup',
+        image: { animation: 'bank' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+
+    {
+        screenId: 'advantage-card',
+        layoutType: 'signup',
+        image: { animation: 'card' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+    {
+        screenId: 'advantage-exchange',
+        layoutType: 'signup',
+        image: { animation: 'exchange' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+    {
+        screenId: 'advantage-local',
+        layoutType: 'signup',
+        image: { animation: 'local' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+    {
+        screenId: 'advantage-people',
+        layoutType: 'signup',
+        image: { animation: 'people' },
+        component: AdvantageStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+    {
+        screenId: 'funding-methods',
+        layoutType: 'signup',
+        titleInView: true,
+        descriptionInView: true,
+        image: { animation: 'topup' },
+        component: FundingStep,
+        showBackButton: true,
+        contentClassName: 'flex flex-col gap-6',
     },
     {
         screenId: 'passkey-permission',
         layoutType: 'signup',
-        image: { pose: 'too-cool' },
+        image: { animation: 'security' },
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
     {
-        screenId: 'sign-test-transaction',
+        screenId: 'notification-email',
         layoutType: 'signup',
-        image: { pose: 'waving-chill' },
-        component: SignTestTransaction,
+        image: { animation: 'email' },
+        component: EmailStep,
         showBackButton: false,
         showSkipButton: false,
-        // The view renders the confirmation prompt itself.
+        contentClassName: 'flex flex-col gap-4 md:justify-center',
+    },
+    {
+        screenId: 'notification-permission',
+        layoutType: 'signup',
+        image: { animation: 'notifications' },
+        component: NotificationsStep,
+        // Later mailbox changes use Profile verification.
+        showBackButton: false,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+    {
+        screenId: 'advantage-control',
+        layoutType: 'signup',
+        image: { pose: 'too-cool' },
+        component: CompleteSignupStep,
+        titleInView: true,
         descriptionInView: true,
-        // items-end, like every other signup step — centering this one alone
-        // left its copy off the setup flow's left-aligned column.
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
+        showBackButton: false,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
 ]
 

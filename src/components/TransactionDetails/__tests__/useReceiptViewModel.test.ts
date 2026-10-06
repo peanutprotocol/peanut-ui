@@ -13,6 +13,11 @@ import type { TransactionDetails } from '../transactionTransformer'
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
+let mockResidence: string | undefined
+jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => ({ user: { residence: { verified: mockResidence } } }),
+}))
+
 const baseTx: TransactionDetails = {
     id: 'tx-1',
     amount: '5',
@@ -304,5 +309,42 @@ describe("From row (deposits into the user's bank details)", () => {
     it("does not show on the user's own one-off bank deposit", () => {
         const ownDeposit = withDrawer({ status: 'completed', direction: 'bank_deposit' }, { kind: 'ONRAMP' })
         expect(renderConfig(ownDeposit).from).toBe(false)
+    })
+})
+
+describe('useReceiptViewModel — provider', () => {
+    const bridgeOfframp = withDrawer(
+        { direction: 'bank_withdraw' },
+        { kind: 'OFFRAMP', provider: 'BRIDGE', bridgeFlow: 'OFFRAMP' }
+    )
+    // the claimer may not be the bridge customer, so their residence says nothing
+    const bridgeSendLinkClaim = withDrawer(
+        { direction: 'bank_withdraw' },
+        { kind: 'OFFRAMP', provider: 'BRIDGE', bridgeFlow: 'BANK_SEND_LINK_CLAIM' }
+    )
+    const providerOf = (tx: TransactionDetails, isPublic: boolean) =>
+        renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.providerId
+
+    afterEach(() => {
+        mockResidence = undefined
+    })
+
+    test("the owner's in-app receipt names the bridge entity for their residence", () => {
+        mockResidence = 'US'
+        expect(providerOf(bridgeOfframp, false)).toBe('bridge-us')
+    })
+
+    test('a send-link claim names the bridge brand only', () => {
+        mockResidence = 'US'
+        expect(providerOf(bridgeSendLinkClaim, false)).toBe('bridge')
+    })
+
+    test("the public receipt never uses the viewer's residence", () => {
+        mockResidence = 'US'
+        expect(providerOf(bridgeOfframp, true)).toBe('bridge')
+    })
+
+    test('a peanut-only send names no provider', () => {
+        expect(providerOf(baseTx, false)).toBeNull()
     })
 })

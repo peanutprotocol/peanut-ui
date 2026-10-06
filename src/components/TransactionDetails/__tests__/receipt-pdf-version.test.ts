@@ -18,6 +18,13 @@ describe('receiptPdfVersion', () => {
         expect(receiptPdfVersion(withRate('1400'))).not.toBe(receiptPdfVersion(withRate('1420')))
     })
 
+    test('changes when the provider changes', () => {
+        const withProvider = (provider: string) =>
+            ({ ...base, extraDataForDrawer: { provider } }) as unknown as TransactionDetails
+        expect(receiptPdfVersion(withProvider('BRIDGE'))).not.toBe(receiptPdfVersion(withProvider('RAIN')))
+        expect(receiptPdfVersion(withProvider('BRIDGE'))).not.toBe(receiptPdfVersion(base))
+    })
+
     test('is an opaque digest, never the receipt details themselves', () => {
         const version = receiptPdfVersion({ ...base, amount: 1234.56, txHash: '0xdeadbeef' })
         expect(version).toMatch(/^[0-9a-f]{16}$/)

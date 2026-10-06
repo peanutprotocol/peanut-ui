@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { HOME_CHECKLIST_CTA_ID, hideHomeCta, readHiddenHomeCtas } from '@/utils/home-carousel.utils'
 import { useAccount, useDisconnect } from 'wagmi'
 import { useBalanceVisibility } from './useBalanceVisibility'
+import { useHomeWelcome } from './useHomeWelcome'
 
 /**
  * flow hook for the home page — owns every behaviour so the page and views
@@ -29,6 +30,12 @@ export function useHomeFlow() {
     const username = user?.user.username
     const userId = user?.user.userId
     const { isBalanceHidden, toggleBalanceVisibility } = useBalanceVisibility(userId)
+    const isPageLoading = isFetchingUser && !username
+    const showWelcome = useHomeWelcome(
+        userId,
+        isPageLoading,
+        onboarding.verify === 'done' || onboarding.addMoneyDone || onboarding.firstPaymentDone
+    )
 
     // Home's "Hide" choices (the checklist, a blocked card) live in the same
     // store as carousel dismissals. Read after mount: per-device localStorage.
@@ -66,11 +73,12 @@ export function useHomeFlow() {
     }, [isWagmiConnected, disconnectWagmi])
 
     return {
-        isPageLoading: isFetchingUser && !username,
+        isPageLoading,
         username,
         isActivated,
         onboarding,
         isOnboardingComplete,
+        showWelcome,
         isChecklistHidden,
         hideChecklist,
         hiddenHomeCtas,

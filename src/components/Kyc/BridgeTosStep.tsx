@@ -8,38 +8,25 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
-import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
 
 interface BridgeTosStepProps {
     visible: boolean
     onComplete: () => void
     onSkip: () => void
-    /**
-     * BE-emitted reason code from the rail capability (`reason.code`). Used
-     * solely to vary the title between Bridge's base ToS (`bridge_tos_required`,
-     * US/ACH/Wire) and the SEPA v2 ToS (`bridge_tos_v2_required`, EUR + GBP
-     * inherited); the body and the linked documents are the same for both.
-     * The Bridge `tos_acceptance_link` endpoint is opaque to endorsement —
-     * Bridge serves the correct ToS based on the customer's pending
-     * requirements — so this prop ONLY affects the title, not the endpoint we
-     * call. Defaults to the base title if absent.
-     */
-    reasonCode?: string
 }
 
-// Capability reason codes emitted by the BE resolver for Bridge ToS rails.
-// Pinned as `const` so the comparison below catches typos at compile time —
-// the upstream `CapabilityReason.code` is a free-form string by contract.
-const BRIDGE_TOS_V2_REQUIRED = 'bridge_tos_v2_required' as const
-
 // shown immediately after sumsub kyc approval when bridge rails need ToS acceptance.
-// displays a prompt that names and links Bridge's documents, then opens the
-// bridge ToS iframe. The prompt accepts nothing: the user accepts on Bridge's page.
-export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: BridgeTosStepProps) => {
+// displays a prompt that names the account provider and links its terms, then
+// opens the bridge ToS iframe. The prompt accepts nothing: the user accepts on
+// Bridge's page. The `tos_acceptance_link` endpoint serves the terms the
+// customer still owes (base or SEPA v2), so the prompt is the same for both.
+export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const { fetchUser } = useAuth()
-    const termsLinks = useBridgeTermsLinks()
+    const providerId = useBridgeProviderId()
     const [showIframe, setShowIframe] = useState(false)
     const [tosLink, setTosLink] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -111,12 +98,6 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
 
     if (!visible) return null
 
-    const isSepa = reasonCode === BRIDGE_TOS_V2_REQUIRED
-    const copy = {
-        title: isSepa ? t('bridgeTos.sepaTitle') : t('bridgeTos.baseTitle'),
-        description: <p>{t.rich('bridgeTos.description', termsLinks)}</p>,
-    }
-
     return (
         <>
             {/* confirmation modal — hidden when iframe is open or ToS is being confirmed */}
@@ -125,8 +106,9 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                 onClose={onSkip}
                 tone={error ? 'error' : 'info'}
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
-                title={error ? t('bridgeTos.errorTitle') : copy.title}
-                description={error || copy.description}
+                title={error ? t('bridgeTos.errorTitle') : t('bridgeTos.title')}
+                description={error || t('bridgeTos.description')}
+                content={error ? undefined : <BridgeTermsCard providerId={providerId} />}
                 ctas={[
                     {
                         text: isLoading ? tCommon('loading') : error ? tCommon('tryAgain') : tCommon('continue'),

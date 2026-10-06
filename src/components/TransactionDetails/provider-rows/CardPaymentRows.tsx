@@ -101,7 +101,22 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
  * in transactionTransformer for any Rain CARD_SPEND or card-refund
  * entry. Backend mirror: src/transaction-intent/history.ts.
  */
-export function CardPaymentRows({ transaction }: { transaction: TransactionDetails }) {
+/** which theme of the receipt card each sub-row belongs to (receipt-rows ruling) */
+export type CardPaymentRowGroup = 'who' | 'money' | 'trace'
+const ROW_GROUP: Record<string, CardPaymentRowGroup> = {
+    location: 'who',
+    initialHold: 'money',
+    settlementAdjustment: 'money',
+}
+
+export function CardPaymentRows({
+    transaction,
+    group,
+}: {
+    transaction: TransactionDetails
+    /** only the sub-rows of this theme; the card renders one call per group */
+    group: CardPaymentRowGroup
+}) {
     const t = useTranslations('transaction')
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card) return null
@@ -257,11 +272,12 @@ export function CardPaymentRows({ transaction }: { transaction: TransactionDetai
         }
     }
 
-    if (subRows.length === 0) return null
+    const rows = subRows.filter((row) => (ROW_GROUP[row.key] ?? 'trace') === group)
+    if (rows.length === 0) return null
 
     return (
         <>
-            {subRows.map((row) => (
+            {rows.map((row) => (
                 <DataRow key={row.key} label={row.label} value={row.value} />
             ))}
         </>

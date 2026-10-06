@@ -43,4 +43,6 @@ export type PeanutMascotProps = {
     /** Empty or omitted makes the mascot decorative (aria-hidden); text makes it role="img". */
     alt?: string
     loop?: boolean
+    /** Called when the SVG artwork is ready for its first visible frame. */
+    onReady?: () => void
 }

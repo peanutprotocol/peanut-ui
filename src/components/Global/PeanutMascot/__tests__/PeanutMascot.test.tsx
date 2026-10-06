@@ -19,6 +19,7 @@ const mockAnimation = {
     frameRate: 30,
     goToAndStop: jest.fn(),
     destroy: jest.fn(),
+    addEventListener: jest.fn((_event: string, _callback: () => void) => {}),
 }
 const mockLoadAnimation = jest.fn((_config: Record<string, unknown>) => mockAnimation)
 
@@ -57,6 +58,18 @@ describe('PeanutMascot', () => {
         expect(config.renderer).toBe('svg')
         expect(config.autoplay).toBe(false)
         expect(config.animationData).toBeDefined()
+    })
+
+    it('signals readiness only after the artwork DOM loads', async () => {
+        const onReady = jest.fn()
+        render(<PeanutMascot pose="waving-chill" onReady={onReady} />)
+        await waitFor(() =>
+            expect(mockAnimation.addEventListener).toHaveBeenCalledWith('DOMLoaded', expect.any(Function))
+        )
+        expect(onReady).not.toHaveBeenCalled()
+        const callback = mockAnimation.addEventListener.mock.calls[0][1]
+        callback()
+        expect(onReady).toHaveBeenCalledTimes(1)
     })
 
     it('is decorative when no alt is given', async () => {

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
+import { filterSetupStepsForResidence } from '../filterSetupSteps'
 
 // native detection is mocked so the history-mode contract below can flip it
 let mockIsNativeBridge = false
@@ -18,7 +19,7 @@ jest.mock('@/utils/capacitor', () => ({
 // and the point of no return after a no-back step renders.
 
 const STEPS = setupSteps.filter((s) =>
-    ['landing', 'welcome', 'signup', 'residence', 'passkey-permission', 'sign-test-transaction'].includes(s.screenId)
+    ['landing', 'welcome', 'signup', 'residence', 'passkey-permission', 'advantage-control'].includes(s.screenId)
 )
 
 const wrapperFor = (searchParams: Record<string, string>) =>
@@ -50,6 +51,28 @@ const seedSteps = async (
 }
 
 describe('useSetupFlow (URL stepper)', () => {
+    it.each([
+        ['PT', 'advantage-bank', 'advantage-card'],
+        ['AR', 'advantage-bank', 'advantage-local'],
+        ['IN', 'advantage-bank', 'advantage-exchange'],
+        ['JP', 'advantage-exchange', 'advantage-card'],
+        ['RU', 'advantage-exchange', 'advantage-people'],
+    ])('walks funding between the selected feature screens for %s', async (country, first, second) => {
+        const { result } = renderFlow({ screen: 'residence' })
+        const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country))
+        for (const expected of [first, 'funding-methods', second]) {
+            await act(async () => {
+                await result.current.flow.handleNext()
+            })
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
+        await act(async () => result.current.flow.handleBack())
+        expect(result.current.flow.step?.screenId).toBe('funding-methods')
+        await act(async () => result.current.flow.handleBack())
+        expect(result.current.flow.step?.screenId).toBe(first)
+    })
+
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
         const { result } = renderFlow({ screen: 'signup' })
 
@@ -62,7 +85,7 @@ describe('useSetupFlow (URL stepper)', () => {
         const { result } = renderFlow({ screen: 'signup' })
         await seedSteps(result)
         expect(result.current.flow.step?.screenId).toBe('signup')
-        expect(result.current.flow.currentIndex).toBe(2)
+        expect(result.current.flow.currentIndex).toBe(1)
     })
 
     it('an unknown screen id falls back to the first step instead of a dead screen', async () => {
@@ -77,13 +100,13 @@ describe('useSetupFlow (URL stepper)', () => {
         await act(async () => {
             await result.current.flow.handleNext()
         })
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
         expect(result.current.flow.isLastStep).toBe(true)
         // at the end, next is a no-op rather than a silent re-render of the same index
         await act(async () => {
             await result.current.flow.handleNext()
         })
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
     it('handleNext(screenId) jumps to a named screen', async () => {
@@ -116,27 +139,27 @@ describe('useSetupFlow (URL stepper)', () => {
     })
 
     it('point of no return: once the page arms the lock for a VISIBLE no-back step, earlier screens bounce back', async () => {
-        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result)
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
         // the page arms the lock only when stepRendered confirms visibility
         await act(async () => {
-            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+            result.current.context.setNoBackLockScreenId('advantage-control')
         })
         // a backward URL move (browser back / hand edit) may not re-enter the forms
         await act(async () => {
             await result.current.flow.setScreenId('signup')
         })
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
     it('a STALE terminal URL never locks: with no rendered lock, entry resolution can replace it (Chip round 2)', async () => {
-        // fresh logged-out session lands on /setup?screen=sign-test-transaction
+        // fresh logged-out session lands on /setup?screen=advantage-control
         // (a copied/reloaded stale URL) — the page is still on its loading
         // screen, so no lock is armed and the entry resolver moves freely
-        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result)
-        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        expect(result.current.flow.step?.screenId).toBe('advantage-control')
         await act(async () => {
             await result.current.flow.setScreenId('signup')
         })
@@ -161,19 +184,38 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.currentIndex).toBeGreaterThanOrEqual(0)
     })
 
-    it('a filtered-out screen in the URL resolves to the default, never to no step', async () => {
+    it('the retired inviter-input screen resolves to the default, never to no step', async () => {
+        expect(setupScreenIds).not.toContain('welcome')
         const { result } = renderFlow({ screen: 'welcome' })
-        const filteredSteps = setupSteps.filter((step) => step.screenId !== 'welcome')
-        await seedSteps(result, filteredSteps)
+        await seedSteps(result)
         expect(result.current.flow.step).toBeDefined()
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
+    it('keeps email and notification choices after passkey creation and celebrates last', () => {
+        expect(setupScreenIds).toEqual([
+            'landing',
+            'signup',
+            'advantage-fees',
+            'residence',
+            'advantage-bank',
+            'advantage-card',
+            'advantage-exchange',
+            'advantage-local',
+            'advantage-people',
+            'funding-methods',
+            'passkey-permission',
+            'notification-email',
+            'notification-permission',
+            'advantage-control',
+        ])
+    })
+
     it('resetSetupFlow disarms the lock (start-fresh on the existing-session interstitial)', async () => {
-        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result)
         await act(async () => {
-            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+            result.current.context.setNoBackLockScreenId('advantage-control')
         })
         await act(async () => {
             result.current.context.resetSetupFlow()

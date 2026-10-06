@@ -49,7 +49,7 @@ jest.mock('@/components/Invites/badge-campaign-context', () => ({
     clearPendingBadgeCampaigns: jest.fn(),
     getPendingBadgeCampaigns: () => [],
 }))
-jest.mock('@/utils/invite-stash', () => ({ clearInvite: jest.fn() }))
+jest.mock('@/utils/invite-stash', () => ({ clearInvite: jest.fn(), readInviteCode: () => '' }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
