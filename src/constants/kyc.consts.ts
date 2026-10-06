@@ -11,9 +11,6 @@ export type KycStatusCategory = 'completed' | 'processing' | 'failed' | 'action_
 
 export const MAX_SELF_HEAL_ATTEMPTS = 3
 
-/** The help article whose "Your data and privacy" section says Peanut doesn't store identity documents. */
-export const DOCUMENTS_HELP_HREF = '/en/help/verification'
-
 /**
  * `identityVerification.reason.code` the backend stamps on a terminal rejection
  * caused by the document's jurisdiction (peanut-api-ts

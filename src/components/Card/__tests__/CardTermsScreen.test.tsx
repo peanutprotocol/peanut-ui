@@ -78,9 +78,13 @@ describe('CardTermsScreen legal links', () => {
 })
 
 describe('CardTermsScreen card issuer', () => {
-    it('names Third National as the card issuer', () => {
+    it('titles the screen Accept terms and names Third National as the card issuer above the terms', () => {
         renderAt('en')
-        expect(screen.getByText(/Your Peanut card is issued by Third National\./)).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Accept terms' })).toBeInTheDocument()
+        expect(screen.getByText('Card issuer')).toBeInTheDocument()
+        const brand = screen.getByText('Third National')
+        const firstTerm = screen.getAllByRole('checkbox')[0]
+        expect(brand.compareDocumentPosition(firstTerm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('speaks of the issuer relationship as ahead, since the terms are not accepted yet', () => {

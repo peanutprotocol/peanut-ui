@@ -71,28 +71,27 @@ describe('InitiateKycModal — country_payments', () => {
         expect(screen.getByText('CPF. Needed for local bank transfers.')).toBeInTheDocument()
     })
 
-    it('names the account provider in the fine print: Manteca from the country, Bridge from the caller', () => {
+    it('heads the checklist with the account provider: Manteca from the country, Bridge from the caller', () => {
         const { unmount } = renderModal({ variant: 'country_payments', prepPath: 'extended', taxIdCountry: 'AR' })
-        const about = screen.getByRole('button', { name: 'About Manteca' })
-        // one footnote under the button: who receives the id, and that peanut keeps no copy
-        expect(about.closest('p')).toHaveTextContent(
-            "Manteca receives your ID to set up local payments. Peanut doesn't keep a copy. About Manteca"
-        )
-        // the help link moved into the sheet; the footnote keeps one link
-        expect(about.closest('p')?.querySelectorAll('a, button')).toHaveLength(1)
-        expect(screen.queryByText("Peanut doesn't store any of your documents")).not.toBeInTheDocument()
+        const checklist = screen.getByTestId('kyc-prep-checklist')
+        // the row is the first in the card, above the ID row
+        const rowLabels = Array.from(checklist.querySelectorAll('.ds-data-row-label')).map((el) => el.textContent)
+        expect(rowLabels[0]).toBe('Account provider')
+        expect(rowLabels[1]).toBe('ID')
+        expect(screen.getByText('Manteca')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Manteca' })).toBeInTheDocument()
+        // the documents footnote stays, as before
+        expect(screen.getByText("Peanut doesn't store any of your documents")).toBeInTheDocument()
         unmount()
 
         const { unmount: unmountBridge } = renderModal({ providerId: 'bridge-eea' })
-        expect(screen.getByRole('button', { name: 'About Bridge' }).closest('p')).toHaveTextContent(
-            "Bridge receives your ID to set up bank transfers. Peanut doesn't keep a copy. About Bridge"
-        )
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
         unmountBridge()
 
         // a caller that does not know the provider names none
         renderModal()
+        expect(screen.queryByText('Account provider')).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /^About / })).not.toBeInTheDocument()
-        // and keeps the documents footnote on its own
-        expect(screen.getByText("Peanut doesn't store any of your documents")).toBeInTheDocument()
     })
 })

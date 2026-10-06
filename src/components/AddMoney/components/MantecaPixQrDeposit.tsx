@@ -11,7 +11,7 @@ import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { useTranslations } from 'next-intl'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 
 const MantecaPixQrDeposit: FC<{
     depositDetails: MantecaDepositResponseData
@@ -124,7 +124,7 @@ const MantecaPixQrDeposit: FC<{
                             </div>
                         )}
 
-                        <ProviderNote providerId="manteca-br" />
+                        <ProviderFinePrint providerId="manteca-br" className="justify-center" />
                     </>
                 )}
             </PageStack.Center>

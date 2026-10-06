@@ -40,6 +40,7 @@ import { formatPoints } from '@/utils/format.utils'
 import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
 import { RequestPotContributorRows } from './provider-rows/RequestPotContributorRows'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
 
 // IBAN / CLABE are the standard scheme names — same in every locale.
 const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> = {
@@ -58,10 +59,13 @@ export function ReceiptDetailsCard({
     transaction,
     vm,
     shouldShowQrShare,
+    inDrawer,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
+    /** the card sits in the details drawer, so the provider sheet stacks on top */
+    inDrawer?: boolean
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -179,6 +183,14 @@ export function ReceiptDetailsCard({
                 <DataRow
                     label={t('rows.bankReceives')}
                     value={`$${formatAmount(transaction.payoutReceivedUsd as number)}`}
+                />
+            )}
+
+            {rowVisibilityConfig.provider && vm.providerId && (
+                <ProviderRow
+                    providerId={vm.providerId}
+                    label={vm.providerId === 'third-national' ? 'cardIssuer' : 'provider'}
+                    nested={inDrawer}
                 />
             )}
 

@@ -1625,7 +1625,7 @@
             "validationSequential": "Sem dígitos sequenciais (ex.: 1234)"
         },
         "terms": {
-            "title": "Termos do cartão",
+            "title": "Aceitar termos",
             "description": "Leia e aceite",
             "esign": "Aceito o <link>Consentimento E-Sign</link>",
             "cardTermsIssuer": "Aceito os <terms>Termos do cartão {partner}</terms>, e a <privacy>Política de privacidade do emissor</privacy>",
@@ -1969,7 +1969,7 @@
             "payoutReferenceReplacesDefaultSepa": "A referência que você escrever substitui o texto que a Bridge envia por padrão com o pagamento.",
             "payoutDefaultReferenceCarriesNameSepa": "Esse texto padrão leva o seu nome.",
             "referenceFormattingMayChange": "Os espaços e as letras maiúsculas podem mudar no caminho.",
-            "payoutSenderAch": "O pagamento chega da Bridge, não em seu nome. Seu banco mostra Peanut.",
+            "payoutSenderAch": "O pagamento chega da Bridge, não em seu nome.",
             "payoutSenderSpei": "O pagamento chega do banco local da Bridge, não em seu nome.",
             "payoutSenderWire": "O pagamento chega da Bridge, não em seu nome.",
             "bankAccount": "Conta bancária",
@@ -2807,7 +2807,6 @@
             "preparingConfiguringDescription": "Configurando suas regiões...",
             "preparingSlowTitle": "Quase lá",
             "preparingSlowDescription": "Isso está demorando um pouco mais do que o normal. Aguarde só um instante.",
-            "bridgeTosTitle": "Mais um passo",
             "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso.",
             "verifyingStillGoing": "Ainda em andamento. A maioria termina rápido, então esta provavelmente está recebendo uma análise mais detalhada. Você pode fechar isto e avisaremos quando houver uma decisão.",
@@ -2838,15 +2837,14 @@
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
         "bridgeTos": {
-            "baseTitle": "Termos de transferências bancárias",
-            "sepaTitle": "Termos atualizados de transferências bancárias",
-            "description": "A Bridge oferece as transferências bancárias. Leia os <terms>Termos de Serviço</terms> e a <privacy>Política de Privacidade</privacy> da Bridge. Você aceita esses documentos na próxima tela.",
+            "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
             "errorTitle": "Não foi possível carregar os termos",
             "loadFailed": "Não foi possível carregar os termos. Você pode aceitá-los depois pelo seu feed de atividades.",
             "genericError": "Algo deu errado. Você pode aceitar os termos depois pelo seu feed de atividades.",
             "confirmError": "Algo deu errado ao confirmar seus termos. Tente novamente.",
             "notAcceptedYet": "Parece que os termos ainda não foram aceitos. Tente novamente.",
-            "notNow": "Agora não"
+            "notNow": "Agora não",
+            "title": "Aceitar termos"
         },
         "reverificationPending": {
             "title": "Estamos analisando os dados",
@@ -4108,8 +4106,7 @@
             "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE.",
             "whoCanPay": "Quem pode pagar",
             "termsAgreement": "Ao abrir a conta, você aceita os <terms>termos da conta em {currency}</terms>.",
-            "providerTerms": "Sua conta em {currency} é oferecida pela {brand}. Ao abri-la, você aceita os termos da {brand}.",
-            "providerTermsLink": "Ler os termos"
+            "providerTerms": "Ao abrir a conta, você aceita os <terms>{termsName}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4357,6 +4354,7 @@
     "provider": {
         "label": {
             "provider": "Provedor",
+            "accountProvider": "Provedor da conta",
             "cardIssuer": "Emissor do cartão"
         },
         "sheetIntro": "Quem presta este serviço é a {brand}, não o Peanut.",
@@ -4372,9 +4370,7 @@
             "terms": "Termos",
             "privacy": "Política de privacidade",
             "identityCheck": "Verificação de identidade",
-            "paidFrom": "Pago com",
-            "documents": "Documentos",
-            "documentsHelp": "Como o Peanut trata seus documentos"
+            "view": "Ver"
         },
         "role": {
             "bridge": "Transferências bancárias e contas no seu nome",
@@ -4384,18 +4380,6 @@
             "sumsub": "Verifica sua identidade"
         },
         "peanutValue": "O Peanut é um software de carteira autocustodial da Squirrel Labs Ltd e nunca guarda seu dinheiro.",
-        "pooledAccount": "Conta do Peanut na Manteca",
-        "finePrint": {
-            "bankTransfers": "A {brand} faz as transferências bancárias.",
-            "payments": "A {brand} processa os pagamentos.",
-            "crossChain": "A {brand} faz os depósitos entre redes.",
-            "card": "Seu cartão Peanut é emitido pela {brand}.",
-            "sendsTransfer": "A {brand} envia esta transferência bancária.",
-            "sentTransfer": "A {brand} enviou esta transferência bancária.",
-            "account": "Sua conta em {currency} é oferecida pela {brand}.",
-            "idForBankTransfers": "A {brand} recebe seu documento para ativar as transferências bancárias. O Peanut não guarda uma cópia.",
-            "idForPayments": "A {brand} recebe seu documento para ativar os pagamentos locais. O Peanut não guarda uma cópia."
-        },
         "about": "Sobre a {brand}"
     }
 }

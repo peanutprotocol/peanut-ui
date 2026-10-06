@@ -36,8 +36,7 @@ jest.mock('@/utils/general.utils', () => ({
     updateUserPreferences: (userId: string, prefs: Record<string, unknown>) => mockUpdatePreferences(userId, prefs),
 }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({
-    BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
-        props.visible ? <div data-testid="tos-step">{props.reasonCode}</div> : null,
+    BridgeTosStep: (props: { visible: boolean }) => (props.visible ? <div data-testid="tos-step" /> : null),
 }))
 jest.mock('@/utils/capacitor', () => ({
     isNativeBridge: () => false,
@@ -118,16 +117,17 @@ describe('PendingVerificationTasks', () => {
         expect(container).toBeEmptyDOMElement()
     })
 
-    it('accept-tos task opens BridgeTosStep with the variant-matched reason code', () => {
+    it('accept-tos task opens BridgeTosStep', () => {
         mockNextActions = [sepaTosAction]
         render(<PendingVerificationTasks />)
 
         expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /review terms/i }))
-        expect(screen.getByTestId('tos-step')).toHaveTextContent('bridge_tos_v2_required')
+        expect(screen.getByTestId('tos-step')).toBeInTheDocument()
     })
 
-    it('with BOTH ToS variants pending, each row opens the modal for ITS variant', () => {
+    it('with BOTH ToS variants pending, each row opens the one terms step', () => {
+        // bridge serves whichever terms the customer still owes, so the step takes no variant
         mockNextActions = [tosAction, sepaTosAction]
         render(<PendingVerificationTasks />)
 
@@ -136,7 +136,7 @@ describe('PendingVerificationTasks', () => {
 
         const buttons = screen.getAllByRole('button', { name: /review terms/i })
         fireEvent.click(buttons[1]) // sepa row (render order follows nextActions)
-        expect(screen.getByTestId('tos-step')).toHaveTextContent('bridge_tos_v2_required')
+        expect(screen.getByTestId('tos-step')).toBeInTheDocument()
     })
 
     it('bridge-hosted routes to the prep screen rather than handing straight to the vendor', () => {

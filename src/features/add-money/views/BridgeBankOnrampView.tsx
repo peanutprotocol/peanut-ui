@@ -283,7 +283,6 @@ export function BridgeBankOnrampView() {
                         handleWarningConfirm()
                     }}
                     onSkip={hideTos}
-                    reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                 />
             </PageStack>
         )

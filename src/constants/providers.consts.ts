@@ -16,6 +16,7 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         role: 'bridge',
         userContract: true,
         termsUrl: 'https://www.bridge.xyz/legal/us-terms/bridge-building-inc',
+        termsName: 'Bridge US terms',
         privacyUrl: 'https://www.bridge.xyz/legal/us-privacy-policy/bridge-building-inc',
     },
     'bridge-eea': {
@@ -28,6 +29,7 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         role: 'bridge',
         userContract: true,
         termsUrl: 'https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a',
+        termsName: 'Bridge EEA user terms',
         privacyUrl: 'https://www.bridge.xyz/legal/eea-privacy-policy/bridge-building-s-a',
     },
     'bridge-row': {
@@ -43,6 +45,7 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         role: 'bridge',
         userContract: true,
         termsUrl: 'https://www.bridge.xyz/legal/row-user-terms/bridge-building-limited',
+        termsName: 'Bridge user terms',
         privacyUrl: 'https://www.bridge.xyz/legal/row-privacy-policy/bridge-building-limited',
     },
     // used when we cannot say which Bridge entity applies
@@ -52,6 +55,7 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         role: 'bridge',
         userContract: true,
         termsUrl: 'https://www.bridge.xyz/legal',
+        termsName: 'Bridge terms',
     },
     'manteca-ar': {
         id: 'manteca-ar',

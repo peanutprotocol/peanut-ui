@@ -1625,7 +1625,7 @@
             "validationSequential": "No sequential digits (e.g., 1234)"
         },
         "terms": {
-            "title": "Card Terms",
+            "title": "Accept terms",
             "description": "Please review and accept",
             "esign": "I accept the <link>E-Sign Consent</link>",
             "cardTermsIssuer": "I accept the <terms>{partner} Card Terms</terms>, and the <privacy>Issuer Privacy Policy</privacy>",
@@ -1969,7 +1969,7 @@
             "payoutReferenceReplacesDefaultSepa": "A reference you type replaces the default text Bridge sends with the payment.",
             "payoutDefaultReferenceCarriesNameSepa": "That default text carries your name.",
             "referenceFormattingMayChange": "The spacing and capital letters may change on the way.",
-            "payoutSenderAch": "The payment arrives from Bridge, not from your own name. Your bank statement shows Peanut.",
+            "payoutSenderAch": "The payment arrives from Bridge, not from your own name.",
             "payoutSenderSpei": "The payment arrives from Bridge's local bank, not from your own name.",
             "payoutSenderWire": "The payment arrives from Bridge, not from your own name.",
             "bankAccount": "Bank account",
@@ -2807,7 +2807,6 @@
             "preparingConfiguringDescription": "Configuring your regions...",
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
-            "bridgeTosTitle": "One more step",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
@@ -2838,9 +2837,8 @@
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
         "bridgeTos": {
-            "baseTitle": "Bank transfer terms",
-            "sepaTitle": "Updated bank transfer terms",
-            "description": "Bridge provides bank transfers. Read Bridge's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>. You accept them on the next screen.",
+            "title": "Accept terms",
+            "description": "Accept the provider's terms to turn on bank transfers.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
@@ -4108,8 +4106,7 @@
             "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country.",
             "whoCanPay": "Who can pay",
             "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>.",
-            "providerTerms": "Your {currency} account is with {brand}. Opening it means you accept {brand}'s terms.",
-            "providerTermsLink": "Read the terms"
+            "providerTerms": "By opening, you agree to the <terms>{termsName}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4357,6 +4354,7 @@
     "provider": {
         "label": {
             "provider": "Provider",
+            "accountProvider": "Account provider",
             "cardIssuer": "Card issuer"
         },
         "sheetIntro": "{brand} provides this service, not Peanut.",
@@ -4372,9 +4370,7 @@
             "terms": "Terms",
             "privacy": "Privacy policy",
             "identityCheck": "Identity check",
-            "paidFrom": "Paid from",
-            "documents": "Documents",
-            "documentsHelp": "How Peanut handles your documents"
+            "view": "View"
         },
         "role": {
             "bridge": "Bank transfers and accounts in your name",
@@ -4384,18 +4380,6 @@
             "sumsub": "Checks your identity"
         },
         "peanutValue": "Peanut is self-custodial wallet software by Squirrel Labs Ltd and never holds your money.",
-        "pooledAccount": "Peanut's account at Manteca",
-        "finePrint": {
-            "bankTransfers": "Bank transfers by {brand}.",
-            "payments": "Payments by {brand}.",
-            "crossChain": "Cross-chain deposits by {brand}.",
-            "card": "Your Peanut card is issued by {brand}.",
-            "sendsTransfer": "{brand} sends this bank transfer.",
-            "sentTransfer": "{brand} sent this bank transfer.",
-            "account": "Your {currency} account is with {brand}.",
-            "idForBankTransfers": "{brand} receives your ID to set up bank transfers. Peanut doesn't keep a copy.",
-            "idForPayments": "{brand} receives your ID to set up local payments. Peanut doesn't keep a copy."
-        },
         "about": "About {brand}"
     }
 }

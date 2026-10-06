@@ -9,7 +9,9 @@ import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { PROVIDERS } from '@/constants/providers.consts'
 import type { ProviderId } from '@/types/provider.types'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { AccountType, type Account } from '@/interfaces/interfaces'
@@ -72,7 +74,7 @@ interface WithdrawBankReviewViewProps {
     onRetryQuote?: () => void
     /** Set when the provider refused the saved account for good: add it again replaces Retry. */
     onAddBankAccountAgain?: () => void
-    /** The Bridge entity that makes the payout, named in the fine print at the end. */
+    /** The Bridge entity that makes the payout; the Provider row names it. */
     providerId: ProviderId
     /** USD only: same-day ACH or wire, the fee and what the bank receives. */
     usdSpeed?: {
@@ -117,6 +119,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tRate = useTranslations('exchangeRate.row')
+    const tProvider = useTranslations('provider')
 
     // The flag is the account's own country, read off the IBAN, not the one
     // picked upstream (QA round 3, W1). The country never picks the currency:
@@ -205,6 +208,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         label={t('bank.bankReceives')}
                         value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
                     />
+                    <ProviderRow providerId={providerId} />
                 </Card>
             ) : (
                 <Card className="rounded-sm">
@@ -261,8 +265,31 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             moreInfoText={tRate('approximate')}
                         />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
+                    <PaymentInfoRow label={t('bank.fee')} value="$0" />
+                    <PaymentInfoRow
+                        hideBottomBorder
+                        label={
+                            <span className="flex items-center gap-1">
+                                {tProvider('label.provider')}
+                                <ProviderHelp providerId={providerId} />
+                            </span>
+                        }
+                        value={PROVIDERS[providerId].brand}
+                    />
                 </Card>
+            )}
+
+            {payoutNoteKey && (
+                <p className="text-body-xs text-foreground-secondary">
+                    {t(`bank.${payoutNoteKey}`)}
+                    {/* The default reference carries the user's name, and a
+                        reference they type replaces it. Say so only while they
+                        have typed none — after that the note above is the whole
+                        story. */}
+                    {payoutDefaultReferenceNoteKey && !reference.trim() && (
+                        <> {t(`bank.${payoutDefaultReferenceNoteKey}`)}</>
+                    )}
+                </p>
             )}
 
             {referenceSpec && (
@@ -275,13 +302,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             {/* The rail rewrites the text on some rails — the
                                 receipt is where the user reads the final value. */}
                             {referenceSpec.rewrittenKey && <> {t(`bank.${referenceSpec.rewrittenKey}`)}</>}
-                            {/* every rail with a payout note also takes a reference, so the
-                                note rides in this helper. the default-reference sentence
-                                holds only while the user has typed none. */}
-                            {payoutNoteKey && <> {t(`bank.${payoutNoteKey}`)}</>}
-                            {payoutNoteKey && payoutDefaultReferenceNoteKey && !reference.trim() && (
-                                <> {t(`bank.${payoutDefaultReferenceNoteKey}`)}</>
-                            )}
                         </>
                     }
                     // After a failed submit there is nothing left to finish
@@ -360,7 +380,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 )
             )}
             {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
-            <ProviderNote providerId={providerId} line="sendsTransfer" />
         </div>
     )
 }

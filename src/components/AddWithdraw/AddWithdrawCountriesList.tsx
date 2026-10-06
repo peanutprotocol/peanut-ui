@@ -587,7 +587,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     else formRef.current?.handleSubmit()
                 }}
                 onSkip={hideTos}
-                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
             <ProvideEmailStep
                 visible={showProvideEmail}

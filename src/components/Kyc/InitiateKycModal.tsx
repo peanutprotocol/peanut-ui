@@ -20,7 +20,6 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import type { ProviderId } from '@/types/provider.types'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
 
 type InitiateKycVariant =
     | 'default'
@@ -296,37 +295,37 @@ export const InitiateKycModal = ({
         (resolvedVariant === 'default' || resolvedVariant === 'cross_region' || isCountryPayments) && !error
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
-    const description = showPrepChecklist ? (
-        <div className="flex flex-col gap-3 text-left">
-            <p>{getDescription()}</p>
-            <KycPrepChecklist path={prepPath} taxIdCountry={taxIdCountry} />
-        </div>
-    ) : (
-        getDescription()
-    )
+    // the account provider heads the checklist: bridge from the caller, manteca from the tax-id country
+    const prepProviderId =
+        prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
+    const description = (nested: boolean) =>
+        showPrepChecklist ? (
+            <div className="flex flex-col gap-3 text-left">
+                <p>{getDescription()}</p>
+                <KycPrepChecklist
+                    path={prepPath}
+                    taxIdCountry={taxIdCountry}
+                    providerId={prepProviderId}
+                    nested={nested}
+                />
+            </div>
+        ) : (
+            getDescription()
+        )
     // Red for anything the user has to recover from (a rejection, a block, an
     // unavailable region), blue for the plain "start verification" offer — never
     // green, which the app reserves for a finished state.
     const isErrorState =
         !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable || isBankUnavailable
     const iconName = (isErrorState ? 'alert' : 'badge') as IconName
-    const prepProviderId =
-        prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
-    const showDocumentsNote = !(
+    const footer =
         isProviderRejection ||
         isBlocked ||
         isRestartIdentity ||
         isRegionUnavailable ||
-        isBankUnavailable
-    )
-    // one footnote under the button: where the check leads into a provider's
-    // account, it says who receives the id and that peanut keeps no copy
-    const footer = (nested: boolean) =>
-        showPrepChecklist && prepProviderId ? (
-            <ProviderNote providerId={prepProviderId} nested={nested} prospective idCheck={showDocumentsNote} />
-        ) : showDocumentsNote ? (
+        isBankUnavailable ? undefined : (
             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
-        ) : null
+        )
 
     if (presentation === 'page') {
         if (!visible) return null
@@ -348,7 +347,7 @@ export const InitiateKycModal = ({
                 <div className="flex flex-col items-center gap-4 text-center">
                     <IconBubble icon={iconName} size="l" color={isErrorState ? 'red' : 'blue'} />
                     {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
-                    <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                    <div className="w-full text-body-s text-foreground-secondary">{description(false)}</div>
                 </div>
                 <Button
                     variant="primary"
@@ -360,7 +359,7 @@ export const InitiateKycModal = ({
                 >
                     {cta.text}
                 </Button>
-                {footer(false)}
+                {footer}
             </div>
         )
     }
@@ -388,7 +387,7 @@ export const InitiateKycModal = ({
                     </div>
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
-                        <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                        <div className="w-full text-body-s text-foreground-secondary">{description(true)}</div>
                         <Button
                             variant="primary"
                             shadowSize="4"
@@ -399,7 +398,7 @@ export const InitiateKycModal = ({
                         >
                             {cta.text}
                         </Button>
-                        {footer(true)}
+                        {footer}
                     </div>
                 </div>
             </DrawerContent>

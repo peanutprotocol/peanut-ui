@@ -1,6 +1,6 @@
 /**
- * The prompt names Bridge and links its documents before any consent action,
- * and its own button accepts nothing (TASK-23262).
+ * The prompt names the account provider and links its terms before any consent
+ * action, and its own button accepts nothing (TASK-23262, TASK-23295).
  *
  * The android system-browser detour (Capacitor's WebView cancels third-party
  * subframe navigations, so the ToS iframe painted blank) gives the step no
@@ -57,34 +57,32 @@ describe('BridgeTosStep', () => {
         mockGetBridgeTosLink.mockResolvedValue({ data: { tosLink: 'https://compliance.test/tos' } })
     })
 
-    const renderStep = (onComplete = jest.fn(), onSkip = jest.fn(), reasonCode?: string) => {
+    const renderStep = (onComplete = jest.fn(), onSkip = jest.fn()) => {
         render(
             <IntlWrapper>
-                <BridgeTosStep visible onComplete={onComplete} onSkip={onSkip} reasonCode={reasonCode} />
+                <BridgeTosStep visible onComplete={onComplete} onSkip={onSkip} />
             </IntlWrapper>
         )
         return { onComplete, onSkip }
     }
 
-    it('names Bridge and links the documents for the verified residence before any consent action', () => {
+    it('names the account provider and links the terms of the verified residence before any consent action', () => {
         mockVerifiedResidence = 'DE'
         renderStep()
 
-        expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
-        expect(screen.getByText(/Bank transfers by Bridge\./)).toBeInTheDocument()
+        expect(screen.getByText('Accept terms')).toBeInTheDocument()
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Bridge EEA user terms' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a'
         )
-        expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
-            'href',
-            'https://www.bridge.xyz/legal/eea-privacy-policy/bridge-building-s-a'
-        )
+        // the button leads to bridge's page; it accepts nothing itself
         expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument()
         expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
         const cta = screen.getByRole('button', { name: 'Continue' })
-        // the provider line sits between the terms and the button, not under "Not now"
+        // the card sits between the description and the button
         expect(
             screen.getByRole('button', { name: 'About Bridge' }).compareDocumentPosition(cta) &
                 Node.DOCUMENT_POSITION_FOLLOWING
@@ -94,7 +92,7 @@ describe('BridgeTosStep', () => {
     it('opens a document in a new tab without starting the acceptance flow', () => {
         renderStep()
 
-        const terms = screen.getByRole('link', { name: 'Terms of Service' })
+        const terms = screen.getByRole('link', { name: 'Bridge terms' })
         expect(terms).toHaveAttribute('target', '_blank')
         // jsdom does not navigate; the click must reach no handler of ours
         terms.addEventListener('click', (e) => e.preventDefault())
@@ -104,19 +102,13 @@ describe('BridgeTosStep', () => {
         expect(screen.queryByTestId('tos-iframe')).not.toBeInTheDocument()
     })
 
-    it('keeps the body and the links on the SEPA variant and changes only the title', () => {
+    it('links the US terms for a US resident', () => {
         mockVerifiedResidence = 'US'
-        renderStep(jest.fn(), jest.fn(), 'bridge_tos_v2_required')
+        renderStep()
 
-        expect(screen.getByText('Updated bank transfer terms')).toBeInTheDocument()
-        expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Bridge US terms' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/us-terms/bridge-building-inc'
-        )
-        expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
-            'href',
-            'https://www.bridge.xyz/legal/us-privacy-policy/bridge-building-inc'
         )
     })
 

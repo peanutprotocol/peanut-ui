@@ -1,6 +1,7 @@
 /**
- * The last KYC step prompts for Bridge's terms. It must name and link the
- * documents, and its button must not read as acceptance (TASK-23262).
+ * The last KYC step prompts for Bridge's terms. It must name the account
+ * provider and link its terms, and its button must not read as acceptance
+ * (TASK-23262, TASK-23295).
  */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
@@ -21,22 +22,18 @@ const renderTosPhase = (props: { onAcceptTerms?: () => void; tosError?: string |
     )
 
 describe('KycVerificationInProgressModal — bridge_tos phase', () => {
-    it('names Bridge and links the documents for the verified residence', () => {
+    it('names the account provider and links the terms for the verified residence', () => {
         renderTosPhase()
 
-        expect(screen.getByText(/Bridge provides bank transfers/)).toBeInTheDocument()
-        expect(screen.getByText(/Bank transfers by Bridge\./)).toBeInTheDocument()
+        expect(screen.getByText('Accept terms')).toBeInTheDocument()
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Bridge user terms' })).toHaveAttribute(
             'href',
             'https://www.bridge.xyz/legal/row-user-terms/bridge-building-limited'
         )
-        expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
-            'href',
-            'https://www.bridge.xyz/legal/row-privacy-policy/bridge-building-limited'
-        )
         const cta = screen.getByRole('button', { name: 'Continue' })
-        // the provider line sits between the terms and the button, not under "Not now"
+        // the card sits between the description and the button
         expect(
             screen.getByRole('button', { name: 'About Bridge' }).compareDocumentPosition(cta) &
                 Node.DOCUMENT_POSITION_FOLLOWING
@@ -52,11 +49,11 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
         expect(onAcceptTerms).toHaveBeenCalledTimes(1)
     })
 
-    it('shows the load error in place of the terms sentence', () => {
+    it('shows the load error in place of the terms card', () => {
         renderTosPhase({ tosError: 'Could not load terms.' })
 
         expect(screen.getByText('Could not load terms.')).toBeInTheDocument()
-        expect(screen.queryByText(/Bank transfers by Bridge/)).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: 'Terms of Service' })).not.toBeInTheDocument()
+        expect(screen.queryByText('Account provider')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'Bridge user terms' })).not.toBeInTheDocument()
     })
 })

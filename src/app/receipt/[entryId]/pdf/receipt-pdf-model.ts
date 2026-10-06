@@ -17,7 +17,7 @@ import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 import { PROVIDERS } from '@/constants/providers.consts'
-import { isPooledAccountPayment, providerIdForTransaction } from '@/utils/provider.utils'
+import { providerIdForTransaction } from '@/utils/provider.utils'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
  *  the exact strings the receipt page renders. */
@@ -217,9 +217,8 @@ export function buildReceiptPdfModel(
             intro: t('provider.sheetIntro', { brand: provider.brand }),
             name: provider.legalName ?? provider.brand,
             addressLines: provider.registeredOffice ?? [],
-            // only terms the user accepted; peanut alone contracts with rhino, and a qr
-            // payment leaves peanut's own account at manteca
-            termsUrl: provider.userContract && !isPooledAccountPayment(transaction) ? provider.termsUrl : undefined,
+            // only terms the user accepted; peanut alone contracts with rhino
+            termsUrl: provider.userContract ? provider.termsUrl : undefined,
         },
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }

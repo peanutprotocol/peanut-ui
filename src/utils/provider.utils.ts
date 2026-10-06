@@ -58,11 +58,3 @@ export function providerIdForTransaction(
             return null
     }
 }
-
-/**
- * True for a Manteca QR payment: the money leaves Peanut's own account at
- * Manteca, so the user has no contract with Manteca for it.
- */
-export function isPooledAccountPayment(tx: Pick<TransactionDetails, 'extraDataForDrawer'>): boolean {
-    return tx.extraDataForDrawer?.kind === 'QR_PAY' && tx.extraDataForDrawer.provider === 'MANTECA'
-}

@@ -1193,7 +1193,7 @@
             "saveFailed": "Algo salió mal al guardar tu correo. Intentalo de nuevo."
         },
         "bridgeTos": {
-            "description": "Bridge ofrece las transferencias bancarias. Leé los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptás en la siguiente pantalla.",
+            "description": "Aceptá los términos del proveedor para activar las transferencias bancarias.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
@@ -1764,7 +1764,7 @@
             "heading": "Recibí pagos en {currency}",
             "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
             "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>.",
-            "providerTerms": "Tu cuenta en {currency} la ofrece {brand}. Al abrirla, aceptás los términos de {brand}."
+            "providerTerms": "Al abrir la cuenta, aceptás los <terms>{termsName}</terms>."
         },
         "details": {
             "unavailableTitle": "Todavía no hay datos en {currency}",

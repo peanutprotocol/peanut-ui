@@ -21,7 +21,8 @@ import {
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -37,6 +38,7 @@ const MantecaDepositShareDetails = ({
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')
+    const tProvider = useTranslations('provider')
     const currentCountryName = params.country as string
 
     const currentCountryDetails = useMemo(() => {
@@ -60,6 +62,8 @@ const MantecaDepositShareDetails = ({
         if (!currentCountryDetails) return fallback
         return MANTECA_COUNTRIES_CONFIG[currentCountryDetails.id]?.depositAddressLabel ?? fallback
     }, [currentCountryDetails, t])
+    // the deposit account belongs to manteca's local entity
+    const providerId = currentCountryDetails?.id === 'BR' ? 'manteca-br' : 'manteca-ar'
 
     // BRL synthetics no longer carry these (QR-only) — but BRL routes to the QR
     // screen, never here; the fallback just keeps the ARS/static path total.
@@ -154,10 +158,16 @@ const MantecaDepositShareDetails = ({
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
                     <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
+                    <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
                     <PaymentInfoRow
-                        label={tWithdraw('bank.arrives')}
-                        value={t('manteca.etaInstant')}
                         hideBottomBorder
+                        label={
+                            <span className="flex items-center gap-1">
+                                {tProvider('label.provider')}
+                                <ProviderHelp providerId={providerId} />
+                            </span>
+                        }
+                        value={PROVIDERS[providerId].brand}
                     />
                 </Card>
             </div>
@@ -170,7 +180,6 @@ const MantecaDepositShareDetails = ({
             >
                 {t('manteca.shareDetails')}
             </ShareButton>
-            {currentCountryDetails?.id === 'AR' && <ProviderNote providerId="manteca-ar" line="bankTransfers" />}
         </div>
     )
 }

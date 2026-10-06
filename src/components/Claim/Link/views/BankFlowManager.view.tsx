@@ -690,7 +690,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                 handleCreateOfframpAndClaim(localBankDetails)
                             }}
                             onSkip={hideTos}
-                            reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                         />
                         {kycModal}
                     </>

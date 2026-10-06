@@ -57,7 +57,7 @@ export interface ReceiptViewModel {
      *  Manteca deposit-info row for the country-specific address label). */
     country: (typeof countryData)[number] | undefined
 
-    /** The provider that moved the money, named in the receipt's fine print. */
+    /** The provider that moved the money, named in the details card's Provider row. */
     providerId: ProviderId | null
 
     /** Per-row visibility config — drives rendering. Dividers between rows
@@ -235,6 +235,7 @@ export function useReceiptViewModel(
             bankReceives:
                 transaction.payoutReceivedUsd !== undefined &&
                 !['cancelled', 'failed', 'refunded'].includes(transaction.status ?? ''),
+            provider: !!providerId,
             conversion: showsConversion,
             exchangeRate: !!receiptExchangeRate(transaction) && !foldsRateIntoConversion,
             bankAccountDetails: !!(
@@ -288,7 +289,7 @@ export function useReceiptViewModel(
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
         }
-    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
+    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled, providerId])
 
     // Every activity kind gets a receipt once it is no longer waiting for an
     // interactive send/request action. Existing public receipt kinds share a

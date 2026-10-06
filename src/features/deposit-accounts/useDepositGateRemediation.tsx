@@ -42,7 +42,6 @@ export function useDepositGateRemediation(): {
     // (the list, the country pick, the claim) — so the user lands back on the
     // corridor they tapped, one verification later.
     const [kycCorridor, setKycCorridor] = useState<DepositCorridor | undefined>()
-    const [tosReasonCode, setTosReasonCode] = useState<string | undefined>()
 
     // the SDK takes over the screen; the modal that offered to open it should not
     // still be sitting behind it
@@ -60,7 +59,6 @@ export function useDepositGateRemediation(): {
                 // nothing for the user to do; the banner offers no button either
                 return
             case 'accept-tos':
-                setTosReasonCode(gate.reason?.code)
                 guardWithTos()
                 return
             case 'provide-email':
@@ -126,7 +124,7 @@ export function useDepositGateRemediation(): {
                     kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'bridge' ? bridgeProviderId : undefined
                 }
             />
-            <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} reasonCode={tosReasonCode} />
+            <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} />
             <ProvideEmailStep
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}

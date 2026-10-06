@@ -8,7 +8,7 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
@@ -399,11 +399,10 @@ const MantecaAddMoney: FC = () => {
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
                     onBack={onBack}
-                    providerNote={
+                    providerFinePrint={
                         residenceGatedCountry && (
-                            <ProviderNote
+                            <ProviderFinePrint
                                 providerId={residenceGatedCountry === 'AR' ? 'manteca-ar' : 'manteca-br'}
-                                line="bankTransfers"
                             />
                         )
                     }

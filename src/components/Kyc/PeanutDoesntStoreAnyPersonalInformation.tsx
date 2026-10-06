@@ -1,8 +1,10 @@
 import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 import DocsLink from '@/components/Global/DocsLink'
-import { DOCUMENTS_HELP_HREF } from '@/constants/kyc.consts'
 import { twMerge } from '@/utils/tw'
+
+/** The help article whose "Your data and privacy" section is this claim in full. */
+const DOCUMENTS_HELP_HREF = '/en/help/verification'
 
 /**
  * The privacy footnote under every KYC entry point. The (i) is a link, not

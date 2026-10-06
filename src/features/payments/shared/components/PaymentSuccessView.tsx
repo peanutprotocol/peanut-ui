@@ -49,7 +49,7 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import type { ProviderId } from '@/types/provider.types'
 import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
@@ -90,7 +90,7 @@ type DirectSuccessViewProps = {
     usdAmount?: string
     // optional pre-built transaction details (e.g. for deposit receipts where chargeDetails doesn't exist)
     transactionDetails?: TransactionDetails | null
-    /** The provider that moved the money; named in the fine print at the end. */
+    /** The provider that moved the money; named in the fine print under the card. */
     providerId?: ProviderId
 }
 
@@ -353,6 +353,8 @@ const PaymentSuccessView = ({
                     </div>
                 </Card>
 
+                {providerId && <ProviderFinePrint providerId={providerId} className="w-full" />}
+
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
                 <div className="flex w-full flex-col gap-4">
@@ -377,8 +379,6 @@ const PaymentSuccessView = ({
                         </Button>
                     )}
                 </div>
-
-                {providerId && <ProviderNote providerId={providerId} />}
             </PageStack.Center>
 
             {/* Transaction Details Drawer */}

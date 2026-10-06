@@ -274,8 +274,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => 
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({
-    BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
-        props.visible ? <div data-testid="bridge-tos-step" data-reason={props.reasonCode} /> : null,
+    BridgeTosStep: (props: { visible: boolean }) => (props.visible ? <div data-testid="bridge-tos-step" /> : null),
 }))
 jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
     __esModule: true,
@@ -1267,7 +1266,7 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
                     await expect(submit()).resolves.toEqual({ error: 'gate_blocked', silent: true })
                 })
 
-                expect(screen.getByTestId('bridge-tos-step')).toHaveAttribute('data-reason', 'tos_required')
+                expect(screen.getByTestId('bridge-tos-step')).toBeInTheDocument()
                 expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
                 expect(addBankAccount).not.toHaveBeenCalled()
                 expect(mockSetSelectedBankAccount).not.toHaveBeenCalled()

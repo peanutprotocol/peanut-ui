@@ -37,8 +37,8 @@ interface InputAmountStepProps {
     onBack: () => void
     // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
     maintenanceBanner?: React.ReactNode
-    // who provides the deposit, fine print at the end of the step (TASK-23295)
-    providerNote?: React.ReactNode
+    // who provides the deposit, one line under the amount (TASK-23295)
+    providerFinePrint?: React.ReactNode
 }
 
 const InputAmountStep = ({
@@ -57,7 +57,7 @@ const InputAmountStep = ({
     limitsCurrency,
     onBack,
     maintenanceBanner,
-    providerNote,
+    providerFinePrint,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -128,6 +128,8 @@ const InputAmountStep = ({
                     <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
                 )}
 
+                {providerFinePrint}
+
                 <Button
                     variant="primary"
                     shadowSize="4"
@@ -154,7 +156,6 @@ const InputAmountStep = ({
                 {/* not gated on `error`/limits like the alert above: the retry is the only
                     way to clear the rate block that disables Continue (dev #2843) */}
                 {rateUnavailable && <RateUnavailable onRetry={() => currencyData?.refetch()} />}
-                {providerNote}
             </div>
         </div>
     )

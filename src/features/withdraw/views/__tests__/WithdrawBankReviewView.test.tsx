@@ -330,11 +330,21 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
  * The form stopped asking for a BIC, so a euro account added after that change
  * carries none. An unconditional row read "BIC: N/A" on every new account.
  */
-describe('WithdrawBankReviewView — the provider fine print (TASK-23295)', () => {
-    it('names Bridge under the button', () => {
+describe('WithdrawBankReviewView — the provider row (TASK-23295)', () => {
+    it('ends the details card with Provider · Bridge and its (?)', () => {
         renderWithIntl(<Harness rail="sepa" />)
-        expect(screen.getByText(/Bridge sends this bank transfer\./)).toBeInTheDocument()
+        expect(screen.getByText('Provider')).toBeInTheDocument()
+        const brand = screen.getByText('Bridge')
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        // the row follows the fee, inside the card
+        const fee = screen.getByText('Fee')
+        expect(fee.compareDocumentPosition(brand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(fee.closest('.rounded-sm')).toContainElement(brand)
+    })
+
+    it('says nothing about what the bank statement shows', () => {
+        renderWithIntl(<Harness rail="ach" />)
+        expect(screen.queryByText(/statement shows/)).not.toBeInTheDocument()
     })
 })
 

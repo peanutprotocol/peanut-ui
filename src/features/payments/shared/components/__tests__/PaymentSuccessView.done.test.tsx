@@ -80,8 +80,8 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Global/AddressLink', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/CreateAccountButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Provider/ProviderNote', () => ({
-    ProviderNote: ({ providerId }: { providerId: string }) => <p>provider:{providerId}</p>,
+jest.mock('@/components/Provider/ProviderFinePrint', () => ({
+    ProviderFinePrint: ({ providerId }: { providerId: string }) => <p>provider:{providerId}</p>,
 }))
 
 beforeEach(() => {

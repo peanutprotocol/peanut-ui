@@ -15,7 +15,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useCardReveal } from '@/hooks/useCardReveal'
@@ -91,6 +91,8 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 onToggleReveal={isLocked || isRevealing ? undefined : toggle}
                 onCopy={handleCopy}
             />
+
+            <ProviderFinePrint providerId="third-national" label="cardIssuer" />
 
             {showAutoRenew && (
                 <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>
@@ -177,8 +179,6 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                     </ListGroup>
                 </Section>
             </div>
-
-            <ProviderNote providerId="third-national" />
 
             <LockCardModal
                 cardId={card.id}

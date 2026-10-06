@@ -81,7 +81,8 @@ describe('MantecaPixQrDeposit', () => {
         expect(screen.getByTestId('copy')).toHaveAttribute('data-text', PIX_CODE)
         expect(screen.getByText('R$ 10')).toBeInTheDocument()
         expect(screen.getByText(/Expires in/)).toBeInTheDocument()
-        expect(screen.getByText(/Payments by Manteca\./)).toBeInTheDocument()
+        expect(screen.getByText('Provider · Manteca')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Manteca' })).toBeInTheDocument()
     })
 
     it('shows the expired state (QR disabled, no countdown) once priceExpireAt has passed', () => {

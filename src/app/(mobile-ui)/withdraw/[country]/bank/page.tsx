@@ -139,7 +139,6 @@ export default function WithdrawBankPage() {
                     flow.handleCreateAndInitiateOfframp()
                 }}
                 onSkip={flow.hideTos}
-                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
 
             <InitiateKycModal

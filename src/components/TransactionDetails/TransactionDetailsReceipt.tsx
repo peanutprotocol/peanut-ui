@@ -31,8 +31,6 @@ import {
 import { receiptHeadlineAmount } from './transaction-details.utils'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
-import { isPooledAccountPayment } from '@/utils/provider.utils'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -223,7 +221,13 @@ export const TransactionDetailsReceipt = ({
 
             {/* the one receipt-style card (dates, conversion, fee, memo,
                 provider rows, pot progress + contributors) */}
-            <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={shouldShowQrShare} />
+            {/* only the drawer passes setIsModalOpen; vaul's nested root throws outside a drawer */}
+            <ReceiptDetailsCard
+                transaction={transaction}
+                vm={vm}
+                shouldShowQrShare={shouldShowQrShare}
+                inDrawer={!!setIsModalOpen}
+            />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse
@@ -260,15 +264,6 @@ export const TransactionDetailsReceipt = ({
                 onClose={onClose}
                 setIsModalOpen={setIsModalOpen}
             />
-
-            {vm.providerId && (
-                // only the drawer passes setIsModalOpen; vaul's nested root throws outside a drawer
-                <ProviderNote
-                    providerId={vm.providerId}
-                    nested={!!setIsModalOpen}
-                    pooledAccount={isPooledAccountPayment(transaction)}
-                />
-            )}
         </div>
     )
 }

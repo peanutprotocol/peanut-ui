@@ -5,9 +5,8 @@ import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { type KycModalPhase } from '@/interfaces/interfaces'
-import { useBridgeTermsLinks } from '@/hooks/useBridgeTermsLinks'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
@@ -38,7 +37,6 @@ export const KycVerificationInProgressModal = ({
     const router = useRouter()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
-    const termsLinks = useBridgeTermsLinks()
     const providerId = useBridgeProviderId()
 
     // At 90 seconds the waiting copy admits the check is probably getting a
@@ -145,18 +143,15 @@ export const KycVerificationInProgressModal = ({
     }
 
     if (phase === 'bridge_tos') {
-        const description = tosError || <p>{t.rich('bridgeTos.description', termsLinks)}</p>
-
         return (
             <ActionModal
                 visible={isOpen}
                 onClose={onClose}
                 tone="success"
                 icon={'check' as IconName}
-                title={t('progress.bridgeTosTitle')}
-                description={description}
-                // the provider line sits between the terms and the button that leads to them
-                content={tosError ? undefined : <ProviderNote providerId={providerId} prospective />}
+                title={t('bridgeTos.title')}
+                description={tosError || t('bridgeTos.description')}
+                content={tosError ? undefined : <BridgeTermsCard providerId={providerId} />}
                 ctas={[
                     {
                         // Continue, not Accept: the user accepts on Bridge's page
