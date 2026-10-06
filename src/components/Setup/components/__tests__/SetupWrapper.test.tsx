@@ -407,7 +407,7 @@ describe('SetupWrapper transitions', () => {
         expect(hero).not.toBeInTheDocument()
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '100%')
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '-100%')
-        expect(screen.getByText('Next step').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '48')
+        expect(screen.getByText('Next step').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '100%')
     })
 
     it('reverses the slide on browser Back even if the stored direction is stale', () => {
@@ -440,7 +440,7 @@ describe('SetupWrapper transitions', () => {
 
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '-100%')
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '100%')
-        expect(screen.getByText('Welcome').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '-48')
+        expect(screen.getByText('Welcome').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '-100%')
     })
 
     it('uses an instant transition for reduced motion', () => {
