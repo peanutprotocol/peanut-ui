@@ -1230,17 +1230,17 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
     },
     'history-receipt-attachment': {
-        route: '/history?tx=fixture-receipt-attachment',
-        about: 'A completed request payment with an unavailable attachment. The focused browser spec can supply a valid PDF.',
-        waitFor: '[role="dialog"] .ds-data-row [role="alert"]',
+        route: '/history',
+        about: 'A completed request payment with an attachment. Open its receipt to check download states.',
+        waitFor: '[data-testid="transaction-card"]',
         responses: {
             'GET /users/history': { entries: [RECEIPT_ATTACHMENT_ENTRY], hasMore: false },
         },
     },
     'history-receipt-no-attachment': {
-        route: '/history?tx=fixture-receipt-attachment',
-        about: 'The same completed request payment without an attachment row.',
-        waitFor: '[role="dialog"]',
+        route: '/history',
+        about: 'The same completed request payment without an attachment. Open its receipt to check the missing row.',
+        waitFor: '[data-testid="transaction-card"]',
         responses: {
             'GET /users/history': {
                 entries: [{ ...RECEIPT_ATTACHMENT_ENTRY, attachmentUrl: null }],

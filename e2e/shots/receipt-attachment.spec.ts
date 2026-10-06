@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Locator, type Page, type Request, type TestInfo } from '@playwright/test'
 import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fixtureHref, FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
@@ -42,9 +42,21 @@ test.beforeEach(async ({ page }) => {
 })
 
 async function openReceipt(page: Page, name = 'history-receipt-attachment'): Promise<Locator> {
+    let receiptRequests = 0
+    const trackReceiptRequest = (request: Request) => {
+        if (new URL(request.url()).pathname === '/receipt/fixture-receipt-attachment/pdf') receiptRequests += 1
+    }
+    page.on('request', trackReceiptRequest)
     await page.goto(fixtureHref(FIXTURES[name].route, name), { waitUntil: 'domcontentloaded' })
     await expect.poll(() => page.evaluate((key) => sessionStorage.getItem(key), FIXTURE_STORAGE_KEY)).toBe(name)
     expect(new URL(page.url()).pathname).toBe('/history')
+    const transaction = page.getByTestId('transaction-card').filter({ has: page.getByText('-$25', { exact: true }) })
+    await expect(transaction).toHaveCount(1)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await page.waitForLoadState('networkidle')
+    expect(receiptRequests).toBe(0)
+    page.off('request', trackReceiptRequest)
+    await transaction.getByText('-$25', { exact: true }).click()
     const drawer = page.getByRole('dialog')
     await expect(drawer).toBeVisible()
     await expect(drawer.getByText('Dinner', { exact: true })).toBeVisible()
