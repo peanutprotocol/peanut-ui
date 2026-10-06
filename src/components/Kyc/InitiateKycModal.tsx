@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -117,6 +118,7 @@ export const InitiateKycModal = ({
     const { isRegionRestricted, oneShotResidence } = useIdentityVerification()
     const oneShotSession = useOneShotSession()
     const isKycDegraded = useKycDegraded()
+    const [unlockSaving, setUnlockSaving] = useState(false)
     // Every gate that opens this modal unlocks a BANK rail (the two bank pages,
     // the shared country list, both Manteca flow managers, the Manteca
     // withdraw), so a residence no bank provider onboards has nothing behind
@@ -337,6 +339,7 @@ export const InitiateKycModal = ({
                 isLoading={!!isLoading}
                 onVerify={onVerify}
                 onExplore={onClose}
+                onSavingChange={setUnlockSaving}
             />
         )
 
@@ -395,6 +398,9 @@ export const InitiateKycModal = ({
         return (
             <Drawer
                 open={visible}
+                // the checklist's save must not be abandoned by a swipe or an
+                // overlay tap: its answer would start the check on a closed sheet
+                dismissible={!unlockSaving}
                 onOpenChange={(isOpen) => {
                     if (!isOpen) onClose()
                 }}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -36,6 +36,8 @@ interface UnlockChecklistStepProps {
     onVerify: () => void
     /** "Explore first": leaves the screen without verifying. */
     onExplore: () => void
+    /** Tells the host a save is in flight, so the drawer form cannot be dismissed under it. */
+    onSavingChange: (saving: boolean) => void
 }
 
 const SKELETON = 'animate-pulse rounded bg-foreground-primary/10'
@@ -56,6 +58,7 @@ export const UnlockChecklistStep = ({
     isLoading,
     onVerify,
     onExplore,
+    onSavingChange,
 }: UnlockChecklistStepProps) => {
     const t = useTranslations('kyc.unlock')
     const tKyc = useTranslations('kyc')
@@ -66,7 +69,12 @@ export const UnlockChecklistStep = ({
     const variant = residenceCopyVariant(residence)
     const checklist = useUnlockChecklist(residence, onVerify)
     const [exploreOpen, setExploreOpen] = useState(false)
-    const busy = isLoading || checklist.save.isPending
+    const saving = checklist.save.isPending
+    useEffect(() => {
+        onSavingChange(saving)
+        return () => onSavingChange(false)
+    }, [saving, onSavingChange])
+    const busy = isLoading || saving
 
     const rowTitle = (key: KycIntentKey) =>
         key === 'local' ? t(`rows.local.${variant}`) : key === 'qr' ? t('rows.qr') : t(`rows.${key}`)

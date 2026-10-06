@@ -5,7 +5,7 @@
  */
 /** @jest-environment jsdom */
 import React from 'react'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import type { KycIntentsConfig } from '@/services/kyc-intents'
@@ -67,6 +67,7 @@ const renderStep = (residence: string) =>
                     isLoading={false}
                     onVerify={onVerify}
                     onExplore={onExplore}
+                    onSavingChange={jest.fn()}
                 />
             </IntlWrapper>
         </QueryClientProvider>
@@ -127,6 +128,29 @@ describe('UnlockChecklistStep', () => {
         expect(capture).toHaveBeenCalledWith(
             'onboarding_unlock_viewed',
             expect.objectContaining({ entry: 'checklist', intent_card: true })
+        )
+    })
+
+    // the toggles stay live during the request, so the event must carry the set that was sent
+    it('reports the set the button showed when a toggle moves during the save', async () => {
+        let finishSave: () => void = () => {}
+        setIntents.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finishSave = () => resolve({ intents: {}, setAt: '2026-10-05T00:00:00.000Z' })
+                })
+        )
+        renderStep('AR')
+        await screen.findAllByRole('switch')
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock features' }))
+        await waitFor(() => expect(setIntents).toHaveBeenCalledWith({ qr: true, local: true, card: true, bank: true }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Peanut Card' }))
+
+        await act(async () => finishSave())
+        await waitFor(() => expect(onVerify).toHaveBeenCalledTimes(1))
+        expect(capture).toHaveBeenCalledWith(
+            'onboarding_unlock_continued',
+            expect.objectContaining({ intent_card: true })
         )
     })
 

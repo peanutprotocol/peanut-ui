@@ -75,6 +75,15 @@ export function useUnlockChecklist(residence: string, onVerify: () => void, feat
         )
     }, [config.data, preselected, entry, residence, document])
 
+    // a checklist that left the screen during the save must not start the check
+    const onScreen = useRef(true)
+    useEffect(() => {
+        onScreen.current = true
+        return () => {
+            onScreen.current = false
+        }
+    }, [])
+
     const save = useMutation({
         // Takes the set the tapped button showed and resolves to it: the
         // toggles stay live during the request, and the setup rows and the
@@ -89,7 +98,7 @@ export function useUnlockChecklist(residence: string, onVerify: () => void, feat
                 ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED,
                 analyticsProps(entry, residence, document, stored)
             )
-            onVerify()
+            if (onScreen.current) onVerify()
         },
     })
     const skip = () =>
