@@ -1858,6 +1858,14 @@
     "provider": {
         "relationship": "Tenés una relación directa con {brand} bajo sus términos.",
         "relationshipProspective": "Cuando aceptes, tu relación va a ser directamente con {brand}, bajo sus términos.",
-        "cardSheetIntro": "{brand} emite tu tarjeta Peanut. Tenés una relación directa con ellos bajo los términos de la tarjeta."
+        "role": {
+            "rhino": "Direcciones de depósito entre redes y liquidez de puente. Peanut es cliente de Rhino; vos no tenés cuenta en Rhino."
+        },
+        "execution": {
+            "bridge": "Lo firmás vos, {brand} paga",
+            "bridgeEea": "Lo firmás vos, {brand} paga",
+            "rhino": "Lo firmás vos, {brand} hace el puente"
+        },
+        "cardRelationship": "Tenés una relación directa con {brand} bajo los términos de la tarjeta."
     }
 }

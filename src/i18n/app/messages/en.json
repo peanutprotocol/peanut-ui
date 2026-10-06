@@ -4361,26 +4361,42 @@
         "sheetIntro": "{brand} provides this service, not Peanut.",
         "relationship": "You have a direct relationship with {brand} under their terms.",
         "relationshipProspective": "When you accept, your relationship is directly with {brand}, under their terms.",
-        "cardSheetIntroProspective": "{brand} issues the Peanut card. When you accept the card terms, your relationship is directly with them.",
-        "cardSheetIntro": "{brand} issues your Peanut card. You have a direct relationship with them under the card terms.",
         "field": {
             "legalName": "Legal name",
             "registeredOffice": "Registered office",
             "registration": "Registration",
-            "regulator": "Regulator",
+            "regulator": "Regulator and licence",
             "terms": "Terms",
-            "privacy": "Privacy policy",
-            "identityCheck": "Identity check",
-            "view": "View"
+            "privacy": "Privacy",
+            "view": "View",
+            "taxId": "Tax ID",
+            "role": "Role",
+            "programManager": "Program manager",
+            "execution": "How this executes",
+            "peanutRole": "Peanut's role",
+            "support": "Support",
+            "viewTerms": "View terms",
+            "viewPrivacy": "View privacy policy"
         },
         "role": {
-            "bridge": "Bank transfers and accounts in your name",
-            "manteca": "Local bank transfers, Pix and QR payments",
-            "rhino": "Moves your funds between networks",
-            "thirdNational": "Issues your Peanut card",
-            "sumsub": "Checks your identity"
+            "bridge": "Fiat on-ramp, off-ramp and account provider",
+            "rhino": "Cross-chain deposit addresses and bridge liquidity. Peanut is Rhino's customer; you hold no Rhino account.",
+            "thirdNational": "Card issuer, a Rain subsidiary",
+            "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
+            "mantecaAr": "Fiat on-ramp (ARS), off-ramp, QR payer and holder of the ARS deposit account",
+            "mantecaBr": "Fiat on-ramp (BRL Pix), off-ramp, Pix and QR payer"
         },
-        "peanutValue": "Peanut is self-custodial wallet software by Squirrel Labs Ltd and never holds your money.",
-        "about": "About {brand}"
+        "about": "About {brand}",
+        "execution": {
+            "bridge": "Signed by you, {brand} pays out",
+            "bridgeEea": "Signed by you, {brand} pays out",
+            "mantecaAr": "Settled by {brand}",
+            "mantecaBr": "Paid from your bank app",
+            "rhino": "Signed by you, {brand} bridges",
+            "thirdNational": "{brand} issues and settles"
+        },
+        "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
+        "cardRelationship": "You have a direct relationship with {brand} under the card terms.",
+        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with {brand}."
     }
 }

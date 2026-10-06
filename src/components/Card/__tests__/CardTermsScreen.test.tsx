@@ -104,7 +104,7 @@ describe('CardTermsScreen card issuer', () => {
         const sheet = screen.getByRole('dialog')
         expect(
             within(sheet).getByText(
-                'Third National issues the Peanut card. When you accept the card terms, your relationship is directly with them.'
+                'When you accept the card terms, your relationship is directly with Third National.'
             )
         ).toBeInTheDocument()
         expect(within(sheet).queryByText(/You have a direct relationship/)).not.toBeInTheDocument()

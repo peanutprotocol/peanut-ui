@@ -4361,26 +4361,42 @@
         "sheetIntro": "{brand} presta este servicio, no Peanut.",
         "relationship": "Tienes una relación directa con {brand} bajo sus términos.",
         "relationshipProspective": "Cuando aceptes, tu relación será directamente con {brand}, bajo sus términos.",
-        "cardSheetIntroProspective": "{brand} emite la tarjeta Peanut. Cuando aceptes los términos de la tarjeta, tu relación será directamente con ellos.",
-        "cardSheetIntro": "{brand} emite tu tarjeta Peanut. Tienes una relación directa con ellos bajo los términos de la tarjeta.",
         "field": {
             "legalName": "Razón social",
             "registeredOffice": "Domicilio legal",
             "registration": "Registro",
-            "regulator": "Regulador",
+            "regulator": "Regulador y licencia",
             "terms": "Términos",
-            "privacy": "Política de privacidad",
-            "identityCheck": "Verificación de identidad",
-            "view": "Ver"
+            "privacy": "Privacidad",
+            "view": "Ver",
+            "taxId": "ID fiscal",
+            "role": "Rol",
+            "programManager": "Administrador del programa",
+            "execution": "Cómo se ejecuta",
+            "peanutRole": "Rol de Peanut",
+            "support": "Soporte",
+            "viewTerms": "Ver términos",
+            "viewPrivacy": "Ver política de privacidad"
         },
         "role": {
-            "bridge": "Transferencias bancarias y cuentas a tu nombre",
-            "manteca": "Transferencias bancarias locales, Pix y pagos con QR",
-            "rhino": "Mueve tus fondos entre redes",
-            "thirdNational": "Emite tu tarjeta Peanut",
-            "sumsub": "Verifica tu identidad"
+            "bridge": "Proveedor de depósitos, retiros y cuentas en moneda fiat",
+            "rhino": "Direcciones de depósito entre redes y liquidez de puente. Peanut es cliente de Rhino; tú no tienes cuenta en Rhino.",
+            "thirdNational": "Emisor de la tarjeta, filial de Rain",
+            "bridgeEea": "Proveedor de depósitos, retiros e IBAN virtuales en moneda fiat",
+            "mantecaAr": "Depósitos (ARS), retiros, pagos con QR y titular de la cuenta de depósito en ARS",
+            "mantecaBr": "Depósitos (Pix en BRL), retiros y pagos con Pix y QR"
         },
-        "peanutValue": "Peanut es un software de billetera autocustodiada de Squirrel Labs Ltd y nunca guarda tu dinero.",
-        "about": "Sobre {brand}"
+        "about": "Sobre {brand}",
+        "execution": {
+            "bridge": "Lo firmas tú, {brand} paga",
+            "bridgeEea": "Lo firmas tú, {brand} paga",
+            "mantecaAr": "Liquidado por {brand}",
+            "mantecaBr": "Pagado desde la app de tu banco",
+            "rhino": "Lo firmas tú, {brand} hace el puente",
+            "thirdNational": "{brand} emite y liquida"
+        },
+        "peanutRole": "Proveedor de software de billetera autocustodiada; no es parte de las operaciones del proveedor",
+        "cardRelationship": "Tienes una relación directa con {brand} bajo los términos de la tarjeta.",
+        "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación será directamente con {brand}."
     }
 }
