@@ -9,6 +9,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { toMarketingLocale } from '@/i18n/localeBridge'
 import type { Locale as MarketingLocale } from '@/i18n/types'
+import { PROVIDERS } from '@/constants/providers.consts'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import Card from '@/components/Global/Card'
 
 interface Props {
     isUsResident: boolean
@@ -27,7 +30,8 @@ const CARD_PARTNER_NAME = 'Peanut'
 // safe — hardcoding /en/ was not.
 const linksFor = (locale: MarketingLocale) => ({
     eSign: `https://peanut.me/${locale}/card-esign`,
-    issuerPrivacy: 'https://www.third-national.com/privacypolicy',
+    // the registry always carries third national's policy; the card terms test pins it
+    issuerPrivacy: PROVIDERS['third-national'].privacyUrl!,
     cardTermsUs: `https://peanut.me/${locale}/card-terms-us`,
     cardTermsInternational: `https://peanut.me/${locale}/card-terms-international`,
     accountOpeningPrivacy: `https://peanut.me/${locale}/card-privacy`,
@@ -115,6 +119,11 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
                 <h1 className="text-heading-s text-foreground-primary">{t('title')}</h1>
                 <p className="text-foreground-secondary">{t('description')}</p>
             </div>
+
+            {/* who issues the card, before the terms that bind the user to them (TASK-23295) */}
+            <Card position="solo" className="px-4 py-0">
+                <ProviderRow providerId="third-national" label="cardIssuer" prospective />
+            </Card>
 
             <ul className="flex flex-col gap-3">
                 {terms.map((term) => (

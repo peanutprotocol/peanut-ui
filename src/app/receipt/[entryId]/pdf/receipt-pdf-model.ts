@@ -16,6 +16,8 @@ import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
+import { PROVIDERS } from '@/constants/providers.consts'
+import { providerIdForTransaction } from '@/utils/provider.utils'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
  *  the exact strings the receipt page renders. */
@@ -35,6 +37,13 @@ export interface ReceiptPdfModel {
     amountDisplay: string
     convertedAmountDisplay?: string
     rows: ReceiptPdfRow[]
+    /** small print naming the provider that moved the money */
+    provider?: {
+        intro: string
+        name: string
+        addressLines: readonly string[]
+        termsUrl?: string
+    }
     fileName: string
 }
 
@@ -88,7 +97,9 @@ function safeFileNamePart(id: string): string {
 export function buildReceiptPdfModel(
     transaction: TransactionDetails,
     t: PdfTranslate,
-    locale: string
+    locale: string,
+    /** the owner's verified residence; only the route's owner check passes one */
+    ownerResidence?: string | null
 ): ReceiptPdfModel {
     const rows: ReceiptPdfRow[] = []
     const push = (label: string, value: string | undefined | null) => {
@@ -133,18 +144,9 @@ export function buildReceiptPdfModel(
         counterparty
     )
 
-    if (transaction.fee !== undefined && !isCancelled) {
-        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
-    }
-
-    if (transaction.memo?.trim() && allowCancelledSenderFields) {
-        push(t('common.comment'), transaction.memoKey ? t(`transaction.${transaction.memoKey}`) : transaction.memo)
-    }
-
-    // Keep the account and identifier block at the end of the document. Always
-    // mask bank identifiers: PDF files are explicitly downloadable/shareable,
-    // so the unmasked guest-claim exception the in-app receipt makes does not
-    // apply.
+    // Who: always mask bank identifiers. PDF files are explicitly downloadable
+    // and shareable, so the unmasked guest-claim exception the in-app receipt
+    // makes does not apply.
     if (transaction.bankAccountDetails?.identifier && !isCancelled) {
         const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type)
         const label =
@@ -157,8 +159,24 @@ export function buildReceiptPdfModel(
         )
     }
 
+    // Money, the provider last (receipt-rows ruling)
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
 
+    if (transaction.fee !== undefined && !isCancelled) {
+        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
+    }
+
+    // without the owner's residence bridge gets its brand-only record
+    const providerId = providerIdForTransaction(transaction, ownerResidence)
+    const provider = providerId ? PROVIDERS[providerId] : undefined
+    if (provider) {
+        push(
+            t(providerId === 'third-national' ? 'provider.label.cardIssuer' : 'provider.label.provider'),
+            provider.brand
+        )
+    }
+
+    // Trace, then the comment
     if (transaction.txHash) {
         push(t('transaction.rows.txId'), transaction.txHash)
     }
@@ -169,6 +187,10 @@ export function buildReceiptPdfModel(
         !isCancelled
     ) {
         push(t('transaction.rows.transferId'), transaction.id)
+    }
+
+    if (transaction.memo?.trim() && allowCancelledSenderFields) {
+        push(t('common.comment'), transaction.memoKey ? t(`transaction.${transaction.memoKey}`) : transaction.memo)
     }
 
     // The payer's own reference on a bank deposit is NOT printed. It is free
@@ -192,6 +214,13 @@ export function buildReceiptPdfModel(
         amountDisplay: `${headline.sign}${formatBankAmount(safeAmount, 'USD')}`,
         convertedAmountDisplay: converted && !isSettledConversion(transaction) ? `≈ ${converted}` : converted,
         rows,
+        provider: provider && {
+            intro: t('provider.sheetIntro', { brand: provider.brand }),
+            name: provider.legalName ?? provider.brand,
+            addressLines: provider.registeredOffice ?? [],
+            // only terms the user accepted; peanut alone contracts with rhino
+            termsUrl: provider.userContract ? provider.termsUrl : undefined,
+        },
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }
 }

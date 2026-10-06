@@ -6,6 +6,9 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
+import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { providerForRegionIntent } from '@/utils/regions.utils'
 
 interface UnlockMethodModalProps {
     visible: boolean
@@ -16,6 +19,9 @@ interface UnlockMethodModalProps {
     /** Which prep checklist applies: extended for Manteca (BR/AR), standard elsewhere. */
     path?: KycPrepPath
     isLoading?: boolean
+    /** the tapped row's region and ISO2 country, to name the account provider */
+    regionIntent?: KYCRegionIntent
+    country?: string | null
 }
 
 /**
@@ -32,10 +38,22 @@ const UnlockMethodModal = ({
     methodLabel,
     path = 'standard',
     isLoading,
+    regionIntent,
+    country,
 }: UnlockMethodModalProps) => {
     const t = useTranslations('profile.unlockPayments.unlockModal')
     const tPrep = useTranslations('kyc.prep')
     const tCommon = useTranslations('common')
+    const bridgeProviderId = useBridgeProviderId()
+    const provider = providerForRegionIntent(regionIntent)
+    const providerId =
+        provider === 'bridge'
+            ? bridgeProviderId
+            : provider === 'manteca' && country === 'AR'
+              ? 'manteca-ar'
+              : provider === 'manteca' && country === 'BR'
+                ? 'manteca-br'
+                : null
 
     return (
         <Drawer
@@ -59,7 +77,7 @@ const UnlockMethodModal = ({
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
                         <div className="w-full text-left">
-                            <KycPrepChecklist path={path} />
+                            <KycPrepChecklist path={path} providerId={providerId} nested />
                         </div>
                         <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                         <Button

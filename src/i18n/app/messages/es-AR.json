@@ -914,6 +914,9 @@
                 "title": "Pago en proceso",
                 "description": "El pago todavía no se confirmó. Revisá Actividad antes de volver a intentarlo."
             }
+        },
+        "info": {
+            "saveVsCardTooltipBrl": "Con Peanut, tu pago se procesa a través de Pix al tipo de cambio actual del mercado. Las tarjetas extranjeras pueden sumar alrededor de un 3,5% de impuesto brasileño (IOF) y un 3% en comisiones por conversión de moneda."
         }
     },
     "card": {
@@ -1054,7 +1057,7 @@
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde cuenta propia",
-            "etaInstant": "Los depósitos suelen llegar en minutos."
+            "etaInstant": "Normalmente en minutos"
         },
         "pix": {
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
@@ -1299,7 +1302,8 @@
             "saveFailed": "Algo salió mal al guardar tu correo. Intentalo de nuevo."
         },
         "bridgeTos": {
-            "description": "Bridge, nuestro socio de pagos, ofrece las transferencias bancarias. Leé los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptás en la siguiente pantalla.",
+            "description": "Aceptá los términos del proveedor para activar las transferencias bancarias.",
+            "lastStepDescription": "Último paso: aceptá los términos de servicio para activar las transferencias bancarias en Estados Unidos, Europa y México.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
@@ -1869,7 +1873,8 @@
         "claim": {
             "heading": "Recibí pagos en {currency}",
             "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
-            "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>."
+            "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>.",
+            "providerTerms": "Al abrir la cuenta, aceptás los <terms>{termsName}</terms>."
         },
         "details": {
             "unavailableTitle": "Todavía no hay datos en {currency}",
@@ -1958,5 +1963,18 @@
             "providerRefused": "No pudimos abrir esta cuenta, y volver a intentarlo no lo va a cambiar. Contactá a soporte y lo revisamos.",
             "tooManyAttempts": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
         }
+    },
+    "provider": {
+        "relationship": "Tenés una relación directa con {brand} bajo sus términos.",
+        "relationshipProspective": "Cuando aceptes, tu relación va a ser directamente con {brand}, bajo sus términos.",
+        "role": {
+            "rhino": "Direcciones de depósito entre redes y liquidez de puente. Peanut es cliente de Rhino; vos no tenés cuenta en Rhino."
+        },
+        "execution": {
+            "bridge": "Lo firmás vos, {brand} paga",
+            "bridgeEea": "Lo firmás vos, {brand} paga",
+            "rhino": "Lo firmás vos, {brand} hace el puente"
+        },
+        "cardRelationship": "Tenés una relación directa con {brand} bajo los términos de la tarjeta."
     }
 }

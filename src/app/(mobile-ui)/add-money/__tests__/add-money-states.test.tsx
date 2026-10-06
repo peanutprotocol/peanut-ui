@@ -109,6 +109,7 @@ jest.mock('@/assets/payment-apps', () => ({
 const mockUseAuth = jest.fn()
 jest.mock('@/context/authContext', () => ({
     useAuth: () => mockUseAuth(),
+    useOptionalAuth: () => mockUseAuth(),
 }))
 
 const mockUseWallet = jest.fn()
