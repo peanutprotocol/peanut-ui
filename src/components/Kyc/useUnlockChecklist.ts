@@ -5,6 +5,7 @@ import posthog from 'posthog-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { KYC_INTENTS } from '@/constants/query.consts'
+import { recordOneShotIntents } from '@/hooks/useOneShotSession'
 import { kycIntentsApi, type KycIntentKey, type KycIntentSet } from '@/services/kyc-intents'
 import { defaultIntentSet, isQrOnly, unlockRows } from './unlock-checklist.utils'
 
@@ -70,12 +71,14 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
 
     const save = useMutation({
         // Takes the set the tapped button showed and resolves to it: the
-        // event must report what the API stored.
+        // setup rows and the resume gate (item 9a) must hold what the API
+        // stored.
         mutationFn: async (set: KycIntentSet) => {
             await kycIntentsApi.set(set)
             return set
         },
         onSuccess: (stored) => {
+            recordOneShotIntents(stored)
             posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED, analyticsProps(residence, document, stored))
             if (onScreen.current) onVerify()
         },

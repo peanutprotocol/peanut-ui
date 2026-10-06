@@ -18,6 +18,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useOneShotSession } from '@/hooks/useOneShotSession'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
@@ -115,6 +116,7 @@ export const InitiateKycModal = ({
     // component they all share makes the invariant impossible for a future call
     // site to miss.
     const { isRegionRestricted, oneShotResidence } = useIdentityVerification()
+    const oneShotSession = useOneShotSession()
     const isKycDegraded = useKycDegraded()
     const [unlockSaving, setUnlockSaving] = useState(false)
     // Every gate that opens this modal unlocks a BANK rail (the two bank pages,
@@ -322,7 +324,11 @@ export const InitiateKycModal = ({
     // prep list, in both forms. Only the fresh offer: every other variant is
     // an error or action state with its own screen, and the outage, region
     // and residence endings above still outrank it. Flag off is today's screen.
-    const unlockResidence = resolvedVariant === 'default' && !error ? oneShotResidence : null
+    // A stored set whose SDK session started skips the checklist (item 9a):
+    // Verify after closing the SDK halfway resumes the same applicant from
+    // today's start screen instead of asking the questions twice.
+    const unlockResidence =
+        resolvedVariant === 'default' && !error && !oneShotSession?.started ? oneShotResidence : null
     const unlockStep = (host: 'page' | 'drawer') =>
         unlockResidence && (
             <UnlockChecklistStep

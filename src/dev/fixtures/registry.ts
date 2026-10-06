@@ -1289,6 +1289,30 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // The Brazil path past the checklist (item 9a): the token answer the SDK
+    // opens on. The demo API's own checklist answer already has every feature
+    // open. e2e/flows/one-shot-setup.spec.ts stubs the SDK; the identity stays
+    // unverified, so the setup drawer reads "Under review" on every row.
+    'one-shot-setup-br': {
+        route: '/home',
+        about: 'One-shot onboarding from Home in Brazil: the SDK opens on the one-shot level, then the setup drawer lists every ticked feature.',
+        // no balance: the demo balance opens the high-balance prompt over the checklist
+        balance: '0',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'not_started', oneShot: true },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+                residence: { declared: 'BR', verified: null },
+            },
+            'POST /users/identity': {
+                token: 'fixture-sumsub-token',
+                applicantId: 'fixture-applicant',
+                status: 'PENDING',
+                levelName: 'one-shot-latam',
+                workflow: { regionIntent: 'LATAM', isMultiLevel: false },
+            },
+        },
+    },
     'identity-awaiting-upload': {
         route: '/profile/accounts',
         about: 'ID upload still required: no in-review notice or support escalation.',

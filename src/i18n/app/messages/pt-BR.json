@@ -2873,6 +2873,11 @@
             "exploreDescription": "Receber, guardar e enviar dinheiro para outras pessoas continuam funcionando. Os recursos que você escolheu ficam bloqueados até você verificar sua identidade.",
             "exploreFirst": "Explorar primeiro"
         },
+        "setup": {
+            "settingUp": "Configurando",
+            "available": "Disponível",
+            "underReview": "Em análise"
+        },
         "bridgeTos": {
             "baseTitle": "Termos de transferências bancárias",
             "sepaTitle": "Termos atualizados de transferências bancárias",

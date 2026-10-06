@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl'
 import { KycRestartCooldownModal } from './KycRestartCooldownModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import { OneShotSetupDrawer } from '@/components/Kyc/OneShotSetupDrawer'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 
@@ -52,18 +53,29 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 isMultiLevel={flow.isMultiLevel}
             />
 
-            <KycVerificationInProgressModal
-                isOpen={flow.isModalOpen}
-                onClose={flow.handleModalClose}
-                phase={flow.modalPhase}
-                onAcceptTerms={flow.handleAcceptTerms}
-                onSkipTerms={flow.handleSkipTerms}
-                onContinue={flow.completeFlow}
-                tosError={flow.tosError}
-                isLoadingTos={flow.isLoadingTos}
-                preparingTimedOut={flow.preparingTimedOut}
-                preparingStage={flow.preparingStage}
-            />
+            {/* one-shot onboarding (TASK-23329): the setup rows stand in for the phase modals */}
+            {flow.oneShotSetup ? (
+                <OneShotSetupDrawer
+                    open={flow.isModalOpen}
+                    residence={flow.oneShotSetup.residence}
+                    rows={flow.oneShotSetup.rows}
+                    onClose={flow.handleModalClose}
+                    onContinue={flow.completeFlow}
+                />
+            ) : (
+                <KycVerificationInProgressModal
+                    isOpen={flow.isModalOpen}
+                    onClose={flow.handleModalClose}
+                    phase={flow.modalPhase}
+                    onAcceptTerms={flow.handleAcceptTerms}
+                    onSkipTerms={flow.handleSkipTerms}
+                    onContinue={flow.completeFlow}
+                    tosError={flow.tosError}
+                    isLoadingTos={flow.isLoadingTos}
+                    preparingTimedOut={flow.preparingTimedOut}
+                    preparingStage={flow.preparingStage}
+                />
+            )}
 
             {flow.tosLink && (
                 <IframeWrapper src={flow.tosLink} visible={flow.showTosIframe} onClose={flow.handleTosIframeClose} />

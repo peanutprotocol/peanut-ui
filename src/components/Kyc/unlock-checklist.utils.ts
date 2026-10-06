@@ -16,6 +16,12 @@ export const SHOWN_CLOSED_REASONS: ReadonlySet<string> = new Set([
     'under_minimum_age',
 ])
 
+// the residences with their own ID and QR wording; every other one reads the generic line
+const NAMED_RESIDENCES: readonly string[] = ['AR', 'BR']
+/** Which copy a residence reads: its own lines for AR and BR, the generic line elsewhere. */
+export const residenceCopyVariant = (residence: string): 'AR' | 'BR' | 'default' =>
+    NAMED_RESIDENCES.includes(residence) ? (residence as 'AR' | 'BR') : 'default'
+
 export interface UnlockRow {
     key: KycIntentKey
     available: boolean
