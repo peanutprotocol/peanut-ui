@@ -1,5 +1,6 @@
 'use client'
 import { EurcActionError } from './EurcActionError'
+import { CurrencyBalanceNotice } from '@/components/Global/CurrencyBalanceNotice'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { isAddress, parseUnits, zeroAddress } from 'viem'
@@ -119,6 +120,7 @@ export function EurcMoneyFormView({
                     onChange={(event) => edit(() => setAmount(event.target.value))}
                 />
             </label>
+            {kind === 'SEND' && <CurrencyBalanceNotice currency="EURC" amount={amount} showSelectedBalance />}
             {kind === 'SEND' && (
                 <label className="text-body-m">
                     {t('recipient')}

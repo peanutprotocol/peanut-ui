@@ -605,7 +605,8 @@
             "pointingPeanutAlt": "Peanut apontando",
             "cryingPeanutAlt": "Peanut chorando",
             "depositInFlight": "Há um depósito a caminho. Espere ele chegar e saque seu saldo antes de excluir sua conta.",
-            "depositAccountsUnavailable": "Não conseguimos encerrar suas contas bancárias. Sua conta Peanut continua ativa. Tente novamente mais tarde."
+            "depositAccountsUnavailable": "Não conseguimos encerrar suas contas bancárias. Sua conta Peanut continua ativa. Tente novamente mais tarde.",
+            "blockedEurcDescription": "Sua conta EURC ainda tem dinheiro ou um pagamento em andamento. Conclua os pagamentos pendentes e mova os euros restantes antes de excluir sua conta."
         }
     },
     "limits": {
@@ -4553,6 +4554,11 @@
         "amountLimit": "O valor excede o limite.",
         "verificationRequired": "Verificação bancária necessária.",
         "expired": "Transferência expirada. Cancele e comece outra.",
-        "badBank": "Escolha outra conta bancária."
+        "badBank": "Escolha outra conta bancária.",
+        "sendCurrencyBalance": "Saldo: {amount} {currency}",
+        "convertedTotalBalance": "Total entre contas: ≈ {amount} {currency}",
+        "convertedBalanceWarning": "Converta antes de enviar. As taxas e tarifas podem variar.",
+        "convertedBalanceUnavailable": "O saldo total está indisponível. Tente novamente.",
+        "convertedBalanceLoading": "Calculando o saldo total…"
     }
 }

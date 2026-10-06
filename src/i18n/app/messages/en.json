@@ -605,7 +605,8 @@
             "pointingPeanutAlt": "Peanut pointing",
             "cryingPeanutAlt": "Crying peanut",
             "depositInFlight": "A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.",
-            "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later."
+            "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later.",
+            "blockedEurcDescription": "Your EURC account still has money or a payment in progress. Complete pending payments and move any remaining euros before deleting your account."
         }
     },
     "limits": {
@@ -4553,6 +4554,11 @@
         "amountLimit": "Amount exceeds the transfer limit.",
         "verificationRequired": "Banking verification required.",
         "expired": "Transfer expired. Cancel and start again.",
-        "badBank": "Choose another bank account."
+        "badBank": "Choose another bank account.",
+        "sendCurrencyBalance": "Balance: {amount} {currency}",
+        "convertedTotalBalance": "Total across accounts: ≈ {amount} {currency}",
+        "convertedBalanceWarning": "Exchange before sending. Rates and fees may vary.",
+        "convertedBalanceUnavailable": "Total balance is unavailable. Try again.",
+        "convertedBalanceLoading": "Calculating total balance…"
     }
 }

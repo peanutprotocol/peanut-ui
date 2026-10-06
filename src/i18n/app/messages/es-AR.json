@@ -369,7 +369,8 @@
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo.",
             "depositInFlight": "Hay un depósito en camino. Esperá a que llegue y retirá tu saldo antes de eliminar tu cuenta.",
-            "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Probá más tarde."
+            "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Probá más tarde.",
+            "blockedEurcDescription": "Tu cuenta EURC todavía tiene plata o un pago en curso. Completá los pagos pendientes y mové los euros restantes antes de eliminar tu cuenta."
         }
     },
     "limits": {
@@ -2036,6 +2037,11 @@
         "amountLimit": "El monto supera el límite.",
         "verificationRequired": "Se requiere verificación bancaria.",
         "expired": "La transferencia venció. Cancelá y empezá otra.",
-        "badBank": "Elegí otra cuenta bancaria."
+        "badBank": "Elegí otra cuenta bancaria.",
+        "sendCurrencyBalance": "Saldo: {amount} {currency}",
+        "convertedTotalBalance": "Total entre cuentas: ≈ {amount} {currency}",
+        "convertedBalanceWarning": "Convertí antes de enviar. El tipo de cambio y las comisiones pueden variar.",
+        "convertedBalanceUnavailable": "El saldo total no está disponible. Intentá de nuevo.",
+        "convertedBalanceLoading": "Calculando el saldo total…"
     }
 }

@@ -29,6 +29,18 @@ Strings cover en, es-419, es-AR and pt-BR. Demo and fixtures are synthetic and d
 not query balances, invoke WebAuthn, or broadcast operations. Fixtures include
 `home-add-eurc`, `home-eurc` and `home-add-eurc-error`. Notification links can select
 an existing EURC account using `/home?currency=EURC`; regular Home opens USDC.
+Deletion refusals identify EURC funds or pending operations, show a localized
+euro-specific explanation, and return to the EURC account to resolve them.
+Dollar refusals retain their existing amount and withdrawal destination.
+
+Direct USD sends, send-by-link and EURC sends show an estimated total across
+USDC and EURC below the sending-currency balance when that balance is short.
+The other account is valued in the sending currency at Bridge's indicative
+rate. Decimal math truncates instead of rounding up. Rates refresh every 30
+seconds; missing balances or failed pricing show an unavailable state, never a
+partial total. USDC-only accounts make no Base balance or conversion request.
+The estimate does not change payment validation, the full-balance fill amount,
+or signing; users must exchange into the sending currency before paying.
 
 The release gate in the backend's `docs/features/eurc-accounts.md` is required:
 tenant dry-runs, funded Base deployer and sponsorship configuration, actual bank
@@ -40,3 +52,4 @@ The new SEPA form wordiness allowance matches the existing SEPA withdrawal form
 (141 words); Home's account selector allowance grew from 394 to 437 words to
 cover enrollment, asset/network availability and retry states. These are explicit
 feature copy allowances, not a blanket baseline regeneration.
+Profile's allowance grows from 293 to 316 for the euro-specific deletion notice.
