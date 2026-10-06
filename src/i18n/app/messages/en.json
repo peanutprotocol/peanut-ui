@@ -1466,8 +1466,10 @@
         "info": {
             "exchangeRate": "Exchange Rate",
             "saveVsCard": "Save vs card",
-            "saveVsCardTooltipBrl": "With Peanut, your payment goes through Pix at the current market rate. Foreign cards may add around 3.5% in Brazilian tax (IOF) and around 3% in currency conversion fees.",
-            "saveVsCardTooltipArs": "With Peanut, your payment goes through Mercado Pago at the current market rate. Foreign cards may use the official rate and add around 3% in issuer fees."
+            "saveVsCardTooltipBrl": "With Peanut, you pay through Pix and can save on the ~3% fee some foreign cards charge.",
+            "saveVsCardTooltipArs": "With Peanut, you pay through Mercado Pago at the current market rate and can save on the ~3% fee some foreign cards charge.",
+            "foreignCardFees": "Foreign-card fees",
+            "noForeignCardFees": "None on this payment"
         },
         "success": {
             "youPaid": "Paid to {merchant}",

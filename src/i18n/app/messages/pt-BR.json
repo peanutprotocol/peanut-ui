@@ -1466,8 +1466,10 @@
         "info": {
             "exchangeRate": "Taxa de câmbio",
             "saveVsCard": "Economia vs. cartão",
-            "saveVsCardTooltipBrl": "Com o Peanut, seu pagamento é processado pelo Pix à taxa de câmbio atual de mercado. Cartões estrangeiros podem acrescentar cerca de 3,5% de imposto brasileiro (IOF) e 3% em taxas de conversão de moeda.",
-            "saveVsCardTooltipArs": "Com o Peanut, seu pagamento é processado pelo Mercado Pago à taxa de câmbio atual de mercado. Cartões estrangeiros podem usar a taxa oficial e acrescentar cerca de 3% em tarifas do emissor."
+            "saveVsCardTooltipBrl": "Com o Peanut, você paga pelo Pix e pode economizar a taxa de cerca de 3% cobrada por alguns cartões estrangeiros.",
+            "saveVsCardTooltipArs": "Com o Peanut, você paga pelo Mercado Pago à taxa de câmbio atual de mercado e pode economizar a taxa de cerca de 3% cobrada por alguns cartões estrangeiros.",
+            "foreignCardFees": "Taxas de cartões estrangeiros",
+            "noForeignCardFees": "Nenhuma neste pagamento"
         },
         "success": {
             "youPaid": "Pago para {merchant}",

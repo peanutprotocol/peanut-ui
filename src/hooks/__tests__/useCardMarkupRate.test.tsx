@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
@@ -62,5 +62,22 @@ describe('useCardMarkupRate', () => {
 
         expect(mockFetchCardMarkup).not.toHaveBeenCalled()
         expect(result.current.fetchStatus).toBe('idle')
+    })
+
+    it('hides a cached Brazil estimate and does not fetch it again, even on manual refetch', async () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        client.setQueryData(['cardMarkup', 'BRL', 5], { rate: 0.07, source: 'static' })
+        const cachedWrapper = ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        )
+        const { result } = renderHook(() => useCardMarkupRate('brl', 5), { wrapper: cachedWrapper })
+
+        expect(result.current.data).toBeNull()
+        expect(result.current.fetchStatus).toBe('idle')
+        await act(async () => {
+            await result.current.refetch()
+        })
+        expect(result.current.data).toBeNull()
+        expect(mockFetchCardMarkup).not.toHaveBeenCalled()
     })
 })

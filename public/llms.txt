@@ -9,7 +9,7 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 - Scan any merchant **PIX QR code** and pay in seconds — the same instant payment network ~150 million Brazilians use every day.
 - **No CPF (Brazilian tax ID) and no Brazilian bank account required** — normally both are mandatory to use PIX. Verify with a passport from any country instead.
 - The merchant receives BRL instantly and sees a normal PIX payment — Peanut is invisible on their end.
-- Your dollars convert to BRL at the market ("cripto dólar") rate, locked the moment you confirm. IOF (Brazil's financial-operations tax) does not apply to the conversion — saving up to ~3.5% versus cards and bank transfers on cross-border spending.
+- With Peanut, you pay through Pix and can save on the ~3% fee some foreign cards charge.
 - No Peanut fee on PIX payments. Available 24/7/365. QR scan only (the "copia e cola" paste-code flow is not supported).
 - To pay a person rather than a merchant, share a Peanut Link — they claim it and can withdraw to their own PIX instantly, no Peanut account needed.
 
@@ -17,7 +17,7 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 
 - Scan **MercadoPago QR codes** at 1,000,000+ merchants in Argentina and pay in pesos.
 - **No Argentine DNI, no local bank account, no CBU or CVU required** — locals need a DNI to open MercadoPago; Peanut gives you the payment network without one. Verify with a passport.
-- You get the **cripto dólar** rate — typically a few percent to ~11% more pesos per dollar than a credit card (which uses the regulated MEP rate), depending on the day and your card's fees.
+- With Peanut, you pay through Mercado Pago at the current market rate and can save on the ~3% fee some foreign cards charge.
 - No Peanut fee. Rate locks at payment. Merchant sees a normal MercadoPago payment.
 - Only MercadoPago QR is supported (MODO and Cuenta DNI use incompatible formats).
 
