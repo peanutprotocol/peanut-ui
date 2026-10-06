@@ -150,7 +150,7 @@ export const KycVerificationInProgressModal = ({
                 tone="success"
                 icon={'check' as IconName}
                 title={t('bridgeTos.title')}
-                description={tosError || t('bridgeTos.description')}
+                description={tosError || t('bridgeTos.lastStepDescription')}
                 content={tosError ? undefined : <BridgeTermsCard providerId={providerId} />}
                 ctas={[
                     {

@@ -38,7 +38,7 @@
         "components/Kyc/AdditionalVerificationView.tsx": 359,
         "components/Kyc/InitiateKycModal.tsx": 466,
         "components/Kyc/KycStatusDrawer.tsx": 255,
-        "components/Kyc/KycVerificationInProgressModal.tsx": 140,
+        "components/Kyc/KycVerificationInProgressModal.tsx": 147,
         "components/Kyc/modals/KycActionRequiredModal.tsx": 78,
         "components/Kyc/modals/KycFailedModal.tsx": 105,
         "components/Kyc/modals/KycProcessingModal.tsx": 71,

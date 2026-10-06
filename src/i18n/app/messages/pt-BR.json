@@ -2838,6 +2838,7 @@
         },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
+            "lastStepDescription": "Último passo: aceite os termos de serviço para ativar as transferências bancárias nos EUA, na Europa e no México.",
             "errorTitle": "Não foi possível carregar os termos",
             "loadFailed": "Não foi possível carregar os termos. Você pode aceitá-los depois pelo seu feed de atividades.",
             "genericError": "Algo deu errado. Você pode aceitar os termos depois pelo seu feed de atividades.",

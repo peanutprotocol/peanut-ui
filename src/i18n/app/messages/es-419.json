@@ -2838,6 +2838,7 @@
         },
         "bridgeTos": {
             "description": "Acepta los términos del proveedor para activar las transferencias bancarias.",
+            "lastStepDescription": "Último paso: acepta los términos de servicio para activar las transferencias bancarias en Estados Unidos, Europa y México.",
             "errorTitle": "No se pudieron cargar los términos",
             "loadFailed": "No se pudieron cargar los términos. Puedes aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",

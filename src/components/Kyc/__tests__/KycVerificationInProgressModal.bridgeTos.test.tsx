@@ -26,6 +26,11 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
         renderTosPhase()
 
         expect(screen.getByText('Accept terms')).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                'Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.'
+            )
+        ).toBeInTheDocument()
         expect(screen.getByText('Account provider')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Bridge user terms' })).toHaveAttribute(
