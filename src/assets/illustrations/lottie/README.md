@@ -10,6 +10,7 @@ Object animations for banking concepts, drawn to the setup mascot's rules
 
 | File | Topic | Animation | Suggested use | Frames |
 | --- | --- | --- | --- | --- |
+| `mascot-juggle.json` | Rewards | Peanut juggles three star coins with rebuilt arms and a bounce on each catch. Original asset from [PR #3586](https://github.com/peanutprotocol/peanut-ui/pull/3586), commit `a0714bf685b3534a400289a225f6e8a0ab60596a`. | Points hero, referral rewards | 66 |
 | `card-flip.json` | Card | The card hops and turns over: chip side, then signature side. | Card intro, “your card details” | 64 |
 | `card-tap.json` | Card | The card swoops onto a terminal, contactless waves pulse, a check lands on the screen. | Card ready, Apple/Google Pay, “pay anywhere” | 72 |
 | `card-wallet.json` | Card | A card springs up out of a wallet pocket, wiggles, and tucks back in. | Get your card, card delivered, virtual card issued | 64 |

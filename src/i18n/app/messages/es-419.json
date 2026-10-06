@@ -741,7 +741,7 @@
             },
             "advantage-card": {
                 "title": "Una tarjeta rosa para tu día a día.",
-                "description": "Usa tu saldo de Peanut en línea y en tiendas. Haz que gastar sea sencillo, con tu saldo de Peanut listo para lo que traiga el día."
+                "description": "Comprar será más fácil. Tu saldo de Peanut estará disponible para compras en línea y en tiendas."
             },
             "advantage-bank": {
                 "title": "Cuentas bancarias que viajan contigo.",
@@ -796,7 +796,7 @@
         "next": "Siguiente",
         "logIn": "Iniciar sesión",
         "cta": {
-            "claimName": "Quiero ese nombre",
+            "claimName": "Elegir nombre de usuario",
             "payments": "Suena bien",
             "home": "Aquí vivo",
             "rewards": "¡Quiero recompensas!",

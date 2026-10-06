@@ -60,6 +60,18 @@ describe('PeanutMascot', () => {
         expect(config.animationData).toBeDefined()
     })
 
+    it('loads the juggling mascot and holds a still frame under reduced motion', async () => {
+        setReducedMotion(true)
+        const { unmount } = render(<PeanutMascot pose="juggling" />)
+        await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalled())
+        expect(mockLoadAnimation.mock.calls[0][0].animationData).toEqual(
+            require('@/assets/illustrations/lottie/mascot-juggle.json')
+        )
+        expect(mockAnimation.goToAndStop).toHaveBeenCalledWith(0, true)
+        unmount()
+        expect(mockAnimation.destroy).toHaveBeenCalled()
+    })
+
     it('signals readiness only after the artwork DOM loads', async () => {
         const onReady = jest.fn()
         render(<PeanutMascot pose="waving-chill" onReady={onReady} />)

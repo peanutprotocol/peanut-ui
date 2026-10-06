@@ -741,7 +741,7 @@
             },
             "advantage-card": {
                 "title": "A pink card for your everyday.",
-                "description": "Spend your Peanut balance online and in stores. Make spending feel simple, with your Peanut balance ready for whatever the day brings."
+                "description": "Make spending feel simple. Your Peanut balance will be available for online and in-store purchases."
             },
             "advantage-bank": {
                 "title": "Bank accounts that travel with you.",
@@ -796,7 +796,7 @@
         "next": "Next",
         "logIn": "Log In",
         "cta": {
-            "claimName": "Claim my name",
+            "claimName": "Claim username",
             "payments": "Sounds good",
             "home": "That's my home",
             "rewards": "Ooh, rewards",
