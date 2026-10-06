@@ -131,8 +131,8 @@ describe('UnlockChecklistStep', () => {
         )
     })
 
-    // the toggles stay live during the request, so the event must carry the set that was sent
-    it('reports the set the button showed when a toggle moves during the save', async () => {
+    // Chip review on ui#3577: what the screen shows must be what the API stores
+    it('holds the choices still while the save is in flight', async () => {
         let finishSave: () => void = () => {}
         setIntents.mockImplementation(
             () =>
@@ -144,13 +144,20 @@ describe('UnlockChecklistStep', () => {
         await screen.findAllByRole('switch')
         fireEvent.click(screen.getByRole('button', { name: 'Unlock features' }))
         await waitFor(() => expect(setIntents).toHaveBeenCalledWith({ qr: true, local: true, card: true, bank: true }))
-        fireEvent.click(screen.getByRole('switch', { name: 'Peanut Card' }))
+
+        const card = screen.getByRole('switch', { name: 'Peanut Card' })
+        await waitFor(() => expect(card).toBeDisabled())
+        fireEvent.click(card)
+        fireEvent.click(screen.getByRole('radio', { name: 'ID issued by another country' }))
+        expect(card).toHaveAttribute('aria-checked', 'true')
+        expect(screen.getByRole('radio', { name: 'Argentine DNI' })).toHaveAttribute('aria-checked', 'true')
+        expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 
         await act(async () => finishSave())
         await waitFor(() => expect(onVerify).toHaveBeenCalledTimes(1))
         expect(capture).toHaveBeenCalledWith(
             'onboarding_unlock_continued',
-            expect.objectContaining({ intent_card: true })
+            expect.objectContaining({ document: 'local', intent_card: true })
         )
     })
 
