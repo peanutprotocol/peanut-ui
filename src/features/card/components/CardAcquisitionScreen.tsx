@@ -75,6 +75,7 @@ export function CardAcquisitionScreen({
     eligible,
     funded,
     fundingRequired,
+    needsFundingBeforeApply = false,
     onApply,
     onPrev,
     applyError,
@@ -83,6 +84,7 @@ export function CardAcquisitionScreen({
     eligible: boolean
     funded: boolean
     fundingRequired: boolean
+    needsFundingBeforeApply?: boolean
     onApply: () => void | Promise<void>
     onPrev: () => void
     applyError?: string | null
@@ -122,7 +124,14 @@ export function CardAcquisitionScreen({
     // Unknown residence still goes through the existing verification path;
     // it must never receive the "You're in" eligibility promise.
     if (!eligible || (currentStep === 'entry' && !fundingRequired)) {
-        return <AddCardEntryScreen onApply={onApply} onPrev={onPrev} applyError={applyError} />
+        return (
+            <AddCardEntryScreen
+                onApply={onApply}
+                onPrev={onPrev}
+                applyError={applyError}
+                needsFundingBeforeApply={needsFundingBeforeApply}
+            />
+        )
     }
 
     if (fundingRequired || currentStep === 'funding') {

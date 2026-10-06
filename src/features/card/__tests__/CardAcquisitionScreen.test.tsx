@@ -21,7 +21,9 @@ jest.mock('@/components/Global/HoldToClaimButton', () => ({
 }))
 jest.mock('@/components/Card/AddCardEntryScreen', () => ({
     __esModule: true,
-    default: ({ onApply }: { onApply: () => void }) => <button onClick={onApply}>Apply</button>,
+    default: ({ onApply, needsFundingBeforeApply }: { onApply: () => void; needsFundingBeforeApply?: boolean }) => (
+        <button onClick={onApply}>{needsFundingBeforeApply ? 'Add money' : 'Apply'}</button>
+    ),
 }))
 
 const props = {
@@ -99,4 +101,14 @@ it('does not repeat anticipation for a returning funded user', async () => {
     localStorage.setItem('card_anticipation_completed_v1:alice', '1')
     render(<CardAcquisitionScreen {...props} funded />, { wrapper: withNuqsTestingAdapter({ hasMemory: true }) })
     await waitFor(() => expect(screen.getByText('Apply')).toBeInTheDocument())
+})
+
+it('explains the funding destination on the returning entry path', () => {
+    localStorage.setItem('card_anticipation_completed_v1:alice', '1')
+    render(<CardAcquisitionScreen {...props} needsFundingBeforeApply />, {
+        wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=entry' }),
+    })
+    fireEvent.click(screen.getByText('Add money'))
+    expect(mockApply).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('Hold complete')).not.toBeInTheDocument()
 })
