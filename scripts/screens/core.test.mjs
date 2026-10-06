@@ -121,9 +121,20 @@ test('failure cannot become a removed or unchanged screen', () => {
     assert.equal(r.screens[0].status, 'failed')
     assert.equal(r.complete, false)
 })
-test('historical unsupported state is unavailable, not new', () => {
+test('a captured state with an unavailable baseline is new to review and retains the baseline gap', () => {
     const old = { ...screen('home'), status: 'unavailable', reason: 'Adapter unavailable' }
-    assert.equal(compare(capture([old]), capture([screen('home')]), dir).screens[0].status, 'unavailable')
+    const result = compare(capture([old]), capture([screen('home')]), dir)
+    assert.equal(result.screens[0].status, 'new')
+    assert.equal(result.screens[0].before.status, 'unavailable')
+    assert.equal(result.screens[0].before.reason, 'Adapter unavailable')
+    assert.equal(result.screens[0].after.image, a)
+    assert.equal(result.screens[0].diff, undefined)
+    assert.equal(result.complete, false)
+    for (const status of ['failed', 'excluded']) {
+        const gap = { ...old, status }
+        assert.equal(compare(capture([gap]), capture([screen('home')]), dir).screens[0].status, status)
+    }
+    assert.equal(compare(capture([screen('home')]), capture([old]), dir).screens[0].status, 'unavailable')
 })
 test('intentional exclusions and absent routes remain distinguishable from failures', () => {
     const excluded = { ...screen('excluded'), status: 'excluded', reason: 'Alias covered elsewhere' }

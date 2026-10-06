@@ -575,6 +575,73 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
 })
 
+test('new and legacy after-only screens stay in visual changes with a New screen placeholder', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const reason = 'This revision has no compatible scenario harness for this component'
+    const row = (id, status, baselineStatus = 'unavailable') => ({
+        id,
+        name: id,
+        flow: 'Setup and login',
+        kind: 'component',
+        status,
+        before: { status: baselineStatus, reason },
+        after: { status: 'captured', image, thumbnail: image },
+    })
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: false,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852 },
+        screens: [
+            row('legacy', 'unavailable'),
+            row('modern', 'new'),
+            row('added', 'added', 'absent'),
+            row('failed-baseline', 'failed', 'failed'),
+            row('excluded-baseline', 'excluded', 'excluded'),
+            {
+                ...row('after-gap', 'unavailable'),
+                before: { status: 'captured', image },
+                after: { status: 'unavailable', reason },
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-10-06/pr-3392/en/' + 'b'.repeat(40) + '/', {
+        report,
+        search: '?status=differences&view=changed',
+    })
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['legacy', 'modern', 'added']
+    )
+    assert.match(elements.get('coverage').textContent, /2 new screens/)
+    assert.match(elements.get('coverage').textContent, /Incomplete capture/)
+    for (const tile of elements.get('screens').children) {
+        const before = tile.children[1].children[0]
+        assert.match(elementText(before), /New screen No before screenshot/)
+        assert.equal(imageSources(before).length, 0)
+        assert.equal(before.children[1].title, reason)
+        assert.equal(imageSources(tile).length, 1)
+        tile.children[1].children[1].children[1].onclick()
+        assert.match(elementText(elements.get('zoom-images')), /New screen No before screenshot/)
+        assert.equal(imageSources(elements.get('zoom-images')).length, 1)
+    }
+    elements.get('status').value = 'new'
+    elements.get('status').dispatch('input')
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['legacy', 'modern']
+    )
+    assert.equal(elements.get('view-mode').checked, false)
+    elements.get('view-mode').checked = true
+    elements.get('view-mode').dispatch('change')
+    assert.equal(
+        elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
+        true
+    )
+})
+
 test('screen preview uses the viewport device frame and supports chevrons and keyboard navigation', async () => {
     const first = 'a'.repeat(64) + '.webp'
     const second = 'b'.repeat(64) + '.webp'

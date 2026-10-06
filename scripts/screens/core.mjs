@@ -274,6 +274,8 @@ export function compare(beforeInput, afterInput, assetsDir) {
         }
         if (a?.status === 'absent' && b?.status === 'captured') return { ...row, status: 'added' }
         if (b?.status === 'absent' && a?.status === 'captured') return { ...row, status: 'removed' }
+        // A first available screenshot belongs in review without claiming the product was absent before.
+        if (a?.status === 'unavailable' && b?.status === 'captured') return { ...row, status: 'new' }
         // Missing/failed capture is never proof of a product addition/removal.
         const gapStatuses = [a?.status, b?.status].filter((status) => status && status !== 'captured')
         if (gapStatuses.length) {
