@@ -2,8 +2,8 @@ import { setupChannelsForResidence } from '../paymentChannels'
 import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
 
 it.each([
-    ['BR', ['brlBank', 'bank', 'crypto', 'peanut'], ['card', 'brlBank', 'bank', 'pix', 'crypto', 'peanut']],
-    ['AR', ['arsBank', 'bank', 'crypto', 'peanut'], ['card', 'arsBank', 'bank', 'arQr', 'crypto', 'peanut']],
+    ['BR', ['brlBank', 'bank', 'crypto', 'peanut'], ['card', 'bank', 'pix', 'crypto', 'peanut']],
+    ['AR', ['arsBank', 'bank', 'crypto', 'peanut'], ['card', 'bank', 'arQr', 'crypto', 'peanut']],
     ['PT', ['bank', 'crypto', 'peanut'], ['card', 'bank', 'crypto', 'peanut']],
     ['US', ['bank', 'crypto', 'peanut'], ['card', 'bank', 'crypto', 'peanut']],
     ['UA', ['crypto', 'peanut'], ['crypto', 'peanut']],

@@ -41,7 +41,7 @@ for (const locale of locales) {
             await page.keyboard.press('Escape')
             await expect(dialog).not.toBeVisible()
             await payment.click()
-            await expect(dialog.getByRole('button')).toHaveCount(6)
+            await expect(dialog.getByRole('button')).toHaveCount(5)
             await dialog.getByRole('button').first().click()
             await expect(dialog).not.toBeVisible()
             await expect(payment).toHaveJSProperty('offsetHeight', 36)

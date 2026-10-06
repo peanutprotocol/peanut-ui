@@ -1024,8 +1024,6 @@
                 "pix": "Pagamentos com Pix",
                 "arQr": "QR do Mercado Pago",
                 "bank": "Transferência bancária",
-                "brlBank": "Transferência bancária (BRL)",
-                "arsBank": "Transferência bancária (ARS)",
                 "crypto": "Cripto"
             },
             "chooseMethod": "Escolher um método",

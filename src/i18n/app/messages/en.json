@@ -1024,8 +1024,6 @@
                 "pix": "Pix payments",
                 "arQr": "Mercado Pago QR",
                 "bank": "Bank transfer",
-                "brlBank": "Bank transfer (BRL)",
-                "arsBank": "Bank transfer (ARS)",
                 "crypto": "Crypto"
             },
             "chooseMethod": "Choose a method",

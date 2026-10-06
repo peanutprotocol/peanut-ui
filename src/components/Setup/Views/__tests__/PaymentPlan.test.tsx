@@ -75,6 +75,17 @@ it('offers both card and Pix in Brazil, and allows a deliberate Crypto payment c
     await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/crypto')
 })
+it.each([
+    ['BR', 'Bank transfer (BRL)', 'Pix payments'],
+    ['AR', 'Bank transfer (ARS)', 'Mercado Pago QR'],
+])('keeps first-party bank rails out of the payment drawer for %s', (country, ownAccountRail, qrPayment) => {
+    renderWithIntl(ui(country))
+    fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Choose a method' }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).queryByRole('button', { name: ownAccountRail })).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Bank transfer' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: qrPayment })).toBeInTheDocument()
+})
 it('clears newly restricted choices and disables Continue until the user selects valid replacements', async () => {
     const view = renderWithIntl(ui('PT'))
     await choose('Add money with', 'Choose a method', 'Bank transfer')

@@ -4,7 +4,7 @@ import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 export type SetupFundingChannel = 'bank' | 'brlBank' | 'arsBank' | 'crypto' | 'peanut'
-export type SetupPaymentChannel = SetupFundingChannel | 'card' | 'pix' | 'arQr'
+export type SetupPaymentChannel = Exclude<SetupFundingChannel, 'brlBank' | 'arsBank'> | 'card' | 'pix' | 'arQr'
 export type SetupChannel = SetupFundingChannel | SetupPaymentChannel
 export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, Concept> = {
     bank: 'bank',
@@ -16,7 +16,11 @@ export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, Concept> = {
     crypto: 'crypto',
     peanut: 'friends',
 }
-export function setupChannelsForResidence(sets: ResidenceRestrictionSets, residence: string, settled: boolean) {
+export function setupChannelsForResidence(
+    sets: ResidenceRestrictionSets,
+    residence: string,
+    settled: boolean
+): { funding: SetupFundingChannel[]; payment: SetupPaymentChannel[] } {
     const country = residence.trim().toUpperCase()
     const available = settled && country ? residenceAvailability(sets, country).available : []
     // Offer methods that can be unlocked, rather than only rails enrolled by the initial KYC intent.
@@ -33,17 +37,19 @@ export function setupChannelsForResidence(sets: ResidenceRestrictionSets, reside
         : available.includes('arQr')
           ? ['arsBank']
           : []
-    const bank: SetupFundingChannel[] = [...local, ...(bridge ? ['bank' as const] : [])]
+    const bridgeBank = bridge ? (['bank'] as const) : []
+    const bank: SetupFundingChannel[] = [...local, ...bridgeBank]
     const card = available.includes('card')
     return {
-        funding: [...bank, 'crypto', 'peanut'] as SetupFundingChannel[],
+        funding: [...bank, 'crypto', 'peanut'],
         payment: [
             ...(card ? ['card' as const] : []),
-            ...bank,
+            // Manteca bank rails only withdraw to the user's own account; QR pays third parties.
+            ...bridgeBank,
             ...(available.includes('pix') ? ['pix' as const] : []),
             ...(available.includes('arQr') ? ['arQr' as const] : []),
             'crypto',
             'peanut',
-        ] as SetupPaymentChannel[],
+        ],
     }
 }
