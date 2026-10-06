@@ -35,6 +35,12 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
             'href',
             'https://www.bridge.xyz/legal/row-privacy-policy/bridge-building-limited'
         )
+        const cta = screen.getByRole('button', { name: 'Continue' })
+        // the provider line sits between the terms and the button, not under "Not now"
+        expect(
+            screen.getByRole('button', { name: 'About Bridge' }).compareDocumentPosition(cta) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
     })
 
     it('continues to the acceptance page from a button that does not say accept', () => {

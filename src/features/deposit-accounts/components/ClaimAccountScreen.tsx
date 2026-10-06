@@ -76,8 +76,6 @@ export function ClaimAccountScreen({
     const bridgeProviderId = useBridgeProviderId()
     // only bridge corridors are claimable, but the rail says so rather than this screen assuming it
     const providerId = rail.provider === 'bridge' ? bridgeProviderId : null
-    // the account is opened at the provider, so the tap agrees to the provider's terms
-    const termsHref = providerId ? PROVIDERS[providerId].termsUrl : undefined
 
     // The floor is one of these lines, and the screen states each rule once.
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
@@ -196,22 +194,30 @@ export function ClaimAccountScreen({
                         >
                             {t('claim.cta', { currency: rail.currency })}
                         </Button>
-                        {/* The terms the tap agrees to. It sits under the button,
+                        {/* The terms the tap agrees to, in one line with the provider
+                            that holds the account. It sits under the button,
                             so the shell reservation still clears the button. */}
-                        <p className="text-center text-body-xs text-foreground-secondary">
-                            {t.rich('claim.termsAgreement', {
-                                currency: rail.currency,
-                                terms: (chunks) =>
-                                    termsHref ? (
+                        {providerId ? (
+                            <ProviderNote providerId={providerId} line="account" currency={rail.currency} prospective>
+                                {t.rich('claim.providerTerms', {
+                                    brand: PROVIDERS[providerId].brand,
+                                    terms: (chunks) => (
                                         <a
-                                            href={termsHref}
+                                            href={PROVIDERS[providerId].termsUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="underline underline-offset-2"
                                         >
                                             {chunks}
                                         </a>
-                                    ) : (
+                                    ),
+                                })}
+                            </ProviderNote>
+                        ) : (
+                            <p className="text-center text-body-xs text-foreground-secondary">
+                                {t.rich('claim.termsAgreement', {
+                                    currency: rail.currency,
+                                    terms: (chunks) => (
                                         <DocsLink
                                             href={VIRTUAL_ACCOUNT_TERMS_HREF}
                                             className="underline underline-offset-2"
@@ -219,11 +225,8 @@ export function ClaimAccountScreen({
                                             {chunks}
                                         </DocsLink>
                                     ),
-                            })}
-                        </p>
-                        {/* the provider sits with the terms the tap agrees to */}
-                        {providerId && (
-                            <ProviderNote providerId={providerId} line="account" currency={rail.currency} prospective />
+                                })}
+                            </p>
                         )}
                     </>
                 )}

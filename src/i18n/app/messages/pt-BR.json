@@ -2719,6 +2719,7 @@
         "identityVerification": "Verificação de identidade",
         "doesntStoreDocuments": "A Peanut não armazena nenhum dos seus documentos",
         "doesntStoreDocumentsPeriod": "A Peanut não armazena nenhum dos seus documentos.",
+        "documentsNotStored": "A Peanut não armazena <link>seus documentos</link>.",
         "countryRegion": "País/Região",
         "verified": "Verificado",
         "actionNeeded": "Ação necessária",
@@ -4107,7 +4108,8 @@
             "errorTitle": "Não conseguimos abrir a conta",
             "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE.",
             "whoCanPay": "Quem pode pagar",
-            "termsAgreement": "Ao abrir a conta, você aceita os <terms>termos da conta em {currency}</terms>."
+            "termsAgreement": "Ao abrir a conta, você aceita os <terms>termos da conta em {currency}</terms>.",
+            "providerTerms": "Ao abri-la, você aceita os <terms>termos da {brand}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",

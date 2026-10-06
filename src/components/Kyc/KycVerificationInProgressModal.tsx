@@ -155,7 +155,8 @@ export const KycVerificationInProgressModal = ({
                 icon={'check' as IconName}
                 title={t('progress.bridgeTosTitle')}
                 description={description}
-                footer={tosError ? undefined : <ProviderNote providerId={providerId} prospective />}
+                // the provider line sits between the terms and the button that leads to them
+                content={tosError ? undefined : <ProviderNote providerId={providerId} prospective />}
                 ctas={[
                     {
                         // Continue, not Accept: the user accepts on Bridge's page

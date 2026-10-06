@@ -9,6 +9,7 @@ import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
+import { DocumentsNotStored } from '@/components/Kyc/DocumentsNotStored'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import NavHeader from '@/components/Global/NavHeader'
@@ -312,19 +313,23 @@ export const InitiateKycModal = ({
     const iconName = (isErrorState ? 'alert' : 'badge') as IconName
     const prepProviderId =
         prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
-    // the account provider, named last on the screen that leads into its check
-    const providerNote = (nested: boolean) =>
-        showPrepChecklist && prepProviderId ? (
-            <ProviderNote providerId={prepProviderId} nested={nested} prospective />
-        ) : null
-    const footer =
+    const showDocumentsNote = !(
         isProviderRejection ||
         isBlocked ||
         isRestartIdentity ||
         isRegionUnavailable ||
-        isBankUnavailable ? undefined : (
+        isBankUnavailable
+    )
+    // one footnote under the button: where the check leads into a provider's
+    // account, its line also carries the documents fact
+    const footer = (nested: boolean) =>
+        showPrepChecklist && prepProviderId ? (
+            <ProviderNote providerId={prepProviderId} nested={nested} prospective>
+                {showDocumentsNote && <DocumentsNotStored />}
+            </ProviderNote>
+        ) : showDocumentsNote ? (
             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
-        )
+        ) : null
 
     if (presentation === 'page') {
         if (!visible) return null
@@ -358,8 +363,7 @@ export const InitiateKycModal = ({
                 >
                     {cta.text}
                 </Button>
-                {footer}
-                {providerNote(false)}
+                {footer(false)}
             </div>
         )
     }
@@ -398,8 +402,7 @@ export const InitiateKycModal = ({
                         >
                             {cta.text}
                         </Button>
-                        {footer}
-                        {providerNote(true)}
+                        {footer(true)}
                     </div>
                 </div>
             </DrawerContent>

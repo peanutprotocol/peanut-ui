@@ -83,6 +83,12 @@ describe('BridgeTosStep', () => {
         )
         expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument()
         expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+        const cta = screen.getByRole('button', { name: 'Continue' })
+        // the provider line sits between the terms and the button, not under "Not now"
+        expect(
+            screen.getByRole('button', { name: 'About Bridge' }).compareDocumentPosition(cta) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
     })
 
     it('opens a document in a new tab without starting the acceptance flow', () => {

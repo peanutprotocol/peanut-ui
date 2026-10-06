@@ -130,7 +130,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? t('bridgeTos.errorTitle') : copy.title}
                 description={error || copy.description}
-                footer={error ? undefined : <ProviderNote providerId={providerId} prospective />}
+                // the provider line sits between the terms and the button that leads to them
+                content={error ? undefined : <ProviderNote providerId={providerId} prospective />}
                 ctas={[
                     {
                         text: isLoading ? tCommon('loading') : error ? tCommon('tryAgain') : tCommon('continue'),

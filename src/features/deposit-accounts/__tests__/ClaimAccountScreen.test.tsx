@@ -252,13 +252,16 @@ describe('the timing row on the claim screen', () => {
 
 /** The tap that opens the account agrees to its terms, so the step links them under the button. */
 describe('the terms line on the claim screen', () => {
-    it('names the account provider and links its terms under the button', () => {
+    it('names the account provider and links its terms in one line under the button', () => {
         claim()
 
-        expect(screen.getByText(/Your EUR account is with Bridge\./)).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        const link = screen.getByRole('link', { name: "Bridge's terms" })
+        // one line: the provider, the agreement and the sheet link
+        expect(link.closest('p')).toHaveTextContent(
+            "Your EUR account is with Bridge. By opening it, you agree to Bridge's terms. About Bridge"
+        )
+        expect(link.closest('p')).toContainElement(screen.getByRole('button', { name: 'About Bridge' }))
         // no verified residence here, so the brand-wide terms page
-        const link = screen.getByRole('link', { name: 'EUR account terms' })
         expect(link).toHaveAttribute('href', 'https://www.bridge.xyz/legal')
         const cta = screen.getByRole('button', { name: /Open EUR account/i })
         expect(cta.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -267,6 +270,6 @@ describe('the terms line on the claim screen', () => {
     it('shows no terms line when the account cannot be opened', () => {
         claim({ error: 'deposit accounts are not enabled', isUnavailable: true })
 
-        expect(screen.queryByRole('link', { name: 'EUR account terms' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: "Bridge's terms" })).not.toBeInTheDocument()
     })
 })

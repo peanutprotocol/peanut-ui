@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
+import { DocumentsNotStored } from '@/components/Kyc/DocumentsNotStored'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
@@ -80,7 +81,6 @@ const UnlockMethodModal = ({
                         <div className="w-full text-left">
                             <KycPrepChecklist path={path} />
                         </div>
-                        <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                         <Button
                             icon="check-circle"
                             shadowSize="4"
@@ -91,7 +91,14 @@ const UnlockMethodModal = ({
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
-                        {providerId && <ProviderNote providerId={providerId} nested prospective />}
+                        {/* one footnote under the button: the provider and the documents fact together */}
+                        {providerId ? (
+                            <ProviderNote providerId={providerId} nested prospective>
+                                <DocumentsNotStored />
+                            </ProviderNote>
+                        ) : (
+                            <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+                        )}
                     </div>
                 </div>
             </DrawerContent>

@@ -2719,6 +2719,7 @@
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
         "doesntStoreDocumentsPeriod": "Peanut doesn't store any of your documents.",
+        "documentsNotStored": "Peanut doesn't store <link>your documents</link>.",
         "countryRegion": "Country/Region",
         "verified": "Verified",
         "actionNeeded": "Action needed",
@@ -4107,7 +4108,8 @@
             "errorTitle": "We could not open the account",
             "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country.",
             "whoCanPay": "Who can pay",
-            "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>."
+            "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>.",
+            "providerTerms": "By opening it, you agree to <terms>{brand}'s terms</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",

@@ -73,8 +73,16 @@ describe('InitiateKycModal — country_payments', () => {
 
     it('names the account provider in the fine print: Manteca from the country, Bridge from the caller', () => {
         const { unmount } = renderModal({ variant: 'country_payments', prepPath: 'extended', taxIdCountry: 'AR' })
-        expect(screen.getByText(/Payments by Manteca\./)).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'About Manteca' })).toBeInTheDocument()
+        const about = screen.getByRole('button', { name: 'About Manteca' })
+        // one footnote under the button carries the provider and the documents fact
+        expect(about.closest('p')).toHaveTextContent(
+            "Payments by Manteca. Peanut doesn't store your documents. About Manteca"
+        )
+        expect(screen.getByRole('link', { name: 'your documents' })).toHaveAttribute(
+            'href',
+            expect.stringContaining('/help/verification')
+        )
+        expect(screen.queryByText("Peanut doesn't store any of your documents")).not.toBeInTheDocument()
         unmount()
 
         const { unmount: unmountBridge } = renderModal({ providerId: 'bridge-eea' })
@@ -84,5 +92,7 @@ describe('InitiateKycModal — country_payments', () => {
         // a caller that does not know the provider names none
         renderModal()
         expect(screen.queryByRole('button', { name: /^About / })).not.toBeInTheDocument()
+        // and keeps the documents footnote on its own
+        expect(screen.getByText("Peanut doesn't store any of your documents")).toBeInTheDocument()
     })
 })

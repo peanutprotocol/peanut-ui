@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PROVIDERS } from '@/constants/providers.consts'
@@ -27,6 +27,8 @@ interface ProviderNoteProps {
     pooledAccount?: boolean
     /** shown before the user accepts the provider's terms: the relationship line speaks of it as ahead */
     prospective?: boolean
+    /** another sentence for the same line, placed before "About <brand>" */
+    children?: ReactNode
     className?: string
 }
 
@@ -38,6 +40,7 @@ export const ProviderNote = ({
     nested,
     pooledAccount,
     prospective,
+    children,
     className,
 }: ProviderNoteProps) => {
     const t = useTranslations('provider')
@@ -49,7 +52,7 @@ export const ProviderNote = ({
     return (
         <>
             <p className={twMerge('text-center text-body-xs text-foreground-secondary', className)}>
-                {t(`finePrint.${key}`, { brand, currency: currency ?? '' })}{' '}
+                {t(`finePrint.${key}`, { brand, currency: currency ?? '' })} {children && <>{children} </>}
                 <LinkButton onClick={() => setOpen(true)}>{t('about', { brand })}</LinkButton>
             </p>
             <ProviderSheet
