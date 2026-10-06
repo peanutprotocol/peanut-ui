@@ -99,7 +99,7 @@ export default function EmailStep() {
                             href="/en/help/account-recovery"
                             className={LINK_BUTTON_CLASSES}
                         >
-                            <Icon name="info" size={14} className="shrink-0" />
+                            <Icon name="info" size={16} className="shrink-0" />
                             {t('recoveryGuide')}
                         </SetupDocLink>
                     </div>
