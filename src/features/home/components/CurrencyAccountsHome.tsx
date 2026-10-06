@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode, type ComponentProps } from 'react'
+import { useEffect, useState, type ReactNode, type ComponentProps } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useCurrencyAccounts, useEurcBalance } from '@/hooks/wallet/useCurrencyAccounts'
@@ -9,6 +9,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { AccountType } from '@/interfaces/interfaces'
+import { EurcAccountView } from './EurcAccountView'
 
 type Props = { balanceProps: ComponentProps<typeof BalanceSection>; children: ReactNode }
 
@@ -31,6 +32,10 @@ function CurrencyAccountsHomeSession({ userId, balanceProps, children }: Props &
     const [isAdding, setIsAdding] = useState(false)
     const accounts = useCurrencyAccounts(userId)
     const eurcAccount = accounts.data?.accounts.find((account) => account.asset === 'EURC')
+    const eurcAccountId = eurcAccount?.id
+    useEffect(() => {
+        if (eurcAccountId && new URLSearchParams(window.location.search).get('currency') === 'EURC') setSelected('EURC')
+    }, [eurcAccountId])
     const canAdd = !eurcAccount && (accounts.data?.available.some((asset) => asset.asset === 'EURC') ?? false)
     const isEurc = selected === 'EURC' && !!eurcAccount
     const eurcBalance = useEurcBalance(userId, isEurc ? eurcAccount : undefined)
@@ -49,6 +54,14 @@ function CurrencyAccountsHomeSession({ userId, balanceProps, children }: Props &
 
     return (
         <>
+            {accounts.isError && (
+                <div role="alert" className="flex flex-col items-center gap-2">
+                    <p>{t('accountsError')}</p>
+                    <Button variant="ghost" onClick={() => void accounts.refetch()}>
+                        {t('retry')}
+                    </Button>
+                </div>
+            )}
             {showSelector && (
                 <div className="flex items-center justify-center gap-2" role="group" aria-label={t('accounts')}>
                     <Tabs
@@ -130,6 +143,7 @@ function CurrencyAccountsHomeSession({ userId, balanceProps, children }: Props &
                         <p>{t('description')}</p>
                         <p>{t('availability')}</p>
                     </Card>
+                    <EurcAccountView userId={userId!} account={eurcAccount!} />
                 </>
             ) : (
                 <>

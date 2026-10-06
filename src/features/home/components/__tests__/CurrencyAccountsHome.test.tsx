@@ -5,6 +5,8 @@ import { CurrencyAccountsHome } from '../CurrencyAccountsHome'
 import { currencyAccountsApi, type CurrencyAccount } from '@/services/currency-accounts'
 import { getPublicClient } from '@/app/actions/clients'
 
+jest.mock('../EurcAccountView', () => ({ EurcAccountView: () => null }))
+
 let mockUserId = 'alice'
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -181,5 +183,26 @@ it('leaves the USDC home available when no additional currencies are offered', a
     await waitFor(() => expect(list).toHaveBeenCalled())
     expect(screen.queryByRole('group', { name: 'accounts' })).not.toBeInTheDocument()
     expect(screen.getByText('USDC send')).toBeInTheDocument()
+    client.clear()
+})
+
+it('opens EURC from a notification link only after the account catalog loads', async () => {
+    window.history.replaceState({}, '', '/home?currency=EURC')
+    list.mockResolvedValue({ accounts: [usdc, eurc], available: [] })
+    const { client } = setup()
+    expect(await screen.findByText('€:2500000')).toBeInTheDocument()
+    client.clear()
+    window.history.replaceState({}, '', '/home')
+})
+
+it('keeps USDC usable and retries an unavailable account catalog', async () => {
+    list.mockRejectedValueOnce(new Error('temporarily unavailable')).mockRejectedValueOnce(
+        new Error('temporarily unavailable')
+    )
+    const { client } = setup()
+    expect(await screen.findByRole('alert', {}, { timeout: 5000 })).toHaveTextContent('accountsError')
+    expect(screen.getByText('$:10000000')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'retry' }))
+    expect(await screen.findByRole('button', { name: 'addAccount' })).toBeInTheDocument()
     client.clear()
 })
