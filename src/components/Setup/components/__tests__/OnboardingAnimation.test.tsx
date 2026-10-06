@@ -1,5 +1,6 @@
 import { act, render } from '@testing-library/react'
-import OnboardingAnimation from '../OnboardingAnimation'
+import { MASCOT_HOLD_FRAMES, MASCOT_SPEED } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import OnboardingAnimation, { CARD_RESTART_DELAY_MS } from '../OnboardingAnimation'
 
 const mockEvents: Record<string, () => void> = {}
 const mockMotionListeners = new Set<() => void>()
@@ -9,10 +10,8 @@ const mockMotion = {
     removeEventListener: (_: string, listener: () => void) => mockMotionListeners.delete(listener),
 }
 const mockAnimation = {
-    setSpeed: jest.fn(),
-    play: jest.fn(),
-    pause: jest.fn(),
-    goToAndPlay: jest.fn(),
+    frameRate: 30,
+    totalFrames: 60,
     goToAndStop: jest.fn(),
     destroy: jest.fn(),
     addEventListener: jest.fn((name: string, fn: () => void) => {
@@ -24,12 +23,24 @@ jest.mock('lottie-web/build/player/lottie_light', () => ({
     __esModule: true,
     default: { loadAnimation: (...args: unknown[]) => mockLoad(...args) },
 }))
+const mockTicks = new Set<(deltaSeconds: number) => void>()
+jest.mock('@/components/Global/PeanutMascot/PeanutMascot.utils', () => ({
+    subscribeToMascotClock: (tick: (deltaSeconds: number) => void) => {
+        mockTicks.add(tick)
+        return () => mockTicks.delete(tick)
+    },
+}))
+
+const STEP_SECONDS = MASCOT_HOLD_FRAMES / (30 * MASCOT_SPEED)
+const advanceClock = (seconds: number) => act(() => mockTicks.forEach((tick) => tick(seconds)))
+
 let mockHidden = false
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
     Object.keys(mockEvents).forEach((key) => delete mockEvents[key])
     mockMotionListeners.clear()
+    mockTicks.clear()
     mockMotion.matches = false
     mockHidden = false
     jest.spyOn(window, 'matchMedia').mockImplementation(() => mockMotion as unknown as MediaQueryList)
@@ -39,7 +50,7 @@ afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
 })
-async function mount(name: 'username' | 'bank' | 'card') {
+async function mount(name: 'username' | 'bank' | 'card' | 'fees') {
     let view!: ReturnType<typeof render>
     await act(async () => {
         view = render(<OnboardingAnimation name={name} />)
@@ -48,55 +59,91 @@ async function mount(name: 'username' | 'bank' | 'card') {
     act(() => mockEvents.DOMLoaded())
     return view
 }
+
+it('updates on the mascot’s held-frame rhythm instead of every display frame', async () => {
+    await mount('bank')
+    expect(mockLoad).toHaveBeenCalledWith(expect.objectContaining({ loop: true, autoplay: false }))
+    advanceClock(STEP_SECONDS * 0.6)
+    expect(mockAnimation.goToAndStop).not.toHaveBeenCalled()
+    advanceClock(STEP_SECONDS * 0.6)
+    expect(mockAnimation.goToAndStop).toHaveBeenCalledTimes(1)
+    expect(mockAnimation.goToAndStop.mock.calls[0][0]).toBeCloseTo(STEP_SECONDS * 30)
+})
+
 it.each([
     ['username', 4],
+    ['fees', 0.5],
     ['bank', 1],
-] as const)('plays %s twice as fast as its former speed', async (name, speed) => {
+] as const)('runs %s at tempo %s on that shared rhythm', async (name, tempo) => {
     await mount(name)
-    expect(mockAnimation.setSpeed).toHaveBeenCalledWith(speed)
-    expect(mockLoad).toHaveBeenCalledWith(expect.objectContaining({ loop: true }))
+    advanceClock(STEP_SECONDS)
+    expect(mockAnimation.goToAndStop.mock.calls[0][0]).toBeCloseTo(STEP_SECONDS * 30 * tempo)
 })
-it('holds the card for 1000ms after every completed cycle', async () => {
+
+it('holds the card on its last frame for the restart delay after every cycle', async () => {
     await mount('card')
     expect(mockLoad).toHaveBeenCalledWith(expect.objectContaining({ loop: false }))
     for (let cycle = 1; cycle <= 2; cycle++) {
-        act(() => mockEvents.complete())
-        act(() => jest.advanceTimersByTime(999))
-        expect(mockAnimation.goToAndPlay).toHaveBeenCalledTimes(cycle - 1)
+        advanceClock(60 / 30 + STEP_SECONDS)
+        expect(mockAnimation.goToAndStop).toHaveBeenLastCalledWith(59, true)
+        expect(mockTicks.size).toBe(0)
+        act(() => jest.advanceTimersByTime(CARD_RESTART_DELAY_MS - 1))
+        expect(mockAnimation.goToAndStop).toHaveBeenLastCalledWith(59, true)
         act(() => jest.advanceTimersByTime(1))
-        expect(mockAnimation.goToAndPlay).toHaveBeenCalledTimes(cycle)
-        expect(mockAnimation.goToAndPlay).toHaveBeenLastCalledWith(0, true)
+        expect(mockAnimation.goToAndStop).toHaveBeenLastCalledWith(0, true)
+        expect(mockTicks.size).toBe(1)
     }
 })
-it('does not restart a hidden or unmounted card', async () => {
+
+it('pauses while the page is hidden and does not restart a hidden or unmounted card', async () => {
     const view = await mount('card')
-    act(() => mockEvents.complete())
+    advanceClock(60 / 30 + STEP_SECONDS)
     act(() => {
         mockHidden = true
         document.dispatchEvent(new Event('visibilitychange'))
     })
-    act(() => jest.advanceTimersByTime(1000))
-    expect(mockAnimation.goToAndPlay).not.toHaveBeenCalled()
+    act(() => jest.advanceTimersByTime(CARD_RESTART_DELAY_MS))
+    expect(mockAnimation.goToAndStop).not.toHaveBeenCalledWith(0, true)
     act(() => {
         mockHidden = false
         document.dispatchEvent(new Event('visibilitychange'))
     })
-    act(() => jest.advanceTimersByTime(1000))
-    expect(mockAnimation.goToAndPlay).toHaveBeenCalledTimes(1)
-    act(() => mockEvents.complete())
+    act(() => jest.advanceTimersByTime(CARD_RESTART_DELAY_MS))
+    expect(mockAnimation.goToAndStop).toHaveBeenLastCalledWith(0, true)
+    advanceClock(60 / 30 + STEP_SECONDS)
     view.unmount()
-    act(() => jest.advanceTimersByTime(1000))
-    expect(mockAnimation.goToAndPlay).toHaveBeenCalledTimes(1)
+    mockAnimation.goToAndStop.mockClear()
+    act(() => jest.advanceTimersByTime(CARD_RESTART_DELAY_MS))
+    expect(mockAnimation.goToAndStop).not.toHaveBeenCalled()
+    expect(mockTicks.size).toBe(0)
     expect(mockAnimation.destroy).toHaveBeenCalled()
 })
-it('cancels the card restart when reduced motion is enabled', async () => {
+
+it('stops the clock while hidden and resumes when visible again', async () => {
+    await mount('bank')
+    expect(mockTicks.size).toBe(1)
+    act(() => {
+        mockHidden = true
+        document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(mockTicks.size).toBe(0)
+    act(() => {
+        mockHidden = false
+        document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(mockTicks.size).toBe(1)
+})
+
+it('cancels the card restart and shows a still frame when reduced motion is enabled', async () => {
     await mount('card')
-    act(() => mockEvents.complete())
+    advanceClock(60 / 30 + STEP_SECONDS)
     act(() => {
         mockMotion.matches = true
         mockMotionListeners.forEach((listener) => listener())
     })
-    act(() => jest.advanceTimersByTime(1000))
-    expect(mockAnimation.goToAndPlay).not.toHaveBeenCalled()
-    expect(mockAnimation.goToAndStop).toHaveBeenCalledWith(0, true)
+    expect(mockAnimation.goToAndStop).toHaveBeenLastCalledWith(0, true)
+    mockAnimation.goToAndStop.mockClear()
+    act(() => jest.advanceTimersByTime(CARD_RESTART_DELAY_MS))
+    expect(mockAnimation.goToAndStop).not.toHaveBeenCalled()
+    expect(mockTicks.size).toBe(0)
 })
