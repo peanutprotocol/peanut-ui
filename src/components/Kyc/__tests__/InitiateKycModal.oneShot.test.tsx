@@ -6,8 +6,9 @@
  */
 /** @jest-environment jsdom */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { __resetOneShotSessionForTests, markOneShotStarted, recordOneShotIntents } from '@/hooks/useOneShotSession'
 import { InitiateKycModal } from '../InitiateKycModal'
 
 let mockOneShotResidence: string | null = null
@@ -33,9 +34,32 @@ const renderModal = (props: Partial<React.ComponentProps<typeof InitiateKycModal
         </IntlWrapper>
     )
 
+const ALL_INTENTS = { qr: true, local: true, card: true, bank: true }
+
 describe('InitiateKycModal — one-shot onboarding', () => {
     beforeEach(() => {
         mockOneShotResidence = null
+        __resetOneShotSessionForTests()
+    })
+
+    // item 9a: closing the SDK halfway and tapping Verify again resumes the
+    // applicant from today's start screen; the questions are not asked twice
+    it('skips the checklist once a stored set has a started session', () => {
+        mockOneShotResidence = 'BR'
+        recordOneShotIntents(ALL_INTENTS)
+        markOneShotStarted()
+        const onVerify = jest.fn()
+        renderModal({ onVerify })
+        expect(screen.queryByText(/unlock-checklist/)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+        expect(onVerify).toHaveBeenCalledTimes(1)
+    })
+
+    it('still asks when the set was stored but the SDK never opened', () => {
+        mockOneShotResidence = 'BR'
+        recordOneShotIntents(ALL_INTENTS)
+        renderModal()
+        expect(screen.getByText('unlock-checklist:BR')).toBeInTheDocument()
     })
 
     it("keeps today's screen when the server did not flag the user", () => {

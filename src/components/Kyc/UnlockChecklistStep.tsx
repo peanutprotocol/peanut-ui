@@ -23,6 +23,7 @@ import { KYC_INTENT_KEYS, type KycIntentKey } from '@/services/kyc-intents'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { twMerge } from '@/utils/tw'
+import { residenceCopyVariant } from './unlock-checklist.utils'
 import { type IdDocumentAnswer, useUnlockChecklist } from './useUnlockChecklist'
 
 interface UnlockChecklistStepProps {
@@ -39,11 +40,6 @@ interface UnlockChecklistStepProps {
     /** "Explore first": leaves the screen without verifying. */
     onExplore: () => void
 }
-
-// the residences with their own ID and QR wording; every other one reads the generic line
-const NAMED_RESIDENCES: readonly string[] = ['AR', 'BR']
-const copyVariant = (residence: string): 'AR' | 'BR' | 'default' =>
-    NAMED_RESIDENCES.includes(residence) ? (residence as 'AR' | 'BR') : 'default'
 
 const SKELETON = 'animate-pulse rounded bg-foreground-primary/10'
 
@@ -71,7 +67,7 @@ export const UnlockChecklistStep = ({
     const locale = useLocale()
     const questionId = useId()
     const country = localizedCountryName(locale, residence, residence)
-    const variant = copyVariant(residence)
+    const variant = residenceCopyVariant(residence)
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
     const checklist = useUnlockChecklist(residence, onVerify)
     const [exploreOpen, setExploreOpen] = useState(false)

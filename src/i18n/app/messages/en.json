@@ -2873,6 +2873,11 @@
             "exploreDescription": "Receiving, holding and sending money to other people keep working. The features you picked stay locked until you verify.",
             "exploreFirst": "Explore first"
         },
+        "setup": {
+            "settingUp": "Setting up",
+            "available": "Available",
+            "underReview": "Under review"
+        },
         "bridgeTos": {
             "baseTitle": "Bank transfer terms",
             "sepaTitle": "Updated bank transfer terms",

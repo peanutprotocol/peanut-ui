@@ -5,8 +5,11 @@ import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { markOneShotStarted, useOneShotSession } from '@/hooks/useOneShotSession'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
+import { setupRows } from '@/utils/one-shot-setup.utils'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
@@ -202,6 +205,14 @@ export const useMultiPhaseKycFlow = ({
     const startTracking = useCallback(() => {}, [])
     const stopTracking = useCallback(() => {}, [])
 
+    // One-shot onboarding (TASK-23329): true for the SDK session the unlock
+    // checklist started. The setup drawer follows that session in place of the
+    // phase modals. Every other flow, a later one of the same user included,
+    // keeps the phases below.
+    const { oneShotResidence } = useIdentityVerification()
+    const oneShotSession = useOneShotSession()
+    const [isOneShotFlow, setIsOneShotFlow] = useState(false)
+
     const clearPreparingTimer = useCallback(() => {
         if (preparingTimerRef.current) {
             clearTimeout(preparingTimerRef.current)
@@ -248,6 +259,15 @@ export const useMultiPhaseKycFlow = ({
         // survives a drop during the post-approval ToS / preparing steps.
         onKycApproved?.()
 
+        // The setup drawer reads each ticked feature's rail itself: no Bridge
+        // terms phase, and one settled bank rail does not complete the flow.
+        // Its Continue does, once every row is available.
+        if (isOneShotFlow) {
+            setForceShowModal(true)
+            await fetchUser()
+            return
+        }
+
         // for real-time flow, optimistically show "Identity verified!" while we check rails
         if (isRealtimeFlowRef.current) {
             setModalPhase('preparing')
@@ -285,7 +305,16 @@ export const useMultiPhaseKycFlow = ({
             setForceShowModal(true)
             startTracking()
         }
-    }, [fetchUser, startTracking, clearPreparingTimer, completeFlow, onKycApproved, regionIntent, requestedCountry])
+    }, [
+        fetchUser,
+        startTracking,
+        clearPreparingTimer,
+        completeFlow,
+        onKycApproved,
+        regionIntent,
+        requestedCountry,
+        isOneShotFlow,
+    ])
 
     const {
         isLoading,
@@ -321,6 +350,15 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         closeVerificationModalRef.current = closeVerificationProgressModal
     }, [closeVerificationProgressModal])
+
+    // useSumsubKycFlow closes its progress modal when a reviewer takes the check
+    // (IN_REVIEW). An open setup drawer stays through it, since its rows say
+    // "Under review", and still closes with that modal on a rejection.
+    useEffect(() => {
+        if (!isOneShotFlow) return
+        if (liveKycStatus === 'IN_REVIEW') setForceShowModal((open) => open || isVerificationProgressModalOpen)
+        else if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') setForceShowModal(false)
+    }, [isOneShotFlow, liveKycStatus, isVerificationProgressModalOpen])
 
     // refresh user store when kyc status transitions to a non-success state
     // so the drawer/status item reads the updated verification record
@@ -435,9 +473,20 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
+            const opened = await originalHandleInitiateKyc(
+                overrideIntent,
+                levelName,
+                crossRegion,
+                targetCountry,
+                false,
+                corridor
+            )
+            // Only an SDK that opened on a set the checklist stored. An approved
+            // user gets no token, so their later flows stay on the phases.
+            setIsOneShotFlow(opened === true && !!oneShotResidence && markOneShotStarted())
+            return opened
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
+        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, oneShotResidence]
     )
 
     useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
@@ -674,6 +723,18 @@ export const useMultiPhaseKycFlow = ({
 
     const depositBlocked = !verificationSession && !showWrapper && allBlocked && modalPhase === 'preparing'
 
+    const identityVerified = user?.identityVerification?.status === 'verified'
+    const oneShotSetup = useMemo(
+        () =>
+            isOneShotFlow && oneShotResidence && oneShotSession
+                ? {
+                      residence: oneShotResidence,
+                      rows: setupRows({ intents: oneShotSession.intents, capabilities, identityVerified }),
+                  }
+                : null,
+        [isOneShotFlow, oneShotResidence, oneShotSession, capabilities, identityVerified]
+    )
+
     return {
         // initiation
         handleInitiateKyc,
@@ -716,6 +777,8 @@ export const useMultiPhaseKycFlow = ({
         isLoadingTos,
         preparingTimedOut,
         preparingStage,
+        // one-shot onboarding: the setup rows that stand in for the phase modal
+        oneShotSetup,
 
         // ToS iframe
         tosLink,
