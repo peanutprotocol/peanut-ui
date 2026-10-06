@@ -499,7 +499,8 @@ button {
 .tag.changed {
     background: #ffdbf6;
 }
-.tag.added {
+.tag.added,
+.tag.new {
     background: #d7f4db;
 }
 .tag.passed {
@@ -578,6 +579,25 @@ figcaption {
     border: 1px dashed #c5bcc8;
     border-radius: 8px;
     overflow-wrap: anywhere;
+}
+.new-screen-shot {
+    display: flex;
+    flex-direction: column;
+}
+.new-screen {
+    min-height: 220px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--muted);
+    background: #f8f6f9;
+}
+.new-screen strong {
+    font-size: 16px;
+    color: var(--ink);
 }
 .tile-foot {
     font-size: 11px;
