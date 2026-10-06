@@ -8,7 +8,10 @@ it('identifies the current residence protocol on the authenticated websocket', a
     jest.useFakeTimers()
     const original = global.WebSocket
     const transport = { readyState: 1, send: jest.fn(), close: jest.fn(), onopen: null as null | (() => void) }
-    global.WebSocket = Object.assign(jest.fn(() => transport), { OPEN: 1 }) as unknown as typeof WebSocket
+    global.WebSocket = Object.assign(
+        jest.fn(() => transport),
+        { OPEN: 1 }
+    ) as unknown as typeof WebSocket
     const socket = new PeanutWebSocket('https://api.peanut.test', '/ws')
     try {
         socket.connect()
