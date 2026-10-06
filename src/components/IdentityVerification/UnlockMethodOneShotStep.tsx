@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
+import { useEffect } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
@@ -23,6 +24,8 @@ interface UnlockMethodOneShotStepProps {
     isLoading: boolean
     /** Starts the identity check, once the set is stored. */
     onUnlock: () => void
+    /** Tells the sheet a save is in flight, so it cannot be dismissed under it. */
+    onSavingChange: (saving: boolean) => void
 }
 
 /**
@@ -40,6 +43,7 @@ export const UnlockMethodOneShotStep = ({
     path,
     isLoading,
     onUnlock,
+    onSavingChange,
 }: UnlockMethodOneShotStepProps) => {
     const t = useTranslations('kyc.unlock')
     const tPrep = useTranslations('kyc.prep')
@@ -48,7 +52,12 @@ export const UnlockMethodOneShotStep = ({
     const tIdentity = useTranslations('identity')
     const locale = useLocale()
     const checklist = useUnlockChecklist(residence, onUnlock, feature)
-    const busy = isLoading || checklist.save.isPending
+    const saving = checklist.save.isPending
+    useEffect(() => {
+        onSavingChange(saving)
+        return () => onSavingChange(false)
+    }, [saving, onSavingChange])
+    const busy = isLoading || saving
     const row = checklist.rows.find((candidate) => candidate.key === feature)
     const refused = checklist.isReady && !row?.available
     // a row the checklist hides (a residence rule) has no line of its own

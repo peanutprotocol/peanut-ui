@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -46,10 +47,14 @@ const UnlockMethodModal = ({
     const t = useTranslations('profile.unlockPayments.unlockModal')
     const tPrep = useTranslations('kyc.prep')
     const tCommon = useTranslations('common')
+    const [oneShotSaving, setOneShotSaving] = useState(false)
 
     return (
         <Drawer
             open={visible}
+            // the one-shot step's save must not be abandoned by a swipe or an
+            // overlay tap: its answer would start the check on a closed sheet
+            dismissible={!oneShotSaving}
             onOpenChange={(isOpen) => {
                 if (!isOpen) onClose()
             }}
@@ -74,6 +79,7 @@ const UnlockMethodModal = ({
                                 path={path}
                                 isLoading={!!isLoading}
                                 onUnlock={onUnlock}
+                                onSavingChange={setOneShotSaving}
                             />
                         ) : (
                             <>

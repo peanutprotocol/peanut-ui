@@ -7,7 +7,7 @@
  */
 /** @jest-environment jsdom */
 import React from 'react'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import { __resetOneShotSessionForTests, useOneShotSession } from '@/hooks/useOneShotSession'
@@ -42,6 +42,7 @@ const answer = (residence: string, idCountry?: string): KycIntentsConfig => ({
 })
 
 const onUnlock = jest.fn()
+const onClose = jest.fn()
 const StoredSet = () => <output data-testid="stored-set">{JSON.stringify(useOneShotSession()?.intents ?? null)}</output>
 
 const renderSheet = (feature?: KycIntentKey) =>
@@ -50,7 +51,7 @@ const renderSheet = (feature?: KycIntentKey) =>
             <IntlWrapper>
                 <UnlockMethodModal
                     visible
-                    onClose={jest.fn()}
+                    onClose={onClose}
                     onUnlock={onUnlock}
                     methodLabel="EUR · Bank transfer"
                     oneShot={feature ? { residence: 'ES', feature } : null}
@@ -187,5 +188,32 @@ describe('UnlockMethodModal', () => {
         expect(screen.getByRole('button', { name: 'I have these, start' })).toBeDisabled()
         fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
         await waitFor(() => expect(screen.getByRole('button', { name: 'I have these, start' })).toBeEnabled())
+    })
+
+    // Chip review on ui#3584: a sheet dismissed during the save must not open the check when the answer lands
+    it('cannot be dismissed while the save is in flight, and starts the check when it lands', async () => {
+        let finishSave: () => void = () => {}
+        setIntents.mockImplementation(() => new Promise<void>((resolve) => (finishSave = resolve)))
+        const dismiss = () => fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+        renderSheet('bank')
+        const start = screen.getByRole('button', { name: 'I have these, start' })
+        await waitFor(() => expect(start).toBeEnabled())
+        // at rest the sheet closes as it always did
+        dismiss()
+        expect(onClose).toHaveBeenCalledTimes(1)
+
+        fireEvent.click(start)
+        await waitFor(() => expect(setIntents).toHaveBeenCalledTimes(1))
+        dismiss()
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(onUnlock).not.toHaveBeenCalled()
+
+        await act(async () => finishSave())
+        await waitFor(() => expect(onUnlock).toHaveBeenCalledTimes(1))
+        // the lock ends with the save
+        await waitFor(() => {
+            dismiss()
+            expect(onClose).toHaveBeenCalledTimes(2)
+        })
     })
 })
