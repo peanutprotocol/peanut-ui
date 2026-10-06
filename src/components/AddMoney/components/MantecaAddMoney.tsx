@@ -53,7 +53,7 @@ const MantecaAddMoney: FC = () => {
     const t = useTranslations('addMoney')
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
-    const leaveToHome = useReturnTo('/home')
+    const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS

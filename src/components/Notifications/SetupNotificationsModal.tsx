@@ -5,6 +5,7 @@ import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 
 // each money moment promises what the push will be about (TASK-23251); the
@@ -99,8 +100,7 @@ export function SetupNotificationsPrompt({
                         ? t(momentCopy.description)
                         : t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')
                 }
-                tone="peanut"
-                icon="bell"
+                content={<PeanutMascotScene scene="paper-planes" className="h-40 max-w-48" />}
                 // stacked CTAs at every width; sm:flex-none stops ActionModal's
                 // sm:flex-1 from stretching the buttons in the column
                 ctaClassName="sm:flex-col"

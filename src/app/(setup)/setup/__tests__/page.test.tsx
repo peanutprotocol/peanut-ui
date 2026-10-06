@@ -64,6 +64,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
+jest.mock('@/features/setup/useSetupCountrySignals', () => ({ useSetupCountrySignals: jest.fn() }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web' },
     useDeviceType: () => ({ deviceType: 'android' }),
@@ -85,7 +86,12 @@ jest.mock('@/components/Setup/setup-entry', () => ({
 }))
 jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    SetupWrapper: ({ children, showLogoutButton }: { children: React.ReactNode; showLogoutButton?: boolean }) => (
+        <div>
+            {showLogoutButton && <button>Logout</button>}
+            {children}
+        </div>
+    ),
 }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
 jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
@@ -280,6 +286,15 @@ it('suppresses timeout recovery when a completed session starts leaving for home
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
 })
 
+it('treats a stale legacy no-access profile as an authenticated account', async () => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: false } }
+
+    renderWithIntl(<SetupPage />)
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+})
+
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {
     mockNative = native
     Object.defineProperty(window, 'PublicKeyCredential', {
@@ -318,20 +333,23 @@ it('does not attribute a stored session-end page to a new signup', async () => {
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ signupEntryFlow: 'default' }))
 })
 
-it('settles a native badge campaign before redirecting an authenticated user home', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
-    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+it.each([true, false])(
+    'settles a native badge campaign before redirecting home (legacy access=%s)',
+    async (hasAppAccess) => {
+        mockAuth.user = { user: { username: 'alice', hasAppAccess } }
+        mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
 
-    renderWithIntl(<SetupPage />)
+        renderWithIntl(<SetupPage />)
 
-    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
-    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
-    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
-    expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
-        mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
-    )
-})
+        await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+        expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
+            mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
+        )
+    }
+)
 
 it('does not redirect home when setup unmounts before the native claim settles', async () => {
     mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
@@ -514,4 +532,31 @@ it('bounces a completed session home without showing the recovery screen', async
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
     expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
+})
+
+it('does not reinitialize the entry when residence eligibility changes the step list', async () => {
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
+    const card = { ...landing, screenId: 'advantage-card' as const, component: () => <div>Card step</div> }
+    mockStore.steps = [landing, card]
+    mockFlow.step = card
+    view.rerender(<SetupPage />)
+    await advance(200)
+    expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Card step')).toBeInTheDocument()
+})
+
+it('hides Logout on the final ready-to-start confirmation screen', async () => {
+    const ready: ISetupStep = {
+        ...landing,
+        screenId: 'advantage-control',
+        component: () => <div>Ready confirmation</div>,
+    }
+    mockStore.steps = [landing, ready]
+    mockFlow.step = ready
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.getByText('Ready confirmation')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
 })

@@ -8,12 +8,30 @@ import { badgeCampaignClaimsFromPayload, type BadgeCampaignClaim } from './badge
 import { parseLegacyInviteAcquisition, type LegacyInviteAcquisition } from './invite-acquisition'
 import { isTypedCampaignOnlyInviteResponse, resolveInviteResolutionFlags } from './invite-response'
 
-export type AcceptInviteResult = {
-    success: boolean
+type AcceptInviteResolution = {
     attributionResolved: boolean
     onboardingResolved: boolean
     claims: BadgeCampaignClaim[]
     legacyAcquisition?: LegacyInviteAcquisition
+}
+
+export type AcceptInviteResult =
+    | ({ success: true } & AcceptInviteResolution)
+    | ({ success: false; retryable: boolean; status?: number } & AcceptInviteResolution)
+
+function failedAcceptInvite(retryable: boolean, status?: number): AcceptInviteResult {
+    return {
+        success: false,
+        retryable,
+        ...(status === undefined ? {} : { status }),
+        attributionResolved: false,
+        onboardingResolved: false,
+        claims: [],
+    }
+}
+
+function isRetryableInviteStatus(status: number): boolean {
+    return status >= 500 || status === 408 || status === 425 || status === 429
 }
 
 export type ValidateInviteResult = {
@@ -26,8 +44,9 @@ export type ValidateInviteResult = {
 
 export const invitesApi = {
     acceptInvite: async (inviteCode: string, type: EInviteType, campaignTag?: string): Promise<AcceptInviteResult> => {
+        let response: Response
         try {
-            const response = await serverFetch('/invites/accept', {
+            response = await serverFetch('/invites/accept', {
                 method: 'POST',
                 // Normalize here so hand-typed input (`@alice `, ` Alice`) works no
                 // matter which screen collected it. Legacy ALICEINVITESYOU610 codes
@@ -37,30 +56,37 @@ export const invitesApi = {
                 // tag through this compatibility call.
                 body: JSON.stringify({ inviteCode: toInviteCode(inviteCode), type, campaignTag }),
             })
-            const body: unknown = await response.json()
-            const typedCampaignOnly =
-                response.status === 409 &&
-                isTypedCampaignOnlyInviteResponse(body) &&
-                !!body &&
-                typeof body === 'object' &&
-                Array.isArray((body as { claims?: unknown }).claims)
-            if (!response.ok && !typedCampaignOnly) {
-                return { success: false, attributionResolved: false, onboardingResolved: false, claims: [] }
-            }
-            const legacyAcquisition = parseLegacyInviteAcquisition(
-                body && typeof body === 'object'
-                    ? (body as { legacyAcquisition?: unknown }).legacyAcquisition
-                    : undefined
-            )
-            const resolution = resolveInviteResolutionFlags(body, response.ok)
-            return {
-                success: true,
-                ...resolution,
-                claims: legacyAcquisition ? badgeCampaignClaimsFromPayload(body, [legacyAcquisition.campaignTag]) : [],
-                ...(legacyAcquisition ? { legacyAcquisition } : {}),
-            }
         } catch {
-            return { success: false, attributionResolved: false, onboardingResolved: false, claims: [] }
+            return failedAcceptInvite(true)
+        }
+
+        let body: unknown
+        try {
+            body = await response.json()
+        } catch {
+            return failedAcceptInvite(isRetryableInviteStatus(response.status), response.status)
+        }
+        const typedCampaignOnly =
+            response.status === 409 &&
+            isTypedCampaignOnlyInviteResponse(body) &&
+            !!body &&
+            typeof body === 'object' &&
+            Array.isArray((body as { claims?: unknown }).claims)
+        if (!response.ok && !typedCampaignOnly) {
+            // Transport failures, server failures, and explicitly transient
+            // throttling/timeouts retain the referral. Invalid/forbidden codes
+            // are terminal so they cannot become a future referral later.
+            return failedAcceptInvite(isRetryableInviteStatus(response.status), response.status)
+        }
+        const legacyAcquisition = parseLegacyInviteAcquisition(
+            body && typeof body === 'object' ? (body as { legacyAcquisition?: unknown }).legacyAcquisition : undefined
+        )
+        const resolution = resolveInviteResolutionFlags(body, response.ok)
+        return {
+            success: true,
+            ...resolution,
+            claims: legacyAcquisition ? badgeCampaignClaimsFromPayload(body, [legacyAcquisition.campaignTag]) : [],
+            ...(legacyAcquisition ? { legacyAcquisition } : {}),
         }
     },
 
@@ -100,24 +126,6 @@ export const invitesApi = {
         } catch (e) {
             console.error('Error validating invite code:', e)
             return { success: false, attributionResolved: false, onboardingResolved: false, username: '' }
-        }
-    },
-
-    getWaitlistQueuePosition: async (): Promise<{ success: boolean; position: number }> => {
-        try {
-            const response = await serverFetch('/invites/waitlist-position', {
-                method: 'GET',
-            })
-
-            if (!response.ok) {
-                return { success: false, position: 0 }
-            }
-
-            const data = await response.json()
-            return { success: true, position: Number(data.queuePosition) || 0 }
-        } catch (e) {
-            console.error('Error getting waitlist queue position:', e)
-            return { success: false, position: 0 }
         }
     },
 }

@@ -27,6 +27,7 @@ import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdenti
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
+    showWelcome?: boolean
     /** hides the checklist once only the payment row is left (Home owns the stored choice) */
     onHideChecklist?: () => void
     /** hides a blocked card by its dismissal key (Home owns the stored choice) */
@@ -48,7 +49,12 @@ interface StepConfig {
  * outranks everything; a provider rejection replaces the checklist for a
  * verified user with no other way to move money.
  */
-export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBlockedCard }: ActivationCTAsProps) {
+export default function ActivationCTAs({
+    onboarding,
+    showWelcome = true,
+    onHideChecklist,
+    onHideBlockedCard,
+}: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
     const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
@@ -214,6 +220,7 @@ export default function ActivationCTAs({ onboarding, onHideChecklist, onHideBloc
             <>
                 <GettingStartedChecklist
                     onboarding={onboarding}
+                    showWelcome={showWelcome}
                     onHide={onHideChecklist}
                     onStartIdentityCheck={() => setShowInitiateKyc(true)}
                     onStartQrIdentityCheck={qrIdentityCheck.start}

@@ -59,6 +59,7 @@ jest.mock('@/utils/app-version', () => ({
 
 function setNavigatorLanguage(value: string): void {
     Object.defineProperty(navigator, 'language', { value, configurable: true })
+    Object.defineProperty(navigator, 'languages', { value: [value], configurable: true })
 }
 
 const realLocalStorage = Object.getOwnPropertyDescriptor(window, 'localStorage')!
@@ -68,6 +69,7 @@ function stubLocalStorage(get: () => Storage | null): void {
 }
 
 afterEach(() => {
+    jest.useRealTimers()
     Object.defineProperty(window, 'localStorage', realLocalStorage)
     window.localStorage.clear()
 })
@@ -280,6 +282,36 @@ describe('emitDeviceContextToAnalytics', () => {
 })
 
 describe('localeReady', () => {
+    it('uses the first supported browser language, preserving its preference order', async () => {
+        setNavigatorLanguage('fr-FR')
+        Object.defineProperty(navigator, 'languages', { value: ['fr-FR', 'es-AR', 'en'], configurable: true })
+        await expect(freshStore().localeReady()).resolves.toBe('es-AR')
+    })
+
+    it('keeps explicitly preferred English ahead of another supported browser language', async () => {
+        setNavigatorLanguage('en-GB')
+        Object.defineProperty(navigator, 'languages', { value: ['en-GB', 'pt-BR'], configurable: true })
+        await expect(freshStore().localeReady()).resolves.toBe('en')
+    })
+
+    it('applies native device language before setup and shares its bridge read with signal capture', async () => {
+        arrangeNativeBridge()
+        mockGetLanguageTag.mockResolvedValue({ value: 'es-AR' })
+        const store = freshStore()
+        await expect(store.localeReady()).resolves.toBe('es-AR')
+        await expect(store.rawDeviceTag()).resolves.toBe('es-AR')
+        expect(mockGetLanguageTag).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to the browser language when a native language lookup stalls', async () => {
+        jest.useFakeTimers()
+        arrangeNativeBridge()
+        setNavigatorLanguage('pt-BR')
+        mockGetLanguageTag.mockReturnValue(new Promise(() => {}))
+        const pending = freshStore().localeReady()
+        await jest.advanceTimersByTimeAsync(1500)
+        await expect(pending).resolves.toBe('pt-BR')
+    })
     it('falls back to the browser language when localStorage is null', async () => {
         // some Android in-app browsers (Sentry PEANUT-UI-STC) expose it as null,
         // which `typeof localStorage !== 'undefined'` happily waves through

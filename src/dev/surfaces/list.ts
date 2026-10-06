@@ -24,15 +24,30 @@ export type SurfaceMeta = {
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    '01-b-first-launch-intro': {
+        name: 'First launch — animated Peanut intro',
+        path: 'Setup/components/SetupWrapper.tsx',
+    },
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
-    '02-a-joinwaitlist': { name: 'JoinWaitlist', path: 'Setup/Views/JoinWaitlist.tsx' },
+    '03-c-residence-congrats': { name: 'Residence — available features checklist', path: 'Setup/Views/Residence.tsx' },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '05-a-signtesttransaction': {
-        name: 'SignTestTransaction — account ready',
+        name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
     '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
+    '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },
+    '03-d-funding-methods': { name: 'Setup — funding methods', path: 'Setup/Views/Funding.tsx' },
+    '03-e-advantage-local': { name: 'Setup benefit — QR payments', path: 'Setup/Views/Advantage.tsx' },
+    '03-f-advantage-exchange': { name: 'Setup benefit — Exchange rates', path: 'Setup/Views/Advantage.tsx' },
+    '03-g-advantage-people': { name: 'Setup benefit — Payments by username', path: 'Setup/Views/Advantage.tsx' },
+    '03-b-advantage-bank': { name: 'Setup benefit — bank accounts', path: 'Setup/Views/Advantage.tsx' },
+    '04-b-advantage-fees': { name: 'Setup benefit — monthly fees', path: 'Setup/Views/Advantage.tsx' },
+    '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
+    '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },
+    '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
+    '07-b-advantage-control': { name: 'Setup benefit — control', path: 'Setup/Views/Advantage.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },

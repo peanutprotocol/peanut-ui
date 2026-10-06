@@ -22,6 +22,8 @@ const defaultConfettiConfig = {
     colors: ['#FFE400', '#FFBD00', '#E89400', '#FFCA6C', '#FDFFB8'],
 }
 
+export const STAR_CONFETTI_COLORS = defaultConfettiConfig.colors
+
 /*
  * prefers-reduced-motion asks for less motion, not less feedback.
  * canvas-confetti's disableForReducedMotion suppresses the burst outright, so

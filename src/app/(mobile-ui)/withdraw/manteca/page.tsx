@@ -767,7 +767,7 @@ function MantecaBankWithdrawFlow() {
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
-                    setErrorMessage(t('errors.ownAccountOnly'))
+                    setErrorMessage(tCommon('ownAccountOnly'))
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
                     setOutcome('failure')
@@ -1212,7 +1212,7 @@ function MantecaBankWithdrawFlow() {
                             )}
 
                             <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
-                                <span>{t('manteca.ownAccountOnly')}</span>
+                                <span>{tCommon('ownAccountOnly')}</span>
                             </div>
                         </div>
 
@@ -1276,7 +1276,7 @@ function MantecaBankWithdrawFlow() {
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
+                            moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}

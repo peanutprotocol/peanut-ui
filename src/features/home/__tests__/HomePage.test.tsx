@@ -12,6 +12,7 @@ let mockFlow: {
     onboarding: OnboardingState
     isChecklistHidden?: boolean
     hiddenHomeCtas?: ReadonlySet<string>
+    showWelcome?: boolean
 }
 jest.mock('../useHomeFlow', () => ({
     useHomeFlow: () => ({
@@ -26,13 +27,19 @@ jest.mock('../useHomeFlow', () => ({
         hideCta: jest.fn(),
         isChecklistHidden: false,
         hiddenHomeCtas: new Set<string>(),
+        showWelcome: true,
         ...mockFlow,
     }),
 }))
 jest.mock('../useHomeViewAnalytics', () => ({ useHomeViewAnalytics: () => {} }))
 jest.mock('@/components/Home/ActivationCTAs', () => ({
     __esModule: true,
-    default: () => <div>activation-checklist</div>,
+    default: ({ showWelcome }: { showWelcome: boolean }) => (
+        <div>
+            activation-checklist
+            {showWelcome && <span>welcome-card</span>}
+        </div>
+    ),
 }))
 jest.mock('@/components/Home/HomeCarouselCTA', () => ({ __esModule: true, default: () => <div>home-carousel</div> }))
 jest.mock('@/components/Home/EnableAutoBalanceBanner', () => ({ __esModule: true, default: () => null }))
@@ -96,6 +103,14 @@ describe('HomePage — never two CTA classes at once', () => {
     it('before the first payment: the checklist, no carousel', () => {
         mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
         render(<HomePage />)
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+
+    it('an expired welcome keeps the checklist in its Home slot', () => {
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, showWelcome: false }
+        render(<HomePage />)
+        expect(screen.queryByText('welcome-card')).not.toBeInTheDocument()
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
     })

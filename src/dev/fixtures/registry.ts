@@ -626,11 +626,6 @@ const REQUEST_PAY_EUR = {
 }
 
 export const FIXTURES: Record<string, Fixture> = {
-    'setup-pending': {
-        route: '/setup',
-        about: 'Resume an unfinished account setup',
-        responses: { 'GET /users/me': { user: { hasAppAccess: false }, accounts: [] } },
-    },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
     // ---------------------------------------------------------------------
@@ -975,6 +970,33 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/me': { user: { badges: [] }, identityVerification: { status: 'not_started' } },
             'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-onboarding': {
+        route: '/card?card_step=eligibility',
+        about: 'Card onboarding: eligibility, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-available': {
+        route: '/card?card_step=available',
+        about: 'Card onboarding: available, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-funding': {
+        route: '/card?card_step=funding',
+        about: 'Card onboarding: funding, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
             'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
         },

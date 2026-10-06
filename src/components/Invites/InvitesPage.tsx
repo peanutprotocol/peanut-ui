@@ -123,10 +123,7 @@ function InvitePageContent() {
         // A logged-in visitor on either claim path will be auto-routed by the
         // effect below — keep the loading spinner so they don't see the CTA flash.
         const canClaimBadgeCampaign = hasAcquisitionBadgeCampaigns
-        if (
-            user?.user &&
-            (canClaimBadgeCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.onboardingResolved))
-        ) {
+        if (user?.user && (canClaimBadgeCampaign || (!redirectUri && inviteCodeData?.onboardingResolved))) {
             setShouldShowContent(false)
             return
         }
@@ -142,7 +139,7 @@ function InvitePageContent() {
         if (inviteCode && (isLoading || !inviteCodeData)) return
 
         const hasValidInvite = !!inviteCodeData?.onboardingResolved && !!inviteCodeData.username
-        const isInviteAutoClaim = !redirectUri && user.user.hasAppAccess && hasValidInvite
+        const isInviteAutoClaim = !redirectUri && hasValidInvite
         const canClaimBadgeCampaign = hasAcquisitionBadgeCampaigns
         if (!isInviteAutoClaim && !canClaimBadgeCampaign) return
 
@@ -299,7 +296,7 @@ function InvitePageContent() {
                 <ValidationErrorView
                     title={t('invalidCodeTitle')}
                     message={t('invalidCodeMessage')}
-                    buttonText={tSetup('waitlist.joinWaitlist')}
+                    buttonText={tSetup('landing.signUp')}
                     redirectTo="/setup"
                 />
             </div>

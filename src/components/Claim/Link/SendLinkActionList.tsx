@@ -187,17 +187,15 @@ export default function SendLinkActionList({
     }
 
     const handleContinueWithPeanut = () => {
-        // migration window: web signups are closed — hand the guest to the
-        // app stores instead (QR modal on desktop, store link on mobile).
-        // the sender's invite code rides the deferred hand-off explicitly —
-        // no cookie is written until /invite, which a guest never reaches.
-        // dest defaults to this claim path (the #p= secret never rides).
+        // The sender's username rides the store/web signup hand-off so the
+        // authenticated retry can record referral rewards without an input
+        // screen. The claim secret itself never rides in the hand-off.
         const rawUsername = claimLinkData?.sender?.username
         const guestInvite = isInviteLink && rawUsername ? toInviteCode(rawUsername) : undefined
         if (!isLoggedIn && interceptGuestCta({ invite: guestInvite })) return
         addParamStep('claim')
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
-        if (isInviteLink && !userHasAppAccess && rawUsername) {
+        if (isInviteLink && !isLoggedIn && rawUsername) {
             const inviteCode = toInviteCode(rawUsername)
             stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
             router.push(inviteFlowUrl(inviteCode, redirectUri))
@@ -207,7 +205,6 @@ export default function SendLinkActionList({
     }
 
     const username = claimLinkData?.sender?.username
-    const userHasAppAccess = user?.user?.hasAppAccess ?? false
     const devconnectMethod = DEVCONNECT_CLAIM_METHODS.find((m) => m.id === 'devconnect')!
 
     /*
@@ -266,7 +263,7 @@ export default function SendLinkActionList({
                 </Button>
             )}
 
-            {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
+            {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !isLoggedIn && username && (
                 <div className="flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                     <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
@@ -293,7 +290,7 @@ export default function SendLinkActionList({
                                 return (
                                     <MethodCard
                                         onClick={() => {
-                                            if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
+                                            if (isInviteLink && !isLoggedIn && method.id !== 'devconnect') {
                                                 setSelectedMethod(method)
                                                 setShowInviteModal(true)
                                             } else {
