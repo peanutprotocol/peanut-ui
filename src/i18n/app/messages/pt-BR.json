@@ -995,6 +995,8 @@
             "cta": "Ir para a conta"
         },
         "email": {
+            "alreadyRegistered": "O usuário com este email já estava cadastrado.",
+            "recoveryGuide": "Como recuperar sua conta",
             "label": "E-mail",
             "placeholder": "voce@exemplo.com",
             "continue": "Continuar",

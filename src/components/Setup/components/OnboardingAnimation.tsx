@@ -51,13 +51,29 @@ export default function OnboardingAnimation({
     useEffect(() => {
         let cancelled = false
         let animation: AnimationItem | undefined
+        let restartTimer: ReturnType<typeof setTimeout> | undefined
+        let waitingForRestart = false
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+        const clearRestart = () => {
+            if (restartTimer !== undefined) clearTimeout(restartTimer)
+            restartTimer = undefined
+        }
         const play = () => {
             if (!animation) return
+            clearRestart()
             // Show the completed objects instead of blank paper or a closed envelope.
-            if (reducedMotion.matches) animation.goToAndStop(REDUCED_MOTION_FRAMES[name] ?? 0, true)
-            else if (document.hidden) animation.pause()
-            else animation.play()
+            if (reducedMotion.matches) {
+                waitingForRestart = false
+                animation.goToAndStop(REDUCED_MOTION_FRAMES[name] ?? 0, true)
+            } else if (document.hidden) animation.pause()
+            else if (waitingForRestart) {
+                restartTimer = setTimeout(() => {
+                    if (cancelled) return
+                    restartTimer = undefined
+                    waitingForRestart = false
+                    animation?.goToAndPlay(0, true)
+                }, 500)
+            } else animation.play()
         }
         void Promise.all([import('lottie-web/build/player/lottie_light'), loaders[name]()])
             .then(([lottie, data]) => {
@@ -65,13 +81,20 @@ export default function OnboardingAnimation({
                 animation = lottie.default.loadAnimation({
                     container: container.current,
                     renderer: 'svg',
-                    loop: true,
+                    loop: name !== 'card',
                     autoplay: false,
                     animationData: data.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
-                if (name === 'fees' || name === 'email' || name === 'bank' || name === 'exchange')
-                    animation.setSpeed(0.5)
+                if (name === 'username') animation.setSpeed(2)
+                else if (name === 'fees' || name === 'email' || name === 'exchange') animation.setSpeed(0.5)
+                else animation.setSpeed(1)
+                if (name === 'card') {
+                    animation.addEventListener('complete', () => {
+                        waitingForRestart = true
+                        play()
+                    })
+                }
                 animation.addEventListener('DOMLoaded', () => {
                     setReady(true)
                     play()
@@ -83,6 +106,7 @@ export default function OnboardingAnimation({
         document.addEventListener('visibilitychange', play)
         return () => {
             cancelled = true
+            clearRestart()
             reducedMotion.removeEventListener('change', play)
             document.removeEventListener('visibilitychange', play)
             animation?.destroy()

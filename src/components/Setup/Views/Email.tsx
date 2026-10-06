@@ -13,6 +13,9 @@ import { updateUserById } from '@/app/actions/users'
 import { isValidEmail } from '@/utils/format.utils'
 import { USER } from '@/constants/query.consts'
 import type { IUserProfile } from '@/interfaces/interfaces'
+import { SetupDocLink } from '../components/SetupDocsDrawer'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
+import { Icon } from '@/components/Global/Icons/Icon'
 
 export default function EmailStep() {
     const t = useTranslations('setup.email')
@@ -22,12 +25,14 @@ export default function EmailStep() {
     const { handleNext } = useSetupFlow()
     const [email, setEmail] = useState(notificationEmail || user?.user.email || '')
     const [error, setError] = useState<string>()
+    const [emailInUse, setEmailInUse] = useState(false)
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         if (savingRef.current) return
         setError(undefined)
+        setEmailInUse(false)
         const value = email.trim()
         if (!isValidEmail(value)) {
             setError(t('invalid'))
@@ -46,7 +51,9 @@ export default function EmailStep() {
             if (user.user.email !== value) {
                 const result = await updateUserById({ userId: user.user.userId, email: value })
                 if (result.error) {
-                    setError(t('saveFailed'))
+                    const duplicate = result.error === 'This email is already associated with another account'
+                    setEmailInUse(duplicate)
+                    setError(t(duplicate ? 'alreadyRegistered' : 'saveFailed'))
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the
@@ -76,11 +83,27 @@ export default function EmailStep() {
                     inputMode="email"
                     maxLength={254}
                     value={email}
-                    onChange={setEmail}
+                    onChange={(value) => {
+                        setEmail(value)
+                        setError(undefined)
+                        setEmailInUse(false)
+                    }}
                     placeholder={t('placeholder')}
                     error={error}
                     disabled={saving}
                 />
+                {emailInUse && (
+                    <div className="mt-6 flex justify-center">
+                        <SetupDocLink
+                            kind="account-recovery"
+                            href="/en/help/account-recovery"
+                            className={LINK_BUTTON_CLASSES}
+                        >
+                            <Icon name="info" size={14} className="shrink-0" />
+                            {t('recoveryGuide')}
+                        </SetupDocLink>
+                    </div>
+                )}
             </div>
             <SetupFooter
                 actions={

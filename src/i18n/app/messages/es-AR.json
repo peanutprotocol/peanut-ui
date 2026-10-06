@@ -650,6 +650,8 @@
             "cta": "Ir a la cuenta"
         },
         "email": {
+            "alreadyRegistered": "El usuario con este email ya estaba registrado.",
+            "recoveryGuide": "Cómo recuperar tu cuenta",
             "label": "Email",
             "placeholder": "tu@ejemplo.com",
             "continue": "Continuar",

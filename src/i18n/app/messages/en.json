@@ -995,6 +995,8 @@
             "cta": "Go to account"
         },
         "email": {
+            "alreadyRegistered": "The user with this email was already registered.",
+            "recoveryGuide": "How to recover your account",
             "label": "Email address",
             "placeholder": "you@example.com",
             "continue": "Continue",

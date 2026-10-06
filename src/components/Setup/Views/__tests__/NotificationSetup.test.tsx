@@ -92,12 +92,32 @@ it('keeps the entered email on a failed save and only advances after a successfu
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await screen.findByText('We couldn’t save your email. Please try again.')
+    expect(screen.queryByRole('link', { name: 'How to recover your account' })).not.toBeInTheDocument()
     expect(mockNext).not.toHaveBeenCalled()
     expect(mockFetchUser).not.toHaveBeenCalled()
     expect(screen.getByRole('textbox')).toHaveValue('money@example.com')
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
     expect(mockUpdateUser).toHaveBeenCalledTimes(2)
+})
+it('explains an already registered email, links to recovery, and clears the notice when edited', async () => {
+    mockUpdateUser.mockResolvedValueOnce({ error: 'This email is already associated with another account' })
+    renderStep(<EmailStep />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'existing@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await screen.findByText('The user with this email was already registered.')
+    expect(screen.getByRole('link', { name: 'How to recover your account' })).toHaveAttribute(
+        'href',
+        '/en/help/account-recovery'
+    )
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockFetchUser).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox')).toHaveValue('existing@example.com')
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'new@example.com' } })
+    expect(screen.queryByText('The user with this email was already registered.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'How to recover your account' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
 it('keeps the email step retryable after a rejected request', async () => {
     mockUpdateUser.mockRejectedValueOnce(new Error('network'))
