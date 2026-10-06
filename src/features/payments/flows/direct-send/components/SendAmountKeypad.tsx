@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { AmountKeyGrid } from '@/components/Global/AmountInput/AmountKeyGrid'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -147,24 +148,21 @@ export function SendAmountKeypad({
                     <div className="mt-2 flex min-h-11 items-center justify-center">{validationAction}</div>
                 )}
                 {(copiedAmount || hasUninspectedText) && (
-                    <button
-                        type="button"
-                        onClick={() => void pasteAmount()}
-                        disabled={disabled}
-                        className="mt-3 flex min-h-11 items-center gap-1 rounded-full border border-border-subtle bg-background-default px-3 text-label-l text-foreground-primary focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-40"
-                    >
-                        <Icon name="paste" size={16} />
-                        {t('pasteFromClipboard')}
-                        {copiedAmount && (
-                            <span className="text-foreground-secondary">{formatSendAmount(copiedAmount)}</span>
-                        )}
-                    </button>
+                    <div className="mt-3 flex min-h-11 items-center justify-center">
+                        <LinkButton onClick={() => void pasteAmount()} disabled={disabled}>
+                            <Icon name="paste" size={16} />
+                            {t('pasteFromClipboard')}
+                            {copiedAmount && (
+                                <span className="text-foreground-secondary">{formatSendAmount(copiedAmount)}</span>
+                            )}
+                        </LinkButton>
+                    </div>
                 )}
             </div>
             <div className="mb-3 flex min-h-12 items-center justify-center">{children}</div>
             <div
                 aria-hidden={commentActive}
-                className={`w-full ${commentActive ? 'pointer-events-none invisible' : ''}`}
+                className={`w-full ${commentActive ? 'hidden' : ''}`}
                 onPaste={(event) => {
                     if (disabled || commentActive) return
                     const parsed = parseClipboardAmount(event.clipboardData.getData('text'))
@@ -178,7 +176,7 @@ export function SendAmountKeypad({
                     value={amount}
                     onChange={onAmountChange}
                     disabled={disabled || commentActive}
-                    className={commentActive ? 'pointer-events-none invisible' : ''}
+                    className={commentActive ? 'hidden' : ''}
                 />
             </div>
         </div>

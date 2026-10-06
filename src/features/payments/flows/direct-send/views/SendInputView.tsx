@@ -107,7 +107,7 @@ export function SendInputView() {
                 )}
             </SendAmountKeypad>
 
-            <PageStack.Footer className={isEditingComment ? 'pointer-events-none invisible gap-4' : 'gap-4'}>
+            <PageStack.Footer className={isEditingComment ? 'hidden' : 'gap-4'}>
                 <SendWithPeanutCta onClick={handleSubmit} disabled={isButtonDisabled} loading={isLoading} />
                 {error.showError && <Callout priority="error">{error.errorMessage}</Callout>}
                 {!isLoggedIn && !isFetchingUser && <PaymentMethodActionList isAmountEntered={isAmountEntered} />}

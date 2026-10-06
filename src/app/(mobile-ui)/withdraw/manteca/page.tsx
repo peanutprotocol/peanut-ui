@@ -44,6 +44,7 @@ import { formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { parseUnits } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -1066,44 +1067,39 @@ function MantecaBankWithdrawFlow() {
 
             {step === 'amount' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
-                    <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
-                    {/* the balance error yields to the limits card only when that card renders */}
-                    <Field
-                        error={
+                    <AmountInput
+                        beforeKeypad={
                             shouldShowAmountError({
                                 showError: !!balanceErrorMessage,
                                 showsLimitsCard: !!limitsCardProps,
                                 limitsBlocking: limitsValidation.isBlocking,
-                            })
-                                ? balanceErrorMessage
+                            }) ? (
+                                <FieldError className="w-full text-center">{balanceErrorMessage}</FieldError>
+                            ) : null
+                        }
+                        initialAmount={currencyAmount}
+                        setPrimaryAmount={setCurrencyAmount}
+                        setSecondaryAmount={setUsdAmount}
+                        primaryDenomination={{
+                            symbol: currencyCode!,
+                            price: currencyPrice!.sell,
+                            decimals: 2,
+                        }}
+                        secondaryDenomination={{
+                            symbol: 'USD',
+                            price: 1,
+                            decimals: 2,
+                        }}
+                        walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
+                        // the amount field is in the local currency while the balance row is
+                        // usd, so the fill converts with currencyPrice.sell — the same
+                        // "1 USD = X" rate this screen already shows on the confirm step
+                        balanceFillAmount={
+                            spendableBalanceDecimal !== undefined && currencyPrice
+                                ? spendableBalanceDecimal * currencyPrice.sell
                                 : undefined
                         }
-                    >
-                        <AmountInput
-                            initialAmount={currencyAmount}
-                            setPrimaryAmount={setCurrencyAmount}
-                            setSecondaryAmount={setUsdAmount}
-                            primaryDenomination={{
-                                symbol: currencyCode!,
-                                price: currencyPrice!.sell,
-                                decimals: 2,
-                            }}
-                            secondaryDenomination={{
-                                symbol: 'USD',
-                                price: 1,
-                                decimals: 2,
-                            }}
-                            walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
-                            // the amount field is in the local currency while the balance row is
-                            // usd, so the fill converts with currencyPrice.sell — the same
-                            // "1 USD = X" rate this screen already shows on the confirm step
-                            balanceFillAmount={
-                                spendableBalanceDecimal !== undefined && currencyPrice
-                                    ? spendableBalanceDecimal * currencyPrice.sell
-                                    : undefined
-                            }
-                        />
-                    </Field>
+                    />
 
                     {/* limits warning/error card - uses centralized helper for props */}
                     {limitsCardProps && (

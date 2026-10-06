@@ -41,3 +41,12 @@ test('mobile amount entry uses the shared keypad and retains the request slider'
     fireEvent.click(screen.getByRole('button', { name: 'Use full balance: $12.34' }))
     expect(screen.getByLabelText('Amount')).toHaveTextContent('$12.34')
 })
+
+test('keeps amount feedback before the keypad and frees space for text editing', () => {
+    renderWithIntl(
+        <AmountInput setPrimaryAmount={jest.fn()} hideKeypad beforeKeypad={<p role="alert">Minimum $1</p>} />
+    )
+    const keypad = document.querySelector('[role="group"][aria-label="Amount keypad"]')!
+    expect(screen.getByRole('alert').compareDocumentPosition(keypad)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(keypad).toHaveClass('hidden')
+})

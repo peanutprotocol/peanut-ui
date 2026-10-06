@@ -30,7 +30,7 @@ beforeEach(() => {
     mockIOS.mockReturnValue(false)
 })
 
-it('shows a paste chip only for a detected amount on Android', async () => {
+it('shows a paste link only for a detected amount on Android', async () => {
     mockAndroid.mockReturnValue(true)
     mockRead.mockResolvedValue({ ok: true, text: '$25.50' })
     const onAmountChange = jest.fn()
@@ -131,5 +131,5 @@ it('removes the number keys while the comment keyboard is active', () => {
 
     expect(screen.getByText('Comment input')).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Amount keypad' })).not.toBeInTheDocument()
-    expect(document.querySelector('[role="group"][aria-label="Amount keypad"]')).toHaveClass('invisible')
+    expect(document.querySelector('[role="group"][aria-label="Amount keypad"]')).toHaveClass('hidden')
 })

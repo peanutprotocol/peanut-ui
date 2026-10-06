@@ -924,7 +924,6 @@ export default function WithdrawCryptoPage() {
             {stepper.step === 'amount' && destination && (
                 <WithdrawAmountView
                     pageTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
-                    heading={isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                     initialAmount={amountToWithdraw}
                     walletBalance={
                         spendableBalance === undefined

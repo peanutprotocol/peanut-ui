@@ -20,7 +20,6 @@ export default function WithdrawRoot() {
         return (
             <WithdrawAmountView
                 pageTitle={flow.isFromSendFlow ? tNav('send') : tNav('withdraw')}
-                heading={flow.isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                 initialAmount={flow.rawTokenAmount}
                 walletBalance={flow.walletBalance}
                 balanceFillAmount={flow.maxDecimalAmount}

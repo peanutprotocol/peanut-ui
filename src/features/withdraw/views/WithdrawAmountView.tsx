@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AmountInput from '@/components/Global/AmountInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -15,7 +15,6 @@ import { useTranslations } from 'next-intl'
 
 interface WithdrawAmountViewProps {
     pageTitle: string
-    heading: string
     initialAmount: string
     walletBalance: string
     /** Full-precision spendable balance — tapping the balance row fills the field with it (floored to cents). */
@@ -34,7 +33,6 @@ interface WithdrawAmountViewProps {
 /** Amount step of the withdraw flow — dumb view, state lives in the flow hook + URL. */
 export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     pageTitle,
-    heading,
     initialAmount,
     walletBalance,
     balanceFillAmount,
@@ -61,7 +59,6 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
         <PageStack>
             <NavHeader title={pageTitle} onPrev={onBack} />
             <PageStack.Center className="gap-4">
-                <div className="text-heading-xs text-foreground-primary">{heading}</div>
                 <AmountInput
                     initialAmount={initialAmount}
                     setPrimaryAmount={onAmountChange}
@@ -73,6 +70,20 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                     walletBalance={walletBalance}
                     balanceFillAmount={balanceFillAmount}
                     onBalanceFilled={onBalanceFilled}
+                    beforeKeypad={
+                        <>
+                            {/* the banner yields to the limits card only when that card renders (TASK-21666) */}
+                            {shouldShowAmountError({
+                                showError: error.showError && !!error.errorMessage,
+                                showsLimitsCard: !isCryptoWithdraw,
+                                limitsBlocking: limitsValidation?.isBlocking ?? false,
+                            }) && (
+                                <FieldError className="w-full text-center" data-testid="error-alert">
+                                    {error.errorMessage}
+                                </FieldError>
+                            )}
+                        </>
+                    }
                     hideCurrencyToggle
                 />
 
@@ -88,16 +99,6 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 >
                     {tCommon('continue')}
                 </Button>
-                {/* the banner yields to the limits card only when that card renders (TASK-21666) */}
-                {shouldShowAmountError({
-                    showError: error.showError && !!error.errorMessage,
-                    showsLimitsCard: !isCryptoWithdraw,
-                    limitsBlocking: limitsValidation?.isBlocking ?? false,
-                }) && (
-                    <Callout priority="error" data-testid="error-alert">
-                        {error.errorMessage}
-                    </Callout>
-                )}
             </PageStack.Center>
         </PageStack>
     )

@@ -157,6 +157,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
         <div data-testid="amount-input">
+            {props.beforeKeypad}
             <input
                 data-testid="amount-field"
                 value={props.initialAmount ?? ''}
@@ -428,7 +429,8 @@ describe('GROUP 2: Amount Input', () => {
 
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeInTheDocument()
-        expect(screen.getByText('Amount to withdraw')).toBeInTheDocument()
+        expect(screen.queryByText('Amount to withdraw')).not.toBeInTheDocument()
+        expect(screen.getByTestId('nav-header')).toHaveTextContent('Withdraw')
     })
 
     test('?method=crypto entry lands on the amount step without a step param (send hand-off)', async () => {
@@ -440,11 +442,12 @@ describe('GROUP 2: Amount Input', () => {
         expect(await screen.findByTestId('amount-input')).toBeInTheDocument()
     })
 
-    test('With method=crypto from send flow shows "Amount to send" heading', () => {
+    test('With method=crypto from send flow uses only the Send nav title', () => {
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
         renderWithdraw({ method: 'crypto', step: 'amount' })
 
-        expect(screen.getByText('Amount to send')).toBeInTheDocument()
+        expect(screen.queryByText('Amount to send')).not.toBeInTheDocument()
+        expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
     })
 
     test('Send flow shows "Send" in nav header', () => {

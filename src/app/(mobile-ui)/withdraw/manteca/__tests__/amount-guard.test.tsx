@@ -102,7 +102,8 @@ test('blocks an amount above the balance and allows an amount within it', () => 
 // one and collects it here in the local currency.
 test('a saved destination opens the amount step', () => {
     setup()
-    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+    expect(screen.queryByText(/amount to withdraw/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toHaveAttribute('inputMode', 'decimal')
 })
 
 test('a new destination opens bank details before amount', () => {
@@ -118,12 +119,14 @@ test('destination → amount → back → amount does not loop or lose the desti
     fireEvent.change(field, { target: { value: 'qa.account' } })
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Continue' })))
-    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+    expect(screen.queryByText(/amount to withdraw/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toHaveAttribute('inputMode', 'decimal')
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Back' })))
     expect(screen.getByRole('textbox')).toHaveValue('qa.account')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Continue' })))
-    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+    expect(screen.queryByText(/amount to withdraw/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toHaveAttribute('inputMode', 'decimal')
 })
 
 it('shows Send and returns to Send after a bank-origin handoff', async () => {

@@ -36,6 +36,10 @@ interface AmountInputProps {
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
+    /** Content tied to the amount, displayed above the mobile keypad. */
+    beforeKeypad?: React.ReactNode
+    /** Hide the numeric keypad while a text field is being edited. */
+    hideKeypad?: boolean
 
     showSlider?: boolean
     maxAmount?: number
@@ -63,6 +67,8 @@ const AmountInput = ({
     hideCurrencyToggle,
     hideBalance,
     infoContent,
+    beforeKeypad,
+    hideKeypad = false,
 
     showSlider = false,
     maxAmount,
@@ -398,7 +404,9 @@ const AmountInput = ({
                         />
                     </div>
                 )}
+                {beforeKeypad}
                 <AmountKeyGrid
+                    className={hideKeypad ? 'hidden' : undefined}
                     value={displayValue}
                     onChange={changeAmount}
                     maxDecimals={denominations[displaySymbol].decimals}
@@ -528,6 +536,7 @@ const AmountInput = ({
                     />
                 </button>
             )}
+            {beforeKeypad}
             {infoContent}
             {showSlider && maxAmount && (
                 <div className="mt-2 h-14">

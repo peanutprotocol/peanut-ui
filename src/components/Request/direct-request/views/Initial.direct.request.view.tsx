@@ -3,7 +3,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Field } from '@/components/0_Bruddle/Field'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { SendCommentEntry } from '@/features/payments/flows/direct-send/components/SendCommentEntry'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -47,6 +47,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         fileUrl: undefined,
         rawFile: undefined,
     })
+    const [isEditingComment, setIsEditingComment] = useState(false)
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
     const { setLoadingState, loadingState } = useContext(loadingStateContext)
@@ -72,6 +73,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const { interactions } = useUserInteractions(recipientUser ? [recipientUser.userId] : [])
 
     const resetRequestState = () => {
+        setIsEditingComment(false)
         setView('initial')
         setCurrentInputValue('')
         setAttachmentOptions({
@@ -248,15 +250,17 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         initialAmount={currentInputValue}
                         setPrimaryAmount={handleTokenValueChange}
                         onSubmit={() => setView('confirm')}
+                        hideKeypad={isEditingComment}
+                        beforeKeypad={
+                            <SendCommentEntry
+                                value={attachmentOptions.message ?? ''}
+                                onChange={(message) => setAttachmentOptions({ ...attachmentOptions, message })}
+                                onEditingChange={setIsEditingComment}
+                            />
+                        }
                         hideCurrencyToggle
                     />
 
-                    <BaseInput
-                        placeholder={tCommon('comment')}
-                        value={attachmentOptions.message}
-                        maxLength={140}
-                        onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
-                    />
                     {!authUser?.user.userId && (
                         <Field error={fieldError}>
                             <GeneralRecipientInput

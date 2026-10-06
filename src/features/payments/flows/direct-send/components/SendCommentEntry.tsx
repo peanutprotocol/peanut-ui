@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -22,6 +22,21 @@ export function SendCommentEntry({ value, onChange, onEditingChange }: SendComme
     const inputRef = useRef<HTMLInputElement>(null)
     const editorRef = useRef<HTMLDivElement>(null)
     const hasComment = value.trim().length > 0
+
+    useEffect(() => {
+        if (!isOpen) return
+        // Native webviews resize; iOS browsers report keyboard occlusion through
+        // visualViewport. Recheck after either change to keep the editor visible.
+        const revealEditor = () => editorRef.current?.scrollIntoView?.({ block: 'nearest' })
+        const frame = requestAnimationFrame(revealEditor)
+        window.visualViewport?.addEventListener('resize', revealEditor)
+        window.addEventListener('resize', revealEditor)
+        return () => {
+            cancelAnimationFrame(frame)
+            window.visualViewport?.removeEventListener('resize', revealEditor)
+            window.removeEventListener('resize', revealEditor)
+        }
+    }, [isOpen])
 
     const insertEmoji = (emoji: string) => {
         const input = inputRef.current

@@ -89,8 +89,19 @@ jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
 
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: ({ setPrimaryAmount }: { setPrimaryAmount: (value: string) => void }) => (
-        <input data-testid="amount-input" onChange={(e) => setPrimaryAmount(e.target.value)} />
+    default: ({
+        setPrimaryAmount,
+        beforeKeypad,
+        hideKeypad,
+    }: {
+        setPrimaryAmount: (value: string) => void
+        beforeKeypad?: React.ReactNode
+        hideKeypad?: boolean
+    }) => (
+        <div data-testid="amount-section" data-keypad-hidden={!!hideKeypad}>
+            <input data-testid="amount-input" onChange={(e) => setPrimaryAmount(e.target.value)} />
+            {beforeKeypad}
+        </div>
     ),
 }))
 
@@ -166,4 +177,26 @@ describe('DirectRequestInitialView error routing', () => {
         expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Request' })).not.toBeInTheDocument()
     })
+})
+
+test('opens the optional comment only on demand and submits the saved message', async () => {
+    mockRequestByUsername.mockResolvedValue({})
+    renderView()
+    expect(screen.queryByPlaceholderText('Comment')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    expect(screen.getByTestId('amount-section')).toHaveAttribute('data-keypad-hidden', 'true')
+    fireEvent.change(screen.getByPlaceholderText('Comment'), { target: { value: 'Dinner' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save comment' }))
+    expect(screen.getByTestId('amount-section')).toHaveAttribute('data-keypad-hidden', 'false')
+    expect(screen.queryByPlaceholderText('Comment')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('fire-valid-recipient'))
+    fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Request' }))
+    await waitFor(() =>
+        expect(mockRequestByUsername).toHaveBeenCalledWith(
+            expect.objectContaining({
+                attachment: expect.objectContaining({ message: 'Dinner' }),
+            })
+        )
+    )
 })
