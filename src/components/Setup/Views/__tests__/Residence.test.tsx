@@ -183,7 +183,7 @@ describe('ResidenceStep', () => {
         expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
         expect(screen.getByText('British pound bank transfers')).toBeInTheDocument()
         expect(screen.getByText('US dollar bank transfers')).toBeInTheDocument()
-        expect(screen.getAllByText('Peanut-to-Peanut payments')).toHaveLength(2)
+        expect(screen.getAllByText('Peanut to Peanut')).toHaveLength(2)
         expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
     })
@@ -270,9 +270,7 @@ describe('ResidenceStep', () => {
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
-        expect(
-            screen.getByRole('button', { name: 'Make a payment with: Peanut-to-Peanut payments' })
-        ).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Make a payment with: Peanut to Peanut' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -386,9 +384,7 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
-        expect(
-            screen.getByRole('button', { name: 'Make a payment with: Peanut-to-Peanut payments' })
-        ).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Make a payment with: Peanut to Peanut' })).toBeInTheDocument()
         expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
         expect(mockHandleNext).not.toHaveBeenCalled()
         fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))

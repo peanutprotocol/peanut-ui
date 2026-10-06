@@ -1,12 +1,17 @@
 /** @jest-environment jsdom */
 import { useEffect } from 'react'
-import { fireEvent, screen, within, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, within, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import PaymentPlan from '../PaymentPlan'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
 let mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
 let mockSettled = true
+let mockReducedMotion = false
+jest.mock('framer-motion', () => ({
+    ...jest.requireActual('framer-motion'),
+    useReducedMotion: () => mockReducedMotion,
+}))
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
     ...jest.requireActual('@/hooks/useResidenceRestrictionSets'),
     useResidenceRestrictionSetsWithStatus: () => ({ sets: mockSets, settled: mockSettled }),
@@ -41,6 +46,7 @@ async function choose(kind: 'Add money with' | 'Make a payment with', current: s
 beforeEach(() => {
     mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
     mockSettled = true
+    mockReducedMotion = false
     next.mockClear()
 })
 it('requires both deliberate choices and preserves them after closing the real drawers', async () => {
@@ -62,7 +68,7 @@ it('groups bank providers, excludes cash, and leaves Peanut payments last', () =
         within(dialog)
             .getAllByRole('button')
             .map((x) => x.getAttribute('aria-label'))
-    ).toEqual(['Bank transfer (BRL)', 'Bank transfer', 'Crypto', 'Peanut-to-Peanut payments'])
+    ).toEqual(['Bank transfer (BRL)', 'Bank transfer', 'Crypto', 'Peanut to Peanut'])
     expect(within(dialog).queryByText('Cash')).not.toBeInTheDocument()
 })
 it('offers both card and Pix in Brazil, and allows a deliberate Crypto payment choice', async () => {
@@ -100,15 +106,81 @@ it('can continue with explicitly selected universal channels when the restrictio
     mockSettled = false
     renderWithIntl(ui('PT'))
     await choose('Add money with', 'Choose a method', 'Crypto')
-    await choose('Make a payment with', 'Choose a method', 'Peanut-to-Peanut payments')
+    await choose('Make a payment with', 'Choose a method', 'Peanut to Peanut')
     fireEvent.click(screen.getByRole('button', { name: 'Looks good', hidden: true }))
     expect(next).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
 })
 it('never picks Crypto automatically for payment in a preselected presentation', () => {
     renderWithIntl(ui('UA', true))
-    expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
+    expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/bank')
     expect(screen.getByText('The Peanut card isn’t available in your country.')).toBeInTheDocument()
+})
+it('alternates the previews every two seconds and freezes both visible choices when either drawer opens', () => {
+    jest.useFakeTimers()
+    try {
+        renderWithIntl(ui('PT'))
+        act(() => jest.advanceTimersByTime(2000))
+        expect(screen.getByRole('button', { name: 'Add money with: Bank transfer' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Make a payment with: Choose a method' })).toBeInTheDocument()
+        act(() => jest.advanceTimersByTime(2000))
+        expect(screen.getByRole('button', { name: 'Make a payment with: Peanut card' })).toBeInTheDocument()
+        act(() => jest.advanceTimersByTime(2000))
+        const funding = screen.getByRole('button', { name: 'Add money with: Crypto' })
+        fireEvent.click(funding)
+        const dialog = screen.getByRole('dialog')
+        expect(within(dialog).getByRole('button', { name: 'Crypto' })).toHaveClass('bg-background-selection')
+        expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/card')
+        act(() => jest.advanceTimersByTime(16000))
+        expect(funding).toHaveAccessibleName('Add money with: Crypto')
+        expect(
+            screen.getByRole('button', { name: 'Make a payment with: Peanut card', hidden: true })
+        ).toBeInTheDocument()
+    } finally {
+        jest.useRealTimers()
+    }
+})
+it('saves the two currently visible preview values on Continue', () => {
+    jest.useFakeTimers()
+    try {
+        renderWithIntl(ui('BR'))
+        act(() => jest.advanceTimersByTime(4000))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
+        expect(screen.getByLabelText('Plan')).toHaveTextContent('brlBank/card')
+        expect(next).toHaveBeenCalledTimes(1)
+    } finally {
+        jest.useRealTimers()
+    }
+})
+it('does not rotate for reduced motion, and keyboard focus stops both previews', () => {
+    jest.useFakeTimers()
+    try {
+        mockReducedMotion = true
+        const view = renderWithIntl(ui('PT'))
+        act(() => jest.advanceTimersByTime(8000))
+        expect(screen.getByRole('button', { name: 'Add money with: Choose a method' })).toBeInTheDocument()
+        mockReducedMotion = false
+        view.rerender(ui('PT'))
+        act(() => jest.advanceTimersByTime(4000))
+        fireEvent.focus(screen.getByRole('button', { name: 'Make a payment with: Peanut card' }))
+        act(() => jest.advanceTimersByTime(8000))
+        expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/card')
+        expect(screen.getByRole('button', { name: 'Add money with: Bank transfer' })).toBeInTheDocument()
+    } finally {
+        jest.useRealTimers()
+    }
+})
+it('never cycles through Crypto as a payment suggestion', () => {
+    jest.useFakeTimers()
+    try {
+        renderWithIntl(ui('GB'))
+        for (let i = 0; i < 9; i++) {
+            act(() => jest.advanceTimersByTime(4000))
+            expect(screen.queryByRole('button', { name: 'Make a payment with: Crypto' })).not.toBeInTheDocument()
+        }
+    } finally {
+        jest.useRealTimers()
+    }
 })
 it('saves the displayed fallback defaults on Continue while the lookup remains unsettled', () => {
     mockSettled = false

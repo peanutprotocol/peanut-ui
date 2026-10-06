@@ -88,6 +88,18 @@ describe('SetupWrapper navigation', () => {
         jest.clearAllMocks()
         mockReducedMotion.value = true
     })
+    it('combines feature copy in the same display style as the payment plan', () => {
+        renderWrapper({
+            screenId: 'advantage-fees',
+            title: 'No monthly fees',
+            description: 'See the fees before confirming.',
+        })
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+            'No monthly fees. See the fees before confirming.'
+        )
+        expect(screen.getByRole('heading', { level: 1 })).toHaveClass('text-heading-m', 'leading-[2.75rem]')
+        expect(screen.queryByText('See the fees before confirming.', { selector: 'p' })).not.toBeInTheDocument()
+    })
 
     it('renders the back chevron without a hard-coded stroke colour', () => {
         renderWrapper({ showBackButton: true, onBack: jest.fn() })

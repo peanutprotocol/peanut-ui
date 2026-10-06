@@ -162,7 +162,7 @@
                 "spend": "Gastar"
             },
             "rows": {
-                "p2p": "Pagos de Peanut a Peanut",
+                "p2p": "Peanut a Peanut",
                 "card": "Tarjeta Peanut",
                 "crypto": "Cripto",
                 "brl": "BRL · Pix",
@@ -438,7 +438,7 @@
             },
             "advantage-card": {
                 "title": "Una tarjeta rosa para tu día a día.",
-                "description": "Comprar será más fácil. Con nuestra tarjeta, tu saldo de Peanut estará disponible para compras online y en locales."
+                "description": "Usá tu saldo de Peanut para compras online y en locales."
             },
             "advantage-bank": {
                 "title": "Cuentas bancarias que viajan con vos.",
@@ -446,7 +446,7 @@
             },
             "advantage-fees": {
                 "title": "Decile adiós a las cuotas mensuales.",
-                "description": "Mantené tu cuenta de Peanut sin cuota mensual. Vos controlás cada pago, con todas las comisiones claramente indicadas antes de confirmar."
+                "description": "Vos controlás cada pago, con todas las comisiones claramente indicadas antes de confirmar."
             },
             "notification-email": {
                 "title": "Agregá tu correo electrónico",
@@ -552,7 +552,7 @@
             "compare": {
                 "cardTitle": "Disponible con {country}",
                 "items": {
-                    "p2p": "Pagos de Peanut a Peanut",
+                    "p2p": "Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
                     "arQr": "Pagos QR y transferencias propias",
                     "spei": "Transferencias bancarias en pesos mexicanos",
@@ -671,13 +671,13 @@
             "hint": "La lista de opciones de pago depende de tu país de residencia.",
             "funding": {
                 "crypto": "Cripto",
-                "peanut": "Pagos de Peanut a Peanut",
+                "peanut": "Peanut a Peanut",
                 "bank": "Transferencia bancaria",
                 "brlBank": "Transferencia bancaria (BRL)",
                 "arsBank": "Transferencia bancaria (ARS)"
             },
             "payment": {
-                "peanut": "Pagos de Peanut a Peanut",
+                "peanut": "Peanut a Peanut",
                 "card": "Tarjeta Peanut",
                 "pix": "Pagos con Pix",
                 "arQr": "QR de Mercado Pago",

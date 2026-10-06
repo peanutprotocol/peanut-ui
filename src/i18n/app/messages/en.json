@@ -347,7 +347,7 @@
                 "spend": "Spend"
             },
             "rows": {
-                "p2p": "Peanut-to-Peanut payments",
+                "p2p": "Peanut to Peanut",
                 "card": "Peanut card",
                 "crypto": "Crypto",
                 "brl": "BRL · Pix",
@@ -398,7 +398,7 @@
             },
             "limits": {
                 "monthlyLeft": "{remaining} of {limit} left this month",
-                "p2pNoLimit": "No amount limits on Peanut-to-Peanut payments or crypto",
+                "p2pNoLimit": "No amount limits.",
                 "depositPerTransfer": "Per bank deposit",
                 "withdrawalPerTransfer": "Per bank withdrawal"
             },
@@ -732,7 +732,7 @@
             },
             "advantage-card": {
                 "title": "A pink card for your everyday.",
-                "description": "Make spending feel simple. With our card, your Peanut balance will be available for online and in-store purchases."
+                "description": "Use your Peanut balance for online and in-store purchases."
             },
             "advantage-bank": {
                 "title": "Bank accounts that travel with you.",
@@ -740,7 +740,7 @@
             },
             "advantage-fees": {
                 "title": "Say goodbye to monthly fees.",
-                "description": "No monthly fee to keep your Peanut account. You’re in control of every payment, with all fees clearly shown before you confirm."
+                "description": "You’re in control of every payment, with all fees clearly shown before you confirm."
             },
             "notification-email": {
                 "title": "Please add your email",
@@ -879,7 +879,7 @@
             "compare": {
                 "cardTitle": "Available with {country}",
                 "items": {
-                    "p2p": "Peanut-to-Peanut payments",
+                    "p2p": "Peanut to Peanut",
                     "pix": "PIX payments & transfers",
                     "arQr": "QR payments & own-account transfers",
                     "spei": "Mexican peso bank transfers",
@@ -1013,13 +1013,13 @@
             "hint": "The list of payment options depends on your country of residence.",
             "funding": {
                 "crypto": "Crypto",
-                "peanut": "Peanut-to-Peanut payments",
+                "peanut": "Peanut to Peanut",
                 "bank": "Bank transfer",
                 "brlBank": "Bank transfer (BRL)",
                 "arsBank": "Bank transfer (ARS)"
             },
             "payment": {
-                "peanut": "Peanut-to-Peanut payments",
+                "peanut": "Peanut to Peanut",
                 "card": "Peanut card",
                 "pix": "Pix payments",
                 "arQr": "Mercado Pago QR",

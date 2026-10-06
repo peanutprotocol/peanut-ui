@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -29,6 +30,8 @@ function ChannelPicker<C extends SetupChannel>({
     options,
     label,
     onChange,
+    onInteract,
+    animate,
 }: {
     kind: 'funding' | 'payment'
     title: string
@@ -37,6 +40,8 @@ function ChannelPicker<C extends SetupChannel>({
     options: readonly C[]
     label: (channel: C) => string
     onChange: (channel: C) => void
+    onInteract: () => void
+    animate: boolean
 }) {
     const [open, setOpen] = useState(false)
     const icon = (channel: SetupChannel) => (
@@ -50,7 +55,14 @@ function ChannelPicker<C extends SetupChannel>({
         />
     )
     return (
-        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+        <Drawer
+            open={open}
+            onOpenChange={(next) => {
+                if (next) onInteract()
+                setOpen(next)
+            }}
+            shouldScaleBackground={false}
+        >
             <DrawerTrigger asChild>
                 <Button
                     variant="secondary"
@@ -59,12 +71,33 @@ function ChannelPicker<C extends SetupChannel>({
                     aria-label={`${title}: ${value ? label(value) : placeholder}`}
                     aria-haspopup="dialog"
                     data-testid={`setup-${kind}-channel`}
+                    onPointerDown={onInteract}
+                    onFocus={onInteract}
                     className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
                     icon={value ? icon(value) : undefined}
                     iconContainerClassName="size-6"
                 >
-                    <span className="min-w-0 truncate text-left" title={value ? label(value) : placeholder}>
-                        {value ? label(value) : placeholder}
+                    <span
+                        className="relative min-w-0 overflow-hidden text-left"
+                        aria-live="off"
+                        title={value ? label(value) : placeholder}
+                    >
+                        {animate ? (
+                            <AnimatePresence initial={false} mode="popLayout">
+                                <motion.span
+                                    key={value ?? 'placeholder'}
+                                    initial={{ y: '-100%', opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    exit={{ y: '100%', opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="block truncate"
+                                >
+                                    {value ? label(value) : placeholder}
+                                </motion.span>
+                            </AnimatePresence>
+                        ) : (
+                            <span className="block truncate">{value ? label(value) : placeholder}</span>
+                        )}
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
@@ -120,18 +153,53 @@ export default function PaymentPlan({
         () => setupChannelsForResidence(sets, residenceCountry, settled),
         [sets, residenceCountry, settled]
     )
+    const reducedMotion = useReducedMotion()
+    const [interacted, setInteracted] = useState(!!fundingChannel || !!paymentChannel)
+    const stopped = useRef(interacted)
+    const [preview, setPreview] = useState<{ funding?: SetupFundingChannel; payment?: SetupPaymentChannel }>({})
+    const cycle = selectionRequired && !interacted && !reducedMotion && !loading
     const funding =
         fundingChannel && options.funding.includes(fundingChannel)
             ? fundingChannel
-            : selectionRequired
-              ? undefined
-              : options.funding[0]
+            : preview.funding && options.funding.includes(preview.funding)
+              ? preview.funding
+              : selectionRequired
+                ? undefined
+                : options.funding[0]
     const payment =
         paymentChannel && options.payment.includes(paymentChannel)
             ? paymentChannel
-            : selectionRequired
-              ? undefined
-              : (options.payment.find((channel) => channel !== 'crypto') ?? 'peanut')
+            : preview.payment && options.payment.includes(preview.payment)
+              ? preview.payment
+              : selectionRequired
+                ? undefined
+                : (options.payment.find((channel) => channel !== 'crypto') ?? 'peanut')
+    const freeze = () => {
+        stopped.current = true
+        setInteracted(true)
+        if (funding) setFundingChannel(funding)
+        if (payment) setPaymentChannel(payment)
+    }
+    useEffect(() => {
+        if (!cycle) return
+        let top = true
+        const timer = setInterval(() => {
+            if (stopped.current || document.visibilityState === 'hidden') return
+            const fundingTurn = top
+            top = !top
+            setPreview((current) => {
+                if (fundingTurn) {
+                    const index = current.funding ? options.funding.indexOf(current.funding) : -1
+                    return { ...current, funding: options.funding[(index + 1) % options.funding.length] }
+                }
+                // Crypto remains available for deliberate selection, never an automatic payment suggestion.
+                const payments = options.payment.filter((channel) => channel !== 'crypto')
+                const index = payments.findIndex((channel) => channel === current.payment)
+                return { ...current, payment: payments[(index + 1) % payments.length] }
+            })
+        }, 2000)
+        return () => clearInterval(timer)
+    }, [cycle, options.funding, options.payment])
     const restrictions = deriveResidenceRestrictionsFrom(sets, residenceCountry.trim().toUpperCase())
     const unavailable =
         restrictions.banking && restrictions.card
@@ -178,6 +246,8 @@ export default function PaymentPlan({
                         placeholder={t('chooseMethod')}
                         label={(channel) => t(`funding.${channel}`)}
                         onChange={setFundingChannel}
+                        onInteract={freeze}
+                        animate={cycle}
                     />
                 </span>{' '}
                 {t('firstPayment')}{' '}
@@ -191,6 +261,8 @@ export default function PaymentPlan({
                         placeholder={t('chooseMethod')}
                         label={(channel) => t(`payment.${channel}`)}
                         onChange={setPaymentChannel}
+                        onInteract={freeze}
+                        animate={cycle}
                     />
                 </span>
             </h1>

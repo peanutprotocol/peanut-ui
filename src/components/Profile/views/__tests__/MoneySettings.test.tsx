@@ -317,7 +317,7 @@ describe('MoneySettings', () => {
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
             expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) expect(screen.getByText(title)).toBeInTheDocument()
-            for (const title of ['Spend', 'Peanut', 'Peanut card', 'Peanut-to-Peanut payments', 'Crypto']) {
+            for (const title of ['Spend', 'Peanut', 'Peanut card', 'Peanut to Peanut', 'Crypto']) {
                 expect(screen.queryByText(title)).not.toBeInTheDocument()
             }
         })
@@ -327,7 +327,7 @@ describe('MoneySettings', () => {
             expect(screen.getByText('Payments')).toBeInTheDocument()
             expect(screen.getByText('Spend')).toBeInTheDocument()
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
-            expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
+            expect(screen.getByText('Peanut to Peanut')).toBeInTheDocument()
             // P2P and crypto both carry the always-on chip.
             expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
             expect(screen.queryByText('Other ways to move money with Peanut')).not.toBeInTheDocument()
@@ -741,11 +741,11 @@ describe('MoneySettings', () => {
 
     it('active payment rows explain the method in a drawer', () => {
         render('payments')
-        fireEvent.click(screen.getByText('Peanut-to-Peanut payments'))
+        fireEvent.click(screen.getByText('Peanut to Peanut'))
 
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Send and receive money with other Peanut users.')).toBeInTheDocument()
-        expect(within(drawer).getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
+        expect(within(drawer).getByText('No amount limits.')).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
@@ -835,9 +835,7 @@ describe('MoneySettings', () => {
             expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
             expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
             expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
-            expect(
-                screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')
-            ).not.toBeInTheDocument()
+            expect(screen.queryByText('No amount limits.')).not.toBeInTheDocument()
             unmount()
         }
     })
@@ -874,12 +872,10 @@ describe('MoneySettings', () => {
 
     it('states the P2P no-limit fact in the crypto drawer too, never on the screen', () => {
         render('payments')
-        expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
+        expect(screen.queryByText('No amount limits.')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByText('Crypto'))
-        expect(
-            within(screen.getByRole('dialog')).getByText('No amount limits on Peanut-to-Peanut payments or crypto')
-        ).toBeInTheDocument()
+        expect(within(screen.getByRole('dialog')).getByText('No amount limits.')).toBeInTheDocument()
     })
 
     // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps

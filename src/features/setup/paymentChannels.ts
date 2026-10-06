@@ -1,6 +1,4 @@
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { residenceAvailability } from '@/utils/residence-availability'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 export type SetupFundingChannel = 'bank' | 'brlBank' | 'arsBank' | 'crypto' | 'peanut'
@@ -22,32 +20,29 @@ export function setupChannelsForResidence(
     settled: boolean
 ): { funding: SetupFundingChannel[]; payment: SetupPaymentChannel[] } {
     const country = residence.trim().toUpperCase()
-    const available = settled && country ? residenceAvailability(sets, country).available : []
-    // Offer methods that can be unlocked, rather than only rails enrolled by the initial KYC intent.
     const restrictions = deriveResidenceRestrictionsFrom(sets, country)
-    // BR/AR residents can complete Bridge verification separately from their initial LATAM verification.
-    // The legacy Bridge country helper describes destinations and does not include these residences.
-    const bridge =
-        settled &&
-        !!country &&
-        !restrictions.banking &&
-        (country === 'BR' || country === 'AR' || isBridgeSupportedCountry(country))
-    const local: SetupFundingChannel[] = available.includes('pix')
-        ? ['brlBank']
-        : available.includes('arQr')
-          ? ['arsBank']
-          : []
+    const known = settled && !!country
+    // Bridge eligibility follows residence restrictions, not the destination-country list.
+    const bridge = known && !restrictions.banking
+    const local: SetupFundingChannel[] =
+        known && !restrictions.banking && country === 'BR'
+            ? ['brlBank']
+            : known && !restrictions.banking && country === 'AR'
+              ? ['arsBank']
+              : []
     const bridgeBank = bridge ? (['bank'] as const) : []
     const bank: SetupFundingChannel[] = [...local, ...bridgeBank]
-    const card = available.includes('card')
+    const card = known && !restrictions.card
+    // product/countries.md: QR is available after verification in every non-sanctioned residence.
+    // Occupied territories and age are checked during verification, not this country-only preview.
+    const qr = known && !['KP', 'IR', 'CU', 'SY', 'RU', 'BY', 'MM'].includes(country)
     return {
         funding: [...bank, 'crypto', 'peanut'],
         payment: [
             ...(card ? ['card' as const] : []),
             // Manteca bank rails only withdraw to the user's own account; QR pays third parties.
             ...bridgeBank,
-            ...(available.includes('pix') ? ['pix' as const] : []),
-            ...(available.includes('arQr') ? ['arQr' as const] : []),
+            ...(qr ? ['pix' as const, 'arQr' as const] : []),
             'crypto',
             'peanut',
         ],

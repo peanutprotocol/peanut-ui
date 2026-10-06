@@ -553,6 +553,7 @@ export const SetupWrapper = memo(function SetupWrapper({
         [screenId]
     )
     const fullScreen = fullScreenProp || fullScreenOverride === screenId
+    const featureParagraph = screenId.startsWith('advantage-') && screenId !== 'advantage-control'
     const prefersReducedMotion = useReducedMotion()
     const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)
@@ -721,29 +722,39 @@ export const SetupWrapper = memo(function SetupWrapper({
                                             'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
                                             screenId === 'landing' && 'space-y-2',
                                             (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
-                                            sunsetLanding && 'md:h-auto md:max-h-none'
+                                            sunsetLanding && 'md:h-auto md:max-h-none',
+                                            featureParagraph && 'space-y-0 md:max-h-none'
                                         )}
                                     >
-                                        {title && (
-                                            <h1
-                                                className={twMerge(
-                                                    'w-full text-left text-heading-s',
-                                                    sunsetLanding && 'md:text-center',
-                                                    titleClassName
-                                                )}
-                                            >
-                                                {title}
-                                            </h1>
-                                        )}
-                                        {description && (
-                                            <p
-                                                className={twMerge(
-                                                    'text-body-m leading-[1.625rem] text-foreground-secondary',
-                                                    sunsetLanding && 'md:text-center'
-                                                )}
-                                            >
+                                        {featureParagraph ? (
+                                            <h1 className="w-full text-left text-heading-m leading-[2.75rem]">
+                                                {title && `${title}${/[.!?]$/.test(title) ? '' : '.'} `}
                                                 {description}
-                                            </p>
+                                            </h1>
+                                        ) : (
+                                            <>
+                                                {title && (
+                                                    <h1
+                                                        className={twMerge(
+                                                            'w-full text-left text-heading-s',
+                                                            sunsetLanding && 'md:text-center',
+                                                            titleClassName
+                                                        )}
+                                                    >
+                                                        {title}
+                                                    </h1>
+                                                )}
+                                                {description && (
+                                                    <p
+                                                        className={twMerge(
+                                                            'text-body-m leading-[1.625rem] text-foreground-secondary',
+                                                            sunsetLanding && 'md:text-center'
+                                                        )}
+                                                    >
+                                                        {description}
+                                                    </p>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 )}

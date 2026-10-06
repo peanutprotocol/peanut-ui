@@ -639,7 +639,7 @@ export const SURFACES: Record<string, Surface> = {
                     heading="Frequently asked questions"
                     questions={[
                         { id: 'q1', question: 'How long does a transfer take?', answer: 'Usually a few minutes.' },
-                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut-to-Peanut payments.' },
+                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut to Peanut.' },
                     ]}
                 />
             </div>

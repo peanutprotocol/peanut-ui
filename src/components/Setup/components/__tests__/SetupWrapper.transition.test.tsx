@@ -27,14 +27,14 @@ it('slides complete screens together with only the incoming screen accessible', 
             <h1>Fund your account</h1>
         </SetupWrapper>
     )
-    expect(screen.getByText('Pink card')).toBeInTheDocument()
+    expect(screen.getByText(/^Pink card/)).toBeInTheDocument()
     expect(hero).toBeInTheDocument()
     expect(screen.getByText('Fund your account')).toBeInTheDocument()
-    const outgoing = screen.getByText('Pink card').closest('[aria-hidden="true"]')
+    const outgoing = screen.getByText(/^Pink card/).closest('[aria-hidden="true"]')
     expect(outgoing).toHaveAttribute('aria-hidden', 'true')
     expect(outgoing).toHaveAttribute('inert')
     expect(screen.getAllByRole('heading')).toHaveLength(1)
-    await waitFor(() => expect(screen.queryByText('Pink card')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(/^Pink card/)).not.toBeInTheDocument())
     expect(hero).not.toBeInTheDocument()
     expect(screen.getAllByRole('heading')).toHaveLength(1)
 })
