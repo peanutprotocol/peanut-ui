@@ -1,4 +1,4 @@
-# Runtime store country
+# Store country
 
 Use `getStoreCountry()` from `src/utils/store-country.ts` immediately before a
 store-specific product-availability decision. It returns either
@@ -26,9 +26,30 @@ const showFeature = !isLoading && country !== null && allowedCountries.has(count
 Mount `useStoreCountry()` only where needed. It reads on mount and foreground,
 clears on background and while refreshing, and ignores superseded/late reads.
 Its value lives only in component memory for the current surface. It is not a
-global cache. Do not put it in React Query, local/session storage, preferences,
-backend user records, PostHog properties/events/flag overrides, Sentry context,
-or customer profiles. Fetch again for a later decision.
+global cache. Fetch again for a later decision. A saved signup observation describes
+the store region at signup and must not replace this fresh runtime read.
+
+## Signup capture and analytics
+
+The signup country-signal collector calls `getStoreCountry()` once at setup entry,
+alongside the Vercel IP and device signals. It retains a separate observation with
+these PostHog properties:
+
+- `signup_store_country`: normalized ISO alpha-2 country, or `null` when unknown.
+- `signup_store_country_source`: `app-store`, `google-play`, or `null`.
+- `signup_store_country_collected_at`: ISO timestamp when the country was read,
+  or `null` when unknown.
+
+These properties are saved on `signup_country_signals_captured` events, registered
+with the other signup properties, and attached to the identified analytics user.
+The signup completion event includes the latest available snapshot. A store read
+that finishes after identification also updates the identified user's properties.
+This supports product analytics and fraud investigation alongside the other signals.
+
+Collection does not block the setup screens or account completion. Store errors,
+timeouts, older binaries, and web/PWA builds leave store country unknown.
+Vercel/IP country suggestions and user-confirmed residence remain independent of
+store country. This PR does not add geo fields to the API user model.
 
 ## Native implementations
 
@@ -56,13 +77,10 @@ returned value. Background the app, change the store account region where
 supported, return, and verify a fresh read. Check a device without a signed-in
 store account, Play service unavailable/unsupported responses, offline reads,
 an old binary running the new JS, and a web/PWA build. Confirm unknown does not
-unlock the feature. No analytics or backend record should contain store country.
+unlock the feature. Complete signup and verify that the three store properties
+include the correct country, source, and observation timestamp in PostHog.
 
 Provider documentation:
 
 - [Apple Storefront](https://developer.apple.com/documentation/storekit/storefront/)
-  says storefront information can change and must not be saved with customer
-  information or used to develop/enhance customer profiles.
 - [Google Play billing configuration](https://developer.android.com/google/play/billing/integrate#query-users-billing-configuration)
-  says the returned data is for one-time use, must not be stored, and must not
-  be used for profiles or advertising/marketing tracking.

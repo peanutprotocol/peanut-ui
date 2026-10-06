@@ -16,10 +16,11 @@ const StoreCountryBridge = nativeCapability<StoreCountryPlugin>('StoreCountry', 
 export const STORE_COUNTRY_TIMEOUT_MS = 6000
 
 /**
- * A fresh, transient store-region read for a product-availability decision.
+ * A fresh store-region read for product decisions and signup geo signals.
  * This is the CURRENT store country, not original download country, residence,
- * or verified eligibility. Do not persist it, attach it to analytics/person
- * properties, or silently substitute IP/device locale when it is unknown.
+ * or verified eligibility. Retained observations must include source and capture
+ * time. Do not substitute a saved observation or IP/device locale for a fresh
+ * store-availability decision when the current country is unknown.
  */
 export async function getStoreCountry(): Promise<StoreCountry | null> {
     if (!StoreCountryBridge.isSupportedPlatform()) return null
