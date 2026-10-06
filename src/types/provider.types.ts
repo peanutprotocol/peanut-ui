@@ -12,7 +12,7 @@ export type ProviderId =
 export type ProviderRole = 'bridge' | 'bridgeEea' | 'mantecaAr' | 'mantecaBr' | 'rhino' | 'thirdNational'
 
 /** key under `provider.label`: what the row calls the provider on a given screen */
-export type ProviderLabel = 'provider' | 'accountProvider' | 'cardIssuer'
+export type ProviderLabel = 'provider' | 'accountProvider' | 'cardProvider'
 
 /**
  * One legal entity behind a provider brand. Optional fields are left out when

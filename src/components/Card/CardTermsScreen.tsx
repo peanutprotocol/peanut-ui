@@ -122,7 +122,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
 
             {/* who issues the card, before the terms that bind the user to them (TASK-23295) */}
             <Card position="solo" className="px-4 py-0">
-                <ProviderRow providerId="third-national" label="cardIssuer" prospective />
+                <ProviderRow providerId="third-national" label="cardProvider" prospective />
             </Card>
 
             <ul className="flex flex-col gap-3">
