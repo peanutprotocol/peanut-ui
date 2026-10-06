@@ -3,7 +3,9 @@ import json
 from pathlib import Path
 
 ASSET = Path(__file__).resolve().parents[1] / 'src/assets/onboarding/documents.json'
-INK = [22 / 255, 22 / 255, 22 / 255, 1]
+INK = [0, 0, 0, 1]
+# Mascot detail weight: about 2.8 px at the passport's on-screen scale.
+LINE = 3.03
 GOLD = [252 / 255, 200 / 255, 20 / 255, 1]
 WHITE = [1, 1, 1, 1]
 
@@ -13,7 +15,7 @@ def transform(position=(0, 0), rotation=0):
             's': {'a': 0, 'k': [100, 100]}, 'r': {'a': 0, 'k': rotation}, 'o': {'a': 0, 'k': 100}}
 
 
-def stroke(width=3):
+def stroke(width=LINE):
     return {'ty': 'st', 'c': {'a': 0, 'k': INK}, 'o': {'a': 0, 'k': 100},
             'w': {'a': 0, 'k': width}, 'lc': 2, 'lj': 2}
 
@@ -24,7 +26,7 @@ def path(vertices, incoming=None, outgoing=None, closed=False):
             'o': outgoing or zeros, 'c': closed}}}
 
 
-def group(name, shapes, fill=None, width=3, position=(0, 0), rotation=0):
+def group(name, shapes, fill=None, width=LINE, position=(0, 0), rotation=0):
     items = list(shapes)
     if fill:
         items.append({'ty': 'fl', 'c': {'a': 0, 'k': fill}, 'o': {'a': 0, 'k': 100}, 'r': 1})
@@ -49,15 +51,15 @@ branches = []
 for side in [-1, 1]:
     branches.append(group('Laurel branch', [path([[side * 45, -74], [side * 52, -38], [side * 29, 19]],
                            [[0, 0], [0, -19], [side * 15, -8]],
-                           [[side * 9, 13], [0, 19], [0, 0]])], width=2.5))
+                           [[side * 9, 13], [0, 19], [0, 0]])]))
     for index, (x, y) in enumerate([(49, -64), (55, -46), (54, -27), (46, -8)]):
         leaves.append(group('Laurel leaf', [{'ty': 'el', 'p': {'a': 0, 'k': [0, 0]},
-                     's': {'a': 0, 'k': [9, 17]}, 'd': 1}], fill=GOLD, width=2,
+                     's': {'a': 0, 'k': [9, 17]}, 'd': 1}], fill=GOLD,
                      position=(side * x, y), rotation=side * (-35 + index * 10)))
 
 # Lottie paints earlier groups above later groups.
 crest = {'ty': 'gr', 'nm': 'Peanut coat of arms', 'it': [
-    group('Peanut shell texture', texture, width=1.8),
+    group('Peanut shell texture', texture),
     group('Peanut shell', [shell], fill=GOLD),
     group('Crest crown', [crown], fill=GOLD),
     group('Heraldic shield', [shield], fill=WHITE),
