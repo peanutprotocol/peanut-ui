@@ -91,6 +91,13 @@ const NO_TIMELINE_EXTRAS = {
     'GET /users/me': { user: { badges: [] }, identityVerification: { status: 'not_started' } },
 }
 
+// One-shot onboarding (TASK-23329): a Spanish resident the server flagged, ID check not started.
+const ONE_SHOT_SPAIN = {
+    identityVerification: { status: 'not_started', oneShot: true },
+    capabilities: { rails: [], nextActions: [], restrictions: [] },
+    residence: { declared: 'ES', verified: null },
+}
+
 const RICH_POINTS = {
     userId: 'demo-user',
     directPoints: 900_000_000,
@@ -1310,6 +1317,37 @@ export const FIXTURES: Record<string, Fixture> = {
                 status: 'PENDING',
                 levelName: 'one-shot-latam',
                 workflow: { regionIntent: 'LATAM', isMultiLevel: false },
+            },
+        },
+    },
+    // The Unlock tap on Accounts (item 8c, D16): the method's own sheet asks
+    // which ID to use and stores the tapped feature, with no checklist. The
+    // token answer lets e2e/flows/one-shot-setup.spec.ts open its SDK stub.
+    'one-shot-unlock-method': {
+        route: '/profile/accounts',
+        about: 'One-shot onboarding from Accounts, a Spanish resident: the unlock sheet of a tapped method asks which ID to use.',
+        responses: {
+            'GET /users/me': ONE_SHOT_SPAIN,
+            'POST /users/identity': {
+                token: 'fixture-sumsub-token',
+                status: 'PENDING',
+                workflow: { regionIntent: 'EU', isMultiLevel: false },
+            },
+        },
+    },
+    // The same sheet with the answer for an ID the bank and card partners
+    // refuse (a Venezuelan passport): it names the ID the method needs and
+    // offers the check for QR payments alone.
+    'one-shot-unlock-method-foreign-id': {
+        route: '/profile/accounts',
+        about: 'One-shot onboarding from Accounts: an ID issued by another country cannot open the tapped method, and the sheet says which ID would.',
+        responses: {
+            'GET /users/me': ONE_SHOT_SPAIN,
+            'GET /config/kyc-intents': {
+                intents: {
+                    card: { available: false, reason: 'document_country_unsupported' },
+                    bank: { available: false, reason: 'document_country_unsupported' },
+                },
             },
         },
     },

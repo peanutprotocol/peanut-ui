@@ -121,6 +121,16 @@ describe('UnlockChecklistStep', () => {
         expect(screen.getByTestId('unlock-row-bank')).toBeInTheDocument()
     })
 
+    // the method unlock sheet sends the same events with entry: 'method' (item 8c)
+    it('names the checklist as the entry on its events', async () => {
+        renderStep('AR')
+        await screen.findAllByRole('switch')
+        expect(capture).toHaveBeenCalledWith(
+            'onboarding_unlock_viewed',
+            expect.objectContaining({ entry: 'checklist', intent_card: true })
+        )
+    })
+
     // Chip review on ui#3577: what the screen shows must be what the API stores
     it('holds the choices still while the save is in flight', async () => {
         let finishSave: () => void = () => {}

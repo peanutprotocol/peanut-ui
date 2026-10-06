@@ -5,6 +5,9 @@
  * closing the SDK halfway and tapping Verify again reopens the SDK without
  * asking the checklist twice.
  *
+ * And the Unlock tap on Accounts (item 8c): the method's own sheet asks which
+ * ID to use, stores the tapped feature and opens the SDK, with no checklist.
+ *
  * UI assertions only. No API and no login: `?__fixture=one-shot-setup-br`
  * answers every call. The Sumsub WebSDK is a stub installed on `window`
  * before the page scripts run, so nothing loads from static.sumsub.com and
@@ -96,5 +99,51 @@ test.describe('one-shot onboarding in Brazil', () => {
         await expect(page.getByTestId('unlock-row-qr')).toHaveCount(0)
         await page.getByRole('button', { name: 'Verify identity' }).click()
         await expect(page.locator('[data-sumsub-stub="launched"]')).toBeAttached({ timeout: 30_000 })
+    })
+})
+
+test.describe('one-shot unlock from a method on Accounts', () => {
+    async function tapEuroUnlock(page: Page, fixture: string) {
+        await page.goto(`/profile/accounts?__fixture=${fixture}`, { waitUntil: 'domcontentloaded' })
+        await page.getByTestId('bank-row-sepa').click({ timeout: 60_000 })
+        await expect(page.getByRole('heading', { name: 'Unlock EUR · Bank transfer' })).toBeVisible()
+        await expect(page.getByRole('radio', { name: 'ID issued by Spain' })).toBeChecked()
+    }
+
+    async function answerForeignId(page: Page, country: string) {
+        await page.getByRole('radio', { name: 'ID issued by another country' }).click()
+        await page.getByRole('combobox', { name: 'Issuing country' }).fill(country)
+        await page.getByRole('option', { name: country }).click()
+    }
+
+    test('the tap on EUR asks which ID to use, then sets up that method and QR only', async ({ page }) => {
+        await stubSumsubSdk(page, { submits: true })
+        await tapEuroUnlock(page, 'one-shot-unlock-method')
+        // the sheet keeps its list of what to have ready, and shows no checklist rows
+        await expect(page.getByTestId('kyc-prep-checklist')).toBeVisible()
+        await expect(page.getByTestId('unlock-row-qr')).toHaveCount(0)
+
+        await answerForeignId(page, 'France')
+        await page.getByRole('button', { name: 'I have these, start' }).click()
+        await expect(page.locator('[data-sumsub-stub="launched"]')).toBeAttached({ timeout: 30_000 })
+
+        // the setup drawer lists the stored set: the tapped feature and QR
+        const drawer = page.getByTestId('one-shot-setup')
+        await expect(drawer).toBeVisible({ timeout: 30_000 })
+        await expect(drawer.getByTestId('setup-row-qr')).toContainText('QR payments')
+        await expect(drawer.getByTestId('setup-row-bank')).toContainText('USD and EUR accounts')
+        await expect(drawer.getByTestId('setup-row-card')).toHaveCount(0)
+        await expect(drawer.getByTestId('setup-row-local')).toHaveCount(0)
+    })
+
+    test('an ID that cannot open the method says which ID would, and offers QR payments alone', async ({ page }) => {
+        await tapEuroUnlock(page, 'one-shot-unlock-method-foreign-id')
+        await answerForeignId(page, 'Venezuela')
+
+        const refusal = page.getByTestId('unlock-method-refused')
+        await expect(refusal).toContainText('EUR · Bank transfer')
+        await expect(refusal).toContainText('Needs an ID issued by Spain')
+        await expect(page.getByRole('button', { name: 'Unlock QR payments' })).toBeEnabled()
+        await expect(page.getByRole('button', { name: 'I have these, start' })).toHaveCount(0)
     })
 })
