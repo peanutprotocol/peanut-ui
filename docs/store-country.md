@@ -49,7 +49,7 @@ This supports product analytics and fraud investigation alongside the other sign
 Collection does not block the setup screens or account completion. Store errors,
 timeouts, older binaries, and web/PWA builds leave store country unknown.
 Vercel/IP country suggestions and user-confirmed residence remain independent of
-store country. This PR does not add geo fields to the API user model.
+store country. API geo storage is implemented in [API PR #1803](https://github.com/peanutprotocol/peanut-api-ts/pull/1803); this client sends the observations after signup.
 
 ## Native implementations
 
@@ -84,3 +84,16 @@ Provider documentation:
 
 - [Apple Storefront](https://developer.apple.com/documentation/storekit/storefront/)
 - [Google Play billing configuration](https://developer.android.com/google/play/billing/integrate#query-users-billing-configuration)
+
+## API signup observations
+
+After account completion, `attachSignupGeo` sends IP, store and device
+observations to authenticated `POST /users/me/geo`. Each request carries the
+expected signup user ID; the API rejects delivery after a session switch.
+The listener is bounded to ten seconds, so late store/IP results can fill missing
+sources without blocking the completion redirect. Failed observation delivery
+does not affect KYC or residence declarations.
+
+The API retains first observations by source under `User.geo.signup`. Current
+runtime store-country reads remain fresh. Backend schema/API and migration
+rollout must precede this client integration; see [API PR #1803](https://github.com/peanutprotocol/peanut-api-ts/pull/1803).

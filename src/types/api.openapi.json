@@ -23867,6 +23867,523 @@
                     "notifications"
                 ]
             }
+        },
+        "/users/me/geo": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "geo": {
+                                            "anyOf": [
+                                                {
+                                                    "properties": {
+                                                        "signup": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "device": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "languages": {
+                                                                            "items": {
+                                                                                "maxLength": 128,
+                                                                                "type": "string"
+                                                                            },
+                                                                            "maxItems": 20,
+                                                                            "type": "array"
+                                                                        },
+                                                                        "locale": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "maxLength": 128,
+                                                                                    "type": "string"
+                                                                                },
+                                                                                {
+                                                                                    "type": "null"
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        "observedAt": {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "timeZone": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "maxLength": 128,
+                                                                                    "type": "string"
+                                                                                },
+                                                                                {
+                                                                                    "type": "null"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "locale",
+                                                                        "languages",
+                                                                        "timeZone",
+                                                                        "observedAt"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
+                                                                "ipProvider": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "country": {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "observedAt": {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "provider": {
+                                                                            "enum": [
+                                                                                "ipapi"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "country",
+                                                                        "provider",
+                                                                        "observedAt"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
+                                                                "store": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "country": {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "observedAt": {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "source": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "app-store"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                },
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "google-play"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "country",
+                                                                        "source",
+                                                                        "observedAt"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
+                                                                "vercelIp": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "country": {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "observedAt": {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "country",
+                                                                        "observedAt"
+                                                                    ],
+                                                                    "type": "object"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "signup"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "residence": {
+                                            "properties": {
+                                                "declared": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "country": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "secondCountry": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "status": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "UNVERIFIED"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "COLLECTING"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "REVIEW_PENDING"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "REJECTED"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "BLOCKED"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "updatedAt": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "country",
+                                                                "status",
+                                                                "updatedAt",
+                                                                "secondCountry"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "secondaryDeclaredCountry": {
+                                                    "anyOf": [
+                                                        {
+                                                            "pattern": "^[A-Z]{2}$",
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "verified": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "country": {
+                                                                    "pattern": "^[A-Z]{2}$",
+                                                                    "type": "string"
+                                                                },
+                                                                "status": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "VERIFIED"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "CHANGE_REQUESTED"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "updatedAt": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "country",
+                                                                "status",
+                                                                "updatedAt"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "verified",
+                                                "declared",
+                                                "secondaryDeclaredCountry"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "residence",
+                                        "geo"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "expectedUserId": {
+                                        "maxLength": 255,
+                                        "type": "string"
+                                    },
+                                    "signup": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "device": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "languages": {
+                                                        "items": {
+                                                            "maxLength": 128,
+                                                            "type": "string"
+                                                        },
+                                                        "maxItems": 20,
+                                                        "type": "array"
+                                                    },
+                                                    "locale": {
+                                                        "anyOf": [
+                                                            {
+                                                                "maxLength": 128,
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "observedAt": {
+                                                        "format": "date-time",
+                                                        "type": "string"
+                                                    },
+                                                    "timeZone": {
+                                                        "anyOf": [
+                                                            {
+                                                                "maxLength": 128,
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "locale",
+                                                    "languages",
+                                                    "timeZone",
+                                                    "observedAt"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "ipProvider": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "country": {
+                                                        "pattern": "^[A-Z]{2}$",
+                                                        "type": "string"
+                                                    },
+                                                    "observedAt": {
+                                                        "format": "date-time",
+                                                        "type": "string"
+                                                    },
+                                                    "provider": {
+                                                        "enum": [
+                                                            "ipapi"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "country",
+                                                    "provider",
+                                                    "observedAt"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "store": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "country": {
+                                                        "pattern": "^[A-Z]{2}$",
+                                                        "type": "string"
+                                                    },
+                                                    "observedAt": {
+                                                        "format": "date-time",
+                                                        "type": "string"
+                                                    },
+                                                    "source": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "app-store"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "google-play"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "country",
+                                                    "source",
+                                                    "observedAt"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "vercelIp": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "country": {
+                                                        "pattern": "^[A-Z]{2}$",
+                                                        "type": "string"
+                                                    },
+                                                    "observedAt": {
+                                                        "format": "date-time",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "country",
+                                                    "observedAt"
+                                                ],
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "required": [
+                                    "expectedUserId",
+                                    "signup"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/me/residence-history": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "beforeId",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^[1-9][0-9]{0,18}$",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
         }
     },
     "servers": [

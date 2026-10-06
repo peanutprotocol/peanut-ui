@@ -13714,6 +13714,181 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/me/geo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            geo: {
+                                signup: {
+                                    device?: {
+                                        languages: string[];
+                                        locale: string | null;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        timeZone: string | null;
+                                    };
+                                    ipProvider?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        /** @enum {string} */
+                                        provider: "ipapi";
+                                    };
+                                    store?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        source: "app-store" | "google-play";
+                                    };
+                                    vercelIp?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                    };
+                                };
+                            } | null;
+                            residence: {
+                                declared: {
+                                    country: string | null;
+                                    secondCountry: string | null;
+                                    status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
+                                    updatedAt: string | null;
+                                } | null;
+                                secondaryDeclaredCountry: string | null;
+                                verified: {
+                                    country: string;
+                                    status: "VERIFIED" | "CHANGE_REQUESTED";
+                                    updatedAt: string | null;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedUserId: string;
+                        signup: {
+                            device?: {
+                                languages: string[];
+                                locale: string | null;
+                                /** Format: date-time */
+                                observedAt: string;
+                                timeZone: string | null;
+                            };
+                            ipProvider?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                                /** @enum {string} */
+                                provider: "ipapi";
+                            };
+                            store?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                                source: "app-store" | "google-play";
+                            };
+                            vercelIp?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                            };
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/residence-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    beforeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
