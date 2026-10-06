@@ -301,8 +301,9 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                 console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
             }
 
-            // if successful and account doesn't exist, finalize account setup
-            if (!accountExists) {
+            // A retry must also confirm the current choices: a prior request may
+            // have committed before the user returned and changed their plan.
+            if (!accountExists || (creatingAccountRef.current && fundingChannel && paymentChannel)) {
                 console.log('[SignTestTransaction] Finalizing account setup')
                 creatingAccountRef.current = true
                 const success = await finalizeAccountSetup(

@@ -142,6 +142,33 @@ describe('SignTestTransaction — setup completion', () => {
         expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
     })
 
+    it('saves the current choices when Retry discovers a wallet from an ambiguous request', async () => {
+        mockFundingChannel = 'brlBank'
+        mockPaymentChannel = 'pix'
+        mockAddAccount.mockRejectedValueOnce(
+            new AccountSetupError('Account creation could not be confirmed', {
+                kind: 'retryable',
+                requestAttempts: 2,
+                status: 503,
+            })
+        )
+        const { rerender } = renderWithIntl(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(screen.getByRole('button', { name: /retry account setup/i })).toBeEnabled())
+
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        mockPaymentChannel = 'card'
+        rerender(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /retry account setup/i }))
+
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
+        expect(mockAddAccount).toHaveBeenCalledTimes(2)
+        expect(mockAddAccount).toHaveBeenLastCalledWith(
+            expect.objectContaining({ signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' } })
+        )
+        expect(mockSendUserOp).toHaveBeenCalledTimes(1)
+    })
+
     it('redirects immediately after account finalization', async () => {
         renderWithIntl(<SignTestTransaction />)
 
