@@ -156,6 +156,7 @@ public class MainActivity extends BridgeActivity {
                 });
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
+        registerPlugin(StoreCountryPlugin.class);
         registerPushProvisioningPlugin();
         super.onCreate(savedInstanceState);
 
