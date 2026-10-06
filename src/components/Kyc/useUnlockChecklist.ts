@@ -71,8 +71,8 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
 
     const save = useMutation({
         // Takes the set the tapped button showed and resolves to it: the
-        // toggles stay live during the request, and the setup rows and the
-        // resume gate (item 9a) must hold what the API stored.
+        // setup rows and the resume gate (item 9a) must hold what the API
+        // stored.
         mutationFn: async (set: KycIntentSet) => {
             await kycIntentsApi.set(set)
             return set
@@ -86,14 +86,22 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
     const skip = () =>
         posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_SKIPPED, analyticsProps(residence, document, intents))
 
+    // The choices hold still while the save is in flight: the screen must not
+    // show an ID answer or a set the API did not store.
+    const whileEditable =
+        <Value>(change: (value: Value) => void) =>
+        (value: Value) => {
+            if (!save.isPending) change(value)
+        }
+
     return {
         document,
-        setDocument,
+        setDocument: whileEditable(setDocument),
         foreignIdCountry,
-        setForeignIdCountry,
+        setForeignIdCountry: whileEditable(setForeignIdCountry),
         rows,
         intents,
-        toggle,
+        toggle: whileEditable(toggle),
         isLoading: config.isLoading,
         isError: config.isError,
         refetch: config.refetch,
