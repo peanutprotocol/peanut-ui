@@ -68,7 +68,7 @@ describe('PeanutMascot', () => {
         expect(mockLoadAnimation.mock.calls[0][0].animationData).toEqual(
             require('@/assets/illustrations/lottie/mascot-juggle.json')
         )
-        expect(mockAnimation.goToAndStop).toHaveBeenCalledWith(0, true)
+        await waitFor(() => expect(mockAnimation.goToAndStop).toHaveBeenCalledWith(0, true))
         unmount()
         expect(mockAnimation.destroy).toHaveBeenCalled()
     })

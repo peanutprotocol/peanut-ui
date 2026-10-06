@@ -90,12 +90,14 @@ function SetupScreen({
     firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
+    residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
+    residenceCountry?: string
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -104,6 +106,7 @@ function SetupScreen({
                 firstLaunchIntroPreview={firstLaunchIntroPreview}
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
+                residenceCountry={residenceCountry}
             >
                 {children}
             </SetupScreenBody>
@@ -116,16 +119,21 @@ function SetupScreenBody({
     firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
+    residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
+    residenceCountry?: string
 }) {
     const t = useTranslations('setup')
-    const { setSteps } = useSetupFlowContext()
+    const { setSteps, setResidenceCountry } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
+    React.useLayoutEffect(() => {
+        if (residenceCountry) setResidenceCountry(residenceCountry)
+    }, [residenceCountry, setResidenceCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     if (!step) return null
     const View = step.component
@@ -215,7 +223,23 @@ export const SURFACES: Record<string, Surface> = {
     '03-c-residence-congrats': {
         ...SURFACE_META['03-c-residence-congrats'],
         render: () => (
-            <SetupScreen screenId="residence">
+            <SetupScreen screenId="residence" residenceCountry="PT">
+                <ResidenceStep initialView="congrats" />
+            </SetupScreen>
+        ),
+    },
+    '03-h-funding-methods': {
+        ...SURFACE_META['03-h-funding-methods'],
+        render: () => (
+            <SetupScreen screenId="residence" residenceCountry="BR">
+                <ResidenceStep initialView="congrats" />
+            </SetupScreen>
+        ),
+    },
+    '03-i-payment-methods': {
+        ...SURFACE_META['03-i-payment-methods'],
+        render: () => (
+            <SetupScreen screenId="residence" residenceCountry="BR">
                 <ResidenceStep initialView="congrats" />
             </SetupScreen>
         ),
@@ -254,10 +278,6 @@ export const SURFACES: Record<string, Surface> = {
     '03-g-advantage-people': {
         ...SURFACE_META['03-g-advantage-people'],
         render: () => <SetupScreen screenId="advantage-people" />,
-    },
-    '03-b-advantage-bank': {
-        ...SURFACE_META['03-b-advantage-bank'],
-        render: () => <SetupScreen screenId="advantage-bank" />,
     },
     '04-b-advantage-fees': {
         ...SURFACE_META['04-b-advantage-fees'],

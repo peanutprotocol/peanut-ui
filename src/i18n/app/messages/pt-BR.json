@@ -1006,30 +1006,34 @@
             "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
         },
         "paymentPlan": {
-            "addMoney": "Vou adicionar dinheiro com",
-            "firstPayment": "e fazer meu primeiro pagamento com",
+            "addMoney": "Vou adicionar dinheiro à minha conta Peanut",
+            "firstPayment": "e depois usar para pagar",
             "fundingTitle": "Adicionar dinheiro com",
             "paymentTitle": "Fazer um pagamento com",
-            "hint": "Toque em uma opção rosa para mudar. As outras continuarão disponíveis depois.",
+            "hint": "A lista de opções de pagamento depende do seu país de residência.",
             "funding": {
-                "eurSepa": "EUR · SEPA",
-                "gbpFps": "GBP · Faster Payments",
-                "usdAch": "USD · ACH",
-                "spei": "MXN · SPEI",
-                "pix": "BRL · Pix",
-                "arQr": "ARS · Transferência bancária",
                 "crypto": "Cripto",
-                "peanut": "Pagamentos de Peanut para Peanut"
+                "peanut": "Pagamentos de Peanut para Peanut",
+                "bank": "Transferência bancária",
+                "brlBank": "Transferência bancária (BRL)",
+                "arsBank": "Transferência bancária (ARS)"
             },
             "payment": {
-                "eurSepa": "EUR · SEPA",
-                "gbpFps": "GBP · Faster Payments",
-                "usdAch": "USD · ACH",
-                "spei": "MXN · SPEI",
+                "peanut": "Pagamentos de Peanut para Peanut",
+                "card": "Cartão Peanut",
                 "pix": "Pagamentos com Pix",
                 "arQr": "QR do Mercado Pago",
-                "peanut": "Pagamentos de Peanut para Peanut",
-                "card": "Cartão Peanut"
+                "bank": "Transferência bancária",
+                "brlBank": "Transferência bancária (BRL)",
+                "arsBank": "Transferência bancária (ARS)",
+                "crypto": "Cripto"
+            },
+            "chooseMethod": "Escolher um método",
+            "with": "com",
+            "unavailable": {
+                "banking": "As transferências bancárias não estão disponíveis no seu país.",
+                "card": "O cartão Peanut não está disponível no seu país.",
+                "both": "As transferências bancárias e a emissão de cartões não estão disponíveis no seu país."
             }
         }
     },

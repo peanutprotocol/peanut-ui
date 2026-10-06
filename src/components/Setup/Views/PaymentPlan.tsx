@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -19,18 +19,21 @@ import {
 } from '@/features/setup/paymentChannels'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import SetupFooter from '../components/SetupFooter'
+import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 
 function ChannelPicker<C extends SetupChannel>({
     kind,
     title,
     value,
+    placeholder,
     options,
     label,
     onChange,
 }: {
     kind: 'funding' | 'payment'
     title: string
-    value: C
+    value: C | undefined
+    placeholder: string
     options: readonly C[]
     label: (channel: C) => string
     onChange: (channel: C) => void
@@ -43,21 +46,27 @@ function ChannelPicker<C extends SetupChannel>({
                     ? 'bank'
                     : SETUP_CHANNEL_CONCEPTS[channel]
             ]}
-            size="s"
+            size="xs"
         />
     )
     return (
         <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
             <DrawerTrigger asChild>
                 <Button
-                    aria-label={`${title}: ${label(value)}`}
+                    variant="secondary"
+                    size="compact"
+                    shadowSize="2"
+                    aria-label={`${title}: ${value ? label(value) : placeholder}`}
                     aria-haspopup="dialog"
-                    className="h-auto min-h-12 w-fit max-w-full py-2"
-                    icon={icon(value)}
-                    iconContainerClassName="size-8"
+                    data-testid={`setup-${kind}-channel`}
+                    className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
+                    icon={value ? icon(value) : undefined}
+                    iconContainerClassName="size-6"
                 >
-                    <span className="min-w-0 text-left whitespace-normal">{label(value)}</span>
-                    <Icon name="chevron-down" size={24} className="shrink-0" />
+                    <span className="min-w-0 truncate text-left" title={value ? label(value) : placeholder}>
+                        {value ? label(value) : placeholder}
+                    </span>
+                    <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
             </DrawerTrigger>
             <DrawerContent>
@@ -68,9 +77,7 @@ function ChannelPicker<C extends SetupChannel>({
                             <ListItem
                                 key={channel}
                                 title={
-                                    <span
-                                        className={channel === value ? 'text-foreground-over-color-primary' : undefined}
-                                    >
+                                    <span className={channel === value ? 'text-foreground-primary' : undefined}>
                                         {label(channel)}
                                     </span>
                                 }
@@ -78,9 +85,7 @@ function ChannelPicker<C extends SetupChannel>({
                                 trailing={channel === value ? <Icon name="check" size={20} /> : undefined}
                                 aria-label={label(channel)}
                                 className={
-                                    channel === value
-                                        ? 'bg-action-primary text-foreground-over-color-primary'
-                                        : undefined
+                                    channel === value ? 'bg-background-selection text-foreground-primary' : undefined
                                 }
                                 onClick={() => {
                                     onChange(channel)
@@ -99,25 +104,55 @@ export default function PaymentPlan({
     onContinue,
     children,
     loading = false,
+    selectionRequired = true,
 }: {
     onContinue: () => void
     children?: ReactNode
     loading?: boolean
+    selectionRequired?: boolean
 }) {
     const t = useTranslations('setup.paymentPlan')
     const tSetup = useTranslations('setup')
     const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel } =
         useSetupFlowContext()
     const { sets, settled } = useResidenceRestrictionSetsWithStatus()
-    const options = setupChannelsForResidence(sets, residenceCountry, settled)
-    const funding = fundingChannel && options.funding.includes(fundingChannel) ? fundingChannel : options.funding[0]
-    const payment = paymentChannel && options.payment.includes(paymentChannel) ? paymentChannel : options.payment[0]
+    const options = useMemo(
+        () => setupChannelsForResidence(sets, residenceCountry, settled),
+        [sets, residenceCountry, settled]
+    )
+    const funding =
+        fundingChannel && options.funding.includes(fundingChannel)
+            ? fundingChannel
+            : selectionRequired
+              ? undefined
+              : options.funding[0]
+    const payment =
+        paymentChannel && options.payment.includes(paymentChannel)
+            ? paymentChannel
+            : selectionRequired
+              ? undefined
+              : (options.payment.find((channel) => channel !== 'crypto') ?? 'peanut')
+    const restrictions = deriveResidenceRestrictionsFrom(sets, residenceCountry.trim().toUpperCase())
+    const unavailable =
+        restrictions.banking && restrictions.card
+            ? 'both'
+            : restrictions.banking
+              ? 'banking'
+              : restrictions.card
+                ? 'card'
+                : null
     useEffect(() => {
         if (!settled || !residenceCountry.trim()) return
-        if (funding !== fundingChannel) setFundingChannel(funding)
-        if (payment !== paymentChannel) setPaymentChannel(payment)
+        if (selectionRequired) {
+            if (fundingChannel && !options.funding.includes(fundingChannel)) setFundingChannel(null)
+            if (paymentChannel && !options.payment.includes(paymentChannel)) setPaymentChannel(null)
+            return
+        }
+        if (funding && funding !== fundingChannel) setFundingChannel(funding)
+        if (payment && payment !== paymentChannel) setPaymentChannel(payment)
     }, [
         settled,
+        selectionRequired,
         residenceCountry,
         funding,
         fundingChannel,
@@ -125,37 +160,61 @@ export default function PaymentPlan({
         payment,
         paymentChannel,
         setPaymentChannel,
+        options.funding,
+        options.payment,
     ])
 
     return (
         <div className="flex w-full flex-1 flex-col gap-8">
-            <h1 className="flex flex-col items-start gap-6 text-heading-m">
-                <span>{t('addMoney')}</span>
-                <ChannelPicker<SetupFundingChannel>
-                    kind="funding"
-                    title={t('fundingTitle')}
-                    options={options.funding}
-                    value={funding}
-                    label={(channel) => t(`funding.${channel}`)}
-                    onChange={setFundingChannel}
-                />
-                <span>{t('firstPayment')}</span>
-                <ChannelPicker<SetupPaymentChannel>
-                    kind="payment"
-                    title={t('paymentTitle')}
-                    options={options.payment}
-                    value={payment}
-                    label={(channel) => t(`payment.${channel}`)}
-                    onChange={setPaymentChannel}
-                />
+            <h1 className="text-heading-m leading-[2.75rem]">
+                {t('addMoney')}{' '}
+                <span className="inline-block max-w-full whitespace-nowrap">
+                    {t('with')}{' '}
+                    <ChannelPicker<SetupFundingChannel>
+                        kind="funding"
+                        title={t('fundingTitle')}
+                        options={options.funding}
+                        value={funding}
+                        placeholder={t('chooseMethod')}
+                        label={(channel) => t(`funding.${channel}`)}
+                        onChange={setFundingChannel}
+                    />
+                </span>{' '}
+                {t('firstPayment')}{' '}
+                <span className="inline-block max-w-full whitespace-nowrap">
+                    {t('with')}{' '}
+                    <ChannelPicker<SetupPaymentChannel>
+                        kind="payment"
+                        title={t('paymentTitle')}
+                        options={options.payment}
+                        value={payment}
+                        placeholder={t('chooseMethod')}
+                        label={(channel) => t(`payment.${channel}`)}
+                        onChange={setPaymentChannel}
+                    />
+                </span>
             </h1>
-            <p className="flex items-start gap-2 text-body-m leading-[1.625rem] text-foreground-secondary">
-                <Icon name="info" size={20} className="mt-1 shrink-0" />
+            {unavailable && (
+                <p role="note" className="text-body-s text-foreground-secondary">
+                    {t(`unavailable.${unavailable}`)}
+                </p>
+            )}
+            <p className="flex items-start gap-2 text-body-s leading-5 text-foreground-secondary">
+                <Icon name="info" size={16} className="mt-0.5 shrink-0" />
                 {t('hint')}
             </p>
             <SetupFooter
                 actions={
-                    <Button onClick={onContinue} disabled={loading} loading={loading}>
+                    <Button
+                        onClick={() => {
+                            if (!funding || !payment) return
+                            setFundingChannel(funding)
+                            setPaymentChannel(payment)
+                            onContinue()
+                        }}
+                        disabled={loading || (selectionRequired && (!funding || !payment))}
+                        loading={loading}
+                    >
                         {tSetup('cta.features')}
                     </Button>
                 }

@@ -52,23 +52,29 @@ const seedSteps = async (
 
 describe('useSetupFlow (URL stepper)', () => {
     it.each([
-        ['PT', 'advantage-bank', 'advantage-card'],
-        ['AR', 'advantage-bank', 'advantage-local'],
-        ['IN', 'advantage-bank', 'advantage-exchange'],
-        ['JP', 'advantage-exchange', 'advantage-card'],
-        ['RU', 'advantage-exchange', 'advantage-people'],
-    ])('walks both feature screens after the merged plan for %s', async (country, first, second) => {
+        ['PT', ['advantage-card']],
+        ['AR', ['advantage-local']],
+        ['IN', ['advantage-exchange']],
+        ['JP', ['advantage-exchange', 'advantage-card']],
+        ['RU', ['advantage-exchange', 'advantage-people']],
+    ])('walks the remaining feature screens after the merged plan for %s', async (country, features) => {
         const { result } = renderFlow({ screen: 'residence' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
-        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country))
-        for (const expected of [first, second]) {
+        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country as string))
+        for (const expected of features) {
             await act(async () => {
                 await result.current.flow.handleNext()
             })
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
-        await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe(first)
+        await act(async () => {
+            await result.current.flow.handleNext()
+        })
+        expect(result.current.flow.step?.screenId).toBe('passkey-permission')
+        for (const expected of [...features].reverse()) {
+            await act(async () => result.current.flow.handleBack())
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
         await act(async () => result.current.flow.handleBack())
         expect(result.current.flow.step?.screenId).toBe('residence')
     })
@@ -198,7 +204,6 @@ describe('useSetupFlow (URL stepper)', () => {
             'signup',
             'advantage-fees',
             'residence',
-            'advantage-bank',
             'advantage-card',
             'advantage-exchange',
             'advantage-local',

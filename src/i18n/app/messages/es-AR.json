@@ -664,30 +664,34 @@
             "introGreeting": "¡Hola! Soy Peanut"
         },
         "paymentPlan": {
-            "addMoney": "Voy a agregar dinero con",
-            "firstPayment": "y hacer mi primer pago con",
+            "addMoney": "Voy a agregar dinero a mi cuenta Peanut",
+            "firstPayment": "y después lo voy a usar para pagar",
             "fundingTitle": "Agregar dinero con",
             "paymentTitle": "Hacer un pago con",
-            "hint": "Tocá una opción rosa para cambiarla. Las demás seguirán disponibles más adelante.",
+            "hint": "La lista de opciones de pago depende de tu país de residencia.",
             "funding": {
-                "eurSepa": "EUR · SEPA",
-                "gbpFps": "GBP · Faster Payments",
-                "usdAch": "USD · ACH",
-                "spei": "MXN · SPEI",
-                "pix": "BRL · Pix",
-                "arQr": "ARS · Transferencia bancaria",
                 "crypto": "Cripto",
-                "peanut": "Pagos de Peanut a Peanut"
+                "peanut": "Pagos de Peanut a Peanut",
+                "bank": "Transferencia bancaria",
+                "brlBank": "Transferencia bancaria (BRL)",
+                "arsBank": "Transferencia bancaria (ARS)"
             },
             "payment": {
-                "eurSepa": "EUR · SEPA",
-                "gbpFps": "GBP · Faster Payments",
-                "usdAch": "USD · ACH",
-                "spei": "MXN · SPEI",
+                "peanut": "Pagos de Peanut a Peanut",
+                "card": "Tarjeta Peanut",
                 "pix": "Pagos con Pix",
                 "arQr": "QR de Mercado Pago",
-                "peanut": "Pagos de Peanut a Peanut",
-                "card": "Tarjeta Peanut"
+                "bank": "Transferencia bancaria",
+                "brlBank": "Transferencia bancaria (BRL)",
+                "arsBank": "Transferencia bancaria (ARS)",
+                "crypto": "Cripto"
+            },
+            "chooseMethod": "Elegir un método",
+            "with": "con",
+            "unavailable": {
+                "banking": "Las transferencias bancarias no están disponibles en tu país.",
+                "card": "La tarjeta Peanut no está disponible en tu país.",
+                "both": "Las transferencias bancarias y la emisión de tarjetas no están disponibles en tu país."
             }
         }
     },

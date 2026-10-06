@@ -394,6 +394,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-avatar-green-foreground"
     },
     {
+        "name": "background-selection",
+        "value": "var(--color-purple-200)",
+        "section": "semantic",
+        "previewClass": "bg-background-selection"
+    },
+    {
         "name": "shadow-primary",
         "value": "#000000",
         "section": "semantic",

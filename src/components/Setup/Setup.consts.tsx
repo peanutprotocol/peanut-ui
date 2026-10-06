@@ -47,16 +47,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
     {
-        screenId: 'advantage-bank',
-        layoutType: 'signup',
-        image: { animation: 'bank' },
-        component: AdvantageStep,
-        showBackButton: true,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 md:justify-center',
-    },
-
-    {
         screenId: 'advantage-card',
         layoutType: 'signup',
         image: { animation: 'card' },

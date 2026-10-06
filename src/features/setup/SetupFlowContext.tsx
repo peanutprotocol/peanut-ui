@@ -21,9 +21,9 @@ type ManualInvite = { code: string; previousCode: string; previousType: EInviteT
  */
 interface SetupFlowContextType {
     fundingChannel: SetupFundingChannel | null
-    setFundingChannel: (channel: SetupFundingChannel) => void
+    setFundingChannel: (channel: SetupFundingChannel | null) => void
     paymentChannel: SetupPaymentChannel | null
-    setPaymentChannel: (channel: SetupPaymentChannel) => void
+    setPaymentChannel: (channel: SetupPaymentChannel | null) => void
     notificationEmail: string
     setNotificationEmail: (email: string) => void
     notificationChoices: { push: boolean; email: boolean }

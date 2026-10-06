@@ -24,8 +24,8 @@ let mockSetupState: { residenceCountry: string; secondResidenceCountry: string }
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockSetupState,
-        fundingChannel: null,
-        paymentChannel: null,
+        fundingChannel: 'crypto',
+        paymentChannel: 'peanut',
         setFundingChannel: jest.fn(),
         setPaymentChannel: jest.fn(),
         setResidenceCountry: mockSetResidenceCountry,
@@ -263,12 +263,16 @@ describe('ResidenceStep', () => {
         )
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+        expect(
+            screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+        ).toBeInTheDocument()
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Add money with: BRL · Pix' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Make a payment with: Pix payments' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
+        expect(
+            screen.getByRole('button', { name: 'Make a payment with: Peanut-to-Peanut payments' })
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -281,7 +285,7 @@ describe('ResidenceStep', () => {
         expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
         mockRestrictionSetsSettled = true
         view.rerender(<ResidenceStep />)
-        expect(screen.getByRole('button', { name: 'Add money with: BRL · Pix' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
     })
 
     it('shows the primary residence checklist even when the second residence is restricted', () => {
@@ -289,8 +293,8 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Select Brazil' }))
         expect(mockHandleNext).not.toHaveBeenCalled()
-        expect(screen.getByRole('heading', { name: /I’ll add money with/ })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Add money with: BRL · Pix' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /I’ll add money to my Peanut account/ })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
     })
 
     it('returns to the selector from the congrats screen', () => {
@@ -298,7 +302,7 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
-        expect(screen.queryByText('I’ll add money with')).not.toBeInTheDocument()
+        expect(screen.queryByText('I’ll add money to my Peanut account')).not.toBeInTheDocument()
         expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
     })
 
@@ -308,20 +312,24 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'HK'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+        expect(
+            screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+        ).toBeInTheDocument()
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
     })
 
     // mirrors peanut-api-ts FULL_RESTRICTED_RESIDENCE (api#1738)
     it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ'])(
-        'shows the two universal checkboxes for %s before advancing',
+        'shows the universal method selectors for %s before advancing',
         (iso2) => {
             mockSetupState.residenceCountry = iso2
             render(<ResidenceStep />)
             fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
             expect(mockHandleNext).not.toHaveBeenCalled()
             expect(screen.getAllByRole('heading')).toHaveLength(1)
-            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+            ).toBeInTheDocument()
             expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
             // the screen itself never names a country
             expect(screen.queryByText(/United Kingdom|China|Iran|Russia|Belarus/)).not.toBeInTheDocument()
@@ -355,13 +363,15 @@ describe('ResidenceStep', () => {
         ['SO', 'banking'],
         ['SS', 'banking'],
         ['CD', 'banking'],
-    ])('shows eligible checkboxes for %s (%s restriction) and continues on demand', (iso2, kind) => {
+    ])('shows eligible methods for %s (%s restriction) and continues on demand', (iso2, kind) => {
         mockSetupState.residenceCountry = iso2
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+        expect(
+            screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+        ).toBeInTheDocument()
         expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
@@ -426,7 +436,9 @@ describe('ResidenceStep', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+            ).toBeInTheDocument()
             expect(screen.getByRole('button', { name: 'Looks good' })).toBeInTheDocument()
         })
 
@@ -434,7 +446,9 @@ describe('ResidenceStep', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'JP'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+            ).toBeInTheDocument()
             expect(screen.queryByRole('checkbox', { name: 'Bank accounts & transfers' })).not.toBeInTheDocument()
         })
 
@@ -458,7 +472,9 @@ describe('ResidenceStep', () => {
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
             fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+            ).toBeInTheDocument()
 
             let consumed = false
             act(() => {
@@ -473,12 +489,14 @@ describe('ResidenceStep', () => {
             mockSetupState.residenceCountry = 'BR'
             render(<ResidenceStep />)
             fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+            ).toBeInTheDocument()
 
             act(() => {
                 dispatchBackPress()
             })
-            expect(screen.queryByText('I’ll add money with')).not.toBeInTheDocument()
+            expect(screen.queryByText('I’ll add money to my Peanut account')).not.toBeInTheDocument()
             expect(screen.getByRole('button', { name: "That's my home" })).toBeInTheDocument()
         })
 
@@ -499,7 +517,9 @@ describe('ResidenceStep', () => {
                 consumed = dispatchBackPress()
             })
             expect(consumed).toBe(true)
-            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money with/ })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
+            ).toBeInTheDocument()
         })
     })
 })

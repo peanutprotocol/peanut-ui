@@ -66,7 +66,7 @@
         "features/payments/flows/contribute-pot/components/PayByBankTransferDrawer.tsx": 129,
         "features/payments/flows/contribute-pot/views/ContributePotInputView.tsx": 200,
         "features/payments/flows/direct-send/views/SendInputView.tsx": 63,
-        "features/payments/flows/qr-pay/views/QrPayFormView.tsx": 203,
+        "features/payments/flows/qr-pay/views/QrPayFormView.tsx": 225,
         "features/payments/flows/qr-pay/views/QrPayKycGateView.tsx": 113,
         "features/payments/flows/qr-pay/views/QrPayProviderRejectionView.tsx": 130,
         "features/payments/flows/qr-pay/views/QrPaySuccessView.tsx": 74,

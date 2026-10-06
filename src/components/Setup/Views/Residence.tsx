@@ -7,7 +7,7 @@ import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import PaymentPlan from './PaymentPlan'
-import { useSetupFullScreen } from '@/components/Setup/components/SetupWrapper'
+import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
@@ -24,6 +24,8 @@ import { useLocale, useTranslations } from 'next-intl'
 type ResidenceView = 'select' | 'restricted' | 'partial' | 'congrats'
 type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
 type PartialRestriction = 'card' | 'banking'
+
+const PAYMENT_PLAN_IMAGE = { animation: 'topup' } as const
 
 const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
@@ -164,10 +166,10 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         void handleNext()
     }
 
-    useSetupFullScreen(view !== 'select')
+    useSetupImageOverride(view !== 'select' ? PAYMENT_PLAN_IMAGE : null)
 
     // Keep the analytics outcome aligned with updated server tiers. All
-    // outcomes share the same checklist; its rows re-derive from these sets.
+    // outcomes share the same payment plan; its options re-derive from these sets.
     useEffect(() => {
         if (view !== 'congrats') return
         if (restrictionSets.full.has(residenceCountry)) {

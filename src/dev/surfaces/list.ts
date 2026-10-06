@@ -29,7 +29,23 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/components/SetupWrapper.tsx',
     },
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
-    '03-c-residence-congrats': { name: 'Residence — available features checklist', path: 'Setup/Views/Residence.tsx' },
+    '03-c-residence-congrats': {
+        name: 'Residence — funding and first payment',
+        path: 'Setup/Views/Residence.tsx',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-h-funding-methods': {
+        name: 'Setup — funding methods',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-funding-channel',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-i-payment-methods': {
+        name: 'Setup — payment methods',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-payment-channel',
+        shotFixture: 'setup-payment-plan',
+    },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',
@@ -41,7 +57,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '03-e-advantage-local': { name: 'Setup benefit — QR payments', path: 'Setup/Views/Advantage.tsx' },
     '03-f-advantage-exchange': { name: 'Setup benefit — Exchange rates', path: 'Setup/Views/Advantage.tsx' },
     '03-g-advantage-people': { name: 'Setup benefit — Payments by username', path: 'Setup/Views/Advantage.tsx' },
-    '03-b-advantage-bank': { name: 'Setup benefit — bank accounts', path: 'Setup/Views/Advantage.tsx' },
     '04-b-advantage-fees': { name: 'Setup benefit — monthly fees', path: 'Setup/Views/Advantage.tsx' },
     '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
     '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },

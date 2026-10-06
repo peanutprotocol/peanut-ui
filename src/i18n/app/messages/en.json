@@ -1006,30 +1006,34 @@
             "saveFailed": "We couldn’t save your settings. Please try again."
         },
         "paymentPlan": {
-            "addMoney": "I’ll add money with",
-            "firstPayment": "and make my first payment with",
+            "addMoney": "I’ll add money to my Peanut account",
+            "firstPayment": "and then use it to pay",
             "fundingTitle": "Add money with",
             "paymentTitle": "Make a payment with",
-            "hint": "Tap a pink option to change it. Everything else stays available later.",
+            "hint": "The list of payment options depends on your country of residence.",
             "funding": {
-                "eurSepa": "EUR · SEPA",
-                "gbpFps": "GBP · Faster Payments",
-                "usdAch": "USD · ACH",
-                "spei": "MXN · SPEI",
-                "pix": "BRL · Pix",
-                "arQr": "ARS · Bank transfer",
                 "crypto": "Crypto",
-                "peanut": "Peanut-to-Peanut payments"
+                "peanut": "Peanut-to-Peanut payments",
+                "bank": "Bank transfer",
+                "brlBank": "Bank transfer (BRL)",
+                "arsBank": "Bank transfer (ARS)"
             },
             "payment": {
-                "eurSepa": "EUR · SEPA",
-                "gbpFps": "GBP · Faster Payments",
-                "usdAch": "USD · ACH",
-                "spei": "MXN · SPEI",
+                "peanut": "Peanut-to-Peanut payments",
+                "card": "Peanut card",
                 "pix": "Pix payments",
                 "arQr": "Mercado Pago QR",
-                "peanut": "Peanut-to-Peanut payments",
-                "card": "Peanut card"
+                "bank": "Bank transfer",
+                "brlBank": "Bank transfer (BRL)",
+                "arsBank": "Bank transfer (ARS)",
+                "crypto": "Crypto"
+            },
+            "chooseMethod": "Choose a method",
+            "with": "with",
+            "unavailable": {
+                "banking": "Bank transfers aren’t available in your country.",
+                "card": "The Peanut card isn’t available in your country.",
+                "both": "Bank transfers and card issuing aren’t available in your country."
             }
         }
     },
