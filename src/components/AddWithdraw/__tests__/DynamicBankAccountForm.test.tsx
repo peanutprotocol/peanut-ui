@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * DynamicBankAccountForm — the existing-account branch (Chip round 9).
  *
@@ -31,7 +32,9 @@ jest.mock('next-intl', () => ({
 // Where the user lives, as /users/me reports it. Nobody by default.
 let mockResidence: { declared: string | null; declaredSecond: string | null; verified: string | null } | undefined
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { fullName: 'John Doe', email: 'john@doe.co' }, residence: mockResidence } }),
+    useAuth: () => ({
+        user: { user: { fullName: 'John Doe', email: 'john@doe.co' }, residence: normalizeResidence(mockResidence) },
+    }),
 }))
 
 jest.mock('@/hooks/useSendFlowOrigin', () => ({
