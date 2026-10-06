@@ -77,6 +77,7 @@ export default function EmailStep() {
             <div className="flex flex-1 flex-col justify-center">
                 <ProfileEditField
                     label={t('label')}
+                    inputSize="md"
                     type="email"
                     name="email"
                     autoComplete="email"

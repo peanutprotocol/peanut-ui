@@ -57,13 +57,7 @@ export function SetupConfirmationView({
                         {t(merged ? 'steps.advantage-control.title' : 'testTransaction.confirmTitle')}
                     </h1>
                 )}
-                <p
-                    className={
-                        merged
-                            ? 'text-body-m leading-7 text-foreground-secondary'
-                            : 'text-body-s leading-relaxed text-foreground-secondary'
-                    }
-                >
+                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
                     {t(merged ? 'steps.advantage-control.description' : 'steps.sign-test-transaction.description')}
                 </p>
                 {error && <Callout priority="error">{error}</Callout>}

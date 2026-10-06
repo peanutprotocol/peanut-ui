@@ -18,12 +18,11 @@ export function SetupCelebrationView() {
             <CelebrationCurtain />
             <PageStack.Center className="relative z-10 items-center text-center">
                 <PeanutMascot pose="cheering" alt="" className="h-52 w-auto" />
-                <TitleBlock
-                    align="center"
-                    size="s"
-                    title={<h1>{t('steps.success.title')}</h1>}
-                    description={t('steps.success.description')}
-                />
+                <TitleBlock align="center" size="s" title={<h1>{t('steps.success.title')}</h1>}>
+                    <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
+                        {t('steps.success.description')}
+                    </p>
+                </TitleBlock>
             </PageStack.Center>
         </PageStack>
     )

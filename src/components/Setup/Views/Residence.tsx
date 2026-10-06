@@ -302,7 +302,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
                 <h1 className="w-full text-left text-heading-s">{t('steps.residence.title')}</h1>
-                <p className="mb-6 text-body-s leading-7 text-foreground-secondary">
+                <p className="mb-6 text-body-m leading-[1.625rem] text-foreground-secondary">
                     {t('steps.residence.description')}
                 </p>
                 <CountryCombobox
