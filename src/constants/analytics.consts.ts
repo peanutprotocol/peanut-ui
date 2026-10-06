@@ -55,6 +55,11 @@ export const ANALYTICS_EVENTS = {
     EEA_UPLIFT_STARTED: 'eea_uplift_started',
     EEA_UPLIFT_COMPLETED: 'eea_uplift_completed',
 
+    // ── One-shot onboarding (TASK-23329): the unlock checklist before the SDK ──
+    ONBOARDING_UNLOCK_VIEWED: 'onboarding_unlock_viewed',
+    ONBOARDING_UNLOCK_SKIPPED: 'onboarding_unlock_skipped',
+    ONBOARDING_UNLOCK_CONTINUED: 'onboarding_unlock_continued',
+
     // ── KYC (Manteca) ──
     MANTECA_KYC_INITIATED: 'manteca_kyc_initiated',
     MANTECA_KYC_COMPLETED: 'manteca_kyc_completed',

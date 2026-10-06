@@ -1192,6 +1192,12 @@
             "stillLoading": "Todavía estamos cargando tu cuenta — intentalo de nuevo en un momento.",
             "saveFailed": "Algo salió mal al guardar tu correo. Intentalo de nuevo."
         },
+        "unlock": {
+            "note": "Una sola configuración para las funciones que elijas. Si después agregás más, reutilizamos tu verificación de identidad.",
+            "saveFailed": "No pudimos guardar tu selección. Intentá de nuevo.",
+            "ctaQrOnly": "Desbloqueá los pagos con QR",
+            "cta": "Desbloqueá las funciones"
+        },
         "bridgeTos": {
             "description": "Bridge, nuestro socio de pagos, ofrece las transferencias bancarias. Leé los <terms>Términos de servicio</terms> y la <privacy>Política de privacidad</privacy> de Bridge. Los aceptás en la siguiente pantalla.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",

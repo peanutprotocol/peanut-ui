@@ -475,6 +475,22 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // which is what the form fixtures exist to show. A fixture that wants the
     // prefilled form overrides this key with a synthetic address.
     { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
+    // The unlock checklist (TASK-23329) asks what a residence can unlock the
+    // moment it renders, and the capture harness fails on an unmapped route.
+    // The base answer is every feature open; a fixture overrides the rows its
+    // state is about (a row a residence never has, a row a document closes).
+    {
+        method: 'GET',
+        pattern: '/config/kyc-intents',
+        handler: () => ({
+            intents: {
+                qr: { available: true },
+                local: { available: true },
+                card: { available: true },
+                bank: { available: true },
+            },
+        }),
+    },
     {
         method: 'GET',
         pattern: '/users/contacts',

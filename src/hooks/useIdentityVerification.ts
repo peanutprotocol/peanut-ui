@@ -70,6 +70,13 @@ export interface UseIdentityVerificationResult {
      * opens nothing.
      */
     needsDocumentRestart: boolean
+    /**
+     * The declared residence (ISO-2) when the server put this user on
+     * one-shot onboarding (`identity.oneShot`, TASK-23329), so the unlock
+     * checklist knows what to offer. Null on today's flow, and null when the
+     * flag is on but no residence was declared: nothing to build rows for.
+     */
+    oneShotResidence: string | null
     isLoading: boolean
 }
 
@@ -77,6 +84,7 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
     const { user, isFetchingUser } = useAuth()
     const identity = user?.identityVerification ?? NOT_STARTED
     const nextActions = user?.capabilities?.nextActions
+    const declaredResidence = user?.residence?.declared
 
     return useMemo(() => {
         const status = identity.status
@@ -106,7 +114,8 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
             // the API pairs the action with action_required; any other status
             // keeps its own button (resume a review, retry a failed check)
             needsDocumentRestart: status === 'action_required' && !!identityDocumentRestartAction(nextActions ?? []),
+            oneShotResidence: identity.oneShot ? (declaredResidence ?? null) : null,
             isLoading: isFetchingUser,
         }
-    }, [identity, nextActions, isFetchingUser])
+    }, [identity, nextActions, declaredResidence, isFetchingUser])
 }

@@ -31,10 +31,24 @@ export function redactQrTelemetryString(value: string): string {
     return value
 }
 
+/*
+ * The unlock checklist's config request names the issuing country of a foreign
+ * ID in its query (GET /config/kyc-intents?idCountry=, TASK-23329). That is a
+ * nationality signal tied to an identified user, so its value is dropped
+ * wherever a URL lands in telemetry. It lives here because fetch breadcrumbs,
+ * tracing spans, the PostHog mirror and replay network capture all pass
+ * through this one walk. The parameter name stays, so the request is still
+ * recognisable.
+ */
+const DOCUMENT_COUNTRY_QUERY = /([?&]idCountry=)[^&#\s"']*/g
+export function redactDocumentCountry(value: string): string {
+    return value.includes('idCountry=') ? value.replace(DOCUMENT_COUNTRY_QUERY, '$1[redacted]') : value
+}
+
 export function redactQrTelemetry<T>(value: T): T {
     const seen = new WeakSet<object>()
     const scrub = (input: unknown, depth: number): unknown => {
-        if (typeof input === 'string') return redactQrTelemetryString(input)
+        if (typeof input === 'string') return redactDocumentCountry(redactQrTelemetryString(input))
         if (!input || typeof input !== 'object') return input
         if (depth > 15) return REDACTED
         if (seen.has(input)) return input

@@ -74,6 +74,20 @@ describe('demoRespond — routing', () => {
         expect(await res.json()).toEqual({})
     })
 
+    // The unlock checklist reads this on render; unmapped, strict mode fails
+    // the one-shot-unlock-checklist fixture before its override can apply.
+    it('answers the unlock checklist config with every feature open in strict capture mode', async () => {
+        const res = await demoRespond(
+            '/config/kyc-intents?residence=ES',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        const { intents } = await res.json()
+        expect(Object.keys(intents)).toEqual(['qr', 'local', 'card', 'bank'])
+        expect(Object.values(intents)).toEqual(Array(4).fill({ available: true }))
+    })
+
     // Both are called by /qr-pay for a PIX key, and the screen-capture harness
     // runs strict: an unmapped route fails the qr-pay-pix-key-owner fixture.
     it('answers the PIX key owner lookup in strict capture mode', async () => {

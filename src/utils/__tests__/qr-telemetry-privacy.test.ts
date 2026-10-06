@@ -98,3 +98,45 @@ it('masks replay history URLs and drops bodies and headers before the custom cal
         name: '/home',
     })
 })
+
+// TASK-23329: GET /config/kyc-intents names the issuing country of a foreign ID in its query.
+describe('the issuing country of a foreign ID in the unlock checklist config request', () => {
+    const configUrl = 'https://api.peanut.me/config/kyc-intents?residence=AR&idCountry=VE'
+    const scrubbed = 'https://api.peanut.me/config/kyc-intents?residence=AR&idCountry=[redacted]'
+
+    it('is dropped from the breadcrumb and the message of a failed request', () => {
+        const event = {
+            type: undefined,
+            message: `Config lookup failed ${configUrl}`,
+            breadcrumbs: [{ category: 'fetch', data: { method: 'GET', url: configUrl, status_code: 500 } }],
+            exception: { values: [{ type: 'Error', value: `Config lookup failed ${configUrl}` }] },
+        }
+        const result = beforeSendHandler(event)
+        // a dropped event would pass the next line for the wrong reason
+        expect(result).not.toBeNull()
+        expect(JSON.stringify(result)).not.toContain('idCountry=VE')
+        expect(result?.breadcrumbs?.[0].data?.url).toBe(scrubbed)
+    })
+
+    it('is dropped from tracing spans and replay network capture, and the residence stays', () => {
+        const transaction = {
+            transaction: 'GET /config/kyc-intents',
+            spans: [
+                {
+                    description: `GET ${configUrl}`,
+                    data: { 'http.query': '?residence=AR&idCountry=VE', url: configUrl },
+                },
+            ],
+        }
+        const sent = JSON.stringify(beforeSendRouteAwareTransaction(transaction))
+        expect(sent).not.toContain('idCountry=VE')
+        expect(sent).toContain('residence=AR')
+        const timing = { duration: 1, entryType: 'resource', startTime: 0 }
+        expect(maskQrReplayRequest({ ...timing, name: configUrl })).toEqual({ ...timing, name: scrubbed })
+    })
+
+    it('leaves a URL without the parameter alone', () => {
+        const url = '/config/kyc-intents?residence=AR'
+        expect(redactQrTelemetry({ url })).toEqual({ url })
+    })
+})

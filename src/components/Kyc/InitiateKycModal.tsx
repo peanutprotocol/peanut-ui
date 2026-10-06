@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -11,6 +12,7 @@ import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
+import { UnlockChecklistStep } from '@/components/Kyc/UnlockChecklistStep'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -112,8 +114,9 @@ export const InitiateKycModal = ({
     // support. Both contradict the region screen. Short-circuiting at the one
     // component they all share makes the invariant impossible for a future call
     // site to miss.
-    const { isRegionRestricted } = useIdentityVerification()
+    const { isRegionRestricted, oneShotResidence } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
+    const [unlockSaving, setUnlockSaving] = useState(false)
     // Every gate that opens this modal unlocks a BANK rail (the two bank pages,
     // the shared country list, both Manteca flow managers, the Manteca
     // withdraw), so a residence no bank provider onboards has nothing behind
@@ -314,8 +317,36 @@ export const InitiateKycModal = ({
             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
         )
 
+    // One-shot onboarding (TASK-23329): the plain unlock offer becomes the
+    // checklist of features to unlock, with the ID question in front of the
+    // prep list, in both forms. Only the fresh offer: every other variant is
+    // an error or action state with its own screen, and the outage, region
+    // and residence endings above still outrank it. Flag off is today's screen.
+    const unlockResidence = resolvedVariant === 'default' && !error ? oneShotResidence : null
+    const unlockStep = (host: 'page' | 'drawer') =>
+        unlockResidence && (
+            <UnlockChecklistStep
+                residence={unlockResidence}
+                host={host}
+                prepPath={prepPath}
+                taxIdCountry={taxIdCountry}
+                isLoading={!!isLoading}
+                onVerify={onVerify}
+                onExplore={onClose}
+                onSavingChange={setUnlockSaving}
+            />
+        )
+
     if (presentation === 'page') {
         if (!visible) return null
+        if (unlockResidence) {
+            return (
+                <div className="flex flex-col gap-6">
+                    <NavHeader title={navTitle ?? t('unlock.navTitle')} onPrev={onBack} />
+                    {unlockStep('page')}
+                </div>
+            )
+        }
         /*
          * On the happy path the screen title is the header and nothing repeats
          * it. Every other variant IS its title — "We need extra documents",
@@ -355,6 +386,25 @@ export const InitiateKycModal = ({
     // one deliberate way out. The drawer keeps that contract — swipe / hardware
     // back / overlay all route through the same onClose the X called; there is
     // no stray-click path because vaul only dismisses on a deliberate gesture.
+    if (unlockResidence) {
+        // The Home "Verify" row and the Manteca flows open this form, so the
+        // checklist lives here too; the sheet scrolls, as a list this long should.
+        return (
+            <Drawer
+                open={visible}
+                // the checklist's save must not be abandoned by a swipe or an
+                // overlay tap: its answer would start the check on a closed sheet
+                dismissible={!unlockSaving}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) onClose()
+                }}
+            >
+                <DrawerContent accessibleTitle={t('unlock.navTitle')} className="py-4">
+                    <div className="flex flex-col gap-6 pb-2">{unlockStep('drawer')}</div>
+                </DrawerContent>
+            </Drawer>
+        )
+    }
     return (
         <Drawer
             open={visible}

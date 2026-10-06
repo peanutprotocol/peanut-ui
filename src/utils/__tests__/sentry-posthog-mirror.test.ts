@@ -54,6 +54,23 @@ it('redacts QR copies before the Sentry event reaches the PostHog integration', 
     expect(JSON.stringify(inner.mock.calls)).not.toContain('private-payload')
 })
 
+// TASK-23329: the mirror runs before beforeSend, so the fetch breadcrumb of the
+// unlock checklist's config request must already be scrubbed when it arrives.
+it('drops the issuing country of a foreign ID from fetch breadcrumbs before the event reaches the PostHog integration', () => {
+    const inner = jest.fn((event) => event)
+    mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
+    const url = 'https://api.peanut.me/config/kyc-intents?residence=AR&idCountry=VE'
+    const event = {
+        message: 'Request failed with status 500',
+        breadcrumbs: [{ category: 'fetch', data: { method: 'GET', url, status_code: 500 } }],
+    } as never
+    posthogErrorMirror().processEvent?.(event)
+    expect(inner).toHaveBeenCalledTimes(1)
+    const mirrored = JSON.stringify(inner.mock.calls)
+    expect(mirrored).not.toContain('idCountry=VE')
+    expect(mirrored).toContain('idCountry=[redacted]')
+})
+
 it('skips cancellations and duplicate wrappers but retains first-party failures before Sentry filtering', () => {
     const inner = jest.fn((event) => event)
     mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
