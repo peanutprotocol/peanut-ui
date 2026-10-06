@@ -66,7 +66,7 @@ async function capture(page: Page, state: string, testInfo: TestInfo, detail?: L
     const box = detail && (await detail.boundingBox())
     if (detail && box && (box.y < 0 || box.y + box.height > (page.viewportSize()?.height ?? 667))) {
         await detail.scrollIntoViewIfNeeded()
-        const detailPath = join(OUT_DIR, `${name}-detail.png`)
+        const detailPath = join(OUT_DIR, `receipt-attachment-${state}-detail@${testInfo.project.name}.png`)
         await page.screenshot({ path: detailPath, animations: 'disabled', scale: 'css' })
         await testInfo.attach(`${name}-detail`, { path: detailPath, contentType: 'image/png' })
     }
