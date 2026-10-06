@@ -1,4 +1,4 @@
-"""Build the requested slow @ background from mono #255's vector atsign artwork.
+"""Build the requested floating @ background inspired by mono #255's artwork.
 
 No fonts, bitmaps or external assets. Four signs stay outside the central mascot.
 Run from peanut-ui's root to regenerate src/assets/onboarding/username-at.json.
@@ -18,18 +18,19 @@ def motion(values):
     ]}
 
 
-# Cubic outer @ path from mono #255; the inner oval makes the counter explicit.
-at_path = {"v": [[12,-10],[12,10],[28,15],[37,-4],[0,-38],[-37,-4],[-28,29],[17,34]],
-           "i": [[0,0],[0,0],[-8,3],[0,12],[20,0],[0,-20],[-7,-12],[-15,5]],
-           "o": [[0,0],[0,8],[8,-3],[0,-20],[-20,0],[0,15],[12,10],[0,0]], "c": False}
+# Opposing, collinear handles keep every internal join smooth. The right-hand
+# return clears the inner oval so overlapping strokes cannot double the ink.
+at_path = {"v": [[17,-17],[17,8],[27,17],[39,-3],[0,-40],[-39,-3],[-27,30],[18,34]],
+           "i": [[0,0],[0,-6],[-6,0],[0,12],[21,0],[0,-21],[-8,-9],[-14,5]],
+           "o": [[0,8],[0,6],[7,0],[0,-21],[-21,0],[0,13],[10,11.25],[0,0]], "c": False}
 ink = [22 / 255, 22 / 255, 22 / 255, 1]
 pink = [1, 144 / 255, 232 / 255, 1]
 transform = {"ty": "tr", "p": prop([0,0]), "a": prop([0,0]), "s": prop([100,100]), "r": prop(0), "o": prop(100)}
 stroke = {"ty": "st", "c": prop(ink), "o": prop(100), "w": prop(4), "lc": 2, "lj": 2}
 shapes = [
     {"ty": "gr", "it": [
-        {"ty": "el", "p": prop([0,0]), "s": prop([28,36]), "d": 1},
-        {"ty": "fl", "c": prop(pink), "o": prop(100), "r": 1}, stroke, transform]},
+        {"ty": "el", "p": prop([-2,0]), "s": prop([27,34]), "d": 1},
+        stroke, {"ty": "fl", "c": prop(pink), "o": prop(100), "r": 1}, transform]},
     {"ty": "gr", "it": [{"ty": "sh", "ks": prop(at_path)}, stroke, transform]},
 ]
 # 20-second seamless loop; only 12px of travel at a 390px mobile viewport.

@@ -49,19 +49,19 @@ async function mount(name: 'username' | 'bank' | 'card') {
     return view
 }
 it.each([
-    ['username', 2],
+    ['username', 4],
     ['bank', 1],
 ] as const)('plays %s twice as fast as its former speed', async (name, speed) => {
     await mount(name)
     expect(mockAnimation.setSpeed).toHaveBeenCalledWith(speed)
     expect(mockLoad).toHaveBeenCalledWith(expect.objectContaining({ loop: true }))
 })
-it('holds the card for 500ms after every completed cycle', async () => {
+it('holds the card for 1000ms after every completed cycle', async () => {
     await mount('card')
     expect(mockLoad).toHaveBeenCalledWith(expect.objectContaining({ loop: false }))
     for (let cycle = 1; cycle <= 2; cycle++) {
         act(() => mockEvents.complete())
-        act(() => jest.advanceTimersByTime(499))
+        act(() => jest.advanceTimersByTime(999))
         expect(mockAnimation.goToAndPlay).toHaveBeenCalledTimes(cycle - 1)
         act(() => jest.advanceTimersByTime(1))
         expect(mockAnimation.goToAndPlay).toHaveBeenCalledTimes(cycle)
@@ -81,7 +81,7 @@ it('does not restart a hidden or unmounted card', async () => {
         mockHidden = false
         document.dispatchEvent(new Event('visibilitychange'))
     })
-    act(() => jest.advanceTimersByTime(500))
+    act(() => jest.advanceTimersByTime(1000))
     expect(mockAnimation.goToAndPlay).toHaveBeenCalledTimes(1)
     act(() => mockEvents.complete())
     view.unmount()

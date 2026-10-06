@@ -46,7 +46,7 @@ export default function SuccessStep() {
             if (redirecting.current) return
             redirecting.current = true
             redirect.current({ isNewAccount: true })
-        }, 5000)
+        }, 4500)
         return () => clearTimeout(timer)
     }, [signupCompleted])
     if (!signupCompleted) return null

@@ -24,7 +24,7 @@ beforeEach(() => {
     mockCompleted = false
 })
 afterEach(() => jest.useRealTimers())
-it('celebrates and haptics once, then enters the account after five seconds', () => {
+it('celebrates and haptics once, then enters the account after 4.5 seconds', () => {
     const view = renderWithIntl(
         <StrictMode>
             <SuccessStep />
@@ -43,7 +43,7 @@ it('celebrates and haptics once, then enters the account after five seconds', ()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(mockHaptic).toHaveBeenCalledTimes(1)
     expect(mockHaptic).toHaveBeenCalledWith('success')
-    act(() => jest.advanceTimersByTime(4999))
+    act(() => jest.advanceTimersByTime(4499))
     expect(mockRedirect).not.toHaveBeenCalled()
     act(() => jest.advanceTimersByTime(1))
     expect(mockRedirect).toHaveBeenCalledTimes(1)

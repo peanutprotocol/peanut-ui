@@ -92,18 +92,6 @@ export default function EmailStep() {
                     error={error}
                     disabled={saving}
                 />
-                {emailInUse && (
-                    <div className="mt-6 flex justify-center">
-                        <SetupDocLink
-                            kind="account-recovery"
-                            href="/en/help/account-recovery"
-                            className={LINK_BUTTON_CLASSES}
-                        >
-                            <Icon name="info" size={16} className="shrink-0" />
-                            {t('recoveryGuide')}
-                        </SetupDocLink>
-                    </div>
-                )}
             </div>
             <SetupFooter
                 actions={
@@ -111,7 +99,18 @@ export default function EmailStep() {
                         {t('continue')}
                     </Button>
                 }
-            />
+            >
+                {emailInUse && (
+                    <SetupDocLink
+                        kind="account-recovery"
+                        href="/en/help/account-recovery"
+                        className={LINK_BUTTON_CLASSES}
+                    >
+                        <Icon name="info" size={16} className="shrink-0" />
+                        {t('recoveryGuide')}
+                    </SetupDocLink>
+                )}
+            </SetupFooter>
         </form>
     )
 }

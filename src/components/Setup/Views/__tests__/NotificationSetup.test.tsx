@@ -110,6 +110,14 @@ it('explains an already registered email, links to recovery, and clears the noti
         'href',
         '/en/help/account-recovery'
     )
+    const recoveryLink = screen.getByRole('link', { name: 'How to recover your account' })
+    expect(recoveryLink.closest('[data-setup-footer]')).toContainElement(
+        screen.getByRole('button', { name: 'Continue' })
+    )
+    expect(
+        screen.getByRole('button', { name: 'Continue' }).compareDocumentPosition(recoveryLink) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
     expect(mockNext).not.toHaveBeenCalled()
     expect(mockFetchUser).not.toHaveBeenCalled()
     expect(screen.getByRole('textbox')).toHaveValue('existing@example.com')

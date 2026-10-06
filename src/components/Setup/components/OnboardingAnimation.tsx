@@ -72,7 +72,7 @@ export default function OnboardingAnimation({
                     restartTimer = undefined
                     waitingForRestart = false
                     animation?.goToAndPlay(0, true)
-                }, 500)
+                }, 1000)
             } else animation.play()
         }
         void Promise.all([import('lottie-web/build/player/lottie_light'), loaders[name]()])
@@ -86,7 +86,7 @@ export default function OnboardingAnimation({
                     animationData: data.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
-                if (name === 'username') animation.setSpeed(2)
+                if (name === 'username') animation.setSpeed(4)
                 else if (name === 'fees' || name === 'email' || name === 'exchange') animation.setSpeed(0.5)
                 else animation.setSpeed(1)
                 if (name === 'card') {
