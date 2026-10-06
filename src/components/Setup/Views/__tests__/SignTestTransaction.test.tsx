@@ -65,6 +65,7 @@ jest.mock('@/components/Global/PeanutMascot', () => ({
     default: () => <div data-testid="celebration-mascot" />,
 }))
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: jest.fn() } }))
+jest.mock('../../components/CelebrationCurtain', () => ({ __esModule: true, default: () => <canvas /> }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/signup-attribution', () => ({
     readSignupAttributionAsync: (...args: unknown[]) => mockReadSignupAttributionAsync(...args),
@@ -195,7 +196,7 @@ describe('SignTestTransaction — setup completion', () => {
         expect(screen.getByRole('heading', { name: 'You’re all set!' })).toBeInTheDocument()
         expect(screen.queryByText('Works right now')).not.toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
-        expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
         act(() => jest.advanceTimersByTime(5000))
         jest.useRealTimers()
