@@ -190,6 +190,7 @@ export const UnlockChecklistStep = ({
                                             <Toggle
                                                 checked={checklist.intents[row.key]}
                                                 onChange={() => checklist.toggle(row.key)}
+                                                disabled={busy}
                                                 aria-label={title}
                                             />
                                         ) : undefined
