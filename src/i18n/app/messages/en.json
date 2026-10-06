@@ -4452,7 +4452,7 @@
         "label": {
             "provider": "Provider",
             "accountProvider": "Account provider",
-            "cardIssuer": "Card issuer"
+            "cardProvider": "Card provider"
         },
         "sheetIntro": "{brand} provides this service, not Peanut.",
         "relationship": "You have a direct relationship with {brand} under their terms.",
@@ -4488,10 +4488,10 @@
             "bridgeEea": "Signed by you, {brand} pays out",
             "mantecaAr": "Settled by {brand}",
             "rhino": "Signed by you, {brand} bridges",
-            "thirdNational": "{brand} issues and settles"
+            "thirdNational": "Third National issues and settles"
         },
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
-        "cardRelationship": "You have a direct relationship with {brand} under the card terms.",
-        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with {brand}."
+        "cardRelationship": "You have a direct relationship with Third National under the card terms.",
+        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
     }
 }

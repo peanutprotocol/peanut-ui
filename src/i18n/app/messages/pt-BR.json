@@ -4452,7 +4452,7 @@
         "label": {
             "provider": "Provedor",
             "accountProvider": "Provedor da conta",
-            "cardIssuer": "Emissor do cartão"
+            "cardProvider": "Provedor do cartão"
         },
         "sheetIntro": "Quem presta este serviço é a {brand}, não o Peanut.",
         "relationship": "Você tem uma relação direta com a {brand}, nos termos dela.",
@@ -4488,10 +4488,10 @@
             "bridgeEea": "Você assina, a {brand} paga",
             "mantecaAr": "Liquidado pela {brand}",
             "rhino": "Você assina, a {brand} faz a ponte",
-            "thirdNational": "A {brand} emite e liquida"
+            "thirdNational": "A Third National emite e liquida"
         },
         "peanutRole": "Provedor de software de carteira autocustodial; não é parte das operações do provedor",
-        "cardRelationship": "Você tem uma relação direta com a {brand}, nos termos do cartão.",
-        "cardRelationshipProspective": "Ao aceitar os termos do cartão, sua relação passa a ser diretamente com a {brand}."
+        "cardRelationship": "Você tem uma relação direta com a Third National, nos termos do cartão.",
+        "cardRelationshipProspective": "Ao aceitar os termos do cartão, sua relação passa a ser diretamente com a Third National."
     }
 }

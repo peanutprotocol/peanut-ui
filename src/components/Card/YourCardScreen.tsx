@@ -93,7 +93,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                     onToggleReveal={isLocked || isRevealing ? undefined : toggle}
                     onCopy={handleCopy}
                 />
-                <ProviderFinePrint providerId="third-national" label="cardIssuer" />
+                <ProviderFinePrint providerId="third-national" label="cardProvider" />
             </div>
 
             {showAutoRenew && (

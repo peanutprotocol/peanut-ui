@@ -55,7 +55,7 @@ describe('ProviderRow', () => {
 
     it.each([
         ['accountProvider', 'Account provider'],
-        ['cardIssuer', 'Card issuer'],
+        ['cardProvider', 'Card provider'],
     ] as const)('labels the row %s', (label, text) => {
         withIntl(<ProviderRow providerId="bridge-us" label={label} />)
         expect(screen.getByText(text)).toBeInTheDocument()
@@ -134,7 +134,7 @@ describe('ProviderSheet rows', () => {
         ['rhino', 'Rhino.fi', ['Legal name', 'Role', 'How this executes', "Peanut's role", 'Terms', 'Privacy']],
         [
             'third-national',
-            'Third National',
+            'Rain',
             [
                 'Legal name',
                 'Registered office',
@@ -168,6 +168,16 @@ describe('ProviderSheet rows', () => {
 })
 
 describe('ProviderFinePrint', () => {
+    it('reads "Card provider · Rain" on the card and keeps the issuer inside the sheet', () => {
+        withIntl(<ProviderFinePrint providerId="third-national" label="cardProvider" />)
+        expect(screen.getByText('Card provider · Rain')).toBeInTheDocument()
+        expect(screen.queryByText(/Third National/)).not.toBeInTheDocument()
+        const sheet = openSheet('Rain')
+        expect(within(sheet).getByRole('heading', { name: 'Rain' })).toBeInTheDocument()
+        expect(within(sheet).getByText('Nimbus LLC, doing business as Third National')).toBeInTheDocument()
+        expect(within(sheet).getByText('Third National issues and settles')).toBeInTheDocument()
+    })
+
     it('reads "Provider · Manteca" with the (?)', () => {
         withIntl(<ProviderFinePrint providerId="manteca-br" />)
         expect(screen.getByText('Provider · Manteca')).toBeInTheDocument()
@@ -200,10 +210,10 @@ describe('ProviderSheet relationship line', () => {
         expect(within(sheet).queryByText(relationship)).not.toBeInTheDocument()
     })
 
-    it('uses the card terms wording for the card issuer, prospective before acceptance', () => {
-        withIntl(<ProviderRow providerId="third-national" label="cardIssuer" prospective />)
+    it('keeps the issuer in the card terms wording, prospective before acceptance', () => {
+        withIntl(<ProviderRow providerId="third-national" label="cardProvider" prospective />)
         expect(
-            within(openSheet('Third National')).getByText(
+            within(openSheet('Rain')).getByText(
                 'When you accept the card terms, your relationship is directly with Third National.'
             )
         ).toBeInTheDocument()
