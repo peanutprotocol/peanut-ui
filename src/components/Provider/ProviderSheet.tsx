@@ -32,6 +32,9 @@ export const ProviderSheet = ({ providerId, open, onClose, nested, prospective }
     const provider = PROVIDERS[providerId]
     const { brand } = provider
     const isCard = provider.role === 'thirdNational'
+    // the brazil sheet also opens from qr pay, where the user pays from their peanut balance,
+    // not their bank app, so it shares the argentina wording
+    const executionRole = provider.role === 'mantecaBr' ? 'mantecaAr' : provider.role
 
     const documentLink = (label: string, href: string) => (
         <LinkButton icon onClick={() => void openExternalUrl(href)}>
@@ -49,7 +52,7 @@ export const ProviderSheet = ({ providerId, open, onClose, nested, prospective }
         provider.regulator && { label: t('field.regulator'), value: provider.regulator },
         { label: t('field.role'), value: t(`role.${provider.role}`) },
         provider.programManager && { label: t('field.programManager'), value: provider.programManager },
-        { label: t('field.execution'), value: t(`execution.${provider.role}`, { brand }) },
+        { label: t('field.execution'), value: t(`execution.${executionRole}`, { brand }) },
         { label: t('field.peanutRole'), value: t('peanutRole') },
         provider.termsUrl && { label: t('field.terms'), value: documentLink(t('field.viewTerms'), provider.termsUrl) },
         provider.privacyUrl && {

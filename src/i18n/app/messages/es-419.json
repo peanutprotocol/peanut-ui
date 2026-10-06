@@ -4391,7 +4391,6 @@
             "bridge": "Lo firmas tú, {brand} paga",
             "bridgeEea": "Lo firmas tú, {brand} paga",
             "mantecaAr": "Liquidado por {brand}",
-            "mantecaBr": "Pagado desde la app de tu banco",
             "rhino": "Lo firmas tú, {brand} hace el puente",
             "thirdNational": "{brand} emite y liquida"
         },

@@ -4391,7 +4391,6 @@
             "bridge": "Signed by you, {brand} pays out",
             "bridgeEea": "Signed by you, {brand} pays out",
             "mantecaAr": "Settled by {brand}",
-            "mantecaBr": "Paid from your bank app",
             "rhino": "Signed by you, {brand} bridges",
             "thirdNational": "{brand} issues and settles"
         },

@@ -174,6 +174,13 @@ describe('ProviderFinePrint', () => {
         const sheet = openSheet('Manteca')
         expect(within(sheet).getByText('CNPJ 63.653.001/0001-55')).toBeInTheDocument()
     })
+
+    it('says Manteca settles, since the brazil sheet also opens from qr pay', () => {
+        withIntl(<ProviderFinePrint providerId="manteca-br" />)
+        const sheet = openSheet('Manteca')
+        expect(within(sheet).getByText('Settled by Manteca')).toBeInTheDocument()
+        expect(within(sheet).queryByText('Paid from your bank app')).not.toBeInTheDocument()
+    })
 })
 
 describe('ProviderSheet relationship line', () => {
