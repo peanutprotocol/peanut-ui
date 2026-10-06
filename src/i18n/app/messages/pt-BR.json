@@ -2719,7 +2719,6 @@
         "identityVerification": "Verificação de identidade",
         "doesntStoreDocuments": "A Peanut não armazena nenhum dos seus documentos",
         "doesntStoreDocumentsPeriod": "A Peanut não armazena nenhum dos seus documentos.",
-        "documentsNotStored": "O Peanut não armazena <link>seus documentos</link>.",
         "countryRegion": "País/Região",
         "verified": "Verificado",
         "actionNeeded": "Ação necessária",
@@ -4109,7 +4108,8 @@
             "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE.",
             "whoCanPay": "Quem pode pagar",
             "termsAgreement": "Ao abrir a conta, você aceita os <terms>termos da conta em {currency}</terms>.",
-            "providerTerms": "Ao abri-la, você aceita os <terms>termos da {brand}</terms>."
+            "providerTerms": "Sua conta em {currency} é oferecida pela {brand}. Ao abri-la, você aceita os termos da {brand}.",
+            "providerTermsLink": "Ler os termos"
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4373,7 +4373,8 @@
             "privacy": "Política de privacidade",
             "identityCheck": "Verificação de identidade",
             "paidFrom": "Pago com",
-            "documents": "Documentos"
+            "documents": "Documentos",
+            "documentsHelp": "Como o Peanut trata seus documentos"
         },
         "role": {
             "bridge": "Transferências bancárias e contas no seu nome",
@@ -4391,7 +4392,9 @@
             "card": "Seu cartão Peanut é emitido pela {brand}.",
             "sendsTransfer": "A {brand} envia esta transferência bancária.",
             "sentTransfer": "A {brand} enviou esta transferência bancária.",
-            "account": "Sua conta em {currency} é oferecida pela {brand}."
+            "account": "Sua conta em {currency} é oferecida pela {brand}.",
+            "idForBankTransfers": "A {brand} recebe seu documento para ativar as transferências bancárias. O Peanut não guarda uma cópia.",
+            "idForPayments": "A {brand} recebe seu documento para ativar os pagamentos locais. O Peanut não guarda uma cópia."
         },
         "about": "Sobre a {brand}"
     }

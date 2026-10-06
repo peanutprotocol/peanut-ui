@@ -11,7 +11,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
-import { ProviderNote } from '@/components/Provider/ProviderNote'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { corridorNeedsReference } from '../instructionRows'
@@ -194,25 +194,19 @@ export function ClaimAccountScreen({
                         >
                             {t('claim.cta', { currency: rail.currency })}
                         </Button>
-                        {/* The terms the tap agrees to, in one line with the provider
-                            that holds the account. It sits under the button,
-                            so the shell reservation still clears the button. */}
+                        {/* The terms the tap agrees to, with the provider that holds
+                            the account, and the terms one tap away at the end. It sits
+                            under the button, so the shell reservation still clears it. */}
                         {providerId ? (
-                            <ProviderNote providerId={providerId} line="account" currency={rail.currency} prospective>
-                                {t.rich('claim.providerTerms', {
+                            <p className="text-center text-body-xs text-foreground-secondary">
+                                {t('claim.providerTerms', {
+                                    currency: rail.currency,
                                     brand: PROVIDERS[providerId].brand,
-                                    terms: (chunks) => (
-                                        <a
-                                            href={PROVIDERS[providerId].termsUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="underline underline-offset-2"
-                                        >
-                                            {chunks}
-                                        </a>
-                                    ),
-                                })}
-                            </ProviderNote>
+                                })}{' '}
+                                <LinkButton href={PROVIDERS[providerId].termsUrl} external>
+                                    {t('claim.providerTermsLink')}
+                                </LinkButton>
+                            </p>
                         ) : (
                             <p className="text-center text-body-xs text-foreground-secondary">
                                 {t.rich('claim.termsAgreement', {

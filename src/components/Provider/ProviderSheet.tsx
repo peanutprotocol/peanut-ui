@@ -1,6 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
@@ -9,9 +9,12 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import Card from '@/components/Global/Card'
+import { localizeDocsHref } from '@/components/Global/DocsLink'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
+import { BASE_URL } from '@/constants/general.consts'
+import { DOCUMENTS_HELP_HREF } from '@/constants/kyc.consts'
 import { PROVIDERS } from '@/constants/providers.consts'
 import type { ProviderId, ProviderRole } from '@/types/provider.types'
 import { openExternalUrl } from '@/utils/capacitor'
@@ -26,6 +29,8 @@ interface ProviderSheetProps {
     pooledAccount?: boolean
     /** shown before the user accepts the provider's terms: the relationship line speaks of it as ahead */
     prospective?: boolean
+    /** opened from an identity check footnote: links how peanut handles the documents */
+    documentsHelp?: boolean
 }
 
 const ROLE_CONCEPT: Record<ProviderRole, Concept> = {
@@ -47,9 +52,11 @@ export const ProviderSheet = ({
     nested,
     pooledAccount,
     prospective,
+    documentsHelp,
 }: ProviderSheetProps) => {
     const t = useTranslations('provider')
     const tCommon = useTranslations('common')
+    const locale = useLocale()
     const provider = PROVIDERS[providerId]
     const sumsub = PROVIDERS.sumsub
     const isCard = provider.role === 'thirdNational'
@@ -105,7 +112,7 @@ export const ProviderSheet = ({
                             )}
                             {pooledAccount && <DataRow label={t('field.paidFrom')} value={t('pooledAccount')} />}
                         </Card>
-                        {(termsUrl || privacyUrl) && (
+                        {(termsUrl || privacyUrl || documentsHelp) && (
                             <div className="flex flex-col gap-2">
                                 {/* only true when the user accepted the provider's terms; a qr payment
                                     leaves peanut's own account, so it never applies there */}
@@ -129,6 +136,17 @@ export const ProviderSheet = ({
                                             title={t('field.privacy')}
                                             trailing={<Icon name="arrow-up-right" size={20} />}
                                             onClick={() => void openExternalUrl(privacyUrl)}
+                                        />
+                                    )}
+                                    {documentsHelp && (
+                                        <ListItem
+                                            title={t('field.documentsHelp')}
+                                            trailing={<Icon name="arrow-up-right" size={20} />}
+                                            onClick={() =>
+                                                void openExternalUrl(
+                                                    `${BASE_URL}${localizeDocsHref(DOCUMENTS_HELP_HREF, locale)}`
+                                                )
+                                            }
                                         />
                                     )}
                                 </ListGroup>

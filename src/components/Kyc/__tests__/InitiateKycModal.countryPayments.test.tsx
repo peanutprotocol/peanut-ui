@@ -74,19 +74,19 @@ describe('InitiateKycModal — country_payments', () => {
     it('names the account provider in the fine print: Manteca from the country, Bridge from the caller', () => {
         const { unmount } = renderModal({ variant: 'country_payments', prepPath: 'extended', taxIdCountry: 'AR' })
         const about = screen.getByRole('button', { name: 'About Manteca' })
-        // one footnote under the button carries the provider and the documents fact
+        // one footnote under the button: who receives the id, and that peanut keeps no copy
         expect(about.closest('p')).toHaveTextContent(
-            "Payments by Manteca. Peanut doesn't store your documents. About Manteca"
+            "Manteca receives your ID to set up local payments. Peanut doesn't keep a copy. About Manteca"
         )
-        expect(screen.getByRole('link', { name: 'your documents' })).toHaveAttribute(
-            'href',
-            expect.stringContaining('/help/verification')
-        )
+        // the help link moved into the sheet; the footnote keeps one link
+        expect(about.closest('p')?.querySelectorAll('a, button')).toHaveLength(1)
         expect(screen.queryByText("Peanut doesn't store any of your documents")).not.toBeInTheDocument()
         unmount()
 
         const { unmount: unmountBridge } = renderModal({ providerId: 'bridge-eea' })
-        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' }).closest('p')).toHaveTextContent(
+            "Bridge receives your ID to set up bank transfers. Peanut doesn't keep a copy. About Bridge"
+        )
         unmountBridge()
 
         // a caller that does not know the provider names none

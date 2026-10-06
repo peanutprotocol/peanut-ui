@@ -2719,7 +2719,6 @@
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
         "doesntStoreDocumentsPeriod": "Peanut doesn't store any of your documents.",
-        "documentsNotStored": "Peanut doesn't store <link>your documents</link>.",
         "countryRegion": "Country/Region",
         "verified": "Verified",
         "actionNeeded": "Action needed",
@@ -4109,7 +4108,8 @@
             "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country.",
             "whoCanPay": "Who can pay",
             "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>.",
-            "providerTerms": "By opening it, you agree to <terms>{brand}'s terms</terms>."
+            "providerTerms": "Your {currency} account is with {brand}. Opening it means you accept {brand}'s terms.",
+            "providerTermsLink": "Read the terms"
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4373,7 +4373,8 @@
             "privacy": "Privacy policy",
             "identityCheck": "Identity check",
             "paidFrom": "Paid from",
-            "documents": "Documents"
+            "documents": "Documents",
+            "documentsHelp": "How Peanut handles your documents"
         },
         "role": {
             "bridge": "Bank transfers and accounts in your name",
@@ -4391,7 +4392,9 @@
             "card": "Your Peanut card is issued by {brand}.",
             "sendsTransfer": "{brand} sends this bank transfer.",
             "sentTransfer": "{brand} sent this bank transfer.",
-            "account": "Your {currency} account is with {brand}."
+            "account": "Your {currency} account is with {brand}.",
+            "idForBankTransfers": "{brand} receives your ID to set up bank transfers. Peanut doesn't keep a copy.",
+            "idForPayments": "{brand} receives your ID to set up local payments. Peanut doesn't keep a copy."
         },
         "about": "About {brand}"
     }

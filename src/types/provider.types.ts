@@ -39,3 +39,5 @@ export type ProviderFinePrint =
     | 'sendsTransfer'
     | 'sentTransfer'
     | 'account'
+    | 'idForBankTransfers'
+    | 'idForPayments'

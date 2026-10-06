@@ -9,7 +9,6 @@ import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { DocumentsNotStored } from '@/components/Kyc/DocumentsNotStored'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import NavHeader from '@/components/Global/NavHeader'
@@ -321,12 +320,10 @@ export const InitiateKycModal = ({
         isBankUnavailable
     )
     // one footnote under the button: where the check leads into a provider's
-    // account, its line also carries the documents fact
+    // account, it says who receives the id and that peanut keeps no copy
     const footer = (nested: boolean) =>
         showPrepChecklist && prepProviderId ? (
-            <ProviderNote providerId={prepProviderId} nested={nested} prospective>
-                {showDocumentsNote && <DocumentsNotStored />}
-            </ProviderNote>
+            <ProviderNote providerId={prepProviderId} nested={nested} prospective idCheck={showDocumentsNote} />
         ) : showDocumentsNote ? (
             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
         ) : null

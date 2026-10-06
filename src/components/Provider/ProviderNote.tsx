@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PROVIDERS } from '@/constants/providers.consts'
@@ -16,6 +16,12 @@ const DEFAULT_LINE: Partial<Record<ProviderRole, ProviderFinePrint>> = {
     thirdNational: 'card',
 }
 
+// before an identity check: who receives the id, and that peanut keeps no copy
+const ID_CHECK_LINE: Partial<Record<ProviderRole, ProviderFinePrint>> = {
+    bridge: 'idForBankTransfers',
+    manteca: 'idForPayments',
+}
+
 interface ProviderNoteProps {
     providerId: ProviderId
     /** the sentence before "About <brand>"; defaults to the provider's service */
@@ -27,8 +33,8 @@ interface ProviderNoteProps {
     pooledAccount?: boolean
     /** shown before the user accepts the provider's terms: the relationship line speaks of it as ahead */
     prospective?: boolean
-    /** another sentence for the same line, placed before "About <brand>" */
-    children?: ReactNode
+    /** the screen starts an identity check: the line says the provider receives the id */
+    idCheck?: boolean
     className?: string
 }
 
@@ -40,19 +46,19 @@ export const ProviderNote = ({
     nested,
     pooledAccount,
     prospective,
-    children,
+    idCheck,
     className,
 }: ProviderNoteProps) => {
     const t = useTranslations('provider')
     const [open, setOpen] = useState(false)
     const { brand, role } = PROVIDERS[providerId]
-    const key = line ?? DEFAULT_LINE[role]
+    const key = line ?? (idCheck ? ID_CHECK_LINE[role] : DEFAULT_LINE[role])
     if (!key) return null
 
     return (
         <>
             <p className={twMerge('text-center text-body-xs text-foreground-secondary', className)}>
-                {t(`finePrint.${key}`, { brand, currency: currency ?? '' })} {children && <>{children} </>}
+                {t(`finePrint.${key}`, { brand, currency: currency ?? '' })}{' '}
                 <LinkButton onClick={() => setOpen(true)}>{t('about', { brand })}</LinkButton>
             </p>
             <ProviderSheet
@@ -62,6 +68,7 @@ export const ProviderNote = ({
                 nested={nested}
                 pooledAccount={pooledAccount}
                 prospective={prospective}
+                documentsHelp={idCheck}
             />
         </>
     )

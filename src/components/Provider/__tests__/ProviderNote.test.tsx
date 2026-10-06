@@ -87,6 +87,22 @@ describe('ProviderNote', () => {
         expect(within(sheet).queryByText(/Third National issues your Peanut card/)).not.toBeInTheDocument()
     })
 
+    it('says who receives the id before an identity check, and links the documents help from the sheet', () => {
+        withIntl(<ProviderNote providerId="bridge-eea" prospective idCheck />)
+        expect(
+            screen.getByText(/Bridge receives your ID to set up bank transfers\. Peanut doesn't keep a copy\./)
+        ).toBeInTheDocument()
+        const sheet = openSheet('Bridge')
+        fireEvent.click(within(sheet).getByRole('button', { name: 'How Peanut handles your documents' }))
+        expect(openExternalUrl).toHaveBeenCalledWith(expect.stringMatching(/\/en\/help\/verification$/))
+    })
+
+    it('keeps the documents row off sheets opened outside an identity check', () => {
+        withIntl(<ProviderNote providerId="manteca-ar" />)
+        const sheet = openSheet('Manteca')
+        expect(within(sheet).queryByText('How Peanut handles your documents')).not.toBeInTheDocument()
+    })
+
     it('fills the currency in the account line', () => {
         withIntl(<ProviderNote providerId="bridge-us" line="account" currency="USD" />)
         expect(screen.getByText(/Your USD account is with Bridge\./)).toBeInTheDocument()

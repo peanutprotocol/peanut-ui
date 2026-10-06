@@ -5,7 +5,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
-import { DocumentsNotStored } from '@/components/Kyc/DocumentsNotStored'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
@@ -91,11 +90,9 @@ const UnlockMethodModal = ({
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
-                        {/* one footnote under the button: the provider and the documents fact together */}
+                        {/* one footnote under the button: who receives the id, and that peanut keeps no copy */}
                         {providerId ? (
-                            <ProviderNote providerId={providerId} nested prospective>
-                                <DocumentsNotStored />
-                            </ProviderNote>
+                            <ProviderNote providerId={providerId} nested prospective idCheck />
                         ) : (
                             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                         )}
