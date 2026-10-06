@@ -353,8 +353,6 @@ const PaymentSuccessView = ({
                     </div>
                 </Card>
 
-                {providerId && <ProviderFinePrint providerId={providerId} className="w-full" />}
-
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
                 <div className="flex w-full flex-col gap-4">
@@ -378,6 +376,8 @@ const PaymentSuccessView = ({
                             {t('success.seeReceipt')}
                         </Button>
                     )}
+                    {/* fine print sits under the CTAs, never above them */}
+                    {providerId && <ProviderFinePrint providerId={providerId} />}
                 </div>
             </PageStack.Center>
 

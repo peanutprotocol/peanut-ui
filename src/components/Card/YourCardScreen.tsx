@@ -83,16 +83,18 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
 
             {revealError && <Callout priority="error">{revealError}</Callout>}
 
-            <CardFace
-                last4={card.last4}
-                isLocked={isLocked}
-                revealed={revealed}
-                loading={isRevealing}
-                onToggleReveal={isLocked || isRevealing ? undefined : toggle}
-                onCopy={handleCopy}
-            />
-
-            <ProviderFinePrint providerId="third-national" label="cardIssuer" />
+            {/* issuer line reads as the card's caption: inline gap XS/4 (design.md spacing) */}
+            <div className="flex flex-col gap-1">
+                <CardFace
+                    last4={card.last4}
+                    isLocked={isLocked}
+                    revealed={revealed}
+                    loading={isRevealing}
+                    onToggleReveal={isLocked || isRevealing ? undefined : toggle}
+                    onCopy={handleCopy}
+                />
+                <ProviderFinePrint providerId="third-national" label="cardIssuer" />
+            </div>
 
             {showAutoRenew && (
                 <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>

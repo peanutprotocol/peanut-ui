@@ -37,7 +37,7 @@ interface InputAmountStepProps {
     onBack: () => void
     // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
     maintenanceBanner?: React.ReactNode
-    // who provides the deposit, one line under the amount (TASK-23295)
+    // who provides the deposit, one line under the continue button (TASK-23295)
     providerFinePrint?: React.ReactNode
 }
 
@@ -128,8 +128,6 @@ const InputAmountStep = ({
                     <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
                 )}
 
-                {providerFinePrint}
-
                 <Button
                     variant="primary"
                     shadowSize="4"
@@ -147,6 +145,8 @@ const InputAmountStep = ({
                 >
                     {tCommon('continue')}
                 </Button>
+                {/* fine print sits under the CTA, never between the amount and the button */}
+                {providerFinePrint}
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && (
                     <Callout priority="error" data-testid="error-alert">
