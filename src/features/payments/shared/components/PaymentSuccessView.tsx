@@ -49,6 +49,8 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
+import type { ProviderId } from '@/types/provider.types'
 import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 // minimal user info needed for display
@@ -88,6 +90,8 @@ type DirectSuccessViewProps = {
     usdAmount?: string
     // optional pre-built transaction details (e.g. for deposit receipts where chargeDetails doesn't exist)
     transactionDetails?: TransactionDetails | null
+    /** The provider that moved the money; named in the fine print under the card. */
+    providerId?: ProviderId
 }
 
 const PaymentSuccessView = ({
@@ -110,6 +114,7 @@ const PaymentSuccessView = ({
     parsedPaymentData,
     usdAmount,
     transactionDetails: transactionDetailsProp,
+    providerId,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const t = useTranslations('payment')
@@ -371,6 +376,8 @@ const PaymentSuccessView = ({
                             {t('success.seeReceipt')}
                         </Button>
                     )}
+                    {/* fine print sits under the CTAs, never above them */}
+                    {providerId && <ProviderFinePrint providerId={providerId} />}
                 </div>
             </PageStack.Center>
 

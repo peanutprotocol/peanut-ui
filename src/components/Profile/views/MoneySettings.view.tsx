@@ -548,6 +548,8 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                     methodLabel={selectedMethodLabel}
                     path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
                     isLoading={flow.isLoading}
+                    regionIntent={clickedRegionIntent}
+                    country={clickedRowCountry}
                 />
             )}
 

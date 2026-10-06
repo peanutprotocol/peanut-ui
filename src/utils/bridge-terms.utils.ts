@@ -62,15 +62,26 @@ const EEA_ISO2 = new Set([
 // territories that carry their own country code get the overview.
 const EEA_ASSOCIATED_ISO2 = new Set(['AD', 'MC', 'SM', 'VA', 'AX', 'GF', 'GP', 'MQ', 'RE', 'YT', 'MF'])
 
+export type BridgeEntity = keyof typeof BRIDGE_TERMS_DOCUMENTS
+
+/**
+ * The Bridge entity that contracts with a resident of `residenceIso2`, or null
+ * with no residence or one Bridge does not place.
+ */
+export function bridgeEntityForResidence(residenceIso2: string | null | undefined): BridgeEntity | null {
+    const iso2 = residenceIso2?.toUpperCase()
+    if (!iso2 || EEA_ASSOCIATED_ISO2.has(iso2)) return null
+    if (iso2 === 'US') return 'us'
+    if (EEA_ISO2.has(iso2)) return 'eea'
+    return 'restOfWorld'
+}
+
 /**
  * The Bridge Terms of Service and Privacy Policy that apply to a resident of
  * `residenceIso2`. With no residence, or one Bridge does not place, both links
  * go to Bridge's overview page instead of a document that may not apply.
  */
 export function bridgeTermsDocuments(residenceIso2: string | null | undefined): { terms: string; privacy: string } {
-    const iso2 = residenceIso2?.toUpperCase()
-    if (!iso2 || EEA_ASSOCIATED_ISO2.has(iso2)) return BRIDGE_TERMS_OVERVIEW
-    if (iso2 === 'US') return BRIDGE_TERMS_DOCUMENTS.us
-    if (EEA_ISO2.has(iso2)) return BRIDGE_TERMS_DOCUMENTS.eea
-    return BRIDGE_TERMS_DOCUMENTS.restOfWorld
+    const entity = bridgeEntityForResidence(residenceIso2)
+    return entity ? BRIDGE_TERMS_DOCUMENTS[entity] : BRIDGE_TERMS_OVERVIEW
 }

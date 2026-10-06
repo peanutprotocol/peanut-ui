@@ -19,6 +19,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import type { ProviderId } from '@/types/provider.types'
 
 type InitiateKycVariant =
     | 'default'
@@ -66,6 +67,8 @@ interface InitiateKycModalProps {
     /** page form only — the step's back affordance and header title */
     onBack?: () => void
     navTitle?: string
+    /** Bridge callers name the entity here; the Manteca flows get theirs from `taxIdCountry` */
+    providerId?: ProviderId
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -99,6 +102,7 @@ export const InitiateKycModal = ({
     presentation = 'modal',
     onBack,
     navTitle,
+    providerId,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -291,14 +295,23 @@ export const InitiateKycModal = ({
         (resolvedVariant === 'default' || resolvedVariant === 'cross_region' || isCountryPayments) && !error
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
-    const description = showPrepChecklist ? (
-        <div className="flex flex-col gap-3 text-left">
-            <p>{getDescription()}</p>
-            <KycPrepChecklist path={prepPath} taxIdCountry={taxIdCountry} />
-        </div>
-    ) : (
-        getDescription()
-    )
+    // the account provider heads the checklist: bridge from the caller, manteca from the tax-id country
+    const prepProviderId =
+        prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
+    const description = (nested: boolean) =>
+        showPrepChecklist ? (
+            <div className="flex flex-col gap-3 text-left">
+                <p>{getDescription()}</p>
+                <KycPrepChecklist
+                    path={prepPath}
+                    taxIdCountry={taxIdCountry}
+                    providerId={prepProviderId}
+                    nested={nested}
+                />
+            </div>
+        ) : (
+            getDescription()
+        )
     // Red for anything the user has to recover from (a rejection, a block, an
     // unavailable region), blue for the plain "start verification" offer — never
     // green, which the app reserves for a finished state.
@@ -334,7 +347,7 @@ export const InitiateKycModal = ({
                 <div className="flex flex-col items-center gap-4 text-center">
                     <IconBubble icon={iconName} size="l" color={isErrorState ? 'red' : 'blue'} />
                     {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
-                    <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                    <div className="w-full text-body-s text-foreground-secondary">{description(false)}</div>
                 </div>
                 <Button
                     variant="primary"
@@ -374,7 +387,7 @@ export const InitiateKycModal = ({
                     </div>
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
-                        <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                        <div className="w-full text-body-s text-foreground-secondary">{description(true)}</div>
                         <Button
                             variant="primary"
                             shadowSize="4"

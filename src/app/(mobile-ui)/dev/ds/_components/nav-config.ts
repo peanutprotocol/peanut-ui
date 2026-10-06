@@ -45,6 +45,7 @@ import {
     Puzzle,
     RectangleEllipsis,
     RectangleHorizontal,
+    Rows2,
     Rows3,
     Ruler,
     Shapes,
@@ -347,6 +348,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/data-row',
             description:
                 'Label + value row, promoted from TransactionDetails/ReceiptRow. Copy, tooltip, loading, trailing slot',
+            status: 'production',
+        },
+        {
+            label: 'DataRowGroup',
+            icon: Rows2,
+            href: '/dev/ds/primitives/data-row-group',
+            description: 'One theme of rows in a receipt card. One dashed divider between groups, none inside',
             status: 'production',
         },
         {
