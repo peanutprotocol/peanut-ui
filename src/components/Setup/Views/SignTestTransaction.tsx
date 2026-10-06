@@ -120,7 +120,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
 
     const completeSignup = async () => {
         console.log('[SignTestTransaction] Account setup complete')
-        if (user?.user?.userId) attachSignupGeo(user.user.userId)
+        if (user?.user?.userId) await attachSignupGeo(user.user.userId)
         // The final passkey confirmation has succeeded and the account exists.
         // The finish route redirects immediately; setup celebrates on its
         // dedicated final screen after the completion callback.

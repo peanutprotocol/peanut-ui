@@ -49,7 +49,9 @@ This supports product analytics and fraud investigation alongside the other sign
 Collection does not block the setup screens or account completion. Store errors,
 timeouts, older binaries, and web/PWA builds leave store country unknown.
 Vercel/IP country suggestions and user-confirmed residence remain independent of
-store country. API geo storage is implemented in [API PR #1803](https://github.com/peanutprotocol/peanut-api-ts/pull/1803); this client sends the observations after signup.
+store country. API geo storage is implemented in [API PR #1803](https://github.com/peanutprotocol/peanut-api-ts/pull/1803); this client persists observations before the signup redirect and delivers them through an account-bound retry queue. Browser localStorage and native Preferences retain pending observations across restarts; network/foreground/native-resume events wake delivery. Retries use bounded backoff within the API's 24-hour signup window. Acknowledged data remains locally until late source collection completes, and missing device fields can be filled independently. Switching accounts aborts the earlier worker and never rebinds its queue.
+
+Current user reads request `x-residence-format: compact`. Residence screens, bank gates, country selection and receipts consume `residence.verified.country` and `residence.declared.country`, with verified country taking precedence. Legacy API responses are converted once at the transport boundary for staged deployment; installed old apps retain their existing API contract.
 
 ## Native implementations
 
