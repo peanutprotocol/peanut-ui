@@ -23,13 +23,14 @@ const { execSync } = require('child_process')
 const { toMarketingVersion, stampMarketingVersion } = require('./marketing-version')
 
 // Must match the pin in the plugin's plugin.xml (<pod name="IdensicMobileSDK" spec="=X" />).
-const SUMSUB_VERSION = '1.42.0'
+const SUMSUB_VERSION = '1.46.1'
 
 const repoRoot = path.join(__dirname, '..')
 const pluginPkg = '@sumsub/cordova-idensic-mobile-sdk-plugin'
 const pluginDir = path.join(repoRoot, 'ios/capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin')
 const frameworksDir = path.join(pluginDir, 'Frameworks')
 const xcframework = path.join(frameworksDir, 'IdensicMobileSDK.xcframework')
+const sumsubVersionFile = path.join(frameworksDir, 'sumsub-version.txt')
 const pkgSwiftPath = path.join(pluginDir, 'Package.swift')
 const capAppPkgSwift = path.join(repoRoot, 'ios/App/CapApp-SPM/Package.swift')
 const pbxprojPath = path.join(repoRoot, 'ios/App/App.xcodeproj/project.pbxproj')
@@ -103,6 +104,17 @@ if (!fs.existsSync(pluginDir)) {
     process.exit(1)
 }
 
+const pluginXml = fs.readFileSync(require.resolve(`${pluginPkg}/plugin.xml`), 'utf8')
+const requiredSumsubVersion = pluginXml.match(/<pod\s+name="IdensicMobileSDK"\s+spec="=([^"]+)"/)?.[1]
+if (requiredSumsubVersion !== SUMSUB_VERSION) {
+    throw new Error(`Sumsub framework ${SUMSUB_VERSION} does not match the installed plugin's ${requiredSumsubVersion}`)
+}
+
+// A local postsync can outlive a dependency upgrade even without another cap sync.
+if (!fs.existsSync(sumsubVersionFile) || fs.readFileSync(sumsubVersionFile, 'utf8').trim() !== SUMSUB_VERSION) {
+    fs.rmSync(xcframework, { recursive: true, force: true })
+}
+
 // 1. Vendor the xcframework (download once; it survives within a single CI run).
 if (!fs.existsSync(xcframework)) {
     fs.mkdirSync(frameworksDir, { recursive: true })
@@ -119,6 +131,7 @@ if (!fs.existsSync(xcframework)) {
         console.error('[postsync] ERROR: IdensicMobileSDK.xcframework not found after extraction')
         process.exit(1)
     }
+    fs.writeFileSync(sumsubVersionFile, SUMSUB_VERSION)
     console.log('[postsync] vendored IdensicMobileSDK.xcframework')
 }
 

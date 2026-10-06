@@ -16,6 +16,7 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PILL_THUMB, PILL_TRACK } from '@/components/0_Bruddle/PillSurface'
 import { TAB_ORDER, type TabId } from './tab-order'
+import { isCapacitor } from '@/utils/capacitor'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -85,6 +86,7 @@ export const BottomNav = () => {
     const pathname = usePathname()
     const router = useRouter()
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
+    const isWebSupportOpen = isSupportModalOpen && !isCapacitor()
     const { triggerHaptic } = useAppHaptic()
     const { user } = useAuth()
     const hasUnreadSupport = useSupportUnread(!!user?.user.userId, user?.user.userId)
@@ -170,7 +172,7 @@ export const BottomNav = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeTab])
 
-    const selectedTab = isSupportModalOpen ? 'support' : activeTab
+    const selectedTab = isWebSupportOpen ? 'support' : activeTab
     const activeBox = selectedTab ? boxes[selectedTab] : undefined
 
     const clampX = (x: number) => {
@@ -289,7 +291,7 @@ export const BottomNav = () => {
                 <button
                     type="button"
                     aria-label={t('support')}
-                    aria-expanded={isSupportModalOpen}
+                    aria-expanded={isWebSupportOpen}
                     {...tabPressHandlers('support')}
                     onClick={() => setIsSupportModalOpen(true)}
                     className={tabClass}

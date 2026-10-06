@@ -441,6 +441,8 @@ const SupportDrawer = () => {
         return () => window.removeEventListener('keydown', handleEscape)
     }, [isSupportModalOpen, setIsSupportModalOpen])
 
+    if (isCapacitor()) return null
+
     return (
         <>
             {/* backdrop */}
