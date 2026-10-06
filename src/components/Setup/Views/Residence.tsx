@@ -18,6 +18,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { residenceAvailability } from '@/utils/residence-availability'
+import { availableSetupFeaturesForResidence } from '@/features/setup/availableFeaturesForResidence'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -197,18 +198,19 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     }, [restrictionSets, view, residenceCountry])
 
     if (view !== 'select') {
-        const availability = residenceAvailability(restrictionSets, residenceCountry)
         // Until the authoritative lookup settles, show only universal
         // features. Never skip this screen or promise unconfirmed benefits.
-        const rails = restrictionSetsSettled
-            ? availability.available.filter((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
-            : []
+        const { bank, card } = availableSetupFeaturesForResidence(
+            restrictionSets,
+            residenceCountry,
+            restrictionSetsSettled
+        )
         const features: { icon: IconName; title: string }[] = [
             {
                 icon: 'dollar',
                 title: t('residenceStep.congrats.checklist.dollars'),
             },
-            ...(rails.length
+            ...(bank
                 ? [
                       {
                           icon: 'bank' as const,
@@ -216,7 +218,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                       },
                   ]
                 : []),
-            ...(restrictionSetsSettled && availability.available.includes('card')
+            ...(card
                 ? [
                       {
                           icon: 'credit-card' as const,

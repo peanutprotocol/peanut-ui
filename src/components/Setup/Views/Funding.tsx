@@ -1,6 +1,6 @@
 'use client'
 
-import { useId } from 'react'
+import { useEffect, useId } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -9,9 +9,12 @@ import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useSetupFlowContext, type SetupFundingMethod } from '@/features/setup/SetupFlowContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
+import { availableSetupFeaturesForResidence } from '@/features/setup/availableFeaturesForResidence'
 import SetupFooter from '../components/SetupFooter'
 
 const METHODS: SetupFundingMethod[] = ['bank', 'cash', 'crypto', 'peanut']
+const UNIVERSAL_METHODS: SetupFundingMethod[] = ['crypto', 'peanut']
 const METHOD_ICONS: Record<SetupFundingMethod, IconName> = {
     bank: 'bank',
     cash: 'currency',
@@ -22,14 +25,24 @@ const METHOD_ICONS: Record<SetupFundingMethod, IconName> = {
 export default function FundingStep() {
     const t = useTranslations('setup')
     const id = useId()
-    const { fundingMethods, setFundingMethods } = useSetupFlowContext()
+    const { residenceCountry, fundingMethods, setFundingMethods } = useSetupFlowContext()
+    const { sets, settled } = useResidenceRestrictionSetsWithStatus()
+    const { bank, card } = availableSetupFeaturesForResidence(sets, residenceCountry, settled)
+    const methods = bank || card ? METHODS : UNIVERSAL_METHODS
+    const selectedMethods = fundingMethods.filter((method) => methods.includes(method))
+    // Changing residence must also remove previously selected hidden options.
+    useEffect(() => {
+        if (fundingMethods.some((method) => !methods.includes(method))) {
+            setFundingMethods(fundingMethods.filter((method) => methods.includes(method)))
+        }
+    }, [fundingMethods, methods, setFundingMethods])
     const { handleNext, isLoading } = useSetupFlow()
     return (
         <div className="flex w-full flex-1 flex-col gap-6">
             <h1 className="text-heading-s">{t('funding.title')}</h1>
             <div className="flex flex-1 flex-col justify-center gap-4">
                 <Card className="divide-y divide-dashed divide-border-default px-4">
-                    {METHODS.map((method) => (
+                    {methods.map((method) => (
                         <DataRow
                             compact
                             key={method}
@@ -46,12 +59,12 @@ export default function FundingStep() {
                             value={
                                 <Checkbox
                                     id={`${id}-${method}`}
-                                    value={fundingMethods.includes(method)}
+                                    value={selectedMethods.includes(method)}
                                     onChange={(event) =>
                                         setFundingMethods(
                                             event.target.checked
-                                                ? [...fundingMethods, method]
-                                                : fundingMethods.filter((selected) => selected !== method)
+                                                ? [...selectedMethods, method]
+                                                : selectedMethods.filter((selected) => selected !== method)
                                         )
                                     }
                                 />
