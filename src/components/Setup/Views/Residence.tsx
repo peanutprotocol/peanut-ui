@@ -253,7 +253,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                                 htmlFor={`${featureId}-${feature.icon}`}
                                                 className="flex items-center gap-3 text-foreground-primary"
                                             >
-                                                <IconBubble {...CONCEPT_ICONS[feature.concept]} size="m" />
+                                                <IconBubble {...CONCEPT_ICONS[feature.concept]} size="s" />
                                                 <span>{feature.title}</span>
                                             </label>
                                         }

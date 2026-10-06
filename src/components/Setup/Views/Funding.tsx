@@ -54,7 +54,7 @@ export default function FundingStep() {
                                     htmlFor={`${id}-${method}`}
                                     className="flex items-center gap-3 text-foreground-primary"
                                 >
-                                    <IconBubble {...CONCEPT_ICONS[METHOD_CONCEPTS[method]]} size="m" />
+                                    <IconBubble {...CONCEPT_ICONS[METHOD_CONCEPTS[method]]} size="s" />
                                     <span>{t(`funding.methods.${method}`)}</span>
                                 </label>
                             }
