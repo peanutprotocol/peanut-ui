@@ -4499,12 +4499,12 @@
         "addAccount": "Add a currency account",
         "addEurc": "Add EURC account",
         "eurcAccount": "EURC account",
-        "description": "A separate euro balance held in EURC on Base. Your USDC account stays your default.",
-        "availability": "EURC deposits, transfers and currency exchange are coming next. Your card and existing payments use USDC.",
+        "description": "Euro balance held in EURC on Base.",
+        "availability": "Deposits, transfers and exchange are coming next. Card payments use USDC.",
         "adding": "Adding…",
         "cancel": "Cancel",
-        "addError": "We couldn’t add your EURC account. Please try again.",
-        "balanceError": "Your EURC balance is unavailable. Please try again.",
+        "addError": "Couldn’t add EURC. Try again.",
+        "balanceError": "EURC balance unavailable. Try again.",
         "retry": "Try again"
     }
 }

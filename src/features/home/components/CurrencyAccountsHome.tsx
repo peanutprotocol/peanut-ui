@@ -5,7 +5,9 @@ import { useAuth } from '@/context/authContext'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useCurrencyAccounts, useEurcBalance } from '@/hooks/wallet/useCurrencyAccounts'
 import { BalanceSection } from '../views/BalanceSection'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { AccountType } from '@/interfaces/interfaces'
 
 type Props = { balanceProps: ComponentProps<typeof BalanceSection>; children: ReactNode }
@@ -49,26 +51,17 @@ function CurrencyAccountsHomeSession({ userId, balanceProps, children }: Props &
         <>
             {showSelector && (
                 <div className="flex items-center justify-center gap-2" role="group" aria-label={t('accounts')}>
-                    <button
-                        type="button"
-                        aria-pressed={!isEurc}
-                        onClick={() => setSelected('USDC')}
-                        className="min-h-11 rounded-full border border-border-default px-4 aria-pressed:bg-action-primary"
-                    >
-                        {'USD · USDC'}
-                    </button>
-                    {eurcAccount && (
-                        <button
-                            type="button"
-                            aria-pressed={isEurc}
-                            onClick={() => setSelected('EURC')}
-                            className="min-h-11 rounded-full border border-border-default px-4 aria-pressed:bg-action-primary"
-                        >
-                            {'EUR · EURC'}
-                        </button>
-                    )}
+                    <Tabs
+                        aria-label={t('accounts')}
+                        value={isEurc ? 'EURC' : 'USDC'}
+                        onValueChange={(value) => setSelected(value === 'EURC' ? 'EURC' : 'USDC')}
+                        tabs={[
+                            { value: 'USDC', label: 'USD · USDC' },
+                            ...(eurcAccount ? [{ value: 'EURC', label: 'EUR · EURC' }] : []),
+                        ]}
+                    />
                     {canAdd && (
-                        <button
+                        <Button
                             type="button"
                             aria-label={t('addAccount')}
                             aria-expanded={isAdding}
@@ -77,50 +70,49 @@ function CurrencyAccountsHomeSession({ userId, balanceProps, children }: Props &
                                 accounts.add.reset()
                                 setIsAdding((open) => !open)
                             }}
-                            className="flex size-11 items-center justify-center rounded-full border border-border-default"
-                        >
-                            <Icon name="plus" size={20} />
-                        </button>
+                            variant="secondary"
+                            shape="square"
+                            size="medium"
+                            className="shrink-0"
+                            icon="plus"
+                        />
                     )}
                 </div>
             )}
             {isAdding && canAdd && (
-                <section
-                    className="flex flex-col gap-3 rounded-xl border border-border-default p-4"
-                    aria-label={t('addEurc')}
-                >
-                    <h2 className="font-bold">{t('addEurc')}</h2>
+                <Card className="gap-3 p-4" role="region" aria-label={t('addEurc')}>
+                    <h2 className="text-heading-card">{t('addEurc')}</h2>
                     <p>{t('description')}</p>
-                    <p className="text-sm">{t('availability')}</p>
+                    <p className="text-body-s">{t('availability')}</p>
                     {accounts.add.isError && <p role="alert">{t('addError')}</p>}
                     <div className="flex gap-3">
-                        <button
+                        <Button
                             type="button"
                             onClick={addEurc}
                             disabled={accounts.add.isPending}
-                            className="min-h-11 rounded-full bg-action-primary px-4 disabled:opacity-50"
+                            loading={accounts.add.isPending}
                         >
                             {accounts.add.isPending ? t('adding') : t('addEurc')}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
                             disabled={accounts.add.isPending}
                             onClick={() => setIsAdding(false)}
-                            className="min-h-11 px-4"
+                            variant="ghost"
                         >
                             {t('cancel')}
-                        </button>
+                        </Button>
                     </div>
-                </section>
+                </Card>
             )}
             {isEurc ? (
                 <>
                     {eurcBalance.isError && eurcBalance.data === undefined ? (
                         <div className="flex flex-col items-center gap-2" role="alert">
                             <p>{t('balanceError')}</p>
-                            <button type="button" onClick={() => void eurcBalance.refetch()} className="min-h-11 px-4">
+                            <Button type="button" variant="ghost" onClick={() => void eurcBalance.refetch()}>
                                 {t('retry')}
-                            </button>
+                            </Button>
                         </div>
                     ) : (
                         <BalanceSection
@@ -133,11 +125,11 @@ function CurrencyAccountsHomeSession({ userId, balanceProps, children }: Props &
                             actions={null}
                         />
                     )}
-                    <section className="flex flex-col gap-3 rounded-xl border border-border-default p-4">
-                        <h2 className="font-bold">{t('eurcAccount')}</h2>
+                    <Card className="gap-3 p-4">
+                        <h2 className="text-heading-card">{t('eurcAccount')}</h2>
                         <p>{t('description')}</p>
                         <p>{t('availability')}</p>
-                    </section>
+                    </Card>
                 </>
             ) : (
                 <>

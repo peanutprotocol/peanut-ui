@@ -1982,12 +1982,12 @@
         "addAccount": "Agregar una cuenta en otra moneda",
         "addEurc": "Agregar cuenta EURC",
         "eurcAccount": "Cuenta EURC",
-        "description": "Un saldo separado en euros, mantenido en EURC en Base. Tu cuenta USDC sigue siendo la predeterminada.",
-        "availability": "Los depósitos, las transferencias y el cambio de moneda con EURC estarán disponibles próximamente. Tu tarjeta y los pagos actuales usan USDC.",
+        "description": "Saldo en euros en EURC en Base.",
+        "availability": "Los depósitos, transferencias y cambios llegarán pronto. Los pagos con tarjeta usan USDC.",
         "adding": "Agregando…",
         "cancel": "Cancelar",
-        "addError": "No pudimos agregar tu cuenta EURC. Intentá de nuevo.",
-        "balanceError": "Tu saldo EURC no está disponible. Intentá de nuevo.",
+        "addError": "No se pudo agregar EURC. Intentá de nuevo.",
+        "balanceError": "Saldo EURC no disponible. Intentá de nuevo.",
         "retry": "Intentar de nuevo"
     }
 }

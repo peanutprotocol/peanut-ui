@@ -4499,12 +4499,12 @@
         "addAccount": "Adicionar uma conta em outra moeda",
         "addEurc": "Adicionar conta EURC",
         "eurcAccount": "Conta EURC",
-        "description": "Um saldo separado em euros, mantido em EURC na Base. Sua conta USDC continua sendo a padrão.",
-        "availability": "Depósitos, transferências e câmbio com EURC estarão disponíveis em breve. Seu cartão e os pagamentos atuais usam USDC.",
+        "description": "Saldo em euros em EURC na Base.",
+        "availability": "Depósitos, transferências e câmbio chegam em breve. Pagamentos com cartão usam USDC.",
         "adding": "Adicionando…",
         "cancel": "Cancelar",
-        "addError": "Não foi possível adicionar sua conta EURC. Tente novamente.",
-        "balanceError": "Seu saldo EURC está indisponível. Tente novamente.",
+        "addError": "Não foi possível adicionar EURC. Tente novamente.",
+        "balanceError": "Saldo EURC indisponível. Tente novamente.",
         "retry": "Tentar novamente"
     }
 }
