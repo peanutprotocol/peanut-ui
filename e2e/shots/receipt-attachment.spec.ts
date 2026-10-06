@@ -6,7 +6,7 @@ import { FIXTURES } from '../../src/dev/fixtures/registry'
 import { blockExternal, FREEZE_CSS, FROZEN_NOW, seenOnceModals } from './fixture-page'
 
 const ATTACHMENT_URL = 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf'
-const OUT_DIR = process.env.RECEIPT_SHOTS_OUT ?? 'e2e/__shots__/receipt-attachment'
+const OUT_DIR = process.env.RECEIPT_SHOTS_OUT ?? process.env.SHOTS_OUT ?? 'e2e/__shots__/receipt-attachment'
 
 // a complete blank pdf, including byte offsets, so the saved download is a real file.
 function blankPdf(): Buffer {
