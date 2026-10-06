@@ -76,8 +76,8 @@ importers:
         specifier: ^8.0.2
         version: 8.0.2(@capacitor/core@8.2.0)
       '@capgo/capacitor-crisp':
-        specifier: ^8.2.4
-        version: 8.2.4(@capacitor/core@8.2.0)
+        specifier: 8.2.3
+        version: 8.2.3(@capacitor/core@8.2.0)
       '@capgo/capacitor-in-app-review':
         specifier: 8.2.3
         version: 8.2.3(@capacitor/core@8.2.0)
@@ -133,7 +133,7 @@ importers:
         specifier: ^8.3.7
         version: 8.3.7
       '@sumsub/cordova-idensic-mobile-sdk-plugin':
-        specifier: ^1.46.1
+        specifier: 1.46.1
         version: 1.46.1
       '@tanstack/react-query':
         specifier: 5.8.4
@@ -670,8 +670,8 @@ packages:
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
-  '@capgo/capacitor-crisp@8.2.4':
-    resolution: {integrity: sha512-SYtNjUrlCrvgSK9IQNPNZif//rt9TFIKz4oY71lsMlkhEuJ8afxzW/AtonuTOkPznGKuSUX313ExKT/JBgruHg==}
+  '@capgo/capacitor-crisp@8.2.3':
+    resolution: {integrity: sha512-pzqYHTCqqn4fHjD7cH4qarw4AnKj9AyAgbqfcZevhbJ1qMRKV09ALWPcYSxkQ4IewRVOfquAUJ7IR29WTFantA==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -8863,7 +8863,7 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
-  '@capgo/capacitor-crisp@8.2.4(@capacitor/core@8.2.0)':
+  '@capgo/capacitor-crisp@8.2.3(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 

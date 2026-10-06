@@ -42,7 +42,7 @@ describe('iOS Sumsub framework compatibility', () => {
         write(`${plugin}/Frameworks/IdensicMobileSDK.xcframework/fixture`, 'framework')
         write(`${plugin}/Frameworks/sumsub-version.txt`, sdkVersion)
         const result = run()
-        expect(result.status).toBe(0)
+        expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: '' })
         expect(result.stdout).not.toContain('downloading IdensicMobileSDK')
     })
 
