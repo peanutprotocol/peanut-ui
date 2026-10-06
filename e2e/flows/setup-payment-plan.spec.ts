@@ -27,7 +27,8 @@ for (const locale of locales) {
             await expect(funding).toHaveJSProperty('offsetHeight', 36)
             const before = await funding.getAttribute('aria-label')
             await funding.click()
-            const dialog = page.getByRole('dialog')
+            // Support keeps a closed dialog mounted; scope to the real DS drawer.
+            const dialog = page.locator('[role="dialog"][data-vaul-drawer]')
             await expect(dialog).toBeVisible()
             // Both bank providers are offered, grouped by provider rather than currency rails.
             const rows = dialog.getByRole('button')
@@ -36,16 +37,13 @@ for (const locale of locales) {
             await expect(dialog).not.toBeVisible()
             await expect(funding).not.toHaveAttribute('aria-label', before!)
             await funding.click()
-            await expect(page.getByRole('dialog').getByRole('button').nth(1)).toHaveCSS(
-                'background-color',
-                'rgb(220, 214, 255)'
-            )
+            await expect(dialog.getByRole('button').nth(1)).toHaveCSS('background-color', 'rgb(220, 214, 255)')
             await page.keyboard.press('Escape')
-            await expect(page.getByRole('dialog')).not.toBeVisible()
+            await expect(dialog).not.toBeVisible()
             await payment.click()
-            await expect(page.getByRole('dialog').getByRole('button')).toHaveCount(6)
-            await page.getByRole('dialog').getByRole('button').first().click()
-            await expect(page.getByRole('dialog')).not.toBeVisible()
+            await expect(dialog.getByRole('button')).toHaveCount(6)
+            await dialog.getByRole('button').first().click()
+            await expect(dialog).not.toBeVisible()
             await expect(payment).toHaveJSProperty('offsetHeight', 36)
             await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
             // The app permits vertical scrolling rather than clipping long translated copy.
