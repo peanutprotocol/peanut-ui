@@ -1,5 +1,7 @@
 {
     "common": {
+        "ownAccountOnly": "You can only withdraw to accounts under your name.",
+        "exchangeRateInfo": "This is the current exchange rate. It may change slightly before your payment is confirmed.",
         "fundsOnTheWay": "Funds on the way",
         "cancel": "Cancel",
         "continue": "Continue",
