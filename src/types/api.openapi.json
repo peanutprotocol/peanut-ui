@@ -21936,9 +21936,6 @@
                         "name": "x-residence-format",
                         "required": false,
                         "schema": {
-                            "enum": [
-                                "compact"
-                            ],
                             "type": "string"
                         }
                     }

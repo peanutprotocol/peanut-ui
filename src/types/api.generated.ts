@@ -12559,7 +12559,7 @@ export interface paths {
                 header: {
                     Authorization: string;
                     "api-key"?: string;
-                    "x-residence-format"?: "compact";
+                    "x-residence-format"?: string;
                 };
                 path?: never;
                 cookie?: never;
