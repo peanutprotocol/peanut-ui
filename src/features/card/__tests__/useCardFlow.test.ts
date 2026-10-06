@@ -97,6 +97,7 @@ describe('useCardFlow', () => {
             await result.current.handleApply()
         })
         expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(result.current.needsFundingBeforeApply).toBe(true)
         expect(result.current.fundingRequired).toBe(true)
     })
 
@@ -127,6 +128,7 @@ describe('useCardFlow', () => {
             await result.current.handleApply()
         })
         expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+        expect(result.current.needsFundingBeforeApply).toBe(false)
         expect(result.current.fundingRequired).toBe(false)
     })
 

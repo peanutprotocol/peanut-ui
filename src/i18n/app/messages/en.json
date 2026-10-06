@@ -1835,7 +1835,7 @@
             "lookingUpTitle": "Looking you up…",
             "lookingUpBody": "Checking your badges.",
             "availableTitle": "You're in.",
-            "fundingBody": "Add at least $10 to your Peanut balance to get your card.",
+            "fundingBody": "You need a Peanut balance of at least $10 to get your card.",
             "addFunds": "Add funds",
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
