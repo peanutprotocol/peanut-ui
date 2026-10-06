@@ -2277,6 +2277,8 @@
             "downloadPdf": "Baixar comprovante (PDF)",
             "pdfDownloadedInstead": "Este navegador baixou o comprovante porque não permite compartilhar arquivos.",
             "receiptPdfUnavailable": "O comprovante em PDF não está disponível. Tente novamente.",
+            "attachmentUnavailable": "O anexo não está disponível. Tente novamente ou fale com o suporte.",
+            "attachmentUpdateRequired": "Atualize o Peanut para baixar este anexo.",
             "inviteFriends": "Convide amigos e ganhe mais recompensas",
             "reportIssue": "Problemas com esta transação?",
             "cancelDeposit": "Cancelar depósito",
