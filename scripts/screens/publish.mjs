@@ -17,7 +17,7 @@ const localeInfo = {
     'es-AR': { slug: 'es-ar', label: 'Español (Argentina)' },
     'pt-BR': { slug: 'pt-br', label: 'Português (Brasil)' },
 }
-const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
+const visualChangeStatuses = new Set(['changed', 'added', 'new', 'removed'])
 
 async function mapBounded(values, operation, limit = 8) {
     const output = new Array(values.length)

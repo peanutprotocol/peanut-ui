@@ -18,7 +18,7 @@ const LOCALES = {
     'es-AR': 'Español (Argentina)',
     'pt-BR': 'Português (Brasil)',
 }
-const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
+const visualChangeStatuses = new Set(['changed', 'added', 'new', 'removed'])
 const localeSlug = (locale) => ({ en: 'en', 'es-419': 'es-419', 'es-AR': 'es-ar', 'pt-BR': 'pt-br' })[locale]
 
 async function mapBounded(values, operation, limit = 2) {

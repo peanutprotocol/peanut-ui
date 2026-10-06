@@ -171,7 +171,7 @@ export function buildReceiptPdfModel(
     const provider = providerId ? PROVIDERS[providerId] : undefined
     if (provider) {
         push(
-            t(providerId === 'third-national' ? 'provider.label.cardIssuer' : 'provider.label.provider'),
+            t(providerId === 'third-national' ? 'provider.label.cardProvider' : 'provider.label.provider'),
             provider.brand
         )
     }

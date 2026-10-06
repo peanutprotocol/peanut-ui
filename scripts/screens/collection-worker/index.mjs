@@ -260,8 +260,9 @@ async function comparisonSearch(url, env) {
             beforeCommit: report.before.commit,
             afterCommit: report.after.commit,
             ...(entry.prNumber ? { prNumber: entry.prNumber } : {}),
-            changedScreens: report.screens.filter((screen) => ['changed', 'added', 'removed'].includes(screen.status))
-                .length,
+            changedScreens: report.screens.filter((screen) =>
+                ['changed', 'added', 'new', 'removed'].includes(screen.status)
+            ).length,
         })
     }
     return json({

@@ -77,12 +77,13 @@ describe('CardTermsScreen legal links', () => {
     })
 })
 
-describe('CardTermsScreen card issuer', () => {
-    it('titles the screen Accept terms and names Third National as the card issuer above the terms', () => {
+describe('CardTermsScreen card provider', () => {
+    it('titles the screen Accept terms and names Rain as the card provider above the terms', () => {
         renderAt('en')
         expect(screen.getByRole('heading', { name: 'Accept terms' })).toBeInTheDocument()
-        expect(screen.getByText('Card issuer')).toBeInTheDocument()
-        const brand = screen.getByText('Third National')
+        expect(screen.getByText('Card provider')).toBeInTheDocument()
+        const brand = screen.getByText('Rain')
+        expect(screen.queryByText('Third National')).not.toBeInTheDocument()
         const firstTerm = screen.getAllByRole('checkbox')[0]
         expect(brand.compareDocumentPosition(firstTerm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
@@ -100,7 +101,7 @@ describe('CardTermsScreen card issuer', () => {
                 onchange: null,
             }) as MediaQueryList
         renderAt('en')
-        fireEvent.click(screen.getByRole('button', { name: 'About Third National' }))
+        fireEvent.click(screen.getByRole('button', { name: 'About Rain' }))
         const sheet = screen.getByRole('dialog')
         expect(
             within(sheet).getByText(

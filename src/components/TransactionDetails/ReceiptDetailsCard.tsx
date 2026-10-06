@@ -224,7 +224,7 @@ export function ReceiptDetailsCard({
                 {rowVisibilityConfig.provider && vm.providerId && (
                     <ProviderRow
                         providerId={vm.providerId}
-                        label={vm.providerId === 'third-national' ? 'cardIssuer' : 'provider'}
+                        label={vm.providerId === 'third-national' ? 'cardProvider' : 'provider'}
                         nested={inDrawer}
                     />
                 )}

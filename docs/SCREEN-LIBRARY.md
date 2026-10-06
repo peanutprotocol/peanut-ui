@@ -403,3 +403,5 @@ tutorial asset, the capture harness serves its hash-pinned H.264 counterpart
 without mutating the target checkout. Unknown media hashes are never
 substituted. The manifest records the actual OS and browser versions. Reference
 resolution and trusted publishing also run on Linux. See [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+
+Comparison pages include first available screenshots in the Visual changes view as **New screen**. They show a New screen placeholder before the captured image when the baseline has no compatible scenario harness. This `new` comparison status preserves the original baseline's `unavailable` status and reason; it does not claim that the product screen was absent in that revision. Confirmed additions still use `added`. Failed or excluded baseline captures keep their existing status. The viewer also normalizes older immutable comparison reports, so their already captured screenshots can be reviewed without recapture.
