@@ -1,7 +1,9 @@
 # Banking illustrations (Lottie)
 
 Object animations for banking concepts, drawn to the setup mascot's rules
-(`src/assets/mascot/lottie/`) but without the mascot. Not wired into any screen yet.
+(`src/assets/mascot/lottie/`). All are mascot-free except `mascot-juggle.json`, which reuses the
+`waving-hello` rig with new arms. The setup flow loads several of these through `OnboardingAnimation`,
+and `mascot-juggle.json` is the `juggling` mascot pose on the rewards page.
 
 - 1050 × 1000 canvas, 30 fps, seamless loops, transparent background, no fonts or images
 - outlines 10.5 / 9 / 7.5, round caps; mascot palette (#FCC814, #E882D0, white, #F2B786, #CC485E, #FFC1CF, #46ACFF)
@@ -10,7 +12,6 @@ Object animations for banking concepts, drawn to the setup mascot's rules
 
 | File | Topic | Animation | Suggested use | Frames |
 | --- | --- | --- | --- | --- |
-| `mascot-juggle.json` | Rewards | Peanut juggles three star coins with rebuilt arms and a bounce on each catch. Original asset from [PR #3586](https://github.com/peanutprotocol/peanut-ui/pull/3586), commit `a0714bf685b3534a400289a225f6e8a0ab60596a`. | Points hero, referral rewards | 66 |
 | `card-flip.json` | Card | The card hops and turns over: chip side, then signature side. | Card intro, “your card details” | 64 |
 | `card-tap.json` | Card | The card swoops onto a terminal, contactless waves pulse, a check lands on the screen. | Card ready, Apple/Google Pay, “pay anywhere” | 72 |
 | `card-wallet.json` | Card | A card springs up out of a wallet pocket, wiggles, and tucks back in. | Get your card, card delivered, virtual card issued | 64 |
@@ -63,3 +64,5 @@ Object animations for banking concepts, drawn to the setup mascot's rules
 | `globe-latam.json` | Money around the world | A globe turned to the Americas while five LATAM currency coins orbit it: $, R$, S/, Bs and Q. | Send across Latin America, local currencies, LATAM coverage | 120 |
 | `globe-latam-route.json` | Money around the world | Pins pop up on Mexico, Brazil and Argentina and a coin hops between them, switching to each country’s currency as it lands. | Cross-border LATAM transfers, local payouts, country coverage | 110 |
 | `globe-world-route.json` | Money around the world | The LATAM pin route plays, the globe slowly turns to Europe for € and £ stops, then whips back round to Latin America. | Global transfers, LATAM ↔ Europe corridors, send in local currency | 196 |
+| `coin-juggle.json` | Rewards | Two rubber-hose gloves juggle three star coins in a real three-ball cascade: throw from the inside, catch on the outside. | Points and rewards, earn points, streaks and achievements | 66 |
+| `mascot-juggle.json` | Rewards | The peanut mascot juggles three star coins in a three-ball cascade, rubber-hose arms scooping each catch while it bobs to the rhythm. | Rewards / Points screen hero, earn points, streaks | 66 |
