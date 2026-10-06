@@ -146,6 +146,33 @@ describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
         act(() => result.current.completeFlow())
         expect(onKycSuccess).toHaveBeenCalledTimes(1)
         expect(result.current.isModalOpen).toBe(false)
+        // the flow is over: this hook is back on the phases
+        expect(result.current.oneShotSetup).toBeNull()
+    })
+
+    // The start of an approved user answers inside the request, before any
+    // render. In the same mounted hook that used to take the drawer's branch
+    // and leave the progress modal open with nothing to show.
+    it('a later start in the same hook takes the phases, with the setup drawer still open', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await submitFromChecklist(onKycSuccess)
+        setUser('verified', true, brazil('enabled'))
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+        expect(result.current.oneShotSetup).not.toBeNull()
+        expect(result.current.isModalOpen).toBe(true)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+
+        mockInitiate.mockResolvedValue({ data: { token: null, applicantId: 'app', status: 'APPROVED' } })
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM')
+        })
+        // settled rails complete the flow, as for anyone already approved
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(result.current.oneShotSetup).toBeNull()
+        expect(result.current.isModalOpen).toBe(false)
+        expect(result.current.modalPhase).toBe('verifying')
     })
 
     it('never opens the Bridge terms phase, where the same answer sends everyone else there', async () => {

@@ -15,42 +15,70 @@ export interface SetupRow {
     state: SetupRowState
 }
 
-// The rails behind each feature and the operation that makes it usable: QR
-// pays through any Manteca rail (the QR gate's own test), local bank transfers
-// deposit to a first-party Manteca account, the card pays through Rain, and
-// the USD and EUR accounts deposit through Bridge.
-const FEATURE_RAILS: Record<KycIntentKey, { serves: (rail: RailCapability) => boolean; operation: RailOperation }> = {
-    qr: { serves: (rail) => rail.provider === 'manteca', operation: 'pay' },
-    local: { serves: (rail) => rail.provider === 'manteca' && rail.channel === 'bank', operation: 'deposit' },
-    card: { serves: (rail) => rail.provider === 'rain', operation: 'pay' },
-    bank: { serves: (rail) => rail.provider === 'bridge' && rail.channel === 'bank', operation: 'deposit' },
+type RailTest = (rail: RailCapability) => boolean
+
+const bridgeAccount =
+    (currency: string): RailTest =>
+    (rail) =>
+        rail.provider === 'bridge' && rail.channel === 'bank' && rail.currency === currency
+
+/**
+ * What a feature needs before it reads "Available": per test, one rail with
+ * the operation enabled. The tests follow what the row promises. QR pays
+ * through any Manteca rail (the QR gate's own test). Local bank transfers
+ * deposit to the Manteca account of the residence. The card pays through
+ * Rain. "USD and EUR accounts" needs both, so a GBP or MXN rail, or one of
+ * the two alone, never answers for it.
+ */
+function featureNeeds(key: KycIntentKey, residence: string): { operation: RailOperation; rails: RailTest[] } {
+    switch (key) {
+        case 'qr':
+            return { operation: 'pay', rails: [(rail) => rail.provider === 'manteca'] }
+        case 'local':
+            return {
+                operation: 'deposit',
+                rails: [(rail) => rail.provider === 'manteca' && rail.channel === 'bank' && rail.country === residence],
+            }
+        case 'card':
+            return { operation: 'pay', rails: [(rail) => rail.provider === 'rain'] }
+        case 'bank':
+            return { operation: 'deposit', rails: [bridgeAccount('USD'), bridgeAccount('EUR')] }
+    }
 }
 
-function railState(rails: RailCapability[], operation: RailOperation, actions: Map<string, NextAction>): SetupRowState {
-    if (rails.some((rail) => (rail.operations?.[operation] ?? rail.status) === 'enabled')) return 'available'
+function railState(
+    rails: RailCapability[],
+    needs: ReturnType<typeof featureNeeds>,
+    actions: Map<string, NextAction>
+): SetupRowState {
+    const works = (rail: RailCapability) => (rail.operations?.[needs.operation] ?? rail.status) === 'enabled'
+    if (needs.rails.every((serves) => rails.some((rail) => serves(rail) && works(rail)))) return 'available'
     // the verdict's wait marker: a provider holds the dossier and is deciding
     const waitsOnProvider = (rail: RailCapability) => {
         const verdict = railVerdict(rail, actions)
         return verdict.status === 'pending' && verdict.nextAction?.kind === 'wait'
     }
+    const own = rails.filter((rail) => needs.rails.some((serves) => serves(rail)))
     // no rail yet, provisioning, or a verdict item 9b gives its own state
-    return rails.some(waitsOnProvider) ? 'under-review' : 'setting-up'
+    return own.some(waitsOnProvider) ? 'under-review' : 'setting-up'
 }
 
 /**
  * One row per ticked feature, in checklist order. Until the identity is
  * verified no rail says anything yet, so every row waits on that one check.
+ *
+ * @param input.residence ISO-2 declared residence: the country of the local bank transfers
  */
 export function setupRows(input: {
     intents: KycIntentSet
+    residence: string
     capabilities: UserCapabilities | undefined
     identityVerified: boolean
 }): SetupRow[] {
     const { rails = [], nextActions = [] } = input.capabilities ?? {}
     const actions = new Map(nextActions.map((action) => [action.key, action]))
-    return KYC_INTENT_KEYS.filter((key) => input.intents[key]).map((key) => {
-        if (!input.identityVerified) return { key, state: 'under-review' }
-        const { serves, operation } = FEATURE_RAILS[key]
-        return { key, state: railState(rails.filter(serves), operation, actions) }
-    })
+    return KYC_INTENT_KEYS.filter((key) => input.intents[key]).map((key) => ({
+        key,
+        state: input.identityVerified ? railState(rails, featureNeeds(key, input.residence), actions) : 'under-review',
+    }))
 }

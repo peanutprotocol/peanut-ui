@@ -205,13 +205,19 @@ export const useMultiPhaseKycFlow = ({
     const startTracking = useCallback(() => {}, [])
     const stopTracking = useCallback(() => {}, [])
 
-    // One-shot onboarding (TASK-23329): true for the SDK session the unlock
-    // checklist started. The setup drawer follows that session in place of the
-    // phase modals. Every other flow, a later one of the same user included,
-    // keeps the phases below.
+    // One-shot onboarding (TASK-23329): true from the SDK session the unlock
+    // checklist started until that flow completes. The setup drawer follows it
+    // in place of the phase modals. Every other flow, a later one in this same
+    // hook included, keeps the phases below. The ref is the same answer for
+    // handleSumsubApproved, which can run inside a start, before any render.
     const { oneShotResidence } = useIdentityVerification()
     const oneShotSession = useOneShotSession()
     const [isOneShotFlow, setIsOneShotFlow] = useState(false)
+    const isOneShotFlowRef = useRef(false)
+    const setOneShotFlow = useCallback((active: boolean) => {
+        isOneShotFlowRef.current = active
+        setIsOneShotFlow(active)
+    }, [])
 
     const clearPreparingTimer = useCallback(() => {
         if (preparingTimerRef.current) {
@@ -241,8 +247,9 @@ export const useMultiPhaseKycFlow = ({
         clearPreparingTimer()
         stopTracking()
         closeVerificationModalRef.current()
+        setOneShotFlow(false)
         onKycSuccess?.()
-    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
+    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource, setOneShotFlow])
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
@@ -262,7 +269,7 @@ export const useMultiPhaseKycFlow = ({
         // The setup drawer reads each ticked feature's rail itself: no Bridge
         // terms phase, and one settled bank rail does not complete the flow.
         // Its Continue does, once every row is available.
-        if (isOneShotFlow) {
+        if (isOneShotFlowRef.current) {
             setForceShowModal(true)
             await fetchUser()
             return
@@ -305,16 +312,7 @@ export const useMultiPhaseKycFlow = ({
             setForceShowModal(true)
             startTracking()
         }
-    }, [
-        fetchUser,
-        startTracking,
-        clearPreparingTimer,
-        completeFlow,
-        onKycApproved,
-        regionIntent,
-        requestedCountry,
-        isOneShotFlow,
-    ])
+    }, [fetchUser, startTracking, clearPreparingTimer, completeFlow, onKycApproved, regionIntent, requestedCountry])
 
     const {
         isLoading,
@@ -473,6 +471,10 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
+            // Off before the start: an approved user gets no token and the start
+            // itself reports success, which must take the phases. On again only
+            // for an SDK that opened on a set the checklist stored.
+            setOneShotFlow(false)
             const opened = await originalHandleInitiateKyc(
                 overrideIntent,
                 levelName,
@@ -481,12 +483,17 @@ export const useMultiPhaseKycFlow = ({
                 false,
                 corridor
             )
-            // Only an SDK that opened on a set the checklist stored. An approved
-            // user gets no token, so their later flows stay on the phases.
-            setIsOneShotFlow(opened === true && !!oneShotResidence && markOneShotStarted())
+            setOneShotFlow(opened === true && !!oneShotResidence && markOneShotStarted())
             return opened
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, oneShotResidence]
+        [
+            originalHandleInitiateKyc,
+            clearPreparingTimer,
+            regionIntent,
+            acquisitionSource,
+            oneShotResidence,
+            setOneShotFlow,
+        ]
     )
 
     useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
@@ -729,7 +736,12 @@ export const useMultiPhaseKycFlow = ({
             isOneShotFlow && oneShotResidence && oneShotSession
                 ? {
                       residence: oneShotResidence,
-                      rows: setupRows({ intents: oneShotSession.intents, capabilities, identityVerified }),
+                      rows: setupRows({
+                          intents: oneShotSession.intents,
+                          residence: oneShotResidence,
+                          capabilities,
+                          identityVerified,
+                      }),
                   }
                 : null,
         [isOneShotFlow, oneShotResidence, oneShotSession, capabilities, identityVerified]
