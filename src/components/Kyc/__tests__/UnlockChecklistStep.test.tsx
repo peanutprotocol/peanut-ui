@@ -120,6 +120,16 @@ describe('UnlockChecklistStep', () => {
         expect(screen.getByTestId('unlock-row-bank')).toBeInTheDocument()
     })
 
+    // the method unlock sheet sends the same events with entry: 'method' (item 8c)
+    it('names the checklist as the entry on its events', async () => {
+        renderStep('AR')
+        await screen.findAllByRole('switch')
+        expect(capture).toHaveBeenCalledWith(
+            'onboarding_unlock_viewed',
+            expect.objectContaining({ entry: 'checklist', intent_card: true })
+        )
+    })
+
     it('"Not now" offers exploring first and leaves without storing anything', async () => {
         renderStep('AR')
         await screen.findAllByRole('switch')

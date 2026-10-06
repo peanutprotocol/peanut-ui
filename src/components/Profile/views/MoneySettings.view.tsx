@@ -57,6 +57,7 @@ import {
     BANK_ROW_COUNTRIES,
     buildUnlockGroups,
     PIX_SEND_HREF,
+    unlockFeatureForRow,
     withPixSend,
     type BankRowKey,
     type UnlockGroup,
@@ -69,6 +70,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { type KycIntentKey } from '@/services/kyc-intents'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
 
@@ -124,9 +126,11 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     } = useCapabilities()
     const {
         identity,
+        isVerified: isIdentityVerified,
         isProcessing: isIdentityInReview,
         isRegionRestricted,
         isTerminalFailure: isIdentityFinallyRejected,
+        oneShotResidence,
     } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
     const { cardInfo } = useCardInfo()
@@ -206,6 +210,15 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // the abandoned awaiting-action ghost, "setting up your account" forever
     // on a Pix row it had nothing to do with (189 users in prod, 2026-09-22).
     const [selectedRowKey, setSelectedRowKey] = useState<UnlockRowLabelKey | null>(null)
+    // One-shot onboarding (TASK-23329, D16): the tap names the feature, so the
+    // unlock sheet stores it before the check and no checklist is shown. Only
+    // before the identity check passes: adding a feature after it needs the
+    // stored set and a new plan from the API, so that user keeps today's sheet.
+    const [selectedFeature, setSelectedFeature] = useState<KycIntentKey | null>(null)
+    const oneShotUnlock =
+        oneShotResidence && !isIdentityVerified && selectedFeature
+            ? { residence: oneShotResidence, feature: selectedFeature }
+            : null
     // Card recovery deep-links here when only a pending residence change is
     // blocking issuance. Keep the deep link live rather than snapshotting it,
     // and clear it when the drawer closes so refresh/native restore cannot
@@ -349,6 +362,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
             if (isKycDegraded) return
             setSelectedMethodLabel(t(`rows.${row.labelKey}`))
             setSelectedRowKey(row.labelKey)
+            setSelectedFeature(unlockFeatureForRow(row))
             // Synthetic Region: the modal machinery only reads path (intent) and
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
@@ -548,6 +562,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                     methodLabel={selectedMethodLabel}
                     path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
                     isLoading={flow.isLoading}
+                    oneShot={oneShotUnlock}
                 />
             )}
 

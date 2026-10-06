@@ -4,10 +4,12 @@ import {
     withPixSend,
     buildUnlockGroups,
     dedupeHeldBankRows,
+    unlockFeatureForRow,
     type BankRowsInput,
     type BuildUnlockGroupsInput,
 } from '@/utils/unlock-payments.utils'
 import { QrKycState } from '@/constants/kyc.consts'
+import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
 
 const UNLOCK_ALL = { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' } as const
 
@@ -457,5 +459,62 @@ describe('residenceCloses', () => {
         expect(residenceCloses('PIX_BR', ['PT'], true)).toBe(false)
         expect(residenceCloses('PIX_BR', ['BR'], false)).toBe(false)
         expect(residenceCloses('SEPA_EU', [], false)).toBe(false)
+    })
+})
+
+// TASK-23329, D16: the tap on Accounts and Payments names the feature the one-shot check sets up
+describe('unlockFeatureForRow', () => {
+    const cannotPay = { qrPay: QrKycState.REQUIRES_IDENTITY_VERIFICATION, brlChip: 'unlock' as const }
+    it('every bank row a resident can unlock follows the provider of its corridor', () => {
+        const rows = withPixSend(bank({ residenceIso2: 'BR', secondResidenceIso2: 'AR' }), cannotPay)
+        expect(Object.fromEntries(rows.map((row) => [row.labelKey, [row.chip, unlockFeatureForRow(row)]]))).toEqual({
+            brl: ['unlock', 'local'],
+            ars: ['unlock', 'local'],
+            usd: ['unlock', 'bank'],
+            mxn: ['unlock', 'bank'],
+            sepa: ['unlock', 'bank'],
+        })
+    })
+
+    it('every corridor a row could carry has a feature: the two Manteca ones local, the Bridge ones bank', () => {
+        const byCorridor = DEPOSIT_RAIL_ORDER.map((corridor) => [
+            corridor,
+            unlockFeatureForRow({ concept: 'bank', corridor }),
+        ])
+        expect(Object.fromEntries(byCorridor)).toEqual({
+            SEPA_EU: 'bank',
+            FASTER_PAYMENTS_GB: 'bank',
+            ACH_US: 'bank',
+            SPEI_MX: 'bank',
+            BANK_TRANSFER_CO: 'bank',
+            PIX_BR: 'local',
+            BANK_TRANSFER_AR: 'local',
+        })
+    })
+
+    it('QR payments, and the Pix key send a closed BRL row carries, ask for QR alone', () => {
+        const qrRow = group(buildUnlockGroups(base()), 'spend').rows[1]
+        expect([qrRow.labelKey, qrRow.regionPath, unlockFeatureForRow(qrRow)]).toEqual(['qrPay', 'latam', 'qr'])
+        // a Portuguese resident: no BRL account to open, the row is the send
+        const pixSend = rowsOf(withPixSend(bank({ residenceIso2: 'PT' }), cannotPay), 'brl')[0]
+        expect([pixSend.note, pixSend.regionPath, unlockFeatureForRow(pixSend)]).toEqual(['pixSendNote', 'latam', 'qr'])
+    })
+
+    it("a Brazilian resident's own BRL rail, opened from the Pix send's drawer, stays local", () => {
+        const rows = withPixSend(bank({ residenceIso2: 'BR' }), { qrPay: QrKycState.PROCEED_TO_PAY, brlChip: 'unlock' })
+        const row = rowsOf(rows, 'brl')[0]
+        expect(row).toEqual(expect.objectContaining({ note: 'pixSendNote', bankChip: 'unlock' }))
+        // the drawer hands the view this row, with the rail's own chip in place of the send's
+        expect(unlockFeatureForRow(row)).toBe('local')
+    })
+
+    it('rows that start no identity check on this screen have no feature', () => {
+        const groups = buildUnlockGroups(base())
+        const rows = [...group(groups, 'everywhere').rows, group(groups, 'spend').rows[0]]
+        expect(rows.map((row) => [row.labelKey, unlockFeatureForRow(row)])).toEqual([
+            ['p2p', null],
+            ['crypto', null],
+            ['card', null],
+        ])
     })
 })

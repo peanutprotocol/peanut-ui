@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { useId, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -11,20 +11,17 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { CountryCombobox } from '@/components/Common/CountryCombobox'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
-import { Icon } from '@/components/Global/Icons/Icon'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { KYC_INTENT_KEYS, type KycIntentKey } from '@/services/kyc-intents'
 import { localizedCountryName } from '@/utils/country-name.utils'
-import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { twMerge } from '@/utils/tw'
 import { residenceCopyVariant } from './unlock-checklist.utils'
-import { type IdDocumentAnswer, useUnlockChecklist } from './useUnlockChecklist'
+import { UnlockIdQuestion } from './UnlockIdQuestion'
+import { useUnlockChecklist } from './useUnlockChecklist'
 
 interface UnlockChecklistStepProps {
     /** ISO-2 declared residence the rows are built for. */
@@ -65,18 +62,11 @@ export const UnlockChecklistStep = ({
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const locale = useLocale()
-    const questionId = useId()
     const country = localizedCountryName(locale, residence, residence)
     const variant = residenceCopyVariant(residence)
-    const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
     const checklist = useUnlockChecklist(residence, onVerify)
     const [exploreOpen, setExploreOpen] = useState(false)
     const busy = isLoading || checklist.save.isPending
-
-    const answers: Array<{ id: IdDocumentAnswer; label: string }> = [
-        { id: 'local', label: t(`idLocal.${variant}`, { country }) },
-        { id: 'foreign', label: t('idForeign') },
-    ]
 
     const rowTitle = (key: KycIntentKey) =>
         key === 'local' ? t(`rows.local.${variant}`) : key === 'qr' ? t('rows.qr') : t(`rows.${key}`)
@@ -97,55 +87,7 @@ export const UnlockChecklistStep = ({
     return (
         <>
             <h1 className="text-heading-xs text-foreground-primary">{t('title', { country })}</h1>
-            <div className="flex flex-col gap-2">
-                <p id={questionId} className="text-label-l">
-                    {t('idQuestion')}
-                </p>
-                {/* selected = fill + check, as the token rows (design.md "selected list
-                    rows"); the radio semantics ride a wrapper because ListItem forwards no
-                    role, the same hold as TokenListItem */}
-                <div role="radiogroup" aria-labelledby={questionId} className="flex flex-col">
-                    {answers.map((answer, index) => {
-                        const selected = checklist.document === answer.id
-                        const paint = selected ? 'text-foreground-over-color-primary' : undefined
-                        const choose = () => checklist.setDocument(answer.id)
-                        return (
-                            <div
-                                key={answer.id}
-                                role="radio"
-                                aria-checked={selected}
-                                tabIndex={0}
-                                onClick={choose}
-                                onKeyDown={(event) => {
-                                    if (event.key !== 'Enter' && event.key !== ' ') return
-                                    event.preventDefault()
-                                    choose()
-                                }}
-                                className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                            >
-                                <ListItem
-                                    position={getCardPosition(index, answers.length)}
-                                    className={twMerge(
-                                        'transition-colors duration-instant',
-                                        selected && 'bg-action-primary'
-                                    )}
-                                    title={<span className={paint}>{answer.label}</span>}
-                                    trailing={selected ? <Icon name="check" size={20} className={paint} /> : undefined}
-                                />
-                            </div>
-                        )
-                    })}
-                </div>
-                {checklist.document === 'foreign' && (
-                    <CountryCombobox
-                        options={countryOptions}
-                        placeholder={t('foreignIdCountryPlaceholder')}
-                        aria-label={t('foreignIdCountryPlaceholder')}
-                        value={checklist.foreignIdCountry}
-                        onValueChange={checklist.setForeignIdCountry}
-                    />
-                )}
-            </div>
+            <UnlockIdQuestion residence={residence} checklist={checklist} />
             {checklist.isLoading ? (
                 <ListGroup className="flex flex-col" aria-busy data-testid="unlock-rows-loading">
                     {KYC_INTENT_KEYS.map((key) => (
@@ -200,7 +142,7 @@ export const UnlockChecklistStep = ({
                 className="h-11 w-full"
                 disabled={busy || !checklist.canContinue}
                 loading={busy}
-                onClick={() => checklist.save.mutate()}
+                onClick={() => checklist.save.mutate(checklist.intents)}
             >
                 {checklist.qrOnly ? t('ctaQrOnly') : t('cta')}
             </Button>

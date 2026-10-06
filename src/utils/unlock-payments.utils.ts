@@ -15,6 +15,7 @@ import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import { QrKycState } from '@/constants/kyc.consts'
+import type { KycIntentKey } from '@/services/kyc-intents'
 
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
@@ -370,6 +371,25 @@ export function withPixSend(
             ...(chip === 'active' ? { href: PIX_SEND_HREF } : { regionPath: 'latam' as const }),
         }
     })
+}
+
+/**
+ * The feature of the one-shot intent set (TASK-23329) a tapped row asks for,
+ * read from the rail the row rides and never from its label. QR payments and
+ * the Pix key send a closed BRL row carries (`withPixSend`) pay through the
+ * QR rail. A bank row follows its corridor's provider: the Manteca corridors
+ * (BRL, ARS) are the residence country's own account, `local`; every Bridge
+ * corridor (USD, EUR, GBP, MXN, COP) is `bank`. A BRL row with `bankChip` is
+ * the user's own rail, opened from the Pix send's drawer, so it stays `local`.
+ * Null for a row that starts no identity check here: the card (its own
+ * screen) and the always-on Peanut rows.
+ */
+export function unlockFeatureForRow(
+    row: Pick<UnlockRow, 'concept' | 'corridor' | 'note' | 'bankChip'>
+): KycIntentKey | null {
+    if (row.concept === 'qrPay' || (row.note === 'pixSendNote' && !row.bankChip)) return 'qr'
+    if (row.concept !== 'bank' || !row.corridor) return null
+    return DEPOSIT_RAILS[row.corridor].provider === 'manteca' ? 'local' : 'bank'
 }
 
 /**

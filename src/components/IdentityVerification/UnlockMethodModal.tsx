@@ -6,6 +6,8 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
+import type { KycIntentKey } from '@/services/kyc-intents'
+import { UnlockMethodOneShotStep } from './UnlockMethodOneShotStep'
 
 interface UnlockMethodModalProps {
     visible: boolean
@@ -16,6 +18,13 @@ interface UnlockMethodModalProps {
     /** Which prep checklist applies: extended for Manteca (BR/AR), standard elsewhere. */
     path?: KycPrepPath
     isLoading?: boolean
+    /**
+     * One-shot onboarding before the identity check (TASK-23329): the declared
+     * residence and the feature the tapped method stands for. The sheet then
+     * asks which ID the user will show and stores the feature before the
+     * check starts. Absent is today's sheet.
+     */
+    oneShot?: { residence: string; feature: KycIntentKey } | null
 }
 
 /**
@@ -32,6 +41,7 @@ const UnlockMethodModal = ({
     methodLabel,
     path = 'standard',
     isLoading,
+    oneShot,
 }: UnlockMethodModalProps) => {
     const t = useTranslations('profile.unlockPayments.unlockModal')
     const tPrep = useTranslations('kyc.prep')
@@ -57,21 +67,33 @@ const UnlockMethodModal = ({
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col items-center gap-4">
-                        {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
-                        <div className="w-full text-left">
-                            <KycPrepChecklist path={path} />
-                        </div>
-                        <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
-                        <Button
-                            icon="check-circle"
-                            shadowSize="4"
-                            variant="primary"
-                            className="w-full justify-center"
-                            disabled={isLoading}
-                            onClick={onUnlock}
-                        >
-                            {isLoading ? tCommon('loading') : tPrep('startCta')}
-                        </Button>
+                        {oneShot ? (
+                            <UnlockMethodOneShotStep
+                                {...oneShot}
+                                methodLabel={methodLabel}
+                                path={path}
+                                isLoading={!!isLoading}
+                                onUnlock={onUnlock}
+                            />
+                        ) : (
+                            <>
+                                {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
+                                <div className="w-full text-left">
+                                    <KycPrepChecklist path={path} />
+                                </div>
+                                <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+                                <Button
+                                    icon="check-circle"
+                                    shadowSize="4"
+                                    variant="primary"
+                                    className="w-full justify-center"
+                                    disabled={isLoading}
+                                    onClick={onUnlock}
+                                >
+                                    {isLoading ? tCommon('loading') : tPrep('startCta')}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             </DrawerContent>

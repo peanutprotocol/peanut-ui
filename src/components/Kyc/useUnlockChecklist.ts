@@ -12,9 +12,13 @@ import { defaultIntentSet, isQrOnly, unlockRows } from './unlock-checklist.utils
 /** The ID the user will show: one issued by the residence country, or one issued by another country. */
 export type IdDocumentAnswer = 'local' | 'foreign'
 
+/** Where the question was asked: the unlock checklist, or the unlock sheet of one tapped method. */
+type UnlockEntry = 'checklist' | 'method'
+
 // the document answer, never the country: the issuing country of a foreign ID
 // is a nationality signal, which is more than the privacy policy lists for analytics
-const analyticsProps = (residence: string, document: IdDocumentAnswer, set: KycIntentSet) => ({
+const analyticsProps = (entry: UnlockEntry, residence: string, document: IdDocumentAnswer, set: KycIntentSet) => ({
+    entry,
     residence,
     document,
     intent_qr: set.qr,
@@ -28,8 +32,13 @@ const analyticsProps = (residence: string, document: IdDocumentAnswer, set: KycI
  * the rows that answer gets from GET /config/kyc-intents, and the ticked set.
  * A new answer re-queries and preselects every open row again, so the rows
  * never promise a feature the document rule refuses.
+ *
+ * @param feature The method unlock sheet (item 8c) passes the feature its tap
+ *   chose. The set is then that feature and QR, which comes with every check,
+ *   each only while the answer leaves it open.
  */
-export function useUnlockChecklist(residence: string, onVerify: () => void) {
+export function useUnlockChecklist(residence: string, onVerify: () => void, feature?: KycIntentKey) {
+    const entry: UnlockEntry = feature ? 'method' : 'checklist'
     const [document, setDocument] = useState<IdDocumentAnswer>('local')
     const [foreignIdCountry, setForeignIdCountry] = useState<string>()
     // the country whose ID the rows are computed for; unset until the issuing country of a foreign ID is picked
@@ -43,11 +52,17 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
     })
     const rows = useMemo(() => (config.data ? unlockRows(config.data) : []), [config.data])
 
-    const [intents, setIntents] = useState<KycIntentSet>(() => defaultIntentSet([]))
+    const preselected = useMemo(
+        () => defaultIntentSet(feature ? rows.filter((row) => row.key === 'qr' || row.key === feature) : rows),
+        [rows, feature]
+    )
+    const [ticked, setTicked] = useState<KycIntentSet>(() => defaultIntentSet([]))
     useEffect(() => {
-        setIntents(defaultIntentSet(rows))
-    }, [rows])
-    const toggle = (key: KycIntentKey) => setIntents((current) => ({ ...current, [key]: !current[key] }))
+        setTicked(preselected)
+    }, [preselected])
+    const toggle = (key: KycIntentKey) => setTicked((current) => ({ ...current, [key]: !current[key] }))
+    // the method sheet has no toggles: its set is the answer's own, never a render behind it
+    const intents = feature ? preselected : ticked
 
     // the first answer is the view; later answers are the same screen
     const viewed = useRef(false)
@@ -56,26 +71,29 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
         viewed.current = true
         posthog.capture(
             ANALYTICS_EVENTS.ONBOARDING_UNLOCK_VIEWED,
-            analyticsProps(residence, document, defaultIntentSet(rows))
+            analyticsProps(entry, residence, document, preselected)
         )
-    }, [config.data, rows, residence, document])
+    }, [config.data, preselected, entry, residence, document])
 
     const save = useMutation({
-        // Resolves to the set that was sent: the toggles stay live during the
-        // request, and the setup rows and the resume gate (item 9a) must hold
-        // what the API stored.
-        mutationFn: async () => {
-            await kycIntentsApi.set(intents)
-            return intents
+        // Takes the set the tapped button showed and resolves to it: the
+        // toggles stay live during the request, and the setup rows and the
+        // resume gate (item 9a) must hold what the API stored.
+        mutationFn: async (set: KycIntentSet) => {
+            await kycIntentsApi.set(set)
+            return set
         },
         onSuccess: (stored) => {
             recordOneShotIntents(stored)
-            posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED, analyticsProps(residence, document, intents))
+            posthog.capture(
+                ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED,
+                analyticsProps(entry, residence, document, stored)
+            )
             onVerify()
         },
     })
     const skip = () =>
-        posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_SKIPPED, analyticsProps(residence, document, intents))
+        posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_SKIPPED, analyticsProps(entry, residence, document, intents))
 
     return {
         document,
@@ -85,6 +103,8 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
         rows,
         intents,
         toggle,
+        /** The answer's rows are in: until then a missing row says nothing. */
+        isReady: !!config.data,
         isLoading: config.isLoading,
         isError: config.isError,
         refetch: config.refetch,

@@ -111,12 +111,16 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean } = { status: 'not_started' }
 let mockRegionRestricted = false
 let mockTerminalFailure = false
+// one-shot onboarding (TASK-23329): the declared residence of a user the server flagged
+let mockOneShotResidence: string | null = null
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
         identity: mockIdentity,
+        isVerified: mockIdentity.status === 'verified',
         isProcessing: mockIdentity.status === 'processing',
         isRegionRestricted: mockRegionRestricted,
         isTerminalFailure: mockTerminalFailure,
+        oneShotResidence: mockOneShotResidence,
     }),
 }))
 jest.mock('@/components/Kyc/modals/KycRegionRestrictedModal', () => ({
@@ -194,15 +198,20 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
         visible,
         methodLabel,
         onUnlock,
+        oneShot,
     }: {
         visible: boolean
         methodLabel: string | null
         onUnlock: () => void
+        oneShot?: { residence: string; feature: string } | null
     }) =>
         visible ? (
             <div>
                 unlock-modal-open:{methodLabel}
                 <button onClick={onUnlock}>unlock now</button>
+                <output data-testid="unlock-one-shot">
+                    {oneShot ? `${oneShot.residence}:${oneShot.feature}` : 'none'}
+                </output>
             </div>
         ) : null,
 }))
@@ -243,6 +252,7 @@ describe('MoneySettings', () => {
         mockIdentity = { status: 'not_started' }
         mockRegionRestricted = false
         mockTerminalFailure = false
+        mockOneShotResidence = null
         mockKycDegraded = false
         mockFlowError = null
         mockFlowCooldown = null
@@ -1331,6 +1341,58 @@ describe('MoneySettings', () => {
         mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
         render()
         expect(screen.getByText('Change to Spain pending verification')).toBeInTheDocument()
+    })
+
+    // TASK-23329, D16: for a one-shot user who has not passed the identity
+    // check, the tap names the feature the sheet stores before the check.
+    describe('the unlock tap of a one-shot user', () => {
+        const residentOf = (country: string) => {
+            mockUser = { residence: { declared: country, verified: null }, user: { userId: 'u1' } }
+            mockOneShotResidence = country
+        }
+        const tappedFeature = () => screen.getByTestId('unlock-one-shot').textContent
+
+        it.each([
+            ['accounts', 'EUR', 'ES', 'ES:bank'],
+            ['accounts', 'USD', 'ES', 'ES:bank'],
+            ['accounts', 'MXN', 'ES', 'ES:bank'],
+            ['accounts', 'ARS', 'AR', 'AR:local'],
+            ['accounts', 'BRL', 'BR', 'BR:local'],
+            // outside Brazil the BRL row is the Pix key send, which pays through the QR rail
+            ['accounts', 'BRL', 'ES', 'ES:qr'],
+            ['payments', 'QR payments', 'ES', 'ES:qr'],
+        ] as const)('on %s, %s for a resident of %s asks for %s', (page, row, country, expected) => {
+            residentOf(country)
+            render(page)
+            fireEvent.click(screen.getByText(row))
+            expect(tappedFeature()).toBe(expected)
+        })
+
+        it('starts the check as today once the sheet has stored the feature', () => {
+            residentOf('AR')
+            render()
+            fireEvent.click(screen.getByText('ARS'))
+            fireEvent.click(screen.getByRole('button', { name: 'unlock now' }))
+            expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'AR')
+        })
+
+        it("a user the server did not flag keeps today's sheet", () => {
+            mockUser = { residence: { declared: 'ES', verified: null }, user: { userId: 'u1' } }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+            expect(tappedFeature()).toBe('none')
+            fireEvent.click(screen.getByRole('button', { name: 'unlock now' }))
+            expect(mockInitiateKyc).toHaveBeenCalledWith('EU', undefined, true, undefined)
+        })
+
+        // adding a feature after the check needs the stored set and a new plan from the API
+        it("a one-shot user who already passed the identity check keeps today's sheet", () => {
+            residentOf('ES')
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+            expect(tappedFeature()).toBe('none')
+        })
     })
 })
 
