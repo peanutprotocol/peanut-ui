@@ -124,7 +124,7 @@ const MantecaPixQrDeposit: FC<{
                             </div>
                         )}
 
-                        <ProviderFinePrint providerId="manteca-br" className="justify-center" />
+                        <ProviderFinePrint providerId="manteca-br" />
                     </>
                 )}
             </PageStack.Center>

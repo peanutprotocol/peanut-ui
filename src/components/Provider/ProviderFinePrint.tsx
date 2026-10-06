@@ -10,12 +10,17 @@ interface ProviderFinePrintProps extends ProviderHelpProps {
     label?: ProviderLabel
 }
 
-/** "Provider · Manteca (?)" as one muted line, for screens with no details card to hold a row. */
+/** "Provider · Manteca (?)" as one muted, centered line, for screens with no details card to hold a row. */
 export const ProviderFinePrint = ({ label = 'provider', className, ...help }: ProviderFinePrintProps) => {
     const t = useTranslations('provider')
 
     return (
-        <p className={twMerge('flex items-center gap-1.5 text-body-xs text-foreground-secondary', className)}>
+        <p
+            className={twMerge(
+                'flex items-center justify-center gap-1.5 text-body-xs text-foreground-secondary',
+                className
+            )}
+        >
             <span>
                 {t(`label.${label}`)} · {PROVIDERS[help.providerId].brand}
             </span>
