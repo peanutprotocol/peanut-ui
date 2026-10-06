@@ -11,6 +11,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
+jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => null }))
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
@@ -148,5 +149,33 @@ describe('ReceiptDetailsCard — dates and document rows', () => {
         expect(screen.getByText('Created')).toBeInTheDocument()
         expect(screen.getAllByText('Cancelled')).toHaveLength(1)
         expect(screen.queryByText('Completed')).not.toBeInTheDocument()
+    })
+})
+
+describe('ReceiptDetailsCard — the provider row (TASK-23295)', () => {
+    const mantecaQr = () =>
+        vaDeposit(
+            {
+                id: 'qr-1',
+                direction: 'qr_payment',
+                userName: 'Merchant',
+                fee: 0,
+                currency: { code: 'ARS', amount: '1000' },
+            },
+            { kind: 'QR_PAY', provider: 'MANTECA', isDepositAccountDeposit: false, receipt: undefined }
+        )
+
+    it('names the provider after the fee rows, with a (?) that opens the sheet', () => {
+        renderWithIntl(<Card transaction={mantecaQr()} />)
+        expect(screen.getByText('Provider')).toBeInTheDocument()
+        expect(screen.getByText('Manteca')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Manteca' })).toBeInTheDocument()
+        const fee = screen.getByText('Fee')
+        expect(fee.compareDocumentPosition(screen.getByText('Manteca')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('prints no provider row when no provider moved the money', () => {
+        renderWithIntl(<Card transaction={vaDeposit()} />)
+        expect(screen.queryByText('Provider')).not.toBeInTheDocument()
     })
 })

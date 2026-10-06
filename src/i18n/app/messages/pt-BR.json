@@ -1042,6 +1042,7 @@
             "guestDescriptionApp": "Você precisa do app da Peanut para enviar uma cobrança para {username}."
         },
         "createRequest": "Criar cobrança",
+        "theirChoice": "A pessoa escolhe",
         "shareOpenRequest": "Compartilhar cobrança aberta",
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
         "shareCurrencyAmountRequest": "Compartilhar cobrança de {amount} {currency}",
@@ -1367,8 +1368,8 @@
             "exchangeRate": "Taxa de câmbio",
             "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "saveVsCard": "Economia vs. cartão",
-            "saveVsCardTooltipBrl": "Cartões estrangeiros pagam IOF (~3,5%) mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o PIX na taxa atual de mercado.",
-            "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o MercadoPago na taxa atual de mercado."
+            "saveVsCardTooltipBrl": "Cartões estrangeiros pagam IOF (~3,5%) mais uma taxa de câmbio típica do emissor de ~3%. A Manteca paga pelo PIX na taxa atual de mercado.",
+            "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. A Manteca paga pelo MercadoPago na taxa atual de mercado."
         },
         "success": {
             "youPaid": "Pago para {merchant}",
@@ -1477,7 +1478,8 @@
                 "title": "Pagamento em processamento",
                 "description": "O pagamento ainda não foi confirmado. Confira Atividade antes de tentar novamente."
             }
-        }
+        },
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Adicionar cartão",
@@ -1623,7 +1625,7 @@
             "validationSequential": "Sem dígitos sequenciais (ex.: 1234)"
         },
         "terms": {
-            "title": "Termos do cartão",
+            "title": "Aceitar termos",
             "description": "Leia e aceite",
             "esign": "Aceito o <link>Consentimento E-Sign</link>",
             "cardTermsIssuer": "Aceito os <terms>Termos do cartão {partner}</terms>, e a <privacy>Política de privacidade do emissor</privacy>",
@@ -1805,7 +1807,7 @@
             "cuit": "CUIT",
             "exchangeRate": "Taxa de câmbio",
             "providerFees": "Taxas do provedor",
-            "providerFeesInfo": "Nossos provedores e a blockchain cobram uma pequena taxa em cada transação. Essa taxa já está considerada no valor que você vê.",
+            "providerFeesInfo": "A Manteca e a blockchain cobram uma pequena taxa em cada transação. Essa taxa já está considerada no valor que você vê.",
             "flagAlt": "bandeira",
             "shareTitle": "Dados da transferência bancária",
             "shareDetails": "Compartilhar dados",
@@ -1813,7 +1815,7 @@
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
-            "etaInstant": "Os depósitos costumam chegar em minutos."
+            "etaInstant": "Normalmente em minutos"
         },
         "processingDepositTitle": "Processando o depósito",
         "processingDepositBody": "Estamos confirmando seu depósito.",
@@ -1925,10 +1927,11 @@
             "heading": "Digite a chave Pix",
             "placeholder": "Chave Pix",
             "info": "Envie para qualquer chave Pix: email, telefone (inclua +55), CPF/CNPJ ou chave aleatória.",
-            "invalid": "Chave Pix inválida"
+            "invalid": "Chave Pix inválida",
+            "notFound": "Nenhuma conta Pix encontrada para esta chave. Confira e tente de novo."
         },
         "bank": {
-            "eurTitle": "Enviamos EUR para o banco",
+            "eurTitle": "A Bridge envia EUR para o banco",
             "eurDescription": "Os saques são enviados em EUR. Seu banco pode cobrar taxas de conversão ou recusar a transação se não aceitar depósitos em EUR.",
             "accountOwner": "Titular da conta",
             "iban": "IBAN",
@@ -1963,12 +1966,12 @@
             "referenceInvalidCharsSepa": "Use apenas letras a-z, números, espaços e & - . /",
             "referenceInvalidCharsAch": "Use apenas letras a-z, números e espaços.",
             "referenceInvalidCharsSpei": "Use apenas letras a-z, números e espaços.",
-            "payoutReferenceReplacesDefaultSepa": "A referência que você escrever substitui o texto que enviamos por padrão com o pagamento.",
+            "payoutReferenceReplacesDefaultSepa": "A referência que você escrever substitui o texto que a Bridge envia por padrão com o pagamento.",
             "payoutDefaultReferenceCarriesNameSepa": "Esse texto padrão leva o seu nome.",
             "referenceFormattingMayChange": "Os espaços e as letras maiúsculas podem mudar no caminho.",
-            "payoutSenderAch": "O pagamento chega do nosso parceiro de pagamentos, não em seu nome. Seu banco mostra Peanut.",
-            "payoutSenderSpei": "O pagamento chega do banco local do nosso parceiro de pagamentos, não em seu nome.",
-            "payoutSenderWire": "O pagamento chega da Peanut, não em seu nome.",
+            "payoutSenderAch": "O pagamento chega da Bridge, não em seu nome.",
+            "payoutSenderSpei": "O pagamento chega do banco local da Bridge, não em seu nome.",
+            "payoutSenderWire": "O pagamento chega da Bridge, não em seu nome.",
             "bankAccount": "Conta bancária",
             "transferProcessing": "Transferência em processamento",
             "confirmPending": "Sua transferência está sendo processada. Os fundos foram enviados on-chain com sucesso: a confirmação pode levar alguns minutos. Se você não vir o saque na sua atividade em até 30 minutos, fale com o suporte."
@@ -2701,7 +2704,15 @@
         "migrationSetupDescription": "Avisamos na hora quando o dinheiro chegar ou alguém pedir um pagamento.",
         "enable": "Ativar notificações",
         "requesting": "Solicitando...",
-        "notNow": "Agora não"
+        "notNow": "Agora não",
+        "depositIntentTitle": "Avisamos quando o depósito chegar",
+        "depositIntentDescription": "Só uma notificação, quando o depósito chegar.",
+        "requestCreatedTitle": "Avisamos quando pagarem a cobrança",
+        "requestCreatedDescription": "Uma notificação assim que pagarem sua cobrança.",
+        "cardReadyTitle": "Avisamos sobre cada pagamento no cartão",
+        "cardReadyDescription": "Uma notificação por pagamento, aprovado ou recusado.",
+        "qrFirstScanTitle": "Confirmamos cada pagamento QR",
+        "qrFirstScanDescription": "Uma notificação quando o pagamento for concluído."
     },
     "kyc": {
         "statusDrawerTitle": "Status da verificação",
@@ -2754,6 +2765,7 @@
         "initiate": {
             "titleBlocked": "Não conseguimos desbloquear",
             "titleRestartIdentity": "Verifique com outro documento",
+            "titleIdentityDocumentMissing": "Conclua sua verificação",
             "titleProviderRejection": "Precisamos de documentos adicionais",
             "titleCrossRegion": "Desbloquear {region}",
             "titleCrossRegionGeneric": "Desbloquear esta região",
@@ -2795,9 +2807,6 @@
             "preparingConfiguringDescription": "Configurando suas regiões...",
             "preparingSlowTitle": "Quase lá",
             "preparingSlowDescription": "Isso está demorando um pouco mais do que o normal. Aguarde só um instante.",
-            "bridgeTosTitle": "Mais um passo",
-            "bridgeTosDescription": "Último passo: aceite os termos de serviço para desbloquear as transferências bancárias nos Estados Unidos, na Europa e no México.",
-            "acceptTerms": "Aceitar termos",
             "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso.",
             "verifyingStillGoing": "Ainda em andamento. A maioria termina rápido, então esta provavelmente está recebendo uma análise mais detalhada. Você pode fechar isto e avisaremos quando houver uma decisão.",
@@ -2828,17 +2837,15 @@
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
         "bridgeTos": {
-            "baseTitle": "Aceitar os termos de serviço",
-            "baseDescription": "Para ativar as transferências bancárias, você precisa aceitar os Termos de Serviço do nosso parceiro de pagamentos.",
-            "sepaTitle": "Aceitar os termos atualizados do provedor de transferências bancárias",
-            "sepaDescription": "Para ativar transferências bancárias em euros e libras esterlinas, aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias.",
+            "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
+            "lastStepDescription": "Último passo: aceite os termos de serviço para ativar as transferências bancárias nos EUA, na Europa e no México.",
             "errorTitle": "Não foi possível carregar os termos",
             "loadFailed": "Não foi possível carregar os termos. Você pode aceitá-los depois pelo seu feed de atividades.",
             "genericError": "Algo deu errado. Você pode aceitar os termos depois pelo seu feed de atividades.",
             "confirmError": "Algo deu errado ao confirmar seus termos. Tente novamente.",
             "notAcceptedYet": "Parece que os termos ainda não foram aceitos. Tente novamente.",
-            "acceptTerms": "Aceitar termos",
-            "notNow": "Agora não"
+            "notNow": "Agora não",
+            "title": "Aceitar termos"
         },
         "reverificationPending": {
             "title": "Estamos analisando os dados",
@@ -3246,7 +3253,8 @@
             "tax_id_unresolved": "Não conseguimos ler o número de identificação fiscal que os depósitos e saques locais exigem. Você pode verificar novamente para fornecê-lo. Os pagamentos por QR não são afetados.",
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "residence_bank_restricted": "Transferências bancárias não estão disponíveis para residentes do seu país. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
-            "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado."
+            "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
+            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação."
         }
     },
     "recoverFunds": {
@@ -3484,13 +3492,6 @@
             "copyErrorToast": "Não foi possível copiar o link.",
             "pasteHint": "Depois cole no seu navegador preferido."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Envie apenas tokens compatíveis em redes compatíveis",
-            "warning": "Enviar o token errado ou usar a rede errada vai resultar em perda permanente.",
-            "supportedNetworks": "Redes compatíveis",
-            "supportedTokens": "Tokens compatíveis",
-            "slideToProceed": "Deslize e continue"
-        },
         "rainCooldownIntroModal": {
             "title": "Aguarde um momento",
             "description": "Seu cartão precisa de um breve intervalo entre gastos seguidos. Para evitar isso no futuro, você pode baixar o limite do cartão para menos que o saldo da sua wallet; o restante fica sempre disponível.",
@@ -3682,6 +3683,7 @@
             "isRequesting": "{name} está cobrando",
             "sendingTo": "Enviando para {name}",
             "payWhatYouWant": "Qualquer valor",
+            "yourChoice": "Você escolhe",
             "sendExactAmount": "Envie o valor exato!"
         },
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",
@@ -3749,8 +3751,9 @@
         "sessionExpired": "Sua sessão expirou. Faça login novamente.",
         "connectionTimeout": "O Peanut está demorando para responder. Verifique sua conexão e tente novamente.",
         "genericSupport": "Ocorreu um problema com sua solicitação. Entre em contato com o suporte.",
-        "rainCooldownRetry": "Um saque anterior com o cartão ainda está ativo. Tente novamente em cerca de {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Um saque anterior com o cartão ainda está ativo. Tente novamente em instantes.",
+        "rainCooldownRetryLive": "Um saque anterior com o cartão ainda está ativo. Tente novamente em {time}.",
+        "rainCooldownRetryNow": "O resfriamento do cartão terminou. Você já pode tentar novamente.",
         "xchainWithdrawLimit": "Você atingiu o limite de saques para outras redes. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
         "xchainWithdrawLimitRetry": "Você atingiu o limite de saques para outras redes. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
         "xchainPaymentLimit": "Você fez muitas transferências para outras redes recentemente. Fale com o suporte para ampliar o seu limite.",
@@ -4103,7 +4106,8 @@
             "errorTitle": "Não conseguimos abrir a conta",
             "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE.",
             "whoCanPay": "Quem pode pagar",
-            "termsAgreement": "Ao abrir a conta, você aceita os <terms>termos da conta em {currency}</terms>."
+            "termsAgreement": "Ao abrir a conta, você aceita os <terms>termos da conta em {currency}</terms>.",
+            "providerTerms": "Ao abrir a conta, você aceita os <terms>{termsName}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4347,5 +4351,51 @@
             "converted": "Convertido para USD pela cotação. Aplica-se uma taxa de conversão.",
             "seeRates": "Ver cotações"
         }
+    },
+    "provider": {
+        "label": {
+            "provider": "Provedor",
+            "accountProvider": "Provedor da conta",
+            "cardIssuer": "Emissor do cartão"
+        },
+        "sheetIntro": "Quem presta este serviço é a {brand}, não o Peanut.",
+        "relationship": "Você tem uma relação direta com a {brand}, nos termos dela.",
+        "relationshipProspective": "Ao aceitar, sua relação passa a ser diretamente com a {brand}, nos termos dela.",
+        "field": {
+            "legalName": "Razão social",
+            "registeredOffice": "Sede",
+            "registration": "Registro",
+            "regulator": "Regulador e licença",
+            "terms": "Termos",
+            "privacy": "Privacidade",
+            "view": "Ver",
+            "taxId": "ID fiscal",
+            "role": "Função",
+            "programManager": "Gestor do programa",
+            "execution": "Como é executado",
+            "peanutRole": "Função do Peanut",
+            "support": "Suporte",
+            "viewTerms": "Ver termos",
+            "viewPrivacy": "Ver política de privacidade"
+        },
+        "role": {
+            "bridge": "Provedor de depósitos, saques e contas em moeda fiduciária",
+            "rhino": "Endereços de depósito entre redes e liquidez de ponte. O Peanut é cliente da Rhino; você não tem conta na Rhino.",
+            "thirdNational": "Emissor do cartão, subsidiária da Rain",
+            "bridgeEea": "Provedor de depósitos, saques e IBANs virtuais em moeda fiduciária",
+            "mantecaAr": "Depósitos (ARS), saques, pagamentos por QR e titular da conta de depósito em ARS",
+            "mantecaBr": "Depósitos (Pix em BRL), saques e pagamentos por Pix e QR"
+        },
+        "about": "Sobre a {brand}",
+        "execution": {
+            "bridge": "Você assina, a {brand} paga",
+            "bridgeEea": "Você assina, a {brand} paga",
+            "mantecaAr": "Liquidado pela {brand}",
+            "rhino": "Você assina, a {brand} faz a ponte",
+            "thirdNational": "A {brand} emite e liquida"
+        },
+        "peanutRole": "Provedor de software de carteira autocustodial; não é parte das operações do provedor",
+        "cardRelationship": "Você tem uma relação direta com a {brand}, nos termos do cartão.",
+        "cardRelationshipProspective": "Ao aceitar os termos do cartão, sua relação passa a ser diretamente com a {brand}."
     }
 }

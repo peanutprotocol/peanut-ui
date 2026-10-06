@@ -141,6 +141,16 @@ describe('Tabs', () => {
         expect(tab.className).not.toContain('transition-transform')
     })
 
+    // TASK-23130: `stretch` adds flex-1, which drops shrink-0, and the chips were
+    // squeezed under their labels. jsdom has no layout, so this pins the floor.
+    test.each([undefined, 'stretch', 'track'] as const)(
+        'fullWidth=%s: a tab never shrinks below its label',
+        (fullWidth) => {
+            render(<Tabs tabs={TABS} aria-label="demo" fullWidth={fullWidth} />)
+            for (const tab of screen.getAllByRole('tab')) expect(tab.className).toContain('min-w-max')
+        }
+    )
+
     // the row scrolls on ONE axis. `overflow-x: auto` forces a `visible` y to
     // `auto` by itself, so the y must be written out or the chip's 1px vertical
     // overhang makes the row scroll with nothing to scroll.

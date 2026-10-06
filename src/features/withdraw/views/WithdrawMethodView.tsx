@@ -100,10 +100,12 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                         acc.type === AccountType.GB ||
                         acc.type === AccountType.CO_BANK_TRANSFER ||
                         acc.type === AccountType.MANTECA) &&
-                    isUsableSavedAccount(acc)
+                    isUsableSavedAccount(acc) &&
+                    // Someone else's PIX key is paid from Send, never withdrawn to.
+                    (isBankFromSend || !acc.isPixRecipient)
             ) ?? []
         return bankAccounts as unknown as Account[]
-    }, [user])
+    }, [user, isBankFromSend])
 
     // What the saved-destinations screen lists once no rail is picked. Only Send →
     // Bank leaves the address book out, so a Withdraw user whose only saved
@@ -258,6 +260,9 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                                     country: countryPath,
                                     destination: account.identifier,
                                     isSavedAccount: 'true',
+                                    // A saved Brazil key in Send pays over PIX (the key screen),
+                                    // not the first-party BRL offramp a withdrawal uses.
+                                    method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
                                     sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
                                 })
                             )

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -16,6 +17,7 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 /**
@@ -258,6 +260,7 @@ export function useCardFlow() {
         if (state === 'loading' || state === 'pending' || state === 'manual-review') return
         awaitingIssuanceRef.current = false
         if (state === 'add-card') setApplyError(t('page.issueFailed'))
+        if (state === 'active') void offerPushPrompt(PUSH_PROMPT_TRIGGERS.CARD_READY)
     }, [overview, state, t])
 
     // The user picked their residence country on the confirmation screen.

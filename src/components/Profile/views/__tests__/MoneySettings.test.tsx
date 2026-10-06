@@ -69,6 +69,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
 }))
 
 let mockRails: unknown[] = []
+let mockNextActions: unknown[] = []
 // A provider rejection only surfaces for an APPROVED user, so this has to be
 // settable — the residence-park case below is exactly that shape.
 let mockIsKycApproved = false
@@ -78,7 +79,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
         isKycApproved: mockIsKycApproved,
         railsForProvider: (provider: string) =>
             (mockRails as Array<Record<string, any>>).filter((rail) => rail.provider === provider),
-        nextActions: [],
+        nextActions: mockNextActions,
         nextActionsForRail: () => [],
         // the real per-operation read: `operations?.[op] ?? status`, so a rail
         // that is enabled for `pay` alone can never answer yes for `deposit`
@@ -235,6 +236,7 @@ describe('MoneySettings', () => {
         mockBridgeLimits = null
         jest.clearAllMocks()
         mockRails = []
+        mockNextActions = []
         mockIsKycApproved = false
         mockRestrictions = { banking: false, card: false }
         mockUser = null
@@ -990,6 +992,52 @@ describe('MoneySettings', () => {
             render('payments')
             const qrRow = screen.getByText('QR payments')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+        })
+
+        // api#1776: an approval with no identity document keeps its pool rail,
+        // and the one top-level restart action says what is missing. The unlock
+        // must restart the identity check, never start Manteca onboarding.
+        it('an approval with no identity document is offered the identity restart, not the bank unlock', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
+            mockRails = [qrPoolRail]
+            mockNextActions = [
+                { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+            ]
+            mockIsKycApproved = true
+            render()
+
+            fireEvent.click(screen.getByText('BRL'))
+            fireEvent.click(within(screen.getByRole('dialog')).getByText('Add and withdraw Brazilian reais with Pix.'))
+            expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+            expect(screen.getByText('Complete your verification')).toBeInTheDocument()
+            expect(
+                screen.getByText('We need an identity document and a selfie to complete your verification.')
+            ).toBeInTheDocument()
+            expect(screen.queryByText('Verify with a different document')).not.toBeInTheDocument()
+
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+            expect(mockRestartIdentity).toHaveBeenCalledWith()
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
+        })
+
+        // With no enabled rail the user is not "approved" for this screen, and
+        // the unlock path would call the start route, which opens nothing for
+        // them. The restart still comes first, on Manteca and Bridge rows alike.
+        it('the identity restart needs no enabled rail, on a Manteca row and a Bridge row', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+            mockNextActions = [
+                { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+            ]
+            render()
+
+            fireEvent.click(screen.getByText('ARS'))
+            expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+            fireEvent.click(screen.getByText('EUR'))
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+
+            expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
 
         it('a full Manteca account reads Available on both rows', () => {

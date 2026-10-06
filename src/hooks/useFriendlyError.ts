@@ -23,8 +23,6 @@ export function useFriendlyError() {
                     // args; otherwise `values` collapses to the intersection of
                     // both messages' args and neither one typechecks.
                     switch (result.code) {
-                        case 'rainCooldownRetry':
-                            return t(result.code, result.values)
                         case 'xchainWithdrawLimitRetry':
                             return t(result.code, result.values)
                         case 'xchainPaymentLimitRetry':

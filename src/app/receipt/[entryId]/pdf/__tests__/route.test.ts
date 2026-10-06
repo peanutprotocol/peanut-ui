@@ -9,6 +9,7 @@ import { renderReceiptPdf } from '../ReceiptPdfDocument'
 import { buildReceiptPdfModel } from '../receipt-pdf-model'
 import { captureException } from '@sentry/nextjs'
 import { loadMessages } from '@/i18n/app/messages'
+import { serverFetch } from '@/utils/api-fetch'
 import type { NextRequest } from 'next/server'
 
 jest.mock('@/app/actions/history', () => ({ getHistoryEntry: jest.fn() }))
@@ -17,6 +18,7 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
 }))
 jest.mock('../ReceiptPdfDocument', () => ({ renderReceiptPdf: jest.fn() }))
 jest.mock('../receipt-pdf-model', () => ({ buildReceiptPdfModel: jest.fn() }))
+jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // The registry/history.utils graph reaches @/app/actions/clients, whose
 // module-scope ranked fallback transport pings every Arbitrum RPC on import
@@ -31,6 +33,7 @@ const mockMap = mapTransactionDataForDrawer as jest.Mock
 const mockRender = renderReceiptPdf as jest.Mock
 const mockBuildModel = buildReceiptPdfModel as jest.Mock
 const mockLoadMessages = loadMessages as jest.Mock
+const mockServerFetch = serverFetch as jest.Mock
 
 const get = async (
     entryId: string,
@@ -246,5 +249,140 @@ describe('GET /receipt/[entryId]/pdf', () => {
 
         mockGetHistoryEntry.mockResolvedValue({ status: 'PENDING' })
         expect((await get('entry-12', 'kind=OFFRAMP&locale=en')).headers.get('Cache-Control')).toBe('no-store')
+    })
+})
+
+// TASK-23188: the render cache must never hand out bytes rendered for an
+// earlier state of the same receipt — least of all under the final-state
+// public cache policy.
+describe('GET /receipt/[entryId]/pdf — receipt freshness', () => {
+    type Entry = { status: string; amount: string }
+    const bytesOf = async (response: Response) => Buffer.from(await response.arrayBuffer()).toString()
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockMap.mockImplementation((entry: Entry) => ({
+            transactionDetails: { id: 'entry', extraDataForDrawer: { kind: 'OFFRAMP' }, ...entry },
+        }))
+        mockBuildModel.mockImplementation((details: Entry) => ({
+            fileName: 'peanut-receipt.pdf',
+            amountDisplay: details.amount,
+            rows: [{ label: 'status', value: details.status }],
+        }))
+        mockRender.mockImplementation(async (model: { amountDisplay: string; rows: { value: string }[] }) =>
+            Buffer.from(`%PDF ${model.rows[0].value} ${model.amountDisplay}`)
+        )
+    })
+
+    test('a receipt that completes after a pending render gets fresh bytes', async () => {
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'PENDING', amount: '10' })
+        const pending = await get('entry-status', 'kind=OFFRAMP&locale=en')
+        expect(await bytesOf(pending)).toBe('%PDF PENDING 10')
+        expect(pending.headers.get('Cache-Control')).toBe('no-store')
+
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        const completed = await get('entry-status', 'kind=OFFRAMP&locale=en')
+        expect(await bytesOf(completed)).toBe('%PDF COMPLETED 10')
+        expect(completed.headers.get('Cache-Control')).toBe('public, s-maxage=3600')
+    })
+
+    test('a completed receipt that is refunded gets fresh bytes', async () => {
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        await get('entry-refund', 'kind=OFFRAMP&locale=en')
+
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'REFUNDED', amount: '10' })
+        expect(await bytesOf(await get('entry-refund', 'kind=OFFRAMP&locale=en'))).toBe('%PDF REFUNDED 10')
+    })
+
+    test('a changed amount on the same receipt gets fresh bytes', async () => {
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        await get('entry-amount', 'kind=OFFRAMP&locale=en')
+
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '12' })
+        expect(await bytesOf(await get('entry-amount', 'kind=OFFRAMP&locale=en'))).toBe('%PDF COMPLETED 12')
+    })
+
+    test('a request after completion never joins an in-flight pending render', async () => {
+        let releasePending: (v: Buffer) => void = () => {}
+        mockRender.mockImplementationOnce(() => new Promise<Buffer>((r) => (releasePending = r)))
+        mockGetHistoryEntry
+            .mockResolvedValueOnce({ status: 'PENDING', amount: '10' })
+            .mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+
+        const pendingRequest = get('entry-race', 'kind=OFFRAMP&locale=en&_=1')
+        // let the pending request reach the render before the state changes
+        await new Promise((r) => setImmediate(r))
+        const completedRequest = get('entry-race', 'kind=OFFRAMP&locale=en&_=2')
+        await new Promise((r) => setImmediate(r))
+        releasePending(Buffer.from('%PDF PENDING 10'))
+        const [pending, completed] = await Promise.all([pendingRequest, completedRequest])
+
+        expect(await bytesOf(pending)).toBe('%PDF PENDING 10')
+        expect(pending.headers.get('Cache-Control')).toBe('no-store')
+        expect(await bytesOf(completed)).toBe('%PDF COMPLETED 10')
+        expect(completed.headers.get('Cache-Control')).toBe('public, s-maxage=3600')
+
+        // the pending bytes were not promoted into the completed receipt's cache
+        mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
+        expect(await bytesOf(await get('entry-race', 'kind=OFFRAMP&locale=en&_=3'))).toBe('%PDF COMPLETED 10')
+    })
+})
+
+describe('GET /receipt/[entryId]/pdf — bridge entity from the owner residence', () => {
+    const bridgeOfframp = (flow = 'OFFRAMP') => ({
+        status: 'COMPLETED',
+        extraData: { provider: 'BRIDGE', bridgeFlow: flow },
+        senderAccount: { userId: 'owner-1' },
+        recipientAccount: {},
+    })
+    const me = (userId: string) => ({
+        ok: true,
+        json: async () => ({ user: { userId }, residence: { verified: 'DE' } }),
+    })
+    const residencePassed = () => mockBuildModel.mock.calls[0][3]
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockMap.mockReturnValue({ transactionDetails: { id: 'entry-1', extraDataForDrawer: { kind: 'OFFRAMP' } } })
+        mockBuildModel.mockReturnValue({ fileName: 'peanut-receipt-entry-1.pdf' })
+        mockRender.mockResolvedValue(Buffer.from('%PDF-1.7'))
+    })
+
+    test('the signed-in owner gets their residence, uncached', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        mockServerFetch.mockResolvedValue(me('owner-1'))
+        const response = await get('entry-own', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(mockServerFetch).toHaveBeenCalledWith('/users/me', { headers: { Authorization: 'Bearer tok' } })
+        expect(residencePassed()).toBe('DE')
+        expect(response.headers.get('Cache-Control')).toBe('no-store')
+    })
+
+    test('a signed-in non-owner gets the brand-only record', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        mockServerFetch.mockResolvedValue(me('someone-else'))
+        await get('entry-other', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(residencePassed()).toBeNull()
+    })
+
+    test('an anonymous request never asks who is viewing', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        await get('entry-anon', 'kind=OFFRAMP&locale=en')
+        expect(mockServerFetch).not.toHaveBeenCalled()
+        expect(residencePassed()).toBeNull()
+    })
+
+    test('a bank send-link claim keeps the brand-only record even for a party', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp('BANK_SEND_LINK_CLAIM'))
+        await get('entry-claim', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(mockServerFetch).not.toHaveBeenCalled()
+        expect(residencePassed()).toBeNull()
+    })
+
+    test('a failed /users/me still renders, brand-only', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        mockServerFetch.mockRejectedValue(new Error('down'))
+        const response = await get('entry-down', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(response.status).toBe(200)
+        expect(residencePassed()).toBeNull()
     })
 })

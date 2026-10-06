@@ -1,6 +1,13 @@
 'use client'
 
 import Card from '@/components/Global/Card'
+import { Card as BruddleCard } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Badge from '@/components/Global/Badges/Badge'
 import NavigationArrow from '@/components/Global/NavigationArrow'
@@ -13,6 +20,39 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { ProductUsage } from '../../_components/ProductUsage'
+
+// which shadow / which bubble size, from real product usage (TASK-23082)
+const CARD_RULES: { title: string; head: [string, string]; rows: [string, string][] }[] = [
+    {
+        title: 'Which shadow',
+        head: ['shadowSize', 'Use for'],
+        rows: [
+            ['(none)', 'Every in-app card. App screens are flat.'],
+            ['4', 'Cards on marketing and public pages (landing, press, status, careers)'],
+            ['6, 8', 'Not for cards. No Card passes them.'],
+        ],
+    },
+    {
+        title: 'Which IconBubble size',
+        head: ['size', 'Use for'],
+        rows: [
+            ['xs (24)', 'A status next to text: a checklist step, a callout icon'],
+            ['s (32)', 'ListItem leading'],
+            ['m (48)', 'The head above a card, modal or drawer title; a result card beside the amount'],
+            ['l (72)', 'The empty or error hero only'],
+        ],
+    },
+    {
+        title: 'Which spacing',
+        head: ['Between', 'Gap'],
+        rows: [
+            ['Section title → card stack', 'S/8 — use Section (gap-2)'],
+            ['Card header → card content', 'M/12 — gap-3 on the card'],
+            ['Title → description in a header', 'XS/4 — TitleBlock (gap-1)'],
+            ['Icon bubble → title (centered head)', 'S/8 (gap-2, card board 17802:61536)'],
+        ],
+    },
+]
 
 export default function CardsGlobalPage() {
     return (
@@ -43,6 +83,78 @@ export default function CardsGlobalPage() {
                     This is the default export from Global/Card. The Bruddle Card is a named export: import {'{ Card }'}{' '}
                     from &apos;@/components/0_Bruddle/Card&apos;. They are different components.
                 </DesignNote>
+            </DocSection>
+
+            <DocSection
+                title="Building a card"
+                description="Start here. Stacked rows use this Global Card (or ListItem in a ListGroup); a standalone block uses the Bruddle Card. Icon sizes inside cards: foundations → icons."
+            >
+                <DocSection.Content>
+                    {CARD_RULES.map((table) => (
+                        <div
+                            key={table.title}
+                            className="overflow-x-auto rounded-sm border border-border-default text-body-xs"
+                        >
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-border-default">
+                                        <th colSpan={2} className="px-3 py-2 text-left text-label-m">
+                                            {table.title}
+                                        </th>
+                                    </tr>
+                                    <tr className="border-b border-border-default text-foreground-secondary">
+                                        <th className="px-3 py-2 text-left">{table.head[0]}</th>
+                                        <th className="px-3 py-2 text-left">{table.head[1]}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {table.rows.map(([key, use]) => (
+                                        <tr key={key} className="border-b border-border-default last:border-0">
+                                            <td className="px-3 py-2 font-mono">{key}</td>
+                                            <td className="px-3 py-2">{use}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ))}
+                    <Section title="Accounts">
+                        <ListGroup>
+                            <ListItem
+                                leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                                title="Bank account"
+                                chevron
+                            />
+                            <ListItem
+                                leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
+                                title="Crypto wallet"
+                                chevron
+                            />
+                        </ListGroup>
+                    </Section>
+                    <BruddleCard className="flex flex-col gap-3 p-4">
+                        <TitleBlock title="Recover card funds" description="We send them to your Peanut wallet" />
+                        <p className="text-body-s">Body content starts 12px below the header.</p>
+                    </BruddleCard>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Section title → stack (8)"
+                        code={`<Section title="Accounts">
+  <ListGroup>
+    <ListItem leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />} title="Bank account" />
+    ...
+  </ListGroup>
+</Section>`}
+                    />
+                    <CodeBlock
+                        label="Card header → content (12)"
+                        code={`<Card className="flex flex-col gap-3 p-4">
+  <TitleBlock title="Recover card funds" description="…" />
+  {content}
+</Card>`}
+                    />
+                </DocSection.Code>
             </DocSection>
 
             {/* Single Card */}

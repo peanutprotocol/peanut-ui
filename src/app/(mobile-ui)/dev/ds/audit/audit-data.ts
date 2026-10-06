@@ -2525,7 +2525,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'Top-of-everything escalation war',
         usages: 11,
         status: 'adhoc',
-        source: 'SupportDrawer, Toast, AppLock, SumsubKycWrapper, IframeWrapper, CancelDepositActions, TokenAndNetworkConfirmationDrawer',
+        source: 'SupportDrawer, Toast, AppLock, SumsubKycWrapper, IframeWrapper, CancelDepositActions',
         notes: '8 -> 11, so the war is still escalating. SupportDrawer 999999 over its own backdrop 999998, Sumsub and Iframe at 10001, Toast at 99999, AppLock and two modals at 9999. Nothing legitimately needs 6 digits — one topmost tier would do.',
     },
     {
@@ -3197,18 +3197,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 1,
         status: 'variant',
         source: 'src/components/AddMoney/components/OnrampConfirmationModal.tsx',
-        notes: 'The slide-to-confirm recipe is now shared — all five confirm modals use 0_Bruddle/SlideToConfirm (7 call sites). What is left is colour drift: bg-yellow-400 here vs bg-yellow-1 in TokenAndNetwork vs bg-background-icon-bubble-yellow in the Card modals.',
-    },
-    {
-        name: 'TokenAndNetworkConfirmationDrawer',
-        cat: 'modals',
-        catLabel: 'Modals / dialogs',
-        layer: 'primitives',
-        role: 'ActionModal: alert on bg-yellow-1 + ChainChip grid + SlideToConfirm footer, modalClassName z-[9999].',
-        usages: 3,
-        status: 'variant',
-        source: 'src/components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
-        notes: 'Correct delegation now. The z-[9999] override remains part of the z-index arms race (9 z-[999]+ occurrences app-wide) that a z-token would fix.',
+        notes: 'The slide-to-confirm recipe is now shared — every confirm modal uses 0_Bruddle/SlideToConfirm (6 call sites). What is left is colour drift: bg-yellow-400 here vs bg-background-icon-bubble-yellow in the Card modals.',
     },
     {
         name: 'PerkClaimDrawer',

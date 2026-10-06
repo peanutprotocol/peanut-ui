@@ -34,13 +34,13 @@ describe('DownloadReceiptPdfLink', () => {
     test('web: a plain download anchor pointing at the pdf route, locale in the URL', () => {
         render(
             <IntlWrapper>
-                <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" />
+                <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" version="completed|5" />
             </IntlWrapper>
         )
         const link = screen.getByRole('link', { name: 'Download Receipt (PDF)' })
         // locale rides the URL: it is the CDN cache key, and the only locale
         // signal the native external browser ever gets
-        expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en')
+        expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en&v=completed%7C5')
         expect(link).toHaveAttribute('download')
         expect(link).toHaveAttribute('target', '_blank')
         expect(link).toHaveAttribute('rel', 'noopener noreferrer')
@@ -54,28 +54,46 @@ describe('DownloadReceiptPdfLink', () => {
     test('uses the current user locale in the PDF URL', () => {
         render(
             <NextIntlClientProvider locale="pt-BR" messages={en} timeZone="UTC">
-                <DownloadReceiptPdfLink entryId="entry-localized" kind="OFFRAMP" />
+                <DownloadReceiptPdfLink entryId="entry-localized" kind="OFFRAMP" version="completed|5" />
             </NextIntlClientProvider>
         )
 
         expect(screen.getByRole('link', { name: 'Download Receipt (PDF)' })).toHaveAttribute(
             'href',
-            '/receipt/entry-localized/pdf?kind=OFFRAMP&locale=pt-BR'
+            '/receipt/entry-localized/pdf?kind=OFFRAMP&locale=pt-BR&v=completed%7C5'
         )
+    })
+
+    // TASK-23188: final receipts are cdn-cached by url for an hour, so a
+    // refund or amount fix must change the url or the cdn serves the old pdf
+    test('a changed receipt state gets a different PDF URL', () => {
+        const view = render(
+            <IntlWrapper>
+                <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" version="completed|5" />
+            </IntlWrapper>
+        )
+        const before = screen.getByRole('link', { name: 'Download Receipt (PDF)' }).getAttribute('href')
+        view.rerender(
+            <IntlWrapper>
+                <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" version="refunded|5" />
+            </IntlWrapper>
+        )
+        const after = screen.getByRole('link', { name: 'Download Receipt (PDF)' }).getAttribute('href')
+        expect(after).not.toBe(before)
     })
 
     test('capacitor: the click opens the absolute production URL externally', () => {
         mockIsCapacitor.mockReturnValue(true)
         render(
             <IntlWrapper>
-                <DownloadReceiptPdfLink entryId="entry-1" kind="SEND_LINK" />
+                <DownloadReceiptPdfLink entryId="entry-1" kind="SEND_LINK" version="completed|5" />
             </IntlWrapper>
         )
         fireEvent.click(screen.getByRole('link', { name: 'Download Receipt (PDF)' }))
         expect(mockOpenExternalUrl).toHaveBeenCalledTimes(1)
         const opened = mockOpenExternalUrl.mock.calls[0][0] as string
         expect(opened).toMatch(/^https?:\/\//)
-        expect(opened).toContain('/receipt/entry-1/pdf?kind=SEND_LINK&locale=en')
+        expect(opened).toContain('/receipt/entry-1/pdf?kind=SEND_LINK&locale=en&v=completed%7C5')
     })
 })
 

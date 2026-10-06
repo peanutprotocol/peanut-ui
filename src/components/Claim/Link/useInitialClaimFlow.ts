@@ -749,10 +749,11 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
                     )
                 }
 
-                // claimLinkData.amount is base units (bigint, 6-dec for USDC).
-                // Rhino preview expects a decimal string, so format down.
-                const decimals = selectedTokenData?.decimals ?? 6
-                const previewAmount = formatUnits(claimLinkData.amount, decimals)
+                // claimLinkData.amount is in the link's (source) token base
+                // units, so it formats with the source decimals — never the
+                // destination's (BNB Chain USDC is 18, Arbitrum USDC is 6).
+                // Rhino preview expects a decimal string.
+                const previewAmount = formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)
                 // The SDA deposit itself comes from the Peanut claim relayer, so
                 // the link sender's address (always an EVM address on the link's
                 // chain) stands in as depositor for pricing.

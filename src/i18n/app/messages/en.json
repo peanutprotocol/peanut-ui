@@ -1042,6 +1042,7 @@
             "guestDescriptionApp": "You need the Peanut app to send {username} a payment request."
         },
         "createRequest": "Create request",
+        "theirChoice": "Their choice",
         "shareOpenRequest": "Share open request",
         "shareAmountRequest": "Share ${amount} request",
         "shareCurrencyAmountRequest": "Share {amount} {currency} request",
@@ -1367,8 +1368,8 @@
             "exchangeRate": "Exchange Rate",
             "exchangeRateTooltip": "Rate shown is current but may vary slightly until payment is confirmed.",
             "saveVsCard": "Save vs card",
-            "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
-            "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
+            "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Manteca pays via PIX at the current market rate.",
+            "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Manteca pays via MercadoPago at the current market rate."
         },
         "success": {
             "youPaid": "Paid to {merchant}",
@@ -1477,7 +1478,8 @@
                 "title": "Payment is processing",
                 "description": "The payment has not been confirmed yet. Check Activity before trying again."
             }
-        }
+        },
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
     },
     "card": {
         "navAddCard": "Add card",
@@ -1623,7 +1625,7 @@
             "validationSequential": "No sequential digits (e.g., 1234)"
         },
         "terms": {
-            "title": "Card Terms",
+            "title": "Accept terms",
             "description": "Please review and accept",
             "esign": "I accept the <link>E-Sign Consent</link>",
             "cardTermsIssuer": "I accept the <terms>{partner} Card Terms</terms>, and the <privacy>Issuer Privacy Policy</privacy>",
@@ -1805,7 +1807,7 @@
             "cuit": "CUIT",
             "exchangeRate": "Exchange rate",
             "providerFees": "Provider fees",
-            "providerFeesInfo": "Our providers and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see.",
+            "providerFeesInfo": "Manteca and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see.",
             "flagAlt": "flag",
             "shareTitle": "Bank transfer details",
             "shareDetails": "Share details",
@@ -1813,7 +1815,7 @@
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
             "minDepositAmount": "Deposit amount must be at least ${amount}",
-            "etaInstant": "Deposits usually arrive within minutes."
+            "etaInstant": "Usually within minutes"
         },
         "processingDepositTitle": "Processing deposit",
         "processingDepositBody": "We're confirming your deposit.",
@@ -1925,10 +1927,11 @@
             "heading": "Enter Pix key",
             "placeholder": "Pix key",
             "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
-            "invalid": "Invalid Pix key"
+            "invalid": "Invalid Pix key",
+            "notFound": "No Pix account found for this key. Check it and try again."
         },
         "bank": {
-            "eurTitle": "We send EUR to the bank",
+            "eurTitle": "Bridge sends EUR to the bank",
             "eurDescription": "Withdrawals are sent in EUR. Your bank may charge conversion fees or reject the transaction if EUR deposits are not supported.",
             "accountOwner": "Account owner",
             "iban": "IBAN",
@@ -1963,12 +1966,12 @@
             "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
             "referenceInvalidCharsAch": "Use only letters a-z, numbers and spaces.",
             "referenceInvalidCharsSpei": "Use only letters a-z, numbers and spaces.",
-            "payoutReferenceReplacesDefaultSepa": "A reference you type replaces the default text we send with the payment.",
+            "payoutReferenceReplacesDefaultSepa": "A reference you type replaces the default text Bridge sends with the payment.",
             "payoutDefaultReferenceCarriesNameSepa": "That default text carries your name.",
             "referenceFormattingMayChange": "The spacing and capital letters may change on the way.",
-            "payoutSenderAch": "The payment arrives from our payment partner, not from your own name. Your bank statement shows Peanut.",
-            "payoutSenderSpei": "The payment arrives from our payment partner's local bank, not from your own name.",
-            "payoutSenderWire": "The payment arrives from Peanut, not from your own name.",
+            "payoutSenderAch": "The payment arrives from Bridge, not from your own name.",
+            "payoutSenderSpei": "The payment arrives from Bridge's local bank, not from your own name.",
+            "payoutSenderWire": "The payment arrives from Bridge, not from your own name.",
             "bankAccount": "Bank account",
             "transferProcessing": "Transfer processing",
             "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
@@ -2701,7 +2704,15 @@
         "migrationSetupDescription": "We'll ping you the moment money lands or someone asks you to pay.",
         "enable": "Enable notifications",
         "requesting": "Requesting...",
-        "notNow": "Not now"
+        "notNow": "Not now",
+        "depositIntentTitle": "Know when money lands",
+        "depositIntentDescription": "Just one notification, when the deposit arrives.",
+        "requestCreatedTitle": "Know when the request is paid",
+        "requestCreatedDescription": "One notification when it's paid.",
+        "cardReadyTitle": "Know every card payment",
+        "cardReadyDescription": "One notification per payment or decline.",
+        "qrFirstScanTitle": "Confirmation for each QR payment",
+        "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
         "statusDrawerTitle": "Verification status",
@@ -2754,6 +2765,7 @@
         "initiate": {
             "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
+            "titleIdentityDocumentMissing": "Complete your verification",
             "titleProviderRejection": "We need extra documents",
             "titleCrossRegion": "Unlock {region}",
             "titleCrossRegionGeneric": "Unlock this region",
@@ -2795,9 +2807,6 @@
             "preparingConfiguringDescription": "Configuring your regions...",
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
-            "bridgeTosTitle": "One more step",
-            "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
-            "acceptTerms": "Accept terms",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
@@ -2828,16 +2837,14 @@
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
         "bridgeTos": {
-            "baseTitle": "Accept terms of service",
-            "baseDescription": "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
-            "sepaTitle": "Accept updated bank transfer provider terms",
-            "sepaDescription": "To enable euro and British pound bank transfers, accept our bank transfer provider's updated Terms of Service.",
+            "title": "Accept terms",
+            "description": "Accept the provider's terms to turn on bank transfers.",
+            "lastStepDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
             "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
-            "acceptTerms": "Accept terms",
             "notNow": "Not now"
         },
         "reverificationPending": {
@@ -3246,7 +3253,8 @@
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
-            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
+            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
+            "identity_document_missing": "We need an identity document and a selfie to complete your verification."
         }
     },
     "recoverFunds": {
@@ -3484,13 +3492,6 @@
             "copyErrorToast": "Failed to copy link.",
             "pasteHint": "Then paste it in your preferred browser."
         },
-        "tokenAndNetworkConfirmationModal": {
-            "title": "Send only supported tokens on supported networks",
-            "warning": "Sending the wrong token or using the wrong network will result in permanent loss.",
-            "supportedNetworks": "Supported networks",
-            "supportedTokens": "Supported tokens",
-            "slideToProceed": "Slide to proceed"
-        },
         "rainCooldownIntroModal": {
             "title": "Please wait",
             "description": "Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can lower your card limit to be below your wallet balance; the extra will always be available.",
@@ -3682,6 +3683,7 @@
             "isRequesting": "{name} is requesting",
             "sendingTo": "Sending {name}",
             "payWhatYouWant": "Any amount",
+            "yourChoice": "Your choice",
             "sendExactAmount": "Send the exact amount!"
         },
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
@@ -3749,8 +3751,9 @@
         "sessionExpired": "Your session has expired. Please log in again.",
         "connectionTimeout": "Peanut is taking too long to respond — check your connection and try again.",
         "genericSupport": "There was an issue with your request. Please contact support.",
-        "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "rainCooldownRetryLive": "A previous card withdrawal is still active. Try again in {time}.",
+        "rainCooldownRetryNow": "The card cool-down has ended. You can try again now.",
         "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
         "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
         "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
@@ -4103,7 +4106,8 @@
             "errorTitle": "We could not open the account",
             "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country.",
             "whoCanPay": "Who can pay",
-            "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>."
+            "termsAgreement": "By opening, you agree to the <terms>{currency} account terms</terms>.",
+            "providerTerms": "By opening, you agree to the <terms>{termsName}</terms>."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -4347,5 +4351,51 @@
             "converted": "Converted to USD at the exchange rate. A conversion fee applies.",
             "seeRates": "See exchange rates"
         }
+    },
+    "provider": {
+        "label": {
+            "provider": "Provider",
+            "accountProvider": "Account provider",
+            "cardIssuer": "Card issuer"
+        },
+        "sheetIntro": "{brand} provides this service, not Peanut.",
+        "relationship": "You have a direct relationship with {brand} under their terms.",
+        "relationshipProspective": "When you accept, your relationship is directly with {brand}, under their terms.",
+        "field": {
+            "legalName": "Legal name",
+            "registeredOffice": "Registered office",
+            "registration": "Registration",
+            "regulator": "Regulator and licence",
+            "terms": "Terms",
+            "privacy": "Privacy",
+            "view": "View",
+            "taxId": "Tax ID",
+            "role": "Role",
+            "programManager": "Program manager",
+            "execution": "How this executes",
+            "peanutRole": "Peanut's role",
+            "support": "Support",
+            "viewTerms": "View terms",
+            "viewPrivacy": "View privacy policy"
+        },
+        "role": {
+            "bridge": "Fiat on-ramp, off-ramp and account provider",
+            "rhino": "Cross-chain deposit addresses and bridge liquidity. Peanut is Rhino's customer; you hold no Rhino account.",
+            "thirdNational": "Card issuer, a Rain subsidiary",
+            "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
+            "mantecaAr": "Fiat on-ramp (ARS), off-ramp, QR payer and holder of the ARS deposit account",
+            "mantecaBr": "Fiat on-ramp (BRL Pix), off-ramp, Pix and QR payer"
+        },
+        "about": "About {brand}",
+        "execution": {
+            "bridge": "Signed by you, {brand} pays out",
+            "bridgeEea": "Signed by you, {brand} pays out",
+            "mantecaAr": "Settled by {brand}",
+            "rhino": "Signed by you, {brand} bridges",
+            "thirdNational": "{brand} issues and settles"
+        },
+        "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
+        "cardRelationship": "You have a direct relationship with {brand} under the card terms.",
+        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with {brand}."
     }
 }
