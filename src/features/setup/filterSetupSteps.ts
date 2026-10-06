@@ -37,16 +37,18 @@ export function filterSetupStepsForResidence(
     residence: string
 ) {
     const selected = setupFeatureScreensForResidence(restrictions, residence)
-    const features = selected
-        .map((id) => steps.find((step) => step.screenId === id))
-        .filter((step): step is ISetupStep => !!step)
+    const first = steps.find((step) => step.screenId === selected[0])
+    const second = steps.find((step) => step.screenId === selected[1])
     const result: ISetupStep[] = []
     let inserted = false
     for (const step of steps) {
         if (FEATURE_SCREENS.includes(step.screenId)) {
-            if (!inserted) result.push(...features)
+            if (!inserted && first) result.push(first)
             inserted = true
-        } else result.push(step)
+        } else {
+            result.push(step)
+            if (step.screenId === 'funding-methods' && second) result.push(second)
+        }
     }
     return result
 }

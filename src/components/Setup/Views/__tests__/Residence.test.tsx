@@ -4,7 +4,7 @@
  *
  * Contract under test: geo only prefills (never advances, never restricts),
  * the multi-doc link reveals a second selector, restricted residences
- * (CN/IR/RU/BY/GB) get the generic heads-up before handleNext can run,
+ * (CN/IR/RU/BY/GB) get an availability checklist before handleNext can run,
  * unrestricted residences get the congrats screen before handleNext can run,
  * and residence outcomes respect the same eligibility data.
  */
@@ -290,26 +290,23 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
     })
 
-    it('advances silently instead of claiming congrats while the server lookup is unsettled', () => {
-        // The mirror alone must not back a definitive "nothing is restricted"
-        // claim: before the lookup resolves, the step behaves like the
-        // pre-congrats flow and just advances.
+    it('always shows universal checkboxes while the server lookup is unsettled', () => {
         mockRestrictionSetsSettled = false
         mockSetupState.residenceCountry = 'BR'
-        render(<ResidenceStep />)
+        const view = render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        expect(mockHandleNext).toHaveBeenCalled()
-        expect(screen.queryByText('Here’s what you get with Peanut')).not.toBeInTheDocument()
-        expect(mockedCapture).not.toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
-            expect.anything()
-        )
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(screen.getAllByRole('checkbox')).toHaveLength(2)
+        expect(screen.getByRole('checkbox', { name: 'Digital dollars account' })).toBeChecked()
+        expect(screen.getByRole('checkbox', { name: 'Peanut-to-Peanut payments' })).toBeChecked()
+        mockRestrictionSetsSettled = true
+        view.rerender(<ResidenceStep />)
+        expect(screen.getAllByRole('checkbox')).toHaveLength(4)
     })
 
-    it('demotes the congrats view when server lists later restrict the country', () => {
+    it('updates checklist eligibility when server lists later restrict the country', () => {
         // The sets render from the bundled mirror and the server response can
-        // land after Next was tapped: the "nothing is restricted" claim must
-        // not outlive the data it was based on.
+        // land after Next was tapped: the checklist must reflect new eligibility.
         mockSetupState.residenceCountry = 'BR'
         const view = render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
@@ -318,27 +315,21 @@ describe('ResidenceStep', () => {
         const local = actual.LOCAL_RESIDENCE_RESTRICTION_SETS
         mockRestrictionSets = { ...local, bankingOnly: new Set([...local.bankingOnly, 'BR']) }
         view.rerender(<ResidenceStep />)
-        expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
-        expect(screen.getByText(/Bank transfers aren't available in your country/)).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })).toBeInTheDocument()
+        expect(screen.queryByRole('checkbox', { name: 'Bank accounts & transfers' })).not.toBeInTheDocument()
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
             expect.objectContaining({ residence_country: 'BR', restriction_type: 'banking' })
         )
     })
 
-    it('skips the congrats claim when the second residence is restricted', () => {
-        // "Nothing is restricted where you live" would contradict the compare
-        // cards the user just saw for a restricted second country: advance
-        // silently, like the flow did before the congrats screen existed.
+    it('shows the primary residence checklist even when the second residence is restricted', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'GB' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Select Brazil' }))
-        expect(mockHandleNext).toHaveBeenCalled()
-        expect(screen.queryByText('Here’s what you get with Peanut')).not.toBeInTheDocument()
-        expect(mockedCapture).not.toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
-            expect.anything()
-        )
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(screen.getByRole('heading', { name: 'Here’s what you get with Peanut' })).toBeInTheDocument()
+        expect(screen.getAllByRole('checkbox')).toHaveLength(4)
     })
 
     it('returns to the selector from the congrats screen', () => {
@@ -362,14 +353,17 @@ describe('ResidenceStep', () => {
 
     // mirrors peanut-api-ts FULL_RESTRICTED_RESIDENCE (api#1738)
     it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ'])(
-        'shows the generic heads-up for %s before advancing',
+        'shows the two universal checkboxes for %s before advancing',
         (iso2) => {
             mockSetupState.residenceCountry = iso2
             render(<ResidenceStep />)
             fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
             expect(mockHandleNext).not.toHaveBeenCalled()
             expect(screen.getAllByRole('heading')).toHaveLength(1)
-            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })
+            ).toBeInTheDocument()
+            expect(screen.getAllByRole('checkbox')).toHaveLength(2)
             // the screen itself never names a country
             expect(screen.queryByText(/United Kingdom|China|Iran|Russia|Belarus/)).not.toBeInTheDocument()
             expect(mockedCapture).toHaveBeenCalledWith(
@@ -402,31 +396,47 @@ describe('ResidenceStep', () => {
         ['SO', 'banking'],
         ['SS', 'banking'],
         ['CD', 'banking'],
-    ])('shows the partial heads-up for %s (%s restriction) and continues on demand', (iso2, kind) => {
+    ])('shows eligible checkboxes for %s (%s restriction) and continues on demand', (iso2, kind) => {
         mockSetupState.residenceCountry = iso2
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })).toBeInTheDocument()
+        expect(screen.getByRole('checkbox', { name: 'Digital dollars account' })).toBeChecked()
+        expect(screen.getByRole('checkbox', { name: 'Peanut-to-Peanut payments' })).toBeChecked()
         expect(
-            screen.getByText(
-                kind === 'card'
-                    ? /The Peanut card isn't available in your country/
-                    : /Bank transfers aren't available in your country/
-            )
-        ).toBeInTheDocument()
+            screen.queryByRole('checkbox', {
+                name: kind === 'card' ? 'Peanut card' : 'Bank accounts & transfers',
+            })
+        ).not.toBeInTheDocument()
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
             expect.objectContaining({ residence_country: iso2, restriction_type: kind })
         )
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockHandleNext).toHaveBeenCalled()
+    })
+
+    it('shows exactly two interactive options for Ukraine, with Peanut payments last', () => {
+        mockSetupState.residenceCountry = 'UA'
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
+        const options = screen.getAllByRole('checkbox')
+        expect(options).toHaveLength(2)
+        expect(options[0]).toHaveAccessibleName('Digital dollars account')
+        expect(options[1]).toHaveAccessibleName('Peanut-to-Peanut payments')
+        options.forEach((option) => expect(option).toBeChecked())
+        fireEvent.click(options[0])
+        expect(options[0]).not.toBeChecked()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
     it('lists sanctioned countries in the selector so residents can answer truthfully', () => {
         // countryData omits them (it is the add-money destination list); the
-        // supplemental options must fill the gap or the heads-up never fires.
+        // supplemental options must fill the gap so residents can reach their checklist.
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('combobox'))
         // Substring match: the selector now renders Intl.DisplayNames names,
@@ -436,11 +446,11 @@ describe('ResidenceStep', () => {
         }
     })
 
-    it('lets a restricted resident continue anyway', () => {
+    it('lets a restricted resident continue from the checklist', () => {
         mockSetupState.residenceCountry = 'GB'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        fireEvent.click(screen.getByRole('button', { name: 'Continue anyway' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED,
             expect.objectContaining({ residence_country: 'GB' })
@@ -448,7 +458,7 @@ describe('ResidenceStep', () => {
         expect(mockHandleNext).toHaveBeenCalled()
     })
 
-    it('returns to the selector from the heads-up', () => {
+    it('returns to the selector from the checklist', () => {
         mockSetupState.residenceCountry = 'CN'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
@@ -458,23 +468,27 @@ describe('ResidenceStep', () => {
     })
 
     describe('stepping back into the step', () => {
-        // One step back from the passkey step must land on the screen the
-        // user actually left: the heads-up for a restricted pick, never the
+        // One step back must land on the screen the
+        // user actually left: the checklist for a restricted pick, never the
         // username screen two steps away (TASK-22232).
-        it('restores the generic heads-up for a fully restricted pick', () => {
+        it('restores the checklist for a fully restricted pick', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
-            expect(screen.getByRole('button', { name: 'Continue anyway' })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })
+            ).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Looks good' })).toBeInTheDocument()
         })
 
-        it('restores the partial heads-up with the matching restriction copy', () => {
+        it('restores the checklist with the matching eligibility', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'JP'
             render(<ResidenceStep />)
-            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
-            expect(screen.getByText(/Bank transfers aren't available in your country/)).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })
+            ).toBeInTheDocument()
+            expect(screen.queryByRole('checkbox', { name: 'Bank accounts & transfers' })).not.toBeInTheDocument()
         })
 
         it('lands on the selector for an unrestricted pick', () => {
@@ -493,11 +507,13 @@ describe('ResidenceStep', () => {
     })
 
     describe('hardware back', () => {
-        it('returns to the selector from a heads-up sub-view', () => {
+        it('returns to the selector from a checklist sub-view', () => {
             mockSetupState.residenceCountry = 'CN'
             render(<ResidenceStep />)
             fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })
+            ).toBeInTheDocument()
 
             let consumed = false
             act(() => {
@@ -540,7 +556,9 @@ describe('ResidenceStep', () => {
                 consumed = dispatchBackPress()
             })
             expect(consumed).toBe(true)
-            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+            expect(
+                screen.getByRole('heading', { level: 1, name: 'Here’s what you get with Peanut' })
+            ).toBeInTheDocument()
         })
     })
 })

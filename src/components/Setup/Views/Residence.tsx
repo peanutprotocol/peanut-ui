@@ -11,7 +11,6 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features/setup/country-signals'
@@ -38,11 +37,11 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     // server-authoritative tier lists with the bundled mirror as fallback
     const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
 
-    // Stepping BACK into this step (from the passkey step) must land on the
-    // screen the user actually left: a restricted pick left from its heads-up,
+    // Stepping BACK into this step must land on the
+    // screen the user actually left: a restricted pick left from its checklist,
     // so re-derive that view from the stored country. The congrats view is not
-    // restored — it needs settled server data to be an honest claim, and the
-    // selector is the natural place to change the answer. Forward entry and
+    // restored for unrestricted picks — the selector is the natural place
+    // to change the answer. Forward entry and
     // deep links (direction 1 / 0) always start on the selector.
     const [view, setView] = useState<ResidenceView>(() => {
         if (initialView) return initialView
@@ -57,9 +56,6 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         if (!isLoading) setView('select')
         return true
     }, view !== 'select')
-    const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>(() =>
-        restrictionSets.bankingOnly.has(residenceCountry) ? 'banking' : 'card'
-    )
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const secondCountryId = useId()
     const featureId = useId()
@@ -129,30 +125,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 residence_country: primary,
                 restriction_type: partial,
             })
-            setPartialRestriction(partial)
             setView('partial')
-            return
-        }
-        // The congrats claim is definitive, so it only renders from settled
-        // data: until the server lookup resolves (either way), advance
-        // silently rather than asserting "nothing is restricted" off the
-        // bundled mirror. Heads-ups still render from the mirror — they only
-        // ever over-warn.
-        if (!restrictionSetsSettled) {
-            void handleNext()
-            return
-        }
-        // "Nothing is restricted where you live" must hold for the whole
-        // declared residence set: a restricted second country just showed its
-        // limits on the compare cards, so the congrats claim would contradict
-        // them. Advance silently instead — the heads-ups stay primary-driven.
-        if (
-            second &&
-            (restrictionSets.full.has(second) ||
-                restrictionSets.cardOnly.has(second) ||
-                restrictionSets.bankingOnly.has(second))
-        ) {
-            void handleNext()
             return
         }
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, {
@@ -195,14 +168,10 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         void handleNext()
     }
 
-    useSetupImageOverride(view === 'congrats' ? { animation: 'phone-to-phone' } : null)
+    useSetupImageOverride(view !== 'select' ? { animation: 'phone-to-phone' } : null)
 
-    /* The tier sets render from the bundled mirror and are replaced by the
-       server-authoritative lists asynchronously. A congrats view reached
-       before that response must not outlive it: re-evaluate on every set
-       change and demote to the matching heads-up (or back to the selector
-       when the second residence turned out restricted). Heads-up views are
-       never demoted — over-warning is stale-safe. */
+    // Keep the analytics outcome aligned with updated server tiers. All
+    // outcomes share the same checklist; its rows re-derive from these sets.
     useEffect(() => {
         if (view !== 'congrats') return
         if (restrictionSets.full.has(residenceCountry)) {
@@ -222,17 +191,18 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 residence_country: residenceCountry,
                 restriction_type: partial,
             })
-            setPartialRestriction(partial)
             setView('partial')
             return
         }
-        const second = deriveResidenceRestrictionsFrom(restrictionSets, secondResidenceCountry)
-        if (second.banking || second.card) setView('select')
-    }, [restrictionSets, view, residenceCountry, secondResidenceCountry])
+    }, [restrictionSets, view, residenceCountry])
 
-    if (view === 'congrats') {
+    if (view !== 'select') {
         const availability = residenceAvailability(restrictionSets, residenceCountry)
-        const rails = availability.available.filter((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
+        // Until the authoritative lookup settles, show only universal
+        // features. Never skip this screen or promise unconfirmed benefits.
+        const rails = restrictionSetsSettled
+            ? availability.available.filter((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
+            : []
         const features: { icon: IconName; title: string }[] = [
             {
                 icon: 'dollar',
@@ -246,7 +216,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                       },
                   ]
                 : []),
-            ...(availability.available.includes('card')
+            ...(restrictionSetsSettled && availability.available.includes('card')
                 ? [
                       {
                           icon: 'credit-card' as const,
@@ -307,7 +277,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                     actions={
                         <Button
                             shadowSize="4"
-                            onClick={() => void handleNext()}
+                            onClick={view === 'restricted' ? onRestrictedContinue : () => void handleNext()}
                             loading={isLoading}
                             disabled={isLoading}
                         >
@@ -323,65 +293,10 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         )
     }
 
-    if (view === 'partial') {
-        return (
-            <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-s">{t('residenceStep.partial.title')}</h1>
-                    <p className="text-body-m leading-7 text-foreground-secondary">
-                        {partialRestriction === 'card'
-                            ? t('residenceStep.partial.cardDescription')
-                            : t('residenceStep.partial.bankingDescription')}
-                    </p>
-                </div>
-                <SetupFooter
-                    actions={
-                        <Button
-                            shadowSize="4"
-                            onClick={() => void handleNext()}
-                            loading={isLoading}
-                            disabled={isLoading}
-                        >
-                            {t('residenceStep.partial.continue')}
-                        </Button>
-                    }
-                >
-                    <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
-                        {t('residenceStep.restricted.changeCountry')}
-                    </LinkButton>
-                </SetupFooter>
-            </div>
-        )
-    }
-
-    if (view === 'restricted') {
-        return (
-            <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-s">{t('residenceStep.restricted.title')}</h1>
-                    <p className="text-body-m leading-7 text-foreground-secondary">
-                        {t('residenceStep.restricted.description')}
-                    </p>
-                </div>
-                <SetupFooter
-                    actions={
-                        <Button shadowSize="4" onClick={onRestrictedContinue} loading={isLoading} disabled={isLoading}>
-                            {t('residenceStep.restricted.continueAnyway')}
-                        </Button>
-                    }
-                >
-                    <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
-                        {t('residenceStep.restricted.changeCountry')}
-                    </LinkButton>
-                </SetupFooter>
-            </div>
-        )
-    }
-
     return (
         <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
             <div className="flex w-full flex-col gap-2">
-                {/* Rendered here, not by the step chrome, so the heads-up
+                {/* Rendered here, not by the step chrome, so the checklist
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
                 <h1 className="w-full text-left text-heading-s">{t('steps.residence.title')}</h1>
