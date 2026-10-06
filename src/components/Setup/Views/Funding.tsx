@@ -6,7 +6,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { useSetupFlowContext, type SetupFundingMethod } from '@/features/setup/SetupFlowContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -15,11 +17,11 @@ import SetupFooter from '../components/SetupFooter'
 
 const METHODS: SetupFundingMethod[] = ['bank', 'cash', 'crypto', 'peanut']
 const UNIVERSAL_METHODS: SetupFundingMethod[] = ['crypto', 'peanut']
-const METHOD_ICONS: Record<SetupFundingMethod, IconName> = {
+const METHOD_CONCEPTS: Record<SetupFundingMethod, Concept> = {
     bank: 'bank',
-    cash: 'currency',
-    crypto: 'coins',
-    peanut: 'users',
+    cash: 'cash',
+    crypto: 'crypto',
+    peanut: 'friends',
 }
 
 export default function FundingStep() {
@@ -52,7 +54,7 @@ export default function FundingStep() {
                                     htmlFor={`${id}-${method}`}
                                     className="flex items-center gap-3 text-foreground-primary"
                                 >
-                                    <Icon name={METHOD_ICONS[method]} size={24} className="shrink-0" />
+                                    <IconBubble {...CONCEPT_ICONS[METHOD_CONCEPTS[method]]} size="m" />
                                     <span>{t(`funding.methods.${method}`)}</span>
                                 </label>
                             }

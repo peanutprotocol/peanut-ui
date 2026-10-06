@@ -8,6 +8,8 @@ import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Card, CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -205,15 +207,17 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             residenceCountry,
             restrictionSetsSettled
         )
-        const features: { icon: IconName; title: string }[] = [
+        const features: { icon: IconName; concept: Concept; title: string }[] = [
             {
                 icon: 'dollar',
+                concept: 'balance',
                 title: t('residenceStep.congrats.checklist.dollars'),
             },
             ...(bank
                 ? [
                       {
                           icon: 'bank' as const,
+                          concept: 'bank' as const,
                           title: t('residenceStep.congrats.checklist.banking'),
                       },
                   ]
@@ -222,12 +226,14 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 ? [
                       {
                           icon: 'credit-card' as const,
+                          concept: 'card' as const,
                           title: t('residenceStep.compare.items.card'),
                       },
                   ]
                 : []),
             {
                 icon: 'users',
+                concept: 'friends',
                 title: t('residenceStep.compare.items.p2p'),
             },
         ]
@@ -247,7 +253,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                                 htmlFor={`${featureId}-${feature.icon}`}
                                                 className="flex items-center gap-3 text-foreground-primary"
                                             >
-                                                <Icon name={feature.icon} size={24} className="shrink-0" />
+                                                <IconBubble {...CONCEPT_ICONS[feature.concept]} size="m" />
                                                 <span>{feature.title}</span>
                                             </label>
                                         }
