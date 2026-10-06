@@ -52,7 +52,6 @@ describe('screen catalogue', () => {
                 '02-b-advantage-card',
                 '03-e-advantage-local',
                 '03-g-advantage-people',
-                '03-d-funding-methods',
                 '07-a-setuppasskey',
                 '08-a-passkeysetuphelpmodal',
                 '09-a-passkeyinfomodal',

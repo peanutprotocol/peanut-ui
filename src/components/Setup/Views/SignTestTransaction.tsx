@@ -94,7 +94,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         secondResidenceCountry,
         setIsLoading: setSetupLoading,
         signupEntryFlow,
-        fundingMethods,
+        fundingChannel,
     } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
@@ -136,7 +136,9 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,
             ...signupAnalyticsContext(signupEntryFlow),
-            funding_methods: fundingMethods,
+            funding_methods: fundingChannel
+                ? [fundingChannel === 'crypto' || fundingChannel === 'peanut' ? fundingChannel : 'bank']
+                : [],
             ...(signupAttribution
                 ? {
                       signup_journey_id: signupAttribution.journeyId,

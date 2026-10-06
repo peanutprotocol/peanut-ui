@@ -23,7 +23,7 @@ it('slides complete screens together with only the incoming screen accessible', 
     )
     const hero = screen.getByTestId('card-illustration').closest('.setup-hero-background')
     view.rerender(
-        <SetupWrapper layoutType="signup" screenId="funding-methods" fullScreen>
+        <SetupWrapper layoutType="signup" screenId="advantage-bank" fullScreen>
             <h1>Fund your account</h1>
         </SetupWrapper>
     )
@@ -51,7 +51,7 @@ it('keeps the next illustration override when the outgoing screen cleans up', as
         </SetupWrapper>
     )
     view.rerender(
-        <SetupWrapper layoutType="signup" screenId="funding-methods" image={{ animation: 'topup' }}>
+        <SetupWrapper layoutType="signup" screenId="advantage-bank" image={{ animation: 'topup' }}>
             <Override pose="cheering" />
         </SetupWrapper>
     )

@@ -22,7 +22,6 @@ export type ScreenId =
     | 'notification-email'
     | 'advantage-payments'
     | 'residence'
-    | 'funding-methods'
     | 'advantage-rewards'
     | 'passkey-permission'
     | 'advantage-control'
@@ -45,7 +44,6 @@ export type ScreenProps = {
     'notification-email': undefined
     'advantage-payments': undefined
     residence: undefined
-    'funding-methods': undefined
     'advantage-rewards': undefined
     'passkey-permission': {
         handle: string

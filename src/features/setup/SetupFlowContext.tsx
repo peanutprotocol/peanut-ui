@@ -6,8 +6,9 @@ import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
 import { EInviteType } from '@/services/services.types'
 import { clearInvite, readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
 
+import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels'
+
 type ManualInvite = { code: string; previousCode: string; previousType: EInviteType }
-export type SetupFundingMethod = 'bank' | 'cash' | 'crypto' | 'peanut'
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
@@ -19,8 +20,10 @@ export type SetupFundingMethod = 'bank' | 'cash' | 'crypto' | 'peanut'
  * clamps (TASK-21404).
  */
 interface SetupFlowContextType {
-    fundingMethods: SetupFundingMethod[]
-    setFundingMethods: (methods: SetupFundingMethod[]) => void
+    fundingChannel: SetupFundingChannel | null
+    setFundingChannel: (channel: SetupFundingChannel) => void
+    paymentChannel: SetupPaymentChannel | null
+    setPaymentChannel: (channel: SetupPaymentChannel) => void
     notificationEmail: string
     setNotificationEmail: (email: string) => void
     notificationChoices: { push: boolean; email: boolean }
@@ -68,7 +71,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     masterScreenIds,
 }) => {
     const [notificationEmail, setNotificationEmail] = useState('')
-    const [fundingMethods, setFundingMethods] = useState<SetupFundingMethod[]>([])
+    const [fundingChannel, setFundingChannel] = useState<SetupFundingChannel | null>(null)
+    const [paymentChannel, setPaymentChannel] = useState<SetupPaymentChannel | null>(null)
     const [notificationChoices, setNotificationChoices] = useState({ push: true, email: true })
     const [signupCompleted, setSignupCompleted] = useState(false)
     const [steps, setSteps] = useState<ISetupStep[]>([])
@@ -106,7 +110,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     // mounted through the logout, so the typed state clears explicitly
     const resetSetupFlow = useCallback(() => {
         setIsLoading(false)
-        setFundingMethods([])
+        setFundingChannel(null)
+        setPaymentChannel(null)
         setNotificationEmail('')
         setNotificationChoices({ push: true, email: true })
         setSignupCompleted(false)
@@ -121,8 +126,10 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
 
     const value = useMemo(
         () => ({
-            fundingMethods,
-            setFundingMethods,
+            fundingChannel,
+            setFundingChannel,
+            paymentChannel,
+            setPaymentChannel,
             notificationEmail,
             setNotificationEmail,
             notificationChoices,
@@ -153,7 +160,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             resetSetupFlow,
         }),
         [
-            fundingMethods,
+            fundingChannel,
+            paymentChannel,
             notificationEmail,
             notificationChoices,
             signupCompleted,

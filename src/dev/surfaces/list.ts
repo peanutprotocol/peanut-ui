@@ -38,7 +38,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
     '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
     '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },
-    '03-d-funding-methods': { name: 'Setup — funding methods', path: 'Setup/Views/Funding.tsx' },
     '03-e-advantage-local': { name: 'Setup benefit — QR payments', path: 'Setup/Views/Advantage.tsx' },
     '03-f-advantage-exchange': { name: 'Setup benefit — Exchange rates', path: 'Setup/Views/Advantage.tsx' },
     '03-g-advantage-people': { name: 'Setup benefit — Payments by username', path: 'Setup/Views/Advantage.tsx' },

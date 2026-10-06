@@ -697,15 +697,6 @@
     },
     "setup": {
         "choicesLater": "Você pode mudar suas escolhas depois.",
-        "funding": {
-            "title": "Como você vai adicionar dinheiro à sua conta?",
-            "methods": {
-                "bank": "Transferência bancária",
-                "cash": "Dinheiro em espécie",
-                "crypto": "Cripto",
-                "peanut": "De outra pessoa no Peanut"
-            }
-        },
         "steps": {
             "landing": {
                 "title": "Com o Peanut, dólares ficam fáceis.",
@@ -1013,6 +1004,33 @@
             "continue": "Gostei",
             "pushUnavailable": "As notificações push ainda não estão prontas. Tente novamente ou desative o push para continuar.",
             "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
+        },
+        "paymentPlan": {
+            "addMoney": "Vou adicionar dinheiro com",
+            "firstPayment": "e fazer meu primeiro pagamento com",
+            "fundingTitle": "Adicionar dinheiro com",
+            "paymentTitle": "Fazer um pagamento com",
+            "hint": "Toque em uma opção rosa para mudar. As outras continuarão disponíveis depois.",
+            "funding": {
+                "eurSepa": "EUR · SEPA",
+                "gbpFps": "GBP · Faster Payments",
+                "usdAch": "USD · ACH",
+                "spei": "MXN · SPEI",
+                "pix": "BRL · Pix",
+                "arQr": "ARS · Transferência bancária",
+                "crypto": "Cripto",
+                "peanut": "Pagamentos de Peanut para Peanut"
+            },
+            "payment": {
+                "eurSepa": "EUR · SEPA",
+                "gbpFps": "GBP · Faster Payments",
+                "usdAch": "USD · ACH",
+                "spei": "MXN · SPEI",
+                "pix": "Pagamentos com Pix",
+                "arQr": "QR do Mercado Pago",
+                "peanut": "Pagamentos de Peanut para Peanut",
+                "card": "Cartão Peanut"
+            }
         }
     },
     "loadingStates": {

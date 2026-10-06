@@ -697,15 +697,6 @@
     },
     "setup": {
         "choicesLater": "You can update your choices later.",
-        "funding": {
-            "title": "How are you going to fund your account?",
-            "methods": {
-                "bank": "Bank transfer",
-                "cash": "Cash",
-                "crypto": "Crypto",
-                "peanut": "From someone on Peanut"
-            }
-        },
         "steps": {
             "landing": {
                 "title": "Peanut makes dollars easy.",
@@ -1013,6 +1004,33 @@
             "continue": "Sounds good",
             "pushUnavailable": "Push notifications aren’t ready yet. Try again, or turn push off to continue.",
             "saveFailed": "We couldn’t save your settings. Please try again."
+        },
+        "paymentPlan": {
+            "addMoney": "I’ll add money with",
+            "firstPayment": "and make my first payment with",
+            "fundingTitle": "Add money with",
+            "paymentTitle": "Make a payment with",
+            "hint": "Tap a pink option to change it. Everything else stays available later.",
+            "funding": {
+                "eurSepa": "EUR · SEPA",
+                "gbpFps": "GBP · Faster Payments",
+                "usdAch": "USD · ACH",
+                "spei": "MXN · SPEI",
+                "pix": "BRL · Pix",
+                "arQr": "ARS · Bank transfer",
+                "crypto": "Crypto",
+                "peanut": "Peanut-to-Peanut payments"
+            },
+            "payment": {
+                "eurSepa": "EUR · SEPA",
+                "gbpFps": "GBP · Faster Payments",
+                "usdAch": "USD · ACH",
+                "spei": "MXN · SPEI",
+                "pix": "Pix payments",
+                "arQr": "Mercado Pago QR",
+                "peanut": "Peanut-to-Peanut payments",
+                "card": "Peanut card"
+            }
         }
     },
     "loadingStates": {

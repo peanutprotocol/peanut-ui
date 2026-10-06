@@ -126,7 +126,6 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '02-b-advantage-card': { journey: 'Account setup', step: 46 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
     '03-c-residence-congrats': { journey: 'Account setup', step: 42 },
-    '03-d-funding-methods': { journey: 'Account setup', step: 45 },
     '03-f-advantage-exchange': { journey: 'Account setup', step: 44 },
     '03-e-advantage-local': { journey: 'Account setup', step: 47 },
     '03-g-advantage-people': { journey: 'Account setup', step: 48 },

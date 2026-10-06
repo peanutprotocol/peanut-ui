@@ -43,11 +43,13 @@ export function filterSetupStepsForResidence(
     let inserted = false
     for (const step of steps) {
         if (FEATURE_SCREENS.includes(step.screenId)) {
-            if (!inserted && first) result.push(first)
+            if (!inserted) {
+                if (first) result.push(first)
+                if (second) result.push(second)
+            }
             inserted = true
         } else {
             result.push(step)
-            if (step.screenId === 'funding-methods' && second) result.push(second)
         }
     }
     return result

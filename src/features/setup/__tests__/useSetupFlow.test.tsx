@@ -57,20 +57,20 @@ describe('useSetupFlow (URL stepper)', () => {
         ['IN', 'advantage-bank', 'advantage-exchange'],
         ['JP', 'advantage-exchange', 'advantage-card'],
         ['RU', 'advantage-exchange', 'advantage-people'],
-    ])('walks funding between the selected feature screens for %s', async (country, first, second) => {
+    ])('walks both feature screens after the merged plan for %s', async (country, first, second) => {
         const { result } = renderFlow({ screen: 'residence' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
         await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country))
-        for (const expected of [first, 'funding-methods', second]) {
+        for (const expected of [first, second]) {
             await act(async () => {
                 await result.current.flow.handleNext()
             })
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
         await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe('funding-methods')
-        await act(async () => result.current.flow.handleBack())
         expect(result.current.flow.step?.screenId).toBe(first)
+        await act(async () => result.current.flow.handleBack())
+        expect(result.current.flow.step?.screenId).toBe('residence')
     })
 
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
@@ -203,7 +203,6 @@ describe('useSetupFlow (URL stepper)', () => {
             'advantage-exchange',
             'advantage-local',
             'advantage-people',
-            'funding-methods',
             'passkey-permission',
             'notification-email',
             'notification-permission',

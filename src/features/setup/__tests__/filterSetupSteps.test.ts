@@ -14,9 +14,8 @@ it.each([
 ])('keeps exactly two ordered feature screens for %s', (residence, expected) => {
     expect(setupFeatureScreensForResidence(restrictions, residence as string)).toEqual(expected)
     const ids = filterSetupStepsForResidence(setupSteps, restrictions, residence as string).map((step) => step.screenId)
-    expect(ids.slice(ids.indexOf('residence') + 1, ids.indexOf('funding-methods') + 2)).toEqual([
+    expect(ids.slice(ids.indexOf('residence') + 1, ids.indexOf('passkey-permission'))).toEqual([
         expected[0],
-        'funding-methods',
         expected[1],
     ])
     expect(new Set(ids).size).toBe(ids.length)

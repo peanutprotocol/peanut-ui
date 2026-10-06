@@ -259,7 +259,6 @@ const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
     'advantage-exchange': 5,
     'advantage-local': 6,
     'advantage-people': 6,
-    'funding-methods': 7,
     'passkey-permission': 8,
     'notification-email': 9,
     'notification-permission': 10,

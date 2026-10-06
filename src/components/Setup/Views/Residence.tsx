@@ -4,14 +4,10 @@ import SetupFooter from '../components/SetupFooter'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
-import { Checkbox } from '@/components/0_Bruddle/Checkbox'
-import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { Card, CARD_SURFACE } from '@/components/0_Bruddle/Card'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
-import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
+import PaymentPlan from './PaymentPlan'
+import { useSetupFullScreen } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
@@ -20,7 +16,6 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { residenceAvailability } from '@/utils/residence-availability'
-import { availableSetupFeaturesForResidence } from '@/features/setup/availableFeaturesForResidence'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -38,7 +33,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const { handleNext, isLoading, direction } = useSetupFlow()
     const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
-    const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
+    const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
 
     // Stepping BACK into this step must land on the
     // screen the user actually left: a restricted pick left from its checklist,
@@ -61,8 +56,6 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     }, view !== 'select')
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const secondCountryId = useId()
-    const featureId = useId()
-    const [uncheckedFeatures, setUncheckedFeatures] = useState<string[]>([])
     // whether the current selection came from the geo suggestion, untouched
     const wasPrefilledRef = useRef(false)
     const prefillSourceRef = useRef<string | null>(null)
@@ -171,7 +164,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         void handleNext()
     }
 
-    useSetupImageOverride(view !== 'select' ? { animation: 'phone-to-phone' } : null)
+    useSetupFullScreen(view !== 'select')
 
     // Keep the analytics outcome aligned with updated server tiers. All
     // outcomes share the same checklist; its rows re-derive from these sets.
@@ -200,104 +193,15 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     }, [restrictionSets, view, residenceCountry])
 
     if (view !== 'select') {
-        // Until the authoritative lookup settles, show only universal
-        // features. Never skip this screen or promise unconfirmed benefits.
-        const { bank, card } = availableSetupFeaturesForResidence(
-            restrictionSets,
-            residenceCountry,
-            restrictionSetsSettled
-        )
-        const features: { icon: IconName; concept: Concept; title: string }[] = [
-            {
-                icon: 'dollar',
-                concept: 'balance',
-                title: t('residenceStep.congrats.checklist.dollars'),
-            },
-            ...(bank
-                ? [
-                      {
-                          icon: 'bank' as const,
-                          concept: 'bank' as const,
-                          title: t('residenceStep.congrats.checklist.banking'),
-                      },
-                  ]
-                : []),
-            ...(card
-                ? [
-                      {
-                          icon: 'credit-card' as const,
-                          concept: 'card' as const,
-                          title: t('residenceStep.compare.items.card'),
-                      },
-                  ]
-                : []),
-            {
-                icon: 'users',
-                concept: 'friends',
-                title: t('residenceStep.compare.items.p2p'),
-            },
-        ]
         return (
-            <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-s">{t('residenceStep.congrats.title')}</h1>
-                    <Card className="mt-6 px-4">
-                        <ul role="list" className="divide-y divide-dashed divide-border-default">
-                            {features.map((feature) => (
-                                <li key={feature.title}>
-                                    <DataRow
-                                        compact
-                                        wrapLabel
-                                        label={
-                                            <label
-                                                htmlFor={`${featureId}-${feature.icon}`}
-                                                className="flex items-center gap-3 text-foreground-primary"
-                                            >
-                                                <IconBubble {...CONCEPT_ICONS[feature.concept]} size="s" />
-                                                <span>{feature.title}</span>
-                                            </label>
-                                        }
-                                        value={
-                                            <Checkbox
-                                                id={`${featureId}-${feature.icon}`}
-                                                aria-label={feature.title}
-                                                value={!uncheckedFeatures.includes(feature.icon)}
-                                                onChange={(event) =>
-                                                    setUncheckedFeatures((previous) =>
-                                                        event.target.checked
-                                                            ? previous.filter((key) => key !== feature.icon)
-                                                            : [...previous, feature.icon]
-                                                    )
-                                                }
-                                            />
-                                        }
-                                    />
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                    <p className="mt-2 flex items-center justify-center gap-2 text-center text-body-xs text-foreground-secondary">
-                        <Icon name="info" size={16} className="shrink-0" />
-                        {t('choicesLater')}
-                    </p>
-                </div>
-                <SetupFooter
-                    actions={
-                        <Button
-                            shadowSize="4"
-                            onClick={view === 'restricted' ? onRestrictedContinue : () => void handleNext()}
-                            loading={isLoading}
-                            disabled={isLoading}
-                        >
-                            {t('cta.features')}
-                        </Button>
-                    }
-                >
-                    <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
-                        {t('residenceStep.restricted.changeCountry')}
-                    </LinkButton>
-                </SetupFooter>
-            </div>
+            <PaymentPlan
+                onContinue={view === 'restricted' ? onRestrictedContinue : () => void handleNext()}
+                loading={isLoading}
+            >
+                <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
+                    {t('residenceStep.restricted.changeCountry')}
+                </LinkButton>
+            </PaymentPlan>
         )
     }
 

@@ -405,15 +405,6 @@
     },
     "setup": {
         "choicesLater": "Podés cambiar tus opciones más adelante.",
-        "funding": {
-            "title": "¿Cómo vas a agregar plata a tu cuenta?",
-            "methods": {
-                "bank": "Transferencia bancaria",
-                "cash": "Efectivo",
-                "crypto": "Cripto",
-                "peanut": "De otra persona en Peanut"
-            }
-        },
         "steps": {
             "landing": {
                 "description": "Creá tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
@@ -671,6 +662,33 @@
         },
         "wrapper": {
             "introGreeting": "¡Hola! Soy Peanut"
+        },
+        "paymentPlan": {
+            "addMoney": "Voy a agregar dinero con",
+            "firstPayment": "y hacer mi primer pago con",
+            "fundingTitle": "Agregar dinero con",
+            "paymentTitle": "Hacer un pago con",
+            "hint": "Tocá una opción rosa para cambiarla. Las demás seguirán disponibles más adelante.",
+            "funding": {
+                "eurSepa": "EUR · SEPA",
+                "gbpFps": "GBP · Faster Payments",
+                "usdAch": "USD · ACH",
+                "spei": "MXN · SPEI",
+                "pix": "BRL · Pix",
+                "arQr": "ARS · Transferencia bancaria",
+                "crypto": "Cripto",
+                "peanut": "Pagos de Peanut a Peanut"
+            },
+            "payment": {
+                "eurSepa": "EUR · SEPA",
+                "gbpFps": "GBP · Faster Payments",
+                "usdAch": "USD · ACH",
+                "spei": "MXN · SPEI",
+                "pix": "Pagos con Pix",
+                "arQr": "QR de Mercado Pago",
+                "peanut": "Pagos de Peanut a Peanut",
+                "card": "Tarjeta Peanut"
+            }
         }
     },
     "loadingStates": {
