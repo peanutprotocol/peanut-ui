@@ -22,6 +22,8 @@ const mockClearSignupAttribution = jest.fn()
 const mockHasPendingSignupAttribution = jest.fn()
 
 let mockSignupCompleted = false
+let mockFundingChannel: string | undefined
+let mockPaymentChannel: string | undefined
 
 let accounts: Array<{ type: AccountType }> = []
 
@@ -50,6 +52,8 @@ jest.mock('@/context/authContext', () => ({
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         signupCompleted: mockSignupCompleted,
+        fundingChannel: mockFundingChannel,
+        paymentChannel: mockPaymentChannel,
         residenceCountry: '',
         secondResidenceCountry: '',
         setIsLoading: jest.fn(),
@@ -87,6 +91,8 @@ describe('SignTestTransaction — setup completion', () => {
         localStorage.clear()
         accounts = []
         mockSignupCompleted = false
+        mockFundingChannel = undefined
+        mockPaymentChannel = undefined
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
         mockReadSignupAttributionAsync.mockResolvedValue(null)
         mockClearSignupAttribution.mockResolvedValue(undefined)
@@ -281,4 +287,27 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
     })
+})
+
+it('includes both selected methods in the account-completion request', async () => {
+    mockFundingChannel = 'brlBank'
+    mockPaymentChannel = 'pix'
+    jest.clearAllMocks()
+    mockSignupCompleted = false
+    mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
+    mockReadSignupAttributionAsync.mockResolvedValue(null)
+    mockHasPendingSignupAttribution.mockResolvedValue(false)
+    mockClearSignupAttribution.mockResolvedValue(undefined)
+    accounts = []
+    mockAddAccount.mockImplementation(async () => {
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+    })
+    renderWithIntl(<SignTestTransaction />)
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+    await waitFor(() =>
+        expect(mockAddAccount).toHaveBeenCalledWith(
+            expect.objectContaining({ signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'pix' } })
+        )
+    )
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())
 })

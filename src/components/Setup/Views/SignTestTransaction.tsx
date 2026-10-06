@@ -95,6 +95,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         setIsLoading: setSetupLoading,
         signupEntryFlow,
         fundingChannel,
+        paymentChannel,
     } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
@@ -304,7 +305,10 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             if (!accountExists) {
                 console.log('[SignTestTransaction] Finalizing account setup')
                 creatingAccountRef.current = true
-                const success = await finalizeAccountSetup(address)
+                const success = await finalizeAccountSetup(
+                    address,
+                    fundingChannel && paymentChannel ? { fundingChannel, paymentChannel } : undefined
+                )
                 if (!success) {
                     // The request layer already recorded the concrete failure;
                     // avoid another console-captured wrapper event here.

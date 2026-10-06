@@ -65,6 +65,10 @@ export interface paths {
                         chainId?: string;
                         telegramHandle?: string;
                         userId: string;
+                        signupPreferences?: {
+                            fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "pix" | "arQr" | "crypto" | "peanut";
+                        };
                     };
                 };
             };
@@ -12664,6 +12668,10 @@ export interface paths {
                                 banking: boolean;
                                 card: boolean;
                             };
+                            signupPreferences: {
+                                fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                                paymentChannel: "bank" | "card" | "pix" | "arQr" | "crypto" | "peanut";
+                            } | null;
                         } & {
                             [key: string]: unknown;
                         };

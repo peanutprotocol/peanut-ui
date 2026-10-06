@@ -6,6 +6,7 @@ import { recoverLoginSession } from '@/utils/login-session'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
+import type { SignupPreferences } from '@/types/signup-preferences'
 import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import {
     removeFromCookie,
@@ -56,11 +57,13 @@ interface AuthContextType {
         userId,
         connector,
         telegramHandle,
+        signupPreferences,
     }: {
         accountIdentifier: string
         accountType: string
         userId: string
         telegramHandle?: string
+        signupPreferences?: SignupPreferences
         connector?: {
             iconUrl: string
             name: string
@@ -237,6 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         bridgeAccountId,
         connector,
         telegramHandle,
+        signupPreferences,
     }: {
         accountIdentifier: string
         accountType: string
@@ -247,11 +251,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: string
         }
         telegramHandle?: string
+        signupPreferences?: SignupPreferences
     }) => {
         return completeAccountSetup({
             accountIdentifier,
             accountType,
             fetchProfile: legacy_fetchUser,
+            signupPreferences,
             request: () =>
                 apiFetch('/add-account', {
                     method: 'POST',
@@ -262,6 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         accountType,
                         connector,
                         telegramHandle,
+                        ...(signupPreferences ? { signupPreferences } : {}),
                     }),
                 }),
         })
