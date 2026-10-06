@@ -60,18 +60,27 @@ export function useUnlockChecklist(residence: string, onVerify: () => void) {
         )
     }, [config.data, rows, residence, document])
 
+    // a checklist that left the screen during the save must not start the check
+    const onScreen = useRef(true)
+    useEffect(() => {
+        onScreen.current = true
+        return () => {
+            onScreen.current = false
+        }
+    }, [])
+
     const save = useMutation({
-        // Resolves to the set that was sent: the toggles stay live during the
-        // request, and the setup rows and the resume gate (item 9a) must hold
-        // what the API stored.
-        mutationFn: async () => {
-            await kycIntentsApi.set(intents)
-            return intents
+        // Takes the set the tapped button showed and resolves to it: the
+        // toggles stay live during the request, and the setup rows and the
+        // resume gate (item 9a) must hold what the API stored.
+        mutationFn: async (set: KycIntentSet) => {
+            await kycIntentsApi.set(set)
+            return set
         },
         onSuccess: (stored) => {
             recordOneShotIntents(stored)
-            posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED, analyticsProps(residence, document, intents))
-            onVerify()
+            posthog.capture(ANALYTICS_EVENTS.ONBOARDING_UNLOCK_CONTINUED, analyticsProps(residence, document, stored))
+            if (onScreen.current) onVerify()
         },
     })
     const skip = () =>

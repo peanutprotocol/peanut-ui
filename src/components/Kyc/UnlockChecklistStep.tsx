@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -39,6 +39,8 @@ interface UnlockChecklistStepProps {
     onVerify: () => void
     /** "Explore first": leaves the screen without verifying. */
     onExplore: () => void
+    /** Tells the host a save is in flight, so the drawer form cannot be dismissed under it. */
+    onSavingChange: (saving: boolean) => void
 }
 
 const SKELETON = 'animate-pulse rounded bg-foreground-primary/10'
@@ -59,6 +61,7 @@ export const UnlockChecklistStep = ({
     isLoading,
     onVerify,
     onExplore,
+    onSavingChange,
 }: UnlockChecklistStepProps) => {
     const t = useTranslations('kyc.unlock')
     const tKyc = useTranslations('kyc')
@@ -71,7 +74,12 @@ export const UnlockChecklistStep = ({
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
     const checklist = useUnlockChecklist(residence, onVerify)
     const [exploreOpen, setExploreOpen] = useState(false)
-    const busy = isLoading || checklist.save.isPending
+    const saving = checklist.save.isPending
+    useEffect(() => {
+        onSavingChange(saving)
+        return () => onSavingChange(false)
+    }, [saving, onSavingChange])
+    const busy = isLoading || saving
 
     const answers: Array<{ id: IdDocumentAnswer; label: string }> = [
         { id: 'local', label: t(`idLocal.${variant}`, { country }) },
@@ -200,7 +208,7 @@ export const UnlockChecklistStep = ({
                 className="h-11 w-full"
                 disabled={busy || !checklist.canContinue}
                 loading={busy}
-                onClick={() => checklist.save.mutate()}
+                onClick={() => checklist.save.mutate(checklist.intents)}
             >
                 {checklist.qrOnly ? t('ctaQrOnly') : t('cta')}
             </Button>
