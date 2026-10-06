@@ -144,18 +144,9 @@ export function buildReceiptPdfModel(
         counterparty
     )
 
-    if (transaction.fee !== undefined && !isCancelled) {
-        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
-    }
-
-    if (transaction.memo?.trim() && allowCancelledSenderFields) {
-        push(t('common.comment'), transaction.memoKey ? t(`transaction.${transaction.memoKey}`) : transaction.memo)
-    }
-
-    // Keep the account and identifier block at the end of the document. Always
-    // mask bank identifiers: PDF files are explicitly downloadable/shareable,
-    // so the unmasked guest-claim exception the in-app receipt makes does not
-    // apply.
+    // Who: always mask bank identifiers. PDF files are explicitly downloadable
+    // and shareable, so the unmasked guest-claim exception the in-app receipt
+    // makes does not apply.
     if (transaction.bankAccountDetails?.identifier && !isCancelled) {
         const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type)
         const label =
@@ -168,7 +159,12 @@ export function buildReceiptPdfModel(
         )
     }
 
+    // Money, the provider last (receipt-rows ruling)
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
+
+    if (transaction.fee !== undefined && !isCancelled) {
+        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
+    }
 
     // without the owner's residence bridge gets its brand-only record
     const providerId = providerIdForTransaction(transaction, ownerResidence)
@@ -180,6 +176,7 @@ export function buildReceiptPdfModel(
         )
     }
 
+    // Trace, then the comment
     if (transaction.txHash) {
         push(t('transaction.rows.txId'), transaction.txHash)
     }
@@ -190,6 +187,10 @@ export function buildReceiptPdfModel(
         !isCancelled
     ) {
         push(t('transaction.rows.transferId'), transaction.id)
+    }
+
+    if (transaction.memo?.trim() && allowCancelledSenderFields) {
+        push(t('common.comment'), transaction.memoKey ? t(`transaction.${transaction.memoKey}`) : transaction.memo)
     }
 
     // The payer's own reference on a bank deposit is NOT printed. It is free

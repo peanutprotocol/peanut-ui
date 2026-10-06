@@ -158,9 +158,11 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(value).toBeDefined()
         expect(value).not.toBe('ES9121000418450200051332')
         expect(value).toContain('1332')
-        expect(labels(model).slice(-4)).toEqual([
+        // who, then money, then trace (receipt-rows ruling)
+        expect(labels(model).slice(-5)).toEqual([
             'IBAN',
             'common.exchangeRate',
+            'transaction.rows.fee',
             'transaction.rows.txId',
             'transaction.rows.transferId',
         ])

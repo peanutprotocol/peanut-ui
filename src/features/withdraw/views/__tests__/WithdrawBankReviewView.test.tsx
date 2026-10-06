@@ -336,10 +336,10 @@ describe('WithdrawBankReviewView — the provider row (TASK-23295)', () => {
         expect(screen.getByText('Provider')).toBeInTheDocument()
         const brand = screen.getByText('Bridge')
         expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
-        // the row follows the fee, inside the card
+        // the row follows the fee, in the same money group
         const fee = screen.getByText('Fee')
         expect(fee.compareDocumentPosition(brand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(fee.closest('.rounded-sm')).toContainElement(brand)
+        expect(fee.closest('.ds-data-row-group')).toContainElement(brand)
     })
 
     it('says nothing about what the bank statement shows', () => {
