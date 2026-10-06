@@ -12065,7 +12065,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action. */
+        /** @description Open a non-destructive residence Applicant Action for legacy clients with a pending residence; otherwise reset IDENTITY only for an authorised document-replacement flow. */
         post: {
             parameters: {
                 query?: never;

@@ -174,7 +174,7 @@ export class PeanutWebSocket {
         }
 
         if (this.socket?.readyState === WebSocket.OPEN) {
-            this.socket.send(JSON.stringify({ type: 'auth', token }))
+            this.socket.send(JSON.stringify({ type: 'auth', token, residenceFormat: 'compact' }))
         }
     }
 
