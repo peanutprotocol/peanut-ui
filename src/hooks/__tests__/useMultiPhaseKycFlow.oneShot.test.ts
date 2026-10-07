@@ -15,6 +15,7 @@ import {
     recordOneShotIntents,
     useOneShotSession,
 } from '@/hooks/useOneShotSession'
+import { rainApi } from '@/services/rain'
 import type { UserCapabilities } from '@/types/capabilities'
 
 const mockWs: { handler?: (status: string, labels?: string[]) => void } = {}
@@ -52,8 +53,12 @@ jest.mock('@/utils/capability-gate', () => ({
     deriveGate: () => ({ kind: mockGateKind }),
 }))
 jest.mock('@/app/actions/users', () => ({ getBridgeTosLink: jest.fn(), confirmBridgeTos: jest.fn() }))
+// the card step (item 9b): POST /rain/cards and the readiness poll after the questions
+jest.mock('@/services/rain', () => ({ rainApi: { applyForCard: jest.fn(), getCardApplyReadiness: jest.fn() } }))
+jest.mock('@/components/Card/cardApply.utils', () => ({ pollUntilReady: jest.fn(), pollUntilApplyAdvances: jest.fn() }))
 
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
+const mockApply = rainApi.applyForCard as jest.MockedFunction<typeof rainApi.applyForCard>
 
 const BR_INTENTS = { qr: true, local: true, card: false, bank: false }
 
@@ -329,5 +334,113 @@ describe('useMultiPhaseKycFlow — flows that keep the phases', () => {
         expect(onKycSuccess).toHaveBeenCalledTimes(1)
         expect(result.current.oneShotSetup).toBeNull()
         expect(result.current.isModalOpen).toBe(false)
+    })
+})
+
+/** Item 9b: the card step runs beside the identity check, from the moment the session closes. */
+describe('useMultiPhaseKycFlow — the card step', () => {
+    const CARD_INTENTS = { qr: true, local: false, card: true, bank: false }
+    const INCOMPLETE = {
+        status: 'incomplete' as const,
+        missing: [],
+        questionnaireComplete: false,
+        sumsubAccessToken: 'tok-questions',
+    }
+    const TERMS = { status: 'terms-required' as const, isUsResident: false, termsVersion: '2026-06-01' }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        __resetOneShotSessionForTests()
+        mockGateKind = 'none'
+        mockWs.handler = undefined
+        setUser('not_started', true)
+    })
+
+    it('starts the card step the moment the identity session closes, and the SDK reopens on the questions', async () => {
+        recordOneShotIntents(CARD_INTENTS)
+        mockInitiate.mockResolvedValue(tokenAnswer)
+        mockApply.mockResolvedValue(INCOMPLETE)
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(mockApply).not.toHaveBeenCalled()
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+        expect(mockApply).toHaveBeenCalledWith({ termsAccepted: false })
+        expect(result.current.oneShotCard.token).toBe('tok-questions')
+        expect(result.current.oneShotCard.isForeground).toBe(true)
+        expect(states(result.current)).toEqual(['under-review', 'agreements-needed'])
+    })
+
+    it('accepted agreements before the approval read setting up on the card row', async () => {
+        recordOneShotIntents(CARD_INTENTS)
+        mockInitiate.mockResolvedValue(tokenAnswer)
+        mockApply.mockResolvedValueOnce(TERMS).mockResolvedValueOnce({ status: 'pending-identity', message: 'later' })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+        expect(result.current.oneShotCard.showTerms).toBe(true)
+        await act(() => result.current.oneShotCard.acceptTerms())
+        expect(result.current.oneShotCard.isForeground).toBe(false)
+        expect(states(result.current)).toEqual(['under-review', 'setting-up'])
+    })
+
+    it('reads the stored set from /users/me when the tab holds none, and starts no card step without the tick', async () => {
+        mockUser.identityVerification = {
+            status: 'not_started',
+            oneShot: true,
+            kycIntents: { qr: true, local: true, card: false, bank: false },
+        }
+        mockInitiate.mockResolvedValue(tokenAnswer)
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+        expect(result.current.oneShotSetup?.rows.map((row) => row.key)).toEqual(['qr', 'local'])
+        expect(mockApply).not.toHaveBeenCalled()
+        expect(result.current.oneShotCard.chain).toBeNull()
+    })
+
+    it('the server set outranks the set the tab stored', async () => {
+        recordOneShotIntents(CARD_INTENTS)
+        mockUser.identityVerification = {
+            status: 'not_started',
+            oneShot: true,
+            kycIntents: { qr: true, local: false, card: false, bank: true },
+        }
+        mockInitiate.mockResolvedValue(tokenAnswer)
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+        expect(result.current.oneShotSetup?.rows.map((row) => row.key)).toEqual(['qr', 'bank'])
+        expect(mockApply).not.toHaveBeenCalled()
+    })
+
+    it('a legacy flow never starts the card step', async () => {
+        setUser('not_started', false)
+        recordOneShotIntents(CARD_INTENTS)
+        mockInitiate.mockResolvedValue({ data: { token: 'tok', applicantId: 'app', status: 'PENDING' } })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM')
+        })
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+        expect(mockApply).not.toHaveBeenCalled()
+        expect(result.current.oneShotSetup).toBeNull()
     })
 })
