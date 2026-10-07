@@ -167,7 +167,11 @@ PAGE_CAPTURES.push(
         name: 'Token selector — open drawer, selected token',
         route: '/withdraw/crypto',
         fixture: 'withdraw-crypto-destination',
-        actions: [{ clickSelector: '[data-testid="token-selector-trigger"]' }],
+        actions: [
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+        ],
         expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
     },
     {
@@ -175,7 +179,14 @@ PAGE_CAPTURES.push(
         name: 'Network selector — open drawer, selected network',
         route: '/withdraw/crypto',
         fixture: 'withdraw-crypto-destination',
-        actions: [{ clickSelector: '[data-testid="token-selector-trigger"]' }, { click: 'More networks' }],
+        actions: [
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { click: 'More networks' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { click: 'More networks' },
+        ],
         expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
     },
     {

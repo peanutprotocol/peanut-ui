@@ -95,7 +95,8 @@ for (const capture of CAPTURES) {
         }
         if (capture.entryRoute)
             await page.waitForURL((destination) => destination.pathname === capture.route.split('?')[0])
-        if (capture.expectSelector) await expect(page.locator(capture.expectSelector).first()).toBeVisible()
+        if (capture.expectSelector)
+            await expect(page.locator(capture.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
 
         if (capture.toBottom) {
             await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
@@ -118,7 +119,8 @@ for (const capture of CAPTURES) {
                 return offscreen || img.complete
             })
         )
-        if (capture.expectSelector) await expect(page.locator(capture.expectSelector).first()).toBeVisible()
+        if (capture.expectSelector)
+            await expect(page.locator(capture.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
 
         await mkdir(OUT_DIR, { recursive: true })
         await page.screenshot({

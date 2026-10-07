@@ -1,4 +1,4 @@
-import { chromium, devices } from '@playwright/test'
+import { chromium, devices, expect } from '@playwright/test'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -455,7 +455,7 @@ async function main() {
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })
                 await page.waitForLoadState('networkidle', { timeout: 15000 })
                 if (screen.expectSelector)
-                    await page.locator(screen.expectSelector).first().waitFor({ state: 'visible' })
+                    await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (screen.event) {
                     await page.waitForFunction(() => document.body.innerText.trim().length > 60)
                     await page.evaluate(
@@ -564,8 +564,8 @@ async function main() {
                 if (!stable) throw new Error('Screen did not stabilize')
                 if (expectedText && !(await page.getByText(expectedText, { exact: false }).first().isVisible()))
                     throw new Error('Expected screen content disappeared before capture')
-                if (screen.expectSelector && !(await page.locator(screen.expectSelector).first().isVisible()))
-                    throw new Error('Expected overlay or selected row disappeared before capture')
+                if (screen.expectSelector)
+                    await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
