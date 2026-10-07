@@ -4347,5 +4347,30 @@
             "converted": "Se convierte a USD al tipo de cambio. Se aplica una comisión por conversión.",
             "seeRates": "Ver tipos de cambio"
         }
+    },
+    "pots": {
+        "title": "Fondo colectivo",
+        "entry": "Crear un fondo colectivo",
+        "introTitle": "Reúne a personas para una meta",
+        "introDescription": "Crea un enlace y deja que cada persona aporte lo que quiera.",
+        "purpose": "¿Para qué estás recaudando dinero?",
+        "purposePlaceholder": "Un proyecto comunitario, un regalo, una buena causa…",
+        "goal": "Meta en USD (opcional)",
+        "noGoalHint": "Deja la meta vacía para recaudar sin un objetivo. Los aportes pueden continuar después de alcanzar la meta.",
+        "directFunding": "Los aportes van directamente a quien organiza. No se retienen hasta alcanzar la meta ni se reembolsan automáticamente.",
+        "create": "Crear fondo",
+        "share": "Compartir fondo",
+        "created": "Tu fondo está listo",
+        "createdDescription": "Comparte este enlace para que otras personas aporten y vean el progreso.",
+        "invalidPot": "Agrega un propósito y una meta positiva con hasta dos decimales, o deja la meta vacía.",
+        "contribute": "Aportar al fondo",
+        "chooseAmount": "Elige cuánto quieres aportar.",
+        "raised": "{amount} recaudados",
+        "closed": "Esta colecta está cerrada",
+        "closedDescription": "Quien organiza cerró esta colecta. Ya no se aceptan nuevos aportes.",
+        "organisedBy": "Organiza {name}",
+        "goalAmount": "Meta: {amount}",
+        "openGoal": "Colecta sin meta",
+        "viewPot": "Ver fondo y progreso"
     }
 }

@@ -9,6 +9,7 @@
  * used by: /[...recipient]?id=xyz route when id param is a request pot uuid
  */
 
+import { parseAsString, useQueryState } from 'nuqs'
 import { ContributePotPage } from './ContributePotPage'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { requestsApi } from '@/services/requests'
@@ -24,6 +25,8 @@ interface ContributePotPageWrapperProps {
 }
 
 export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapperProps) {
+    const [mode] = useQueryState('mode', parseAsString)
+    const tPots = useTranslations('pots')
     const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
     const [request, setRequest] = useState<TRequestResponse | null>(null)
@@ -83,5 +86,14 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
         )
     }
 
-    return <ContributePotPage request={request} />
+    if (request.status === 'CLOSED') {
+        return (
+            <div className="flex min-h-inherit flex-col gap-4">
+                <NavHeader title={mode === 'pot' ? tPots('title') : t('headers.pay')} onPrev={onBack} />
+                <EmptyState icon="lock" title={tPots('closed')} description={tPots('closedDescription')} />
+            </div>
+        )
+    }
+
+    return <ContributePotPage request={request} isCrowdfunding={mode === 'pot'} />
 }

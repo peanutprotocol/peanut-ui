@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { requestPotUrl } from '@/utils/native-routes'
 import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -18,6 +20,7 @@ interface RequestCreatedViewProps {
     requestAmount: string
     currency: string
     bankPayable: boolean
+    isCrowdfunding?: boolean
     onDone: () => void
 }
 
@@ -28,8 +31,10 @@ export function RequestCreatedView({
     currency,
     bankPayable,
     onDone,
+    isCrowdfunding = false,
 }: RequestCreatedViewProps) {
     const t = useTranslations('request')
+    const tPots = useTranslations('pots')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const celebrated = useRef(false)
@@ -51,14 +56,23 @@ export function RequestCreatedView({
         // no overflow-hidden here: it clipped the footer buttons' 4px offset shadow at the
         // right and bottom edge. the center already scrolls on its own (min-h-0).
         <PageStack className="max-h-dvh">
-            <NavHeader hideBackBtn title={tNav('request')} />
+            <NavHeader hideBackBtn title={isCrowdfunding ? tPots('title') : tNav('request')} />
             <PageStack.Center className="min-h-0 gap-4 overflow-y-auto text-center md:my-0">
                 <div className="flex flex-col items-center gap-4">
                     <PeanutMascot pose="cheering" alt="" className="size-40" />
-                    <TitleBlock size="s" title={<h1>{t('created.title')}</h1>} description={t('created.description')} />
+                    <TitleBlock
+                        size="s"
+                        title={<h1>{isCrowdfunding ? tPots('created') : t('created.title')}</h1>}
+                        description={isCrowdfunding ? tPots('createdDescription') : t('created.description')}
+                    />
                 </div>
 
                 <QRCodeWrapper url={generatedLink} />
+                {isCrowdfunding && (
+                    <Link href={requestPotUrl(requestId, 'pot')} className="text-body-m underline">
+                        {tPots('viewPot')}
+                    </Link>
+                )}
 
                 <RequestFulfillmentNotice requestId={requestId} bankPayable={bankPayable} />
             </PageStack.Center>
@@ -72,7 +86,7 @@ export function RequestCreatedView({
                     {tCommon('done')}
                 </Button>
                 <ShareButton url={generatedLink} variant="secondary">
-                    {shareLabel}
+                    {isCrowdfunding ? tPots('share') : shareLabel}
                 </ShareButton>
             </PageStack.Footer>
         </PageStack>

@@ -992,3 +992,14 @@ describe('deepLinkToNativePath — flagged /dev carve-out beside the /app collap
         expect(mod.deepLinkToNativePath('https://peanut.me/app')).toBe('/app')
     })
 })
+
+describe('crowdfunding deep links', () => {
+    beforeEach(() => mockIsCapacitor.mockReturnValue(true))
+    it.each([
+        'https://peanut.me/alice/500USDC?id=pot-1&mode=pot',
+        'https://peanut.me/pay/alice/500USDC?id=pot-1&mode=pot',
+        'https://peanut.me?id=pot-1&mode=pot',
+    ])('preserves voluntary crowdfunding when opening %s in native', (url) => {
+        expect(deepLinkToNativePath(url)).toBe('/pay-request?id=pot-1&mode=pot')
+    })
+})

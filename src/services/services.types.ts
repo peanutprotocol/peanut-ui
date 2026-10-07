@@ -70,6 +70,8 @@ export type RequestPayerAmount = RequestPayRail['payerAmount']
 export type BankFulfilment = 'none' | 'partial' | 'paid'
 
 export interface TRequestResponse {
+    /** Closed links reject new contributions; already issued charges may still settle. */
+    status?: 'OPEN' | 'CLOSED'
     uuid: string
     chainId: string
     recipientAddress: string

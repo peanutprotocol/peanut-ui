@@ -76,3 +76,21 @@ it('exits the terminal state through Done', () => {
     fireEvent.click(screen.getByRole('button', { name: messages.common.done }))
     expect(props.onDone).toHaveBeenCalledTimes(1)
 })
+
+it('shares the tracked crowdfunding link and opens its progress on web and native', () => {
+    const link = 'https://peanut.me/owner/500USDC?id=pot-1&mode=pot'
+    renderView({
+        requestId: 'pot-1',
+        generatedLink: link,
+        currency: 'USD',
+        requestAmount: '500',
+        bankPayable: false,
+        isCrowdfunding: true,
+    })
+    expect(screen.getByRole('heading', { name: 'Your pot is ready' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share pot' })).toHaveAttribute('data-url', link)
+    expect(screen.getByRole('link', { name: 'View pot and progress' })).toHaveAttribute(
+        'href',
+        '/pay-request?id=pot-1&mode=pot'
+    )
+})

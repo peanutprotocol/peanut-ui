@@ -1854,5 +1854,30 @@
             "providerRefused": "No pudimos abrir esta cuenta, y volver a intentarlo no lo va a cambiar. Contactá a soporte y lo revisamos.",
             "tooManyAttempts": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
         }
+    },
+    "pots": {
+        "title": "Fondo colectivo",
+        "entry": "Crear un fondo colectivo",
+        "introTitle": "Reuní a personas para una meta",
+        "introDescription": "Creá un enlace y dejá que cada persona aporte lo que quiera.",
+        "purpose": "¿Para qué estás recaudando plata?",
+        "purposePlaceholder": "Un proyecto comunitario, un regalo, una buena causa…",
+        "goal": "Meta en USD (opcional)",
+        "noGoalHint": "Dejá la meta vacía para recaudar sin un objetivo. Los aportes pueden continuar después de alcanzar la meta.",
+        "directFunding": "Los aportes van directamente a quien organiza. No se retienen hasta alcanzar la meta ni se reembolsan automáticamente.",
+        "create": "Crear fondo",
+        "share": "Compartir fondo",
+        "created": "Tu fondo está listo",
+        "createdDescription": "Compartí este enlace para que otras personas aporten y vean el progreso.",
+        "invalidPot": "Agregá un propósito y una meta positiva con hasta dos decimales, o dejá la meta vacía.",
+        "contribute": "Aportar al fondo",
+        "chooseAmount": "Elegí cuánto querés aportar.",
+        "raised": "{amount} recaudados",
+        "closed": "Esta colecta está cerrada",
+        "closedDescription": "Quien organiza cerró esta colecta. Ya no se aceptan nuevos aportes.",
+        "organisedBy": "Organiza {name}",
+        "goalAmount": "Meta: {amount}",
+        "openGoal": "Colecta sin meta",
+        "viewPot": "Ver fondo y progreso"
     }
 }

@@ -31,6 +31,7 @@ export function useContributePotFlow() {
     const t = useTranslations('payment')
     const toFriendlyError = useFriendlyError()
     const {
+        isCrowdfunding,
         amount,
         setAmount,
         usdAmount,
@@ -92,7 +93,7 @@ export function useContributePotFlow() {
 
     // check if can proceed
     const canProceed = useMemo(() => {
-        if (!amount || !recipient || !request) return false
+        if (!amount || !recipient || !request || request.status === 'CLOSED') return false
         const amountNum = parseFloat(amount)
         if (isNaN(amountNum) || amountNum <= 0) return false
         return true
@@ -126,7 +127,7 @@ export function useContributePotFlow() {
 
     // calculate default slider value and suggested amount
     const sliderDefaults = useMemo(() => {
-        if (remainingAmount <= 0) return { percentage: 0, suggestedAmount: 0 }
+        if (isCrowdfunding || remainingAmount <= 0) return { percentage: 0, suggestedAmount: 0 }
 
         // A suggestion is an offer to pay, so it stops at the remainder. Bank
         // deposits are counted in `totalCollected` and in nothing else the
@@ -161,7 +162,7 @@ export function useContributePotFlow() {
                 : sortedAmounts[midIndex]
 
         return suggest(median)
-    }, [totalAmount, totalCollected, contributors, remainingAmount])
+    }, [totalAmount, totalCollected, contributors, remainingAmount, isCrowdfunding])
 
     // execute the contribution
     const executeContribution = useCallback(
@@ -169,7 +170,7 @@ export function useContributePotFlow() {
             shouldReturnAfterCreatingCharge: boolean = false,
             bypassLoginCheck: boolean = false
         ): Promise<{ success: boolean }> => {
-            if (!recipient || !amount || !request) {
+            if (!recipient || !amount || !request || request.status === 'CLOSED') {
                 setError({ showError: true, errorMessage: t('errors.missingData') })
                 return { success: false }
             }
@@ -272,6 +273,7 @@ export function useContributePotFlow() {
     )
 
     return {
+        isCrowdfunding,
         // state
         amount,
         usdAmount,

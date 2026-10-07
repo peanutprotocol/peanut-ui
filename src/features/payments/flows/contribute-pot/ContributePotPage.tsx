@@ -34,12 +34,13 @@ function ContributePotFlowContent() {
 // props for the page
 interface ContributePotPageProps {
     request: TRequestResponse
+    isCrowdfunding?: boolean
 }
 
 // exported page component with provider
-export function ContributePotPage({ request }: ContributePotPageProps) {
+export function ContributePotPage({ request, isCrowdfunding = false }: ContributePotPageProps) {
     return (
-        <ContributePotFlowProvider initialRequest={request}>
+        <ContributePotFlowProvider initialRequest={request} isCrowdfunding={isCrowdfunding}>
             <ContributePotFlowContent />
         </ContributePotFlowProvider>
     )

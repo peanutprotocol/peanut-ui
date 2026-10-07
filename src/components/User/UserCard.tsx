@@ -26,6 +26,7 @@ interface UserCardProps {
     haveSentMoneyToUser?: boolean
     amount?: number
     amountCollected?: number
+    isCrowdfunding?: boolean
     isRequestPot?: boolean
     contributors?: PotContributor[]
     /** The other person's picked avatar (TASK-22625). Read only when
@@ -46,10 +47,12 @@ const UserCard = ({
     amount,
     amountCollected,
     isRequestPot,
+    isCrowdfunding = false,
     contributors,
     avatarKey,
 }: UserCardProps) => {
     const t = useTranslations('global')
+    const tPots = useTranslations('pots')
     const getIcon = (): IconName | undefined => {
         if (type === 'send') return 'arrow-up-right'
         if (type === 'request') return 'arrow-down-left'
@@ -64,16 +67,21 @@ const UserCard = ({
         if (type === 'send') title = t('userCard.sendingMoneyTo')
         if (type === 'request') title = t('userCard.requestingMoneyFrom')
         if (type === 'received_link') title = t('userCard.youReceived')
-        if (type === 'request_pay') title = t('userCard.isRequesting', { name: fullName ?? username })
+        if (type === 'request_pay')
+            title = isCrowdfunding
+                ? tPots('organisedBy', { name: fullName ?? username })
+                : t('userCard.isRequesting', { name: fullName ?? username })
         if (type === 'request_fulfilment') title = t('userCard.sendingTo', { name: fullName ?? username })
         return (
             <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
                 {icon && <Icon name={icon} size={16} />} {title}
             </div>
         )
-    }, [type, fullName, username, t])
+    }, [type, fullName, username, t, isCrowdfunding, tPots])
 
     const getAddressLinkTitle = () => {
+        if (isCrowdfunding)
+            return amount && amount > 0 ? tPots('goalAmount', { amount: `$${amount}` }) : tPots('openGoal')
         if (isRequestPot && amount && amount > 0) return `$${amount}` // If goal is set.
         if (!amount && isRequestPot) return t('userCard.payWhatYouWant') // If no goal is set.
 

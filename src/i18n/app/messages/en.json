@@ -4347,5 +4347,30 @@
             "converted": "Converted to USD at the exchange rate. A conversion fee applies.",
             "seeRates": "See exchange rates"
         }
+    },
+    "pots": {
+        "title": "Crowdfunding pot",
+        "entry": "Create a crowdfunding pot",
+        "introTitle": "Bring people together for a goal",
+        "introDescription": "Create one link and let everyone contribute what they choose.",
+        "purpose": "What are you raising money for?",
+        "purposePlaceholder": "A community project, a gift, a good cause…",
+        "goal": "Funding goal in USD (optional)",
+        "noGoalHint": "Leave the goal empty to collect without a target. Contributions can continue after the goal is reached.",
+        "directFunding": "Contributions go directly to the organiser. They are not held until the goal is reached or automatically refunded.",
+        "create": "Create pot",
+        "share": "Share pot",
+        "created": "Your pot is ready",
+        "createdDescription": "Share this link so people can contribute and see your progress.",
+        "invalidPot": "Add a purpose and enter a positive goal with up to two decimal places, or leave the goal empty.",
+        "contribute": "Contribute to pot",
+        "chooseAmount": "Choose how much you would like to contribute.",
+        "raised": "{amount} raised",
+        "closed": "This collection is closed",
+        "closedDescription": "The organiser has closed this collection. New contributions are no longer accepted.",
+        "organisedBy": "Organised by {name}",
+        "goalAmount": "{amount} goal",
+        "openGoal": "Open collection",
+        "viewPot": "View pot and progress"
     }
 }
