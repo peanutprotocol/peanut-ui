@@ -4,8 +4,8 @@ from pathlib import Path
 
 ASSET = Path(__file__).resolve().parents[1] / 'src/assets/onboarding/documents.json'
 INK = [0, 0, 0, 1]
-# Detail weight: 3.0 px on a 390x844 phone at the residence screen's 1.4x scale.
-LINE = 4.131
+# Mascot detail weight: about 2.8 px at the passport's on-screen scale.
+LINE = 3.03
 GOLD = [252 / 255, 200 / 255, 20 / 255, 1]
 WHITE = [1, 1, 1, 1]
 
@@ -27,10 +27,11 @@ def path(vertices, incoming=None, outgoing=None, closed=False):
 
 
 def group(name, shapes, fill=None, width=LINE, position=(0, 0), rotation=0):
-    items = list(shapes)
+    # The stroke is listed before the fill so the whole outline paints on top of it.
+    items = list(shapes) + [stroke(width)]
     if fill:
         items.append({'ty': 'fl', 'c': {'a': 0, 'k': fill}, 'o': {'a': 0, 'k': 100}, 'r': 1})
-    return {'ty': 'gr', 'nm': name, 'it': items + [stroke(width), transform(position, rotation)]}
+    return {'ty': 'gr', 'nm': name, 'it': items + [transform(position, rotation)]}
 
 
 # The shell's two lobes and short texture strokes stay clear at passport scale.
