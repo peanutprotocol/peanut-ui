@@ -5,6 +5,7 @@ import { twMerge } from '@/utils/tw'
 import { Drawer as DrawerPrimitive } from 'vaul'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { acquireBottomNavHide } from '@/utils/bottom-nav-visibility'
+import { useOverlayVisibility } from '@/utils/overlay-visibility'
 
 type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
     /**
@@ -13,6 +14,8 @@ type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
      * Root double-applies the background scale and fights over the scroll lock.
      */
     nested?: boolean
+    /** Identity used by a deferred announcement to exclude its own open surface. */
+    overlayOwner?: symbol
     /** Slide the app bottom nav out of view while this (modal) sheet is open. */
     hideBottomNav?: boolean
 }
@@ -28,6 +31,7 @@ const Drawer = ({
     shouldScaleBackground = true,
     nested = false,
     hideBottomNav = false,
+    overlayOwner,
     open,
     defaultOpen,
     onOpenChange,
@@ -38,6 +42,7 @@ const Drawer = ({
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false)
     const isControlled = open !== undefined
     const isOpen = isControlled ? open : uncontrolledOpen
+    useOverlayVisibility(isOpen, overlayOwner)
 
     const handleOpenChange = React.useCallback(
         (next: boolean) => {

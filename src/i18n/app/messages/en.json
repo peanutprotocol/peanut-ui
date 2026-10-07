@@ -3528,8 +3528,7 @@
         },
         "earlyUserModal": {
             "title": "Earn from invites",
-            "inviteOnly": "Peanut is open to everyone. Your personal link still tracks referral rewards.",
-            "earnRules": "<b>Friends you invite →</b> you earn a cut of their fees. <b>Their invites →</b> you earn a cut of their cut.",
+            "description": "From now on, Peanut is open to anyone. You can still invite your friends to earn rewards if they sign up.",
             "shareSheetTitle": "Share invite link",
             "shareCta": "Share Invite link",
             "learnMore": "Learn more"
