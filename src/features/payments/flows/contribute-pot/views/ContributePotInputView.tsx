@@ -31,8 +31,10 @@ import { formatBankAmount } from '@/utils/currency'
 export function ContributePotInputView() {
     const onBack = useSafeBack('/')
     const t = useTranslations('payment')
+    const tPots = useTranslations('pots')
     const { isFetchingUser } = useAuth()
     const {
+        isCrowdfunding,
         amount,
         request,
         recipient,
@@ -90,9 +92,10 @@ export function ContributePotInputView() {
 
     return (
         <div className="flex min-h-inherit flex-col justify-between gap-8">
-            <NavHeader onPrev={onBack} title={t('headers.pay')} />
+            <NavHeader onPrev={onBack} title={isCrowdfunding ? tPots('contribute') : t('headers.pay')} />
 
             <PageStack.Center className="gap-4">
+                {isCrowdfunding && request?.reference && <TitleBlock size="s" title={<h1>{request.reference}</h1>} />}
                 {/* recipient card with pot info */}
                 {recipient && (
                     <UserCard
@@ -100,11 +103,23 @@ export function ContributePotInputView() {
                         username={recipient.username}
                         recipientType="USERNAME"
                         isVerified={!!recipient.userId}
-                        message={request?.reference || ''}
+                        message={isCrowdfunding ? '' : request?.reference || ''}
                         fileUrl={request?.attachmentUrl || ''}
                         amount={totalAmount}
                         amountCollected={totalCollected}
                         isRequestPot={true}
+                        requestLabel={
+                            isCrowdfunding
+                                ? tPots('organisedBy', { name: recipient.fullName ?? recipient.username })
+                                : undefined
+                        }
+                        requestTitle={
+                            isCrowdfunding
+                                ? totalAmount > 0
+                                    ? tPots('goalAmount', { amount: formatBankAmount(totalAmount, 'USD') })
+                                    : tPots('openGoal')
+                                : undefined
+                        }
                         contributors={contributors}
                         avatarKey={recipient.avatarKey}
                     />
@@ -124,6 +139,18 @@ export function ContributePotInputView() {
                     />
                 )}
 
+                {isCrowdfunding && (
+                    <>
+                        <p className="text-body-s text-foreground-secondary">{tPots('chooseAmount')}</p>
+                        {totalAmount <= 0 && (
+                            <p className="text-body-m">
+                                {tPots('raised', { amount: formatBankAmount(totalCollected, 'USD') })}
+                            </p>
+                        )}
+                        <Callout priority="info">{tPots('directFunding')}</Callout>
+                    </>
+                )}
+
                 {/* amount input with slider + its field error form one column, 4px apart */}
                 <div className="flex flex-col gap-1">
                     <AmountInput
@@ -134,8 +161,8 @@ export function ContributePotInputView() {
                         balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
-                        showSlider={remainingAmount > 0}
-                        maxAmount={remainingAmount}
+                        showSlider={!isCrowdfunding && remainingAmount > 0}
+                        maxAmount={isCrowdfunding ? undefined : remainingAmount}
                         defaultSliderValue={sliderDefaults.percentage}
                         defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
                     />
@@ -155,7 +182,7 @@ export function ContributePotInputView() {
                     requestMessage={request?.reference || ''}
                     requestId={request?.uuid}
                     bankPayable={!!request?.bankInstructionsShared}
-                    remainingUsd={totalAmount > 0 ? remainingAmount : undefined}
+                    remainingUsd={!isCrowdfunding && totalAmount > 0 ? remainingAmount : undefined}
                     requestTokenSymbol={request?.tokenSymbol}
                     requestCurrency={request?.currency}
                     onPayWithPeanut={handlePayWithPeanut}

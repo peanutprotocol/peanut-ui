@@ -9,14 +9,28 @@ import { IntlWrapper } from '@/test-utils/intl'
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ isFetchingUser: false }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/AmountInput', () => ({ __esModule: true, default: () => null }))
+const mockAmountInput = jest.fn((_props: unknown) => null)
+jest.mock('@/components/Global/AmountInput', () => ({
+    __esModule: true,
+    default: (props: unknown) => mockAmountInput(props),
+}))
 jest.mock('@/components/User/UserCard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SupportCTA', () => ({ __esModule: true, default: () => null }))
-jest.mock('../../components/RequestPotActionList', () => ({ RequestPotActionList: () => null }))
+const mockPaymentOptions = jest.fn((_props: unknown) => null)
+jest.mock('../../components/RequestPotActionList', () => ({
+    RequestPotActionList: (props: unknown) => mockPaymentOptions(props),
+}))
 
 let mockRequest: Record<string, unknown>
+let mockCrowdfunding = false
+beforeEach(() => {
+    mockCrowdfunding = false
+    jest.clearAllMocks()
+})
 jest.mock('../../useContributePotFlow', () => ({
     useContributePotFlow: () => ({
+        isCrowdfunding: mockCrowdfunding,
+        remainingAmount: 55.84,
         amount: '',
         request: mockRequest,
         recipient: { username: 'ana', userId: 'u1' },
@@ -64,4 +78,16 @@ describe('ContributePotInputView — the asked amount', () => {
 
         expect(screen.queryByTestId('request-asked-amount')).not.toBeInTheDocument()
     })
+})
+
+it('lets crowdfunding donors choose an uncapped amount instead of asking them to cover the goal', () => {
+    mockCrowdfunding = true
+    mockRequest = { uuid: 'pot-1', reference: 'Community garden', tokenSymbol: 'USDC' }
+    renderView()
+    expect(screen.getByRole('heading', { name: 'Community garden' })).toBeInTheDocument()
+    expect(screen.getByText('Choose how much you would like to contribute.')).toBeInTheDocument()
+    expect(mockAmountInput).toHaveBeenCalledWith(expect.objectContaining({ showSlider: false, maxAmount: undefined }))
+    expect(mockPaymentOptions).toHaveBeenCalledWith(
+        expect.objectContaining({ requestId: 'pot-1', remainingUsd: undefined })
+    )
 })

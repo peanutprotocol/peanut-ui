@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
@@ -20,6 +21,7 @@ import { RequestCreatedView } from './RequestCreatedView'
 export const CreateRequestLinkView = () => {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tPots = useTranslations('pots')
     const onBack = useRequestBack()
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const {
@@ -138,6 +140,10 @@ export const CreateRequestLinkView = () => {
                     isUpdatingRequest={isUpdatingRequest}
                     onGenerate={generateLink}
                 />
+
+                <Link href="/request?mode=pot" className="text-center text-body-m underline">
+                    {tPots('entry')}
+                </Link>
 
                 {/* a flow-level failure: not tied to one field, so a Callout */}
                 {errorState.showError && (

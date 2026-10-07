@@ -9294,6 +9294,7 @@ export interface paths {
                         tokenSymbol?: unknown;
                         tokenType?: unknown;
                         trackId?: string;
+                        isCrowdfunding?: boolean;
                     } | {
                         bankInstructionsShared?: boolean;
                         chainId: string;
@@ -9309,6 +9310,7 @@ export interface paths {
                         tokenSymbol: string;
                         tokenType: string;
                         trackId?: string;
+                        isCrowdfunding?: boolean;
                     };
                 };
             };
@@ -9404,6 +9406,7 @@ export interface paths {
                             trackId: string | null;
                             updatedAt: string;
                             uuid: string;
+                            isCrowdfunding: boolean;
                         } & {
                             [key: string]: unknown;
                         };

@@ -3,7 +3,7 @@ import { fetchTokenDetails } from '@/app/actions/tokens'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -35,8 +35,9 @@ import { requestAmountFromInput, toApiAmount, usdEquivalent, type AmountInputSid
  * state, request create/update against the API, the debounced attachment
  * autosave, and the QR/share link derivation. The view only renders.
  */
-export const useCreateRequestLink = () => {
+export const useCreateRequestLink = ({ isCrowdfunding = false } = {}) => {
     const t = useTranslations('request')
+    const tPots = useTranslations('pots')
     const toast = useToast()
     const { address, isConnected } = useWallet()
     const { user } = useAuth()
@@ -53,7 +54,7 @@ export const useCreateRequestLink = () => {
         merchant: parseAsString,
         currency: parseAsString,
     })
-    const currency = toSupportedExchangeCurrency(paramsCurrency) ?? 'USD'
+    const currency = isCrowdfunding ? 'USD' : (toSupportedExchangeCurrency(paramsCurrency) ?? 'USD')
     // Sanitize amount and limit to 2 decimal places
     const sanitizedAmount = useMemo(() => {
         if (!paramsAmount || isNaN(parseFloat(paramsAmount))) return ''
@@ -174,10 +175,11 @@ export const useCreateRequestLink = () => {
 
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
+        if (isCrowdfunding) return ''
 
         if (tokenValue) return payLinkUrl(`/${user?.user.username}/${tokenValue}USDC`)
         return shareableUrl(`/send/${user?.user.username}`)
-    }, [user?.user.username, tokenValue, generatedLink])
+    }, [user?.user.username, tokenValue, generatedLink, isCrowdfunding])
 
     // What a failed create says. A request asked in a fiat currency fails in
     // ways a dollar request cannot, and "failed to create link" tells the
@@ -198,6 +200,18 @@ export const useCreateRequestLink = () => {
 
     const createRequestLink = useCallback(
         async (attachmentOptions: IAttachmentOptions) => {
+            if (
+                isCrowdfunding &&
+                (!attachmentOptions.message?.trim() ||
+                    attachmentOptions.message.trim().length > 140 ||
+                    (requestAmount !== '' &&
+                        (!/^\d{1,15}(\.\d{1,2})?$/.test(requestAmount) ||
+                            !Number.isFinite(Number(requestAmount)) ||
+                            Number(requestAmount) <= 0)))
+            ) {
+                setErrorState({ showError: true, errorMessage: tPots('invalidPot') })
+                return null
+            }
             if (!recipientAddress) {
                 setErrorState({
                     showError: true,
@@ -226,7 +240,14 @@ export const useCreateRequestLink = () => {
 
             try {
                 let tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'>
-                if (selectedTokenData) {
+                if (isCrowdfunding) {
+                    tokenData = {
+                        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                        address: PEANUT_WALLET_TOKEN,
+                        decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+                        symbol: 'USDC',
+                    }
+                } else if (selectedTokenData) {
                     tokenData = {
                         chainId: selectedTokenData.chainId,
                         address: selectedTokenData.address,
@@ -257,11 +278,12 @@ export const useCreateRequestLink = () => {
                     tokenDecimals: tokenData.decimals.toString(),
                     tokenType: tokenType.valueOf().toString(),
                     tokenSymbol: tokenData.symbol,
-                    reference: attachmentOptions.message || undefined,
+                    reference: attachmentOptions.message?.trim() || undefined,
                     attachment: attachmentOptions.rawFile || undefined,
                     mimeType: attachmentOptions.rawFile?.type || undefined,
                     filename: attachmentOptions.rawFile?.name || undefined,
-                    bankInstructionsShared,
+                    bankInstructionsShared: isCrowdfunding ? false : bankInstructionsShared,
+                    ...(isCrowdfunding ? { isCrowdfunding: true } : {}),
                     // Sent for a non-USD amount alone, so a USD request is the
                     // same body an API without the field accepts.
                     ...(isDenominated ? { requestedAmount: { amount: toApiAmount(requestAmount), currency } } : {}),
@@ -279,6 +301,15 @@ export const useCreateRequestLink = () => {
                 if (isDenominated && !requestDetails.requestedAmount) {
                     await requestsApi.close(requestDetails.uuid).catch((error) => Sentry.captureException(error))
                     const errorMessage = t('errors.currencyNotAvailable', { currency })
+                    setErrorState({ showError: true, errorMessage })
+                    toast.error(errorMessage)
+                    return null
+                }
+                // Fail closed during a backend-first rollout: an old API can
+                // strip unknown body fields and silently create a split request.
+                if (isCrowdfunding && requestDetails.isCrowdfunding !== true) {
+                    await requestsApi.close(requestDetails.uuid).catch((error) => Sentry.captureException(error))
+                    const errorMessage = tPots('notAvailable')
                     setErrorState({ showError: true, errorMessage })
                     toast.error(errorMessage)
                     return null
@@ -319,6 +350,8 @@ export const useCreateRequestLink = () => {
             selectedChainID,
             bankInstructionsShared,
             createErrorMessage,
+            isCrowdfunding,
+            tPots,
             toast,
             queryClient,
             setLoadingState,

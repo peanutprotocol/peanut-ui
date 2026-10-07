@@ -225,6 +225,16 @@ describe('General Utilities', () => {
     })
 
     describe('getRequestLink', () => {
+        it('preserves persisted crowdfunding identity in a shared URL', () => {
+            const link = getRequestLink({
+                uuid: 'pot-1',
+                isCrowdfunding: true,
+                recipientAddress: '0xabc',
+                recipientAccount: { user: { username: 'organizer' } },
+            })
+            expect(link).toContain('?id=pot-1&mode=pot')
+        })
+
         // getRequestLink uses payLinkUrl, which reads window.location.origin (so a
         // link shared from staging stays on staging) and prefixes /pay.
         // Mock origin so the assertions below stay origin-stable.

@@ -255,6 +255,8 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
         case 'REFUNDED':
             return 'refunded'
         case 'OPEN': {
+            // A crowdfunding goal is informational; the organizer closes it.
+            if (entry.isCrowdfunding) return 'pending'
             // Request links forward the raw link status (OPEN|CLOSED). An open
             // request is completed only once the collected total reaches its
             // positive goal (`entry.amount`, decimal USD string — same units as

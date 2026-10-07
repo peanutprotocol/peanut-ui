@@ -711,6 +711,15 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.status).toBe('pending')
         })
 
+        it('a crowdfunding pot stays manageable after exceeding its goal', () => {
+            const result = mapTransactionDataForDrawer({
+                ...openRequest('100', 150),
+                isCrowdfunding: true,
+            }).transactionDetails
+            expect(result.status).toBe('pending')
+            expect(result.isRequestPotLink).toBe(true)
+        })
+
         it('an unpaid open request stays pending', () => {
             const result = mapTransactionDataForDrawer(openRequest('100', 0)).transactionDetails
             expect(result.status).toBe('pending')

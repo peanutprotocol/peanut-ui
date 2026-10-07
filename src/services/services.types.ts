@@ -11,6 +11,7 @@ export interface TimelineEntry {
 
 // requests service types
 export interface CreateRequestRequest {
+    isCrowdfunding?: boolean
     chainId: string
     tokenAmount?: string
     recipientAddress: string
@@ -70,6 +71,9 @@ export type RequestPayerAmount = RequestPayRail['payerAmount']
 export type BankFulfilment = 'none' | 'partial' | 'paid'
 
 export interface TRequestResponse {
+    isCrowdfunding?: boolean
+    /** Closed links reject new contributions; already issued charges may still settle. */
+    status?: 'OPEN' | 'CLOSED'
     uuid: string
     chainId: string
     recipientAddress: string
@@ -143,6 +147,7 @@ export interface ChargeEntry {
 }
 
 export interface RequestLink {
+    isCrowdfunding?: boolean
     uuid: string
     recipientAddress: string
     reference: string | null

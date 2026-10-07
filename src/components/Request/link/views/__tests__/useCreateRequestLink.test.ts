@@ -104,11 +104,16 @@ jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // identity debounce keeps the autosave path synchronous in tests
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: unknown) => value }))
 jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
-jest.mock('@/constants/zerodev.consts', () => ({ PEANUT_WALLET_CHAIN: { id: 42161 }, PEANUT_WALLET_TOKEN: '0xusdc' }))
+jest.mock('@/constants/zerodev.consts', () => ({
+    PEANUT_WALLET_CHAIN: { id: 42161 },
+    PEANUT_WALLET_TOKEN: '0xusdc',
+    PEANUT_WALLET_TOKEN_DECIMALS: 6,
+}))
 jest.mock('@/utils/general.utils', () => ({
     fetchTokenSymbol: jest.fn(),
     formatTokenAmount: (amount: string) => amount,
-    getRequestLink: ({ uuid }: { uuid: string }) => `https://peanut.me/request/pay?id=${uuid}`,
+    getRequestLink: ({ uuid, isCrowdfunding }: { uuid: string; isCrowdfunding?: boolean }) =>
+        `https://peanut.me/request/pay?id=${uuid}${isCrowdfunding ? '&mode=pot' : ''}`,
     isNativeCurrency: () => false,
 }))
 jest.mock('@/utils/url.utils', () => ({
@@ -583,5 +588,92 @@ describe('useCreateRequestLink', () => {
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
             expect(result.current.accountCurrencies).toEqual(['EUR', 'USD'])
         })
+    })
+})
+
+describe('crowdfunding pots', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        apiCreate.mockResolvedValue({ uuid: 'pot-1', isCrowdfunding: true })
+        resolveCopy.mockResolvedValue(true)
+    })
+
+    it.each(['', '500'])('creates a tracked pot with optional goal %s', async (goal) => {
+        const { result } = renderHook(() => useCreateRequestLink({ isCrowdfunding: true }), { wrapper })
+        act(() => {
+            result.current.handleRequestAmountChange(goal)
+            result.current.handleAttachmentOptionsChange({
+                message: 'Community garden',
+                fileUrl: '',
+                rawFile: undefined,
+            })
+        })
+        // A profile QR would lose the pot UUID and its contribution accounting.
+        expect(result.current.qrCodeLink).toBe('')
+        await act(async () => {
+            await result.current.generateLink()
+        })
+        expect(apiCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                reference: 'Community garden',
+                isCrowdfunding: true,
+                tokenAmount: goal || undefined,
+                bankInstructionsShared: false,
+            })
+        )
+        expect(result.current.generatedLink).toBe('https://peanut.me/request/pay?id=pot-1&mode=pot')
+        expect(result.current.qrCodeLink).toBe(result.current.generatedLink)
+    })
+
+    it('does not publish a pot when an older API strips its identity', async () => {
+        apiCreate.mockResolvedValue({ uuid: 'old-api-request' })
+        apiClose.mockResolvedValue({})
+        const { result } = renderHook(() => useCreateRequestLink({ isCrowdfunding: true }), { wrapper })
+        act(() =>
+            result.current.handleAttachmentOptionsChange({
+                message: 'Community garden',
+                fileUrl: '',
+                rawFile: undefined,
+            })
+        )
+        await act(async () => {
+            await result.current.generateLink()
+        })
+        expect(apiClose).toHaveBeenCalledWith('old-api-request')
+        expect(result.current.generatedLink).toBeNull()
+        expect(result.current.errorState.errorMessage).toContain('not available yet')
+    })
+
+    it.each(['-1', '0', 'Infinity', '1.001'])('rejects invalid goal %s before creating a request', async (goal) => {
+        const { result } = renderHook(() => useCreateRequestLink({ isCrowdfunding: true }), { wrapper })
+        act(() => {
+            result.current.handleRequestAmountChange(goal)
+            result.current.handleAttachmentOptionsChange({
+                message: 'Community garden',
+                fileUrl: '',
+                rawFile: undefined,
+            })
+        })
+        await act(async () => {
+            await result.current.generateLink()
+        })
+        expect(apiCreate).not.toHaveBeenCalled()
+        expect(result.current.errorState.showError).toBe(true)
+    })
+
+    it('requires a purpose', async () => {
+        const { result } = renderHook(() => useCreateRequestLink({ isCrowdfunding: true }), { wrapper })
+        act(() => result.current.handleAttachmentOptionsChange({ message: '   ', fileUrl: '', rawFile: undefined }))
+        await act(async () => {
+            await result.current.generateLink()
+        })
+        expect(apiCreate).not.toHaveBeenCalled()
+    })
+
+    it('uses USD even when opened with an old request currency parameter', () => {
+        const { result } = renderHook(() => useCreateRequestLink({ isCrowdfunding: true }), {
+            wrapper: currencyWrapper('?currency=EUR'),
+        })
+        expect(result.current.currency).toBe('USD')
     })
 })

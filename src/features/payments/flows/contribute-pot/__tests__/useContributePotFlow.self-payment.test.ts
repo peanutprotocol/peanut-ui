@@ -9,7 +9,7 @@ const mockRecordPayment = jest.fn()
 const ctx = {
     amount: '10',
     usdAmount: '10',
-    request: { uuid: 'request-1' },
+    request: { uuid: 'request-1', status: 'OPEN' },
     recipient: { address: peer, userId: 'peer-user' },
     attachment: {},
     contributors: [],
@@ -48,6 +48,8 @@ import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 beforeEach(() => {
     jest.clearAllMocks()
+    ctx.amount = '10'
+    ctx.request.status = 'OPEN'
     ctx.recipient = { address: peer, userId: 'peer-user' }
     mockCreateCharge.mockResolvedValue({ uuid: 'charge-1' })
     mockSendMoney.mockResolvedValue({ txHash: '0xhash' })
@@ -127,3 +129,27 @@ test('creates an own-request charge for payment from an external wallet', async 
     expect(mockSendMoney).not.toHaveBeenCalled()
     expect(mockRecordPayment).not.toHaveBeenCalled()
 })
+
+test('a closed request never creates a charge or sends funds', async () => {
+    ctx.request.status = 'CLOSED'
+    const { result } = renderHookWithIntl(() => useContributePotFlow())
+    expect(result.current.canProceed).toBe(false)
+    await act(async () => {
+        expect(await result.current.executeContribution()).toEqual({ success: false })
+    })
+    expect(mockCreateCharge).not.toHaveBeenCalled()
+    expect(mockSendMoney).not.toHaveBeenCalled()
+})
+
+test.each(['Infinity', 'NaN', '-1', '0', '10abc'])(
+    'refuses invalid contribution %s before charge creation',
+    async (amount) => {
+        ctx.amount = amount
+        const { result } = renderHookWithIntl(() => useContributePotFlow())
+        expect(result.current.canProceed).toBe(false)
+        await act(async () => {
+            expect(await result.current.executeContribution()).toEqual({ success: false })
+        })
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+    }
+)

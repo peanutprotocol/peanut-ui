@@ -686,6 +686,7 @@ export const formatExtendedNumber = (amount: string | number, minDigitsForFomatt
 
 export function getRequestLink(
     requestData: {
+        isCrowdfunding?: boolean
         recipientAccount: {
             type?: string
             user?: {
@@ -718,7 +719,7 @@ export function getRequestLink(
         link += `${tokenSymbol}`
     }
     if (uuid) {
-        link += `?id=${uuid}`
+        link += `?id=${uuid}${requestData.isCrowdfunding ? '&mode=pot' : ''}`
     } else if (chargeId) {
         link += `?chargeId=${chargeId}`
     }

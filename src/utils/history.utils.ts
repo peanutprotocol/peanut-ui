@@ -279,6 +279,7 @@ export type HistoryEntry = {
     points?: number
     /** Provider fee in USD (human units, e.g. 0.01). Populated by bridge offramp/onramp. */
     fee?: number
+    isCrowdfunding?: boolean
     isRequestLink?: boolean // true if the transaction is a request pot link
     charges?: ChargeEntry[]
     totalAmountCollected?: number
@@ -436,7 +437,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 const tokenCurrency = entry.tokenSymbol
                 const tokenAmount = entry.amount
                 link = payLinkUrl(
-                    `/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
+                    `/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}${entry.isCrowdfunding ? '&mode=pot' : ''}`
                 )
             } else {
                 link = payLinkUrl(

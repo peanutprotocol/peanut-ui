@@ -4347,5 +4347,31 @@
             "converted": "Convertido para USD pela cotação. Aplica-se uma taxa de conversão.",
             "seeRates": "Ver cotações"
         }
+    },
+    "pots": {
+        "title": "Vaquinha",
+        "entry": "Criar uma vaquinha",
+        "introTitle": "Reúna pessoas por um objetivo",
+        "introDescription": "Crie um link e deixe cada pessoa contribuir com o valor que quiser.",
+        "purpose": "Para que você está arrecadando?",
+        "purposePlaceholder": "Um projeto comunitário, um presente, uma boa causa…",
+        "goal": "Meta em USD (opcional)",
+        "noGoalHint": "Opcional. As contribuições podem continuar após atingir a meta.",
+        "directFunding": "As contribuições vão diretamente para quem organiza. Elas não ficam retidas até atingir a meta nem são reembolsadas automaticamente.",
+        "create": "Criar vaquinha",
+        "share": "Compartilhar vaquinha",
+        "created": "Sua vaquinha está pronta",
+        "createdDescription": "Compartilhe este link para que outras pessoas contribuam e acompanhem o progresso.",
+        "invalidPot": "Adicione um propósito e uma meta positiva com até duas casas decimais, ou deixe a meta em branco.",
+        "contribute": "Contribuir com a vaquinha",
+        "chooseAmount": "Escolha quanto você quer contribuir.",
+        "raised": "{amount} arrecadados",
+        "closed": "Esta arrecadação está encerrada",
+        "closedDescription": "Quem organiza encerrou esta arrecadação. Novas contribuições não são mais aceitas.",
+        "organisedBy": "Organizado por {name}",
+        "goalAmount": "Meta de {amount}",
+        "openGoal": "Arrecadação sem meta",
+        "viewPot": "Ver vaquinha e progresso",
+        "notAvailable": "As vaquinhas ainda não estão disponíveis. Tente novamente mais tarde."
     }
 }

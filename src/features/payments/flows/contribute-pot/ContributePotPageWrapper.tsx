@@ -10,6 +10,7 @@
  */
 
 import { ContributePotPage } from './ContributePotPage'
+import { ClosedCollectionView } from './views/ClosedCollectionView'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { requestsApi } from '@/services/requests'
 import Loading from '@/components/Global/Loading'
@@ -38,21 +39,26 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
             return
         }
 
+        let active = true
         setIsLoading(true)
+        setRequest(null)
         setError(null)
 
         requestsApi
             .get(requestId)
             .then((data) => {
-                setRequest(data)
+                if (active) setRequest(data)
             })
             .catch((err) => {
                 console.error('failed to fetch request:', err)
-                setError(t('errors.requestLoadFailed'))
+                if (active) setError(t('errors.requestLoadFailed'))
             })
             .finally(() => {
-                setIsLoading(false)
+                if (active) setIsLoading(false)
             })
+        return () => {
+            active = false
+        }
     }, [requestId, t])
 
     // loading state
@@ -83,5 +89,9 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
         )
     }
 
-    return <ContributePotPage request={request} />
+    if (request.status === 'CLOSED') {
+        return <ClosedCollectionView isCrowdfunding={request.isCrowdfunding === true} onBack={onBack} />
+    }
+
+    return <ContributePotPage key={request.uuid} request={request} isCrowdfunding={request.isCrowdfunding === true} />
 }

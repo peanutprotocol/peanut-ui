@@ -63,6 +63,7 @@ interface ContributePotError {
 
 // context value type
 interface ContributePotFlowContextValue {
+    isCrowdfunding: boolean
     // view state
     currentView: ContributePotFlowView
     setCurrentView: (view: ContributePotFlowView) => void
@@ -116,9 +117,14 @@ const ContributePotFlowContext = createContext<ContributePotFlowContextValue | n
 interface ContributePotFlowProviderProps {
     children: ReactNode
     initialRequest: TRequestResponse
+    isCrowdfunding?: boolean
 }
 
-export function ContributePotFlowProvider({ children, initialRequest }: ContributePotFlowProviderProps) {
+export function ContributePotFlowProvider({
+    children,
+    initialRequest,
+    isCrowdfunding = false,
+}: ContributePotFlowProviderProps) {
     // view state
     const [currentView, setCurrentView] = useState<ContributePotFlowView>('INITIAL')
 
@@ -202,6 +208,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
 
     const value = useMemo<ContributePotFlowContextValue>(
         () => ({
+            isCrowdfunding,
             currentView,
             setCurrentView,
             request,
@@ -233,6 +240,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             setIsExternalWalletPayment,
         }),
         [
+            isCrowdfunding,
             currentView,
             request,
             recipient,

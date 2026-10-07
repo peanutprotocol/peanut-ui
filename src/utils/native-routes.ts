@@ -48,8 +48,8 @@ export function chargePayUrl(chargeId: string, context?: string): string {
     return `/pay-request?chargeId=${encodeURIComponent(chargeId)}${qs}`
 }
 
-export function requestPotUrl(id: string): string {
-    return `/pay-request?id=${encodeURIComponent(id)}`
+export function requestPotUrl(id: string, mode?: 'pot'): string {
+    return `/pay-request?id=${encodeURIComponent(id)}${mode === 'pot' ? '&mode=pot' : ''}`
 }
 
 export function addMoneyCountryUrl(countryPath: string): string {
@@ -126,7 +126,7 @@ function mapDeepLinkPath(parsed: URL): string | null {
         const chargeId = parsed.searchParams.get('chargeId')
         if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
         const requestId = parsed.searchParams.get('id')
-        if (requestId) return requestPotUrl(requestId)
+        if (requestId) return requestPotUrl(requestId, parsed.searchParams.get('mode') === 'pot' ? 'pot' : undefined)
         return isCapacitor() ? null : appendParams(path, extraParams)
     }
 
@@ -164,7 +164,7 @@ function mapDeepLinkPath(parsed: URL): string | null {
         }
         if (!isCapacitor()) return appendParams(path, extraParams)
         if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
-        if (requestId) return requestPotUrl(requestId)
+        if (requestId) return requestPotUrl(requestId, parsed.searchParams.get('mode') === 'pot' ? 'pot' : undefined)
         return appendParams(recipientPayUrl(rest.map(decodeURIComponent).join('/')), extraParams)
     }
     /*
@@ -228,7 +228,8 @@ function mapDeepLinkPath(parsed: URL): string | null {
             const chargeId = parsed.searchParams.get('chargeId')
             if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
             const requestId = parsed.searchParams.get('id')
-            if (requestId) return requestPotUrl(requestId)
+            if (requestId)
+                return requestPotUrl(requestId, parsed.searchParams.get('mode') === 'pot' ? 'pot' : undefined)
             /*
              * No charge/request params: a bare `/<username>` is the public profile
              * (mirrors the web catch-all's profile branch); anything else — an

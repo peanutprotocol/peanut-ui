@@ -5,6 +5,7 @@ const peer = '0x1111111111111111111111111111111111111111'
 type Contributor = { uuid: string; amount: string }
 
 const ctx = {
+    isCrowdfunding: false,
     amount: '',
     usdAmount: '',
     request: { uuid: 'request-1' },
@@ -46,6 +47,7 @@ import { useContributePotFlow } from '../useContributePotFlow'
 const charge = (amount: string): Contributor => ({ uuid: `charge-${amount}`, amount })
 
 beforeEach(() => {
+    ctx.isCrowdfunding = false
     ctx.totalAmount = 100
     ctx.totalCollected = 0
     ctx.contributors = []
@@ -89,4 +91,12 @@ test('an equal split still suggests a third of the pot while it fits', () => {
     expect(result.current.sliderDefaults.suggestedAmount).toBeCloseTo(33.33, 2)
     // the slider spans what is left ($66.67), so a third of the pot is half of it
     expect(result.current.sliderDefaults.percentage).toBeCloseTo(50, 1)
+})
+
+test.each([0, 50, 120])('crowdfunding leaves the contribution amount voluntary with %s collected', (collected) => {
+    ctx.isCrowdfunding = true
+    ctx.totalCollected = collected
+    ctx.contributors = collected ? [charge(String(collected))] : []
+    const { result } = renderHookWithIntl(() => useContributePotFlow())
+    expect(result.current.sliderDefaults).toEqual({ percentage: 0, suggestedAmount: 0 })
 })
