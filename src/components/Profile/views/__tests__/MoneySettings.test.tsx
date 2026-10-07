@@ -140,7 +140,8 @@ let mockUser: {
     }
     user?: { userId: string }
 } | null = null
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
+const mockFetchUser = jest.fn()
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ isEligible: true, hasCardAccess: true }),
@@ -157,6 +158,9 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 const mockInitiateKyc = jest.fn()
+// item 8c, second part: the verified one-shot sheet hands its answer to the flow hook
+const mockShowOneShotSetup = jest.fn()
+const mockOneShotRestart = jest.fn()
 const mockRestartIdentity = jest.fn()
 const mockResidenceChange = jest.fn()
 const mockDismissCooldown = jest.fn()
@@ -167,6 +171,8 @@ const mockFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockInitiateKyc,
+        showOneShotSetup: mockShowOneShotSetup,
+        handleOneShotRestart: mockOneShotRestart,
         handleSelfHealResubmit: mockSelfHealResubmit,
         handleFixableRejection: mockFixableRejection,
         handleRestartIdentity: mockRestartIdentity,
@@ -199,18 +205,25 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
         methodLabel,
         onUnlock,
         oneShot,
+        onOneShotDone,
+        onOneShotVerifyAgain,
     }: {
         visible: boolean
         methodLabel: string | null
         onUnlock: () => void
-        oneShot?: { residence: string; feature: string } | null
+        oneShot?: { residence: string; feature: string; verified?: boolean } | null
+        onOneShotDone?: (outcome: { kind: 'on' } | { kind: 'setup'; report: null }) => void
+        onOneShotVerifyAgain?: () => void
     }) =>
         visible ? (
             <div>
                 unlock-modal-open:{methodLabel}
                 <button onClick={onUnlock}>unlock now</button>
+                <button onClick={() => onOneShotDone?.({ kind: 'setup', report: null })}>set up now</button>
+                <button onClick={() => onOneShotDone?.({ kind: 'on' })}>already on</button>
+                <button onClick={() => onOneShotVerifyAgain?.()}>verify again</button>
                 <output data-testid="unlock-one-shot">
-                    {oneShot ? `${oneShot.residence}:${oneShot.feature}` : 'none'}
+                    {oneShot ? `${oneShot.residence}:${oneShot.feature}${oneShot.verified ? ':verified' : ''}` : 'none'}
                 </output>
             </div>
         ) : null,
@@ -1385,13 +1398,39 @@ describe('MoneySettings', () => {
             expect(mockInitiateKyc).toHaveBeenCalledWith('EU', undefined, true, undefined)
         })
 
-        // adding a feature after the check needs the stored set and a new plan from the API
-        it("a one-shot user who already passed the identity check keeps today's sheet", () => {
-            residentOf('ES')
-            mockIdentity = { status: 'verified' }
-            render()
-            fireEvent.click(screen.getByText('EUR'))
-            expect(tappedFeature()).toBe('none')
+        // item 8c, second part (D16): after the check the same tap adds the
+        // feature with no new check, and the sheet's answer drives what follows
+        describe('a one-shot user who already passed the identity check', () => {
+            beforeEach(() => {
+                residentOf('ES')
+                mockIdentity = { status: 'verified' }
+                render()
+                fireEvent.click(screen.getByText('EUR'))
+            })
+
+            it('gets the sheet that adds the feature, not the ID question', () => {
+                expect(tappedFeature()).toBe('ES:bank:verified')
+            })
+
+            it('a feature being set up closes the sheet and opens the setup drawer', () => {
+                fireEvent.click(screen.getByRole('button', { name: 'set up now' }))
+                expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+                expect(mockShowOneShotSetup).toHaveBeenCalledWith(null)
+                expect(mockInitiateKyc).not.toHaveBeenCalled()
+            })
+
+            it('a feature already on closes the sheet and reads the rows again', () => {
+                fireEvent.click(screen.getByRole('button', { name: 'already on' }))
+                expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+                expect(mockFetchUser).toHaveBeenCalledTimes(1)
+                expect(mockShowOneShotSetup).not.toHaveBeenCalled()
+            })
+
+            it('"verify again" closes the sheet and restarts the check as a one-shot flow', () => {
+                fireEvent.click(screen.getByRole('button', { name: 'verify again' }))
+                expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+                expect(mockOneShotRestart).toHaveBeenCalledTimes(1)
+            })
         })
     })
 })

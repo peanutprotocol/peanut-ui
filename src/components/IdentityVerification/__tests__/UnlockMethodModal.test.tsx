@@ -1,17 +1,18 @@
 /**
  * The method unlock sheet (TASK-23329, D16). For a one-shot user who has not
  * passed the identity check, the sheet asks which ID the user will show,
- * stores the tapped feature with QR, and only then starts the check. For
- * everyone else it is today's sheet: no question, no request, the button
- * starts the check directly.
+ * stores the tapped feature with QR, and only then starts the check. For one
+ * who passed it, the sheet adds the feature to the stored set and the API sets
+ * it up with no new check. For everyone else it is today's sheet: no question,
+ * no request, the button starts the check directly.
  */
 /** @jest-environment jsdom */
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
-import { __resetOneShotSessionForTests, useOneShotSession } from '@/hooks/useOneShotSession'
-import type { KycIntentKey, KycIntentsConfig } from '@/services/kyc-intents'
+import { USER } from '@/constants/query.consts'
+import type { FeatureSetupReport, KycIntentKey, KycIntentsConfig, KycIntentSet } from '@/services/kyc-intents'
 import UnlockMethodModal from '../UnlockMethodModal'
 
 const getConfig = jest.fn<Promise<KycIntentsConfig>, [string, string | undefined]>()
@@ -26,6 +27,10 @@ jest.mock('@/services/kyc-intents', () => ({
 
 const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
+
+// what /users/me says: the verified sheet reads the stored set from it
+let mockUser: { identityVerification?: { status: string; oneShot?: boolean; kycIntents?: KycIntentSet } } | null = null
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
 const open = { available: true }
 const closed = (reason: string) => ({ available: false, reason })
@@ -43,23 +48,33 @@ const answer = (residence: string, idCountry?: string): KycIntentsConfig => ({
 
 const onUnlock = jest.fn()
 const onClose = jest.fn()
-const StoredSet = () => <output data-testid="stored-set">{JSON.stringify(useOneShotSession()?.intents ?? null)}</output>
+const onOneShotDone = jest.fn()
+const onOneShotVerifyAgain = jest.fn()
+const SET_AT = '2026-10-06T00:00:00.000Z'
 
-const renderSheet = (feature?: KycIntentKey) =>
+let client: QueryClient
+// the set the save wrote into the cached user: what the flow hook and the drawer read (item 3b)
+const storedSet = () =>
+    (client.getQueryData([USER]) as { identityVerification?: { kycIntents?: KycIntentSet } } | undefined)
+        ?.identityVerification?.kycIntents ?? null
+
+const renderSheet = (oneShot?: { residence: string; feature: KycIntentKey; verified?: boolean }) =>
     render(
-        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <QueryClientProvider client={client}>
             <IntlWrapper>
                 <UnlockMethodModal
                     visible
                     onClose={onClose}
                     onUnlock={onUnlock}
                     methodLabel="EUR · Bank transfer"
-                    oneShot={feature ? { residence: 'ES', feature } : null}
+                    oneShot={oneShot ?? null}
+                    onOneShotDone={onOneShotDone}
+                    onOneShotVerifyAgain={onOneShotVerifyAgain}
                 />
-                <StoredSet />
             </IntlWrapper>
         </QueryClientProvider>
     )
+const renderBefore = (feature?: KycIntentKey) => renderSheet(feature ? { residence: 'ES', feature } : undefined)
 
 const pickForeignId = async (country: string) => {
     fireEvent.click(screen.getByRole('radio', { name: 'ID issued by another country' }))
@@ -70,13 +85,16 @@ const pickForeignId = async (country: string) => {
 describe('UnlockMethodModal', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        __resetOneShotSessionForTests()
+        client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        client.setQueryData([USER], { identityVerification: { status: 'not_started', oneShot: true } })
+        mockUser = null
         getConfig.mockImplementation(async (residence, idCountry) => answer(residence, idCountry))
-        setIntents.mockResolvedValue({ intents: {}, setAt: '2026-10-06T00:00:00.000Z' })
+        // the API echoes the stored set
+        setIntents.mockImplementation(async (set: KycIntentSet) => ({ intents: set, setAt: SET_AT }))
     })
 
     it("without the one-shot answer it is today's sheet: no question, no request, the button starts the check", () => {
-        renderSheet()
+        renderBefore()
         expect(screen.getByRole('heading', { name: 'Unlock EUR · Bank transfer' })).toBeInTheDocument()
         expect(screen.getByTestId('kyc-prep-checklist')).toBeInTheDocument()
         expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
@@ -86,11 +104,11 @@ describe('UnlockMethodModal', () => {
         expect(getConfig).not.toHaveBeenCalled()
         expect(setIntents).not.toHaveBeenCalled()
         expect(capture).not.toHaveBeenCalled()
-        expect(screen.getByTestId('stored-set')).toHaveTextContent('null')
+        expect(storedSet()).toBeNull()
     })
 
     it('with a local ID it stores the tapped feature and QR, then starts the check', async () => {
-        renderSheet('bank')
+        renderBefore('bank')
         // the method-worded title and the list of what to have ready stay
         expect(screen.getByRole('heading', { name: 'Unlock EUR · Bank transfer' })).toBeInTheDocument()
         expect(screen.getByTestId('kyc-prep-checklist')).toBeInTheDocument()
@@ -110,8 +128,8 @@ describe('UnlockMethodModal', () => {
         await waitFor(() => expect(onUnlock).toHaveBeenCalledTimes(1))
         const stored = { qr: true, local: false, card: false, bank: true }
         expect(setIntents).toHaveBeenCalledWith(stored)
-        // the setup drawer and the resume read this cell (item 9a)
-        expect(screen.getByTestId('stored-set')).toHaveTextContent(JSON.stringify(stored))
+        // the setup drawer and the resume read the cached user (items 9a and 3b)
+        expect(storedSet()).toEqual(stored)
         for (const event of ['onboarding_unlock_viewed', 'onboarding_unlock_continued']) {
             expect(capture).toHaveBeenCalledWith(event, {
                 entry: 'method',
@@ -126,7 +144,7 @@ describe('UnlockMethodModal', () => {
     })
 
     it('a foreign ID that cannot open the method says why and offers the check for QR alone', async () => {
-        renderSheet('bank')
+        renderBefore('bank')
         await waitFor(() => expect(screen.getByRole('button', { name: 'I have these, start' })).toBeEnabled())
         fireEvent.click(screen.getByRole('radio', { name: 'ID issued by another country' }))
         // no issuing country yet: nothing to start on
@@ -151,7 +169,7 @@ describe('UnlockMethodModal', () => {
     })
 
     it('a method the residence does not have reads Not available, with the QR start', async () => {
-        renderSheet('local')
+        renderBefore('local')
         const refusal = await screen.findByTestId('unlock-method-refused')
         expect(refusal).toHaveTextContent('Not available')
         fireEvent.click(screen.getByRole('button', { name: 'Unlock QR payments' }))
@@ -160,7 +178,7 @@ describe('UnlockMethodModal', () => {
     })
 
     it('QR payments store QR alone and keep the plain start', async () => {
-        renderSheet('qr')
+        renderBefore('qr')
         const start = screen.getByRole('button', { name: 'I have these, start' })
         await waitFor(() => expect(start).toBeEnabled())
         fireEvent.click(start)
@@ -170,7 +188,7 @@ describe('UnlockMethodModal', () => {
 
     it('a failed save shows the error and does not start the check', async () => {
         setIntents.mockRejectedValue(new Error('Failed to save kyc intents: 500'))
-        renderSheet('bank')
+        renderBefore('bank')
         const start = screen.getByRole('button', { name: 'I have these, start' })
         await waitFor(() => expect(start).toBeEnabled())
         fireEvent.click(start)
@@ -178,12 +196,12 @@ describe('UnlockMethodModal', () => {
         expect(await screen.findByText('Could not save your choices. Please try again.')).toBeInTheDocument()
         expect(onUnlock).not.toHaveBeenCalled()
         expect(capture).not.toHaveBeenCalledWith('onboarding_unlock_continued', expect.anything())
-        expect(screen.getByTestId('stored-set')).toHaveTextContent('null')
+        expect(storedSet()).toBeNull()
     })
 
     it('a config that does not load offers a retry and starts nothing', async () => {
         getConfig.mockRejectedValueOnce(new Error('Failed to load kyc intents: 500'))
-        renderSheet('bank')
+        renderBefore('bank')
         expect(await screen.findByText('Could not load the features to unlock.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'I have these, start' })).toBeDisabled()
         fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
@@ -193,9 +211,14 @@ describe('UnlockMethodModal', () => {
     // Chip review on ui#3584: a sheet dismissed during the save must not open the check when the answer lands
     it('cannot be dismissed while the save is in flight, and starts the check when it lands', async () => {
         let finishSave: () => void = () => {}
-        setIntents.mockImplementation(() => new Promise<void>((resolve) => (finishSave = resolve)))
+        setIntents.mockImplementation(
+            (set: KycIntentSet) =>
+                new Promise((resolve) => {
+                    finishSave = () => resolve({ intents: set, setAt: SET_AT })
+                })
+        )
         const dismiss = () => fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        renderSheet('bank')
+        renderBefore('bank')
         const start = screen.getByRole('button', { name: 'I have these, start' })
         await waitFor(() => expect(start).toBeEnabled())
         // at rest the sheet closes as it always did
@@ -214,6 +237,126 @@ describe('UnlockMethodModal', () => {
         await waitFor(() => {
             dismiss()
             expect(onClose).toHaveBeenCalledTimes(2)
+        })
+    })
+
+    describe('a one-shot user who already passed the check (item 8c, second part)', () => {
+        const STORED = { qr: true, local: true, card: false, bank: false }
+        const features = (bank: FeatureSetupReport['bank']): FeatureSetupReport => ({
+            qr: { state: 'on' },
+            local: { state: 'on' },
+            card: { state: 'not_requested' },
+            bank,
+        })
+        const answerWith = (bank: FeatureSetupReport['bank'] | null) =>
+            setIntents.mockImplementation(async (set: KycIntentSet) => ({
+                intents: set,
+                setAt: SET_AT,
+                ...(bank ? { features: features(bank) } : {}),
+            }))
+        const renderVerified = () => renderSheet({ residence: 'BR', feature: 'bank', verified: true })
+
+        beforeEach(() => {
+            mockUser = { identityVerification: { status: 'verified', oneShot: true, kycIntents: STORED } }
+            client.setQueryData([USER], mockUser)
+        })
+
+        it('asks no ID question, lists nothing to have ready, and adds the feature to the stored set with no check', async () => {
+            answerWith({ state: 'setting_up' })
+            renderVerified()
+            expect(screen.getByRole('heading', { name: 'Unlock EUR · Bank transfer' })).toBeInTheDocument()
+            expect(screen.getByText('Identity verified. No new check needed.')).toBeInTheDocument()
+            expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('kyc-prep-checklist')).not.toBeInTheDocument()
+            expect(getConfig).not.toHaveBeenCalled()
+
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            await waitFor(() => expect(onOneShotDone).toHaveBeenCalledTimes(1))
+            // the stored ticks stay, QR stays, the tapped feature joins
+            const merged = { qr: true, local: true, card: false, bank: true }
+            expect(setIntents).toHaveBeenCalledWith(merged)
+            expect(storedSet()).toEqual(merged)
+            expect(onOneShotDone).toHaveBeenCalledWith({ kind: 'setup', report: features({ state: 'setting_up' }) })
+            // no SDK start and no checklist event
+            expect(onUnlock).not.toHaveBeenCalled()
+            expect(capture).not.toHaveBeenCalled()
+        })
+
+        it('a method already on hands back on', async () => {
+            answerWith({ state: 'on' })
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            await waitFor(() => expect(onOneShotDone).toHaveBeenCalledWith({ kind: 'on' }))
+        })
+
+        it('no features in the answer: the drawer reads the rails', async () => {
+            answerWith(null)
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            await waitFor(() => expect(onOneShotDone).toHaveBeenCalledWith({ kind: 'setup', report: null }))
+        })
+
+        it('a document the plan does not take says which ID would, and offers a new check with it', async () => {
+            answerWith({ state: 'refused', reason: 'document_country_unsupported' })
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            const refusal = await screen.findByTestId('unlock-method-refused')
+            expect(refusal).toHaveTextContent('EUR · Bank transfer')
+            expect(refusal).toHaveTextContent('Needs an ID issued by Brazil')
+            expect(onOneShotDone).not.toHaveBeenCalled()
+            expect(screen.queryByRole('button', { name: 'Set up now' })).not.toBeInTheDocument()
+            expect(screen.getByText('Starts a new identity check.')).toBeInTheDocument()
+
+            fireEvent.click(screen.getByRole('button', { name: 'Verify again with a Brazil ID' }))
+            expect(onOneShotVerifyAgain).toHaveBeenCalledTimes(1)
+            expect(onUnlock).not.toHaveBeenCalled()
+        })
+
+        it('a setup the API could not start yet says to check back, and hands nothing back', async () => {
+            answerWith({ state: 'pending' })
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            const note = await screen.findByTestId('unlock-method-pending')
+            expect(note).toHaveTextContent('EUR · Bank transfer')
+            expect(note).toHaveTextContent('Setting up. Check back later.')
+            expect(onOneShotDone).not.toHaveBeenCalled()
+            expect(screen.queryByRole('button')).not.toBeInTheDocument()
+            // the tick is saved: the next save sets it up
+            expect(storedSet()).toEqual({ qr: true, local: true, card: false, bank: true })
+        })
+
+        it('another refusal reads its own reason, with no way forward here', async () => {
+            answerWith({ state: 'refused', reason: 'under_minimum_age' })
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            expect(await screen.findByTestId('unlock-method-refused')).toHaveTextContent('Only from age 18')
+            expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        })
+
+        it('a failed save shows the error and hands nothing back', async () => {
+            setIntents.mockRejectedValue(new Error('Failed to save kyc intents: 500'))
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            expect(await screen.findByText('Could not save your choices. Please try again.')).toBeInTheDocument()
+            expect(onOneShotDone).not.toHaveBeenCalled()
+            expect(storedSet()).toEqual(STORED)
+        })
+
+        it('cannot be dismissed while the save is in flight', async () => {
+            let finishSave: () => void = () => {}
+            setIntents.mockImplementation(
+                (set: KycIntentSet) =>
+                    new Promise((resolve) => {
+                        finishSave = () => resolve({ intents: set, setAt: SET_AT, features: features({ state: 'on' }) })
+                    })
+            )
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            await waitFor(() => expect(setIntents).toHaveBeenCalledTimes(1))
+            fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+            expect(onClose).not.toHaveBeenCalled()
+            await act(async () => finishSave())
+            await waitFor(() => expect(onOneShotDone).toHaveBeenCalledWith({ kind: 'on' }))
         })
     })
 })

@@ -8,6 +8,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import type { KycIntentKey } from '@/services/kyc-intents'
+import { type AddDone, UnlockMethodAddStep } from './UnlockMethodAddStep'
 import { UnlockMethodOneShotStep } from './UnlockMethodOneShotStep'
 
 interface UnlockMethodModalProps {
@@ -20,12 +21,17 @@ interface UnlockMethodModalProps {
     path?: KycPrepPath
     isLoading?: boolean
     /**
-     * One-shot onboarding before the identity check (TASK-23329): the declared
-     * residence and the feature the tapped method stands for. The sheet then
-     * asks which ID the user will show and stores the feature before the
-     * check starts. Absent is today's sheet.
+     * One-shot onboarding (TASK-23329): the declared residence and the feature
+     * the tapped method stands for. Before the identity check the sheet asks
+     * which ID the user will show and stores the feature before the check
+     * starts; once the check is passed (`verified`) it adds the feature to the
+     * stored set with no new check (D16). Absent is today's sheet.
      */
-    oneShot?: { residence: string; feature: KycIntentKey } | null
+    oneShot?: { residence: string; feature: KycIntentKey; verified?: boolean } | null
+    /** The verified sheet's answer: the method is on, or is being set up. */
+    onOneShotDone?: (outcome: AddDone) => void
+    /** The verified sheet's "Verify again with a {country} ID". */
+    onOneShotVerifyAgain?: () => void
 }
 
 /**
@@ -43,6 +49,8 @@ const UnlockMethodModal = ({
     path = 'standard',
     isLoading,
     oneShot,
+    onOneShotDone,
+    onOneShotVerifyAgain,
 }: UnlockMethodModalProps) => {
     const t = useTranslations('profile.unlockPayments.unlockModal')
     const tPrep = useTranslations('kyc.prep')
@@ -72,9 +80,19 @@ const UnlockMethodModal = ({
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col items-center gap-4">
-                        {oneShot ? (
+                        {oneShot?.verified ? (
+                            <UnlockMethodAddStep
+                                residence={oneShot.residence}
+                                feature={oneShot.feature}
+                                methodLabel={methodLabel}
+                                onDone={(outcome) => onOneShotDone?.(outcome)}
+                                onVerifyAgain={() => onOneShotVerifyAgain?.()}
+                                onSavingChange={setOneShotSaving}
+                            />
+                        ) : oneShot ? (
                             <UnlockMethodOneShotStep
-                                {...oneShot}
+                                residence={oneShot.residence}
+                                feature={oneShot.feature}
                                 methodLabel={methodLabel}
                                 path={path}
                                 isLoading={!!isLoading}

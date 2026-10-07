@@ -8,13 +8,10 @@
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { initiateSumsubKyc } from '@/app/actions/sumsub'
-import {
-    __resetOneShotSessionForTests,
-    markOneShotStarted,
-    recordOneShotIntents,
-    useOneShotSession,
-} from '@/hooks/useOneShotSession'
+import posthog from 'posthog-js'
+import { initiateSumsubKyc, restartIdentityVerification } from '@/app/actions/sumsub'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import type { FeatureSetupReport } from '@/services/kyc-intents'
 import { rainApi } from '@/services/rain'
 import type { UserCapabilities } from '@/types/capabilities'
 
@@ -58,6 +55,7 @@ jest.mock('@/services/rain', () => ({ rainApi: { applyForCard: jest.fn(), getCar
 jest.mock('@/components/Card/cardApply.utils', () => ({ pollUntilReady: jest.fn(), pollUntilApplyAdvances: jest.fn() }))
 
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
+const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
 const mockApply = rainApi.applyForCard as jest.MockedFunction<typeof rainApi.applyForCard>
 
 const BR_INTENTS = { qr: true, local: true, card: false, bank: false }
@@ -91,17 +89,24 @@ const tokenAnswer = {
 }
 
 function setUser(status: 'not_started' | 'verified', oneShot: boolean, capabilities?: UserCapabilities) {
-    mockUser.identityVerification = { status, oneShot }
+    // a status change keeps the stored set, as /users/me does
+    const { kycIntents } = (mockUser.identityVerification ?? {}) as { kycIntents?: typeof BR_INTENTS }
+    mockUser.identityVerification = { status, oneShot, ...(kycIntents ? { kycIntents } : {}) }
     mockUser.residence = { declared: 'BR', verified: null }
     mockCapabilities = capabilities
     mockFetchUser.mockResolvedValue({ capabilities })
+}
+
+/** The stored set as /users/me carries it after a save (item 3b): the one set the app reads. */
+function storeIntents(intents: typeof BR_INTENTS) {
+    mockUser.identityVerification = { ...(mockUser.identityVerification as object), kycIntents: intents }
 }
 
 const states = (flow: ReturnType<typeof useMultiPhaseKycFlow>) => flow.oneShotSetup?.rows.map((row) => row.state)
 
 /** Start from the checklist's stored set, open the SDK and submit. */
 async function submitFromChecklist(onKycSuccess?: () => void) {
-    recordOneShotIntents(BR_INTENTS)
+    storeIntents(BR_INTENTS)
     mockInitiate.mockResolvedValue(tokenAnswer)
     const view = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
     await act(async () => {
@@ -114,7 +119,7 @@ async function submitFromChecklist(onKycSuccess?: () => void) {
 describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        __resetOneShotSessionForTests()
+        delete mockUser.identityVerification
         mockGateKind = 'none'
         mockWs.handler = undefined
         setUser('not_started', true)
@@ -192,7 +197,7 @@ describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
         expect(oneShot.result.current.oneShotSetup).not.toBeNull()
         oneShot.unmount()
 
-        __resetOneShotSessionForTests()
+        delete mockUser.identityVerification
         setUser('not_started', false)
         mockInitiate.mockResolvedValue({ data: { token: 'tok', applicantId: 'app', status: 'PENDING' } })
         const legacy = renderHook(() => useMultiPhaseKycFlow({}))
@@ -241,22 +246,19 @@ describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
     })
 
     it('an interrupted session resumes with the same request and keeps its stored set', async () => {
-        recordOneShotIntents(BR_INTENTS)
+        storeIntents(BR_INTENTS)
         mockInitiate.mockResolvedValue(tokenAnswer)
-        const { result } = renderHook(() => ({ flow: useMultiPhaseKycFlow({}), session: useOneShotSession() }))
-        expect(result.current.session).toEqual({ intents: BR_INTENTS, started: false })
+        const { result } = renderHook(() => ({ flow: useMultiPhaseKycFlow({}) }))
 
         await act(async () => {
             await result.current.flow.handleInitiateKyc()
         })
         expect(result.current.flow.showWrapper).toBe(true)
-        expect(result.current.session).toEqual({ intents: BR_INTENTS, started: true })
 
         // closed halfway: nothing was submitted, so no setup drawer
         act(() => result.current.flow.handleSdkClose())
         expect(result.current.flow.showWrapper).toBe(false)
         expect(result.current.flow.isModalOpen).toBe(false)
-        expect(result.current.session).toEqual({ intents: BR_INTENTS, started: true })
 
         await act(async () => {
             await result.current.flow.handleInitiateKyc()
@@ -273,14 +275,14 @@ describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
 describe('useMultiPhaseKycFlow — flows that keep the phases', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        __resetOneShotSessionForTests()
+        delete mockUser.identityVerification
         mockGateKind = 'none'
         mockWs.handler = undefined
     })
 
     const runLegacyToApproval = async (onKycSuccess: () => void) => {
         mockInitiate.mockResolvedValue({ data: { token: 'tok', applicantId: 'app', status: 'PENDING' } })
-        const view = renderHook(() => ({ flow: useMultiPhaseKycFlow({ onKycSuccess }), session: useOneShotSession() }))
+        const view = renderHook(() => ({ flow: useMultiPhaseKycFlow({ onKycSuccess }) }))
         await act(async () => {
             await view.result.current.flow.handleInitiateKyc('LATAM')
         })
@@ -292,7 +294,7 @@ describe('useMultiPhaseKycFlow — flows that keep the phases', () => {
 
     it('a user the server did not flag: settled rails on approval complete the flow, and a stored set is never read', async () => {
         setUser('not_started', false)
-        recordOneShotIntents(BR_INTENTS) // cannot happen for them; proves the flag gates the store too
+        storeIntents(BR_INTENTS) // cannot happen for them; proves the flag gates the store too
         const onKycSuccess = jest.fn()
         const { result } = await runLegacyToApproval(onKycSuccess)
 
@@ -302,7 +304,7 @@ describe('useMultiPhaseKycFlow — flows that keep the phases', () => {
         })
         expect(onKycSuccess).toHaveBeenCalledTimes(1)
         expect(result.current.flow.oneShotSetup).toBeNull()
-        expect(result.current.session).toEqual({ intents: BR_INTENTS, started: false })
+        expect(mockUser.identityVerification).toMatchObject({ kycIntents: BR_INTENTS })
     })
 
     it('a user the server did not flag: a reviewer taking the check closes the progress modal, as before', async () => {
@@ -330,8 +332,7 @@ describe('useMultiPhaseKycFlow — flows that keep the phases', () => {
 
     it('an approved one-shot user starting a later flow gets no token and completes as before', async () => {
         setUser('verified', true, brazil('enabled'))
-        recordOneShotIntents(BR_INTENTS)
-        markOneShotStarted()
+        storeIntents(BR_INTENTS)
         mockInitiate.mockResolvedValue({ data: { token: null, applicantId: 'app', status: 'APPROVED' } })
         const onKycSuccess = jest.fn()
         const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
@@ -358,14 +359,14 @@ describe('useMultiPhaseKycFlow — the card step', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        __resetOneShotSessionForTests()
+        delete mockUser.identityVerification
         mockGateKind = 'none'
         mockWs.handler = undefined
         setUser('not_started', true)
     })
 
     it('starts the card step the moment the identity session closes, and the SDK reopens on the questions', async () => {
-        recordOneShotIntents(CARD_INTENTS)
+        storeIntents(CARD_INTENTS)
         mockInitiate.mockResolvedValue(tokenAnswer)
         mockApply.mockResolvedValue(INCOMPLETE)
         const { result } = renderHook(() => useMultiPhaseKycFlow({}))
@@ -383,7 +384,7 @@ describe('useMultiPhaseKycFlow — the card step', () => {
     })
 
     it('accepted agreements before the approval read setting up on the card row', async () => {
-        recordOneShotIntents(CARD_INTENTS)
+        storeIntents(CARD_INTENTS)
         mockInitiate.mockResolvedValue(tokenAnswer)
         mockApply.mockResolvedValueOnce(TERMS).mockResolvedValueOnce({ status: 'pending-identity', message: 'later' })
         const { result } = renderHook(() => useMultiPhaseKycFlow({}))
@@ -418,8 +419,7 @@ describe('useMultiPhaseKycFlow — the card step', () => {
         expect(result.current.oneShotCard.chain).toBeNull()
     })
 
-    it('the server set outranks the set the tab stored', async () => {
-        recordOneShotIntents(CARD_INTENTS)
+    it('the rows follow the set on /users/me', async () => {
         mockUser.identityVerification = {
             status: 'not_started',
             oneShot: true,
@@ -439,7 +439,7 @@ describe('useMultiPhaseKycFlow — the card step', () => {
 
     it('a legacy flow never starts the card step', async () => {
         setUser('not_started', false)
-        recordOneShotIntents(CARD_INTENTS)
+        storeIntents(CARD_INTENTS)
         mockInitiate.mockResolvedValue({ data: { token: 'tok', applicantId: 'app', status: 'PENDING' } })
         const { result } = renderHook(() => useMultiPhaseKycFlow({}))
         await act(async () => {
@@ -450,5 +450,83 @@ describe('useMultiPhaseKycFlow — the card step', () => {
         })
         expect(mockApply).not.toHaveBeenCalled()
         expect(result.current.oneShotSetup).toBeNull()
+    })
+})
+
+/**
+ * Item 8c, second part (D16): a verified one-shot user adds a feature from the
+ * Unlock tap. No SDK session: the sheet hands the PUT answer to the hook, which
+ * shows the setup drawer for the stored set and arms the rail poller.
+ */
+describe('useMultiPhaseKycFlow — a feature added after the check', () => {
+    const report = (bank: FeatureSetupReport['bank']): FeatureSetupReport => ({
+        qr: { state: 'on' },
+        local: { state: 'not_requested' },
+        card: { state: 'not_requested' },
+        bank,
+    })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockGateKind = 'none'
+        mockWs.handler = undefined
+        setUser('verified', true, brazil('enabled'))
+        storeIntents({ qr: true, local: false, card: false, bank: true })
+    })
+
+    it('shows the drawer for the stored set, reads the user again and arms the poller', () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        expect(result.current.oneShotSetup).toBeNull()
+
+        act(() => result.current.showOneShotSetup(report({ state: 'setting_up' })))
+        expect(result.current.isModalOpen).toBe(true)
+        expect(result.current.oneShotSetup?.rows).toEqual([
+            { key: 'qr', state: 'available' },
+            { key: 'bank', state: 'setting-up' },
+        ])
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        expect(markSubmitted).toHaveBeenCalledTimes(1)
+        expect(mockInitiate).not.toHaveBeenCalled()
+    })
+
+    it('a refusal in the answer fills the row; a pending feature reads setting up', () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        act(() => result.current.showOneShotSetup(report({ state: 'refused', reason: 'document_country_unsupported' })))
+        expect(states(result.current)).toEqual(['available', 'needs-local-id'])
+
+        act(() => result.current.showOneShotSetup(report({ state: 'pending' })))
+        expect(states(result.current)).toEqual(['available', 'setting-up'])
+    })
+
+    it('no answer: the rails decide, as after the SDK', () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        act(() => result.current.showOneShotSetup(null))
+        expect(states(result.current)).toEqual(['available', 'setting-up'])
+    })
+
+    it('completing the drawer ends the flow without counting an identity approval', () => {
+        const onKycSuccess = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
+        act(() => result.current.showOneShotSetup(report({ state: 'on' })))
+        act(() => result.current.completeFlow())
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(result.current.isModalOpen).toBe(false)
+        expect(result.current.oneShotSetup).toBeNull()
+        expect(posthog.capture).not.toHaveBeenCalled()
+    })
+
+    it('the sheet\'s "verify again" restarts the check as a one-shot flow', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok-restart', levelName: 'one-shot-latam', applicantId: 'app' },
+        })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleOneShotRestart()
+        })
+        expect(mockRestart).toHaveBeenCalledTimes(1)
+        expect(result.current.showWrapper).toBe(true)
+        // the drawer follows this session when the SDK closes
+        expect(result.current.oneShotSetup).not.toBeNull()
+        expect(result.current.isModalOpen).toBe(false)
     })
 })

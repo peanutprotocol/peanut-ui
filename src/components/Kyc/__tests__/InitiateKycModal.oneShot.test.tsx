@@ -8,12 +8,17 @@
 import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { __resetOneShotSessionForTests, markOneShotStarted, recordOneShotIntents } from '@/hooks/useOneShotSession'
 import { InitiateKycModal } from '../InitiateKycModal'
 
 let mockOneShotResidence: string | null = null
+// the stored set as /users/me carries it (item 3b)
+let mockKycIntents: Record<string, boolean> | null = null
 jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isRegionRestricted: false, oneShotResidence: mockOneShotResidence }),
+    useIdentityVerification: () => ({
+        identity: { status: 'not_started', kycIntents: mockKycIntents },
+        isRegionRestricted: false,
+        oneShotResidence: mockOneShotResidence,
+    }),
 }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
@@ -39,27 +44,20 @@ const ALL_INTENTS = { qr: true, local: true, card: true, bank: true }
 describe('InitiateKycModal — one-shot onboarding', () => {
     beforeEach(() => {
         mockOneShotResidence = null
-        __resetOneShotSessionForTests()
+        mockKycIntents = null
     })
 
-    // item 9a: closing the SDK halfway and tapping Verify again resumes the
-    // applicant from today's start screen; the questions are not asked twice
-    it('skips the checklist once a stored set has a started session', () => {
+    // items 9a and 3b: closing the SDK halfway and tapping Verify again, a
+    // reload, or a second device resumes the applicant from today's start
+    // screen; the set is stored on the server, so the questions are not asked twice
+    it('skips the checklist once a set is stored', () => {
         mockOneShotResidence = 'BR'
-        recordOneShotIntents(ALL_INTENTS)
-        markOneShotStarted()
+        mockKycIntents = ALL_INTENTS
         const onVerify = jest.fn()
         renderModal({ onVerify })
         expect(screen.queryByText(/unlock-checklist/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
         expect(onVerify).toHaveBeenCalledTimes(1)
-    })
-
-    it('still asks when the set was stored but the SDK never opened', () => {
-        mockOneShotResidence = 'BR'
-        recordOneShotIntents(ALL_INTENTS)
-        renderModal()
-        expect(screen.getByText('unlock-checklist:BR')).toBeInTheDocument()
     })
 
     it("keeps today's screen when the server did not flag the user", () => {

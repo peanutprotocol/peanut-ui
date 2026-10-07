@@ -61,11 +61,13 @@ describe('addOutcome', () => {
         expect(addOutcome(saved(report({ bank: { state: 'refused' } })), 'bank')).toEqual({ kind: 'refused' })
     })
 
-    it('action_required and pending open the drawer, which shows the state', () => {
+    it('action_required opens the drawer, which shows the card step', () => {
         const card = report({ card: { state: 'action_required' } })
         expect(addOutcome(saved(card), 'card')).toEqual({ kind: 'setup', report: card })
-        const pending = report({ bank: { state: 'pending' } })
-        expect(addOutcome(saved(pending), 'bank')).toEqual({ kind: 'setup', report: pending })
+    })
+
+    it('pending stays on the sheet: the tick is saved, nothing is enabled yet', () => {
+        expect(addOutcome(saved(report({ bank: { state: 'pending' } })), 'bank')).toEqual({ kind: 'pending' })
     })
 
     it('no features in the answer: the drawer reads the rails, as item 9a does', () => {

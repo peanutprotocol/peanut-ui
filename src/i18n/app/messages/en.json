@@ -2871,7 +2871,10 @@
             "saveFailed": "Could not save your choices. Please try again.",
             "exploreTitle": "Explore first?",
             "exploreDescription": "Receiving, holding and sending money to other people keep working. The features you picked stay locked until you verify.",
-            "exploreFirst": "Explore first"
+            "exploreFirst": "Explore first",
+            "addNote": "Identity verified. No new check needed.",
+            "addCta": "Set up now",
+            "checkBack": "Setting up. Check back later."
         },
         "setup": {
             "settingUp": "Setting up",
