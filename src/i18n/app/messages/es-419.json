@@ -3313,7 +3313,7 @@
             "title": "Elige tus documentos",
             "description": "Elige los documentos que usarás aquí. Abriremos la verificación con estos documentos ya seleccionados.",
             "features": "¿Qué te gustaría usar?",
-            "qr": "Pagos con QR",
+            "qr": "Pagos QR",
             "local": "Transferencias bancarias locales",
             "bank": "Cuentas bancarias internacionales",
             "card": "Tarjeta Peanut",
