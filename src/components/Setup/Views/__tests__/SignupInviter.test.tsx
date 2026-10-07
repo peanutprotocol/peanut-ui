@@ -238,55 +238,73 @@ describe('optional inviter on signup', () => {
         expect(await screen.findByText('Invited by alice.')).toBeInTheDocument()
     })
 
-    it.each(['demo', ' @Demo '])('enters the demo celebration from %s with no username or invite API', async (code) => {
-        const { queryClient } = renderSignup()
-        let userRequestAborted = false
-        void queryClient
-            .fetchQuery({
-                queryKey: [USER],
-                queryFn: ({ signal }) =>
-                    new Promise((resolve) => {
-                        signal.addEventListener('abort', () => {
-                            userRequestAborted = true
-                            resolve(null)
-                        })
-                    }),
-            })
-            .catch(() => {})
-        fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
-        fireEvent.change(await screen.findByRole('textbox', { name: "Inviter's Peanut username" }), {
-            target: { value: code },
-        })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Add inviter' })).toBeEnabled())
-        expect(isDemoMode()).toBe(false)
-        fireEvent.click(screen.getByRole('button', { name: 'Add inviter' }))
-        await waitFor(() => expect(mockSetScreenId).toHaveBeenCalledWith('advantage-control'))
-        expect(isDemoMode()).toBe(true)
-        expect(userRequestAborted).toBe(true)
-        expect(queryClient.getQueryData([USER])).toEqual(DEMO_USER)
-        expect(screen.getByTestId('flow-state')).toHaveTextContent(
-            JSON.stringify({
-                signupCompleted: true,
-                residenceCountry: 'BR',
-                noBackLockScreenId: 'advantage-control',
-            })
-        )
-        expect(mockValidateInviter).not.toHaveBeenCalled()
-        expect(mockApiFetch).not.toHaveBeenCalled()
-        expect(mockStoredInvite.code).toBe('')
-        expect(mockHandleNext).not.toHaveBeenCalled()
-    })
+    it.each(['demo', 'DEMO', ' Demo '])(
+        'submits username %s into the demo celebration without an availability or invite API call',
+        async (code) => {
+            const { queryClient } = renderSignup()
+            let userRequestAborted = false
+            void queryClient
+                .fetchQuery({
+                    queryKey: [USER],
+                    queryFn: ({ signal }) =>
+                        new Promise((resolve) => {
+                            signal.addEventListener('abort', () => {
+                                userRequestAborted = true
+                                resolve(null)
+                            })
+                        }),
+                })
+                .catch(() => {})
+            fireEvent.change(screen.getByRole('textbox', { name: 'username' }), { target: { value: code } })
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
+            expect(isDemoMode()).toBe(false)
+            fireEvent.click(screen.getByRole('button', { name: 'Claim username' }))
+            await waitFor(() => expect(mockSetScreenId).toHaveBeenCalledWith('advantage-control'))
+            expect(isDemoMode()).toBe(true)
+            expect(userRequestAborted).toBe(true)
+            expect(queryClient.getQueryData([USER])).toEqual(DEMO_USER)
+            expect(screen.getByTestId('flow-state')).toHaveTextContent(
+                JSON.stringify({
+                    signupCompleted: true,
+                    residenceCountry: 'BR',
+                    noBackLockScreenId: 'advantage-control',
+                })
+            )
+            expect(mockValidateInviter).not.toHaveBeenCalled()
+            expect(mockApiFetch).not.toHaveBeenCalled()
+            expect(mockStoredInvite.code).toBe('')
+            expect(mockHandleNext).not.toHaveBeenCalled()
+        }
+    )
 
-    it('does not activate demo mode when a validated draft is closed', async () => {
+    it('does not activate demo mode merely by typing the username', async () => {
         const { unmount } = renderSignup()
-        fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
-        fireEvent.change(await screen.findByRole('textbox', { name: "Inviter's Peanut username" }), {
-            target: { value: 'demo' },
-        })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Add inviter' })).toBeEnabled())
+        fireEvent.change(screen.getByRole('textbox', { name: 'username' }), { target: { value: 'demo' } })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
         unmount()
         expect(isDemoMode()).toBe(false)
         expect(mockSetScreenId).not.toHaveBeenCalled()
+        expect(mockApiFetch).not.toHaveBeenCalled()
         expect(mockStoredInvite.code).toBe('')
+    })
+
+    it('treats demo as an ordinary inviter instead of a demo trigger', async () => {
+        renderSignup()
+        fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
+        await addInviterInDrawer('demo')
+        expect(mockValidateInviter).toHaveBeenCalledWith('demo')
+        expect(isDemoMode()).toBe(false)
+        expect(mockSetScreenId).not.toHaveBeenCalled()
+    })
+
+    it('checks similar usernames normally and does not activate demo mode', async () => {
+        renderSignup()
+        fireEvent.change(screen.getByRole('textbox', { name: 'username' }), { target: { value: 'demouser' } })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
+        expect(mockApiFetch).toHaveBeenCalledWith('/users/username/demouser', expect.any(Object))
+        fireEvent.click(screen.getByRole('button', { name: 'Claim username' }))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(isDemoMode()).toBe(false)
+        expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 })

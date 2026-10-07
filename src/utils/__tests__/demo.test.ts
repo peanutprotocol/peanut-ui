@@ -1,4 +1,4 @@
-import { disableDemoMode, enableDemoMode, isDemoMode, isDemoInviteCode } from '@/utils/demo'
+import { disableDemoMode, enableDemoMode, isDemoMode, isDemoUsername } from '@/utils/demo'
 import { isCapacitor } from '@/utils/capacitor'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
@@ -31,13 +31,13 @@ describe('explicit demo sessions on web and native', () => {
         expect(isDemoMode()).toBe(true)
     })
 
-    it.each(['demo', 'DEMO', ' @Demo '])('recognizes %s without enabling the session', (code) => {
-        expect(isDemoInviteCode(code)).toBe(true)
+    it.each(['demo', 'DEMO', ' Demo '])('recognizes %s without enabling the session', (code) => {
+        expect(isDemoUsername(code)).toBe(true)
         expect(isDemoMode()).toBe(false)
     })
 
-    it.each(['demouser', 'dem', '', null, undefined])('rejects ordinary or missing codes: %s', (code) => {
-        expect(isDemoInviteCode(code)).toBe(false)
+    it.each(['demouser', 'dem', '@demo', '', null, undefined])('rejects ordinary or missing codes: %s', (code) => {
+        expect(isDemoUsername(code)).toBe(false)
     })
 
     it('is true in the native shell once enabled', () => {

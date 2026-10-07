@@ -11,7 +11,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useQueryClient } from '@tanstack/react-query'
 import { USER } from '@/constants/query.consts'
 import { DEMO_USER } from '@/constants/demo-data'
-import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
+import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { invitesApi } from '@/services/invites'
 import { toInviteCode } from '@/utils/invite-code.utils'
@@ -91,8 +91,6 @@ const SignupStep = () => {
 
     const validateInviter = async (value: string): Promise<boolean> => {
         setInviterError('')
-        // The demo code is local; validating it must not activate demo mode or resolve a real inviter.
-        if (isDemoInviteCode(value)) return true
         const result = await invitesApi.validateInviteCode(value)
         const valid = result.success && result.attributionResolved
         if (inviterValueRef.current !== value) return valid
@@ -131,20 +129,7 @@ const SignupStep = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
     }
 
-    const addInviter = async () => {
-        if (isDemoInviteCode(inviterDraft)) {
-            setInviterOpen(false)
-            enableDemoMode()
-            // Retire any pre-demo user request before seeding the synthetic session.
-            await queryClient.cancelQueries({ queryKey: [USER] })
-            queryClient.setQueryData([USER], DEMO_USER)
-            setResidenceCountry('BR')
-            setSecondResidenceCountry('')
-            setNoBackLockScreenId('advantage-control')
-            setSignupCompleted(true)
-            setScreenId('advantage-control')
-            return
-        }
+    const addInviter = () => {
         setInviterUsername(inviterDraft)
         setInviterOpen(false)
     }
@@ -157,9 +142,21 @@ const SignupStep = () => {
         setInviterOpen(false)
     }
 
-    const onNext = () =>
-        handleNext(async () => {
-            if (!isValid) return false
+    const onNext = async () => {
+        if (!isValid || isChanging || isLoading) return
+        if (isDemoUsername(username)) {
+            enableDemoMode()
+            // Retire any pre-demo user request before seeding the synthetic session.
+            await queryClient.cancelQueries({ queryKey: [USER] })
+            queryClient.setQueryData([USER], DEMO_USER)
+            setResidenceCountry('BR')
+            setSecondResidenceCountry('')
+            setNoBackLockScreenId('advantage-control')
+            setSignupCompleted(true)
+            setScreenId('advantage-control')
+            return
+        }
+        return handleNext(async () => {
             const code = toInviteCode(inviterUsername)
             if (code) {
                 applyManualInvite(code)
@@ -167,10 +164,14 @@ const SignupStep = () => {
             }
             return true
         })
+    }
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
         // clear error when starting a new validation
         setError('')
+
+        // Reserved local demo entry: typing validates it, but only submission activates the session.
+        if (isDemoUsername(username)) return true
 
         // handle empty input
         if (!username) {

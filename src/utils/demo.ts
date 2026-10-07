@@ -1,6 +1,4 @@
-import { toInviteCode } from '@/utils/invite-code.utils'
-
-export const DEMO_INVITE_CODE = 'demo'
+export const DEMO_USERNAME = 'demo'
 const DEMO_MODE_KEY = 'peanut_demo_mode'
 
 // In-memory flag — the source of truth within a running session. Demo entry uses a
@@ -9,8 +7,8 @@ const DEMO_MODE_KEY = 'peanut_demo_mode'
 // hard nav. localStorage persists the flag across cold relaunches.
 let demoSessionActive = false
 
-export function isDemoInviteCode(code: string | null | undefined): boolean {
-    return !!code && toInviteCode(code) === DEMO_INVITE_CODE
+export function isDemoUsername(username: string | null | undefined): boolean {
+    return username?.trim().toLowerCase() === DEMO_USERNAME
 }
 
 export function enableDemoMode(): void {
