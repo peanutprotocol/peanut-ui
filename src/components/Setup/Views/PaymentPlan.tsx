@@ -20,7 +20,6 @@ import {
 } from '@/features/setup/paymentChannels'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import SetupFooter from '../components/SetupFooter'
-import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 
 function ChannelPicker<C extends SetupChannel>({
     kind,
@@ -216,15 +215,6 @@ export default function PaymentPlan({
             clearInterval(interval)
         }
     }, [cycle, options.funding, options.payment])
-    const restrictions = deriveResidenceRestrictionsFrom(sets, residenceCountry.trim().toUpperCase())
-    const unavailable =
-        restrictions.banking && restrictions.card
-            ? 'both'
-            : restrictions.banking
-              ? 'banking'
-              : restrictions.card
-                ? 'card'
-                : null
     useEffect(() => {
         if (!settled || !residenceCountry.trim()) return
         if (fundingChannel && !options.funding.includes(fundingChannel)) setFundingChannel(null)
@@ -270,11 +260,6 @@ export default function PaymentPlan({
                     />
                 </span>
             </h1>
-            {unavailable === 'banking' && (
-                <p role="note" className="text-body-s text-foreground-secondary">
-                    {t(`unavailable.${unavailable}`)}
-                </p>
-            )}
             <p className="flex items-start gap-2 text-body-s leading-5 text-foreground-secondary">
                 <Icon name="info" size={16} className="mt-0.5 shrink-0" />
                 {t('hint')}

@@ -209,12 +209,14 @@ it('saves the displayed fallback defaults on Continue while the lookup remains u
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
     expect(next).toHaveBeenCalledTimes(1)
 })
-it.each([
-    ['GB', 'Bank transfers and card issuing aren’t available in your country.'],
-    ['IN', 'The Peanut card isn’t available in your country.'],
-])('omits card-only and combined unavailability messages for %s', (country, guidance) => {
+it.each(['GB', 'IN', 'PT'])('shows only the country-options disclaimer for %s', (country) => {
+    if (country === 'PT') {
+        mockSets = { ...mockSets, bankingOnly: new Set(['PT']), cardOnly: new Set() }
+    }
     renderWithIntl(ui(country))
-    expect(screen.queryByText(guidance)).not.toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    expect(
+        screen.queryByText(/aren’t available in your country|isn’t available in your country/)
+    ).not.toBeInTheDocument()
     expect(screen.getByText('The list of payment options depends on your country of residence.')).toBeInTheDocument()
-    expect(screen.queryByText(/available later/i)).not.toBeInTheDocument()
 })
