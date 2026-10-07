@@ -51,6 +51,8 @@ export function useCardFlow() {
     })
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
+    const needsFundingBeforeApply =
+        !overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded
     const { serializeGrant } = useGrantSessionKey()
     const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -307,7 +309,7 @@ export function useCardFlow() {
         async (termsAccepted = false, serializedApproval?: string) => {
             // A cached display balance cannot unlock a new application. Existing
             // applications and approved reissues retain their recovery paths.
-            if (!overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded) {
+            if (needsFundingBeforeApply) {
                 setFundingRequired(true)
                 setPendingTerms(null)
                 return
@@ -341,7 +343,7 @@ export function useCardFlow() {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, pendingTerms, overview, isCardFunded, userId, t]
+        [advanceFromApplyResponse, pendingTerms, needsFundingBeforeApply, userId, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -525,6 +527,7 @@ export function useCardFlow() {
         // data
         user,
         isCardFunded,
+        needsFundingBeforeApply,
         fundingRequired,
         fetchUser,
         cardInfo,

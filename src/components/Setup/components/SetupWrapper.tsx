@@ -101,9 +101,9 @@ const setupHeroNativeHex = (fullScreen: boolean): string | null => {
 }
 
 const stepVariants = {
-    enter: (direction: number) => ({ x: direction < 0 ? -48 : 48, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (direction: number) => ({ x: direction < 0 ? 48 : -48, opacity: 0 }),
+    enter: (direction: number) => ({ x: direction < 0 ? '-100%' : '100%' }),
+    center: { x: 0 },
+    exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%' }),
 }
 
 const mascotVariants = {
@@ -112,7 +112,7 @@ const mascotVariants = {
     exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%', opacity: 0 }),
 }
 
-const STEP_TRANSITION = { duration: 0.3, ease: [0.22, 1, 0.36, 1] } as const
+const STEP_TRANSITION = { duration: 0.5, ease: [0.22, 1, 0.36, 1] } as const
 
 const SETUP_KEYBOARD_FOCUS_KEYS = new Set([
     'Tab',
@@ -145,6 +145,8 @@ const TransitioningContent = ({
     prefersReducedMotion: boolean
 }) => {
     const isPresent = useIsPresent()
+    // An exiting screen must not stretch the incoming screen's footer, then
+    // move its CTA when AnimatePresence removes the taller outgoing page.
     return (
         <motion.div
             custom={direction}
@@ -153,7 +155,7 @@ const TransitioningContent = ({
             animate="center"
             exit="exit"
             transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
-            className={twMerge(className, !isPresent && 'pointer-events-none')}
+            className={twMerge(className, !isPresent && 'pointer-events-none absolute inset-x-0 top-0')}
             aria-hidden={!isPresent}
             inert={!isPresent}
         >
@@ -259,7 +261,6 @@ const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
     'advantage-exchange': 5,
     'advantage-local': 6,
     'advantage-people': 6,
-    'funding-methods': 7,
     'passkey-permission': 8,
     'notification-email': 9,
     'notification-permission': 10,
@@ -542,15 +543,20 @@ export const SetupWrapper = memo(function SetupWrapper({
     const [imageOverride, setImageOverride] = useState<{ screenId: ScreenId; image: SetupIllustration } | null>(null)
     const setImageForScreen = useCallback(
         (illustration: SetupIllustration | null) =>
-            setImageOverride(illustration ? { screenId, image: illustration } : null),
+            setImageOverride((current) =>
+                illustration ? { screenId, image: illustration } : current?.screenId === screenId ? null : current
+            ),
         [screenId]
     )
     const [fullScreenOverride, setFullScreenOverride] = useState<ScreenId | null>(null)
     const setFullScreenForScreen = useCallback(
-        (enabled: boolean) => setFullScreenOverride(enabled ? screenId : null),
+        (enabled: boolean) =>
+            setFullScreenOverride((current) => (enabled ? screenId : current === screenId ? null : current)),
         [screenId]
     )
     const fullScreen = fullScreenProp || fullScreenOverride === screenId
+    const featureParagraph =
+        (screenId.startsWith('advantage-') && screenId !== 'advantage-control') || screenId === 'passkey-permission'
     const prefersReducedMotion = useReducedMotion()
     const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)
@@ -629,7 +635,7 @@ export const SetupWrapper = memo(function SetupWrapper({
             data-setup-flow="true"
             data-first-launch-intro={intro.active ? intro.phase : undefined}
             className={twMerge(
-                'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto',
+                'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto bg-white',
                 // The first panel rises from below the viewport. Fill the exposed
                 // space with the same blue as the hero, not the page beige.
                 screenId === 'landing' && 'bg-background-setup-hero',
@@ -649,116 +655,131 @@ export const SetupWrapper = memo(function SetupWrapper({
             />
 
             {/* content container */}
-            {/* Keep the outgoing hero and content together until exit completes. */}
-            <AnimatePresence initial={false} custom={transitionDirection} mode="wait">
-                <TransitioningContent
-                    key={screenId}
-                    direction={transitionDirection}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                    className={twMerge('mx-auto flex w-full flex-grow flex-col', !fullScreen && 'md:flex-row')}
-                >
-                    {/* illustration section */}
-                    {fullScreen ? (
-                        showProgress && (
-                            <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} compact />
-                        )
-                    ) : (
-                        <ImageSection
-                            imageClassName={imageClassName}
-                            screenId={screenId}
-                            layoutType={layoutType}
-                            image={imageOverride?.screenId === screenId ? imageOverride.image : image}
-                            step={step}
-                            totalSteps={totalSteps}
-                            direction={transitionDirection}
-                            prefersReducedMotion={!!prefersReducedMotion}
-                            intro={intro}
-                        />
-                    )}
-
-                    {/* content section */}
-                    <motion.div
-                        initial={animatePanelIn ? { y: '100%' } : false}
-                        animate={intro.active ? { y: '100%' } : { y: 0 }}
-                        transition={
-                            prefersReducedMotion
-                                ? { duration: 0 }
-                                : intro.played
-                                  ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-                                  : { type: 'spring', stiffness: 260, damping: 30 }
-                        }
-                        aria-hidden={intro.active}
-                        inert={intro.active}
+            {/* Stack complete screens so the incoming slide covers the outgoing layout without a blank frame. */}
+            <div className="relative grid min-w-0 flex-1 items-start">
+                <AnimatePresence initial={false} custom={transitionDirection} mode="sync">
+                    <TransitioningContent
+                        key={screenId}
+                        direction={transitionDirection}
+                        prefersReducedMotion={!!prefersReducedMotion}
                         className={twMerge(
-                            'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
-
-                            fullScreen && 'md:h-auto md:flex-1'
+                            'col-start-1 row-start-1 mx-auto flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full min-w-0 flex-grow flex-col bg-white',
+                            !fullScreen && 'md:flex-row'
                         )}
                     >
-                        <div
+                        {/* illustration section */}
+                        {fullScreen ? (
+                            showProgress && (
+                                <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} compact />
+                            )
+                        ) : (
+                            <ImageSection
+                                imageClassName={imageClassName}
+                                screenId={screenId}
+                                layoutType={layoutType}
+                                image={imageOverride?.screenId === screenId ? imageOverride.image : image}
+                                step={step}
+                                totalSteps={totalSteps}
+                                direction={transitionDirection}
+                                prefersReducedMotion={!!prefersReducedMotion}
+                                intro={intro}
+                            />
+                        )}
+
+                        {/* content section */}
+                        <motion.div
+                            initial={animatePanelIn ? { y: '100%' } : false}
+                            animate={intro.active ? { y: '100%' } : { y: 0 }}
+                            transition={
+                                prefersReducedMotion
+                                    ? { duration: 0 }
+                                    : intro.played
+                                      ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+                                      : { type: 'spring', stiffness: 260, damping: 30 }
+                            }
+                            aria-hidden={intro.active}
+                            inert={intro.active}
                             className={twMerge(
-                                'flex w-full flex-1 flex-col justify-between md:flex-1',
-                                contentClassName,
-                                'gap-8',
-                                screenId !== 'landing' && 'md:flex-1 md:justify-between',
-                                fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
+                                'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
+
+                                fullScreen && 'md:h-auto md:flex-1'
                             )}
                         >
-                            {/* title and description container. Skipped entirely when
+                            <div
+                                className={twMerge(
+                                    'flex w-full flex-1 flex-col justify-between md:flex-1',
+                                    contentClassName,
+                                    'gap-8',
+                                    screenId !== 'landing' && 'md:flex-1 md:justify-between',
+                                    fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
+                                )}
+                            >
+                                {/* title and description container. Skipped entirely when
                         the step renders its own heading (titleInView +
                         descriptionInView): the wrapper is height-capped on
                         desktop, so an empty slot would push the content down
                         by up to 12rem. */}
-                            {(title || description) && (
+                                {(title || description) && (
+                                    <div
+                                        className={twMerge(
+                                            'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
+                                            screenId === 'landing' && 'space-y-2',
+                                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
+                                            sunsetLanding && 'md:h-auto md:max-h-none',
+                                            featureParagraph && 'space-y-0 md:max-h-none'
+                                        )}
+                                    >
+                                        {featureParagraph ? (
+                                            <h1 className="w-full text-left text-heading-m leading-[2.75rem]">
+                                                {title && `${title}${/[.!?]$/.test(title) ? '' : '.'} `}
+                                                {description}
+                                            </h1>
+                                        ) : (
+                                            <>
+                                                {title && (
+                                                    <h1
+                                                        className={twMerge(
+                                                            'w-full text-left text-heading-s',
+                                                            sunsetLanding && 'md:text-center',
+                                                            titleClassName
+                                                        )}
+                                                    >
+                                                        {title}
+                                                    </h1>
+                                                )}
+                                                {description && (
+                                                    <p
+                                                        className={twMerge(
+                                                            'text-body-m leading-[1.625rem] text-foreground-secondary',
+                                                            sunsetLanding && 'md:text-center'
+                                                        )}
+                                                    >
+                                                        {description}
+                                                    </p>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {/* main content area */}
                                 <div
                                     className={twMerge(
-                                        'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
-                                        screenId === 'landing' && 'space-y-2',
-                                        (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
-                                        sunsetLanding && 'md:h-auto md:max-h-none'
+                                        'mx-auto w-full',
+                                        fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
+                                        screenId !== 'landing' && 'flex flex-1 flex-col'
                                     )}
                                 >
-                                    {title && (
-                                        <h1
-                                            className={twMerge(
-                                                'w-full text-left text-heading-s',
-                                                sunsetLanding && 'md:text-center',
-                                                titleClassName
-                                            )}
-                                        >
-                                            {title}
-                                        </h1>
-                                    )}
-                                    {description && (
-                                        <p
-                                            className={twMerge(
-                                                'text-body-m leading-[1.625rem] text-foreground-secondary',
-                                                sunsetLanding && 'md:text-center'
-                                            )}
-                                        >
-                                            {description}
-                                        </p>
-                                    )}
+                                    <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
+                                        <SetupImageContext.Provider value={setImageForScreen}>
+                                            {children}
+                                        </SetupImageContext.Provider>
+                                    </SetupFullScreenContext.Provider>
                                 </div>
-                            )}
-                            {/* main content area */}
-                            <div
-                                className={twMerge(
-                                    'mx-auto w-full',
-                                    fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
-                                    screenId !== 'landing' && 'flex flex-1 flex-col'
-                                )}
-                            >
-                                <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
-                                    <SetupImageContext.Provider value={setImageForScreen}>
-                                        {children}
-                                    </SetupImageContext.Provider>
-                                </SetupFullScreenContext.Provider>
                             </div>
-                        </div>
-                    </motion.div>
-                </TransitioningContent>
-            </AnimatePresence>
+                        </motion.div>
+                    </TransitioningContent>
+                </AnimatePresence>
+            </div>
         </div>
     )
 })

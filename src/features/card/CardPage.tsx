@@ -22,6 +22,7 @@ export const CardPage: FC = () => {
         user,
         cardInfo,
         isCardFunded,
+        needsFundingBeforeApply,
         fundingRequired,
         fetchUser,
         cardInfoError,
@@ -135,6 +136,7 @@ export const CardPage: FC = () => {
                     userId={user?.user.userId ?? ''}
                     eligible={true}
                     funded={isCardFunded}
+                    needsFundingBeforeApply={needsFundingBeforeApply}
                     fundingRequired
                     onApply={() => handleApply(false)}
                     onPrev={onBack}
@@ -163,6 +165,7 @@ export const CardPage: FC = () => {
                             overview?.status.railStatus !== 'ENABLED'
                         }
                         funded={isCardFunded}
+                        needsFundingBeforeApply={needsFundingBeforeApply}
                         fundingRequired={fundingRequired}
                         onApply={() => handleApply(false)}
                         onPrev={onBack}

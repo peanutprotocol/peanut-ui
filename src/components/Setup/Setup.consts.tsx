@@ -1,7 +1,6 @@
 import EmailStep from './Views/Email'
 import NotificationsStep from './Views/Notifications'
 import CompleteSignupStep from './Views/CompleteSignup'
-import FundingStep from './Views/Funding'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { AdvantageStep, SetupPasskey, SignupStep, LandingStep, ResidenceStep } from '@/components/Setup/Views'
 
@@ -48,16 +47,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
     {
-        screenId: 'advantage-bank',
-        layoutType: 'signup',
-        image: { animation: 'bank' },
-        component: AdvantageStep,
-        showBackButton: true,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col gap-6 md:justify-center',
-    },
-
-    {
         screenId: 'advantage-card',
         layoutType: 'signup',
         image: { animation: 'card' },
@@ -94,16 +83,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
-        screenId: 'funding-methods',
-        layoutType: 'signup',
-        titleInView: true,
-        descriptionInView: true,
-        image: { animation: 'topup' },
-        component: FundingStep,
-        showBackButton: true,
-        contentClassName: 'flex flex-col gap-6',
-    },
-    {
         screenId: 'passkey-permission',
         layoutType: 'signup',
         image: { animation: 'security' },
@@ -117,7 +96,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         image: { animation: 'email' },
         component: EmailStep,
-        showBackButton: false,
+        showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col gap-4 md:justify-center',
     },
@@ -126,8 +105,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         image: { animation: 'notifications' },
         component: NotificationsStep,
-        // Later mailbox changes use Profile verification.
-        showBackButton: false,
+        showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
@@ -138,7 +116,7 @@ export const setupSteps: ISetupStep[] = [
         component: CompleteSignupStep,
         titleInView: true,
         descriptionInView: true,
-        showBackButton: false,
+        showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col gap-6 md:justify-center',
     },

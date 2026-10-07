@@ -31,12 +31,13 @@ const COMPACT_ANIMATIONS = new Set<OnboardingAnimationName>([
 ])
 const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = {
     people: 30,
-    email: 40,
-    fees: 32,
+    email: 80,
+    fees: 64,
     exchange: 0,
     'phone-to-phone': 36,
     topup: 32,
 }
+export const CARD_RESTART_DELAY_MS = 1000
 
 /** Onboarding lab vectors plus the matching documents and email illustrations. */
 export default function OnboardingAnimation({
@@ -72,12 +73,13 @@ export default function OnboardingAnimation({
                     restartTimer = undefined
                     waitingForRestart = false
                     animation?.goToAndPlay(0, true)
-                }, 1000)
+                }, CARD_RESTART_DELAY_MS)
             } else animation.play()
         }
         void Promise.all([import('lottie-web/build/player/lottie_light'), loaders[name]()])
             .then(([lottie, data]) => {
                 if (cancelled || !container.current) return
+                // Every comp is timed for 1x playback; each file carries its on-screen pace.
                 animation = lottie.default.loadAnimation({
                     container: container.current,
                     renderer: 'svg',
@@ -86,9 +88,6 @@ export default function OnboardingAnimation({
                     animationData: data.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
-                if (name === 'username') animation.setSpeed(4)
-                else if (name === 'fees' || name === 'email' || name === 'exchange') animation.setSpeed(0.5)
-                else animation.setSpeed(1)
                 if (name === 'card') {
                     animation.addEventListener('complete', () => {
                         waitingForRestart = true
@@ -122,7 +121,7 @@ export default function OnboardingAnimation({
                 background
                     ? 'h-full w-full'
                     : name === 'fees'
-                      ? 'aspect-square h-full w-auto max-w-none scale-[1.2]'
+                      ? 'aspect-square h-full w-auto max-w-none scale-[1.2] md:scale-[1.028]'
                       : name === 'card'
                         ? 'aspect-square h-full w-auto max-w-none scale-[1.344] md:scale-[1.152]'
                         : COMPACT_ANIMATIONS.has(name)

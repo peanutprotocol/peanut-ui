@@ -11,6 +11,11 @@
 
 import type { Fixture } from './types'
 import {
+    RESTRICTED_RESIDENCE_ISO2,
+    CARD_RESTRICTED_RESIDENCE_ISO2,
+    BANKING_RESTRICTED_RESIDENCE_ISO2,
+} from '@/constants/residence.consts'
+import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
     CLAIMABLE_USD_PREVIEW,
@@ -650,6 +655,17 @@ const REQUEST_PAY_EUR = {
 }
 
 export const FIXTURES: Record<string, Fixture> = {
+    'setup-payment-plan': {
+        route: '/dev/surfaces?s=03-c-residence-congrats',
+        about: 'Signup funding and payment choices with settled residence eligibility.',
+        responses: {
+            'GET /config/residence-restrictions': {
+                full: [...RESTRICTED_RESIDENCE_ISO2],
+                cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
+                bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
+            },
+        },
+    },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
     // ---------------------------------------------------------------------
