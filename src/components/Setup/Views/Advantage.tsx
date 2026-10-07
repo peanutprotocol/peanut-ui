@@ -11,7 +11,6 @@ const CTA_BY_SCREEN = {
     'advantage-rewards': 'cta.rewards',
     'advantage-control': 'cta.control',
     'advantage-fees': 'cta.fees',
-    'advantage-bank': 'cta.bank',
     'advantage-card': 'cta.card',
     'advantage-exchange': 'cta.exchange',
     'advantage-local': 'cta.local',

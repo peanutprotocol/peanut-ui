@@ -120,6 +120,84 @@
                                     },
                                     "userId": {
                                         "type": "string"
+                                    },
+                                    "signupPreferences": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "fundingChannel": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "bank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "brlBank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "arsBank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "crypto"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "peanut"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "paymentChannel": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "bank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "card"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "qr"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "crypto"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "peanut"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": [
+                                            "fundingChannel",
+                                            "paymentChannel"
+                                        ],
+                                        "type": "object"
                                     }
                                 },
                                 "required": [
@@ -7027,7 +7105,7 @@
         },
         "/dev/poll": {
             "post": {
-                "description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+                "description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
                 "responses": {
                     "200": {
                         "content": {
@@ -7692,7 +7770,7 @@
         },
         "/dev/submit-to-providers": {
             "post": {
-                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
+                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -7930,7 +8008,7 @@
         },
         "/dev/trigger-sumsub-webhook": {
             "post": {
-                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
+                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -9878,7 +9956,7 @@
         },
         "/manteca/deposit/{depositId}/status": {
             "get": {
-                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
+                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
                 "parameters": [
                     {
                         "in": "path",
@@ -10064,7 +10142,7 @@
         },
         "/manteca/pix-key/saved": {
             "post": {
-                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send \u2192 Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
+                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
                 "parameters": [
                     {
                         "in": "header",
@@ -15318,7 +15396,7 @@
                                             "type": "object"
                                         },
                                         "cardId": {
-                                            "description": "MeaWallet processor card id \u2014 the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
+                                            "description": "MeaWallet processor card id — the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
                                             "type": "string"
                                         },
                                         "cardSecret": {
@@ -15575,7 +15653,7 @@
                                             "type": "object"
                                         },
                                         "cardId": {
-                                            "description": "MeaWallet processor card id \u2014 the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
+                                            "description": "MeaWallet processor card id — the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
                                             "type": "string"
                                         },
                                         "cardSecret": {
@@ -18158,7 +18236,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
+                                    "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
                                     "properties": {
                                         "error": {
                                             "type": "string"
@@ -18168,7 +18246,7 @@
                                 }
                             }
                         },
-                        "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+                        "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
                     },
                     "401": {
                         "content": {
@@ -21469,7 +21547,7 @@
                                                 "type": "string"
                                             }
                                         ],
-                                        "description": "Level the token must target. The declared residence decides (AR/BR \u2192 LATAM, US/MX \u2192 NA, SEPA zone \u2192 EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
+                                        "description": "Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
                                     }
                                 },
                                 "type": "object"
@@ -22654,6 +22732,91 @@
                                                 "card"
                                             ],
                                             "type": "object"
+                                        },
+                                        "signupPreferences": {
+                                            "anyOf": [
+                                                {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "fundingChannel": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "bank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "brlBank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "arsBank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "crypto"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "peanut"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "paymentChannel": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "bank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "card"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "qr"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "crypto"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "peanut"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "fundingChannel",
+                                                        "paymentChannel"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -22662,7 +22825,8 @@
                                         "profileNameLocked",
                                         "residenceRestrictions",
                                         "residence",
-                                        "depositAccounts"
+                                        "depositAccounts",
+                                        "signupPreferences"
                                     ],
                                     "type": "object"
                                 }

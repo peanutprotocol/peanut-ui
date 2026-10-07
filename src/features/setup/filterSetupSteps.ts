@@ -3,23 +3,22 @@ import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestriction
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 
 const FEATURE_SCREENS: readonly ScreenId[] = [
-    'advantage-bank',
     'advantage-card',
     'advantage-local',
     'advantage-exchange',
     'advantage-people',
 ]
 
-/** Exactly two introductions in the order appropriate to the user’s residence. */
+/** Residence-dependent introductions after the merged funding/payment plan. */
 export function setupFeatureScreensForResidence(
     restrictions: ResidenceRestrictionSets,
     residence: string
-): readonly [ScreenId, ScreenId] {
+): readonly ScreenId[] {
     const country = residence.trim().toUpperCase()
     const restrictionsForCountry = deriveResidenceRestrictionsFrom(restrictions, country)
     const hasBank = !!country && !restrictionsForCountry.banking
     const hasCard = !!country && !restrictionsForCountry.card
-    const first: ScreenId = hasBank ? 'advantage-bank' : 'advantage-exchange'
+    const first: ScreenId | null = hasBank ? null : 'advantage-exchange'
     const second: ScreenId =
         country === 'AR' || country === 'BR'
             ? 'advantage-local'
@@ -28,7 +27,7 @@ export function setupFeatureScreensForResidence(
               : hasBank
                 ? 'advantage-exchange'
                 : 'advantage-people'
-    return [first, second]
+    return first ? [first, second] : [second]
 }
 
 export function filterSetupStepsForResidence(
@@ -37,17 +36,17 @@ export function filterSetupStepsForResidence(
     residence: string
 ) {
     const selected = setupFeatureScreensForResidence(restrictions, residence)
-    const first = steps.find((step) => step.screenId === selected[0])
-    const second = steps.find((step) => step.screenId === selected[1])
+    const introductions = selected.flatMap((id) => steps.filter((step) => step.screenId === id))
     const result: ISetupStep[] = []
     let inserted = false
     for (const step of steps) {
         if (FEATURE_SCREENS.includes(step.screenId)) {
-            if (!inserted && first) result.push(first)
+            if (!inserted) {
+                result.push(...introductions)
+            }
             inserted = true
         } else {
             result.push(step)
-            if (step.screenId === 'funding-methods' && second) result.push(second)
         }
     }
     return result

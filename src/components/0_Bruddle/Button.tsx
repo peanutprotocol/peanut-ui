@@ -8,9 +8,9 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useLongPress } from '@/hooks/useLongPress'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost'
-export type ButtonSize = 'small' | 'medium' | 'large'
+export type ButtonSize = 'compact' | 'small' | 'medium' | 'large'
 type ButtonShape = 'default' | 'square'
-export type ShadowSize = '3' | '4' | '6' | '8'
+export type ShadowSize = '2' | '3' | '4' | '6' | '8'
 
 interface ButtonVisualProps {
     variant?: ButtonVariant
@@ -41,8 +41,10 @@ interface ButtonVisualProps {
  *   default CTA, 'secondary' the outlined one and 'ghost' the text-only one.
  *   The union is the board — there is no fourth variant to reach for.
  * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
+ *   'compact' is a 36px inline selector with an expanded 44px touch target.
  * @prop shadowSize - Shadow depth override; '4' is already the default on
  *   primary/secondary, so passing it is a no-op kept for compatibility.
+ *   '2' gives compact selectors a 2px shadow and matching press displacement.
  * @prop longPress - Hold-to-confirm behavior with progress bar animation.
  */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonVisualProps {
@@ -89,6 +91,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
+    compact: 'btn-compact',
     small: 'btn-small',
     medium: 'btn-medium',
     large: 'btn-large',
@@ -97,12 +100,14 @@ const buttonSizes: Record<ButtonSize, string> = {
 // board 17802:61527 icon per button size: S = 16, M = 20, L = 24. 18 was off
 // the 16/20/24 icon scale entirely and matched no board row.
 const buttonIconSizes: Record<ButtonSize, number> = {
+    compact: 20,
     small: 16,
     medium: 20,
     large: 24,
 }
 
 const buttonShadows: Record<ShadowSize, string> = {
+    '2': 'btn-shadow-primary-2',
     '3': 'btn-shadow-primary-3',
     '4': 'btn-shadow-primary-4',
     '6': 'btn-shadow-primary-6',
@@ -179,7 +184,10 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             // static pressed-state classes: the old `translate-y-[${shadowSize}px]`
             // template never generated a real class under the jit scanner
             'btn w-full flex items-center gap-2 transition-all duration-instant notranslate',
-            hasShadow && 'active:translate-x-1 active:translate-y-1 active:shadow-none',
+            hasShadow &&
+                (shadowSize === '2'
+                    ? 'active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
+                    : 'active:translate-x-1 active:translate-y-1 active:shadow-none'),
             buttonVariants[variant],
             variant === 'ghost' && disabled && 'disabled:bg-transparent disabled:border-transparent',
             // anchors never match :disabled, so a disabled link paints the
@@ -190,6 +198,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
                 (variant === 'primary' || variant === 'secondary') &&
                 'shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)]',
             size && buttonSizes[size],
+            size === 'compact' && !icon && !loading && 'btn-compact-placeholder',
             // board icon/label gap: S is XS/4, L and M are S/8. It has to sit
             // here rather than in `.btn-small`, because @layer components loses
             // to the base `gap-2` utility — twMerge is what resolves it.

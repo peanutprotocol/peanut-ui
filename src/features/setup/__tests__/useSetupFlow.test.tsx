@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
@@ -52,25 +52,31 @@ const seedSteps = async (
 
 describe('useSetupFlow (URL stepper)', () => {
     it.each([
-        ['PT', 'advantage-bank', 'advantage-card'],
-        ['AR', 'advantage-bank', 'advantage-local'],
-        ['IN', 'advantage-bank', 'advantage-exchange'],
-        ['JP', 'advantage-exchange', 'advantage-card'],
-        ['RU', 'advantage-exchange', 'advantage-people'],
-    ])('walks funding between the selected feature screens for %s', async (country, first, second) => {
+        ['PT', ['advantage-card']],
+        ['AR', ['advantage-local']],
+        ['IN', ['advantage-exchange']],
+        ['JP', ['advantage-exchange', 'advantage-card']],
+        ['RU', ['advantage-exchange', 'advantage-people']],
+    ])('walks the remaining feature screens after the merged plan for %s', async (country, features) => {
         const { result } = renderFlow({ screen: 'residence' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
-        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country))
-        for (const expected of [first, 'funding-methods', second]) {
+        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country as string))
+        for (const expected of features) {
             await act(async () => {
                 await result.current.flow.handleNext()
             })
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
+        await act(async () => {
+            await result.current.flow.handleNext()
+        })
+        expect(result.current.flow.step?.screenId).toBe('passkey-permission')
+        for (const expected of [...features].reverse()) {
+            await act(async () => result.current.flow.handleBack())
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
         await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe('funding-methods')
-        await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe(first)
+        expect(result.current.flow.step?.screenId).toBe('residence')
     })
 
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
@@ -153,6 +159,55 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
+    it('walks every post-registration screen backward without reopening username or residence', async () => {
+        const { result } = renderFlow({ screen: 'advantage-control' })
+        await seedSteps(result, setupSteps)
+        await act(async () => {
+            result.current.context.setNoBackLockScreenId('passkey-permission')
+        })
+        for (const expected of ['notification-permission', 'notification-email', 'passkey-permission']) {
+            await act(async () => {
+                result.current.flow.handleBack()
+            })
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
+        await act(async () => {
+            result.current.flow.setScreenId('signup')
+        })
+        expect(result.current.flow.step?.screenId).toBe('passkey-permission')
+    })
+
+    it('derives backward and forward arrival direction for external URL changes', async () => {
+        let navigate!: (screen: string) => void
+        function Wrapper({ children }: { children: ReactNode }) {
+            const [screen, setScreen] = useState('advantage-card')
+            navigate = setScreen
+            return (
+                <NuqsTestingAdapter hasMemory searchParams={{ screen }}>
+                    <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
+                </NuqsTestingAdapter>
+            )
+        }
+        const { result } = renderHook(
+            () => {
+                const context = useSetupFlowContext()
+                return { context, flow: useSetupFlow() }
+            },
+            { wrapper: Wrapper }
+        )
+        await seedSteps(result, setupSteps)
+        await act(async () => {
+            navigate('residence')
+        })
+        expect(result.current.flow.step?.screenId).toBe('residence')
+        expect(result.current.flow.direction).toBe(-1)
+        expect(result.current.context.direction).toBe(-1)
+        await act(async () => {
+            navigate('advantage-card')
+        })
+        expect(result.current.flow.direction).toBe(1)
+    })
+
     it('a STALE terminal URL never locks: with no rendered lock, entry resolution can replace it (Chip round 2)', async () => {
         // fresh logged-out session lands on /setup?screen=advantage-control
         // (a copied/reloaded stale URL) — the page is still on its loading
@@ -198,12 +253,10 @@ describe('useSetupFlow (URL stepper)', () => {
             'signup',
             'advantage-fees',
             'residence',
-            'advantage-bank',
             'advantage-card',
             'advantage-exchange',
             'advantage-local',
             'advantage-people',
-            'funding-methods',
             'passkey-permission',
             'notification-email',
             'notification-permission',

@@ -347,7 +347,7 @@
                 "spend": "Gastar"
             },
             "rows": {
-                "p2p": "Pagos de Peanut a Peanut",
+                "p2p": "Peanut a Peanut",
                 "card": "Tarjeta Peanut",
                 "crypto": "Cripto",
                 "brl": "BRL · Pix",
@@ -398,7 +398,7 @@
             },
             "limits": {
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
-                "p2pNoLimit": "Los pagos de Peanut a Peanut y las cripto no tienen límite de monto",
+                "p2pNoLimit": "Sin límites de monto.",
                 "depositPerTransfer": "Por depósito bancario",
                 "withdrawalPerTransfer": "Por retiro bancario"
             },
@@ -697,15 +697,6 @@
     },
     "setup": {
         "choicesLater": "Puedes cambiar tus opciones más adelante.",
-        "funding": {
-            "title": "¿Cómo vas a agregar dinero a tu cuenta?",
-            "methods": {
-                "bank": "Transferencia bancaria",
-                "cash": "Efectivo",
-                "crypto": "Cripto",
-                "peanut": "De otra persona en Peanut"
-            }
-        },
         "steps": {
             "landing": {
                 "title": "Peanut hace que los dólares sean fáciles.",
@@ -729,7 +720,7 @@
             },
             "passkey-permission": {
                 "title": "Solo tú tienes el control.",
-                "description": "Tu passkey te da el control. Usa tu rostro, huella o bloqueo de pantalla para acceder a tu dinero y aprobar pagos."
+                "description": "Usa tu rostro, huella o bloqueo de pantalla para aprobar pagos."
             },
             "advantage-control": {
                 "title": "¿Todo listo para empezar?",
@@ -741,7 +732,7 @@
             },
             "advantage-card": {
                 "title": "Una tarjeta rosa para tu día a día.",
-                "description": "Usa tu saldo de Peanut en línea y en tiendas. Haz que gastar sea sencillo, con tu saldo de Peanut listo para lo que traiga el día."
+                "description": "Usa tu saldo de Peanut para compras en línea y en tiendas."
             },
             "advantage-bank": {
                 "title": "Cuentas bancarias que viajan contigo.",
@@ -749,7 +740,7 @@
             },
             "advantage-fees": {
                 "title": "Despídete de las cuotas mensuales.",
-                "description": "Mantén tu cuenta de Peanut sin cuota mensual. Tú controlas cada pago, con todas las comisiones claramente indicadas antes de confirmar."
+                "description": "Tú controlas cada pago, con todas las comisiones claramente indicadas antes de confirmar."
             },
             "notification-email": {
                 "title": "Agrega tu correo electrónico",
@@ -796,7 +787,7 @@
         "next": "Siguiente",
         "logIn": "Iniciar sesión",
         "cta": {
-            "claimName": "Quiero ese nombre",
+            "claimName": "Elegir nombre de usuario",
             "payments": "Suena bien",
             "home": "Aquí vivo",
             "rewards": "¡Quiero recompensas!",
@@ -888,7 +879,7 @@
             "compare": {
                 "cardTitle": "Disponible con {country}",
                 "items": {
-                    "p2p": "Pagos de Peanut a Peanut",
+                    "p2p": "Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
                     "arQr": "Pagos QR y transferencias propias",
                     "spei": "Transferencias bancarias en pesos mexicanos",
@@ -1013,6 +1004,34 @@
             "continue": "Suena bien",
             "pushUnavailable": "Las notificaciones push aún no están listas. Inténtalo de nuevo o desactívalas para continuar.",
             "saveFailed": "No pudimos guardar tu configuración. Inténtalo de nuevo."
+        },
+        "paymentPlan": {
+            "addMoney": "Agregaré dinero a mi cuenta Peanut",
+            "firstPayment": "y luego lo usaré para pagar",
+            "fundingTitle": "Agregar dinero con",
+            "paymentTitle": "Hacer un pago con",
+            "hint": "La lista de opciones de pago depende de tu país de residencia.",
+            "funding": {
+                "crypto": "Cripto",
+                "peanut": "Peanut a Peanut",
+                "bank": "Transferencia bancaria",
+                "bankCurrencies": "Transferencia bancaria (USD, EUR, GBP, MXN)",
+                "brlBank": "Transferencia bancaria (BRL)",
+                "arsBank": "Transferencia bancaria (ARS)"
+            },
+            "payment": {
+                "peanut": "Peanut a Peanut",
+                "card": "Tarjeta Peanut",
+                "bank": "Transferencia bancaria",
+                "crypto": "Cripto",
+                "qr": "Pagos QR"
+            },
+            "with": "con",
+            "unavailable": {
+                "banking": "Las transferencias bancarias no están disponibles en tu país.",
+                "card": "La tarjeta Peanut no está disponible en tu país.",
+                "both": "Las transferencias bancarias y la emisión de tarjetas no están disponibles en tu país."
+            }
         }
     },
     "loadingStates": {

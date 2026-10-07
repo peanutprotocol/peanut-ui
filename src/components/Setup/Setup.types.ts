@@ -22,7 +22,6 @@ export type ScreenId =
     | 'notification-email'
     | 'advantage-payments'
     | 'residence'
-    | 'funding-methods'
     | 'advantage-rewards'
     | 'passkey-permission'
     | 'advantage-control'
@@ -45,7 +44,6 @@ export type ScreenProps = {
     'notification-email': undefined
     'advantage-payments': undefined
     residence: undefined
-    'funding-methods': undefined
     'advantage-rewards': undefined
     'passkey-permission': {
         handle: string
@@ -61,6 +59,8 @@ export type ScreenProps = {
 }
 
 export interface StepComponentProps {
+    /** Resolved arrival direction, including browser history navigation. */
+    entryDirection?: number
     onComplete?: () => void
     handle?: string
 }

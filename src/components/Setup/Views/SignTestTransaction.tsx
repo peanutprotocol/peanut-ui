@@ -94,7 +94,8 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         secondResidenceCountry,
         setIsLoading: setSetupLoading,
         signupEntryFlow,
-        fundingMethods,
+        fundingChannel,
+        paymentChannel,
     } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
@@ -136,7 +137,9 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,
             ...signupAnalyticsContext(signupEntryFlow),
-            funding_methods: fundingMethods,
+            funding_methods: fundingChannel
+                ? [fundingChannel === 'crypto' || fundingChannel === 'peanut' ? fundingChannel : 'bank']
+                : [],
             ...(signupAttribution
                 ? {
                       signup_journey_id: signupAttribution.journeyId,
@@ -235,12 +238,15 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         // Login flow only: an account that existed before this screen redirects
         // straight in. Signup completion owns its own redirect, guarded so the
         // account refetch cannot consume the stored destination a second time.
-        if (creatingAccountRef.current || redirectingRef.current) return
+        // A wallet can already be saved by an earlier ambiguous signup request.
+        // That is not proof of confirmation during this visit to the final step.
+        if (onComplete || creatingAccountRef.current || redirectingRef.current) return
         if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
+            redirectingRef.current = true
             handleRedirect()
         }
-    }, [accountExists])
+    }, [accountExists, handleRedirect, onComplete])
 
     const handleTestTransaction = async () => {
         if (redirectingRef.current) return
@@ -298,11 +304,15 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                 console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
             }
 
-            // if successful and account doesn't exist, finalize account setup
-            if (!accountExists) {
+            // A retry must also confirm the current choices: a prior request may
+            // have committed before the user returned and changed their plan.
+            if (onComplete || !accountExists || (creatingAccountRef.current && fundingChannel && paymentChannel)) {
                 console.log('[SignTestTransaction] Finalizing account setup')
                 creatingAccountRef.current = true
-                const success = await finalizeAccountSetup(address)
+                const success = await finalizeAccountSetup(
+                    address,
+                    fundingChannel && paymentChannel ? { fundingChannel, paymentChannel } : undefined
+                )
                 if (!success) {
                     // The request layer already recorded the concrete failure;
                     // avoid another console-captured wrapper event here.
