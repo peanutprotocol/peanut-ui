@@ -1,13 +1,12 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core'
 import { Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
-import { isCapacitor, isNativeBridge } from '@/utils/capacitor'
+import { isCapacitor, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import {
     attachmentUrl,
     fetchReceiptAttachment,
     deliverReceiptAttachment,
-    canDeliverReceiptAttachment,
     MAX_ATTACHMENT_BYTES,
 } from '../receipt-attachment'
 
@@ -20,7 +19,11 @@ jest.mock('@capacitor/filesystem', () => ({
     Filesystem: { writeFile: jest.fn(), deleteFile: jest.fn(), readdir: jest.fn() },
 }))
 jest.mock('@capacitor/share', () => ({ Share: { share: jest.fn() } }))
-jest.mock('@/utils/capacitor', () => ({ isNativeBridge: jest.fn(() => false), isCapacitor: jest.fn(() => false) }))
+jest.mock('@/utils/capacitor', () => ({
+    isNativeBridge: jest.fn(() => false),
+    isCapacitor: jest.fn(() => false),
+    openExternalUrl: jest.fn(),
+}))
 jest.mock('@/components/Card/share-asset/captureShareAsset', () => ({ downloadBlob: jest.fn() }))
 
 const url = 'https://peanut-notes.s3.eu-north-1.amazonaws.com/uploads_receipt.pdf'
@@ -42,6 +45,7 @@ beforeEach(() => {
     ;(Filesystem.deleteFile as jest.Mock).mockResolvedValue(undefined)
     ;(Filesystem.readdir as jest.Mock).mockResolvedValue({ files: [] })
     ;(Share.share as jest.Mock).mockResolvedValue({ activityType: '' })
+    ;(openExternalUrl as jest.Mock).mockResolvedValue(undefined)
     global.fetch = jest.fn().mockResolvedValue(webResponse())
 })
 
@@ -77,7 +81,7 @@ describe('receipt attachment URLs', () => {
 describe('verified attachment files', () => {
     test('downloads the PDF bytes once, without sending account credentials', async () => {
         const file = await fetchReceiptAttachment(url, signal())
-        expect(file).toEqual({ bytes, mimeType: 'application/pdf', extension: 'pdf' })
+        expect(file).toEqual({ sourceUrl: url, bytes, mimeType: 'application/pdf', extension: 'pdf' })
         expect(fetch).toHaveBeenCalledWith(url, expect.objectContaining({ credentials: 'omit', redirect: 'error' }))
         await deliverReceiptAttachment(file, signal())
         expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'peanut-attachment.pdf')
@@ -87,7 +91,6 @@ describe('verified attachment files', () => {
         ;(isCapacitor as jest.Mock).mockReturnValue(true)
         ;(isNativeBridge as jest.Mock).mockReturnValue(false)
         ;(Capacitor.isPluginAvailable as jest.Mock).mockReturnValue(false)
-        expect(canDeliverReceiptAttachment()).toBe(true)
         await deliverReceiptAttachment(await fetchReceiptAttachment(url, signal()), signal())
         expect(fetch).toHaveBeenCalled()
         expect(downloadBlob).toHaveBeenCalled()
@@ -111,6 +114,7 @@ describe('verified attachment files', () => {
         const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0])
         ;(fetch as jest.Mock).mockResolvedValue(webResponse(png, 'image/png'))
         expect(await fetchReceiptAttachment(url.replace('.pdf', '.png'), signal())).toEqual({
+            sourceUrl: url.replace('.pdf', '.png'),
             bytes: png,
             mimeType: 'image/png',
             extension: 'png',
@@ -121,6 +125,7 @@ describe('verified attachment files', () => {
         const heic = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112, 104, 101, 105, 99, 0, 0, 0, 0])
         ;(fetch as jest.Mock).mockResolvedValue(webResponse(heic, 'image/heic'))
         expect(await fetchReceiptAttachment(url.replace('.pdf', '.heic'), signal())).toEqual({
+            sourceUrl: url.replace('.pdf', '.heic'),
             bytes: heic,
             mimeType: 'image/heic',
             extension: 'heic',
@@ -168,15 +173,62 @@ describe('verified attachment files', () => {
         expect(Share.share).not.toHaveBeenCalled()
     })
 
-    test('old native binaries cannot fall back to a DOM download', async () => {
+    test.each([{ missing: ['Filesystem'] }, { missing: ['Share'] }, { missing: ['Filesystem', 'Share'] }])(
+        'older native binaries open verified attachments when $missing is missing',
+        async ({ missing }) => {
+            ;(isNativeBridge as jest.Mock).mockReturnValue(true)
+            ;(Capacitor.isPluginAvailable as jest.Mock).mockImplementation((plugin) => !missing.includes(plugin))
+            ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({
+                status: 200,
+                data: btoa('%PDF-1.7\nverified attachment'),
+                url,
+            })
+            const file = await fetchReceiptAttachment(`  ${url}  `, signal())
+            expect(openExternalUrl).not.toHaveBeenCalled()
+            await deliverReceiptAttachment(file, signal())
+            expect(openExternalUrl).toHaveBeenCalledWith(url, expect.any(AbortSignal))
+            expect(Filesystem.writeFile).not.toHaveBeenCalled()
+            expect(Share.share).not.toHaveBeenCalled()
+            expect(downloadBlob).not.toHaveBeenCalled()
+        }
+    )
+
+    test.each([
+        ['relative URL', '/receipt.pdf', 200, '%PDF-1.7'],
+        ['missing file', url, 404, '%PDF-1.7'],
+        ['HTML error', url, 200, '<html>404</html>'],
+    ])('older native binaries never open an invalid attachment: %s', async (_reason, rawUrl, status, body) => {
         ;(isNativeBridge as jest.Mock).mockReturnValue(true)
         ;(Capacitor.isPluginAvailable as jest.Mock).mockReturnValue(false)
-        expect(canDeliverReceiptAttachment()).toBe(false)
+        ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({ status, data: btoa(String(body)), url })
         await expect(
-            deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' }, signal())
+            fetchReceiptAttachment(String(rawUrl), signal()).then((file) => deliverReceiptAttachment(file, signal()))
         ).rejects.toThrow()
-        expect(downloadBlob).not.toHaveBeenCalled()
-        expect(Share.share).not.toHaveBeenCalled()
+        expect(openExternalUrl).not.toHaveBeenCalled()
+    })
+
+    test('an aborted attachment delivery cannot open the native browser', async () => {
+        ;(isNativeBridge as jest.Mock).mockReturnValue(true)
+        ;(Capacitor.isPluginAvailable as jest.Mock).mockReturnValue(false)
+        ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({ status: 200, data: btoa('%PDF-1.7'), url })
+        const file = await fetchReceiptAttachment(url, signal())
+        const controller = new AbortController()
+        controller.abort()
+        const pending = deliverReceiptAttachment(file, controller.signal)
+        await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+        expect(openExternalUrl).not.toHaveBeenCalled()
+    })
+
+    test('a failed native browser open can be retried with the verified attachment', async () => {
+        ;(isNativeBridge as jest.Mock).mockReturnValue(true)
+        ;(Capacitor.isPluginAvailable as jest.Mock).mockReturnValue(false)
+        ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({ status: 200, data: btoa('%PDF-1.7'), url })
+        ;(openExternalUrl as jest.Mock).mockRejectedValueOnce(new Error('browser unavailable'))
+        const file = await fetchReceiptAttachment(url, signal())
+        await expect(deliverReceiptAttachment(file, signal())).rejects.toThrow('browser unavailable')
+        await deliverReceiptAttachment(file, signal())
+        expect(openExternalUrl).toHaveBeenCalledTimes(2)
+        expect(CapacitorHttp.request).toHaveBeenCalledTimes(1)
     })
 
     test('Android base64 line breaks do not corrupt a valid file', async () => {
@@ -204,7 +256,7 @@ describe('verified attachment files', () => {
         ;(isNativeBridge as jest.Mock).mockReturnValue(true)
         ;(Share.share as jest.Mock).mockRejectedValue(new Error('Share canceled'))
         await expect(
-            deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' }, signal())
+            deliverReceiptAttachment({ sourceUrl: url, bytes, mimeType: 'application/pdf', extension: 'pdf' }, signal())
         ).resolves.toBeUndefined()
         expect(Filesystem.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ directory: 'CACHE' }))
     })
@@ -220,7 +272,7 @@ describe('verified attachment files', () => {
             return new Promise((resolve) => (finishWrite = resolve))
         })
         const pending = deliverReceiptAttachment(
-            { bytes, mimeType: 'application/pdf', extension: 'pdf' },
+            { sourceUrl: url, bytes, mimeType: 'application/pdf', extension: 'pdf' },
             controller.signal
         )
         await started
@@ -242,7 +294,10 @@ describe('verified attachment files', () => {
                 { name: 'recent.pdf', type: 'file', mtime: Date.now() },
             ],
         })
-        await deliverReceiptAttachment({ bytes, mimeType: 'application/pdf', extension: 'pdf' }, signal())
+        await deliverReceiptAttachment(
+            { sourceUrl: url, bytes, mimeType: 'application/pdf', extension: 'pdf' },
+            signal()
+        )
         expect(Filesystem.deleteFile).toHaveBeenCalledTimes(1)
         expect(Filesystem.deleteFile).toHaveBeenCalledWith({ path: 'receipt-attachments/old.pdf', directory: 'CACHE' })
     })

@@ -6,16 +6,11 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
-import {
-    canDeliverReceiptAttachment,
-    deliverReceiptAttachment,
-    fetchReceiptAttachment,
-    type ReceiptAttachment,
-} from './receipt-attachment'
+import { deliverReceiptAttachment, fetchReceiptAttachment, type ReceiptAttachment } from './receipt-attachment'
 
 type AttachmentState = {
     url: string
-    status: 'loading' | 'ready' | 'error' | 'update'
+    status: 'loading' | 'ready' | 'error'
     file?: ReceiptAttachment
 }
 
@@ -40,10 +35,6 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
 
     useEffect(() => {
         const controller = new AbortController()
-        if (!canDeliverReceiptAttachment()) {
-            setState({ url, status: 'update' })
-            return
-        }
         setState({ url, status: 'loading' })
         void fetchReceiptAttachment(url, controller.signal).then(
             (file) => {
@@ -86,13 +77,7 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
                     </LinkButton>
                 ) : (
                     <span className="flex flex-col items-end gap-4 text-body-s">
-                        <span role="alert">
-                            {t(
-                                current.status === 'update'
-                                    ? 'actions.attachmentUpdateRequired'
-                                    : 'actions.attachmentUnavailable'
-                            )}
-                        </span>
+                        <span role="alert">{t('actions.attachmentUnavailable')}</span>
                         {current.status === 'error' && (
                             <LinkButton
                                 disabled={busy}

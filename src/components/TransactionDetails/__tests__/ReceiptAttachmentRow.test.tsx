@@ -2,20 +2,23 @@ import React from 'react'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ReceiptAttachmentRow } from '../ReceiptAttachmentRow'
-import { canDeliverReceiptAttachment, deliverReceiptAttachment, fetchReceiptAttachment } from '../receipt-attachment'
+import { deliverReceiptAttachment, fetchReceiptAttachment } from '../receipt-attachment'
 
 jest.mock('../receipt-attachment', () => ({
-    canDeliverReceiptAttachment: jest.fn(() => true),
     deliverReceiptAttachment: jest.fn(),
     fetchReceiptAttachment: jest.fn(),
 }))
 
 const url = 'https://peanut-notes.s3.eu-north-1.amazonaws.com/receipt.pdf'
-const file = { bytes: new Uint8Array([37, 80, 68, 70, 45]), mimeType: 'application/pdf', extension: 'pdf' }
+const file = {
+    sourceUrl: url,
+    bytes: new Uint8Array([37, 80, 68, 70, 45]),
+    mimeType: 'application/pdf',
+    extension: 'pdf',
+}
 
 beforeEach(() => {
     jest.clearAllMocks()
-    ;(canDeliverReceiptAttachment as jest.Mock).mockReturnValue(true)
     ;(fetchReceiptAttachment as jest.Mock).mockResolvedValue(file)
     ;(deliverReceiptAttachment as jest.Mock).mockResolvedValue(undefined)
 })
@@ -46,14 +49,6 @@ test.each(['expired URL', 'relative URL', '404', 'non-PDF error page'])(
         expect(await screen.findByRole('button', { name: 'Download' })).toBeEnabled()
     }
 )
-
-test('an old native binary asks for an update instead of pretending to download', async () => {
-    ;(canDeliverReceiptAttachment as jest.Mock).mockReturnValue(false)
-    renderWithIntl(<ReceiptAttachmentRow url={url} />)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Update Peanut to download this attachment.')
-    expect(fetchReceiptAttachment).not.toHaveBeenCalled()
-    expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument()
-})
 
 test('does not deliver a previous attachment after the receipt changes', async () => {
     let resolveOld!: (value: typeof file) => void
@@ -111,12 +106,15 @@ test('an old delivery completion cannot clear the new receipt download state', a
     expect(newDownload).toBeEnabled()
 })
 
-test('a delivery failure keeps the cached bytes available for retry', async () => {
-    ;(deliverReceiptAttachment as jest.Mock).mockRejectedValueOnce(new Error('share failed'))
-    renderWithIntl(<ReceiptAttachmentRow url={url} />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Download' }))
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    await waitFor(() => expect(deliverReceiptAttachment).toHaveBeenCalledTimes(2))
-    expect(fetchReceiptAttachment).toHaveBeenCalledTimes(1)
-})
+test.each(['share failed', 'browser unavailable'])(
+    'a delivery failure keeps verified bytes available for retry: %s',
+    async (message) => {
+        ;(deliverReceiptAttachment as jest.Mock).mockRejectedValueOnce(new Error(message))
+        renderWithIntl(<ReceiptAttachmentRow url={url} />)
+        fireEvent.click(await screen.findByRole('button', { name: 'Download' }))
+        expect(await screen.findByRole('alert')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+        await waitFor(() => expect(deliverReceiptAttachment).toHaveBeenCalledTimes(2))
+        expect(fetchReceiptAttachment).toHaveBeenCalledTimes(1)
+    }
+)

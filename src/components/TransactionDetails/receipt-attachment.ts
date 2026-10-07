@@ -1,5 +1,5 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core'
-import { isNativeBridge } from '@/utils/capacitor'
+import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 
 const ATTACHMENT_HOST = 'peanut-notes.s3.eu-north-1.amazonaws.com'
@@ -7,7 +7,12 @@ export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 const FETCH_TIMEOUT_MS = 30_000
 const CACHE_DIRECTORY = 'receipt-attachments'
 
-export type ReceiptAttachment = { bytes: Uint8Array<ArrayBuffer>; mimeType: string; extension: string }
+export type ReceiptAttachment = {
+    sourceUrl: string
+    bytes: Uint8Array<ArrayBuffer>
+    mimeType: string
+    extension: string
+}
 
 export function attachmentUrl(value: string | null | undefined): string | null {
     if (!value || /[\u0000-\u001f\u007f\\]/.test(value)) return null
@@ -28,7 +33,7 @@ export function attachmentUrl(value: string | null | undefined): string | null {
     }
 }
 
-function verifiedFile(bytes: Uint8Array<ArrayBuffer>): ReceiptAttachment {
+function verifiedFile(bytes: Uint8Array<ArrayBuffer>): Omit<ReceiptAttachment, 'sourceUrl'> {
     if (bytes.length === 0 || bytes.length > MAX_ATTACHMENT_BYTES) throw new Error('Attachment size is invalid')
     const startsWith = (signature: number[]) => signature.every((byte, index) => bytes[index] === byte)
     if (startsWith([37, 80, 68, 70, 45])) return { bytes, mimeType: 'application/pdf', extension: 'pdf' }
@@ -95,7 +100,7 @@ export async function fetchReceiptAttachment(rawUrl: string, signal: AbortSignal
             return verifiedFile(new Uint8Array(await response.arrayBuffer()))
         }
         // native http has no abort method; a late result must never reach the changed receipt.
-        return await Promise.race([load(), cancelled])
+        return { ...(await Promise.race([load(), cancelled])), sourceUrl: url }
     } finally {
         clearTimeout(timeout)
         signal.removeEventListener('abort', abort)
@@ -103,18 +108,17 @@ export async function fetchReceiptAttachment(rawUrl: string, signal: AbortSignal
     }
 }
 
-export function canDeliverReceiptAttachment(): boolean {
-    return !isNativeBridge() || (Capacitor.isPluginAvailable('Filesystem') && Capacitor.isPluginAvailable('Share'))
-}
-
 export async function deliverReceiptAttachment(file: ReceiptAttachment, signal: AbortSignal): Promise<void> {
     const assertActive = () => {
         if (signal.aborted) throw new DOMException('Attachment delivery cancelled', 'AbortError')
     }
     assertActive()
-    if (!canDeliverReceiptAttachment()) throw new Error('An app update is required')
     if (!isNativeBridge()) {
         downloadBlob(new Blob([file.bytes], { type: file.mimeType }), `peanut-attachment.${file.extension}`)
+        return
+    }
+    if (!Capacitor.isPluginAvailable('Filesystem') || !Capacitor.isPluginAvailable('Share')) {
+        await openExternalUrl(file.sourceUrl, signal)
         return
     }
     const [{ Filesystem, Directory }, { Share }] = await Promise.all([
