@@ -4,8 +4,8 @@ from pathlib import Path
 
 ASSET = Path(__file__).resolve().parents[1] / 'src/assets/onboarding/documents.json'
 INK = [0, 0, 0, 1]
-# Mascot detail weight: about 2.8 px at the passport's on-screen scale.
-LINE = 3.03
+# Detail weight: 3.0 px on a 390x844 phone at the residence screen's 1.4x scale.
+LINE = 4.131
 GOLD = [252 / 255, 200 / 255, 20 / 255, 1]
 WHITE = [1, 1, 1, 1]
 
