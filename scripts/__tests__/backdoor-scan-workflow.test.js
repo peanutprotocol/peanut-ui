@@ -11,7 +11,7 @@ const scanner = fs.readFileSync(path.join(root, 'scripts/backdoor-scan.mjs'), 'u
 const scanWorkflow = fs.readFileSync(path.join(root, '.github/workflows/backdoor-scan.yml'), 'utf8')
 // Execute the real workflow's shell, including scanner extraction/provenance.
 const scanStep = scanWorkflow.split('              run: |\n')[1].replace(/^ {18}/gm, '')
-const payload = `module.exports = {};${' '.repeat(80)}global["r"] = () => {}`
+const payload = `module.exports = {};${' '.repeat(80)}void 0`
 
 function fixture({ attack = true, scannerOnBase = true, tamper = false, diverged = false } = {}) {
     // Node resolves module URLs through macOS /var -> /private/var symlinks.
