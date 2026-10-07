@@ -6,6 +6,8 @@ import SuccessStep from '../Success'
 let mockCompleted = false
 const mockRedirect = jest.fn()
 const mockHaptic = jest.fn()
+const mockConfetti = jest.fn()
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: () => mockConfetti() } }))
 jest.mock('@/utils/haptics', () => ({ notifyHaptic: (...args: unknown[]) => mockHaptic(...args) }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupCompleted: mockCompleted }),
@@ -14,10 +16,6 @@ jest.mock('@/hooks/useAccountSetup', () => ({ useAccountSetup: () => ({ handleRe
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
     default: () => <div data-testid="celebration-mascot" />,
-}))
-jest.mock('../../components/CelebrationCurtain', () => ({
-    __esModule: true,
-    default: () => <canvas data-testid="celebration-curtain" />,
 }))
 
 beforeEach(() => {
@@ -33,14 +31,16 @@ it('celebrates and haptics once, then enters the account after 4.5 seconds', () 
         </StrictMode>
     )
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('celebration-curtain')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('celebration-mascot')).not.toBeInTheDocument()
+    expect(mockConfetti).not.toHaveBeenCalled()
     mockCompleted = true
     view.rerender(
         <StrictMode>
             <SuccessStep />
         </StrictMode>
     )
-    expect(screen.getByTestId('celebration-curtain')).toBeInTheDocument()
+    expect(screen.getByTestId('celebration-mascot')).toBeInTheDocument()
+    expect(mockConfetti).toHaveBeenCalledTimes(1)
     expect(mockRedirect).not.toHaveBeenCalled()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(mockHaptic).toHaveBeenCalledTimes(1)
