@@ -15,7 +15,7 @@ jest.mock('../ContributePotPage', () => ({
 
 const renderView = () =>
     render(
-        <NuqsTestingAdapter searchParams="?id=pot-1&mode=pot">
+        <NuqsTestingAdapter searchParams="?id=pot-1">
             <IntlWrapper>
                 <ContributePotPageWrapper requestId="pot-1" />
             </IntlWrapper>
@@ -23,14 +23,20 @@ const renderView = () =>
     )
 
 it('opens the voluntary contribution flow for an open pot', async () => {
-    getRequest.mockResolvedValue({ uuid: 'pot-1', status: 'OPEN' })
+    getRequest.mockResolvedValue({ uuid: 'pot-1', status: 'OPEN', isCrowdfunding: true })
     renderView()
     expect(await screen.findByTestId('payment-flow')).toHaveTextContent('Voluntary contribution')
 })
 
 it('shows closure instead of payment actions for a closed pot', async () => {
-    getRequest.mockResolvedValue({ uuid: 'pot-1', status: 'CLOSED' })
+    getRequest.mockResolvedValue({ uuid: 'pot-1', status: 'CLOSED', isCrowdfunding: true })
     renderView()
     expect(await screen.findByText('This collection is closed')).toBeInTheDocument()
     expect(screen.queryByTestId('payment-flow')).not.toBeInTheDocument()
+})
+
+it('keeps ordinary requests in the split flow', async () => {
+    getRequest.mockResolvedValue({ uuid: 'pot-1', status: 'OPEN', isCrowdfunding: false })
+    renderView()
+    expect(await screen.findByTestId('payment-flow')).toHaveTextContent('Split request')
 })

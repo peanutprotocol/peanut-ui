@@ -94,8 +94,8 @@ export function useContributePotFlow() {
     // check if can proceed
     const canProceed = useMemo(() => {
         if (!amount || !recipient || !request || request.status === 'CLOSED') return false
-        const amountNum = parseFloat(amount)
-        if (isNaN(amountNum) || amountNum <= 0) return false
+        const amountNum = Number(amount)
+        if (!Number.isFinite(amountNum) || amountNum <= 0) return false
         return true
     }, [amount, recipient, request])
 
@@ -170,7 +170,7 @@ export function useContributePotFlow() {
             shouldReturnAfterCreatingCharge: boolean = false,
             bypassLoginCheck: boolean = false
         ): Promise<{ success: boolean }> => {
-            if (!recipient || !amount || !request || request.status === 'CLOSED') {
+            if (!canProceed || !recipient || !request) {
                 setError({ showError: true, errorMessage: t('errors.missingData') })
                 return { success: false }
             }
@@ -250,6 +250,7 @@ export function useContributePotFlow() {
             }
         },
         [
+            canProceed,
             recipient,
             amount,
             usdAmount,

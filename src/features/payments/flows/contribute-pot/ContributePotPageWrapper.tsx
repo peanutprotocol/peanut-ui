@@ -9,7 +9,6 @@
  * used by: /[...recipient]?id=xyz route when id param is a request pot uuid
  */
 
-import { parseAsString, useQueryState } from 'nuqs'
 import { ContributePotPage } from './ContributePotPage'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { requestsApi } from '@/services/requests'
@@ -25,7 +24,6 @@ interface ContributePotPageWrapperProps {
 }
 
 export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapperProps) {
-    const [mode] = useQueryState('mode', parseAsString)
     const tPots = useTranslations('pots')
     const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
@@ -41,21 +39,26 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
             return
         }
 
+        let active = true
         setIsLoading(true)
+        setRequest(null)
         setError(null)
 
         requestsApi
             .get(requestId)
             .then((data) => {
-                setRequest(data)
+                if (active) setRequest(data)
             })
             .catch((err) => {
                 console.error('failed to fetch request:', err)
-                setError(t('errors.requestLoadFailed'))
+                if (active) setError(t('errors.requestLoadFailed'))
             })
             .finally(() => {
-                setIsLoading(false)
+                if (active) setIsLoading(false)
             })
+        return () => {
+            active = false
+        }
     }, [requestId, t])
 
     // loading state
@@ -89,11 +92,14 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
     if (request.status === 'CLOSED') {
         return (
             <div className="flex min-h-inherit flex-col gap-4">
-                <NavHeader title={mode === 'pot' ? tPots('title') : t('headers.pay')} onPrev={onBack} />
+                <NavHeader
+                    title={request.isCrowdfunding === true ? tPots('title') : t('headers.pay')}
+                    onPrev={onBack}
+                />
                 <EmptyState icon="lock" title={tPots('closed')} description={tPots('closedDescription')} />
             </div>
         )
     }
 
-    return <ContributePotPage request={request} isCrowdfunding={mode === 'pot'} />
+    return <ContributePotPage key={request.uuid} request={request} isCrowdfunding={request.isCrowdfunding === true} />
 }

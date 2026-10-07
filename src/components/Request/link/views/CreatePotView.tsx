@@ -49,7 +49,7 @@ export function CreatePotView() {
         <PageStack>
             <NavHeader onPrev={onBack} title={t('title')} />
             <PageStack.Center className="gap-4">
-                <TitleBlock size="s" title={<h1>{t('introTitle')}</h1>} description={t('introDescription')} />
+                <TitleBlock size="s" title={<h1>{t('introTitle')}</h1>} />
                 <label htmlFor="pot-purpose" className="text-body-s">
                     {t('purpose')}
                 </label>
@@ -73,7 +73,7 @@ export function CreatePotView() {
                     disabled={isCreatingLink}
                 />
                 <p className="text-body-s text-foreground-secondary">{t('noGoalHint')}</p>
-                <Callout priority="info">{t('directFunding')}</Callout>
+                <p className="text-body-s text-foreground-secondary">{t('directFunding')}</p>
                 <Button
                     onClick={generateLink}
                     loading={isCreatingLink}

@@ -4356,7 +4356,7 @@
         "purpose": "Para que você está arrecadando?",
         "purposePlaceholder": "Um projeto comunitário, um presente, uma boa causa…",
         "goal": "Meta em USD (opcional)",
-        "noGoalHint": "Deixe a meta em branco para arrecadar sem um objetivo. As contribuições podem continuar depois de atingir a meta.",
+        "noGoalHint": "Opcional. As contribuições podem continuar após atingir a meta.",
         "directFunding": "As contribuições vão diretamente para quem organiza. Elas não ficam retidas até atingir a meta nem são reembolsadas automaticamente.",
         "create": "Criar vaquinha",
         "share": "Compartilhar vaquinha",
@@ -4371,6 +4371,7 @@
         "organisedBy": "Organizado por {name}",
         "goalAmount": "Meta de {amount}",
         "openGoal": "Arrecadação sem meta",
-        "viewPot": "Ver vaquinha e progresso"
+        "viewPot": "Ver vaquinha e progresso",
+        "notAvailable": "As vaquinhas ainda não estão disponíveis. Tente novamente mais tarde."
     }
 }

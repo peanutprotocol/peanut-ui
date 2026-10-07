@@ -112,7 +112,8 @@ jest.mock('@/constants/zerodev.consts', () => ({
 jest.mock('@/utils/general.utils', () => ({
     fetchTokenSymbol: jest.fn(),
     formatTokenAmount: (amount: string) => amount,
-    getRequestLink: ({ uuid }: { uuid: string }) => `https://peanut.me/request/pay?id=${uuid}`,
+    getRequestLink: ({ uuid, isCrowdfunding }: { uuid: string; isCrowdfunding?: boolean }) =>
+        `https://peanut.me/request/pay?id=${uuid}${isCrowdfunding ? '&mode=pot' : ''}`,
     isNativeCurrency: () => false,
 }))
 jest.mock('@/utils/url.utils', () => ({
@@ -593,7 +594,7 @@ describe('useCreateRequestLink', () => {
 describe('crowdfunding pots', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        apiCreate.mockResolvedValue({ uuid: 'pot-1' })
+        apiCreate.mockResolvedValue({ uuid: 'pot-1', isCrowdfunding: true })
         resolveCopy.mockResolvedValue(true)
     })
 
@@ -615,12 +616,32 @@ describe('crowdfunding pots', () => {
         expect(apiCreate).toHaveBeenCalledWith(
             expect.objectContaining({
                 reference: 'Community garden',
+                isCrowdfunding: true,
                 tokenAmount: goal || undefined,
                 bankInstructionsShared: false,
             })
         )
         expect(result.current.generatedLink).toBe('https://peanut.me/request/pay?id=pot-1&mode=pot')
         expect(result.current.qrCodeLink).toBe(result.current.generatedLink)
+    })
+
+    it('does not publish a pot when an older API strips its identity', async () => {
+        apiCreate.mockResolvedValue({ uuid: 'old-api-request' })
+        apiClose.mockResolvedValue({})
+        const { result } = renderHook(() => useCreateRequestLink({ isCrowdfunding: true }), { wrapper })
+        act(() =>
+            result.current.handleAttachmentOptionsChange({
+                message: 'Community garden',
+                fileUrl: '',
+                rawFile: undefined,
+            })
+        )
+        await act(async () => {
+            await result.current.generateLink()
+        })
+        expect(apiClose).toHaveBeenCalledWith('old-api-request')
+        expect(result.current.generatedLink).toBeNull()
+        expect(result.current.errorState.errorMessage).toContain('not available yet')
     })
 
     it.each(['-1', '0', 'Infinity', '1.001'])('rejects invalid goal %s before creating a request', async (goal) => {

@@ -203,8 +203,9 @@ export const useCreateRequestLink = ({ isCrowdfunding = false } = {}) => {
             if (
                 isCrowdfunding &&
                 (!attachmentOptions.message?.trim() ||
+                    attachmentOptions.message.trim().length > 140 ||
                     (requestAmount !== '' &&
-                        (!/^\d+(\.\d{1,2})?$/.test(requestAmount) ||
+                        (!/^\d{1,15}(\.\d{1,2})?$/.test(requestAmount) ||
                             !Number.isFinite(Number(requestAmount)) ||
                             Number(requestAmount) <= 0)))
             ) {
@@ -282,6 +283,7 @@ export const useCreateRequestLink = ({ isCrowdfunding = false } = {}) => {
                     mimeType: attachmentOptions.rawFile?.type || undefined,
                     filename: attachmentOptions.rawFile?.name || undefined,
                     bankInstructionsShared: isCrowdfunding ? false : bankInstructionsShared,
+                    ...(isCrowdfunding ? { isCrowdfunding: true } : {}),
                     // Sent for a non-USD amount alone, so a USD request is the
                     // same body an API without the field accepts.
                     ...(isDenominated ? { requestedAmount: { amount: toApiAmount(requestAmount), currency } } : {}),
@@ -303,14 +305,20 @@ export const useCreateRequestLink = ({ isCrowdfunding = false } = {}) => {
                     toast.error(errorMessage)
                     return null
                 }
+                // Fail closed during a backend-first rollout: an old API can
+                // strip unknown body fields and silently create a split request.
+                if (isCrowdfunding && requestDetails.isCrowdfunding !== true) {
+                    await requestsApi.close(requestDetails.uuid).catch((error) => Sentry.captureException(error))
+                    const errorMessage = tPots('notAvailable')
+                    setErrorState({ showError: true, errorMessage })
+                    toast.error(errorMessage)
+                    return null
+                }
                 setRequestId(requestDetails.uuid)
 
-                const requestLink = getRequestLink({
+                const link = getRequestLink({
                     ...requestDetails,
                 })
-
-                // Only presentation differs; contributions use the persisted request UUID.
-                const link = isCrowdfunding ? `${requestLink}&mode=pot` : requestLink
 
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }

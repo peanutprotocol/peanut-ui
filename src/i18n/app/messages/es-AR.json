@@ -1863,7 +1863,7 @@
         "purpose": "¿Para qué estás recaudando plata?",
         "purposePlaceholder": "Un proyecto comunitario, un regalo, una buena causa…",
         "goal": "Meta en USD (opcional)",
-        "noGoalHint": "Dejá la meta vacía para recaudar sin un objetivo. Los aportes pueden continuar después de alcanzar la meta.",
+        "noGoalHint": "Opcional. Los aportes pueden continuar después de alcanzar la meta.",
         "directFunding": "Los aportes van directamente a quien organiza. No se retienen hasta alcanzar la meta ni se reembolsan automáticamente.",
         "create": "Crear fondo",
         "share": "Compartir fondo",
@@ -1878,6 +1878,7 @@
         "organisedBy": "Organiza {name}",
         "goalAmount": "Meta: {amount}",
         "openGoal": "Colecta sin meta",
-        "viewPot": "Ver fondo y progreso"
+        "viewPot": "Ver fondo y progreso",
+        "notAvailable": "Los fondos colectivos todavía no están disponibles. Volvé a intentarlo más tarde."
     }
 }

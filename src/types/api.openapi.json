@@ -15614,6 +15614,9 @@
                                             },
                                             "trackId": {
                                                 "type": "string"
+                                            },
+                                            "isCrowdfunding": {
+                                                "type": "boolean"
                                             }
                                         },
                                         "required": [
@@ -15672,6 +15675,9 @@
                                             },
                                             "trackId": {
                                                 "type": "string"
+                                            },
+                                            "isCrowdfunding": {
+                                                "type": "boolean"
                                             }
                                         },
                                         "required": [
@@ -15996,9 +16002,13 @@
                                         },
                                         "uuid": {
                                             "type": "string"
+                                        },
+                                        "isCrowdfunding": {
+                                            "type": "boolean"
                                         }
                                     },
                                     "required": [
+                                        "isCrowdfunding",
                                         "uuid",
                                         "chainId",
                                         "recipientAddress",

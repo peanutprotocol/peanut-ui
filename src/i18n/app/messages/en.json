@@ -4356,7 +4356,7 @@
         "purpose": "What are you raising money for?",
         "purposePlaceholder": "A community project, a gift, a good cause…",
         "goal": "Funding goal in USD (optional)",
-        "noGoalHint": "Leave the goal empty to collect without a target. Contributions can continue after the goal is reached.",
+        "noGoalHint": "Optional. Contributions can continue after the goal is reached.",
         "directFunding": "Contributions go directly to the organiser. They are not held until the goal is reached or automatically refunded.",
         "create": "Create pot",
         "share": "Share pot",
@@ -4371,6 +4371,7 @@
         "organisedBy": "Organised by {name}",
         "goalAmount": "{amount} goal",
         "openGoal": "Open collection",
-        "viewPot": "View pot and progress"
+        "viewPot": "View pot and progress",
+        "notAvailable": "Crowdfunding pots are not available yet. Please try again later."
     }
 }

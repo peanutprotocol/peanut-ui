@@ -48,6 +48,7 @@ import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 beforeEach(() => {
     jest.clearAllMocks()
+    ctx.amount = '10'
     ctx.request.status = 'OPEN'
     ctx.recipient = { address: peer, userId: 'peer-user' }
     mockCreateCharge.mockResolvedValue({ uuid: 'charge-1' })
@@ -139,3 +140,16 @@ test('a closed request never creates a charge or sends funds', async () => {
     expect(mockCreateCharge).not.toHaveBeenCalled()
     expect(mockSendMoney).not.toHaveBeenCalled()
 })
+
+test.each(['Infinity', 'NaN', '-1', '0', '10abc'])(
+    'refuses invalid contribution %s before charge creation',
+    async (amount) => {
+        ctx.amount = amount
+        const { result } = renderHookWithIntl(() => useContributePotFlow())
+        expect(result.current.canProceed).toBe(false)
+        await act(async () => {
+            expect(await result.current.executeContribution()).toEqual({ success: false })
+        })
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+    }
+)
