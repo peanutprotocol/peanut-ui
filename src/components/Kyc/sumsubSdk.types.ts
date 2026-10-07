@@ -4,6 +4,7 @@
  * interchangeable from a call site's point of view.
  */
 export interface SumsubSdkProps {
+    documentConfig?: import('@/app/actions/types/kyc-workflow.types').KycDocumentConfig
     sessionKey?: string
     visible: boolean
     accessToken: string | null

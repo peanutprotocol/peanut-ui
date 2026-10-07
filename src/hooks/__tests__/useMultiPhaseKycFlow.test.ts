@@ -1,3 +1,11 @@
+jest.mock('@/app/actions/kyc-workflow', () => ({
+    getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    getKycDocumentStatus: jest.fn(),
+    resumeKycDocumentAttempt: jest.fn(),
+    startKycDocumentAttempt: jest.fn(),
+    startKycDocumentReplacement: jest.fn(),
+    saveKycFeatures: jest.fn(),
+}))
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import posthog from 'posthog-js'

@@ -3308,6 +3308,30 @@
             "taxId": "Sua identidade foi verificada, mas não conseguimos validar seu documento fiscal para este país. Confira e corrija os dados para habilitar transferências bancárias.",
             "details": "Algumas informações precisam ser atualizadas para habilitar transferências bancárias. Sua verificação de identidade está salva.",
             "correct": "Corrigir dados"
+        },
+        "documents": {
+            "title": "Escolha seus documentos",
+            "description": "Escolha aqui os documentos que você vai usar. Abriremos a verificação com esses documentos já selecionados.",
+            "features": "O que você gostaria de usar?",
+            "qr": "Pagamentos com QR",
+            "local": "Transferências bancárias locais",
+            "bank": "Contas bancárias internacionais",
+            "card": "Cartão Peanut",
+            "unavailable": "A verificação ainda não está disponível para essas opções. Tente outra opção de pagamento.",
+            "documentSet": "Documentos necessários",
+            "identity": "Documento de identidade",
+            "poa": "Comprovante de endereço",
+            "documentType": "Tipo de documento",
+            "issuingCountry": "País de emissão",
+            "choose": "Escolha uma opção",
+            "continue": "Continuar para a verificação",
+            "passport": "Passaporte",
+            "idCard": "Documento nacional de identidade",
+            "drivers": "Carteira de habilitação",
+            "residencePermit": "Permissão de residência",
+            "bankStatement": "Extrato bancário",
+            "utilityBill": "Conta de consumo",
+            "otherDocument": "Documento de apoio"
         }
     },
     "identity": {

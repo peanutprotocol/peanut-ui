@@ -3308,6 +3308,30 @@
             "taxId": "Your identity is verified, but we could not validate your tax ID for this country. Check and correct it to enable bank transfers.",
             "details": "Some information needs updating before bank transfers can be enabled. Your identity verification is saved.",
             "correct": "Correct details"
+        },
+        "documents": {
+            "title": "Choose your documents",
+            "description": "Choose what you’ll use here. We’ll open verification with these documents already selected.",
+            "features": "What would you like to use?",
+            "qr": "QR payments",
+            "local": "Local bank transfers",
+            "bank": "International bank accounts",
+            "card": "Peanut card",
+            "unavailable": "Verification is not available for these choices yet. Try a different payment option.",
+            "documentSet": "Required documents",
+            "identity": "Identity document",
+            "poa": "Proof of address",
+            "documentType": "Document type",
+            "issuingCountry": "Issuing country",
+            "choose": "Choose an option",
+            "continue": "Continue to verification",
+            "passport": "Passport",
+            "idCard": "National ID card",
+            "drivers": "Driving licence",
+            "residencePermit": "Residence permit",
+            "bankStatement": "Bank statement",
+            "utilityBill": "Utility bill",
+            "otherDocument": "Supporting document"
         }
     },
     "identity": {

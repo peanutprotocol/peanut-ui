@@ -1,3 +1,10 @@
+import {
+    getKycDocumentStatus,
+    getKycDocumentPlan,
+    resumeKycDocumentAttempt,
+    startKycDocumentAttempt,
+    startKycDocumentReplacement,
+} from '@/app/actions/kyc-workflow'
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
@@ -9,6 +16,15 @@ import {
     startKycAction,
     refreshVerificationSession,
 } from '@/app/actions/sumsub'
+
+jest.mock('@/app/actions/kyc-workflow', () => ({
+    getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
+    getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    resumeKycDocumentAttempt: jest.fn(),
+    startKycDocumentAttempt: jest.fn(),
+    startKycDocumentReplacement: jest.fn(),
+    saveKycFeatures: jest.fn(),
+}))
 
 // useSumsubKycFlow wires a websocket, redux, the router and three server actions.
 // Stub everything except the one action the cross-region branch reads so the test
@@ -1400,5 +1416,118 @@ describe('useSumsubKycFlow — capability action sessions', () => {
         expect(result.current.showWrapper).toBe(false)
         expect(result.current.isVerificationProgressModalOpen).toBe(false)
         expect(result.current.error).toBeTruthy()
+    })
+})
+
+describe('document-first verification', () => {
+    const plan = {
+        available: true,
+        activeAttemptId: null,
+        policyVersion: 'v1',
+        features: { qr: true, bank: false, local: false, card: false },
+        routes: [
+            {
+                id: 'shared',
+                documents: [
+                    {
+                        key: 'identity',
+                        code: 'IDENTITY' as const,
+                        types: ['PASSPORT'],
+                        countries: ['PT'],
+                        requiredBy: ['SUMSUB'],
+                    },
+                ],
+            },
+        ],
+    }
+    const session = {
+        attemptId: 'attempt-1',
+        token: 'token-1',
+        applicantId: 'applicant-1',
+        levelName: 'shared',
+        status: 'COLLECTING',
+        sdkConfig: {
+            documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'PASSPORT' } },
+            autoSelectDocumentDefinitions: true as const,
+        },
+    }
+    beforeEach(() => {
+        jest.mocked(getKycDocumentPlan).mockResolvedValue(plan)
+        jest.mocked(startKycDocumentAttempt).mockResolvedValue(session)
+        jest.mocked(startKycDocumentReplacement).mockResolvedValue({ ...session, attemptId: 'replacement-1' })
+        jest.mocked(resumeKycDocumentAttempt).mockResolvedValue({ ...session, token: 'refreshed' })
+        mockInitiate.mockClear()
+    })
+    afterEach(() => jest.mocked(getKycDocumentPlan).mockResolvedValue({ ...plan, available: false, routes: [] }))
+    it('shows the Peanut document list before creating a session, then refreshes only the saved attempt', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(result.current.documentPlan).toEqual(plan)
+        expect(result.current.showWrapper).toBe(false)
+        expect(mockInitiate).not.toHaveBeenCalled()
+        const documents = [{ key: 'identity', type: 'PASSPORT', issuingCountry: 'PT' }]
+        await act(async () => {
+            await result.current.confirmDocumentPlan('shared', documents)
+        })
+        expect(startKycDocumentAttempt).toHaveBeenCalledWith(
+            expect.objectContaining({ policyVersion: 'v1', routeId: 'shared', documents })
+        )
+        expect(result.current.documentConfig).toEqual(session.sdkConfig)
+        expect(result.current.showWrapper).toBe(true)
+        await act(async () => {
+            expect(await result.current.refreshToken()).toBe('refreshed')
+        })
+        expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('attempt-1')
+        expect(mockInitiate).not.toHaveBeenCalled()
+    })
+    it('chooses replacement documents in Peanut before resetting identity', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(getKycDocumentPlan).toHaveBeenCalledWith(true)
+        expect(result.current.documentPlan).toEqual(plan)
+        const documents = [{ key: 'identity', type: 'PASSPORT', issuingCountry: 'PT' }]
+        await act(async () => {
+            await result.current.confirmDocumentPlan('shared', documents)
+        })
+        expect(startKycDocumentReplacement).toHaveBeenCalledWith(expect.objectContaining({ documents }))
+        expect(result.current.documentAttemptId).toBe('replacement-1')
+        expect(result.current.documentConfig).toEqual(session.sdkConfig)
+    })
+    it('recovers a missed approval through a read-only profile poll', async () => {
+        jest.useFakeTimers()
+        const onKycSuccess = jest.fn()
+        try {
+            jest.mocked(getKycDocumentPlan).mockResolvedValue({ ...plan, activeAttemptId: 'attempt-1' })
+            jest.mocked(getKycDocumentStatus).mockResolvedValue('APPROVED')
+            const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+            await act(async () => {
+                await result.current.handleInitiateKyc()
+            })
+            act(() => {
+                result.current.handleSdkComplete()
+            })
+            await act(async () => {
+                await jest.advanceTimersByTimeAsync(5000)
+            })
+            expect(getKycDocumentStatus).toHaveBeenCalled()
+            expect(mockInitiate).not.toHaveBeenCalled()
+            expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+    it('resumes the owner-bound attempt after a reload without choosing documents again', async () => {
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ ...plan, activeAttemptId: 'attempt-1' })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(result.current.documentPlan).toBeNull()
+        expect(result.current.accessToken).toBe('refreshed')
+        expect(result.current.documentConfig).toEqual(session.sdkConfig)
     })
 })
