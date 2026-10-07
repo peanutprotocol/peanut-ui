@@ -27,10 +27,11 @@ def path(vertices, incoming=None, outgoing=None, closed=False):
 
 
 def group(name, shapes, fill=None, width=LINE, position=(0, 0), rotation=0):
-    items = list(shapes)
+    # The stroke is listed before the fill so the whole outline paints on top of it.
+    items = list(shapes) + [stroke(width)]
     if fill:
         items.append({'ty': 'fl', 'c': {'a': 0, 'k': fill}, 'o': {'a': 0, 'k': 100}, 'r': 1})
-    return {'ty': 'gr', 'nm': name, 'it': items + [stroke(width), transform(position, rotation)]}
+    return {'ty': 'gr', 'nm': name, 'it': items + [transform(position, rotation)]}
 
 
 # The shell's two lobes and short texture strokes stay clear at passport scale.

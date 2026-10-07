@@ -26,7 +26,7 @@ at_path = {"v": [[17,-17],[17,8],[27,17],[39,-3],[0,-40],[-39,-3],[-27,30],[18,3
 ink = [0, 0, 0, 1]
 pink = [232 / 255, 130 / 255, 208 / 255, 1]
 transform = {"ty": "tr", "p": prop([0,0]), "a": prop([0,0]), "s": prop([100,100]), "r": prop(0), "o": prop(100)}
-stroke = {"ty": "st", "c": prop(ink), "o": prop(100), "w": prop(8.3), "lc": 2, "lj": 2}
+stroke = {"ty": "st", "c": prop(ink), "o": prop(100), "w": prop(5.15), "lc": 2, "lj": 2}
 shapes = [
     {"ty": "gr", "it": [
         {"ty": "el", "p": prop([-2,0]), "s": prop([27,34]), "d": 1},
