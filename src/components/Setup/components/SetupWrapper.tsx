@@ -86,8 +86,10 @@ interface SetupWrapperProps {
 }
 
 // define responsive height classes for different layout types
+// short phones (under 800px tall) get a 34dvh hero so the panel below keeps room;
+// the media query stops at md so desktop keeps the full-height hero
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'h-[40dvh] shrink-0 md:h-dvh',
+    signup: 'h-[40dvh] shrink-0 md:h-dvh [@media(max-height:799px)_and_(max-width:767px)]:h-[34dvh]',
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
@@ -113,25 +115,6 @@ const mascotVariants = {
 }
 
 const STEP_TRANSITION = { duration: 0.5, ease: [0.22, 1, 0.36, 1] } as const
-
-const SETUP_KEYBOARD_FOCUS_KEYS = new Set([
-    'Tab',
-    'Enter',
-    ' ',
-    'ArrowUp',
-    'ArrowDown',
-    'ArrowLeft',
-    'ArrowRight',
-    'Home',
-    'End',
-    'PageUp',
-    'PageDown',
-])
-
-const isEditableFocusTarget = (target: EventTarget | null) =>
-    target instanceof HTMLTextAreaElement ||
-    (target instanceof HTMLInputElement && !['button', 'checkbox', 'radio', 'submit'].includes(target.type)) ||
-    (target instanceof HTMLElement && target.isContentEditable)
 
 const TransitioningContent = ({
     children,
@@ -569,29 +552,6 @@ export const SetupWrapper = memo(function SetupWrapper({
     useLayoutEffect(() => {
         previousStep.current = step
     }, [step])
-    useEffect(() => {
-        // A tapped text field can still match :focus-visible in Chromium. Track
-        // how focus was reached so pointer focus stays pink while keyboard
-        // navigation keeps a high-contrast ring. Typing in a field does not
-        // switch the focus style.
-        const root = document.documentElement
-        root.dataset.setupInputModality = 'keyboard'
-        const onPointerDown = () => {
-            root.dataset.setupInputModality = 'pointer'
-        }
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.metaKey || event.altKey || event.ctrlKey || !SETUP_KEYBOARD_FOCUS_KEYS.has(event.key)) return
-            if ((event.key === 'Enter' || event.key === ' ') && isEditableFocusTarget(event.target)) return
-            root.dataset.setupInputModality = 'keyboard'
-        }
-        document.addEventListener('pointerdown', onPointerDown, true)
-        document.addEventListener('keydown', onKeyDown, true)
-        return () => {
-            document.removeEventListener('pointerdown', onPointerDown, true)
-            document.removeEventListener('keydown', onKeyDown, true)
-            delete root.dataset.setupInputModality
-        }
-    }, [])
     useLayoutEffect(() => {
         // Safe-area strips follow the full-page checklist/celebration or blue hero.
         document.documentElement.style.setProperty(
@@ -632,7 +592,6 @@ export const SetupWrapper = memo(function SetupWrapper({
 
     return (
         <div
-            data-setup-flow="true"
             data-first-launch-intro={intro.active ? intro.phase : undefined}
             className={twMerge(
                 'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto bg-white',
@@ -700,7 +659,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                             aria-hidden={intro.active}
                             inert={intro.active}
                             className={twMerge(
-                                'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
+                                // pb-10 keeps the pinned CTA clear of the home gesture area on top of the safe-area inset
+                                'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-10 md:h-dvh',
 
                                 fullScreen && 'md:h-auto md:flex-1'
                             )}
@@ -710,6 +670,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     'flex w-full flex-1 flex-col justify-between md:flex-1',
                                     contentClassName,
                                     'gap-8',
+                                    // signup matches residence: the field sits 24px under the description
+                                    screenId === 'signup' && 'gap-6',
                                     screenId !== 'landing' && 'md:flex-1 md:justify-between',
                                     fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                 )}
@@ -723,7 +685,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     <div
                                         className={twMerge(
                                             'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
-                                            screenId === 'landing' && 'space-y-2',
+                                            (screenId === 'landing' || screenId === 'signup') && 'space-y-2',
                                             (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
                                             sunsetLanding && 'md:h-auto md:max-h-none',
                                             featureParagraph && 'space-y-0 md:max-h-none'

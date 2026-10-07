@@ -101,6 +101,15 @@ describe('SetupWrapper navigation', () => {
         expect(screen.queryByText('See the fees before confirming.', { selector: 'p' })).not.toBeInTheDocument()
     })
 
+    it('spaces the username title like residence: 8px under the title, 24px to the field', () => {
+        renderWrapper({ description: 'This is how people find you.' })
+        const titleBlock = screen.getByRole('heading', { level: 1 }).parentElement
+        expect(titleBlock).toHaveClass('space-y-2')
+        expect(titleBlock).not.toHaveClass('space-y-4')
+        expect(titleBlock?.parentElement).toHaveClass('gap-6')
+        expect(titleBlock?.parentElement).not.toHaveClass('gap-8')
+    })
+
     it('renders the back chevron without a hard-coded stroke colour', () => {
         renderWrapper({ showBackButton: true, onBack: jest.fn() })
         const svg = screen.getByRole('button', { name: 'Go back' }).querySelector('svg')
@@ -127,36 +136,6 @@ describe('SetupWrapper navigation', () => {
         renderWrapper({ showBackButton: true, onBack })
         fireEvent.click(screen.getByRole('button', { name: 'Go back' }))
         expect(onBack).toHaveBeenCalledTimes(1)
-    })
-})
-
-describe('Setup input focus modality', () => {
-    it('keeps pointer focus while typing and restores keyboard focus for navigation', () => {
-        const view = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="signup">
-                <input aria-label="Username" />
-                <button type="button">Next</button>
-            </SetupWrapper>
-        )
-        const input = screen.getByRole('textbox', { name: 'Username' })
-        const next = screen.getByRole('button', { name: 'Next' })
-        expect(input.closest('[data-setup-flow]')).toBeInTheDocument()
-        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'keyboard')
-
-        fireEvent.pointerDown(input)
-        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'pointer')
-        fireEvent.keyDown(input, { key: ' ' })
-        fireEvent.keyDown(input, { key: 'Enter' })
-        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'pointer')
-
-        fireEvent.keyDown(next, { key: 'Tab' })
-        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'keyboard')
-        fireEvent.pointerDown(next)
-        fireEvent.keyDown(next, { key: ' ' })
-        expect(document.documentElement).toHaveAttribute('data-setup-input-modality', 'keyboard')
-
-        view.unmount()
-        expect(document.documentElement).not.toHaveAttribute('data-setup-input-modality')
     })
 })
 
@@ -414,7 +393,12 @@ describe('SetupWrapper transitions', () => {
 
         expect(container.firstElementChild).toBe(shell)
         expect(shell).not.toHaveClass('bg-background-setup-hero')
-        expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toHaveClass('h-[40dvh]', 'shrink-0')
+        expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toHaveClass(
+            'h-[40dvh]',
+            '[@media(max-height:799px)_and_(max-width:767px)]:h-[34dvh]',
+            'md:h-dvh',
+            'shrink-0'
+        )
         expect(screen.getByText('Second step').closest('.bg-white')).not.toBe(panel)
         expect(hero).not.toBeInTheDocument()
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '100%')

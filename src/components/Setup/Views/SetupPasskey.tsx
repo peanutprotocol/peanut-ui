@@ -303,7 +303,7 @@ const SetupPasskey = () => {
                         </Button>
                     }
                 >
-                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="text-center text-body-xs text-foreground-secondary">
                         <SetupDocLink kind="passkeys" href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
                             <Icon name="info" size={16} className="shrink-0" />
                             {t('passkey.learnMore')}

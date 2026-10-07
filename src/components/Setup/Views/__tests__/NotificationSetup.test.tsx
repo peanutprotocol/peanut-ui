@@ -114,9 +114,10 @@ it('explains an already registered email, links to recovery, and clears the noti
     expect(recoveryLink.closest('[data-setup-footer]')).toContainElement(
         screen.getByRole('button', { name: 'Continue' })
     )
+    // hints sit above the CTA so the CTA pins to the bottom of the panel
     expect(
         screen.getByRole('button', { name: 'Continue' }).compareDocumentPosition(recoveryLink) &
-            Node.DOCUMENT_POSITION_FOLLOWING
+            Node.DOCUMENT_POSITION_PRECEDING
     ).toBeTruthy()
     expect(mockNext).not.toHaveBeenCalled()
     expect(mockFetchUser).not.toHaveBeenCalled()
