@@ -1299,11 +1299,40 @@ export const FIXTURES: Record<string, Fixture> = {
     // The Brazil path past the checklist (item 9a): the token answer the SDK
     // opens on. The demo API's own checklist answer already has every feature
     // open. e2e/flows/one-shot-setup.spec.ts stubs the SDK; the identity stays
-    // unverified, so the setup drawer reads "Under review" on every row.
+    // unverified, so the setup drawer reads "Under review" on every row but
+    // the card's: its agreements are on file (pending-identity), so its step
+    // is done and the row reads "Setting up" (item 9b).
     'one-shot-setup-br': {
         route: '/home',
         about: 'One-shot onboarding from Home in Brazil: the SDK opens on the one-shot level, then the setup drawer lists every ticked feature.',
         // no balance: the demo balance opens the high-balance prompt over the checklist
+        balance: '0',
+        responses: {
+            'POST /rain/cards': {
+                status: 'pending-identity',
+                message: 'Your card application continues once your identity is verified',
+            },
+            'GET /users/me': {
+                identityVerification: { status: 'not_started', oneShot: true },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+                residence: { declared: 'BR', verified: null },
+            },
+            'POST /users/identity': {
+                token: 'fixture-sumsub-token',
+                applicantId: 'fixture-applicant',
+                status: 'PENDING',
+                levelName: 'one-shot-latam',
+                workflow: { regionIntent: 'LATAM', isMultiLevel: false },
+            },
+        },
+    },
+    // Item 9b: the same Brazilian with the card ticked. When the identity
+    // session closes, POST /rain/cards answers in turn: the card questions (a
+    // token for the SDK), the agreements, then "pending-identity" once they
+    // are accepted. e2e/flows/one-shot-setup.spec.ts walks the three.
+    'one-shot-setup-br-card': {
+        route: '/home',
+        about: 'One-shot onboarding in Brazil with the card: after the session the card questions open, then the agreements, then the card row reads Setting up.',
         balance: '0',
         responses: {
             'GET /users/me': {
@@ -1317,6 +1346,62 @@ export const FIXTURES: Record<string, Fixture> = {
                 status: 'PENDING',
                 levelName: 'one-shot-latam',
                 workflow: { regionIntent: 'LATAM', isMultiLevel: false },
+            },
+            'GET /rain/cards/readiness': { ready: true, hasApplication: false, readyAt: '2026-10-07T10:00:00.000Z' },
+        },
+        sequences: {
+            'POST /rain/cards': [
+                {
+                    status: 'incomplete',
+                    missing: [],
+                    questionnaireComplete: false,
+                    sumsubAccessToken: 'fixture-card-action-token',
+                },
+                { status: 'terms-required', isUsResident: false, termsVersion: '2026-06-01' },
+                {
+                    status: 'pending-identity',
+                    message: 'Your card application continues once your identity is verified',
+                },
+            ],
+        },
+    },
+    // Item 9b: the plan refuses the card for the document's issuing country
+    // (a passport the card partner does not take). POST /rain/cards answers
+    // 403 provider-not-in-plan and the card row asks for an ID issued by
+    // Brazil; its button is the identity restart.
+    'one-shot-setup-br-card-refused': {
+        route: '/home',
+        about: 'One-shot onboarding in Brazil: the card partner refuses the document country, so the card row asks for a Brazilian ID and offers a new check.',
+        balance: '0',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'not_started', oneShot: true },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+                residence: { declared: 'BR', verified: null },
+            },
+            'POST /users/identity': {
+                token: 'fixture-sumsub-token',
+                applicantId: 'fixture-applicant',
+                status: 'PENDING',
+                levelName: 'one-shot-latam',
+                workflow: { regionIntent: 'LATAM', isMultiLevel: false },
+            },
+            'POST /users/identity/restart': {
+                token: 'fixture-restart-token',
+                levelName: 'one-shot-latam',
+                applicantId: 'fixture-applicant',
+                regionIntent: 'LATAM',
+            },
+        },
+        errors: {
+            'POST /rain/cards': {
+                status: 403,
+                body: {
+                    status: 'error',
+                    code: 'provider-not-in-plan',
+                    message: 'This needs an identity document issued by your country of residence.',
+                    reason: 'document_country_unsupported',
+                },
             },
         },
     },

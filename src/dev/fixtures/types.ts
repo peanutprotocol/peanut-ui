@@ -19,6 +19,15 @@ export type Fixture = {
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
     /**
+     * Answers consumed in order, one per call, the last one repeating: for a
+     * route whose answer moves as the user acts (`POST /rain/cards` asks the
+     * questions, then the agreements, then says it waits). Each entry is an
+     * override on the demo-api response, like `responses`.
+     */
+    sequences?: Record<string, unknown[]>
+    /** `METHOD /path` keys that answer a given status with a given body, for a refusal the app branches on. */
+    errors?: Record<string, { status: number; body: unknown }>
+    /**
      * Set when the state under test IS a loader — a screen waiting on a
      * provider that will not answer inside a fixture. The capture normally
      * fails on a visible loader, because a run that photographs 120 spinners
