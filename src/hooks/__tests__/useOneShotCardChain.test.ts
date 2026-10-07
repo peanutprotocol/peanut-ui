@@ -126,6 +126,26 @@ describe('useOneShotCardChain', () => {
         expect(result.current.isBusy).toBe(false)
     })
 
+    it('after a missing identity step: asks the route again with no readiness poll, and follows', async () => {
+        const MAIN = {
+            status: 'main-kyc-required' as const,
+            missingDocTypes: ['SELFIE'],
+            sumsubAccessToken: 'tok-main',
+        }
+        mockApply.mockResolvedValueOnce(MAIN).mockResolvedValueOnce(INCOMPLETE)
+        const { result } = renderHook(() => useOneShotCardChain())
+        await act(() => result.current.start())
+        expect(result.current.chain).toEqual({ kind: 'identity-step', token: 'tok-main' })
+        await act(() => result.current.handleSdkComplete())
+        // the card action's review writes the stamp, not the identity step: never wait for it
+        expect(mockReady).not.toHaveBeenCalled()
+        expect(mockAdvance).not.toHaveBeenCalled()
+        expect(mockApply).toHaveBeenCalledTimes(2)
+        expect(result.current.chain).toEqual({ kind: 'questions', token: 'tok-questions' })
+        expect(result.current.token).toBe('tok-questions')
+        expect(result.current.isBusy).toBe(false)
+    })
+
     it('after the questions: a readiness stamp that never comes is a slow-verification error', async () => {
         mockApply.mockResolvedValueOnce(INCOMPLETE)
         mockReady.mockResolvedValue(false)

@@ -96,11 +96,16 @@ export function useOneShotCardChain() {
     }, [])
 
     /**
-     * The questions were submitted. Wait for the readiness stamp the action's
-     * review writes, then ask the route again: it answers the agreements, or
-     * `pending-identity` when they are already accepted.
+     * The SDK closed on a submission. After the questions, wait for the
+     * readiness stamp the action's review writes, then ask the route again:
+     * it answers the agreements, or `pending-identity` when they are already
+     * accepted. After a missing identity step there is no stamp to wait for
+     * (only the card action's review writes it): ask the route again, which
+     * reads the documents on file, with a short grace while Sumsub still
+     * records the upload.
      */
     const handleSdkComplete = useCallback(async () => {
+        const closing = chainRef.current?.kind
         setToken(null)
         pollAbortRef.current?.abort()
         const controller = new AbortController()
@@ -108,6 +113,17 @@ export function useOneShotCardChain() {
         setIsBusy(true)
         const slow = () => follow({ kind: 'error', message: t('page.verificationSlow') })
         try {
+            if (closing === 'identity-step') {
+                let res = await rainApi.applyForCard({ termsAccepted: false })
+                for (let attempt = 0; attempt < 3 && res.status === 'main-kyc-required'; attempt++) {
+                    await new Promise((resolve) => setTimeout(resolve, 1500))
+                    if (controller.signal.aborted) return
+                    res = await rainApi.applyForCard({ termsAccepted: false })
+                }
+                if (controller.signal.aborted) return
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status, source: 'one-shot' })
+                return follow(cardChainStateFromResponse(res))
+            }
             const ready = await pollUntilReady({
                 fetchReadiness: () => rainApi.getCardApplyReadiness(),
                 intervalMs: 1000,
