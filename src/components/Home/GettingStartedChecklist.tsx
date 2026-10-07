@@ -175,7 +175,7 @@ const GettingStartedChecklist = ({
             },
             {
                 id: 'add-money',
-                bubble: CONCEPT_ICONS.addMoney,
+                bubble: { ...CONCEPT_ICONS.addMoney, icon: 'plus' },
                 label: t('addMoney'),
                 // A residence no bank provider onboards drops the bank half
                 // rather than offering a route that cannot deliver.
