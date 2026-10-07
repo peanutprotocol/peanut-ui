@@ -59,6 +59,16 @@ const Harness = ({
     </StrictMode>
 )
 
+// jsdom does not run CSS animations. Deliver the real animation lifecycle
+// event so Radix can remove its closing portal and release the presence hold.
+function finishClosingDrawers() {
+    for (const node of document.querySelectorAll('[data-state="closed"]')) {
+        const event = new Event('animationend', { bubbles: true })
+        Object.defineProperty(event, 'animationName', { value: getComputedStyle(node).animationName })
+        fireEvent(node, event)
+    }
+}
+
 beforeAll(() => {
     Element.prototype.getAnimations = () => []
 })
@@ -91,6 +101,8 @@ it('waits until both a modal and a drawer close, then yields and resumes without
     view.rerender(<Harness drawer />)
     expect(screen.queryByText(title)).not.toBeInTheDocument()
     view.rerender(<Harness />)
+    expect(screen.queryByText(title)).not.toBeInTheDocument()
+    finishClosingDrawers()
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
     view.rerender(<Harness drawer />)
     await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument())
@@ -99,6 +111,8 @@ it('waits until both a modal and a drawer close, then yields and resumes without
         modal_type: MODAL_TYPES.EARLY_USER,
     })
     view.rerender(<Harness />)
+    expect(screen.queryByText(title)).not.toBeInTheDocument()
+    finishClosingDrawers()
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
 })
 

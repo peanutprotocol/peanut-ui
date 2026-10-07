@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import WithdrawLayout from '@/app/(mobile-ui)/withdraw/layout'
 import type { UseIdentityVerificationResult } from '@/hooks/useIdentityVerification'
@@ -105,7 +105,8 @@ function setIdentity(status: NonNullable<UseIdentityVerificationResult['status']
 beforeEach(() => {
     jest.clearAllMocks()
     mockParams = new URLSearchParams('method=bank')
-    mockUser = {}
+    mockUser = { user: { userId: 'alice' } }
+    mockFetchUser.mockReset().mockResolvedValue(null)
     mockFlowError = null
     mockLiveKycStatus = undefined
     setIdentity('not_started')
@@ -250,5 +251,113 @@ describe('Send → Bank identity entry', () => {
         expect(screen.getByTestId('status-failed')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /retry|support/i })).not.toBeInTheDocument()
         expect(mockFlowMounted).not.toHaveBeenCalled()
+    })
+})
+
+describe('cross-device approval refresh recovery', () => {
+    beforeEach(() => {
+        jest.useFakeTimers()
+        setIdentity('processing')
+        mockLiveKycStatus = 'APPROVED'
+    })
+    afterEach(() => jest.useRealTimers())
+
+    const advance = async (ms: number) => {
+        await act(async () => {
+            jest.advanceTimersByTime(ms)
+        })
+    }
+    const profile = (status: string, userId = 'alice') => ({ user: { userId }, identityVerification: { status } })
+
+    it('retries a rejected read and a stale profile, then stops once approval is in the profile', async () => {
+        mockFetchUser
+            .mockRejectedValueOnce(new Error('temporary failure'))
+            .mockResolvedValueOnce(profile('processing'))
+            .mockResolvedValueOnce(profile('verified'))
+        const view = render(tree())
+        await advance(0)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        expect(mockFetchUser).toHaveBeenLastCalledWith({ throwOnError: true })
+        await advance(1000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(2)
+        await advance(2000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(3)
+        await advance(60000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(3)
+        // Only the authoritative selector reveals the downstream bank form.
+        expect(mockFlowMounted).not.toHaveBeenCalled()
+        setIdentity('verified')
+        view.rerender(tree())
+        expect(screen.getByLabelText('Bank details')).toBeInTheDocument()
+        expect(mockSdkUnmount).not.toHaveBeenCalled()
+    })
+
+    it('bounds automatic retries and offers a fresh user-initiated retry', async () => {
+        render(tree())
+        await advance(0)
+        for (const delay of [1000, 2000, 4000, 8000, 8000]) await advance(delay)
+        expect(mockFetchUser).toHaveBeenCalledTimes(6)
+        expect(mockFlowMounted).not.toHaveBeenCalled()
+        await advance(60000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(6)
+        mockFetchUser.mockResolvedValueOnce(profile('verified'))
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        })
+        expect(mockFetchUser).toHaveBeenCalledTimes(7)
+        expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+    })
+
+    it('does not overlap slow reads and cancels the pending retry on unmount', async () => {
+        let resolve!: (value: unknown) => void
+        mockFetchUser.mockImplementationOnce(
+            () =>
+                new Promise((done) => {
+                    resolve = done
+                })
+        )
+        const view = render(tree())
+        await advance(60000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        await act(async () => {
+            resolve(profile('processing'))
+        })
+        view.unmount()
+        await advance(60000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+    })
+
+    it('stops retries when the selector becomes verified', async () => {
+        const view = render(tree())
+        await advance(0)
+        setIdentity('verified')
+        view.rerender(tree())
+        await advance(60000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        expect(screen.getByLabelText('Bank details')).toBeInTheDocument()
+    })
+
+    it('cancels the previous account read and retries only for the new account', async () => {
+        let resolvePrevious!: (value: unknown) => void
+        mockFetchUser.mockImplementationOnce(
+            () =>
+                new Promise((done) => {
+                    resolvePrevious = done
+                })
+        )
+        const view = render(tree())
+        mockUser = { user: { userId: 'bob' } }
+        mockFetchUser.mockResolvedValueOnce(profile('processing', 'bob'))
+        view.rerender(tree())
+        await advance(0)
+        expect(mockFetchUser).toHaveBeenCalledTimes(2)
+        await act(async () => {
+            resolvePrevious(profile('processing'))
+        })
+        mockFetchUser.mockResolvedValueOnce(profile('verified', 'bob'))
+        await advance(1000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(3)
+        await advance(60000)
+        expect(mockFetchUser).toHaveBeenCalledTimes(3)
     })
 })
