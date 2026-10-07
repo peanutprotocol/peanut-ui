@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { isDemoMode } from '@/utils/demo'
 import { useTranslations } from 'next-intl'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -36,6 +38,7 @@ export function SetupCelebrationView() {
 
 export default function SuccessStep() {
     const { signupCompleted } = useSetupFlowContext()
+    const router = useRouter()
     const { handleRedirect } = useAccountSetup()
     const redirect = useRef(handleRedirect)
     redirect.current = handleRedirect
@@ -50,10 +53,12 @@ export default function SuccessStep() {
         const timer = setTimeout(() => {
             if (redirecting.current) return
             redirecting.current = true
-            redirect.current({ isNewAccount: true })
+            // Demo always opens the walkthrough home, even when signup came from a deep link.
+            if (isDemoMode()) router.replace('/home')
+            else redirect.current({ isNewAccount: true })
         }, 4500)
         return () => clearTimeout(timer)
-    }, [signupCompleted])
+    }, [signupCompleted, router])
     if (!signupCompleted) return null
     return <SetupCelebrationView />
 }

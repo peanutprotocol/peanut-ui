@@ -1,9 +1,13 @@
+import { disableDemoMode, isDemoMode } from '@/utils/demo'
+import { isCapacitor } from '@/utils/capacitor'
 import { invitesApi } from '../invites'
 import { EInviteType } from '../services.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { validateInviteCode } from '@/app/actions/invites'
 import { settleAcceptedInviteAcquisition } from '../invite-acquisition'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => true) }))
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@/app/actions/invites', () => ({ validateInviteCode: jest.fn() }))
@@ -23,9 +27,21 @@ describe('invite attribution contract', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         clearPendingBadgeCampaigns()
+        disableDemoMode()
     })
 
     afterAll(() => clearPendingBadgeCampaigns())
+
+    it('validates an inviter named demo without enabling demo mode, including on native', async () => {
+        expect(isCapacitor()).toBe(true)
+        mockValidateInviteCode.mockResolvedValue({
+            data: { success: true, attributionResolved: true, onboardingResolved: true, username: 'demo' },
+        })
+        const result = await invitesApi.validateInviteCode(' @Demo ')
+        expect(mockValidateInviteCode).toHaveBeenCalledWith('demo')
+        expect(result.success).toBe(true)
+        expect(isDemoMode()).toBe(false)
+    })
 
     it('normalizes and submits inviter attribution without campaign acquisition fields', async () => {
         mockServerFetch.mockResolvedValue(
