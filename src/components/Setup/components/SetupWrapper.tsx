@@ -667,6 +667,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     'flex w-full flex-1 flex-col justify-between md:flex-1',
                                     contentClassName,
                                     'gap-8',
+                                    // signup matches residence: the field sits 24px under the description
+                                    screenId === 'signup' && 'gap-6',
                                     screenId !== 'landing' && 'md:flex-1 md:justify-between',
                                     fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                 )}
@@ -680,7 +682,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     <div
                                         className={twMerge(
                                             'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
-                                            screenId === 'landing' && 'space-y-2',
+                                            (screenId === 'landing' || screenId === 'signup') && 'space-y-2',
                                             (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
                                             sunsetLanding && 'md:h-auto md:max-h-none',
                                             featureParagraph && 'space-y-0 md:max-h-none'

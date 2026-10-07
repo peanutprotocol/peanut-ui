@@ -226,7 +226,7 @@ const SignupStep = () => {
     return (
         <>
             <div className="flex h-full flex-1 flex-col justify-between gap-6">
-                <div className="flex w-full flex-1 flex-col justify-center gap-4">
+                <div className="flex w-full flex-1 flex-col gap-4">
                     <div className="flex flex-col gap-1">
                         <div
                             className="relative"

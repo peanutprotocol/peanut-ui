@@ -101,6 +101,15 @@ describe('SetupWrapper navigation', () => {
         expect(screen.queryByText('See the fees before confirming.', { selector: 'p' })).not.toBeInTheDocument()
     })
 
+    it('spaces the username title like residence: 8px under the title, 24px to the field', () => {
+        renderWrapper({ description: 'This is how people find you.' })
+        const titleBlock = screen.getByRole('heading', { level: 1 }).parentElement
+        expect(titleBlock).toHaveClass('space-y-2')
+        expect(titleBlock).not.toHaveClass('space-y-4')
+        expect(titleBlock?.parentElement).toHaveClass('gap-6')
+        expect(titleBlock?.parentElement).not.toHaveClass('gap-8')
+    })
+
     it('renders the back chevron without a hard-coded stroke colour', () => {
         renderWrapper({ showBackButton: true, onBack: jest.fn() })
         const svg = screen.getByRole('button', { name: 'Go back' }).querySelector('svg')
