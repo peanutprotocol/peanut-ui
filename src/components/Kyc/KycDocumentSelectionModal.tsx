@@ -60,7 +60,7 @@ export function KycDocumentSelectionModal({
     return (
         <Modal visible onClose={onClose} preventClose={busy} title={t('title')}>
             <form
-                className="flex flex-col gap-5 p-5"
+                className="flex flex-col gap-6 p-6"
                 onSubmit={(e) => {
                     e.preventDefault()
                     if (ready) void onConfirm(routeId, choices)
@@ -85,7 +85,7 @@ export function KycDocumentSelectionModal({
                     <label className="flex flex-col gap-2">
                         {t('documentSet')}
                         <select
-                            className="min-h-11 rounded-xl border border-black p-3"
+                            className="min-h-11 rounded-sm border border-border-default p-3"
                             disabled={busy}
                             value={routeId}
                             onChange={(e) => setRouteId(e.target.value)}
@@ -110,7 +110,7 @@ export function KycDocumentSelectionModal({
                             <label className="flex flex-col gap-2">
                                 {t('documentType')}
                                 <select
-                                    className="min-h-11 rounded-xl border border-black p-3"
+                                    className="min-h-11 rounded-sm border border-border-default p-3"
                                     required
                                     value={choice?.type ?? ''}
                                     onChange={(e) => update(d.key, { type: e.target.value })}
@@ -128,7 +128,7 @@ export function KycDocumentSelectionModal({
                             <label className="flex flex-col gap-2">
                                 {t('issuingCountry')}
                                 <select
-                                    className="min-h-11 rounded-xl border border-black p-3"
+                                    className="min-h-11 rounded-sm border border-border-default p-3"
                                     required
                                     value={choice?.issuingCountry ?? ''}
                                     onChange={(e) => update(d.key, { issuingCountry: e.target.value })}
