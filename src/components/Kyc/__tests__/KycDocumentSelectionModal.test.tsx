@@ -62,3 +62,24 @@ it('shows both required documents in Peanut and submits metadata choices only', 
     ])
     expect(screen.queryByRole('textbox')).toBeNull()
 })
+
+it('updates verified users’ feature preferences without asking for documents again', () => {
+    const onConfirm = jest.fn().mockResolvedValue(undefined)
+    renderWithIntl(
+        <KycDocumentSelectionModal
+            preferencesOnly
+            plan={{ ...plan, available: false, routes: [] }}
+            busy={false}
+            error={null}
+            onClose={jest.fn()}
+            onFeatures={jest.fn()}
+            onConfirm={onConfirm}
+        />
+    )
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(
+        screen.getByText('Choose the payment features you’d like to use. Your identity stays verified.')
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(onConfirm).toHaveBeenCalledWith('', [])
+})

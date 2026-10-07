@@ -4,6 +4,7 @@ import {
     resumeKycDocumentAttempt,
     startKycDocumentAttempt,
     startKycDocumentReplacement,
+    saveKycFeatures,
 } from '@/app/actions/kyc-workflow'
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
@@ -1434,7 +1435,7 @@ describe('document-first verification', () => {
                         code: 'IDENTITY' as const,
                         types: ['PASSPORT'],
                         countries: ['PT'],
-                        requiredBy: ['SUMSUB'],
+                        requiredBy: ['SUMSUB' as const],
                     },
                 ],
             },
@@ -1457,6 +1458,9 @@ describe('document-first verification', () => {
         jest.mocked(startKycDocumentReplacement).mockResolvedValue({ ...session, attemptId: 'replacement-1' })
         jest.mocked(resumeKycDocumentAttempt).mockResolvedValue({ ...session, token: 'refreshed' })
         mockInitiate.mockClear()
+        jest.mocked(startKycDocumentAttempt).mockClear()
+        jest.mocked(startKycDocumentReplacement).mockClear()
+        jest.mocked(getKycDocumentStatus).mockResolvedValue('IN_REVIEW')
     })
     afterEach(() => jest.mocked(getKycDocumentPlan).mockResolvedValue({ ...plan, available: false, routes: [] }))
     it('shows the Peanut document list before creating a session, then refreshes only the saved attempt', async () => {
@@ -1481,6 +1485,32 @@ describe('document-first verification', () => {
         })
         expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('attempt-1')
         expect(mockInitiate).not.toHaveBeenCalled()
+    })
+    it('adds payment features after approval without starting another identity check', async () => {
+        const onKycSuccess = jest.fn()
+        jest.mocked(getKycDocumentPlan)
+            .mockResolvedValueOnce({ ...plan, available: false, routes: [] })
+            .mockResolvedValue(plan)
+        jest.mocked(getKycDocumentStatus).mockResolvedValue('APPROVED')
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await result.current.handleInitiateKyc(undefined, undefined, true)
+        })
+        expect(result.current.documentPreferencesOnly).toBe(true)
+        const features = { ...plan.features, bank: true }
+        jest.mocked(saveKycFeatures).mockResolvedValue({ ...plan, available: false, routes: [], features })
+        await act(async () => {
+            await result.current.updateDocumentFeatures(features)
+        })
+        expect(saveKycFeatures).toHaveBeenCalledWith(features, false)
+        await act(async () => {
+            await result.current.confirmDocumentPlan('', [])
+        })
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(startKycDocumentAttempt).not.toHaveBeenCalled()
+        expect(startKycDocumentReplacement).not.toHaveBeenCalled()
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(result.current.documentPlan).toBeNull()
     })
     it('chooses replacement documents in Peanut before resetting identity', async () => {
         const { result } = renderHook(() => useSumsubKycFlow({}))

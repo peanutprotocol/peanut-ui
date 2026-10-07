@@ -9,7 +9,9 @@ Sumsub applicant. Peanut shows requested payment features and the exact required
 document bundle, collects document types and issuing countries, then sends only
 those catalogue identifiers to reserve an immutable backend attempt. A resume
 or token refresh uses the saved attempt and its backend SDK configuration.
-Replacement identity documents use the same selector before the existing,
+Verified users can update payment features through the same selector without
+recollecting identity; the intent API replans provider onboarding using their
+approved source attempt. Replacement identity documents use the same selector before the existing,
 authorised reset flow; interrupted resets keep their saved choices.
 
 WebSDK uses `documentDefinitions.IDENTITY` and

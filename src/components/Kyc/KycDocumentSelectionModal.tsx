@@ -8,6 +8,7 @@ import type { KycDocumentChoice, KycDocumentPlan, KycFeatures } from '@/app/acti
 
 export function KycDocumentSelectionModal({
     plan,
+    preferencesOnly = false,
     busy,
     error,
     onClose,
@@ -15,6 +16,7 @@ export function KycDocumentSelectionModal({
     onConfirm,
 }: {
     plan: KycDocumentPlan
+    preferencesOnly?: boolean
     busy: boolean
     error: string | null
     onClose: () => void
@@ -53,20 +55,21 @@ export function KycDocumentSelectionModal({
     const update = (key: string, value: Partial<KycDocumentChoice>) =>
         setChoices((current) => current.map((c) => (c.key === key ? { ...c, ...value } : c)))
     const ready =
-        !!route &&
-        choices.length === route.documents.length &&
-        choices.every((c) => c.type && c.issuingCountry) &&
+        (preferencesOnly ||
+            (!!route &&
+                choices.length === route.documents.length &&
+                choices.every((c) => c.type && c.issuingCountry))) &&
         Object.values(plan.features).some(Boolean)
     return (
-        <Modal visible onClose={onClose} preventClose={busy} title={t('title')}>
+        <Modal visible onClose={onClose} preventClose={busy} title={t(preferencesOnly ? 'preferencesTitle' : 'title')}>
             <form
                 className="flex flex-col gap-6 p-6"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    if (ready) void onConfirm(routeId, choices)
+                    if (ready) void onConfirm(preferencesOnly ? '' : routeId, preferencesOnly ? [] : choices)
                 }}
             >
-                <p>{t('description')}</p>
+                <p>{t(preferencesOnly ? 'preferencesDescription' : 'description')}</p>
                 <fieldset disabled={busy} className="flex flex-col gap-2">
                     <legend className="mb-2 font-semibold">{t('features')}</legend>
                     {(['qr', 'local', 'bank', 'card'] as const).map((feature) => (
@@ -80,8 +83,8 @@ export function KycDocumentSelectionModal({
                         </label>
                     ))}
                 </fieldset>
-                {!plan.routes.length && <p role="status">{t('unavailable')}</p>}
-                {plan.routes.length > 1 && (
+                {!preferencesOnly && !plan.routes.length && <p role="status">{t('unavailable')}</p>}
+                {!preferencesOnly && plan.routes.length > 1 && (
                     <label className="flex flex-col gap-2">
                         {t('documentSet')}
                         <select
@@ -100,55 +103,56 @@ export function KycDocumentSelectionModal({
                         </select>
                     </label>
                 )}
-                {route?.documents.map((d) => {
-                    const choice = choices.find((c) => c.key === d.key)
-                    return (
-                        <fieldset disabled={busy} className="flex flex-col gap-3" key={d.key}>
-                            <legend className="mb-2 font-semibold">
-                                {t(d.code === 'IDENTITY' ? 'identity' : 'poa')}
-                            </legend>
-                            <label className="flex flex-col gap-2">
-                                {t('documentType')}
-                                <select
-                                    className="min-h-11 rounded-sm border border-border-default p-3"
-                                    required
-                                    value={choice?.type ?? ''}
-                                    onChange={(e) => update(d.key, { type: e.target.value })}
-                                >
-                                    <option value="" disabled>
-                                        {t('choose')}
-                                    </option>
-                                    {d.types.map((type) => (
-                                        <option key={type} value={type}>
-                                            {documentName(type)}
+                {!preferencesOnly &&
+                    route?.documents.map((d) => {
+                        const choice = choices.find((c) => c.key === d.key)
+                        return (
+                            <fieldset disabled={busy} className="flex flex-col gap-3" key={d.key}>
+                                <legend className="mb-2 font-semibold">
+                                    {t(d.code === 'IDENTITY' ? 'identity' : 'poa')}
+                                </legend>
+                                <label className="flex flex-col gap-2">
+                                    {t('documentType')}
+                                    <select
+                                        className="min-h-11 rounded-sm border border-border-default p-3"
+                                        required
+                                        value={choice?.type ?? ''}
+                                        onChange={(e) => update(d.key, { type: e.target.value })}
+                                    >
+                                        <option value="" disabled>
+                                            {t('choose')}
                                         </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-2">
-                                {t('issuingCountry')}
-                                <select
-                                    className="min-h-11 rounded-sm border border-border-default p-3"
-                                    required
-                                    value={choice?.issuingCountry ?? ''}
-                                    onChange={(e) => update(d.key, { issuingCountry: e.target.value })}
-                                >
-                                    <option value="" disabled>
-                                        {t('choose')}
-                                    </option>
-                                    {d.countries.map((country) => (
-                                        <option key={country} value={country}>
-                                            {countryNames.of(country) ?? country}
+                                        {d.types.map((type) => (
+                                            <option key={type} value={type}>
+                                                {documentName(type)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className="flex flex-col gap-2">
+                                    {t('issuingCountry')}
+                                    <select
+                                        className="min-h-11 rounded-sm border border-border-default p-3"
+                                        required
+                                        value={choice?.issuingCountry ?? ''}
+                                        onChange={(e) => update(d.key, { issuingCountry: e.target.value })}
+                                    >
+                                        <option value="" disabled>
+                                            {t('choose')}
                                         </option>
-                                    ))}
-                                </select>
-                            </label>
-                        </fieldset>
-                    )
-                })}
+                                        {d.countries.map((country) => (
+                                            <option key={country} value={country}>
+                                                {countryNames.of(country) ?? country}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </fieldset>
+                        )
+                    })}
                 {error && <p role="alert">{error}</p>}
                 <Button type="submit" disabled={busy || !ready}>
-                    {t('continue')}
+                    {t(preferencesOnly ? 'preferencesContinue' : 'continue')}
                 </Button>
             </form>
         </Modal>

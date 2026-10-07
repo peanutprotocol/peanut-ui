@@ -312,6 +312,7 @@ export const useMultiPhaseKycFlow = ({
         isResidenceChangeFlow,
         isMultiLevel,
         documentPlan,
+        documentPreferencesOnly,
         documentConfig,
         documentAttemptId,
         confirmDocumentPlan,
@@ -699,6 +700,7 @@ export const useMultiPhaseKycFlow = ({
         liveKycStatus,
 
         documentPlan,
+        documentPreferencesOnly,
         documentConfig,
         documentAttemptId,
         confirmDocumentPlan,

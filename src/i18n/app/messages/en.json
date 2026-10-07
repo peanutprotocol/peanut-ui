@@ -3331,7 +3331,10 @@
             "residencePermit": "Residence permit",
             "bankStatement": "Bank statement",
             "utilityBill": "Utility bill",
-            "otherDocument": "Supporting document"
+            "otherDocument": "Supporting document",
+            "preferencesTitle": "Payment features",
+            "preferencesDescription": "Choose the payment features you’d like to use. Your identity stays verified.",
+            "preferencesContinue": "Continue"
         }
     },
     "identity": {

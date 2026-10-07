@@ -1545,7 +1545,10 @@
             "title": "Elegí tus documentos",
             "description": "Elegí acá los documentos que vas a usar. Abriremos la verificación con estos documentos ya seleccionados.",
             "unavailable": "La verificación todavía no está disponible para estas opciones. Probá otra opción de pago.",
-            "choose": "Elegí una opción"
+            "choose": "Elegí una opción",
+            "preferencesTitle": "Funciones de pago",
+            "preferencesDescription": "Elegí las funciones de pago que querés usar. Tu identidad sigue verificada.",
+            "preferencesContinue": "Continuar"
         }
     },
     "identity": {

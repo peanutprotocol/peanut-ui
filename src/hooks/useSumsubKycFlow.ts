@@ -144,6 +144,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const sessionGeneration = verificationSession?.generation
     const [showCorrection, setShowCorrection] = useState(false)
     const [documentPlan, setDocumentPlan] = useState<KycDocumentPlan | null>(null)
+    const [documentPreferencesOnly, setDocumentPreferencesOnly] = useState(false)
     const [documentConfig, setDocumentConfig] = useState<KycAttemptSession['sdkConfig']>()
     const documentRestartRef = useRef(false)
     const documentAttemptRef = useRef<string | null>(null)
@@ -400,6 +401,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         documentAttemptRef.current = session.attemptId
         setDocumentConfig(session.sdkConfig)
         setDocumentPlan(null)
+        setDocumentPreferencesOnly(false)
         verificationSessionRef.current = null
         setVerificationSession(null)
         selfHealProviderRef.current = null
@@ -440,6 +442,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setIsLoading(true)
             setError(null)
             try {
+                if (documentPreferencesOnly) {
+                    setDocumentPlan(null)
+                    userInitiatedRef.current = false
+                    onKycSuccess?.()
+                    return
+                }
                 documentRequestKeyRef.current ??= Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
                     byte.toString(16).padStart(2, '0')
                 ).join('')
@@ -469,7 +477,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [documentPlan, acceptDocumentSession, t, setError]
+        [documentPlan, documentPreferencesOnly, onKycSuccess, acceptDocumentSession, t, setError]
     )
 
     const handleInitiateKyc = useCallback(
@@ -516,8 +524,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
 
             try {
-                if (!crossRegion && !correctSession && !levelName) {
+                if (!correctSession && !levelName) {
                     documentRestartRef.current = false
+                    setDocumentPreferencesOnly(false)
                     const plan = await getKycDocumentPlan()
                     if (plan.available) {
                         if (plan.activeAttemptId)
@@ -526,6 +535,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                             setDocumentPlan(plan)
                             documentRequestKeyRef.current = null
                         }
+                        return false
+                    }
+                    // Approved workflow users can add providers without replacing or recollecting identity.
+                    if (
+                        plan.policyVersion &&
+                        (await getKycDocumentStatus()) === 'APPROVED' &&
+                        (await getKycDocumentPlan(true)).available
+                    ) {
+                        setDocumentPreferencesOnly(true)
+                        setDocumentPlan(plan)
+                        documentRequestKeyRef.current = null
                         return false
                     }
                 }
@@ -885,6 +905,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 const plan = await getKycDocumentPlan(true)
                 if (plan.available) {
                     documentRestartRef.current = true
+                    setDocumentPreferencesOnly(false)
                     if (plan.activeAttemptId)
                         acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
                     else {
@@ -1141,6 +1162,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     return {
         documentPlan,
+        documentPreferencesOnly,
         documentConfig,
         documentAttemptId: documentAttemptRef.current,
         confirmDocumentPlan,

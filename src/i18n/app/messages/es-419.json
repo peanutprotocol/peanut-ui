@@ -3331,7 +3331,10 @@
             "residencePermit": "Permiso de residencia",
             "bankStatement": "Estado de cuenta bancario",
             "utilityBill": "Factura de servicios",
-            "otherDocument": "Documento de respaldo"
+            "otherDocument": "Documento de respaldo",
+            "preferencesTitle": "Funciones de pago",
+            "preferencesDescription": "Elige las funciones de pago que quieres usar. Tu identidad sigue verificada.",
+            "preferencesContinue": "Continuar"
         }
     },
     "identity": {

@@ -26,6 +26,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
             {flow.documentPlan && (
                 <KycDocumentSelectionModal
                     plan={flow.documentPlan}
+                    preferencesOnly={flow.documentPreferencesOnly}
                     busy={flow.isLoading}
                     error={flow.error}
                     onClose={flow.dismissDocumentPlan}

@@ -3331,7 +3331,10 @@
             "residencePermit": "Permissão de residência",
             "bankStatement": "Extrato bancário",
             "utilityBill": "Conta de consumo",
-            "otherDocument": "Documento de apoio"
+            "otherDocument": "Documento de apoio",
+            "preferencesTitle": "Recursos de pagamento",
+            "preferencesDescription": "Escolha os recursos de pagamento que deseja usar. Sua identidade continua verificada.",
+            "preferencesContinue": "Continuar"
         }
     },
     "identity": {
