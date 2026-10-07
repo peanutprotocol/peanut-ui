@@ -35,6 +35,7 @@ import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { markFirstLaunchIntroSeen } from '@/utils/first-launch-intro'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
@@ -392,6 +393,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (!options?.skipBackendCall && !isCapacitor()) {
                     await fetchUser()
                 }
+
+                // Logout must open setup directly, including installs that first
+                // launched into an existing session and never visited Landing.
+                await markFirstLaunchIntroSeen()
 
                 // force full page refresh to /setup to clear all state
                 window.location.href = '/setup'
