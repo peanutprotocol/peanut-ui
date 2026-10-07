@@ -531,12 +531,12 @@
             "requestAction": "Solicitar"
         },
         "update": {
-            "title": "Actualización lista",
-            "description": "Reinicia Peanut para terminar de instalar la actualización.",
-            "restartNow": "Reiniciar ahora",
+            "title": "Actualización disponible",
+            "description": "Toca Actualizar. Peanut se recarga en unos segundos con la nueva versión.",
+            "update": "Actualizar",
             "notNow": "Ahora no",
             "manualRestart": "Cierra Peanut desde el selector de apps y vuelve a abrirla para terminar la actualización.",
-            "applyFailed": "No se pudo aplicar la actualización. Revisa tu conexión e inténtalo de nuevo: Peanut sigue con la versión con la que iniciaste."
+            "applyFailed": "La actualización no se instaló. Revisa tu conexión e inténtalo de nuevo. Peanut sigue en la versión actual."
         },
         "storeUpdate": {
             "title": "Actualiza en {store}",
