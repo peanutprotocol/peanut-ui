@@ -116,13 +116,15 @@ export type CardRowState =
 /**
  * What the card row shows for a card step, when the row's rail does not read
  * Available. Undefined leaves the rail's own state: an existing application
- * is described by its rail, an error shows in the drawer's callout, and the
- * country confirmation continues on the card page.
+ * is described by its rail, and an error shows in the drawer's callout. The
+ * country confirmation is a step too; "Continue card setup" takes it to the
+ * card page, which has the screen for it.
  */
 export function cardRowState(chain: CardChainState | null | undefined): CardRowState | undefined {
     switch (chain?.kind) {
         case 'questions':
         case 'agreements':
+        case 'country-confirmation':
             return 'agreements-needed'
         case 'identity-step':
             return 'document-needed'
@@ -138,7 +140,16 @@ export function cardRowState(chain: CardChainState | null | undefined): CardRowS
     }
 }
 
-/** The card step a user can still act on by themselves, from the drawer or the Home resume card. */
+/**
+ * The card step a user can still act on by themselves, from the drawer or the
+ * Home resume card: the questions, the missing identity step (both open the
+ * SDK again), the agreements, the country confirmation.
+ */
 export function cardStepIsOpen(chain: CardChainState | null | undefined): boolean {
-    return chain?.kind === 'questions' || chain?.kind === 'agreements'
+    return (
+        chain?.kind === 'questions' ||
+        chain?.kind === 'identity-step' ||
+        chain?.kind === 'agreements' ||
+        chain?.kind === 'country-confirmation'
+    )
 }

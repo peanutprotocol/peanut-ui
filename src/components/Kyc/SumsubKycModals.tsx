@@ -9,6 +9,7 @@ import { OneShotCardStep } from '@/components/Kyc/OneShotCardStep'
 import { OneShotSetupDrawer } from '@/components/Kyc/OneShotSetupDrawer'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { cardStepIsOpen } from '@/utils/one-shot-card.utils'
 
 interface SumsubKycModalsProps {
     flow: ReturnType<typeof useMultiPhaseKycFlow>
@@ -75,14 +76,22 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                         onRetake={() => void flow.handleInitiateKyc()}
                         onVerifyAgain={() => void flow.handleRestartIdentity()}
                         onUploadDocument={(step) => {
-                            // the card page owns the card's own document upload (proof of address)
+                            // the card step's own missing identity step: ask the route again, it mints the token
+                            if (step.provider === 'rain' && cardStepIsOpen(oneShotCard.chain))
+                                return void oneShotCard.resume()
+                            // the card page owns the card's other document upload (proof of address)
                             if (step.provider === 'rain') return router.push('/card')
                             void flow.handleFixableGate(step.provider === 'bridge' ? 'BRIDGE' : 'MANTECA', {
                                 actionKey: step.action?.key,
                                 reason: step.reasonCode ? { code: step.reasonCode } : undefined,
                             })
                         }}
-                        onResumeCard={() => void oneShotCard.resume()}
+                        // the residence confirmation has its screen on the card page
+                        onResumeCard={() =>
+                            oneShotCard.chain?.kind === 'country-confirmation'
+                                ? router.push('/card')
+                                : void oneShotCard.resume()
+                        }
                         onRetryCard={() => void oneShotCard.start()}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                     />

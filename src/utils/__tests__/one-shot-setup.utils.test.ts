@@ -240,6 +240,14 @@ describe('setupRows, the states of item 9b', () => {
             expect(rows({ kind: 'setting-up' }, capabilities([]), false)[0].state).toBe('setting-up')
         })
 
+        it('a missing identity step reads document needed, with a Rain step that resumes the card step', () => {
+            expect(rows({ kind: 'identity-step', token: 't' })[0]).toEqual({
+                key: 'card',
+                state: 'document-needed',
+                step: { provider: 'rain', reasonCode: 'main-kyc-required' },
+            })
+        })
+
         it('open questions or agreements read agreements needed', () => {
             expect(rows({ kind: 'questions', token: 't' })[0].state).toBe('agreements-needed')
             expect(rows({ kind: 'agreements', isUsResident: false }, capabilities([]), false)[0].state).toBe(

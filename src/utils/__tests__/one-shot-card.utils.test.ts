@@ -122,7 +122,8 @@ describe('cardRowState', () => {
         // the rail describes an existing application, the callout an error, the card page the confirmation
         [{ kind: 'applied', status: 'ENABLED' }, undefined],
         [{ kind: 'error', message: 'm' }, undefined],
-        [{ kind: 'country-confirmation', candidates: ['BR'] }, undefined],
+        // a step too: "Continue card setup" takes it to the card page's screen
+        [{ kind: 'country-confirmation', candidates: ['BR'] }, 'agreements-needed'],
     ])('%j → %s', (chain, expected) => {
         expect(cardRowState(chain)).toBe(expected)
     })
@@ -134,9 +135,11 @@ describe('cardRowState', () => {
 })
 
 describe('cardStepIsOpen', () => {
-    it('is open only while the questions or the agreements wait on the user', () => {
+    it('is open while the questions, a missing identity step, the agreements or the confirmation wait on the user', () => {
         expect(cardStepIsOpen({ kind: 'questions', token: 't' })).toBe(true)
+        expect(cardStepIsOpen({ kind: 'identity-step', token: 't' })).toBe(true)
         expect(cardStepIsOpen({ kind: 'agreements', isUsResident: true })).toBe(true)
+        expect(cardStepIsOpen({ kind: 'country-confirmation', candidates: ['BR'] })).toBe(true)
         expect(cardStepIsOpen({ kind: 'setting-up' })).toBe(false)
         expect(cardStepIsOpen({ kind: 'checking' })).toBe(false)
         expect(cardStepIsOpen(null)).toBe(false)

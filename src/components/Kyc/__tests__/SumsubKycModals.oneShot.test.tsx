@@ -131,6 +131,28 @@ describe('SumsubKycModals — one-shot', () => {
         expect(rain.handleFixableGate).not.toHaveBeenCalled()
     })
 
+    it('a missing identity step of the card resumes the card step; the residence confirmation goes to the card page', () => {
+        const identity = makeFlow([
+            { key: 'card', state: 'document-needed', step: { provider: 'rain', reasonCode: 'main-kyc-required' } },
+        ])
+        identity.oneShotCard.chain = { kind: 'identity-step', token: 'tok-main' }
+        renderModals(identity)
+        fireEvent.click(screen.getByRole('button', { name: 'Upload now' }))
+        expect(identity.oneShotCard.resume).toHaveBeenCalledTimes(1)
+        expect(push).not.toHaveBeenCalled()
+
+        const confirmation = makeFlow([{ key: 'card', state: 'agreements-needed' }])
+        confirmation.oneShotCard.chain = { kind: 'country-confirmation', candidates: ['BR', 'PT'] }
+        render(
+            <IntlWrapper>
+                <SumsubKycModals flow={confirmation} />
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getAllByRole('button', { name: 'Continue card setup' }).at(-1)!)
+        expect(push).toHaveBeenCalledWith('/card')
+        expect(confirmation.oneShotCard.resume).not.toHaveBeenCalled()
+    })
+
     it('Retake photo reopens the check; Contact support opens the support modal', () => {
         const flow = makeFlow([{ key: 'qr', state: 'under-review' }], { oneShotRetake: true })
         renderModals(flow)

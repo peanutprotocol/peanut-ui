@@ -148,7 +148,13 @@ export function setupRows(input: {
         const fromRails = input.identityVerified
             ? railState(rails, featureNeeds(key, input.residence), actions)
             : { state: 'under-review' as const }
-        if (key === 'card' && cardStep && fromRails.state !== 'available') return { key, state: cardStep }
+        if (key === 'card' && cardStep && fromRails.state !== 'available') {
+            // a document the card step asks for (a missing identity step) is
+            // uploaded by resuming that step, so the row carries a Rain step
+            return cardStep === 'document-needed'
+                ? { key, state: cardStep, step: { provider: 'rain', reasonCode: 'main-kyc-required' } }
+                : { key, state: cardStep }
+        }
         return { key, ...fromRails }
     })
 }
