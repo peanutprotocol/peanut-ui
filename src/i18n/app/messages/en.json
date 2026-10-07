@@ -1220,6 +1220,10 @@
             "badgePartial": "Partly paid",
             "paidByName": "Paid by {name}",
             "paidByBank": "Paid by bank transfer"
+        },
+        "paymentReceived": {
+            "rowLabel": "Payment",
+            "received": "Payment received"
         }
     },
     "payment": {
