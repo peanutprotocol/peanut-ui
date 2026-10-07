@@ -243,9 +243,10 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         if (onComplete || creatingAccountRef.current || redirectingRef.current) return
         if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
+            redirectingRef.current = true
             handleRedirect()
         }
-    }, [accountExists, onComplete])
+    }, [accountExists, handleRedirect, onComplete])
 
     const handleTestTransaction = async () => {
         if (redirectingRef.current) return

@@ -230,8 +230,10 @@ describe('SignTestTransaction — setup completion', () => {
 
     it('still redirects an existing account on the legacy login finish route without signing', () => {
         accounts = [{ type: AccountType.PEANUT_WALLET }]
-        renderWithIntl(<SignTestTransaction />)
+        const { rerender } = renderWithIntl(<SignTestTransaction />)
+        rerender(<SignTestTransaction />)
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
         expect(mockSendUserOp).not.toHaveBeenCalled()
         expect(mockAddAccount).not.toHaveBeenCalled()
     })
