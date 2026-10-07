@@ -100,7 +100,7 @@ it('clears newly restricted choices and displays valid fallback options', async 
     view.rerender(ui('PT'))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/')
     expect(screen.getByRole('button', { name: 'Looks good', hidden: true })).toBeEnabled()
-    expect(screen.getByText('Bank transfers and card issuing aren’t available in your country.')).toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
 })
 it('can continue with explicitly selected universal channels when the restriction lookup fails', async () => {
     mockSettled = false
@@ -114,7 +114,7 @@ it('can continue with explicitly selected universal channels when the restrictio
 it('never picks Crypto automatically for payment in a preselected presentation', () => {
     renderWithIntl(ui('UA', true))
     expect(screen.getByRole('button', { name: 'Make a payment with: Bank transfer' })).toBeInTheDocument()
-    expect(screen.getByText('The Peanut card isn’t available in your country.')).toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
 })
 it('waits 3.5 seconds, then alternates every two seconds and freezes the visible pair on opening either drawer', () => {
     jest.useFakeTimers()
@@ -212,9 +212,9 @@ it('saves the displayed fallback defaults on Continue while the lookup remains u
 it.each([
     ['GB', 'Bank transfers and card issuing aren’t available in your country.'],
     ['IN', 'The Peanut card isn’t available in your country.'],
-])('explains the unavailable services for %s without promising future availability', (country, guidance) => {
+])('omits card-only and combined unavailability messages for %s', (country, guidance) => {
     renderWithIntl(ui(country))
-    expect(screen.getByText(guidance)).toBeInTheDocument()
+    expect(screen.queryByText(guidance)).not.toBeInTheDocument()
     expect(screen.getByText('The list of payment options depends on your country of residence.')).toBeInTheDocument()
     expect(screen.queryByText(/available later/i)).not.toBeInTheDocument()
 })

@@ -270,7 +270,7 @@ export default function PaymentPlan({
                     />
                 </span>
             </h1>
-            {unavailable && (
+            {unavailable === 'banking' && (
                 <p role="note" className="text-body-s text-foreground-secondary">
                     {t(`unavailable.${unavailable}`)}
                 </p>
