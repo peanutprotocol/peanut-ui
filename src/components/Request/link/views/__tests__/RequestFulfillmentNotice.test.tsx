@@ -56,6 +56,40 @@ describe('RequestFulfillmentNotice', () => {
         expect(screen.getByText('$100 of $250 received')).toBeInTheDocument()
     })
 
+    it('includes bank and balance payments in progress while the request is still open', async () => {
+        getRequest.mockResolvedValue(
+            request({ bankFulfilment: 'partial', receivedAmount: '100', totalCollectedAmount: 50 })
+        )
+
+        renderNotice()
+
+        expect(await screen.findByText('$150 of $250 received')).toBeInTheDocument()
+        expect(screen.getByText('Payment')).toBeInTheDocument()
+        expect(screen.getByText('Partly paid')).toBeInTheDocument()
+        expect(screen.queryByText('$100 of $250 received')).not.toBeInTheDocument()
+    })
+
+    it('updates mixed-payment progress when another balance payment arrives', async () => {
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        getRequest
+            .mockResolvedValueOnce(
+                request({ bankFulfilment: 'partial', receivedAmount: '100', totalCollectedAmount: 50 })
+            )
+            .mockResolvedValue(request({ bankFulfilment: 'partial', receivedAmount: '100', totalCollectedAmount: 75 }))
+
+        renderNotice()
+        expect(await screen.findByText('$150 of $250 received')).toBeInTheDocument()
+        invalidate.mockClear()
+
+        await act(async () => {
+            await client.invalidateQueries({ queryKey: ['request-fulfillment'] })
+        })
+
+        expect(await screen.findByText('$175 of $250 received')).toBeInTheDocument()
+        expect(screen.getByText('Partly paid')).toBeInTheDocument()
+        await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] }))
+    })
+
     it('names the payer once the request is paid', async () => {
         getRequest.mockResolvedValue(request({ bankFulfilment: 'paid', receivedAmount: '250', payerName: 'ANA SILVA' }))
 
@@ -160,6 +194,7 @@ describe('RequestFulfillmentNotice', () => {
             request({
                 bankFulfilment: 'partial',
                 receivedAmount: '40',
+                totalCollectedAmount: 210,
                 paidAt: '2026-09-20T22:00:00.000Z',
             })
         )

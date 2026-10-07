@@ -76,7 +76,14 @@ export function RequestFulfillmentNotice({ requestId }: { requestId: string; ban
     // paid in full, and "Partly paid" would ask for the money twice.
     const settled = requestIsSettled(data)
 
-    const received = formatTokenAmount(data.receivedAmount ?? '0', 2) ?? data.receivedAmount ?? '0'
+    // Bank deposits and settled charges are separate books. While money is
+    // still owed, progress must include both rather than just the bank part.
+    const showCombinedProgress = state === 'partial' && !settled && fromCharges > 0
+    const fromBank = Number(data.receivedAmount)
+    const receivedAmount = showCombinedProgress
+        ? String((Number.isFinite(fromBank) ? fromBank : 0) + fromCharges)
+        : (data.receivedAmount ?? '0')
+    const received = formatTokenAmount(receivedAmount, 2) ?? receivedAmount
     const requested = formatTokenAmount(data.tokenAmount, 2) ?? data.tokenAmount ?? '0'
 
     // A part payment states both numbers, because the requester's next move is
@@ -99,7 +106,7 @@ export function RequestFulfillmentNotice({ requestId }: { requestId: string; ban
     return (
         <Card position="solo" className="w-full px-4 py-0">
             <DataRow
-                label={t('paidByBank.rowLabel')}
+                label={t(showCombinedProgress ? 'paymentReceived.rowLabel' : 'paidByBank.rowLabel')}
                 value={value}
                 trailing={
                     <Badge
