@@ -25,7 +25,7 @@ function Fixture({ country, defaults = false }: { country: string; defaults?: bo
     }, [country, c.setResidenceCountry])
     return (
         <>
-            <PaymentPlan onContinue={next} selectionRequired={!defaults} />
+            <PaymentPlan onContinue={next} animateSuggestions={!defaults} />
             <output aria-label="Plan">
                 {c.fundingChannel}/{c.paymentChannel}
             </output>
@@ -49,20 +49,20 @@ beforeEach(() => {
     mockReducedMotion = false
     next.mockClear()
 })
-it('requires both deliberate choices and preserves them after closing the real drawers', async () => {
+it('starts with both first options visible and accepts or changes them through the real drawers', async () => {
     renderWithIntl(ui('PT'))
-    expect(screen.getByRole('button', { name: 'Looks good' })).toBeDisabled()
-    await choose('Add money with', 'Choose a method', 'Bank transfer')
-    expect(screen.getByRole('button', { name: 'Looks good', hidden: true })).toBeDisabled()
-    await choose('Make a payment with', 'Choose a method', 'Peanut card')
-    expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/card')
-    expect(screen.getByRole('button', { name: 'Looks good', hidden: true })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Looks good' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add money with: Bank transfer' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Make a payment with: Peanut card' })).toBeInTheDocument()
+    await choose('Add money with', 'Bank transfer', 'Crypto')
+    await choose('Make a payment with', 'Peanut card', 'QR payments')
+    expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/qr')
     fireEvent.click(screen.getByRole('button', { name: 'Looks good', hidden: true }))
     expect(next).toHaveBeenCalledTimes(1)
 })
 it('groups bank providers, excludes cash, and leaves Peanut payments last', () => {
     renderWithIntl(ui('BR'))
-    fireEvent.click(screen.getByRole('button', { name: 'Add money with: Choose a method' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add money with: Bank transfer (BRL)' }))
     const dialog = screen.getByRole('dialog')
     expect(
         within(dialog)
@@ -71,101 +71,107 @@ it('groups bank providers, excludes cash, and leaves Peanut payments last', () =
     ).toEqual(['Bank transfer (BRL)', 'Bank transfer', 'Crypto', 'Peanut to Peanut'])
     expect(within(dialog).queryByText('Cash')).not.toBeInTheDocument()
 })
-it('offers both card and Pix in Brazil, and allows a deliberate Crypto payment choice', async () => {
+it('offers both card and QR in Brazil, and allows a deliberate Crypto payment choice', async () => {
     renderWithIntl(ui('BR'))
-    fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Choose a method' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Peanut card' }))
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('button', { name: 'Peanut card' })).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: 'Pix payments' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'QR payments' })).toBeInTheDocument()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crypto' }))
     await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/crypto')
 })
 it.each([
-    ['BR', 'Bank transfer (BRL)', 'Pix payments'],
-    ['AR', 'Bank transfer (ARS)', 'Mercado Pago QR'],
+    ['BR', 'Bank transfer (BRL)', 'QR payments'],
+    ['AR', 'Bank transfer (ARS)', 'QR payments'],
 ])('keeps first-party bank rails out of the payment drawer for %s', (country, ownAccountRail, qrPayment) => {
     renderWithIntl(ui(country))
-    fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Choose a method' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Peanut card' }))
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).queryByRole('button', { name: ownAccountRail })).not.toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Bank transfer' })).toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: qrPayment })).toBeInTheDocument()
 })
-it('clears newly restricted choices and disables Continue until the user selects valid replacements', async () => {
+it('clears newly restricted choices and displays valid fallback options', async () => {
     const view = renderWithIntl(ui('PT'))
-    await choose('Add money with', 'Choose a method', 'Bank transfer')
-    await choose('Make a payment with', 'Choose a method', 'Peanut card')
+    await choose('Add money with', 'Bank transfer', 'Bank transfer')
+    await choose('Make a payment with', 'Peanut card', 'Peanut card')
     mockSets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, full: new Set(['PT']) }
     view.rerender(ui('PT'))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/')
-    expect(screen.getByRole('button', { name: 'Looks good', hidden: true })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Looks good', hidden: true })).toBeEnabled()
     expect(screen.getByText('Bank transfers and card issuing aren’t available in your country.')).toBeInTheDocument()
 })
 it('can continue with explicitly selected universal channels when the restriction lookup fails', async () => {
     mockSettled = false
     renderWithIntl(ui('PT'))
-    await choose('Add money with', 'Choose a method', 'Crypto')
-    await choose('Make a payment with', 'Choose a method', 'Peanut to Peanut')
+    await choose('Add money with', 'Crypto', 'Crypto')
+    await choose('Make a payment with', 'Peanut to Peanut', 'Peanut to Peanut')
     fireEvent.click(screen.getByRole('button', { name: 'Looks good', hidden: true }))
     expect(next).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
 })
 it('never picks Crypto automatically for payment in a preselected presentation', () => {
     renderWithIntl(ui('UA', true))
-    expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/bank')
+    expect(screen.getByRole('button', { name: 'Make a payment with: Bank transfer' })).toBeInTheDocument()
     expect(screen.getByText('The Peanut card isn’t available in your country.')).toBeInTheDocument()
 })
-it('alternates the previews every two seconds and freezes both visible choices when either drawer opens', () => {
+it('waits 3.5 seconds, then alternates every two seconds and freezes the visible pair on opening either drawer', () => {
     jest.useFakeTimers()
     try {
         renderWithIntl(ui('PT'))
-        act(() => jest.advanceTimersByTime(2000))
+        act(() => jest.advanceTimersByTime(3499))
         expect(screen.getByRole('button', { name: 'Add money with: Bank transfer' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Make a payment with: Choose a method' })).toBeInTheDocument()
-        act(() => jest.advanceTimersByTime(2000))
+        act(() => jest.advanceTimersByTime(1))
+        expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Make a payment with: Peanut card' })).toBeInTheDocument()
         act(() => jest.advanceTimersByTime(2000))
-        const funding = screen.getByRole('button', { name: 'Add money with: Crypto' })
+        expect(screen.getByRole('button', { name: 'Make a payment with: Bank transfer' })).toBeInTheDocument()
+        act(() => jest.advanceTimersByTime(2000))
+        const funding = screen.getByRole('button', { name: 'Add money with: Peanut to Peanut' })
         fireEvent.click(funding)
         const dialog = screen.getByRole('dialog')
-        expect(within(dialog).getByRole('button', { name: 'Crypto' })).toHaveClass('bg-background-selection')
-        expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/card')
+        expect(within(dialog).getByRole('button', { name: 'Peanut to Peanut' })).toHaveClass('bg-background-selection')
+        expect(screen.getByLabelText('Plan')).toHaveTextContent('peanut/bank')
         act(() => jest.advanceTimersByTime(16000))
-        expect(funding).toHaveAccessibleName('Add money with: Crypto')
+        expect(funding).toHaveAccessibleName('Add money with: Peanut to Peanut')
         expect(
-            screen.getByRole('button', { name: 'Make a payment with: Peanut card', hidden: true })
+            screen.getByRole('button', { name: 'Make a payment with: Bank transfer', hidden: true })
         ).toBeInTheDocument()
     } finally {
         jest.useRealTimers()
     }
 })
-it('saves the two currently visible preview values on Continue', () => {
+it('saves both initially visible defaults immediately on Continue', () => {
+    renderWithIntl(ui('BR'))
+    fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
+    expect(screen.getByLabelText('Plan')).toHaveTextContent('brlBank/card')
+    expect(next).toHaveBeenCalledTimes(1)
+})
+it('saves the currently visible suggestions on Continue', () => {
     jest.useFakeTimers()
     try {
         renderWithIntl(ui('BR'))
-        act(() => jest.advanceTimersByTime(4000))
+        act(() => jest.advanceTimersByTime(5500))
         fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
-        expect(screen.getByLabelText('Plan')).toHaveTextContent('brlBank/card')
-        expect(next).toHaveBeenCalledTimes(1)
+        expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/bank')
     } finally {
         jest.useRealTimers()
     }
 })
-it('does not rotate for reduced motion, and keyboard focus stops both previews', () => {
+it('does not rotate for reduced motion, and keyboard focus stops both suggestions', () => {
     jest.useFakeTimers()
     try {
         mockReducedMotion = true
         const view = renderWithIntl(ui('PT'))
         act(() => jest.advanceTimersByTime(8000))
-        expect(screen.getByRole('button', { name: 'Add money with: Choose a method' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Add money with: Bank transfer' })).toBeInTheDocument()
         mockReducedMotion = false
         view.rerender(ui('PT'))
-        act(() => jest.advanceTimersByTime(4000))
-        fireEvent.focus(screen.getByRole('button', { name: 'Make a payment with: Peanut card' }))
+        act(() => jest.advanceTimersByTime(5500))
+        fireEvent.focus(screen.getByRole('button', { name: 'Make a payment with: Bank transfer' }))
         act(() => jest.advanceTimersByTime(8000))
-        expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/card')
-        expect(screen.getByRole('button', { name: 'Add money with: Bank transfer' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/bank')
     } finally {
         jest.useRealTimers()
     }

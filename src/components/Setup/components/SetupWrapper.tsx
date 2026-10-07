@@ -553,7 +553,8 @@ export const SetupWrapper = memo(function SetupWrapper({
         [screenId]
     )
     const fullScreen = fullScreenProp || fullScreenOverride === screenId
-    const featureParagraph = screenId.startsWith('advantage-') && screenId !== 'advantage-control'
+    const featureParagraph =
+        (screenId.startsWith('advantage-') && screenId !== 'advantage-control') || screenId === 'passkey-permission'
     const prefersReducedMotion = useReducedMotion()
     const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)

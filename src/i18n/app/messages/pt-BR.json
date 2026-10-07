@@ -720,7 +720,7 @@
             },
             "passkey-permission": {
                 "title": "Só você tem o controle.",
-                "description": "Sua passkey coloca você no controle. Use seu rosto, impressão digital ou bloqueio de tela para acessar seu dinheiro e aprovar pagamentos."
+                "description": "Use seu rosto, impressão digital ou bloqueio de tela para acessar seu dinheiro e aprovar pagamentos."
             },
             "advantage-control": {
                 "title": "Tudo pronto para começar?",
@@ -1021,12 +1021,10 @@
             "payment": {
                 "peanut": "Peanut para Peanut",
                 "card": "Cartão Peanut",
-                "pix": "Pagamentos com Pix",
-                "arQr": "QR do Mercado Pago",
                 "bank": "Transferência bancária",
-                "crypto": "Cripto"
+                "crypto": "Cripto",
+                "qr": "Pagamentos QR"
             },
-            "chooseMethod": "Escolher um método",
             "with": "com",
             "unavailable": {
                 "banking": "As transferências bancárias não estão disponíveis no seu país.",

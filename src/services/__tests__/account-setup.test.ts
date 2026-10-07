@@ -100,7 +100,7 @@ describe('completeAccountSetup', () => {
 })
 
 it('only reconciles a selected plan once both saved choices are in the profile', async () => {
-    const signupPreferences = { fundingChannel: 'brlBank' as const, paymentChannel: 'pix' as const }
+    const signupPreferences = { fundingChannel: 'brlBank' as const, paymentChannel: 'qr' as const }
     const request = jest.fn().mockRejectedValueOnce(new TypeError('Lost response')).mockResolvedValueOnce(response(200))
     const fetchProfile = jest
         .fn()

@@ -61,9 +61,23 @@ function SetupPageContent() {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, setNoBackLockScreenId, setSignupEntryFlow, setSignupCompleted, signupCompleted } =
-        useSetupFlowContext()
-    const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
+    const {
+        steps,
+        noBackLockScreenId,
+        setNoBackLockScreenId,
+        setSignupEntryFlow,
+        setSignupCompleted,
+        signupCompleted,
+    } = useSetupFlowContext()
+    const {
+        step,
+        currentIndex: currentStepIndex,
+        direction,
+        handleNext,
+        handleBack,
+        setScreenId,
+        isLoading: flowLoading,
+    } = useSetupFlow()
     useEffect(() => {
         const nextImage = steps[currentStepIndex + 1]?.image
         if (nextImage && 'pose' in nextImage) {
@@ -177,16 +191,20 @@ function SetupPageContent() {
         !showDeviceNotSupportedModal &&
         !showBrowserNotSupportedModal
 
-    // Arm the point of no return only for a step the user actually SEES —
-    // stepRendered excludes entry-resolution loading and unsupported modals.
-    // A stale terminal URL
-    // (?screen=sign-test-transaction in a fresh session) must stay unlockable
-    // so the entry resolver can replace it (Chip review round 2).
+    // Registration is irreversible, but contact/preferences screens remain
+    // revisitable. This also restores the boundary for resumed email entry.
     useEffect(() => {
-        if (stepRendered && step && step.showBackButton === false) {
-            setNoBackLockScreenId(step.screenId)
+        if (
+            stepRendered &&
+            !signupCompleted &&
+            step &&
+            ['notification-email', 'notification-permission', 'advantage-control'].includes(step.screenId)
+        ) {
+            setNoBackLockScreenId('passkey-permission')
         }
-    }, [stepRendered, step, setNoBackLockScreenId])
+    }, [stepRendered, step, signupCompleted, setNoBackLockScreenId])
+    const showBackButton =
+        !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
 
     useSetupStepAnalytics({
         enabled: stepRendered,
@@ -194,7 +212,7 @@ function SetupPageContent() {
         steps,
         signupEntryFlow,
     })
-    useSetupBackHandler({ step, canStepBack: stepRendered, onBack: handleBack })
+    useSetupBackHandler({ step, canStepBack: stepRendered && showBackButton, onBack: handleBack })
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -507,7 +525,7 @@ function SetupPageContent() {
             image={step.image}
             title={!step.titleInView ? t(titleKey) : undefined}
             description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
-            showBackButton={step.showBackButton}
+            showBackButton={showBackButton}
             showSkipButton={step.showSkipButton}
             imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
@@ -525,9 +543,11 @@ function SetupPageContent() {
             contentClassName={step.contentClassName}
         >
             <step.component
+                entryDirection={direction}
                 onComplete={
                     step.screenId === 'advantage-control'
                         ? () => {
+                              setNoBackLockScreenId('advantage-control')
                               setSignupCompleted(true)
                           }
                         : undefined

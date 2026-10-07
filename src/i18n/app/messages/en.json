@@ -720,7 +720,7 @@
             },
             "passkey-permission": {
                 "title": "Controlled only by you.",
-                "description": "Your passkey keeps you in control. Use your face, fingerprint, or screen lock to access your money and approve payments."
+                "description": "Use your face, fingerprint, or screen lock to access your money and approve payments."
             },
             "advantage-control": {
                 "title": "Ready to get started?",
@@ -1021,12 +1021,10 @@
             "payment": {
                 "peanut": "Peanut to Peanut",
                 "card": "Peanut card",
-                "pix": "Pix payments",
-                "arQr": "Mercado Pago QR",
                 "bank": "Bank transfer",
-                "crypto": "Crypto"
+                "crypto": "Crypto",
+                "qr": "QR payments"
             },
-            "chooseMethod": "Choose a method",
             "with": "with",
             "unavailable": {
                 "banking": "Bank transfers aren’t available in your country.",

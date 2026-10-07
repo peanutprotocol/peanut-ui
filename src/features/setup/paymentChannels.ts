@@ -2,14 +2,13 @@ import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSe
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 export type SetupFundingChannel = 'bank' | 'brlBank' | 'arsBank' | 'crypto' | 'peanut'
-export type SetupPaymentChannel = Exclude<SetupFundingChannel, 'brlBank' | 'arsBank'> | 'card' | 'pix' | 'arQr'
+export type SetupPaymentChannel = Exclude<SetupFundingChannel, 'brlBank' | 'arsBank'> | 'card' | 'qr'
 export type SetupChannel = SetupFundingChannel | SetupPaymentChannel
 export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, Concept> = {
     bank: 'bank',
     brlBank: 'bank',
     arsBank: 'bank',
-    pix: 'qrPay',
-    arQr: 'qrPay',
+    qr: 'qrPay',
     card: 'card',
     crypto: 'crypto',
     peanut: 'friends',
@@ -42,7 +41,7 @@ export function setupChannelsForResidence(
             ...(card ? ['card' as const] : []),
             // Manteca bank rails only withdraw to the user's own account; QR pays third parties.
             ...bridgeBank,
-            ...(qr ? ['pix' as const, 'arQr' as const] : []),
+            ...(qr ? ['qr' as const] : []),
             'crypto',
             'peanut',
         ],

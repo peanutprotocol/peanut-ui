@@ -448,11 +448,22 @@ describe('ResidenceStep', () => {
             expect(screen.queryByRole('checkbox', { name: 'Bank accounts & transfers' })).not.toBeInTheDocument()
         })
 
-        it('lands on the selector for an unrestricted pick', () => {
+        it('restores the plan for an unrestricted pick, then Back returns to the selector', () => {
             mockDirection = -1
             mockSetupState.residenceCountry = 'BR'
             render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money/ })).toBeInTheDocument()
+            act(() => {
+                dispatchBackPress()
+            })
             expect(screen.getByRole('heading', { level: 1, name: 'Country of legal residence' })).toBeInTheDocument()
+        })
+
+        it('uses the page arrival direction when browser Back precedes context synchronization', () => {
+            mockDirection = 1
+            mockSetupState.residenceCountry = 'BR'
+            render(<ResidenceStep entryDirection={-1} />)
+            expect(screen.getByRole('heading', { level: 1, name: /I’ll add money/ })).toBeInTheDocument()
         })
 
         it('starts on the selector when entering forward with a stored pick', () => {

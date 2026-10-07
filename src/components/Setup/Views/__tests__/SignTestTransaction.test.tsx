@@ -144,7 +144,7 @@ describe('SignTestTransaction — setup completion', () => {
 
     it('saves the current choices when Retry discovers a wallet from an ambiguous request', async () => {
         mockFundingChannel = 'brlBank'
-        mockPaymentChannel = 'pix'
+        mockPaymentChannel = 'qr'
         mockAddAccount.mockRejectedValueOnce(
             new AccountSetupError('Account creation could not be confirmed', {
                 kind: 'retryable',
@@ -318,7 +318,7 @@ describe('SignTestTransaction — setup completion', () => {
 
 it('includes both selected methods in the account-completion request', async () => {
     mockFundingChannel = 'brlBank'
-    mockPaymentChannel = 'pix'
+    mockPaymentChannel = 'qr'
     jest.clearAllMocks()
     mockSignupCompleted = false
     mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
@@ -333,7 +333,7 @@ it('includes both selected methods in the account-completion request', async () 
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
     await waitFor(() =>
         expect(mockAddAccount).toHaveBeenCalledWith(
-            expect.objectContaining({ signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'pix' } })
+            expect.objectContaining({ signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'qr' } })
         )
     )
     await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())

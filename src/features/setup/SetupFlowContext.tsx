@@ -52,8 +52,8 @@ interface SetupFlowContextType {
     signupEntryFlow: SignupEntryFlow
     setSignupEntryFlow: (entryFlow: SignupEntryFlow) => void
     /**
-     * The point of no return: the no-back step the PAGE has confirmed visible
-     * (stepRendered — entry resolution done, no interstitial/modal). Guards
+     * The point of no return: the earliest safe step after registration
+     * (confirmed registration or resolved post-registration entry). Guards
      * refuse every earlier step while set. Context state, not a per-instance
      * ref: several components run their own useSetupFlow instance, and the
      * lock must be one fact — and it must NOT arm off a stale terminal URL

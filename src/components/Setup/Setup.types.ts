@@ -59,6 +59,8 @@ export type ScreenProps = {
 }
 
 export interface StepComponentProps {
+    /** Resolved arrival direction, including browser history navigation. */
+    entryDirection?: number
     onComplete?: () => void
     handle?: string
 }

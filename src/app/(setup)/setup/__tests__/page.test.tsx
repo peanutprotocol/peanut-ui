@@ -6,6 +6,9 @@ import * as Sentry from '@sentry/nextjs'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 
+let mockNoBackLock: string | null = null
+let mockSignupCompleted = false
+const mockSetNoBackLock = jest.fn()
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
@@ -46,7 +49,9 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockStore,
         resetSetupFlow: jest.fn(),
-        setNoBackLockScreenId: jest.fn(),
+        noBackLockScreenId: mockNoBackLock,
+        signupCompleted: mockSignupCompleted,
+        setNoBackLockScreenId: mockSetNoBackLock,
         setSignupEntryFlow: jest.fn(),
     }),
 }))
@@ -86,8 +91,17 @@ jest.mock('@/components/Setup/setup-entry', () => ({
 }))
 jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ children, showLogoutButton }: { children: React.ReactNode; showLogoutButton?: boolean }) => (
+    SetupWrapper: ({
+        children,
+        showLogoutButton,
+        showBackButton,
+    }: {
+        children: React.ReactNode
+        showLogoutButton?: boolean
+        showBackButton?: boolean
+    }) => (
         <div>
+            {showBackButton && <button>Go back</button>}
             {showLogoutButton && <button>Logout</button>}
             {children}
         </div>
@@ -119,6 +133,8 @@ const advance = (ms: number) =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    mockNoBackLock = null
+    mockSignupCompleted = false
     mockResolve.mockReset().mockReturnValue('landing')
     mockStore.steps = [landing]
     mockFlow.step = landing
@@ -559,4 +575,33 @@ it('hides Logout on the final ready-to-start confirmation screen', async () => {
     await advance(100)
     expect(screen.getByText('Ready confirmation')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
+})
+
+it.each(['notification-email', 'notification-permission', 'advantage-control'] as const)(
+    'shows Back on %s after registration',
+    async (screenId) => {
+        const step = { ...landing, screenId, showBackButton: true }
+        mockStore.steps = [step]
+        mockFlow.step = step
+        mockResolve.mockReturnValue(screenId)
+        mockNoBackLock = 'passkey-permission'
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
+        if (screenId === 'notification-email') expect(mockSetNoBackLock).toHaveBeenCalledWith('passkey-permission')
+    }
+)
+it('hides Back at the registered passkey boundary and during celebration', async () => {
+    const step = { ...landing, screenId: 'passkey-permission' as const, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(step.screenId)
+    mockNoBackLock = 'passkey-permission'
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
+    mockSignupCompleted = true
+    mockFlow.step = { ...step, screenId: 'advantage-control' }
+    view.rerender(<SetupPage />)
+    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
 })

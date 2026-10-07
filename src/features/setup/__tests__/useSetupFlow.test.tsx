@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
@@ -157,6 +157,55 @@ describe('useSetupFlow (URL stepper)', () => {
             await result.current.flow.setScreenId('signup')
         })
         expect(result.current.flow.step?.screenId).toBe('advantage-control')
+    })
+
+    it('walks every post-registration screen backward without reopening username or residence', async () => {
+        const { result } = renderFlow({ screen: 'advantage-control' })
+        await seedSteps(result, setupSteps)
+        await act(async () => {
+            result.current.context.setNoBackLockScreenId('passkey-permission')
+        })
+        for (const expected of ['notification-permission', 'notification-email', 'passkey-permission']) {
+            await act(async () => {
+                result.current.flow.handleBack()
+            })
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
+        await act(async () => {
+            result.current.flow.setScreenId('signup')
+        })
+        expect(result.current.flow.step?.screenId).toBe('passkey-permission')
+    })
+
+    it('derives backward and forward arrival direction for external URL changes', async () => {
+        let navigate!: (screen: string) => void
+        function Wrapper({ children }: { children: ReactNode }) {
+            const [screen, setScreen] = useState('advantage-card')
+            navigate = setScreen
+            return (
+                <NuqsTestingAdapter hasMemory searchParams={{ screen }}>
+                    <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
+                </NuqsTestingAdapter>
+            )
+        }
+        const { result } = renderHook(
+            () => {
+                const context = useSetupFlowContext()
+                return { context, flow: useSetupFlow() }
+            },
+            { wrapper: Wrapper }
+        )
+        await seedSteps(result, setupSteps)
+        await act(async () => {
+            navigate('residence')
+        })
+        expect(result.current.flow.step?.screenId).toBe('residence')
+        expect(result.current.flow.direction).toBe(-1)
+        expect(result.current.context.direction).toBe(-1)
+        await act(async () => {
+            navigate('advantage-card')
+        })
+        expect(result.current.flow.direction).toBe(1)
     })
 
     it('a STALE terminal URL never locks: with no rendered lock, entry resolution can replace it (Chip round 2)', async () => {

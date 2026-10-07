@@ -22,27 +22,24 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
 type ResidenceView = 'select' | 'restricted' | 'partial' | 'congrats'
-type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
+type ResidenceStepProps = { initialView?: ResidenceView; handle?: string; entryDirection?: number }
 type PartialRestriction = 'card' | 'banking'
 
 const PAYMENT_PLAN_IMAGE = { animation: 'topup' } as const
 
-const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
+const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
         useSetupFlowContext()
-    const { handleNext, isLoading, direction } = useSetupFlow()
+    const { handleNext, isLoading, direction: flowDirection } = useSetupFlow()
+    const direction = entryDirection ?? flowDirection
     const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
     const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
 
-    // Stepping BACK into this step must land on the
-    // screen the user actually left: a restricted pick left from its checklist,
-    // so re-derive that view from the stored country. The congrats view is not
-    // restored for unrestricted picks — the selector is the natural place
-    // to change the answer. Forward entry and
-    // deep links (direction 1 / 0) always start on the selector.
+    // Back must restore the plan for every residence, then a second Back
+    // returns to the selector. Forward entry still starts with the country.
     const [view, setView] = useState<ResidenceView>(() => {
         if (initialView) return initialView
         if (direction >= 0 || !residenceCountry) return 'select'
@@ -50,7 +47,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {
             return 'partial'
         }
-        return 'select'
+        return 'congrats'
     })
     useBackHandler(() => {
         if (!isLoading) setView('select')

@@ -67,7 +67,7 @@ export interface paths {
                         userId: string;
                         signupPreferences?: {
                             fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
-                            paymentChannel: "bank" | "card" | "pix" | "arQr" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
                         };
                     };
                 };
@@ -12670,7 +12670,7 @@ export interface paths {
                             };
                             signupPreferences: {
                                 fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
-                                paymentChannel: "bank" | "card" | "pix" | "arQr" | "crypto" | "peanut";
+                                paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
                             } | null;
                         } & {
                             [key: string]: unknown;

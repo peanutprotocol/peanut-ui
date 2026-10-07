@@ -18,7 +18,7 @@ it.each([
     expect(ids).not.toContain('advantage-bank')
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).not.toContain('sign-test-transaction')
-    expect(setupSteps.find((step) => step.screenId === 'advantage-control')?.showBackButton).toBe(false)
+    expect(setupSteps.find((step) => step.screenId === 'advantage-control')?.showBackButton).toBe(true)
 })
 it('replaces a restricted bank slot with a backup even for Argentina and Brazil', () => {
     const sets = { ...restrictions, bankingOnly: new Set(['AR', 'BR']) }
