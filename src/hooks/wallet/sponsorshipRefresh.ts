@@ -4,8 +4,8 @@ import { arbitrum } from 'viem/chains'
 export interface SponsorshipRefresh {
     paymaster: Address | undefined
     paymasterData: Hex | undefined
-    paymasterVerificationGasLimit: bigint | undefined
-    paymasterPostOpGasLimit: bigint | undefined
+    paymasterVerificationGasLimit: bigint
+    paymasterPostOpGasLimit: bigint
     callGasLimit: bigint
     verificationGasLimit: bigint
     preVerificationGas: bigint
@@ -46,8 +46,8 @@ export function toSponsorshipRefresh(
             ...gas,
             paymaster: undefined,
             paymasterData: undefined,
-            paymasterVerificationGasLimit: undefined,
-            paymasterPostOpGasLimit: undefined,
+            paymasterVerificationGasLimit: 0n,
+            paymasterPostOpGasLimit: 0n,
         }
     }
     if (typeof v.paymaster !== 'string' || !isAddress(v.paymaster, { strict: false })) return null

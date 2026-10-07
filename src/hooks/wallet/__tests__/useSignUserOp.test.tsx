@@ -25,7 +25,7 @@
  *  6. a signing failure still propagates.
  */
 import { act, renderHook } from '@testing-library/react'
-import { custom, type Hex } from 'viem'
+import { custom, toHex, type Hex } from 'viem'
 import { arbitrum } from 'viem/chains'
 import { createBundlerClient } from 'viem/account-abstraction'
 
@@ -46,6 +46,12 @@ import { useSignUserOp } from '../useSignUserOp'
 import { captureException } from '@sentry/nextjs'
 import { buildUsdcTransferCall, type PreparedSmartSpend } from '../smartSpendPreparation'
 import { PAYMASTER_PREVIEW_CONTEXT, sponsorUserOperationArgs } from '../paymasterSponsorship'
+import { mantecaApi } from '@/services/manteca'
+import { serverFetch } from '@/utils/api-fetch'
+import apiSchema from '@/types/api.openapi.json'
+import { jsonParse } from '@/utils/cookie-url.utils'
+
+jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn(), serverFetch: jest.fn() }))
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const RECIPIENT = '0x4e5b89fd498f333ed7f2a59c5f23d5b5dc41b3de'
@@ -276,15 +282,47 @@ describe('signCallsUserOp with a pre-Pay candidate', () => {
         expect(onPrepared).toHaveBeenCalledWith('reused')
         expect(consumptions(fake)).toEqual([true])
         expect(fake.account.getStubSignature).not.toHaveBeenCalled()
-        for (const key of [
-            'paymaster',
-            'paymasterData',
-            'paymasterVerificationGasLimit',
-            'paymasterPostOpGasLimit',
-        ] as const) {
+        for (const key of ['paymaster', 'paymasterData'] as const) {
             expect(signed?.signedUserOp[key]).toBeUndefined()
             expect(fake.account.signUserOperation.mock.calls[0][0]).toHaveProperty(key, undefined)
         }
+        for (const key of ['paymasterVerificationGasLimit', 'paymasterPostOpGasLimit'] as const) {
+            expect(signed?.signedUserOp[key]).toBe(0n)
+            expect(fake.account.signUserOperation.mock.calls[0][0]).toHaveProperty(key, 0n)
+        }
+    })
+
+    it('serializes the gas-only signed QR completion with every field required by the API contract', async () => {
+        fake.sponsor.mockResolvedValueOnce(ultraRelayResponse as never)
+        const { signed } = await signWith(candidate())
+        const response = { status: 'COMPLETED' }
+        jest.mocked(serverFetch).mockResolvedValue({ ok: true, json: async () => response } as Response)
+        await expect(
+            mantecaApi.completeQrPaymentWithSignedTx({ kind: 'userOp', paymentLockCode: 'LOCK123', ...signed! })
+        ).resolves.toEqual(response)
+        expect(serverFetch).toHaveBeenCalledWith(
+            '/manteca/qr-payment/complete-with-signed-tx',
+            expect.objectContaining({ method: 'POST' })
+        )
+        const serialized = String(jest.mocked(serverFetch).mock.calls[0][1]?.body)
+        const payload = JSON.parse(serialized)
+        const decoded = jsonParse(serialized)
+        const schema = apiSchema.paths['/manteca/qr-payment/complete-with-signed-tx'].post.requestBody.content[
+            'application/json'
+        ].schema.anyOf.find((variant) => 'signedUserOp' in variant.properties)
+        if (!schema || !('signedUserOp' in schema.properties) || !schema.properties.signedUserOp)
+            throw new Error('Missing signed QR API contract')
+        for (const required of schema.required) expect(payload).toHaveProperty(required)
+        for (const required of schema.properties.signedUserOp.required)
+            expect(payload.signedUserOp).toHaveProperty(required)
+        expect(payload.signedUserOp.paymaster).toBeUndefined()
+        expect(payload.signedUserOp.paymasterData).toBeUndefined()
+        for (const key of ['paymasterVerificationGasLimit', 'paymasterPostOpGasLimit']) {
+            expect(payload.signedUserOp[key]).toEqual({ '@type': 'BigInt', value: '0' })
+            expect(decoded.signedUserOp[key]).toBe(0n)
+            expect(toHex(BigInt(decoded.signedUserOp[key]))).toBe('0x0')
+        }
+        expect(consumptions(fake)).toEqual([true])
     })
 
     it('reports only response field names and types for an invalid consuming response', async () => {

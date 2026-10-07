@@ -70,16 +70,22 @@ Arbitrum, its effective fee fields are both zero, both paymaster fields are
 absent, and both returned paymaster gas limits are zero. Validate all gas and
 fee values as nonnegative bigints. Conventional sponsorship remains supported.
 
-Explicitly clear all four preview paymaster fields before signing a gas-only
-refresh. Preserve non-consuming preview preparation and exactly one consuming
+Clear the preview paymaster address/data and replace both paymaster gas limits
+with zero before signing a gas-only refresh. The completion API requires those
+limits and its broadcaster converts them unconditionally; omitting them breaks
+the serialized completion request. Preserve non-consuming preview preparation and exactly one consuming
 callback at Pay; malformed responses still propagate without a second consuming
 request. Attach only response field names/types to the existing Sentry capture
 so future invalid shapes are diagnosable without recording response values.
 
 Regression coverage exercises real SDK normalization in a child process outside
 Jest's SDK mock, full preview-to-sign reuse through real viem preparation,
-clearing stale preview sponsorship, invalid/partial responses, positive fees,
-other chains, and no automatic re-consumption after failure.
+clearing stale preview sponsorship, serializing the signed QR completion
+against the OpenAPI required fields, invalid/partial responses, positive fees,
+other chains, and no automatic re-consumption after failure. The API JSON parser
+and broadcaster formatter from `origin/dev` at `012f489d23f5` were also checked
+with the serialized zero-limit operation; both limits reached the bundler shape
+as `0x0`.
 
 After release, verify successful `preparation_origin=reused` signing and payment
 completion, and compare QR signing failures with the pre-release baseline.

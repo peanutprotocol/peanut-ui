@@ -11,12 +11,8 @@ const gasOnly = {
     paymasterData: undefined,
 }
 
-test('accepts an UltraRelay gas-only response and explicitly clears all old paymaster fields', () => {
-    expect(toSponsorshipRefresh(gasOnly, operation)).toEqual({
-        ...gasOnly,
-        paymasterVerificationGasLimit: undefined,
-        paymasterPostOpGasLimit: undefined,
-    })
+test('accepts an UltraRelay gas-only response and preserves the API-required zero gas limits', () => {
+    expect(toSponsorshipRefresh(gasOnly, operation)).toEqual(gasOnly)
 })
 
 test('uses the refreshed fees when deciding whether the final operation is zero-fee', () => {

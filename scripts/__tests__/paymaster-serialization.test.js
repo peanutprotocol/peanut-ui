@@ -71,8 +71,10 @@ test('the installed SDK normalizes an UltraRelay gas-only response for safe QR r
         assert.ok(refresh);
         assert.equal(refresh.callGasLimit, 0x123n);
         assert.equal(refresh.maxFeePerGas, 0n);
-        for (const key of ['paymaster', 'paymasterData', 'paymasterVerificationGasLimit', 'paymasterPostOpGasLimit'])
+        for (const key of ['paymaster', 'paymasterData'])
             assert.equal(refresh[key], undefined);
+        assert.equal(refresh.paymasterVerificationGasLimit, 0n);
+        assert.equal(refresh.paymasterPostOpGasLimit, 0n);
         assert.equal(toSponsorshipRefresh({ ...response, maxFeePerGas: 1n }, operation), null);
         assert.equal(toSponsorshipRefresh(response, { ...operation, chainId: '8453' }), null);
     `,
