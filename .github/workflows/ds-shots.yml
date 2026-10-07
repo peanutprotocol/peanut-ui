@@ -60,6 +60,9 @@ jobs:
     backdoor-scan:
         needs: prepare
         uses: ./.github/workflows/backdoor-scan.yml
+        with:
+            base_sha: ${{ needs.prepare.outputs.base }}
+            head_sha: ${{ needs.prepare.outputs.head }}
         secrets:
             TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
 
