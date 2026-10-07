@@ -818,6 +818,9 @@
             "inviterUsernamePlaceholder": "their username",
             "inviterHelp": "Your inviter may earn rewards when you use Peanut.",
             "inviterNotFound": "We couldn't verify that username. Check it and try again.",
+            "invitedBy": "Invited by {username}.",
+            "changeInviter": "Change",
+            "addInviter": "Add inviter",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",

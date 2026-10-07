@@ -1,4 +1,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import SetupFooter from '../components/SetupFooter'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -9,12 +11,13 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { invitesApi } from '@/services/invites'
 import { toInviteCode } from '@/utils/invite-code.utils'
+import { readInviteCode } from '@/utils/invite-stash'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 // Valid username-shaped ideas, so the joke can double as inspiration.
@@ -33,18 +36,21 @@ const USERNAME_IDEAS = [
 
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } =
-        useSetupFlowContext()
+    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite } = useSetupFlowContext()
     const [error, setError] = useState('')
     const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
-    const [showInviterInput, setShowInviterInput] = useState(Boolean(inviterUsername))
+    // the drawer edits a draft; only a validated, added inviter reaches the flow context
+    const [inviterOpen, setInviterOpen] = useState(false)
+    const [inviterDraft, setInviterDraft] = useState('')
     const [inviterValid, setInviterValid] = useState(false)
     const [inviterChanging, setInviterChanging] = useState(false)
     const [inviterError, setInviterError] = useState('')
-    const inviterValueRef = useRef(inviterUsername)
-    const inviterInputId = useId()
+    const inviterValueRef = useRef('')
+    // inviter behind an invite link (?code= or a stashed referral), shown until a manual one replaces it
+    const [linkInviter, setLinkInviter] = useState('')
+    const shownInviter = inviterUsername ? toInviteCode(inviterUsername) : linkInviter
     const prefersReducedMotion = useReducedMotion()
     const [suggestionIndex, setSuggestionIndex] = useState(-1)
     const [placeholderStopped, setPlaceholderStopped] = useState(false)
@@ -77,26 +83,43 @@ const SignupStep = () => {
         return valid
     }
 
-    const toggleInviterInput = () => {
-        if (showInviterInput) {
-            inviterValueRef.current = ''
-            clearManualInvite()
-            setInviterUsername('')
-            setInviterValid(false)
-            setInviterChanging(false)
-            setInviterError('')
-        } else {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
+    useEffect(() => {
+        const code = readInviteCode()
+        // a manual inviter already wins over the link code, so there is nothing to resolve
+        if (!code || inviterUsername) return
+        let cancelled = false
+        void invitesApi.validateInviteCode(code).then((result) => {
+            if (!cancelled && result.success && result.attributionResolved && result.username) {
+                setLinkInviter(result.username)
+            }
+        })
+        return () => {
+            cancelled = true
         }
-        setShowInviterInput(!showInviterInput)
+        // once per mount: the link code is fixed while this step is open
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    const openInviter = () => {
+        inviterValueRef.current = ''
+        setInviterDraft('')
+        setInviterValid(false)
+        setInviterChanging(false)
+        setInviterError('')
+        setInviterOpen(true)
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
+    }
+
+    const addInviter = () => {
+        setInviterUsername(inviterDraft)
+        setInviterOpen(false)
     }
 
     const onNext = () =>
         handleNext(async () => {
             if (!isValid) return false
             const code = toInviteCode(inviterUsername)
-            if (showInviterInput && code) {
-                if (!inviterValid || inviterChanging) return false
+            if (code) {
                 applyManualInvite(code)
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
             }
@@ -242,57 +265,6 @@ const SignupStep = () => {
                         </div>
                         <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={toggleInviterInput}
-                        aria-expanded={showInviterInput}
-                        aria-controls={inviterInputId}
-                        className="self-center text-body-s text-foreground-secondary underline underline-offset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                    >
-                        {t('signupStep.whoInvitedYou')}
-                    </button>
-
-                    <AnimatePresence initial={false}>
-                        {showInviterInput && (
-                            <motion.div
-                                id={inviterInputId}
-                                initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8 }}
-                                transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-                                className="flex w-full flex-col gap-1"
-                            >
-                                <ValidatedInput
-                                    aria-label={t('signupStep.inviterUsernameLabel')}
-                                    placeholder={t('signupStep.inviterUsernamePlaceholder')}
-                                    value={inviterUsername}
-                                    debounceTime={750}
-                                    validate={validateInviter}
-                                    shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
-                                    onUpdate={({ value, isValid, isChanging }) => {
-                                        inviterValueRef.current = value
-                                        setInviterUsername(value)
-                                        setInviterValid(isValid)
-                                        setInviterChanging(isChanging)
-                                        if (isChanging) {
-                                            clearManualInvite()
-                                            setInviterError('')
-                                        }
-                                    }}
-                                    isSetupFlow
-                                    isInputChanging={inviterChanging}
-                                />
-                                {inviterError ? (
-                                    <FieldError>{inviterError}</FieldError>
-                                ) : (
-                                    <p className="text-body-xs text-foreground-secondary">
-                                        {t('signupStep.inviterHelp')}
-                                    </p>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
                 <SetupFooter
                     actions={
@@ -302,19 +274,20 @@ const SignupStep = () => {
                             loading={isLoading}
                             shadowSize="4"
                             onClick={onNext}
-                            disabled={
-                                !isValid ||
-                                isChanging ||
-                                isLoading ||
-                                (showInviterInput &&
-                                    !!toInviteCode(inviterUsername) &&
-                                    (!inviterValid || inviterChanging))
-                            }
+                            disabled={!isValid || isChanging || isLoading}
                         >
                             {t('cta.claimName')}
                         </Button>
                     }
                 >
+                    {shownInviter ? (
+                        <div className="flex items-center gap-1 text-body-xs text-foreground-secondary">
+                            <span>{t('signupStep.invitedBy', { username: shownInviter })}</span>
+                            <LinkButton onClick={openInviter}>{t('signupStep.changeInviter')}</LinkButton>
+                        </div>
+                    ) : (
+                        <LinkButton onClick={openInviter}>{t('signupStep.whoInvitedYou')}</LinkButton>
+                    )}
                     <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
@@ -331,6 +304,42 @@ const SignupStep = () => {
                     </p>
                 </SetupFooter>
             </div>
+            <Drawer open={inviterOpen} onOpenChange={setInviterOpen} shouldScaleBackground={false}>
+                <DrawerContent>
+                    <div className="flex flex-col gap-4 pb-4">
+                        <DrawerTitle>{t('signupStep.whoInvitedYou')}</DrawerTitle>
+                        <p className="text-body-s text-foreground-secondary">{t('signupStep.inviterHelp')}</p>
+                        <div className="flex flex-col gap-1">
+                            <ValidatedInput
+                                aria-label={t('signupStep.inviterUsernameLabel')}
+                                placeholder={t('signupStep.inviterUsernamePlaceholder')}
+                                value={inviterDraft}
+                                debounceTime={750}
+                                validate={validateInviter}
+                                shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
+                                onUpdate={({ value, isValid, isChanging }) => {
+                                    inviterValueRef.current = value
+                                    setInviterDraft(value)
+                                    setInviterValid(isValid)
+                                    setInviterChanging(isChanging)
+                                    if (isChanging) setInviterError('')
+                                }}
+                                isSetupFlow
+                                isInputChanging={inviterChanging}
+                            />
+                            {inviterError && <FieldError>{inviterError}</FieldError>}
+                        </div>
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            disabled={!inviterValid || inviterChanging}
+                            onClick={addInviter}
+                        >
+                            {t('signupStep.addInviter')}
+                        </Button>
+                    </div>
+                </DrawerContent>
+            </Drawer>
         </>
     )
 }

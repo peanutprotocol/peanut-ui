@@ -28,6 +28,12 @@ jest.mock('@/utils/invite-stash', () => ({
         mockStoredInvite.code = ''
     },
 }))
+// vaul never finishes its close animation in jsdom, so a closed drawer would keep the page aria-hidden
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({ open, children }: { open: boolean; children: React.ReactNode }) => (open ? <>{children}</> : null),
+    DrawerContent: ({ children }: { children: React.ReactNode }) => <div role="dialog">{children}</div>,
+    DrawerTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+}))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 const renderSignup = () =>
@@ -96,27 +102,70 @@ describe('optional inviter on signup', () => {
         }
     })
 
-    it('reveals, validates, and stores a manual inviter without losing an existing referral on edit', async () => {
+    const addInviterInDrawer = async (value: string) => {
+        fireEvent.change(await screen.findByRole('textbox', { name: "Inviter's Peanut username" }), {
+            target: { value },
+        })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Add inviter' })).toBeEnabled())
+        fireEvent.click(screen.getByRole('button', { name: 'Add inviter' }))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    }
+
+    it('adds a validated inviter from the drawer and stores it on continue', async () => {
         mockStoredInvite.code = 'original-referral'
         renderSignup()
         fireEvent.change(screen.getByPlaceholderText('username'), { target: { value: 'newuser' } })
         await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
 
-        const reveal = screen.getByRole('button', { name: 'Who invited you?' })
-        fireEvent.click(reveal)
-        expect(reveal).toHaveAttribute('aria-expanded', 'true')
-        const inviter = screen.getByRole('textbox', { name: "Inviter's Peanut username" })
-        fireEvent.change(inviter, { target: { value: '@Alice ' } })
-        await waitFor(() => expect(mockValidateInviter).toHaveBeenCalledWith('@Alice '))
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
+        fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
+        expect(await screen.findByRole('dialog')).toHaveTextContent(
+            'Your inviter may earn rewards when you use Peanut.'
+        )
+        expect(screen.getByRole('button', { name: 'Add inviter' })).toBeDisabled()
+        await addInviterInDrawer('@Alice ')
+        expect(mockValidateInviter).toHaveBeenCalledWith('@Alice ')
+        expect(await screen.findByText('Invited by alice.')).toBeInTheDocument()
+        // the hint sits above the CTA so the CTA stays pinned to the bottom
+        expect(
+            screen
+                .getByRole('button', { name: 'Claim username' })
+                .compareDocumentPosition(screen.getByText('Invited by alice.')) & Node.DOCUMENT_POSITION_PRECEDING
+        ).toBeTruthy()
+
         fireEvent.click(screen.getByRole('button', { name: 'Claim username' }))
         await waitFor(() => expect(mockStoredInvite.code).toBe('alice'))
-
-        fireEvent.change(inviter, { target: { value: 'bob' } })
-        expect(mockStoredInvite.code).toBe('original-referral')
     })
 
-    it('keeps the entered inviter when the signup step is left and revisited', async () => {
+    it('keeps add disabled and explains when the inviter cannot be verified', async () => {
+        renderSignup()
+        fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
+        mockValidateInviter.mockResolvedValue({ success: false, attributionResolved: false })
+        fireEvent.change(await screen.findByRole('textbox', { name: "Inviter's Peanut username" }), {
+            target: { value: 'nobody' },
+        })
+        expect(await screen.findByText("We couldn't verify that username. Check it and try again.")).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Add inviter' })).toBeDisabled()
+    })
+
+    it('shows the inviter behind an invite link and lets a typed inviter replace it', async () => {
+        mockStoredInvite.code = 'aliceinvitesyou'
+        mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: true, username: 'alice' })
+        renderSignup()
+        expect(await screen.findByText('Invited by alice.')).toBeInTheDocument()
+        expect(mockValidateInviter).toHaveBeenCalledWith('aliceinvitesyou')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Change' }))
+        mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: true, username: 'bobby' })
+        await addInviterInDrawer('bobby')
+        expect(await screen.findByText('Invited by bobby.')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByPlaceholderText('username'), { target: { value: 'newuser' } })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
+        fireEvent.click(screen.getByRole('button', { name: 'Claim username' }))
+        await waitFor(() => expect(mockStoredInvite.code).toBe('bobby'))
+    })
+
+    it('keeps the added inviter when the signup step is left and revisited', async () => {
         function FlowHarness() {
             const [onSignup, setOnSignup] = useState(true)
             return (
@@ -129,15 +178,10 @@ describe('optional inviter on signup', () => {
 
         renderWithIntl(<FlowHarness />)
         fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
-        fireEvent.change(screen.getByRole('textbox', { name: "Inviter's Peanut username" }), {
-            target: { value: 'alice' },
-        })
+        await addInviterInDrawer('alice')
         fireEvent.click(screen.getByRole('button', { name: 'Switch step' }))
         fireEvent.click(screen.getByRole('button', { name: 'Switch step' }))
 
-        expect(screen.getByRole('textbox', { name: "Inviter's Peanut username" })).toHaveValue('alice')
-        await act(async () => {
-            await Promise.resolve()
-        })
+        expect(screen.getByText('Invited by alice.')).toBeInTheDocument()
     })
 })

@@ -818,6 +818,9 @@
             "inviterUsernamePlaceholder": "su usuario",
             "inviterHelp": "Quien te invitó puede ganar recompensas cuando uses Peanut.",
             "inviterNotFound": "No pudimos verificar ese usuario. Revísalo e inténtalo de nuevo.",
+            "invitedBy": "Invitación de {username}.",
+            "changeInviter": "Cambiar",
+            "addInviter": "Agregar invitador",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
                 "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
