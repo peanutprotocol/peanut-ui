@@ -93,8 +93,7 @@ describe('SocketQueryRefresh', () => {
 
         emit('history_entry', ping('charge-1'))
 
-        expect(invalidateSpy).toHaveBeenCalledTimes(3)
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['request-fulfillment'] })
+        expect(invalidateSpy).toHaveBeenCalledTimes(2)
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance'] })
     })
@@ -311,17 +310,4 @@ describe('SocketQueryRefresh', () => {
             warnSpy.mockRestore()
         })
     })
-})
-
-it('refreshes request fulfillment once for a typed payment push or reconnect', () => {
-    const { App, client } = makeApp()
-    const invalidate = jest.spyOn(client, 'invalidateQueries')
-    render(<App />)
-    emit('history_entry', { ...ping('paid'), extraData: { kind: 'P2P_REQUEST_FULFILL' }, status: 'COMPLETED' })
-    expect(invalidate).toHaveBeenCalledTimes(1)
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['request-fulfillment'] })
-    invalidate.mockClear()
-    emit('connect', undefined)
-    expect(invalidate).toHaveBeenCalledTimes(1)
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['request-fulfillment'] })
 })

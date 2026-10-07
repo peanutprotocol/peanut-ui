@@ -1220,10 +1220,6 @@
             "badgePartial": "Pagado en parte",
             "paidByName": "Pagado por {name}",
             "paidByBank": "Pagado por transferencia bancaria"
-        },
-        "paymentReceived": {
-            "rowLabel": "Pago",
-            "received": "Pago recibido"
         }
     },
     "payment": {

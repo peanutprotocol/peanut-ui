@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { parsePaymentURL } from '@/lib/url-parser/parser'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { SemanticRequestPageWrapper } from './SemanticRequestPageWrapper'
 
 const mockReplace = jest.fn()
@@ -19,14 +17,8 @@ jest.mock('@/components/Global/EmptyStates/EmptyState', () => () => null)
 jest.mock('@/components/Global/NavHeader', () => () => null)
 jest.mock('./SemanticRequestPage', () => ({
     SemanticRequestPage: (props: unknown) => {
-        const [receipt, setReceipt] = useState(false)
         mockPaymentPage(props)
-        return (
-            <div>
-                Payment flow<button onClick={() => setReceipt(true)}>See receipt</button>
-                {receipt && <div>Receipt open</div>}
-            </div>
-        )
+        return <div>Payment flow</div>
     },
 }))
 
@@ -71,23 +63,4 @@ it('keeps normal charge payment links payable', async () => {
     expect(await screen.findByText('Payment flow')).toBeInTheDocument()
     expect(mockPaymentPage).toHaveBeenCalledWith(expect.objectContaining({ initialChargeId: 'normal-charge' }))
     expect(mockReplace).not.toHaveBeenCalled()
-})
-
-it('opening a receipt with a new recipient array preserves the completed flow', async () => {
-    ;(parsePaymentURL as jest.Mock).mockResolvedValue({ parsedUrl: { recipient: { identifier: 'conrad' } } })
-    const view = render(<SemanticRequestPageWrapper recipient={['conrad']} />)
-    await screen.findByText('Payment flow')
-    fireEvent.click(screen.getByText('See receipt'))
-    mockSearchParams = new URLSearchParams('tx=paid-charge')
-    view.rerender(<SemanticRequestPageWrapper recipient={['conrad']} />)
-    await waitFor(() => expect(screen.getByText('Receipt open')).toBeInTheDocument())
-    expect(parsePaymentURL).toHaveBeenCalledTimes(1)
-})
-
-it('a real recipient change reparses the payment route', async () => {
-    ;(parsePaymentURL as jest.Mock).mockResolvedValue({ parsedUrl: { recipient: { identifier: 'conrad' } } })
-    const view = render(<SemanticRequestPageWrapper recipient={['conrad']} />)
-    await screen.findByText('Payment flow')
-    view.rerender(<SemanticRequestPageWrapper recipient={['hugo']} />)
-    await waitFor(() => expect(parsePaymentURL).toHaveBeenCalledWith(['hugo']))
 })

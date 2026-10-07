@@ -1,6 +1,6 @@
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { RequestFulfillmentNotice } from '../RequestFulfillmentNotice'
 
@@ -171,51 +171,20 @@ describe('RequestFulfillmentNotice', () => {
         expect(screen.getByText('$40 of $250 by bank transfer. The rest was paid another way.')).toBeInTheDocument()
     })
 
-    it('shows paid when the whole request was paid from a balance', async () => {
+    // The row reports the bank transfer. A request answered entirely inside
+    // Peanut has no bank transfer to report, so it shows no row at all.
+    it('shows nothing when the whole request was paid from a balance', async () => {
         getRequest.mockResolvedValue(request({ bankFulfilment: 'none', paidAt: '2026-09-20T22:00:00.000Z' }))
 
-        renderNotice()
-        expect(await screen.findByText('Payment received')).toBeInTheDocument()
-        expect(screen.getByText('Paid')).toBeInTheDocument()
+        const { container } = renderNotice()
+
+        await waitFor(() => expect(getRequest).toHaveBeenCalled())
+        expect(container).toBeEmptyDOMElement()
     })
 
-    it('also watches a request that shares no bank details', async () => {
+    it('does not poll a request that shares no bank details', () => {
         render(<RequestFulfillmentNotice requestId="req-1" bankPayable={false} />, { wrapper })
 
-        await waitFor(() => expect(getRequest).toHaveBeenCalledWith('req-1'))
+        expect(getRequest).not.toHaveBeenCalled()
     })
-})
-
-it('refreshes the visible notice on a socket invalidation without leaving the screen', async () => {
-    getRequest.mockResolvedValueOnce(request({})).mockResolvedValue(request({ totalCollectedAmount: 250 }))
-    renderNotice()
-    await waitFor(() => expect(getRequest).toHaveBeenCalledTimes(1))
-    await act(async () => {
-        await client.invalidateQueries({ queryKey: ['request-fulfillment'] })
-    })
-    expect(await screen.findByText('Payment received')).toBeInTheDocument()
-    expect(screen.getByText('Paid')).toBeInTheDocument()
-})
-
-it('recovers a missed push on the visible screen with a five-second poll', async () => {
-    jest.useFakeTimers()
-    try {
-        getRequest.mockResolvedValueOnce(request({})).mockResolvedValue(request({ totalCollectedAmount: 100 }))
-        renderNotice()
-        await act(async () => {
-            await jest.advanceTimersByTimeAsync(0)
-        })
-        expect(getRequest).toHaveBeenCalledTimes(1)
-        await act(async () => {
-            await jest.advanceTimersByTimeAsync(5000)
-        })
-        expect(getRequest).toHaveBeenCalledTimes(2)
-        await act(async () => {
-            await jest.advanceTimersByTimeAsync(1)
-        })
-        expect(screen.getByText('Partly paid')).toBeInTheDocument()
-        expect(screen.getByText('$100 of $250 received')).toBeInTheDocument()
-    } finally {
-        jest.useRealTimers()
-    }
 })
