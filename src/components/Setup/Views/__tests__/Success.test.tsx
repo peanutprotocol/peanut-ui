@@ -2,9 +2,13 @@ import { StrictMode } from 'react'
 import { act, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import SuccessStep from '../Success'
+import { disableDemoMode, enableDemoMode } from '@/utils/demo'
 
 let mockCompleted = false
 const mockRedirect = jest.fn()
+const mockReplace = jest.fn()
+const mockRouter = { replace: mockReplace }
+jest.mock('next/navigation', () => ({ useRouter: () => mockRouter }))
 const mockHaptic = jest.fn()
 jest.mock('@/utils/haptics', () => ({ notifyHaptic: (...args: unknown[]) => mockHaptic(...args) }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
@@ -24,8 +28,12 @@ beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
     mockCompleted = false
+    disableDemoMode()
 })
-afterEach(() => jest.useRealTimers())
+afterEach(() => {
+    jest.useRealTimers()
+    disableDemoMode()
+})
 it('celebrates and haptics once, then enters the account after 4.5 seconds', () => {
     const view = renderWithIntl(
         <StrictMode>
@@ -50,4 +58,16 @@ it('celebrates and haptics once, then enters the account after 4.5 seconds', () 
     act(() => jest.advanceTimersByTime(1))
     expect(mockRedirect).toHaveBeenCalledTimes(1)
     expect(mockRedirect).toHaveBeenCalledWith({ isNewAccount: true })
+})
+
+it('sends a demo celebration to home instead of consuming a signup deep link', () => {
+    enableDemoMode()
+    mockCompleted = true
+    renderWithIntl(<SuccessStep />)
+    expect(screen.getByTestId('celebration-mascot')).toBeInTheDocument()
+    expect(mockReplace).not.toHaveBeenCalled()
+    act(() => jest.advanceTimersByTime(4500))
+    expect(mockReplace).toHaveBeenCalledTimes(1)
+    expect(mockReplace).toHaveBeenCalledWith('/home')
+    expect(mockRedirect).not.toHaveBeenCalled()
 })

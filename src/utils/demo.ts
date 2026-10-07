@@ -1,5 +1,4 @@
 import { toInviteCode } from '@/utils/invite-code.utils'
-import { isCapacitor } from '@/utils/capacitor'
 
 export const DEMO_INVITE_CODE = 'demo'
 const DEMO_MODE_KEY = 'peanut_demo_mode'
@@ -30,9 +29,9 @@ export function disableDemoMode(): void {
     } catch {}
 }
 
-// Native-only app-store demo: pre-filled data, KYC skipped, transactions simulated.
+// Explicit demo session on web and native: pre-filled data, KYC skipped, transactions simulated.
 export function isDemoMode(): boolean {
-    if (typeof window === 'undefined' || !isCapacitor()) return false
+    if (typeof window === 'undefined') return false
     if (demoSessionActive) return true
     try {
         return window.localStorage.getItem(DEMO_MODE_KEY) === 'true'
