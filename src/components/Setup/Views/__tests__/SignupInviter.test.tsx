@@ -184,4 +184,27 @@ describe('optional inviter on signup', () => {
 
         expect(screen.getByText('Invited by alice.')).toBeInTheDocument()
     })
+
+    it('removes a mistaken manual inviter and restores the invite-link referral', async () => {
+        mockStoredInvite.code = 'aliceinvitesyou'
+        mockStoredInvite.type = 'INVITE_LINK'
+        mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: true, username: 'alice' })
+        renderSignup()
+        expect(await screen.findByText('Invited by alice.')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Change' }))
+        expect(screen.queryByRole('button', { name: 'Remove inviter' })).not.toBeInTheDocument()
+        mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: true, username: 'bobby' })
+        await addInviterInDrawer('bobby')
+        fireEvent.change(screen.getByPlaceholderText('username'), { target: { value: 'newuser' } })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
+        fireEvent.click(screen.getByRole('button', { name: 'Claim username' }))
+        await waitFor(() => expect(mockStoredInvite.code).toBe('bobby'))
+
+        mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: true, username: 'alice' })
+        fireEvent.click(screen.getByRole('button', { name: 'Change' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Remove inviter' }))
+        expect(mockStoredInvite).toEqual({ code: 'aliceinvitesyou', type: 'INVITE_LINK' })
+        expect(await screen.findByText('Invited by alice.')).toBeInTheDocument()
+    })
 })

@@ -821,6 +821,7 @@
             "invitedBy": "Invited by {username}.",
             "changeInviter": "Change",
             "addInviter": "Add inviter",
+            "removeInviter": "Remove inviter",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",

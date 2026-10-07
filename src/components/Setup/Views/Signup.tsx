@@ -36,7 +36,8 @@ const USERNAME_IDEAS = [
 
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite } = useSetupFlowContext()
+    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } =
+        useSetupFlowContext()
     const [error, setError] = useState('')
     const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
@@ -84,9 +85,13 @@ const SignupStep = () => {
     }
 
     useEffect(() => {
-        const code = readInviteCode()
         // a manual inviter already wins over the link code, so there is nothing to resolve
-        if (!code || inviterUsername) return
+        if (inviterUsername) return
+        const code = readInviteCode()
+        if (!code) {
+            setLinkInviter('')
+            return
+        }
         let cancelled = false
         void invitesApi.validateInviteCode(code).then((result) => {
             if (!cancelled && result.success && result.attributionResolved && result.username) {
@@ -96,9 +101,8 @@ const SignupStep = () => {
         return () => {
             cancelled = true
         }
-        // once per mount: the link code is fixed while this step is open
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+        // re-runs when a manual inviter is removed, so the restored link inviter shows again
+    }, [inviterUsername])
 
     const openInviter = () => {
         inviterValueRef.current = ''
@@ -112,6 +116,14 @@ const SignupStep = () => {
 
     const addInviter = () => {
         setInviterUsername(inviterDraft)
+        setInviterOpen(false)
+    }
+
+    // undoes a mistaken manual inviter and restores the invite-link referral, if there was one
+    const removeInviter = () => {
+        inviterValueRef.current = ''
+        clearManualInvite()
+        setInviterUsername('')
         setInviterOpen(false)
     }
 
@@ -337,6 +349,11 @@ const SignupStep = () => {
                         >
                             {t('signupStep.addInviter')}
                         </Button>
+                        {inviterUsername && (
+                            <LinkButton className="self-center" onClick={removeInviter}>
+                                {t('signupStep.removeInviter')}
+                            </LinkButton>
+                        )}
                     </div>
                 </DrawerContent>
             </Drawer>

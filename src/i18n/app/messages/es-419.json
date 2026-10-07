@@ -821,6 +821,7 @@
             "invitedBy": "Invitación de {username}.",
             "changeInviter": "Cambiar",
             "addInviter": "Agregar invitador",
+            "removeInviter": "Quitar invitador",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
                 "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
