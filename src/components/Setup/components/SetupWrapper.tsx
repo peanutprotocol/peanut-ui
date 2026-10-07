@@ -86,8 +86,10 @@ interface SetupWrapperProps {
 }
 
 // define responsive height classes for different layout types
+// short phones (under 800px tall) get a 34dvh hero so the panel below keeps room;
+// the media query stops at md so desktop keeps the full-height hero
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'h-[40dvh] shrink-0 md:h-dvh',
+    signup: 'h-[40dvh] shrink-0 md:h-dvh [@media(max-height:799px)_and_(max-width:767px)]:h-[34dvh]',
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
