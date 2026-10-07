@@ -2876,7 +2876,20 @@
         "setup": {
             "settingUp": "Setting up",
             "available": "Available",
-            "underReview": "Under review"
+            "underReview": "Under review",
+            "documentNeeded": "Document needed",
+            "agreementsNeeded": "Agreements needed",
+            "verifyId": "Verify ID",
+            "notAvailable": "Not available",
+            "checking": "A person is checking it. No action needed.",
+            "occupationNotAccepted": "Occupation not accepted.",
+            "retakeTitle": "Retake one photo",
+            "retake": "Retake photo",
+            "verifyAgain": "Verify again with a {country} ID",
+            "verifyAgainNote": "Starts a new identity check.",
+            "uploadNow": "Upload now",
+            "later": "Later",
+            "continueCard": "Continue card setup"
         },
         "bridgeTos": {
             "baseTitle": "Bank transfer terms",

@@ -13,12 +13,21 @@ import { OneShotSetupDrawer } from '../OneShotSetupDrawer'
 const push = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 
-const renderDrawer = (rows: SetupRow[], residence = 'BR') => {
+type Extra = Partial<Omit<React.ComponentProps<typeof OneShotSetupDrawer>, 'open' | 'residence' | 'rows'>>
+
+const renderDrawer = (rows: SetupRow[], residence = 'BR', extra: Extra = {}) => {
     const onClose = jest.fn()
     const onContinue = jest.fn()
     render(
         <IntlWrapper>
-            <OneShotSetupDrawer open residence={residence} rows={rows} onClose={onClose} onContinue={onContinue} />
+            <OneShotSetupDrawer
+                open
+                residence={residence}
+                rows={rows}
+                onClose={onClose}
+                onContinue={onContinue}
+                {...extra}
+            />
         </IntlWrapper>
     )
     return { onClose, onContinue }
@@ -71,5 +80,107 @@ describe('OneShotSetupDrawer', () => {
     it('names local bank transfers for the residence', () => {
         renderDrawer([{ key: 'local', state: 'setting-up' }], 'AR')
         expect(screen.getByText('ARS bank transfers')).toBeInTheDocument()
+    })
+
+    describe('the states of item 9b', () => {
+        const row = (key: string) => within(screen.getByTestId(`setup-row-${key}`))
+
+        it('a photo to retake heads the drawer and its button reopens the check', () => {
+            const onRetake = jest.fn()
+            renderDrawer([{ key: 'qr', state: 'under-review' }], 'BR', { retake: true, onRetake })
+            expect(screen.getByRole('heading', { name: 'Retake one photo' })).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Retake photo' }))
+            expect(onRetake).toHaveBeenCalledTimes(1)
+        })
+
+        it('open card agreements: the row says so and the button continues the card setup', () => {
+            const onResumeCard = jest.fn()
+            renderDrawer(
+                [
+                    { key: 'qr', state: 'available' },
+                    { key: 'card', state: 'agreements-needed' },
+                ],
+                'BR',
+                { onResumeCard }
+            )
+            expect(row('card').getByText('Agreements needed')).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Continue card setup' }))
+            expect(onResumeCard).toHaveBeenCalledTimes(1)
+            // leaving stays possible, as a link
+            fireEvent.click(screen.getByRole('button', { name: 'Go to Home' }))
+            expect(push).toHaveBeenCalledWith('/home')
+        })
+
+        it('needs a local ID: the row names the country and the button starts a new check with it', () => {
+            const onVerifyAgain = jest.fn()
+            renderDrawer(
+                [
+                    { key: 'qr', state: 'available' },
+                    { key: 'card', state: 'needs-local-id' },
+                    { key: 'bank', state: 'needs-local-id' },
+                ],
+                'BR',
+                { onVerifyAgain }
+            )
+            expect(row('card').getByText('Verify ID')).toBeInTheDocument()
+            expect(row('card').getByText('Needs an ID issued by Brazil')).toBeInTheDocument()
+            expect(screen.getByText('Starts a new identity check.')).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Verify again with a Brazil ID' }))
+            expect(onVerifyAgain).toHaveBeenCalledTimes(1)
+        })
+
+        it('a document asked by a provider: Upload now opens the step, Later leaves', () => {
+            const onUploadDocument = jest.fn()
+            const step = { provider: 'bridge' as const, reasonCode: 'proof_of_address' }
+            const { onClose } = renderDrawer([{ key: 'bank', state: 'document-needed', step }], 'BR', {
+                onUploadDocument,
+            })
+            expect(row('bank').getByText('Document needed')).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Upload now' }))
+            expect(onUploadDocument).toHaveBeenCalledWith(step)
+            fireEvent.click(screen.getByRole('button', { name: 'Later' }))
+            expect(onClose).toHaveBeenCalledTimes(1)
+            expect(push).toHaveBeenCalledWith('/home')
+        })
+
+        it('the card step outranks a local-ID ask, which outranks a document', () => {
+            renderDrawer(
+                [
+                    { key: 'local', state: 'document-needed', step: { provider: 'manteca' } },
+                    { key: 'card', state: 'agreements-needed' },
+                    { key: 'bank', state: 'needs-local-id' },
+                ],
+                'BR',
+                { onResumeCard: jest.fn(), onVerifyAgain: jest.fn(), onUploadDocument: jest.fn() }
+            )
+            expect(screen.getByRole('button', { name: 'Continue card setup' })).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: /Verify again/ })).not.toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: 'Upload now' })).not.toBeInTheDocument()
+        })
+
+        it('an application a person checks reads under review with its line, and offers no retry', () => {
+            renderDrawer([{ key: 'card', state: 'checking' }])
+            expect(row('card').getByText('Under review')).toBeInTheDocument()
+            expect(row('card').getByText('A person is checking it. No action needed.')).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Go to Home' })).toBeInTheDocument()
+        })
+
+        it('a refused occupation reads not available and points to support', () => {
+            const onContactSupport = jest.fn()
+            renderDrawer([{ key: 'card', state: 'occupation-not-accepted' }], 'BR', { onContactSupport })
+            expect(row('card').getByText('Not available')).toBeInTheDocument()
+            expect(row('card').getByText('Occupation not accepted.')).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+            expect(onContactSupport).toHaveBeenCalledTimes(1)
+        })
+
+        it('a failed card request shows in a callout with a retry', () => {
+            const onRetryCard = jest.fn()
+            renderDrawer([{ key: 'card', state: 'setting-up' }], 'BR', { cardError: 'Network down', onRetryCard })
+            expect(screen.getByRole('alert')).toHaveTextContent('Network down')
+            fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+            expect(onRetryCard).toHaveBeenCalledTimes(1)
+        })
     })
 })

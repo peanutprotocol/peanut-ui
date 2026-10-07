@@ -15,6 +15,8 @@ interface Props {
     onAccept: () => void | Promise<void>
     onPrev?: () => void
     submitError?: string | null
+    /** Rendered as a sub-view inside a drawer (the one-shot setup): one back control, no page banner. */
+    inDrawer?: boolean
 }
 
 // Rain partner constant — the "Partner" placeholder in the term-copy comps
@@ -44,7 +46,7 @@ const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, childre
     </a>
 )
 
-const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError }) => {
+const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError, inDrawer = false }) => {
     const t = useTranslations('card.terms')
     const tCard = useTranslations('card')
     const tCommon = useTranslations('common')
@@ -109,7 +111,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
 
     return (
         <PageStack gap="6">
-            <NavHeader title={tCard('navAddCard')} onPrev={onPrev} />
+            <NavHeader title={tCard('navAddCard')} onPrev={onPrev} hideMaintenanceBanner={inDrawer} />
 
             <div className="flex flex-col gap-2">
                 <h1 className="text-heading-s text-foreground-primary">{t('title')}</h1>

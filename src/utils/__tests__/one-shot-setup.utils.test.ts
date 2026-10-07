@@ -5,7 +5,7 @@
  * both.
  */
 import type { NextAction, RailCapability, UserCapabilities } from '@/types/capabilities'
-import { setupRows } from '@/utils/one-shot-setup.utils'
+import { localIdRestartAction, setupRows } from '@/utils/one-shot-setup.utils'
 
 const ALL = { qr: true, local: true, card: true, bank: true }
 const ONLY = (key: keyof typeof ALL) => ({ qr: false, local: false, card: false, bank: false, [key]: true })
@@ -120,12 +120,12 @@ describe('setupRows', () => {
         expect(stateOf(capabilities([argentina]), 'local', 'AR')).toBe('available')
     })
 
-    it('a blocked rail stays setting up in this item; item 9b gives it its own state', () => {
+    it('a blocked rail with no step is not available', () => {
         const blocked = card({
             status: 'blocked',
             resolved: { status: 'blocked', blocking: { code: 'region_block', userMessage: '', selfHealable: false } },
         })
-        expect(stateOf(capabilities([blocked]), 'card')).toBe('setting-up')
+        expect(stateOf(capabilities([blocked]), 'card')).toBe('not-available')
     })
 
     it('keeps each provider to its own feature: Bridge accounts open neither QR nor local transfers', () => {
@@ -134,5 +134,155 @@ describe('setupRows', () => {
             { key: 'qr', state: 'setting-up' },
             { key: 'local', state: 'setting-up' },
         ])
+    })
+})
+
+/** Item 9b: the states a user acts on, or must read. */
+describe('setupRows, the states of item 9b', () => {
+    const restart: NextAction = {
+        key: 'restart-identity',
+        kind: 'restart-identity',
+        purpose: 'document_country_unsupported',
+    }
+    const otherRestart: NextAction = { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }
+
+    it('a document asked by a provider reads document needed, with the step to upload it', () => {
+        const upload: NextAction = {
+            key: 'sumsub:proof_of_address',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'proof_of_address',
+        }
+        const caps = capabilities(
+            [
+                ach({
+                    status: 'requires-info',
+                    blockingActions: [upload.key],
+                    reason: { code: 'proof_of_address', userMessage: 'We need a proof of address' },
+                }),
+                sepa({ status: 'pending' }),
+            ],
+            [upload]
+        )
+        expect(verified(caps, ONLY('bank'))[0]).toEqual({
+            key: 'bank',
+            state: 'document-needed',
+            step: { provider: 'bridge', action: upload, reasonCode: 'proof_of_address' },
+        })
+    })
+
+    it('a document asked with no capability action still reads document needed (the resubmit route finds it)', () => {
+        const caps = capabilities([
+            rail({ status: 'requires-info', reason: { code: 'document_rejected', userMessage: 'Blurry photo' } }),
+        ])
+        expect(verified(caps, ONLY('local'))[0]).toEqual({
+            key: 'local',
+            state: 'document-needed',
+            step: { provider: 'manteca', action: undefined, reasonCode: 'document_rejected' },
+        })
+    })
+
+    it('a rail parked for the document country asks for a local ID', () => {
+        const parked = card({
+            status: 'blocked',
+            blockingActions: [restart.key],
+            reason: { code: 'document_country_unsupported', userMessage: 'needs a local document' },
+        })
+        expect(stateOf(capabilities([parked], [restart]), 'card')).toBe('needs-local-id')
+    })
+
+    it('a feature with no rail asks for a local ID when the orphan restart action says so', () => {
+        // an Argentine resident on the QR pool: the pool rail pays and serves no account
+        const pool = rail({
+            id: 'manteca.qr_ar',
+            method: 'QR_AR',
+            channel: 'qr-only',
+            country: 'AR',
+            currency: 'ARS',
+            operations: { pay: 'enabled' },
+        })
+        expect(verified(capabilities([pool], [restart]), ALL, 'AR')).toEqual([
+            { key: 'qr', state: 'available' },
+            { key: 'local', state: 'needs-local-id' },
+            { key: 'card', state: 'needs-local-id' },
+            { key: 'bank', state: 'needs-local-id' },
+        ])
+    })
+
+    it('a restart for another purpose is not a local-ID ask', () => {
+        const caps = capabilities([rail({ operations: { pay: 'enabled' } })], [otherRestart])
+        expect(stateOf(caps, 'card')).toBe('setting-up')
+        expect(localIdRestartAction(caps)).toBeUndefined()
+        expect(localIdRestartAction(capabilities([], [restart]))).toEqual(restart)
+    })
+
+    it('a local-ID ask on the rail outranks a document ask and a wait on a sibling rail', () => {
+        const wait: NextAction = { key: 'wait:bridge', kind: 'wait', purpose: 'bridge-review' }
+        const caps = capabilities(
+            [
+                ach({ status: 'blocked', blockingActions: [restart.key], reason: { code: 'x', userMessage: '' } }),
+                sepa({ status: 'requires-info', blockingActions: [wait.key] }),
+            ],
+            [restart, wait]
+        )
+        expect(stateOf(caps, 'bank')).toBe('needs-local-id')
+    })
+
+    describe('the card row follows the card step until its rail says available', () => {
+        const only = ONLY('card')
+        const rows = (
+            card: Parameters<typeof setupRows>[0]['card'],
+            caps = capabilities([]),
+            identityVerified = true
+        ) => setupRows({ intents: only, residence: 'BR', capabilities: caps, identityVerified, card })
+
+        it('pending-identity reads setting up even while the identity is under review', () => {
+            expect(rows({ kind: 'setting-up' }, capabilities([]), false)[0].state).toBe('setting-up')
+        })
+
+        it('a missing identity step reads document needed, with a Rain step that resumes the card step', () => {
+            expect(rows({ kind: 'identity-step', token: 't' })[0]).toEqual({
+                key: 'card',
+                state: 'document-needed',
+                step: { provider: 'rain', reasonCode: 'main-kyc-required' },
+            })
+        })
+
+        it('open questions or agreements read agreements needed', () => {
+            expect(rows({ kind: 'questions', token: 't' })[0].state).toBe('agreements-needed')
+            expect(rows({ kind: 'agreements', isUsResident: false }, capabilities([]), false)[0].state).toBe(
+                'agreements-needed'
+            )
+        })
+
+        it.each([
+            [{ kind: 'needs-local-id' } as const, 'needs-local-id'],
+            [{ kind: 'checking' } as const, 'checking'],
+            [{ kind: 'occupation-not-accepted' } as const, 'occupation-not-accepted'],
+            [{ kind: 'not-available', message: 'm' } as const, 'not-available'],
+        ])('%j reads %s', (chain, state) => {
+            expect(rows(chain)[0].state).toBe(state)
+        })
+
+        it('an available rail wins over the card step', () => {
+            const caps = capabilities([card({ status: 'enabled', operations: { pay: 'enabled' } })])
+            expect(rows({ kind: 'agreements', isUsResident: false }, caps)[0].state).toBe('available')
+        })
+
+        it('an existing application or an error leaves the rail state', () => {
+            expect(rows({ kind: 'applied', status: 'PENDING' })[0].state).toBe('setting-up')
+            expect(rows({ kind: 'error', message: 'm' }, capabilities([]), false)[0].state).toBe('under-review')
+        })
+
+        it('the card step never touches the other rows', () => {
+            const all = setupRows({
+                intents: ALL,
+                residence: 'BR',
+                capabilities: capabilities([]),
+                identityVerified: false,
+                card: { kind: 'setting-up' },
+            })
+            expect(all.map((row) => row.state)).toEqual(['under-review', 'under-review', 'setting-up', 'under-review'])
+        })
     })
 })

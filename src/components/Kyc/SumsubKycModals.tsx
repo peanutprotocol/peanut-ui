@@ -1,11 +1,15 @@
 import ActionModal from '@/components/Global/ActionModal'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useModalsContext } from '@/context/ModalsContext'
 import { KycRestartCooldownModal } from './KycRestartCooldownModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import { OneShotCardStep } from '@/components/Kyc/OneShotCardStep'
 import { OneShotSetupDrawer } from '@/components/Kyc/OneShotSetupDrawer'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { cardStepIsOpen } from '@/utils/one-shot-card.utils'
 
 interface SumsubKycModalsProps {
     flow: ReturnType<typeof useMultiPhaseKycFlow>
@@ -21,6 +25,9 @@ interface SumsubKycModalsProps {
  */
 export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps) => {
     const t = useTranslations('kyc.correction')
+    const router = useRouter()
+    const { setIsSupportModalOpen } = useModalsContext()
+    const { oneShotCard } = flow
     return (
         <>
             <ActionModal
@@ -55,13 +62,41 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
 
             {/* one-shot onboarding (TASK-23329): the setup rows stand in for the phase modals */}
             {flow.oneShotSetup ? (
-                <OneShotSetupDrawer
-                    open={flow.isModalOpen}
-                    residence={flow.oneShotSetup.residence}
-                    rows={flow.oneShotSetup.rows}
-                    onClose={flow.handleModalClose}
-                    onContinue={flow.completeFlow}
-                />
+                <>
+                    {/* an SDK session or the card agreements take the screen; the drawer returns after them */}
+                    <OneShotSetupDrawer
+                        open={flow.isModalOpen && !oneShotCard.isForeground && !flow.showWrapper}
+                        residence={flow.oneShotSetup.residence}
+                        rows={flow.oneShotSetup.rows}
+                        retake={flow.oneShotRetake}
+                        cardError={oneShotCard.chain?.kind === 'error' ? oneShotCard.chain.message : null}
+                        onClose={flow.handleModalClose}
+                        onContinue={flow.completeFlow}
+                        // a retry on the same level: POST /users/identity answers a token for it
+                        onRetake={() => void flow.handleInitiateKyc()}
+                        onVerifyAgain={() => void flow.handleRestartIdentity()}
+                        onUploadDocument={(step) => {
+                            // the card step's own missing identity step: ask the route again, it mints the token
+                            if (step.provider === 'rain' && cardStepIsOpen(oneShotCard.chain))
+                                return void oneShotCard.resume()
+                            // the card page owns the card's other document upload (proof of address)
+                            if (step.provider === 'rain') return router.push('/card')
+                            void flow.handleFixableGate(step.provider === 'bridge' ? 'BRIDGE' : 'MANTECA', {
+                                actionKey: step.action?.key,
+                                reason: step.reasonCode ? { code: step.reasonCode } : undefined,
+                            })
+                        }}
+                        // the residence confirmation has its screen on the card page
+                        onResumeCard={() =>
+                            oneShotCard.chain?.kind === 'country-confirmation'
+                                ? router.push('/card')
+                                : void oneShotCard.resume()
+                        }
+                        onRetryCard={() => void oneShotCard.start()}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                    />
+                    <OneShotCardStep step={oneShotCard} />
+                </>
             ) : (
                 <KycVerificationInProgressModal
                     isOpen={flow.isModalOpen}

@@ -244,6 +244,16 @@ export interface IdentityVerification {
      * flow. Read via useIdentityVerification().oneShotResidence.
      */
     oneShot?: boolean
+    /**
+     * The features the user ticked on the unlock checklist (`PUT
+     * /users/kyc-intents`, item 3b); null until they did. The server's copy
+     * outranks the tab's: it survives a reload and another device.
+     */
+    kycIntents?: Record<'qr' | 'local' | 'card' | 'bank', boolean> | null
+    /** ISO timestamp the set was stored. */
+    kycIntentsSetAt?: string | null
+    /** ISO timestamp the one-shot SDK session first opened; null before. */
+    oneShotStartedAt?: string | null
     /** ISO timestamp the user submitted their verification. */
     submittedAt?: string
     /** Set by the API only for an uploaded identity check awaiting a decision. */

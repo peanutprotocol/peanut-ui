@@ -539,6 +539,9 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
         throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
             status: response.status,
             code: err.code,
+            // the body rides along for the fields the code alone does not carry
+            // (the plan's `reason` on a 403 from POST /rain/cards)
+            cause: err,
         })
     }
 

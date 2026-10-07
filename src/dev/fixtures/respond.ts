@@ -13,6 +13,8 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
 let warned = false
+// how often each sequenced route answered, per fixture; a page load starts over
+const sequenceCalls = new Map<string, number>()
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -47,11 +49,20 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     if (fixture.fails?.includes(key)) {
         return new Response(JSON.stringify({ error: 'fixture failure' }), { status: 500, headers: JSON_HEADERS })
     }
+    const failure = fixture.errors?.[key]
+    if (failure) return new Response(JSON.stringify(failure.body), { status: failure.status, headers: JSON_HEADERS })
 
     // demo-api already answers every route the app calls, with a shape-aware
     // fallback for the rest. A fixture only says what differs from that.
     const base = await demoRespond(path, options, { offline: true })
-    const override = fixture.responses?.[key]
+    const sequence = fixture.sequences?.[key]
+    let override = fixture.responses?.[key]
+    if (sequence?.length) {
+        const counterKey = `${name}:${key}`
+        const call = sequenceCalls.get(counterKey) ?? 0
+        sequenceCalls.set(counterKey, call + 1)
+        override = sequence[Math.min(call, sequence.length - 1)]
+    }
     if (override === undefined) return base
 
     const data = await base.json().catch(() => ({}))

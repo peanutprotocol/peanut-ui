@@ -73,7 +73,8 @@ test.describe('one-shot onboarding in Brazil', () => {
         for (const [key, title] of Object.entries(expected)) {
             const row = drawer.getByTestId(`setup-row-${key}`)
             await expect(row).toContainText(title)
-            await expect(row).toContainText('Under review')
+            // the card's agreements are on file (pending-identity): its step is done
+            await expect(row).toContainText(key === 'card' ? 'Setting up' : 'Under review')
         }
         // the SDK is gone, and the phase modal never shows for this user
         await expect(page.locator('[data-sumsub-stub]')).toHaveCount(0)
@@ -145,5 +146,62 @@ test.describe('one-shot unlock from a method on Accounts', () => {
         await expect(refusal).toContainText('Needs an ID issued by Spain')
         await expect(page.getByRole('button', { name: 'Unlock QR payments' })).toBeEnabled()
         await expect(page.getByRole('button', { name: 'I have these, start' })).toHaveCount(0)
+    })
+})
+
+/**
+ * Item 9b: the card step after the session, and the state a refused document
+ * leaves. The SDK stub submits every session it launches, the identity one and
+ * the card questions alike; the fixtures answer POST /rain/cards in turn.
+ */
+test.describe('one-shot onboarding in Brazil with the card', () => {
+    async function unlockFrom(page: Page, fixture: string) {
+        await page.goto(`/home?__fixture=${fixture}`, { waitUntil: 'domcontentloaded' })
+        await page.getByTestId('checklist-verify-identity').click({ timeout: 60_000 })
+        await expect(page.getByTestId('unlock-row-card').getByRole('switch')).toBeChecked()
+        await page.getByRole('button', { name: 'Unlock features' }).click()
+        await expect(page.locator('[data-sumsub-stub="launched"]')).toBeAttached({ timeout: 30_000 })
+    }
+
+    test('the session closes, the card questions open, the agreements follow, and the card row reads setting up', async ({
+        page,
+    }) => {
+        await stubSumsubSdk(page, { submits: true })
+        await unlockFrom(page, 'one-shot-setup-br-card')
+
+        // the agreements come after the questions; the setup drawer waits behind both
+        const terms = page.getByTestId('one-shot-card-terms')
+        await expect(terms).toBeVisible({ timeout: 30_000 })
+        await expect(page.getByTestId('one-shot-setup')).toHaveCount(0)
+        // the native input is sr-only; the user taps the drawn box, its label
+        for (const box of await terms.locator('label').all()) await box.click()
+        await expect(terms.getByRole('checkbox').first()).toBeChecked()
+        await terms.getByRole('button', { name: 'Continue' }).click()
+
+        const drawer = page.getByTestId('one-shot-setup')
+        await expect(drawer).toBeVisible({ timeout: 30_000 })
+        await expect(drawer.getByTestId('setup-row-card')).toContainText('Setting up')
+        await expect(drawer.getByTestId('setup-row-qr')).toContainText('Under review')
+        await expect(drawer.getByTestId('setup-row-bank')).toContainText('Under review')
+        await expect(drawer.getByRole('button', { name: 'Go to Home' })).toBeVisible()
+    })
+
+    test('a document the card partner refuses: the card row asks for a Brazilian ID and the button starts a new check', async ({
+        page,
+    }) => {
+        await stubSumsubSdk(page, { submits: true })
+        await unlockFrom(page, 'one-shot-setup-br-card-refused')
+
+        const drawer = page.getByTestId('one-shot-setup')
+        await expect(drawer).toBeVisible({ timeout: 30_000 })
+        const card = drawer.getByTestId('setup-row-card')
+        await expect(card).toContainText('Verify ID')
+        await expect(card).toContainText('Needs an ID issued by Brazil')
+        await expect(drawer.getByText('Starts a new identity check.')).toBeVisible()
+
+        await drawer.getByRole('button', { name: 'Verify again with a Brazil ID' }).click()
+        // the identity restart opens the SDK again, on the same level
+        await expect(page.locator('[data-sumsub-stub="launched"]')).toBeAttached({ timeout: 30_000 })
+        await expect(drawer).toBeHidden()
     })
 })
