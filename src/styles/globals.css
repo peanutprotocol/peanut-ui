@@ -125,7 +125,8 @@
     --color-avatar-green-border: #29cc6a;
     --color-avatar-green-foreground: #3b730c;
 
-    --color-background-selection: var(--color-purple-200);
+    /* Selected list/dropdown rows pair this fill with black text and a check. */
+    --color-background-selection: var(--color-blue-200);
 
     --color-shadow-primary: #000000;
 

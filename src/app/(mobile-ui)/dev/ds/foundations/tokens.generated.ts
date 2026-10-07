@@ -395,7 +395,7 @@ export const COLOR_TOKENS: ThemeToken[] = [
     },
     {
         "name": "background-selection",
-        "value": "var(--color-purple-200)",
+        "value": "var(--color-blue-200)",
         "section": "semantic",
         "previewClass": "bg-background-selection"
     },
