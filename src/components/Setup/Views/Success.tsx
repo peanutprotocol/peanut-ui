@@ -8,14 +8,20 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { notifyHaptic } from '@/utils/haptics'
-import CelebrationCurtain from '../components/CelebrationCurtain'
+import { confettiPresets } from '@/utils/confetti'
 
 /** Full-page celebration with centered content and the shared mascot/confetti. */
 export function SetupCelebrationView() {
     const t = useTranslations('setup')
+    const celebrated = useRef(false)
+    useEffect(() => {
+        if (celebrated.current) return
+        celebrated.current = true
+        confettiPresets.success()
+    }, [])
+
     return (
         <PageStack className="flex-1" data-setup-celebration>
-            <CelebrationCurtain />
             <PageStack.Center className="relative z-10 items-center text-center">
                 <PeanutMascot pose="cheering" alt="" className="h-52 w-auto" />
                 <TitleBlock align="center" size="s" title={<h1>{t('steps.success.title')}</h1>}>

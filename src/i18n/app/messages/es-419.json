@@ -793,13 +793,13 @@
             "rewards": "¡Quiero recompensas!",
             "control": "Vamos a terminar",
             "fees": "Suena bien",
-            "features": "Se ve bien",
+            "features": "Mantener estas opciones",
             "bank": "¡Eso sí me gusta!",
             "card": "Me encanta el rosa",
             "exchange": "Es una buena oferta",
             "local": "Vamos a pagar como locales",
             "people": "Tiene sentido",
-            "funding": "Sigamos"
+            "funding": "Mantener estas opciones"
         },
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {

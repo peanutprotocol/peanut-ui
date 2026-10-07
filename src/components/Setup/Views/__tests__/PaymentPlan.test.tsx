@@ -51,13 +51,13 @@ beforeEach(() => {
 })
 it('starts with both first options visible and accepts or changes them through the real drawers', async () => {
     renderWithIntl(ui('PT'))
-    expect(screen.getByRole('button', { name: 'Looks good' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Keep these choices' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Add money with: Bank transfer' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Make a payment with: Peanut card' })).toBeInTheDocument()
     await choose('Add money with', 'Bank transfer', 'Crypto')
     await choose('Make a payment with', 'Peanut card', 'QR payments')
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/qr')
-    fireEvent.click(screen.getByRole('button', { name: 'Looks good', hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Keep these choices', hidden: true }))
     expect(next).toHaveBeenCalledTimes(1)
 })
 it('groups bank providers, excludes cash, and leaves Peanut payments last', () => {
@@ -99,7 +99,7 @@ it('clears newly restricted choices and displays valid fallback options', async 
     mockSets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, full: new Set(['PT']) }
     view.rerender(ui('PT'))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/')
-    expect(screen.getByRole('button', { name: 'Looks good', hidden: true })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Keep these choices', hidden: true })).toBeEnabled()
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
 })
 it('can continue with explicitly selected universal channels when the restriction lookup fails', async () => {
@@ -107,7 +107,7 @@ it('can continue with explicitly selected universal channels when the restrictio
     renderWithIntl(ui('PT'))
     await choose('Add money with', 'Crypto', 'Crypto')
     await choose('Make a payment with', 'Peanut to Peanut', 'Peanut to Peanut')
-    fireEvent.click(screen.getByRole('button', { name: 'Looks good', hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Keep these choices', hidden: true }))
     expect(next).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
 })
@@ -144,7 +144,7 @@ it('waits 3.5 seconds, then alternates every two seconds and freezes the visible
 })
 it('saves both initially visible defaults immediately on Continue', () => {
     renderWithIntl(ui('BR'))
-    fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('brlBank/card')
     expect(next).toHaveBeenCalledTimes(1)
 })
@@ -153,7 +153,7 @@ it('saves the currently visible suggestions on Continue', () => {
     try {
         renderWithIntl(ui('BR'))
         act(() => jest.advanceTimersByTime(5500))
-        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
         expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/bank')
     } finally {
         jest.useRealTimers()
@@ -205,7 +205,7 @@ it('saves the displayed fallback defaults on Continue while the lookup remains u
     mockSettled = false
     renderWithIntl(ui('PT', true))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/')
-    fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
     expect(next).toHaveBeenCalledTimes(1)
 })
