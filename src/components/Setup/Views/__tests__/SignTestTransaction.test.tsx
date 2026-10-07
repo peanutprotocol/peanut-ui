@@ -200,6 +200,69 @@ describe('SignTestTransaction — setup completion', () => {
         expect(confettiPresets.celebration).not.toHaveBeenCalled()
     })
 
+    it('requires confirmation when unfinished signup already has a saved wallet', async () => {
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        mockFundingChannel = 'bank'
+        mockPaymentChannel = 'card'
+        const onComplete = jest.fn()
+        setRedirectUrl('/receipt?id=abc')
+        renderWithIntl(<SignTestTransaction merged onComplete={onComplete} />)
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(mockSendUserOp).not.toHaveBeenCalled()
+        expect(onComplete).not.toHaveBeenCalled()
+
+        let finishSigning!: (result: { userOpHash: string }) => void
+        mockSendUserOp.mockReturnValueOnce(new Promise((resolve) => (finishSigning = resolve)))
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        expect(mockSendUserOp).toHaveBeenCalledTimes(1)
+        expect(mockAddAccount).not.toHaveBeenCalled()
+        expect(onComplete).not.toHaveBeenCalled()
+
+        await act(async () => finishSigning({ userOpHash: '0xhash' }))
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(mockAddAccount).toHaveBeenCalledWith(
+            expect.objectContaining({ signupPreferences: { fundingChannel: 'bank', paymentChannel: 'card' } })
+        )
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+    })
+
+    it('still redirects an existing account on the legacy login finish route without signing', () => {
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        renderWithIntl(<SignTestTransaction />)
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        expect(mockSendUserOp).not.toHaveBeenCalled()
+        expect(mockAddAccount).not.toHaveBeenCalled()
+    })
+
+    it('retries saving signup after a backend failure without repeating successful signing', async () => {
+        const onComplete = jest.fn()
+        mockFundingChannel = 'bank'
+        mockPaymentChannel = 'card'
+        mockAddAccount.mockRejectedValueOnce(
+            new AccountSetupError('Account creation could not be confirmed', {
+                kind: 'retryable',
+                requestAttempts: 2,
+                status: 503,
+            })
+        )
+        const { rerender } = renderWithIntl(<SignTestTransaction onComplete={onComplete} />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(screen.getByRole('button', { name: /retry account setup/i })).toBeEnabled())
+        expect(mockSendUserOp).toHaveBeenCalledTimes(1)
+        expect(onComplete).not.toHaveBeenCalled()
+
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        rerender(<SignTestTransaction onComplete={onComplete} />)
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: /retry account setup/i }))
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(mockAddAccount).toHaveBeenCalledTimes(2)
+        expect(mockSendUserOp).toHaveBeenCalledTimes(1)
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
     it('attaches independently captured country hints to completion and the identified profile', async () => {
         recordSetupIpCountry('BR')
         const onComplete = jest.fn()

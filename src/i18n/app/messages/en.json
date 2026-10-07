@@ -720,7 +720,7 @@
             },
             "passkey-permission": {
                 "title": "Controlled only by you.",
-                "description": "Use your face, fingerprint, or screen lock to access your money and approve payments."
+                "description": "Use your face, fingerprint, or screen lock to approve payments."
             },
             "advantage-control": {
                 "title": "Ready to get started?",

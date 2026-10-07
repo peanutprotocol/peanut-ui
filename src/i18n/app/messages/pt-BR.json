@@ -720,7 +720,7 @@
             },
             "passkey-permission": {
                 "title": "Só você tem o controle.",
-                "description": "Use seu rosto, impressão digital ou bloqueio de tela para acessar seu dinheiro e aprovar pagamentos."
+                "description": "Use seu rosto, impressão digital ou bloqueio de tela para aprovar pagamentos."
             },
             "advantage-control": {
                 "title": "Tudo pronto para começar?",

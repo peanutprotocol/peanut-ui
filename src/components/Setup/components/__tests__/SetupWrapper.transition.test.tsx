@@ -33,6 +33,8 @@ it('slides complete screens together with only the incoming screen accessible', 
     const outgoing = screen.getByText(/^Pink card/).closest('[aria-hidden="true"]')
     expect(outgoing).toHaveAttribute('aria-hidden', 'true')
     expect(outgoing).toHaveAttribute('inert')
+    expect(outgoing).toHaveClass('absolute', 'inset-x-0', 'top-0')
+    expect(screen.getByText('Fund your account').closest('[aria-hidden="false"]')).not.toHaveClass('absolute')
     expect(screen.getAllByRole('heading')).toHaveLength(1)
     await waitFor(() => expect(screen.queryByText(/^Pink card/)).not.toBeInTheDocument())
     expect(hero).not.toBeInTheDocument()

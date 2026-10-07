@@ -427,7 +427,7 @@
             },
             "passkey-permission": {
                 "title": "Solo vos tenés el control.",
-                "description": "Usá tu rostro, huella o bloqueo de pantalla para acceder a tu plata y aprobar pagos."
+                "description": "Usá tu rostro, huella o bloqueo de pantalla para aprobar pagos."
             },
             "advantage-control": {
                 "title": "¿Todo listo para empezar?",

@@ -145,6 +145,8 @@ const TransitioningContent = ({
     prefersReducedMotion: boolean
 }) => {
     const isPresent = useIsPresent()
+    // An exiting screen must not stretch the incoming screen's footer, then
+    // move its CTA when AnimatePresence removes the taller outgoing page.
     return (
         <motion.div
             custom={direction}
@@ -153,7 +155,7 @@ const TransitioningContent = ({
             animate="center"
             exit="exit"
             transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
-            className={twMerge(className, !isPresent && 'pointer-events-none')}
+            className={twMerge(className, !isPresent && 'pointer-events-none absolute inset-x-0 top-0')}
             aria-hidden={!isPresent}
             inert={!isPresent}
         >
@@ -654,14 +656,14 @@ export const SetupWrapper = memo(function SetupWrapper({
 
             {/* content container */}
             {/* Stack complete screens so the incoming slide covers the outgoing layout without a blank frame. */}
-            <div className="grid min-w-0 flex-1">
+            <div className="relative grid min-w-0 flex-1 items-start">
                 <AnimatePresence initial={false} custom={transitionDirection} mode="sync">
                     <TransitioningContent
                         key={screenId}
                         direction={transitionDirection}
                         prefersReducedMotion={!!prefersReducedMotion}
                         className={twMerge(
-                            'col-start-1 row-start-1 mx-auto flex w-full min-w-0 flex-grow flex-col bg-white',
+                            'col-start-1 row-start-1 mx-auto flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full min-w-0 flex-grow flex-col bg-white',
                             !fullScreen && 'md:flex-row'
                         )}
                     >
