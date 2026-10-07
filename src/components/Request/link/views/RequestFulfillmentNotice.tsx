@@ -5,6 +5,7 @@ import Card from '@/components/Global/Card'
 import Badge from '@/components/Global/Badges/Badge'
 import { requestsApi } from '@/services/requests'
 import { formatTokenAmount } from '@/utils/general.utils'
+import { parseUsdAmountToUnits, printableUsdc } from '@/utils/balance.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
@@ -79,11 +80,17 @@ export function RequestFulfillmentNotice({ requestId }: { requestId: string; ban
     // Bank deposits and settled charges are separate books. While money is
     // still owed, progress must include both rather than just the bank part.
     const showCombinedProgress = state === 'partial' && !settled && fromCharges > 0
-    const fromBank = Number(data.receivedAmount)
     const receivedAmount = showCombinedProgress
-        ? String((Number.isFinite(fromBank) ? fromBank : 0) + fromCharges)
+        ? printableUsdc(
+              (parseUsdAmountToUnits(data.receivedAmount ?? '0') ?? 0n) + (parseUsdAmountToUnits(fromCharges) ?? 0n)
+          )
         : (data.receivedAmount ?? '0')
-    const received = formatTokenAmount(receivedAmount, 2) ?? receivedAmount
+    // printableUsdc truncates sub-cent dust using integer units. Format that
+    // cent-exact result directly: formatTokenAmount's floating-point floor
+    // can subtract a cent even from a correct decimal sum (e.g. 16.15).
+    const received = showCombinedProgress
+        ? Number(receivedAmount).toLocaleString('en-US', { maximumFractionDigits: 2 })
+        : (formatTokenAmount(receivedAmount, 2) ?? receivedAmount)
     const requested = formatTokenAmount(data.tokenAmount, 2) ?? data.tokenAmount ?? '0'
 
     // A part payment states both numbers, because the requester's next move is

@@ -90,6 +90,25 @@ describe('RequestFulfillmentNotice', () => {
         await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] }))
     })
 
+    it.each([
+        ['100.00', 100.21, '200.21'],
+        ['10.00', 6.15, '16.15'],
+        ['100.009', 100.001, '200.01'],
+        ['100.004', 100.004, '200'],
+    ])(
+        'preserves cents when combining bank %s and balance %s payments',
+        async (receivedAmount, totalCollectedAmount, total) => {
+            getRequest.mockResolvedValue(
+                request({ tokenAmount: '500', bankFulfilment: 'partial', receivedAmount, totalCollectedAmount })
+            )
+
+            renderNotice()
+
+            expect(await screen.findByText(`$${total} of $500 received`)).toBeInTheDocument()
+            expect(screen.getByText('Partly paid')).toBeInTheDocument()
+        }
+    )
+
     it('names the payer once the request is paid', async () => {
         getRequest.mockResolvedValue(request({ bankFulfilment: 'paid', receivedAmount: '250', payerName: 'ANA SILVA' }))
 
