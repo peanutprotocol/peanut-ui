@@ -1,4 +1,4 @@
-import { disableDemoMode, enableDemoMode, isDemoMode } from '@/utils/demo'
+import { disableDemoMode, enableDemoMode, isDemoMode, isDemoInviteCode } from '@/utils/demo'
 import { isCapacitor } from '@/utils/capacitor'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
@@ -7,25 +7,37 @@ const mockIsCapacitor = isCapacitor as jest.Mock
 
 const DEMO_MODE_KEY = 'peanut_demo_mode'
 
-// Demo mode short-circuits auth and every API call, so it must be impossible
-// to activate outside the native (Capacitor) shell — even with the flags set.
-describe('isDemoMode — web-inert guarantee', () => {
+describe('explicit demo sessions on web and native', () => {
     afterEach(() => {
         disableDemoMode()
         window.localStorage.removeItem(DEMO_MODE_KEY)
         mockIsCapacitor.mockReturnValue(false)
     })
 
-    it('is false on web even after enableDemoMode() sets the session flag', () => {
-        mockIsCapacitor.mockReturnValue(false)
-        enableDemoMode()
+    it('is off by default on web', () => {
+        disableDemoMode()
         expect(isDemoMode()).toBe(false)
     })
 
-    it('is false on web even when the localStorage flag is set directly', () => {
+    it('activates on web when explicitly enabled', () => {
+        mockIsCapacitor.mockReturnValue(false)
+        enableDemoMode()
+        expect(isDemoMode()).toBe(true)
+    })
+
+    it('restores a web demo session from localStorage', () => {
         mockIsCapacitor.mockReturnValue(false)
         window.localStorage.setItem(DEMO_MODE_KEY, 'true')
+        expect(isDemoMode()).toBe(true)
+    })
+
+    it.each(['demo', 'DEMO', ' @Demo '])('recognizes %s without enabling the session', (code) => {
+        expect(isDemoInviteCode(code)).toBe(true)
         expect(isDemoMode()).toBe(false)
+    })
+
+    it.each(['demouser', 'dem', '', null, undefined])('rejects ordinary or missing codes: %s', (code) => {
+        expect(isDemoInviteCode(code)).toBe(false)
     })
 
     it('is true in the native shell once enabled', () => {
