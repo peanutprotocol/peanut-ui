@@ -793,13 +793,13 @@
             "rewards": "Oba, recompensas!",
             "control": "Vamos terminar",
             "fees": "Gostei",
-            "features": "Gostei",
+            "features": "Manter estas escolhas",
             "bank": "Agora sim!",
             "card": "Adorei o rosa",
             "exchange": "É um bom negócio",
             "local": "Vamos pagar como os locais",
             "people": "Faz sentido",
-            "funding": "Vamos continuar"
+            "funding": "Manter estas escolhas"
         },
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {

@@ -793,13 +793,13 @@
             "rewards": "Ooh, rewards",
             "control": "Let's finish",
             "fees": "Sounds good",
-            "features": "Looks good",
+            "features": "Keep these choices",
             "bank": "Now we’re talking",
             "card": "Love the pink",
             "exchange": "That’s a good deal",
             "local": "Let’s go local",
             "people": "That makes sense",
-            "funding": "Let’s keep going"
+            "funding": "Keep these choices"
         },
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
