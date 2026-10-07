@@ -31,7 +31,7 @@ import { GuestVerificationModal } from '@/components/Global/GuestVerificationMod
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import { BankUnlockIntro } from '@/components/Kyc/BankUnlockIntroGate'
+import { BankUnlockIntro } from '@/components/Kyc/BankUnlockIntroScreen'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
