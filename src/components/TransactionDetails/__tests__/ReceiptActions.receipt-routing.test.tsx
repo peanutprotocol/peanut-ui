@@ -1,3 +1,4 @@
+import { isCapacitor } from '@/utils/capacitor'
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
@@ -323,4 +324,16 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         expect(screen.getByTestId('cancel-confirm-host')).toHaveAttribute('data-confirm-open', 'false')
         expect(setIsModalOpen).toHaveBeenLastCalledWith(false)
     })
+})
+
+test('native Download PDF uses the file bridge for public-capability kinds too', () => {
+    ;(isCapacitor as jest.Mock).mockReturnValue(true)
+    try {
+        renderActions(transaction('OFFRAMP'), vm())
+        fireEvent.click(screen.getByTestId('more-action-download'))
+        expect(mockPdfDownload).toHaveBeenCalled()
+        expect(mockOpenReceiptPdfUrl).not.toHaveBeenCalled()
+    } finally {
+        ;(isCapacitor as jest.Mock).mockReturnValue(false)
+    }
 })

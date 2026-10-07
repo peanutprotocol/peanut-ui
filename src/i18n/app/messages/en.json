@@ -1220,6 +1220,10 @@
             "badgePartial": "Partly paid",
             "paidByName": "Paid by {name}",
             "paidByBank": "Paid by bank transfer"
+        },
+        "paymentReceived": {
+            "rowLabel": "Payment",
+            "received": "Payment received"
         }
     },
     "payment": {
@@ -2412,7 +2416,7 @@
             "linkCopied": "Link copied",
             "linkCopyFailed": "Could not copy the link",
             "downloadPdf": "Download Receipt (PDF)",
-            "pdfDownloadedInstead": "This browser downloaded the receipt because file sharing is unavailable.",
+            "pdfDownloadedInstead": "File sharing is unavailable here. Receipt download started.",
             "receiptPdfUnavailable": "Receipt PDF is unavailable. Please try again.",
             "inviteFriends": "Invite friends to earn more rewards",
             "reportIssue": "Issues with this transaction?",
@@ -2423,7 +2427,9 @@
                 "title": "{kind, select, deposit {Cancel this deposit?} request {Cancel this request?} other {Cancel?}}",
                 "description": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",
                 "confirm": "{kind, select, deposit {Yes, cancel deposit} request {Yes, cancel request} other {Yes, cancel}}"
-            }
+            },
+            "nativeReceiptShareUnavailable": "Receipt sharing is unavailable in this version of Peanut. Update the app and try again.",
+            "receiptShareFailed": "Unable to share the receipt. Please try again."
         },
         "toast": {
             "linkCancelled": "Link cancelled successfully!",
