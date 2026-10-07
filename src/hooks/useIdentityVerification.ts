@@ -77,6 +77,12 @@ export interface UseIdentityVerificationResult {
      * flag is on but no residence was declared: nothing to build rows for.
      */
     oneShotResidence: string | null
+    /**
+     * The features the user ticked for the one-shot check, as the server
+     * stores them (`identity.kycIntents`, item 3b). Null until the unlock
+     * screen is answered, and on today's flow.
+     */
+    oneShotIntents: IdentityVerification['kycIntents'] | null
     isLoading: boolean
 }
 
@@ -115,6 +121,7 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
             // keeps its own button (resume a review, retry a failed check)
             needsDocumentRestart: status === 'action_required' && !!identityDocumentRestartAction(nextActions ?? []),
             oneShotResidence: identity.oneShot ? (declaredResidence ?? null) : null,
+            oneShotIntents: identity.kycIntents ?? null,
             isLoading: isFetchingUser,
         }
     }, [identity, nextActions, declaredResidence, isFetchingUser])

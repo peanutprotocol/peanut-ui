@@ -502,6 +502,13 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
+    // The one-shot save (TASK-23329): the API echoes the stored set, and the
+    // app writes that answer into its cached user before the check starts.
+    {
+        method: 'PUT',
+        pattern: '/users/kyc-intents',
+        handler: ({ options }) => ({ intents: parseBody(options), setAt: new Date().toISOString() }),
+    },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     {

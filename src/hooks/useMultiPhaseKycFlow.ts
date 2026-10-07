@@ -7,6 +7,7 @@ import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubRel
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useOneShotCardChain } from '@/hooks/useOneShotCardChain'
+import { markOneShotStarted, useOneShotSession } from '@/hooks/useOneShotSession'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import type { FeatureSetupReport } from '@/services/kyc-intents'
 import { deriveGate } from '@/utils/capability-gate'
@@ -211,9 +212,15 @@ export const useMultiPhaseKycFlow = ({
     // in place of the phase modals. Every other flow, a later one in this same
     // hook included, keeps the phases below. The ref is the same answer for
     // handleSumsubApproved, which can run inside a start, before any render.
-    const { oneShotResidence, needsAction, isTerminalFailure } = useIdentityVerification()
-    // the ticked set is the server's (item 3b); a save writes it into the cached user first
-    const oneShotIntents = user?.identityVerification?.kycIntents ?? null
+    const {
+        oneShotResidence,
+        oneShotIntents: storedIntents,
+        needsAction,
+        isTerminalFailure,
+    } = useIdentityVerification()
+    const oneShotSession = useOneShotSession()
+    // the ticked set is the server's (item 3b); the tab's own save stands in until /users/me reflects it
+    const oneShotIntents = storedIntents ?? oneShotSession?.intents ?? null
     const oneShotIntentsRef = useRef(oneShotIntents)
     oneShotIntentsRef.current = oneShotIntents
     // what PUT /users/kyc-intents answered when a feature was added after the
@@ -512,7 +519,8 @@ export const useMultiPhaseKycFlow = ({
 
             // Off before the start: an approved user gets no token and the start
             // itself reports success, which must take the phases. On again only
-            // for an SDK that opened on a stored set.
+            // for an SDK that opened on a stored set: the server's, or the one
+            // this tab stored.
             setOneShotFlow(false)
             resetCardStep()
             const opened = await originalHandleInitiateKyc(
@@ -523,7 +531,9 @@ export const useMultiPhaseKycFlow = ({
                 false,
                 corridor
             )
-            setOneShotFlow(opened === true && !!oneShotResidence && !!oneShotIntentsRef.current)
+            setOneShotFlow(
+                opened === true && !!oneShotResidence && (markOneShotStarted() || !!oneShotIntentsRef.current)
+            )
             return opened
         },
         [

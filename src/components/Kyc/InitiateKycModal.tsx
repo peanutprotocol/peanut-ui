@@ -18,6 +18,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useOneShotSession } from '@/hooks/useOneShotSession'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
@@ -114,7 +115,8 @@ export const InitiateKycModal = ({
     // support. Both contradict the region screen. Short-circuiting at the one
     // component they all share makes the invariant impossible for a future call
     // site to miss.
-    const { identity, isRegionRestricted, oneShotResidence } = useIdentityVerification()
+    const { isRegionRestricted, oneShotResidence, oneShotIntents } = useIdentityVerification()
+    const oneShotSession = useOneShotSession()
     const isKycDegraded = useKycDegraded()
     const [unlockSaving, setUnlockSaving] = useState(false)
     // Every gate that opens this modal unlocks a BANK rail (the two bank pages,
@@ -324,9 +326,12 @@ export const InitiateKycModal = ({
     // and residence endings above still outrank it. Flag off is today's screen.
     // A stored set skips the checklist (items 9a and 3b): Verify after closing
     // the SDK halfway, a reload or a second device resumes the same applicant
-    // from today's start screen instead of asking the questions twice. The set
-    // is the server's, on /users/me; the save writes it there before the check.
-    const unlockResidence = resolvedVariant === 'default' && !error && !identity.kycIntents ? oneShotResidence : null
+    // from today's start screen instead of asking the questions twice. A set
+    // this tab stored counts once its SDK session started: the checklist's own
+    // save must not hide it before its answer starts the check.
+    const storedBeforeThisTab = !!oneShotIntents && !oneShotSession
+    const skipChecklist = !!oneShotSession?.started || storedBeforeThisTab
+    const unlockResidence = resolvedVariant === 'default' && !error && !skipChecklist ? oneShotResidence : null
     const unlockStep = (host: 'page' | 'drawer') =>
         unlockResidence && (
             <UnlockChecklistStep

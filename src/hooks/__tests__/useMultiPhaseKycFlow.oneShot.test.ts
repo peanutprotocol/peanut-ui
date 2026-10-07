@@ -10,6 +10,8 @@ import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import posthog from 'posthog-js'
 import { initiateSumsubKyc, restartIdentityVerification } from '@/app/actions/sumsub'
+import { __resetOneShotSessionForTests } from '@/hooks/useOneShotSession'
+import { useSaveKycIntents } from '@/hooks/useSaveKycIntents'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import type { FeatureSetupReport } from '@/services/kyc-intents'
 import { rainApi } from '@/services/rain'
@@ -50,6 +52,14 @@ jest.mock('@/utils/capability-gate', () => ({
     deriveGate: () => ({ kind: mockGateKind }),
 }))
 jest.mock('@/app/actions/users', () => ({ getBridgeTosLink: jest.fn(), confirmBridgeTos: jest.fn() }))
+jest.mock('@tanstack/react-query', () => ({
+    ...jest.requireActual('@tanstack/react-query'),
+    useQueryClient: () => ({ setQueryData: jest.fn() }),
+}))
+jest.mock('@/services/kyc-intents', () => ({
+    ...jest.requireActual('@/services/kyc-intents'),
+    kycIntentsApi: { set: async (set: unknown) => ({ intents: set, setAt: '2026-10-07T10:00:00.000Z' }) },
+}))
 // the card step (item 9b): POST /rain/cards and the readiness poll after the questions
 jest.mock('@/services/rain', () => ({ rainApi: { applyForCard: jest.fn(), getCardApplyReadiness: jest.fn() } }))
 jest.mock('@/components/Card/cardApply.utils', () => ({ pollUntilReady: jest.fn(), pollUntilApplyAdvances: jest.fn() }))
@@ -119,6 +129,7 @@ async function submitFromChecklist(onKycSuccess?: () => void) {
 describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        __resetOneShotSessionForTests()
         delete mockUser.identityVerification
         mockGateKind = 'none'
         mockWs.handler = undefined
@@ -275,6 +286,7 @@ describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
 describe('useMultiPhaseKycFlow — flows that keep the phases', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        __resetOneShotSessionForTests()
         delete mockUser.identityVerification
         mockGateKind = 'none'
         mockWs.handler = undefined
@@ -359,6 +371,7 @@ describe('useMultiPhaseKycFlow — the card step', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        __resetOneShotSessionForTests()
         delete mockUser.identityVerification
         mockGateKind = 'none'
         mockWs.handler = undefined
@@ -419,6 +432,23 @@ describe('useMultiPhaseKycFlow — the card step', () => {
         expect(result.current.oneShotCard.chain).toBeNull()
     })
 
+    it("this tab's own save stands in until /users/me reflects it", async () => {
+        // the fixture, or a replica behind the save: /users/me carries no set yet
+        mockInitiate.mockResolvedValue(tokenAnswer)
+        const { result } = renderHook(() => ({ flow: useMultiPhaseKycFlow({}), save: useSaveKycIntents() }))
+        await act(async () => {
+            await result.current.save({ qr: true, local: false, card: false, bank: true })
+        })
+        await act(async () => {
+            await result.current.flow.handleInitiateKyc()
+        })
+        await act(async () => {
+            result.current.flow.handleSdkComplete()
+        })
+        expect(result.current.flow.oneShotSetup?.rows.map((row) => row.key)).toEqual(['qr', 'bank'])
+        expect(mockApply).not.toHaveBeenCalled()
+    })
+
     it('the rows follow the set on /users/me', async () => {
         mockUser.identityVerification = {
             status: 'not_started',
@@ -468,6 +498,7 @@ describe('useMultiPhaseKycFlow — a feature added after the check', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        __resetOneShotSessionForTests()
         mockGateKind = 'none'
         mockWs.handler = undefined
         setUser('verified', true, brazil('enabled'))
