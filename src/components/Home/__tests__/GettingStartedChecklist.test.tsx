@@ -26,11 +26,12 @@ const NEW_USER: OnboardingState = {
 const mockOnHide = jest.fn()
 const mockStartIdentityCheck = jest.fn()
 const mockStartQrIdentityCheck = jest.fn()
-const render = (onboarding: Partial<OnboardingState> = {}) =>
+const render = (onboarding: Partial<OnboardingState> = {}, showWelcome = true) =>
     rtlRender(
         <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
             <GettingStartedChecklist
                 onboarding={{ ...NEW_USER, ...onboarding }}
+                showWelcome={showWelcome}
                 onHide={mockOnHide}
                 onStartIdentityCheck={mockStartIdentityCheck}
                 onStartQrIdentityCheck={mockStartQrIdentityCheck}
@@ -336,6 +337,15 @@ describe('GettingStartedChecklist — Hide', () => {
 })
 
 describe('GettingStartedChecklist — welcome card and one done row', () => {
+    it('keeps the progress and every checklist step after the welcome expires', () => {
+        render({}, false)
+        expect(screen.queryByTestId('onboarding-welcome')).not.toBeInTheDocument()
+        expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
+        expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(4)
+        fireEvent.click(screen.getByText('Add money'))
+        expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
+    })
+
     it('welcomes with the real step count and the progress', () => {
         render()
         // visible title (hidden from screen readers) plus its spoken form

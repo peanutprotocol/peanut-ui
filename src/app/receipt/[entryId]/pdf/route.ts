@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { captureException } from '@sentry/nextjs'
 import { createTranslator } from 'next-intl'
@@ -5,7 +6,10 @@ import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { servesAnonymousReceipt } from '@/components/TransactionDetails/transaction-predicates'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
-import { isFinalState } from '@/utils/history.utils'
+import { isFinalState, type HistoryEntry } from '@/utils/history.utils'
+import { serverFetch } from '@/utils/api-fetch'
+import { isOwnBridgeAccountFlow } from '@/utils/provider.utils'
+import type { IUserProfile } from '@/interfaces/interfaces'
 import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
 import { loadMessages } from '@/i18n/app/messages'
 import { buildReceiptPdfModel, type PdfTranslate } from './receipt-pdf-model'
@@ -47,6 +51,35 @@ function writeRenderCache(key: string, bytes: Buffer, ttlMs: number): void {
         const oldest = renderCache.keys().next().value
         if (oldest === undefined) break
         renderCache.delete(oldest)
+    }
+}
+
+/**
+ * The Bridge entity depends on the owner's residence. Only the owner's own
+ * on/off-ramp qualifies: every party on it carries the owner's userId, and the
+ * requester's /users/me must match. A send-link claim or guest send can name
+ * another user, so it keeps the brand-only record. Any doubt answers null.
+ */
+async function ownerResidenceForBridge(entry: HistoryEntry, authorization: string | undefined): Promise<string | null> {
+    if (
+        !authorization ||
+        entry.extraData?.provider !== 'BRIDGE' ||
+        !isOwnBridgeAccountFlow(entry.extraData?.bridgeFlow)
+    ) {
+        return null
+    }
+    const partyIds = [entry.senderAccount?.userId, entry.recipientAccount?.userId].filter(Boolean)
+    if (partyIds.length === 0) return null
+    try {
+        const response = await serverFetch('/users/me', { headers: { Authorization: authorization } })
+        if (!response.ok) return null
+        const me: IUserProfile | null = await response.json()
+        const requesterId = me?.user?.userId
+        if (!requesterId || !partyIds.every((id) => id === requesterId)) return null
+        return me?.residence?.verified ?? null
+    } catch (error) {
+        captureException(error)
+        return null
     }
 }
 
@@ -100,11 +133,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const localeParam = searchParams.get('locale')
         const paramLocale = APP_LOCALES.find((l) => l === localeParam)
         const locale = paramLocale ?? resolveLocale(request.cookies.get('app-locale')?.value)
-        const messages = await loadMessages(locale)
+        const [messages, ownerResidence] = await Promise.all([
+            loadMessages(locale),
+            ownerResidenceForBridge(entry, authorization),
+        ])
         const t = createTranslator({ locale, messages }) as PdfTranslate
-        const model = buildReceiptPdfModel(transactionDetails, t, locale)
+        // the owner's residence only ever reaches an authorized render, and
+        // those skip the process cache and answer no-store below
+        const model = buildReceiptPdfModel(transactionDetails, t, locale, ownerResidence)
         const isFinal = isFinalState(entry)
-        const cacheKey = `${entryId}|${kind}|${locale}`
+        // the model is everything the bytes are rendered from, so its hash
+        // keeps a render (cached or in flight) from answering for a later
+        // state of the same receipt — pending → completed, a refund, an
+        // amount fix — and pending bytes never land under a final-state key
+        const modelHash = createHash('sha256').update(JSON.stringify(model)).digest('base64url')
+        const cacheKey = `${entryId}|${kind}|${locale}|${modelHash}`
         // Authenticated renders may contain participant-only fields and can
         // differ by viewer. Keep them out of the shared process/CDN cache.
         let pdf = authorization ? undefined : readRenderCache(cacheKey)

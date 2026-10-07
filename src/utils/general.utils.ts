@@ -21,6 +21,7 @@ import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { resolveChainRegistryEntry } from '@/constants/chainRegistry.consts'
+import { type PushPromptTrigger } from '@/constants/push-prompt.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
@@ -401,6 +402,8 @@ export interface RecentMethod {
 
 export type UserPreferences = {
     balanceHidden?: boolean
+    /** Welcome card only: first usable Home render, Home visits, and permanent dismissal on this device. */
+    homeWelcome?: { firstSeenAt: number; visits: number; hidden: boolean }
     recentAddMethods?: RecentMethod[]
     webAuthnKey?: Awaited<ReturnType<typeof toWebAuthnKey>>
     notifBannerShowAt?: number
@@ -422,6 +425,13 @@ export type UserPreferences = {
      *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
      *  during the migration window. */
     notifModalClosedAt?: string
+    /** ISO timestamp of the last "Not now" per push pre-prompt moment. Each
+     *  moment snoozes on its own entry, so a dismissed deposit prompt does not
+     *  silence the card prompt (TASK-23251). */
+    notifPromptClosedAt?: Partial<Record<PushPromptTrigger, string>>
+    /** App loads by this user on this device. The Home push fallback waits
+     *  for the third one. */
+    sessionCount?: number
     /** App-review nudge budget (see utils/app-review.ts). `moments` counts
      *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
      *  past OS review requests, oldest first. */
@@ -1200,20 +1210,6 @@ export function checkIfInternalNavigation(): boolean {
 }
 
 /**
- * Converts a string into a URL-friendly slug
- * @param text - The string to slugify
- * @returns A slugified string with lowercase letters, hyphens, and no special characters
- */
-export function slugify(text: string): string {
-    return text
-        .toLowerCase() // Convert to lowercase
-        .trim() // Remove leading/trailing whitespace
-        .replace(/[^\w\s-]/g, '') // Remove special characters except word chars, spaces, and hyphens
-        .replace(/[\s_-]+/g, '-') // Replace spaces, underscores, and multiple hyphens with single hyphen
-        .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
-}
-
-/**
  * Canonical invite-code shape: a bare, lowercased username (e.g. `alice`).
  *
  * Single source of truth — use this anywhere an invite code is built for
@@ -1222,8 +1218,8 @@ export function slugify(text: string): string {
  * the backend (peanut-api-ts `extractUsernameFromInvite` uppercases the input
  * and matches the old suffixes), so existing shared links keep working.
  *
- * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
- * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
+ * Also tolerates copied profile handles (`@alice ` or ` Alice`): trims
+ * whitespace and strips a leading @.
  */
 export { toInviteCode }
 export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'

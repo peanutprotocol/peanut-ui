@@ -119,6 +119,11 @@ export const webOneSignalAdapter: OneSignalAdapter = {
         if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
             await OneSignal.Notifications.requestPermission()
         }
+        // The browser may already have granted permission directly from a
+        // user gesture before this SDK became ready. Finish push registration.
+        if (browserPermission() === 'granted' && !OneSignal.User.PushSubscription.optedIn) {
+            await OneSignal.User.PushSubscription.optIn()
+        }
         return browserPermission()
     },
 

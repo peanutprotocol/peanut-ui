@@ -228,6 +228,26 @@ describe('apiFetch', () => {
                 expect.objectContaining({ outcome: 'timeout', problem: 'timeout' })
             )
         })
+
+        it('stops sending problem events after 20 in one page load', async () => {
+            jest.spyOn(Math, 'random').mockReturnValue(0.9)
+
+            await jest.isolateModulesAsync(async () => {
+                const { apiFetch: freshApiFetch } = await import('../api-fetch')
+                const { default: freshPosthog } = await import('posthog-js')
+                const { fetchWithSentry: freshFetch } = await import('@/utils/sentry.utils')
+
+                for (let i = 0; i < 25; i++) {
+                    ;(freshFetch as jest.Mock).mockRejectedValueOnce(new Error('offline'))
+                    await expect(freshApiFetch('/points/cash-status')).rejects.toThrow('offline')
+                }
+
+                const problems = (freshPosthog.capture as jest.Mock).mock.calls.filter(
+                    ([name]) => name === 'api_request_problem'
+                )
+                expect(problems).toHaveLength(20)
+            })
+        })
     })
 })
 

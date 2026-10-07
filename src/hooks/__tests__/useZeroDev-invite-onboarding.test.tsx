@@ -16,6 +16,21 @@ const mockIsConfirmedBadgeCampaignClaim = jest.fn()
 const mockIsUnavailableBadgeCampaignClaim = jest.fn()
 const mockPersistRegistrationBadgeCampaignDestination = jest.fn()
 const mockSettleShhhhhCampaignContinuation = jest.fn()
+const mockEnsureSignupAttributionForRegistration = jest.fn()
+const mockMarkSignupAttributionPending = jest.fn()
+const mockAttachSignupAttribution = jest.fn()
+const mockSignupAnalyticsState = jest.fn()
+const mockNativeCallback = jest.fn()
+const mockCreateNativeSignMessageCallback = jest.fn((_rpId: string, _credentialId: string) => mockNativeCallback)
+var mockAndroidNative = false
+jest.mock('@/utils/passkeyCeremony.utils', () => ({
+    ...jest.requireActual('@/utils/passkeyCeremony.utils'),
+    guardPasskeyCeremony: (ceremony: () => unknown) => ceremony(),
+}))
+jest.mock('@/utils/native-webauthn', () => ({
+    createNativeSignMessageCallback: (...args: unknown[]) =>
+        mockCreateNativeSignMessageCallback(args[0] as string, args[1] as string),
+}))
 let mockPendingBadgeCampaigns: string[] = []
 
 jest.mock('@/context/authContext', () => ({
@@ -57,7 +72,9 @@ const mockClearInvite = jest.fn()
 jest.mock('@/utils/invite-stash', () => ({
     readInviteCode: () => 'founderhaus',
     readInviteType: () => 'PAYMENT_LINK',
-    clearInvite: (...args: unknown[]) => mockClearInvite(...args),
+    bindInviteToUser: () => true,
+    clearInviteIfOwnedBy: (...args: unknown[]) => mockClearInvite(...args),
+    extendInviteForRetry: jest.fn(),
 }))
 jest.mock('@/utils/general.utils', () => ({
     updateUserPreferences: jest.fn(),
@@ -97,25 +114,95 @@ jest.mock('@/utils/webauthn.utils', () => ({
     capturePasskeySignFailure: jest.fn(),
     classifyPasskeyError: () => ({ code: 'UNKNOWN', message: 'unknown' }),
     normalizePasskeyServerError: (e: unknown) => e,
+    normalizeNativePasskeyError: (e: unknown) => e,
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'localhost' }))
+jest.mock('@/utils/deferred-link', () => ({ restoreDeferredContext: jest.fn(async () => {}) }))
+
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => mockAndroidNative,
+    isAndroidNative: () => mockAndroidNative,
+    getNativeRpId: () => 'peanut.me',
+}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+jest.mock('@/utils/signup-attribution', () => ({
+    ensureSignupAttributionForRegistration: (...args: unknown[]) => mockEnsureSignupAttributionForRegistration(...args),
+    markSignupAttributionPending: (...args: unknown[]) => mockMarkSignupAttributionPending(...args),
+    signupAnalyticsState: (...args: unknown[]) => mockSignupAnalyticsState(...args),
+}))
+jest.mock('@/services/signup-attribution', () => ({
+    attachSignupAttribution: (...args: unknown[]) => mockAttachSignupAttribution(...args),
+}))
 
 describe('useZeroDev registration invite boundary', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockPendingBadgeCampaigns = []
+        mockAndroidNative = false
         mockToWebAuthnKey.mockResolvedValue({ id: 'new-passkey' })
         mockSettleAcceptedInviteAcquisition.mockReturnValue({ destination: '/home', pending: [] })
         mockSettleShhhhhCampaignContinuation.mockReturnValue(undefined)
+        mockEnsureSignupAttributionForRegistration.mockResolvedValue({ journeyId: 'signup-journey' })
+        mockMarkSignupAttributionPending.mockResolvedValue(undefined)
+        mockAttachSignupAttribution.mockResolvedValue(undefined)
+        mockSignupAnalyticsState.mockReturnValue('enabled')
         mockIsConfirmedBadgeCampaignClaim.mockImplementation(
             (claim: { outcome?: string }) => claim.outcome === 'awarded' || claim.outcome === 'already_owned'
         )
         mockIsUnavailableBadgeCampaignClaim.mockImplementation((claim: { outcome?: string }) =>
             ['inactive', 'expired', 'unknown'].includes(claim.outcome ?? '')
         )
+    })
+
+    it('durably prepares attribution before registration and only arms attachment when a context exists', async () => {
+        mockAcceptInvite.mockResolvedValue({
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            claims: [],
+        })
+        const { result } = renderHook(() => useZeroDev())
+
+        await act(async () => result.current.handleRegister('new-user'))
+
+        expect(mockEnsureSignupAttributionForRegistration).toHaveBeenCalledTimes(1)
+        expect(mockEnsureSignupAttributionForRegistration.mock.invocationCallOrder[0]).toBeLessThan(
+            mockToWebAuthnKey.mock.invocationCallOrder[0]
+        )
+        expect(mockMarkSignupAttributionPending).toHaveBeenCalledWith('registered-user')
+        expect(mockAttachSignupAttribution).toHaveBeenCalledWith('registered-user')
+        expect(mockToWebAuthnKey).toHaveBeenCalledWith(
+            expect.objectContaining({
+                passkeyServerHeaders: expect.objectContaining({ 'x-signup-analytics-state': 'enabled' }),
+            })
+        )
+
+        jest.clearAllMocks()
+        mockToWebAuthnKey.mockResolvedValue({ id: 'new-passkey' })
+        mockEnsureSignupAttributionForRegistration.mockResolvedValue(null)
+        mockAttachSignupAttribution.mockResolvedValue(undefined)
+
+        await act(async () => result.current.handleRegister('another-user'))
+
+        expect(mockMarkSignupAttributionPending).not.toHaveBeenCalled()
+        expect(mockAttachSignupAttribution).toHaveBeenCalledWith('registered-user')
+    })
+
+    it('pins the newly registered Android key before publishing the wallet client', async () => {
+        mockAndroidNative = true
+        const key = { authenticatorId: 'fresh-credential', rpID: 'peanut.me' }
+        mockToWebAuthnKey.mockResolvedValue(key)
+        mockAcceptInvite.mockResolvedValue({
+            success: true,
+            onboardingResolved: true,
+            attributionResolved: true,
+            claims: [],
+        })
+        const { result } = renderHook(() => useZeroDev())
+        await act(async () => result.current.handleRegister('new-user'))
+        expect(mockCreateNativeSignMessageCallback).toHaveBeenCalledWith('peanut.me', 'fresh-credential')
+        expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ ...key, signMessageCallback: mockNativeCallback })
     })
 
     it.each(['awarded', 'inactive'] as const)(

@@ -134,7 +134,7 @@ export const MERCHANTS: Record<string, Merchant> = {
                 { name: 'Avocado Toast', priceARS: ARS(11500) },
             ],
         },
-        install: { sub: '60 seconds. Skip the waitlist. Free coffee.' },
+        install: { sub: '60 seconds. Create your wallet. Free coffee.' },
         branding: { logoSrc: '/merchants/stain/profile.jpg' },
         polaroids: [
             {
@@ -161,7 +161,7 @@ export const MERCHANTS: Record<string, Merchant> = {
         metaDescription:
             'Free $10 on your first Mercado Pago payment in Buenos Aires. No DNI, no Argentine bank account needed. For the BA Digital Nomads community.',
         heading: 'stop hunting\nfor cash.',
-        sub: 'Free $10 on your first payment. Skip the waitlist.',
+        sub: 'Free $10 on your first payment. Open to everyone.',
         body: 'Pay any Mercado Pago QR in Buenos Aires at the best rate available. No Argentine bank account, no cash hunt, no DNI. Fund with USDC or a bank transfer. Built for nomads, by nomads.',
         dealLabel: 'on us',
         primaryCta: 'GET PEANUT',
@@ -221,7 +221,7 @@ export const MERCHANTS: Record<string, Merchant> = {
                 },
             ],
         },
-        install: { sub: '60 seconds. Skip the waitlist. $10 on us.' },
+        install: { sub: '60 seconds. Create your wallet. $10 on us.' },
         ambassador: {
             kicker: '↓ FOR COMMUNITY ORGANISERS',
             heading: 'Bring peanut to your nomad community.',

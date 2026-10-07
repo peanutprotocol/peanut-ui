@@ -1,7 +1,9 @@
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { isCapacitor } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -43,7 +45,8 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
 
 const SetupPasskey = () => {
     const t = useTranslations('setup')
-    const { username } = useSetupFlowContext()
+    const { username, noBackLockScreenId, setNoBackLockScreenId } = useSetupFlowContext()
+    const alreadyRegistered = noBackLockScreenId === 'passkey-permission'
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
@@ -76,6 +79,7 @@ const SetupPasskey = () => {
 
     // preflight check for common passkey issues
     useEffect(() => {
+        if (alreadyRegistered) return
         const runPreflightCheck = async () => {
             const result = await checkPasskeySupport()
             if (!result.isSupported && result.warning) {
@@ -84,10 +88,14 @@ const SetupPasskey = () => {
         }
 
         runPreflightCheck()
-    }, [])
+    }, [alreadyRegistered])
 
     // handle passkey registration with retry logic
     const handlePasskeySetup = async () => {
+        if (alreadyRegistered) {
+            await handleNext()
+            return
+        }
         if (setupInFlightRef.current) return
         setupInFlightRef.current = true
         setIsPreparing(true)
@@ -249,27 +257,21 @@ const SetupPasskey = () => {
     // re-auth guard then bounces back to /setup).
     useEffect(() => {
         if (address && registrationInitiatedRef.current) {
+            registrationInitiatedRef.current = false
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
+            setNoBackLockScreenId('passkey-permission')
             handleNext()
         }
-    }, [address, handleNext, deviceType])
+    }, [address, handleNext, deviceType, setNoBackLockScreenId])
 
     return (
-        <div>
-            <div className="flex h-full flex-col justify-between gap-10 p-0 md:min-h-32">
-                <div className="flex h-full flex-col justify-end gap-2 text-center">
+        <div className="flex flex-1 flex-col">
+            <div className="flex flex-1 flex-col justify-between gap-6">
+                <div className="flex flex-1 flex-col justify-center gap-2 text-center">
                     {/* Stays enabled even with a preflight warning: handlePasskeySetup
                         re-checks support and surfaces an actionable message, so a tap is
                         never a silent no-op. Only disabled while actually working. */}
-                    <Button
-                        loading={isPreparing || isRegistering || isLoading}
-                        disabled={isPreparing || isRegistering || isLoading}
-                        onClick={handlePasskeySetup}
-                        className="text-nowrap"
-                        shadowSize="4"
-                    >
-                        {t('passkey.setItUp')}
-                    </Button>
+
                     {preflightWarning && <p className="text-label-l text-foreground-attention">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
@@ -288,14 +290,26 @@ const SetupPasskey = () => {
                     )}
                     {inlineError && <Callout priority="error">{inlineError}</Callout>}
                 </div>
-                <div>
-                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
-                        {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
-                        <DocsLink href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
+                <SetupFooter
+                    actions={
+                        <Button
+                            loading={isPreparing || isRegistering || isLoading}
+                            disabled={isPreparing || isRegistering || isLoading}
+                            onClick={handlePasskeySetup}
+                            className="text-nowrap"
+                            shadowSize="4"
+                        >
+                            {t(alreadyRegistered ? 'email.continue' : 'passkey.setItUp')}
+                        </Button>
+                    }
+                >
+                    <p className="text-center text-body-xs text-foreground-secondary">
+                        <SetupDocLink kind="passkeys" href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
+                            <Icon name="info" size={16} className="shrink-0" />
                             {t('passkey.learnMore')}
-                        </DocsLink>{' '}
+                        </SetupDocLink>{' '}
                     </p>
-                </div>
+                </SetupFooter>
             </div>
 
             {/* help modal for passkey setup issues */}

@@ -116,7 +116,7 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 
     let payload = ''
     try {
-        payload = buildDeferredPayload(handoff?.dest, handoff?.invite)
+        payload = buildDeferredPayload(handoff?.dest, handoff?.invite, store)
     } catch {
         // a payload failure must never block the store bounce itself
     }
@@ -144,7 +144,7 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 export function storeAnchorHref(store: StoreKind): string {
     if (!isCapacitor() && store === 'android') {
         try {
-            return playStoreUrlWithReferrer(buildDeferredPayload())
+            return playStoreUrlWithReferrer(buildDeferredPayload(undefined, undefined, 'android'))
         } catch {
             // fall through to the bare url — the bounce itself never breaks
         }
@@ -160,7 +160,7 @@ export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) 
     }
     let payload = ''
     try {
-        payload = buildDeferredPayload()
+        payload = buildDeferredPayload(undefined, undefined, store)
     } catch {}
     trackStoreClick(store, surface, !!payload)
     if (store === 'ios' && payload)

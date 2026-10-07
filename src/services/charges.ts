@@ -79,6 +79,18 @@ export const chargesApi = {
         return jsonParse(await response.text()) as TRequestChargeResponse
     },
 
+    /** The requestee sets the amount of an open-amount request before paying it. */
+    setAmount: async (id: string, amount: string): Promise<void> => {
+        const response = await serverFetch(`/charges/${id}/amount`, {
+            method: 'PATCH',
+            body: JSON.stringify({ amount }),
+        })
+
+        if (!response.ok) {
+            throw await apiErrorFromResponse(response, 'Failed to set the request amount')
+        }
+    },
+
     cancel: async (id: string): Promise<void> => {
         const response = await serverFetch(`/charges/${id}`, {
             method: 'DELETE',

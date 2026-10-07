@@ -5,15 +5,20 @@
  * useWallet → useSendMoney), so AppIntlProvider must wrap it. When it didn't,
  * every route 500'd with "context from NextIntlClientProvider was not found" —
  * and no unit test caught it, because each one wraps its own subject in a
- * provider. This walks the real element tree instead of rendering it, so the
- * contract is checked without mocking the wallet/kernel/Capacitor stack.
+ * provider. This invokes the component inside a React render, then walks its
+ * returned element tree without mounting the wallet/kernel/Capacitor stack.
  */
 import React from 'react'
-import { ClientProviders } from '../ClientProviders'
+import { render, renderHook, waitFor } from '@testing-library/react'
+import { ClientProviders, SignupAttributionNavigationCapture } from '../ClientProviders'
+import { captureSignupAttribution } from '@/utils/signup-attribution'
+
+const mockCaptureSignupAttribution = jest.mocked(captureSignupAttribution)
 
 jest.mock('@/hooks/useSplashGate', () => ({ useSplashGate: jest.fn() }))
 jest.mock('@/hooks/useNativeAppLinks', () => ({ useNativeAppLinks: jest.fn() }))
 jest.mock('@/hooks/useZeroLegacyAndroidSafeAreaInsets', () => ({ useZeroLegacyAndroidSafeAreaInsets: jest.fn() }))
+jest.mock('@/utils/signup-attribution', () => ({ captureSignupAttribution: jest.fn() }))
 // Both sit ABOVE the two providers under test, so stubbing them can't mask the
 // contract. PeanutProvider pulls the wagmi config (http() at module scope) and
 // nuqs ships ESM jest won't transform — neither survives jsdom import.
@@ -22,8 +27,8 @@ jest.mock('@/config/peanut.config', () => ({
         return children
     },
 }))
-// The component is invoked as a plain function rather than rendered, so the
-// router hook it now calls has no context. An app route is what keeps the full
+// The component's returned tree is inspected without mounting a router, so the
+// router hook has no context. An app route is what keeps the full
 // provider tree in the chain being asserted.
 let pathname = '/home'
 jest.mock('next/navigation', () => ({ usePathname: () => pathname }))
@@ -53,7 +58,10 @@ function providerChain(node: React.ReactNode, acc: string[] = []): string[] {
 describe('ClientProviders provider order', () => {
     const chainFor = (path: string) => {
         pathname = path
-        return providerChain(ClientProviders({ children: <div data-testid="app" /> }))
+        const { result, unmount } = renderHook(() => ClientProviders({ children: <div data-testid="app" /> }))
+        const chain = providerChain(result.current)
+        unmount()
+        return chain
     }
 
     it('mounts the intl provider outside ContextProvider on app routes', () => {
@@ -97,5 +105,19 @@ describe('ClientProviders provider order', () => {
         expect(intl).toBeGreaterThanOrEqual(0)
         expect(context).toBeGreaterThanOrEqual(0)
         expect(intl).toBeLessThan(context)
+    })
+
+    it('keeps React navigation entries referrer-free after instrumentation bootstrap', async () => {
+        mockCaptureSignupAttribution.mockClear()
+        Object.defineProperty(window, 'Capacitor', { configurable: true, value: undefined })
+
+        const { rerender } = render(<SignupAttributionNavigationCapture pathname="/blog/creator-guide" />)
+
+        await waitFor(() => expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith())
+
+        rerender(<SignupAttributionNavigationCapture pathname="/signup" />)
+
+        await waitFor(() => expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith())
+        expect(mockCaptureSignupAttribution).toHaveBeenCalledTimes(2)
     })
 })

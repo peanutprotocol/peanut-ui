@@ -171,7 +171,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/AddWithdraw/DynamicBankAccountForm.tsx',
                     'components/SearchInput/index.tsx',
                     'components/Profile/components/ProfileEditField.tsx',
-                    'components/Invites/JoinWaitlistPage.tsx',
                     'components/LandingPage/CurrencySelect.tsx',
                 ],
             },
@@ -188,7 +187,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/Send/views/SendRouter.view.tsx',
                     'components/Global/TokenSelector/TokenSelector.tsx',
                     'components/Common/SavedAccountsView.tsx',
-                    'components/Setup/Views/JoinWaitlist.tsx',
                 ],
             },
             {
@@ -203,7 +201,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/Card/LockCardModal.tsx',
                     'components/Card/CancelCardModal.tsx',
                     'components/AddMoney/components/OnrampConfirmationModal.tsx',
-                    'components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
                 ],
             },
             {
@@ -585,7 +582,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'components/AddMoney/views/CryptoDeposit.view.tsx',
                     'components/AddMoney/views/RhinoDeposit.view.tsx',
                     'components/AddMoney/components/EvmChainChips.tsx',
-                    'components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
                     'components/LandingPage/SupportedRailsFaqAnswer.tsx',
                 ],
                 verified: true,

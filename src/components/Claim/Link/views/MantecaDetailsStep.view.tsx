@@ -19,6 +19,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
     destinationAddress,
     setDestinationAddress,
 }) => {
+    const tCommon = useTranslations('common')
     const t = useTranslations('claim')
     const tWithdraw = useTranslations('withdraw')
     const handleOnClick = async () => {
@@ -63,7 +64,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
                 {errorMessage && <FieldError>{errorMessage}</FieldError>}
             </div>
             <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                <span>{t('manteca.ownAccountOnly')}</span>
+                <span>{tCommon('ownAccountOnly')}</span>
             </div>
             <Button
                 disabled={

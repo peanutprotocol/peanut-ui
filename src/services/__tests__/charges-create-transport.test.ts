@@ -8,7 +8,7 @@
  */
 import { chargesApi } from '@/services/charges'
 import { ApiError } from '@/services/api-error'
-import { apiFetch } from '@/utils/api-fetch'
+import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { CreateChargeRequest } from '@/services/services.types'
 
@@ -100,5 +100,34 @@ describe('chargesApi.create transport', () => {
         expect(err).toBeInstanceOf(ApiError)
         expect(err.status).toBe(502)
         expect(err.message).toBe('Failed to create charge')
+    })
+})
+
+describe('chargesApi.setAmount', () => {
+    const mockServerFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
+    beforeEach(() => mockServerFetch.mockReset())
+
+    it('PATCHes the amount the requestee chose', async () => {
+        mockServerFetch.mockResolvedValue({ ok: true } as Response)
+        await chargesApi.setAmount('charge-1', '12.5')
+        expect(mockServerFetch).toHaveBeenCalledWith('/charges/charge-1/amount', {
+            method: 'PATCH',
+            body: JSON.stringify({ amount: '12.5' }),
+        })
+    })
+
+    it("keeps the API's reason when the amount can no longer change", async () => {
+        mockServerFetch.mockResolvedValue({
+            ok: false,
+            status: 409,
+            statusText: 'Conflict',
+            headers: new Headers(),
+            json: () => Promise.resolve({ error: 'This request can no longer be changed' }),
+            text: () => Promise.resolve(JSON.stringify({ error: 'This request can no longer be changed' })),
+        } as Response)
+        const err = await chargesApi.setAmount('charge-1', '12.5').catch((e) => e)
+        expect(err).toBeInstanceOf(ApiError)
+        expect(err.status).toBe(409)
+        expect(err.message).toBe('This request can no longer be changed')
     })
 })

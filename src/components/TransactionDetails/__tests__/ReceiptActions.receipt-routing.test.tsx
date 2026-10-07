@@ -181,7 +181,10 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         // pre-existing url path (anchor/web, system browser/native) — never
         // the authenticated file hook
         fireEvent.click(screen.getByTestId('more-action-download'))
-        expect(mockOpenReceiptPdfUrl).toHaveBeenCalledWith('/receipt/entry-1/pdf?kind=QR_PAY&locale=en')
+        // the receipt state rides the url so the cdn never answers for an older state
+        expect(mockOpenReceiptPdfUrl).toHaveBeenCalledWith(
+            expect.stringMatching(/^\/receipt\/entry-1\/pdf\?kind=QR_PAY&locale=en&v=.+/)
+        )
         expect(mockPdfDownload).not.toHaveBeenCalled()
     })
 

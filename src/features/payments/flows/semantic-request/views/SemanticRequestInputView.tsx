@@ -17,6 +17,7 @@ import { useEffect, useContext, useMemo } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -26,7 +27,7 @@ import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
-import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
@@ -38,6 +39,7 @@ export function SemanticRequestInputView() {
         amount,
         recipient,
         parsedUrl,
+        charge,
         chargeIdFromUrl,
         isAmountFromUrl,
         urlToken,
@@ -110,15 +112,13 @@ export function SemanticRequestInputView() {
         }
     }
 
+    // An open-amount request names who is asking: the charge carries their
+    // handle, while the recipient derived from it is only their address.
+    const openAmountRequester = charge?.openAmount ? charge.requestLink?.recipientAccount?.user : undefined
+
     // determine button state
     const isButtonDisabled = !canProceed || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
-
-    // get display name for recipient
-    const recipientDisplayName =
-        recipient?.recipientType === 'ADDRESS'
-            ? printableAddress(recipient.resolvedAddress)
-            : recipient?.identifier || ''
 
     // check if using peanut wallet default (usdc on arb)
     const isUsingPeanutDefault =
@@ -127,8 +127,10 @@ export function SemanticRequestInputView() {
 
     // determine if we should show token selector
     // only show when chain is NOT specified in url AND recipient is ADDRESS or ENS
+    // An open-amount request is paid in the token its charge names, like any request.
     const showTokenSelector =
         !parsedUrl?.chain?.chainId &&
+        !charge?.openAmount &&
         (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
         isConnected
 
@@ -174,17 +176,29 @@ export function SemanticRequestInputView() {
 
             <PageStack.Center className="gap-4">
                 {/* recipient card */}
-                {recipient && (
+                {openAmountRequester?.username ? (
                     <UserCard
-                        type="send"
-                        username={
-                            recipient.recipientType === 'ADDRESS'
-                                ? printableAddress(recipient.resolvedAddress)
-                                : recipientDisplayName
-                        }
-                        recipientType={recipient.recipientType}
+                        type="request_pay"
+                        username={openAmountRequester.username}
+                        recipientType="USERNAME"
+                        avatarKey={openAmountRequester.avatarKey}
                         isVerified={false}
+                        isOpenAmount
+                        message={charge?.requestLink?.reference ?? undefined}
                     />
+                ) : (
+                    recipient && (
+                        <UserCard
+                            type="send"
+                            // the full address: the card's AddressLink shortens it, resolves
+                            // its ENS name and links to it — a pre-shortened string breaks all three
+                            username={
+                                recipient.recipientType === 'ADDRESS' ? recipient.resolvedAddress : recipient.identifier
+                            }
+                            recipientType={recipient.recipientType}
+                            isVerified={false}
+                        />
+                    )
                 )}
 
                 {/* amount input + its field error form one column, 4px apart */}
@@ -198,7 +212,8 @@ export function SemanticRequestInputView() {
                         balanceFillAmount={balanceFill}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
-                        disabled={isAmountFromUrl || !!chargeIdFromUrl}
+                        // a charge fixes the amount, unless the requestee is asked to choose it
+                        disabled={isAmountFromUrl || (!!chargeIdFromUrl && !charge?.openAmount)}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
                 </div>
@@ -221,12 +236,21 @@ export function SemanticRequestInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {error.showError && <Callout priority="error">{error.errorMessage}</Callout>}
+                    {error.showError && (
+                        <Callout priority="error">
+                            <CooldownErrorText message={error.errorMessage} />
+                        </Callout>
+                    )}
                 </div>
 
                 {/* action list for non-logged in users */}
                 <PaymentMethodActionList
-                    onPayWithExternalWallet={handleOpenExternalWalletFlow}
+                    // Only the signed-in requestee can set an open amount, so a
+                    // signed-out visitor gets no wallet option here; the button
+                    // above takes them to sign in and back.
+                    onPayWithExternalWallet={
+                        charge?.openAmount && !isLoggedIn ? undefined : handleOpenExternalWalletFlow
+                    }
                     isAmountEntered={isAmountEntered}
                 />
             </PageStack.Center>
