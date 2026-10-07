@@ -1436,6 +1436,84 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // Item 8c, second part (D16): a Brazilian who passed the one-shot check
+    // with QR ticked taps Unlock on EUR. The sheet asks no ID question and
+    // opens no SDK: PUT /users/kyc-intents adds `bank` to the stored set and
+    // answers what each feature got; the setup drawer shows the rows.
+    'one-shot-unlock-add': {
+        route: '/profile/accounts',
+        about: 'A verified one-shot user in Brazil adds USD and EUR accounts from the Unlock tap: no new identity check, the setup drawer follows the answer.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: {
+                    status: 'verified',
+                    oneShot: true,
+                    kycIntents: { qr: true, local: false, card: false, bank: true },
+                    kycIntentsSetAt: '2026-10-07T09:00:00.000Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'manteca.pix_br',
+                            provider: 'manteca',
+                            method: 'PIX_BR',
+                            channel: 'bank',
+                            country: 'BR',
+                            currency: 'BRL',
+                            status: 'pending',
+                            operations: { pay: 'enabled', deposit: 'pending', withdraw: 'pending' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+                residence: { declared: 'BR', verified: 'BR' },
+            },
+            // the demo baseline holds a EUR account; this user holds none yet
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+            'PUT /users/kyc-intents': {
+                intents: { qr: true, local: false, card: false, bank: true },
+                setAt: '2026-10-07T10:00:00.000Z',
+                features: {
+                    qr: { state: 'on' },
+                    local: { state: 'not_requested' },
+                    card: { state: 'not_requested' },
+                    bank: { state: 'setting_up' },
+                },
+            },
+        },
+    },
+    // The same tap when the plan refuses the accounts for the document's
+    // issuing country: the sheet says which ID would open them and offers a
+    // new check with it.
+    'one-shot-unlock-add-refused': {
+        route: '/profile/accounts',
+        about: 'A verified one-shot user in Brazil taps Unlock on EUR, and the plan refuses the accounts for the document country: the sheet offers a new check with a Brazilian ID.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: {
+                    status: 'verified',
+                    oneShot: true,
+                    kycIntents: { qr: true, local: false, card: false, bank: false },
+                    kycIntentsSetAt: '2026-10-07T09:00:00.000Z',
+                },
+                capabilities: { rails: [], nextActions: [], restrictions: [] },
+                residence: { declared: 'BR', verified: 'BR' },
+            },
+            // the demo baseline holds a EUR account; this user holds none yet
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+            'PUT /users/kyc-intents': {
+                intents: { qr: true, local: false, card: false, bank: true },
+                setAt: '2026-10-07T10:00:00.000Z',
+                features: {
+                    qr: { state: 'on' },
+                    local: { state: 'not_requested' },
+                    card: { state: 'not_requested' },
+                    bank: { state: 'refused', reason: 'document_country_unsupported' },
+                },
+            },
+        },
+    },
     'identity-awaiting-upload': {
         route: '/profile/accounts',
         about: 'ID upload still required: no in-review notice or support escalation.',
