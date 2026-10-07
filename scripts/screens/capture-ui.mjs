@@ -15,9 +15,12 @@ export const CAPTURE_STATIC_CSS = `
 [data-testid="fixture-banner"],a[href*="__fixture=off"] { display:none!important; }
 `
 
-/** Finish finite overlay motion before cancelling CSS animations for stills. */
-export function finishOverlayAnimations(root = document) {
-    for (const overlay of root.querySelectorAll('[role="dialog"], [role="listbox"]')) {
+/**
+ * Finish finite overlay motion before cancelling CSS animations for stills.
+ * @param {Document | void} [root]
+ */
+export function finishOverlayAnimations(root) {
+    for (const overlay of (root ?? document).querySelectorAll('[role="dialog"], [role="listbox"]')) {
         for (const animation of overlay.getAnimations({ subtree: true })) {
             if (animation.playState !== 'finished' && Number.isFinite(animation.effect?.getComputedTiming().endTime))
                 animation.finish()
