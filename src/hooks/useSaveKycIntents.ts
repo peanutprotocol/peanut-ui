@@ -20,7 +20,7 @@ export function useSaveKycIntents() {
     return useCallback(
         async (set: KycIntentSet): Promise<KycIntentsSaved> => {
             const saved = await kycIntentsApi.set(set)
-            recordOneShotIntents(saved.intents)
+            recordOneShotIntents(saved.intents, saved.setAt)
             queryClient.setQueryData<IUserProfile | null>([USER], (user) =>
                 user?.identityVerification
                     ? {

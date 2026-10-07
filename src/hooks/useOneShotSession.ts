@@ -13,7 +13,14 @@
 import { useSyncExternalStore } from 'react'
 import type { KycIntentSet } from '@/services/kyc-intents'
 
-let session: { intents: KycIntentSet; started: boolean } | null = null
+export interface OneShotSession {
+    intents: KycIntentSet
+    /** When the API stored the set (its `setAt`): what tells a newer copy from an older one. */
+    setAt: string
+    started: boolean
+}
+
+let session: OneShotSession | null = null
 const listeners = new Set<() => void>()
 
 function update(next: typeof session): void {
@@ -21,9 +28,29 @@ function update(next: typeof session): void {
     for (const listener of listeners) listener()
 }
 
-/** This tab stored this set. */
-export function recordOneShotIntents(intents: KycIntentSet): void {
-    update({ intents, started: false })
+/** This tab stored this set; `setAt` is the API's answer. */
+export function recordOneShotIntents(intents: KycIntentSet, setAt: string): void {
+    update({ intents, setAt, started: false })
+}
+
+/** The cell as it is now, for code that runs outside a render. */
+export function readOneShotSession(): OneShotSession | null {
+    return session
+}
+
+/**
+ * The stored set the app should read: the server's (item 3b) unless this tab
+ * stored a newer one that /users/me does not show yet (the API may answer it
+ * from a replica behind the save). Dated by the API's `setAt` on both sides.
+ */
+export function newestIntentSet(
+    serverIntents: KycIntentSet | null | undefined,
+    serverSetAt: string | null | undefined,
+    tab: OneShotSession | null
+): KycIntentSet | null {
+    if (!serverIntents) return tab?.intents ?? null
+    if (!tab || !serverSetAt) return serverIntents
+    return Date.parse(tab.setAt) > Date.parse(serverSetAt) ? tab.intents : serverIntents
 }
 
 /** The SDK opened. True when it opened on a stored set, which now counts as started. */

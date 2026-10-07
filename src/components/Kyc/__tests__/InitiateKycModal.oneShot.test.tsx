@@ -41,6 +41,7 @@ const renderModal = (props: Partial<React.ComponentProps<typeof InitiateKycModal
     )
 
 const ALL_INTENTS = { qr: true, local: true, card: true, bank: true }
+const SET_AT = '2026-10-07T10:00:00.000Z'
 
 describe('InitiateKycModal — one-shot onboarding', () => {
     beforeEach(() => {
@@ -53,7 +54,7 @@ describe('InitiateKycModal — one-shot onboarding', () => {
     // applicant from today's start screen; the questions are not asked twice
     it('skips the checklist once a stored set has a started session', () => {
         mockOneShotResidence = 'BR'
-        recordOneShotIntents(ALL_INTENTS)
+        recordOneShotIntents(ALL_INTENTS, SET_AT)
         markOneShotStarted()
         const onVerify = jest.fn()
         renderModal({ onVerify })
@@ -66,7 +67,7 @@ describe('InitiateKycModal — one-shot onboarding', () => {
     // screen for its answer to start the check
     it('still asks when the set was stored by this tab but the SDK never opened', () => {
         mockOneShotResidence = 'BR'
-        recordOneShotIntents(ALL_INTENTS)
+        recordOneShotIntents(ALL_INTENTS, SET_AT)
         mockKycIntents = ALL_INTENTS
         renderModal()
         expect(screen.getByText('unlock-checklist:BR')).toBeInTheDocument()

@@ -7,6 +7,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { useAuth } from '@/context/authContext'
+import { newestIntentSet, readOneShotSession } from '@/hooks/useOneShotSession'
 import { useSaveKycIntents } from '@/hooks/useSaveKycIntents'
 import type { KycIntentKey } from '@/services/kyc-intents'
 import { localizedCountryName } from '@/utils/country-name.utils'
@@ -53,12 +54,18 @@ export const UnlockMethodAddStep = ({
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const locale = useLocale()
-    const { user } = useAuth()
+    const { fetchUser } = useAuth()
     const save = useSaveKycIntents()
-    // the server's set (item 3b), never the tab's: a second device may have added to it
-    const stored = user?.identityVerification?.kycIntents
     const add = useMutation({
-        mutationFn: async () => addOutcome(await save(addIntent(stored, feature)), feature),
+        mutationFn: async () => {
+            // The set is read again right before the save, never from the
+            // cached user: a second device may have added a tick since, and
+            // the PUT replaces the whole set. This tab's own newer save, if
+            // any, still outranks a /users/me behind it.
+            const fresh = (await fetchUser({ throwOnError: true }))?.identityVerification
+            const stored = newestIntentSet(fresh?.kycIntents, fresh?.kycIntentsSetAt, readOneShotSession())
+            return addOutcome(await save(addIntent(stored, feature)), feature)
+        },
         onSuccess: (outcome) => {
             if (outcome.kind !== 'refused' && outcome.kind !== 'pending') onDone(outcome)
         },

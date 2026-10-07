@@ -12,6 +12,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import { USER } from '@/constants/query.consts'
+import { __resetOneShotSessionForTests, recordOneShotIntents } from '@/hooks/useOneShotSession'
 import type { FeatureSetupReport, KycIntentKey, KycIntentsConfig, KycIntentSet } from '@/services/kyc-intents'
 import UnlockMethodModal from '../UnlockMethodModal'
 
@@ -28,9 +29,15 @@ jest.mock('@/services/kyc-intents', () => ({
 const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
 
-// what /users/me says: the verified sheet reads the stored set from it
-let mockUser: { identityVerification?: { status: string; oneShot?: boolean; kycIntents?: KycIntentSet } } | null = null
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
+// what /users/me says: the verified sheet reads the stored set again right before the save
+type MockUser = {
+    identityVerification?: { status: string; oneShot?: boolean; kycIntents?: KycIntentSet; kycIntentsSetAt?: string }
+}
+let mockUser: MockUser | null = null
+const fetchUser = jest.fn<Promise<MockUser | null>, [unknown?]>()
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockUser, fetchUser: (...args: [unknown?]) => fetchUser(...args) }),
+}))
 
 const open = { available: true }
 const closed = (reason: string) => ({ available: false, reason })
@@ -88,6 +95,8 @@ describe('UnlockMethodModal', () => {
         client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
         client.setQueryData([USER], { identityVerification: { status: 'not_started', oneShot: true } })
         mockUser = null
+        __resetOneShotSessionForTests()
+        fetchUser.mockImplementation(async () => mockUser)
         getConfig.mockImplementation(async (residence, idCountry) => answer(residence, idCountry))
         // the API echoes the stored set
         setIntents.mockImplementation(async (set: KycIntentSet) => ({ intents: set, setAt: SET_AT }))
@@ -257,7 +266,14 @@ describe('UnlockMethodModal', () => {
         const renderVerified = () => renderSheet({ residence: 'BR', feature: 'bank', verified: true })
 
         beforeEach(() => {
-            mockUser = { identityVerification: { status: 'verified', oneShot: true, kycIntents: STORED } }
+            mockUser = {
+                identityVerification: {
+                    status: 'verified',
+                    oneShot: true,
+                    kycIntents: STORED,
+                    kycIntentsSetAt: SET_AT,
+                },
+            }
             client.setQueryData([USER], mockUser)
         })
 
@@ -272,6 +288,8 @@ describe('UnlockMethodModal', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
             await waitFor(() => expect(onOneShotDone).toHaveBeenCalledTimes(1))
+            // the set is read again before the save, so a tick another device added is kept
+            expect(fetchUser).toHaveBeenCalledWith({ throwOnError: true })
             // the stored ticks stay, QR stays, the tapped feature joins
             const merged = { qr: true, local: true, card: false, bank: true }
             expect(setIntents).toHaveBeenCalledWith(merged)
@@ -280,6 +298,45 @@ describe('UnlockMethodModal', () => {
             // no SDK start and no checklist event
             expect(onUnlock).not.toHaveBeenCalled()
             expect(capture).not.toHaveBeenCalled()
+        })
+
+        it('a tick another device added since the page loaded is kept', async () => {
+            answerWith({ state: 'setting_up' })
+            // the cached user still says QR only; the fresh read says a second device added the card
+            client.setQueryData([USER], {
+                identityVerification: { status: 'verified', oneShot: true, kycIntents: { ...STORED, local: false } },
+            })
+            fetchUser.mockResolvedValue({
+                identityVerification: {
+                    status: 'verified',
+                    oneShot: true,
+                    kycIntents: { qr: true, local: false, card: true, bank: false },
+                    kycIntentsSetAt: '2026-10-07T11:00:00.000Z',
+                },
+            })
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            await waitFor(() => expect(onOneShotDone).toHaveBeenCalledTimes(1))
+            expect(setIntents).toHaveBeenCalledWith({ qr: true, local: false, card: true, bank: true })
+        })
+
+        it("a /users/me behind this tab's own save does not lose that save", async () => {
+            answerWith({ state: 'setting_up' })
+            // this tab stored the card a moment ago; the fresh read is a replica that has not seen it
+            recordOneShotIntents({ qr: true, local: true, card: true, bank: false }, '2026-10-07T11:00:00.000Z')
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            await waitFor(() => expect(onOneShotDone).toHaveBeenCalledTimes(1))
+            expect(setIntents).toHaveBeenCalledWith({ qr: true, local: true, card: true, bank: true })
+        })
+
+        it('a read that fails shows the save error and sends nothing', async () => {
+            fetchUser.mockRejectedValue(new Error('network'))
+            renderVerified()
+            fireEvent.click(screen.getByRole('button', { name: 'Set up now' }))
+            expect(await screen.findByText('Could not save your choices. Please try again.')).toBeInTheDocument()
+            expect(setIntents).not.toHaveBeenCalled()
+            expect(onOneShotDone).not.toHaveBeenCalled()
         })
 
         it('a method already on hands back on', async () => {

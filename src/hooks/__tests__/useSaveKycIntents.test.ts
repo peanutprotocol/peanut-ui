@@ -22,7 +22,7 @@ const SAVED = { intents: SET, setAt: '2026-10-07T10:00:00.000Z' }
 function renderSave(client: QueryClient) {
     const wrapper = ({ children }: { children: React.ReactNode }) =>
         React.createElement(QueryClientProvider, { client }, children)
-    return renderHook(() => ({ save: useSaveKycIntents(), saved: useOneShotSession()?.intents ?? null }), { wrapper })
+    return renderHook(() => ({ save: useSaveKycIntents(), saved: useOneShotSession() }), { wrapper })
 }
 
 describe('useSaveKycIntents', () => {
@@ -48,8 +48,8 @@ describe('useSaveKycIntents', () => {
 
         expect(setIntents).toHaveBeenCalledWith(SET)
         expect(saved).toEqual(SAVED)
-        // the tab's copy, for a read before /users/me reflects the save
-        expect(result.current.saved).toEqual(SET)
+        // the tab's copy, dated, for a read before /users/me reflects the save
+        expect(result.current.saved).toEqual({ intents: SET, setAt: SAVED.setAt, started: false })
         expect(client.getQueryData([USER])).toEqual({
             user: { userId: 'u1' },
             identityVerification: {
@@ -69,7 +69,7 @@ describe('useSaveKycIntents', () => {
             await result.current.save(SET)
         })
         expect(client.getQueryData([USER])).toEqual({ user: { userId: 'u1' } })
-        expect(result.current.saved).toEqual(SET)
+        expect(result.current.saved?.intents).toEqual(SET)
     })
 
     it('a failed save writes nothing', async () => {

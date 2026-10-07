@@ -7,7 +7,7 @@ import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubRel
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useOneShotCardChain } from '@/hooks/useOneShotCardChain'
-import { markOneShotStarted, useOneShotSession } from '@/hooks/useOneShotSession'
+import { markOneShotStarted } from '@/hooks/useOneShotSession'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import type { FeatureSetupReport } from '@/services/kyc-intents'
 import { deriveGate } from '@/utils/capability-gate'
@@ -212,15 +212,8 @@ export const useMultiPhaseKycFlow = ({
     // in place of the phase modals. Every other flow, a later one in this same
     // hook included, keeps the phases below. The ref is the same answer for
     // handleSumsubApproved, which can run inside a start, before any render.
-    const {
-        oneShotResidence,
-        oneShotIntents: storedIntents,
-        needsAction,
-        isTerminalFailure,
-    } = useIdentityVerification()
-    const oneShotSession = useOneShotSession()
-    // the ticked set is the server's (item 3b); the tab's own save stands in until /users/me reflects it
-    const oneShotIntents = storedIntents ?? oneShotSession?.intents ?? null
+    // the ticked set: the server's (item 3b), or this tab's newer save (useOneShotSession)
+    const { oneShotResidence, oneShotIntents, needsAction, isTerminalFailure } = useIdentityVerification()
     const oneShotIntentsRef = useRef(oneShotIntents)
     oneShotIntentsRef.current = oneShotIntents
     // what PUT /users/kyc-intents answered when a feature was added after the

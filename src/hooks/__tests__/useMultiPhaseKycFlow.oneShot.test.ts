@@ -432,10 +432,10 @@ describe('useMultiPhaseKycFlow — the card step', () => {
         expect(result.current.oneShotCard.chain).toBeNull()
     })
 
-    it("this tab's own save stands in until /users/me reflects it", async () => {
+    it("this tab's own save stands in until /users/me reflects it, and over an older set it still shows", async () => {
         // the fixture, or a replica behind the save: /users/me carries no set yet
         mockInitiate.mockResolvedValue(tokenAnswer)
-        const { result } = renderHook(() => ({ flow: useMultiPhaseKycFlow({}), save: useSaveKycIntents() }))
+        const { result, rerender } = renderHook(() => ({ flow: useMultiPhaseKycFlow({}), save: useSaveKycIntents() }))
         await act(async () => {
             await result.current.save({ qr: true, local: false, card: false, bank: true })
         })
@@ -447,6 +447,26 @@ describe('useMultiPhaseKycFlow — the card step', () => {
         })
         expect(result.current.flow.oneShotSetup?.rows.map((row) => row.key)).toEqual(['qr', 'bank'])
         expect(mockApply).not.toHaveBeenCalled()
+
+        // a refetch answered from a replica behind the save: an older, non-null set
+        mockUser.identityVerification = {
+            status: 'not_started',
+            oneShot: true,
+            kycIntents: { qr: true, local: false, card: false, bank: false },
+            kycIntentsSetAt: '2026-10-07T09:00:00.000Z',
+        }
+        rerender()
+        expect(result.current.flow.oneShotSetup?.rows.map((row) => row.key)).toEqual(['qr', 'bank'])
+
+        // /users/me caught up: the server's set, as new as the save, wins
+        mockUser.identityVerification = {
+            status: 'not_started',
+            oneShot: true,
+            kycIntents: { qr: true, local: false, card: false, bank: true },
+            kycIntentsSetAt: '2026-10-07T10:00:00.000Z',
+        }
+        rerender()
+        expect(result.current.flow.oneShotSetup?.rows.map((row) => row.key)).toEqual(['qr', 'bank'])
     })
 
     it('the rows follow the set on /users/me', async () => {
