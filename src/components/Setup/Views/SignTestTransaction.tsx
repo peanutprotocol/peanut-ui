@@ -70,7 +70,7 @@ export function SetupConfirmationView({
                 }
             >
                 {!merged && (
-                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="text-center text-body-xs text-foreground-secondary">
                         <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
                             <Icon name="info" size={16} className="shrink-0" />
                             {t('passkey.learnMore')}
