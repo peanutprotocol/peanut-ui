@@ -43,6 +43,7 @@ jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
 }))
 
 import { useSignUserOp } from '../useSignUserOp'
+import { captureException } from '@sentry/nextjs'
 import { buildUsdcTransferCall, type PreparedSmartSpend } from '../smartSpendPreparation'
 import { PAYMASTER_PREVIEW_CONTEXT, sponsorUserOperationArgs } from '../paymasterSponsorship'
 
@@ -97,7 +98,7 @@ function makeAccount(label: string) {
         getNonce: jest.fn(async () => 7n),
         getStubSignature: jest.fn(async () => '0x57'),
         encodeCalls: jest.fn(async (calls: { data: string }[]) => calls[0].data),
-        signUserOperation: jest.fn(async () => `0x5${label}`),
+        signUserOperation: jest.fn(async (_userOperation: unknown) => `0x5${label}`),
         getAddress: jest.fn(async () => ACCOUNT),
         isDeployed: jest.fn(async () => true),
         decodeCalls: jest.fn(),
@@ -246,6 +247,73 @@ describe('prepareCallsUserOp (warmup) through viem', () => {
 })
 
 describe('signCallsUserOp with a pre-Pay candidate', () => {
+    const ultraRelayResponse = {
+        ...sponsorship('0xf00d'),
+        paymaster: undefined,
+        paymasterData: undefined,
+        paymasterVerificationGasLimit: 0n,
+        paymasterPostOpGasLimit: 0n,
+    }
+
+    it('reuses an UltraRelay preview with one consumption and signs without an on-chain paymaster', async () => {
+        fake.sponsor.mockResolvedValue(ultraRelayResponse as never)
+        const { result } = renderHook(() => useSignUserOp())
+        const prepared = await result.current.prepareCallsUserOp(CALLS)
+        const signed = await result.current.signCallsUserOp(CALLS, '42161', {
+            prepared: { ...prepared, lockCode: 'LOCK123', lockExpiresAtMs: NOW + 60_000 },
+        })
+        expect(consumptions(fake)).toEqual([false, true])
+        expect(fake.account.getStubSignature).toHaveBeenCalledTimes(1)
+        expect(fake.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(signed.signedUserOp).toMatchObject({ callGasLimit: 2n, maxFeePerGas: 0n, signature: '0x5a' })
+        expect(signed.signedUserOp.paymaster).toBeUndefined()
+        expect(signed.signedUserOp.paymasterData).toBeUndefined()
+    })
+
+    it('clears a preview paymaster when the consuming refresh uses UltraRelay', async () => {
+        fake.sponsor.mockResolvedValueOnce(ultraRelayResponse as never)
+        const { signed, onPrepared } = await signWith(candidate())
+        expect(onPrepared).toHaveBeenCalledWith('reused')
+        expect(consumptions(fake)).toEqual([true])
+        expect(fake.account.getStubSignature).not.toHaveBeenCalled()
+        for (const key of [
+            'paymaster',
+            'paymasterData',
+            'paymasterVerificationGasLimit',
+            'paymasterPostOpGasLimit',
+        ] as const) {
+            expect(signed?.signedUserOp[key]).toBeUndefined()
+            expect(fake.account.signUserOperation.mock.calls[0][0]).toHaveProperty(key, undefined)
+        }
+    })
+
+    it('reports only response field names and types for an invalid consuming response', async () => {
+        fake.sponsor.mockResolvedValueOnce({ ...ultraRelayResponse, maxFeePerGas: 1n } as never)
+        await expect(signWith(candidate())).rejects.toThrow('malformed sponsorship')
+        expect(consumptions(fake)).toEqual([true])
+        expect(fake.account.signUserOperation).not.toHaveBeenCalled()
+        expect(captureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({
+                extra: {
+                    callCount: 1,
+                    chainId: '42161',
+                    sponsorshipResponseShape: {
+                        paymaster: 'undefined',
+                        paymasterData: 'undefined',
+                        callGasLimit: 'bigint',
+                        verificationGasLimit: 'bigint',
+                        preVerificationGas: 'bigint',
+                        paymasterVerificationGasLimit: 'bigint',
+                        paymasterPostOpGasLimit: 'bigint',
+                        maxFeePerGas: 'bigint',
+                        maxPriorityFeePerGas: 'bigint',
+                    },
+                },
+            })
+        )
+    })
+
     it('re-reads the nonce FIRST, then consumes one sponsorship for the candidate, then signs — no viem preparation', async () => {
         const { signed, onPrepared } = await signWith(candidate())
 
