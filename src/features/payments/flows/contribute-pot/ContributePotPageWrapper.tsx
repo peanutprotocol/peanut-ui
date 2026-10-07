@@ -10,6 +10,7 @@
  */
 
 import { ContributePotPage } from './ContributePotPage'
+import { ClosedCollectionView } from './views/ClosedCollectionView'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { requestsApi } from '@/services/requests'
 import Loading from '@/components/Global/Loading'
@@ -24,7 +25,6 @@ interface ContributePotPageWrapperProps {
 }
 
 export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapperProps) {
-    const tPots = useTranslations('pots')
     const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
     const [request, setRequest] = useState<TRequestResponse | null>(null)
@@ -90,15 +90,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
     }
 
     if (request.status === 'CLOSED') {
-        return (
-            <div className="flex min-h-inherit flex-col gap-4">
-                <NavHeader
-                    title={request.isCrowdfunding === true ? tPots('title') : t('headers.pay')}
-                    onPrev={onBack}
-                />
-                <EmptyState icon="lock" title={tPots('closed')} description={tPots('closedDescription')} />
-            </div>
-        )
+        return <ClosedCollectionView isCrowdfunding={request.isCrowdfunding === true} onBack={onBack} />
     }
 
     return <ContributePotPage key={request.uuid} request={request} isCrowdfunding={request.isCrowdfunding === true} />

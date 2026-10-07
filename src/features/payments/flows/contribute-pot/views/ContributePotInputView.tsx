@@ -108,7 +108,18 @@ export function ContributePotInputView() {
                         amount={totalAmount}
                         amountCollected={totalCollected}
                         isRequestPot={true}
-                        isCrowdfunding={isCrowdfunding}
+                        requestLabel={
+                            isCrowdfunding
+                                ? tPots('organisedBy', { name: recipient.fullName ?? recipient.username })
+                                : undefined
+                        }
+                        requestTitle={
+                            isCrowdfunding
+                                ? totalAmount > 0
+                                    ? tPots('goalAmount', { amount: formatBankAmount(totalAmount, 'USD') })
+                                    : tPots('openGoal')
+                                : undefined
+                        }
                         contributors={contributors}
                         avatarKey={recipient.avatarKey}
                     />
