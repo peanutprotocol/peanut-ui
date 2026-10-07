@@ -3528,8 +3528,7 @@
         },
         "earlyUserModal": {
             "title": "Gana con tus invitaciones",
-            "inviteOnly": "Peanut está abierto para todos. Tu enlace personal sigue registrando tus recompensas por referidos.",
-            "earnRules": "<b>Amigos que invitas →</b> ganas una parte de sus comisiones. <b>Sus invitados →</b> ganas una parte de la parte de ellos.",
+            "description": "A partir de ahora, Peanut está abierto a cualquiera. Puedes seguir invitando a tus amigos para ganar recompensas si se registran.",
             "shareSheetTitle": "Compartir enlace de invitación",
             "shareCta": "Compartir link de invitación",
             "learnMore": "Saber más"

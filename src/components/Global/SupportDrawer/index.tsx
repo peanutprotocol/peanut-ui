@@ -7,6 +7,7 @@ import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useVisualViewport } from '@/hooks/useVisualViewport'
 import { useBackHandler } from '@/hooks/useBackHandler'
+import { useOverlayVisibility } from '@/utils/overlay-visibility'
 import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -32,6 +33,7 @@ const SupportDrawer = () => {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
+    useOverlayVisibility(isSupportModalOpen)
     const userData = useCrispUserData()
     const crispTokenId = useCrispTokenId()
     const [isCrispReady, setIsCrispReady] = useState(false)
