@@ -197,7 +197,7 @@ test.describe('one-shot onboarding in Brazil with the card', () => {
         const card = drawer.getByTestId('setup-row-card')
         await expect(card).toContainText('Verify ID')
         await expect(card).toContainText('Needs an ID issued by Brazil')
-        await expect(drawer.getByText('This starts a new identity check with that ID.')).toBeVisible()
+        await expect(drawer.getByText('Starts a new identity check.')).toBeVisible()
 
         await drawer.getByRole('button', { name: 'Verify again with a Brazil ID' }).click()
         // the identity restart opens the SDK again, on the same level
