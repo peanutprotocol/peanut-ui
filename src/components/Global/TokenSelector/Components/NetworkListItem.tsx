@@ -64,7 +64,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                 className={twMerge(
                     'transition-colors duration-instant',
                     !isComingSoon && 'active:bg-background-disabled',
-                    isSelected && !isComingSoon && 'bg-action-primary'
+                    isSelected && !isComingSoon && 'bg-background-selection'
                 )}
                 leading={
                     <DisplayIcon iconUrl={iconUrl} altText={`${name} logo`} fallbackName={name} sizeClass="size-6" />
