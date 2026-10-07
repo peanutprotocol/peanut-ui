@@ -2876,7 +2876,20 @@
         "setup": {
             "settingUp": "Configurando",
             "available": "Disponible",
-            "underReview": "En revisión"
+            "underReview": "En revisión",
+            "documentNeeded": "Falta un documento",
+            "agreementsNeeded": "Faltan los acuerdos",
+            "verifyId": "Verificar ID",
+            "notAvailable": "No disponible",
+            "checking": "Estamos revisando la solicitud. No hay nada que hacer por ahora.",
+            "occupationNotAccepted": "La ocupación indicada no se acepta para la tarjeta.",
+            "retakeTitle": "Una foto para repetir",
+            "retake": "Repetir foto",
+            "verifyAgain": "Verificar de nuevo con documento de {country}",
+            "verifyAgainNote": "Esto inicia una nueva verificación de identidad con ese documento.",
+            "uploadNow": "Subir ahora",
+            "later": "Más tarde",
+            "continueCard": "Continuar con la tarjeta"
         },
         "bridgeTos": {
             "baseTitle": "Términos de transferencias bancarias",

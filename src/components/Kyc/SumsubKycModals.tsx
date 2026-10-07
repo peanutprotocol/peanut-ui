@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl'
 import { KycRestartCooldownModal } from './KycRestartCooldownModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import { OneShotCardStep } from '@/components/Kyc/OneShotCardStep'
 import { OneShotSetupDrawer } from '@/components/Kyc/OneShotSetupDrawer'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -55,13 +56,17 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
 
             {/* one-shot onboarding (TASK-23329): the setup rows stand in for the phase modals */}
             {flow.oneShotSetup ? (
-                <OneShotSetupDrawer
-                    open={flow.isModalOpen}
-                    residence={flow.oneShotSetup.residence}
-                    rows={flow.oneShotSetup.rows}
-                    onClose={flow.handleModalClose}
-                    onContinue={flow.completeFlow}
-                />
+                <>
+                    {/* the card step's SDK and agreements take the screen; the drawer returns after them */}
+                    <OneShotSetupDrawer
+                        open={flow.isModalOpen && !flow.oneShotCard.isForeground}
+                        residence={flow.oneShotSetup.residence}
+                        rows={flow.oneShotSetup.rows}
+                        onClose={flow.handleModalClose}
+                        onContinue={flow.completeFlow}
+                    />
+                    <OneShotCardStep step={flow.oneShotCard} />
+                </>
             ) : (
                 <KycVerificationInProgressModal
                     isOpen={flow.isModalOpen}

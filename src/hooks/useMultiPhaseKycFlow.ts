@@ -6,6 +6,7 @@ import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useOneShotCardChain } from '@/hooks/useOneShotCardChain'
 import { markOneShotStarted, useOneShotSession } from '@/hooks/useOneShotSession'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
@@ -212,6 +213,13 @@ export const useMultiPhaseKycFlow = ({
     // handleSumsubApproved, which can run inside a start, before any render.
     const { oneShotResidence } = useIdentityVerification()
     const oneShotSession = useOneShotSession()
+    // the ticked set: the server's copy (item 3b) outranks the tab's (item 9a)
+    const oneShotIntents = user?.identityVerification?.kycIntents ?? oneShotSession?.intents ?? null
+    const oneShotIntentsRef = useRef(oneShotIntents)
+    oneShotIntentsRef.current = oneShotIntents
+    // the card step runs beside the identity check: questions, agreements, POST /rain/cards
+    const oneShotCard = useOneShotCardChain()
+    const { start: startCardStep, reset: resetCardStep } = oneShotCard
     const [isOneShotFlow, setIsOneShotFlow] = useState(false)
     const isOneShotFlowRef = useRef(false)
     const setOneShotFlow = useCallback((active: boolean) => {
@@ -248,8 +256,17 @@ export const useMultiPhaseKycFlow = ({
         stopTracking()
         closeVerificationModalRef.current()
         setOneShotFlow(false)
+        resetCardStep()
         onKycSuccess?.()
-    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource, setOneShotFlow])
+    }, [
+        onKycSuccess,
+        clearPreparingTimer,
+        stopTracking,
+        regionIntent,
+        acquisitionSource,
+        setOneShotFlow,
+        resetCardStep,
+    ])
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
@@ -423,6 +440,13 @@ export const useMultiPhaseKycFlow = ({
         // until a matching GREEN webhook promotes the new residence, so there
         // is no post-approval rail orchestration to start here.
         if (isResidenceChangeFlow) return
+        // One-shot with the card ticked: the card step starts the moment the
+        // identity session closes. It needs no approval to collect the
+        // questions and the agreements; the API submits once both exist.
+        if (isOneShotFlowRef.current && !isActionFlow && oneShotIntentsRef.current?.card) {
+            void startCardStep()
+            return
+        }
         // for action flows (manteca, self-heal), the base status is already APPROVED
         // and won't transition — directly start the preparing/tracking phase
         if (isActionFlow && !verificationSession) {
@@ -435,6 +459,7 @@ export const useMultiPhaseKycFlow = ({
         isResidenceChangeFlow,
         regionIntent,
         verificationSession,
+        startCardStep,
     ])
 
     // Existing Android PWAs can cold-reload after opening the camera or gallery.
@@ -473,8 +498,10 @@ export const useMultiPhaseKycFlow = ({
 
             // Off before the start: an approved user gets no token and the start
             // itself reports success, which must take the phases. On again only
-            // for an SDK that opened on a set the checklist stored.
+            // for an SDK that opened on a stored set: the server's, or the one
+            // the checklist stored in this tab.
             setOneShotFlow(false)
+            resetCardStep()
             const opened = await originalHandleInitiateKyc(
                 overrideIntent,
                 levelName,
@@ -483,7 +510,9 @@ export const useMultiPhaseKycFlow = ({
                 false,
                 corridor
             )
-            setOneShotFlow(opened === true && !!oneShotResidence && markOneShotStarted())
+            setOneShotFlow(
+                opened === true && !!oneShotResidence && (markOneShotStarted() || !!oneShotIntentsRef.current)
+            )
             return opened
         },
         [
@@ -493,6 +522,7 @@ export const useMultiPhaseKycFlow = ({
             acquisitionSource,
             oneShotResidence,
             setOneShotFlow,
+            resetCardStep,
         ]
     )
 
@@ -731,20 +761,22 @@ export const useMultiPhaseKycFlow = ({
     const depositBlocked = !verificationSession && !showWrapper && allBlocked && modalPhase === 'preparing'
 
     const identityVerified = user?.identityVerification?.status === 'verified'
+    const cardChain = oneShotCard.chain
     const oneShotSetup = useMemo(
         () =>
-            isOneShotFlow && oneShotResidence && oneShotSession
+            isOneShotFlow && oneShotResidence && oneShotIntents
                 ? {
                       residence: oneShotResidence,
                       rows: setupRows({
-                          intents: oneShotSession.intents,
+                          intents: oneShotIntents,
                           residence: oneShotResidence,
                           capabilities,
                           identityVerified,
+                          card: cardChain,
                       }),
                   }
                 : null,
-        [isOneShotFlow, oneShotResidence, oneShotSession, capabilities, identityVerified]
+        [isOneShotFlow, oneShotResidence, oneShotIntents, capabilities, identityVerified, cardChain]
     )
 
     return {
@@ -789,8 +821,9 @@ export const useMultiPhaseKycFlow = ({
         isLoadingTos,
         preparingTimedOut,
         preparingStage,
-        // one-shot onboarding: the setup rows that stand in for the phase modal
+        // one-shot onboarding: the setup rows that stand in for the phase modal, and the card step
         oneShotSetup,
+        oneShotCard,
 
         // ToS iframe
         tosLink,
