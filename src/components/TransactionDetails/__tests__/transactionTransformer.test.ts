@@ -1087,3 +1087,56 @@ describe('a wire fee is its own receipt line (TASK-23054)', () => {
         }
     })
 })
+
+describe('QR_PAY to a looked-up PIX key', () => {
+    const pixEntry = (overrides: Record<string, unknown> = {}) =>
+        baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: {
+                identifier: '12345678909',
+                fullName: 'MARIA DA SILVA',
+                type: 'BANK_CBU',
+                isUser: false,
+            },
+            extraData: { kind: 'QR_PAY' },
+            ...overrides,
+        })
+
+    it('names the owner and keeps the key, formatted, beside the name', () => {
+        const result = mapTransactionDataForDrawer(pixEntry()).transactionDetails
+
+        expect(result.userName).toBe('Maria Da Silva')
+        expect(result.nameDetail).toBe('123.456.789-09')
+    })
+
+    it('drops the key when a failed payment is relabelled', () => {
+        const result = mapTransactionDataForDrawer(pixEntry({ status: EHistoryStatus.FAILED })).transactionDetails
+
+        expect(result.nameDetail).toBeUndefined()
+    })
+
+    it('a shared receipt names the owner with the masked key beside the name', () => {
+        const result = mapTransactionDataForDrawer(
+            pixEntry({
+                recipientAccount: {
+                    identifier: '•••• 8909',
+                    fullName: 'MARIA DA SILVA',
+                    type: 'BANK_CBU',
+                    isUser: false,
+                },
+            })
+        ).transactionDetails
+
+        expect(result.userName).toBe('Maria Da Silva')
+        expect(result.nameDetail).toBe('•••• 8909')
+    })
+
+    it('a key paid without a lookup has no owner name, so a shared receipt shows only the masked key', () => {
+        const result = mapTransactionDataForDrawer(
+            pixEntry({ recipientAccount: { identifier: '•••• 8909', type: 'BANK_CBU', isUser: false } })
+        ).transactionDetails
+
+        expect(result.userName).toBe('•••• 8909')
+        expect(result.nameDetail).toBeUndefined()
+    })
+})

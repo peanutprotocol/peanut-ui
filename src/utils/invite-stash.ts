@@ -24,11 +24,14 @@ import { getFromCookie, saveToCookie } from '@/utils/cookie-url.utils'
 
 const INVITE_CODE_COOKIE = 'inviteCode'
 const INVITE_TYPE_COOKIE = 'inviteType'
+const INVITE_USER_COOKIE = 'inviteAttributionUserId'
 
 /** Session scope (no expiry): attribution self-heals on app restart. */
 export function stashInvite(code: string, type: EInviteType): void {
     saveToCookie(INVITE_CODE_COOKIE, code)
     saveToCookie(INVITE_TYPE_COOKIE, type)
+    // A newly opened invite is not owned by an earlier authenticated retry.
+    saveToCookie(INVITE_USER_COOKIE, '')
 }
 
 export function readInviteCode(): string {
@@ -40,19 +43,49 @@ export function readInviteType(): EInviteType {
     return Object.values(EInviteType).includes(raw as EInviteType) ? (raw as EInviteType) : EInviteType.DIRECT
 }
 
+export function readInviteUserId(): string {
+    const raw = getFromCookie(INVITE_USER_COOKIE)
+    return typeof raw === 'string' ? raw : ''
+}
+
+/** Bind a pre-auth invite to the first account that attempts acceptance. */
+export function bindInviteToUser(userId: string): boolean {
+    const normalizedUserId = userId.trim()
+    if (!normalizedUserId) return false
+    const boundUserId = readInviteUserId()
+    if (boundUserId && boundUserId !== normalizedUserId) return false
+    if (!boundUserId) saveToCookie(INVITE_USER_COOKIE, normalizedUserId)
+    return true
+}
+
+function isOwnedInvite(inviteCode: string, userId: string): boolean {
+    return readInviteCode() === inviteCode && readInviteUserId() === userId
+}
+
 /**
  * A failed /invites/accept keeps the invite for a later retry — both fields,
  * same extended lifetime, or the retry would re-send the code with a decayed
  * type (Chip review round 1: the old path extended the code alone).
  */
-export function extendInviteForRetry(days: number = 30): void {
+export function extendInviteForRetry(days: number = 30, expected?: { inviteCode: string; userId: string }): void {
+    if (expected && !isOwnedInvite(expected.inviteCode, expected.userId)) return
     const code = readInviteCode()
     if (!code) return
     saveToCookie(INVITE_CODE_COOKIE, code, days)
     saveToCookie(INVITE_TYPE_COOKIE, readInviteType(), days)
+    const userId = readInviteUserId()
+    if (userId) saveToCookie(INVITE_USER_COOKIE, userId, days)
 }
 
 export function clearInvite(): void {
     saveToCookie(INVITE_CODE_COOKIE, '')
     saveToCookie(INVITE_TYPE_COOKIE, '')
+    saveToCookie(INVITE_USER_COOKIE, '')
+}
+
+/** Do not let an older in-flight request clear a newer account/code hand-off. */
+export function clearInviteIfOwnedBy(inviteCode: string, userId: string): boolean {
+    if (!isOwnedInvite(inviteCode, userId)) return false
+    clearInvite()
+    return true
 }

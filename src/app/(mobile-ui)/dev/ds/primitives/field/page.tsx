@@ -39,6 +39,34 @@ export default function FieldPage() {
                 ]}
             />
 
+            <DocSection
+                title="Field vs BaseInput"
+                description="BaseInput is the bare control: the bordered text box and nothing else. Field is the chrome around one control: an optional label above it and one helper or error line under it. Field draws no box of its own, so a Field with no label, no helper and no error looks exactly like the control inside it."
+            >
+                <DocSection.Content>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-label-l">BaseInput alone</span>
+                            <BaseInput placeholder="Add a note" aria-label="Note" />
+                            <p className="text-body-xs text-foreground-secondary">
+                                Use it alone when the input has no label, no helper and no error of its own, like the
+                                note on Send, or when you build another input on top of it, like SearchInput.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <span className="text-label-l">Field around a BaseInput</span>
+                            <Field label="BIC" htmlFor="ds-field-compare-bic" error="A BIC has 8 or 11 characters.">
+                                <BaseInput id="ds-field-compare-bic" defaultValue="NOTABIC" />
+                            </Field>
+                            <p className="text-body-xs text-foreground-secondary">
+                                Use Field when the input has a label, a helper, or a validation error the user fixes in
+                                that input. Any form field that can fail validation goes in a Field, even with no label.
+                            </p>
+                        </div>
+                    </div>
+                </DocSection.Content>
+            </DocSection>
+
             <DocSection title="Label + helper">
                 <DocSection.Content>
                     <Field label="IBAN" htmlFor="ds-field-iban" helper="The account you withdraw to.">
@@ -87,16 +115,11 @@ export default function FieldPage() {
 
             <DocSection
                 title="Bare control (no label)"
-                description="Omit label and helper to get the control + error column on its own — the shape FieldColumn used to carry. Pass errorId when the control needs aria-describedby, errorTestId when a test looks the error up by name."
+                description="Omit label and helper to get the control + error column on its own — the shape FieldColumn used to carry. Pass errorId when the control needs aria-describedby, errorTestId when a test looks the error up by name. The error is text only, never a red border on the control (design.md forms law)."
             >
                 <DocSection.Content>
                     <Field error="Amount is required" errorId="ds-field-bare-error">
-                        <BaseInput
-                            placeholder="Amount"
-                            state="error"
-                            aria-describedby="ds-field-bare-error"
-                            aria-label="Amount"
-                        />
+                        <BaseInput placeholder="Amount" aria-describedby="ds-field-bare-error" aria-label="Amount" />
                     </Field>
                 </DocSection.Content>
                 <DocSection.Code>
@@ -105,7 +128,6 @@ export default function FieldPage() {
                         code={`<Field error={errors.amount?.message} errorId="amount-error">
     <BaseInput
         placeholder="Amount"
-        state={errors.amount ? 'error' : 'default'}
         aria-describedby={errors.amount ? 'amount-error' : undefined}
     />
 </Field>`}
@@ -221,7 +243,7 @@ export default function FieldPage() {
 </Field>`}
                 >
                     <Field error="Enter at least $10" errorTestId="error-alert">
-                        <BaseInput placeholder="$0.00" state="error" inputMode="decimal" aria-label="Amount" />
+                        <BaseInput placeholder="$0.00" inputMode="decimal" aria-label="Amount" />
                     </Field>
                 </ProductUsage.Example>
             </ProductUsage>

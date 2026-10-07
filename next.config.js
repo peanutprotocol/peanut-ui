@@ -319,6 +319,12 @@ let nextConfig = {
         '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
     },
 
+    // Dynamic content reads can trace the submodule's .git metadata. Vercel
+    // CLI 62.4.0 rejects it in prebuilt functions; cover both files and folders.
+    outputFileTracingExcludes: {
+        '/*': ['**/.git', '**/.git/**'],
+    },
+
     // Experimental features for optimization
     experimental: {
         // Note: turbopackFileSystemCacheForDev is enabled by default in Next.js 16+

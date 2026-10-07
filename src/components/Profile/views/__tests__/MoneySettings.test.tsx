@@ -69,6 +69,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
 }))
 
 let mockRails: unknown[] = []
+let mockNextActions: unknown[] = []
 // A provider rejection only surfaces for an APPROVED user, so this has to be
 // settable — the residence-park case below is exactly that shape.
 let mockIsKycApproved = false
@@ -78,7 +79,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
         isKycApproved: mockIsKycApproved,
         railsForProvider: (provider: string) =>
             (mockRails as Array<Record<string, any>>).filter((rail) => rail.provider === provider),
-        nextActions: [],
+        nextActions: mockNextActions,
         nextActionsForRail: () => [],
         // the real per-operation read: `operations?.[op] ?? status`, so a rail
         // that is enabled for `pay` alone can never answer yes for `deposit`
@@ -235,6 +236,7 @@ describe('MoneySettings', () => {
         mockBridgeLimits = null
         jest.clearAllMocks()
         mockRails = []
+        mockNextActions = []
         mockIsKycApproved = false
         mockRestrictions = { banking: false, card: false }
         mockUser = null
@@ -315,7 +317,7 @@ describe('MoneySettings', () => {
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
             expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) expect(screen.getByText(title)).toBeInTheDocument()
-            for (const title of ['Spend', 'Peanut', 'Peanut card', 'Peanut-to-Peanut payments', 'Crypto']) {
+            for (const title of ['Spend', 'Peanut', 'Peanut card', 'Peanut to Peanut', 'Crypto']) {
                 expect(screen.queryByText(title)).not.toBeInTheDocument()
             }
         })
@@ -325,7 +327,7 @@ describe('MoneySettings', () => {
             expect(screen.getByText('Payments')).toBeInTheDocument()
             expect(screen.getByText('Spend')).toBeInTheDocument()
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
-            expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
+            expect(screen.getByText('Peanut to Peanut')).toBeInTheDocument()
             // P2P and crypto both carry the always-on chip.
             expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
             expect(screen.queryByText('Other ways to move money with Peanut')).not.toBeInTheDocument()
@@ -739,11 +741,11 @@ describe('MoneySettings', () => {
 
     it('active payment rows explain the method in a drawer', () => {
         render('payments')
-        fireEvent.click(screen.getByText('Peanut-to-Peanut payments'))
+        fireEvent.click(screen.getByText('Peanut to Peanut'))
 
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Send and receive money with other Peanut users.')).toBeInTheDocument()
-        expect(within(drawer).getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
+        expect(within(drawer).getByText('No amount limits.')).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
@@ -833,9 +835,7 @@ describe('MoneySettings', () => {
             expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
             expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
             expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
-            expect(
-                screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')
-            ).not.toBeInTheDocument()
+            expect(screen.queryByText('No amount limits.')).not.toBeInTheDocument()
             unmount()
         }
     })
@@ -872,12 +872,10 @@ describe('MoneySettings', () => {
 
     it('states the P2P no-limit fact in the crypto drawer too, never on the screen', () => {
         render('payments')
-        expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
+        expect(screen.queryByText('No amount limits.')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByText('Crypto'))
-        expect(
-            within(screen.getByRole('dialog')).getByText('No amount limits on Peanut-to-Peanut payments or crypto')
-        ).toBeInTheDocument()
+        expect(within(screen.getByRole('dialog')).getByText('No amount limits.')).toBeInTheDocument()
     })
 
     // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps
@@ -990,6 +988,52 @@ describe('MoneySettings', () => {
             render('payments')
             const qrRow = screen.getByText('QR payments')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+        })
+
+        // api#1776: an approval with no identity document keeps its pool rail,
+        // and the one top-level restart action says what is missing. The unlock
+        // must restart the identity check, never start Manteca onboarding.
+        it('an approval with no identity document is offered the identity restart, not the bank unlock', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
+            mockRails = [qrPoolRail]
+            mockNextActions = [
+                { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+            ]
+            mockIsKycApproved = true
+            render()
+
+            fireEvent.click(screen.getByText('BRL'))
+            fireEvent.click(within(screen.getByRole('dialog')).getByText('Add and withdraw Brazilian reais with Pix.'))
+            expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+            expect(screen.getByText('Complete your verification')).toBeInTheDocument()
+            expect(
+                screen.getByText('We need an identity document and a selfie to complete your verification.')
+            ).toBeInTheDocument()
+            expect(screen.queryByText('Verify with a different document')).not.toBeInTheDocument()
+
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+            expect(mockRestartIdentity).toHaveBeenCalledWith()
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
+        })
+
+        // With no enabled rail the user is not "approved" for this screen, and
+        // the unlock path would call the start route, which opens nothing for
+        // them. The restart still comes first, on Manteca and Bridge rows alike.
+        it('the identity restart needs no enabled rail, on a Manteca row and a Bridge row', () => {
+            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+            mockNextActions = [
+                { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+            ]
+            render()
+
+            fireEvent.click(screen.getByText('ARS'))
+            expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+            fireEvent.click(screen.getByText('EUR'))
+            fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+
+            expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
 
         it('a full Manteca account reads Available on both rows', () => {

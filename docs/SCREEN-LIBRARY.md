@@ -180,6 +180,18 @@ ledger identifies app routes with scenarios and explicit website/provider/tool
 exclusions. It cannot discover every hidden state inside a route; review the
 scenario ledger alongside route coverage when adding features.
 
+Pixel comparisons ignore differences whose percentage rounds to `0.00%` at
+two decimal places (less than `0.005%` of the viewport). At 393 × 852 this
+ignores up to 16 differing pixels; 17 pixels still count as a change. Raw
+`pixels` and `percent` remain in the report, with `belowThreshold: true` for
+nonzero differences below this limit. Those rows are `unchanged`, have no diff
+asset, and are omitted from the changed-screens view. The viewer applies the
+same rule to older immutable reports, including collection comparisons.
+Added/removed screens and capture failures retain their own statuses.
+This is a small rendering-noise allowance, not proof that a larger difference
+is a product change. Capture still covers the full catalogue to catch shared
+component, styling, and translation regressions.
+
 ## Historical reconstruction
 
 The requested cutoff is August 27, 2026 at 23:59:59 Europe/Lisbon. The verified
@@ -391,3 +403,5 @@ tutorial asset, the capture harness serves its hash-pinned H.264 counterpart
 without mutating the target checkout. Unknown media hashes are never
 substituted. The manifest records the actual OS and browser versions. Reference
 resolution and trusted publishing also run on Linux. See [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+
+Comparison pages include first available screenshots in the Visual changes view as **New screen**. They show a New screen placeholder before the captured image when the baseline has no compatible scenario harness. This `new` comparison status preserves the original baseline's `unavailable` status and reason; it does not claim that the product screen was absent in that revision. Confirmed additions still use `added`. Failed or excluded baseline captures keep their existing status. The viewer also normalizes older immutable comparison reports, so their already captured screenshots can be reviewed without recapture.

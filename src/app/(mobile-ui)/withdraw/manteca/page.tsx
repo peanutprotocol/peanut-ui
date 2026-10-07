@@ -14,6 +14,7 @@ import Image from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
@@ -766,7 +767,7 @@ function MantecaBankWithdrawFlow() {
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
-                    setErrorMessage(t('errors.ownAccountOnly'))
+                    setErrorMessage(tCommon('ownAccountOnly'))
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
                     setOutcome('failure')
@@ -1211,7 +1212,7 @@ function MantecaBankWithdrawFlow() {
                             )}
 
                             <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
-                                <span>{t('manteca.ownAccountOnly')}</span>
+                                <span>{tCommon('ownAccountOnly')}</span>
                             </div>
                         </div>
 
@@ -1231,7 +1232,9 @@ function MantecaBankWithdrawFlow() {
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                            <Callout priority="error">
+                                <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                            </Callout>
                         )}
                     </div>
                 </div>
@@ -1273,7 +1276,7 @@ function MantecaBankWithdrawFlow() {
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
+                            moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
@@ -1307,7 +1310,9 @@ function MantecaBankWithdrawFlow() {
                         </Callout>
                     )}
                     {(errorMessage || sumsubFlow.error) && (
-                        <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
+                        <Callout priority="error">
+                            <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
+                        </Callout>
                     )}
                 </div>
             )}

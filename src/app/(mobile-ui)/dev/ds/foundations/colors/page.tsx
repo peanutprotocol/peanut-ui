@@ -85,11 +85,23 @@ export default function ColorsPage() {
 
             <DocSection title="Semantic Tokens">
                 <p className="text-body-s text-foreground-secondary">
-                    1:1 with the figma variables. New screens use ONLY these — e.g.{' '}
+                    New screens use ONLY these — e.g.{' '}
                     <code className="font-mono text-label-m text-foreground-primary">bg-action-primary</code>,{' '}
                     <code className="font-mono text-label-m text-foreground-primary">text-foreground-secondary</code>.
                 </p>
                 {renderGroups(SEMANTIC)}
+            </DocSection>
+
+            <DocSection title="Why focus is blue">
+                <DesignNote type="info">
+                    Keyboard focus is a 3px <code className="font-mono text-label-m">action-focus</code> (blue) ring on
+                    every control. Pink is <code className="font-mono text-label-m">action-primary</code>, so a pink
+                    ring would read as &quot;primary action&quot;, not &quot;focused&quot;. The ring also has to clear
+                    WCAG 1.4.11 (3:1 for non-text). Blue is 5.17:1 on background-default, 4.74:1 on background-page and
+                    4.50:1 on background-disabled. Pink action-primary is only 2.02:1, 1.85:1 and 1.76:1 on the same
+                    grounds. A pink pointer focus shipped once without a ruling (ui#3041) and was reverted in ui#3161.
+                    Keep the ring blue.
+                </DesignNote>
             </DocSection>
 
             {/* Text / BG pairs */}

@@ -251,12 +251,24 @@ describe('the timing row on the claim screen', () => {
 })
 
 /** The tap that opens the account agrees to its terms, so the step links them under the button. */
-describe('the terms line on the claim screen', () => {
-    it('links the virtual account terms under the button', () => {
+describe('the account provider on the claim screen (TASK-23295)', () => {
+    it('heads the benefits list with Account provider · Bridge and its (?)', () => {
         claim()
 
-        const link = screen.getByRole('link', { name: 'EUR account terms' })
-        expect(link.getAttribute('href')).toContain('/terms#virtual-accounts')
+        const label = screen.getByText('Account provider')
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        const firstBenefit = screen.getByText(messages.depositAccounts.claim.benefitBalance)
+        expect(label.compareDocumentPosition(firstBenefit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it("links the provider's terms under the button, named by their title", () => {
+        claim()
+
+        // no verified residence here, so the brand-wide terms page
+        const link = screen.getByRole('link', { name: 'Bridge terms' })
+        expect(link).toHaveAttribute('href', 'https://www.bridge.xyz/legal')
+        expect(link.closest('p')).toHaveTextContent('By opening, you agree to the Bridge terms.')
         const cta = screen.getByRole('button', { name: /Open EUR account/i })
         expect(cta.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
@@ -264,6 +276,6 @@ describe('the terms line on the claim screen', () => {
     it('shows no terms line when the account cannot be opened', () => {
         claim({ error: 'deposit accounts are not enabled', isUnavailable: true })
 
-        expect(screen.queryByRole('link', { name: 'EUR account terms' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'Bridge terms' })).not.toBeInTheDocument()
     })
 })

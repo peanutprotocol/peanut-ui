@@ -1,4 +1,4 @@
-import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 
 /**
  * One table for every `/manteca/qr-payment/init` refusal the screen reacts to.
@@ -26,7 +26,7 @@ export const QR_INIT_CODE = {
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
     PIX_RECURRING: 'PIX_RECURRING_NOT_SUPPORTED',
     MISSING_AMOUNT: 'PAYMENT_DESTINATION_MISSING_AMOUNT',
-    NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',
+    NOT_FOUND: API_ERROR_CODES.PAYMENT_DESTINATION_NOT_FOUND,
     EXPIRED: 'PAYMENT_DESTINATION_EXPIRED',
     DECODE: 'PAYMENT_DESTINATION_DECODING_ERROR',
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',

@@ -45,6 +45,7 @@ jest.mock('@capacitor/app', () => ({
 const launch = jest.fn()
 const dismiss = jest.fn()
 const resetSdk = jest.fn()
+const configureApplicant = jest.fn()
 let builtInstances: { sendEvent: jest.Mock; getNewAccessToken: jest.Mock }[] = []
 let statusHandler: ((event: { newStatus?: string }) => void) | undefined
 
@@ -56,6 +57,10 @@ function installSdk() {
     }
     builder.withLocale = () => builder
     builder.withDebug = () => builder
+    builder.withApplicantConf = (conf: unknown) => {
+        configureApplicant(conf)
+        return builder
+    }
     builder.build = () => {
         const instance = {
             launch: (...a: unknown[]) => {
@@ -84,6 +89,7 @@ describe('SumsubNativeSdk', () => {
         launch.mockReset()
         dismiss.mockReset()
         resetSdk.mockReset()
+        configureApplicant.mockReset()
         capture.mockClear()
         captureException.mockClear()
         statusHandler = undefined
@@ -119,6 +125,16 @@ describe('SumsubNativeSdk', () => {
             render(<SumsubNativeSdk visible {...baseProps()} accessToken={null} />)
         })
         expect(launch).not.toHaveBeenCalled()
+    })
+
+    it('prefills the email once without relaunching over an in-progress email edit', async () => {
+        const props = { ...baseProps(), email: 'signup@example.com' }
+        const { rerender } = render(<SumsubNativeSdk visible {...props} />)
+        await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+        expect(configureApplicant).toHaveBeenCalledWith({ email: 'signup@example.com' })
+        rerender(<SumsubNativeSdk visible {...props} email="updated-profile@example.com" />)
+        expect(launch).toHaveBeenCalledTimes(1)
+        expect(configureApplicant).toHaveBeenCalledTimes(1)
     })
 
     // refreshToken() writes a new token into the same state while the native

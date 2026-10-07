@@ -33,13 +33,20 @@ jest.mock('@/components/Global/Modal', () => ({
 
 let onCapacitor = false
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => onCapacitor }))
-jest.mock('../SumsubNativeSdk', () => ({ SumsubNativeSdk: () => <div data-testid="native-sdk" /> }))
+jest.mock('../SumsubNativeSdk', () => ({
+    SumsubNativeSdk: ({ email }: { email?: string }) => <div data-testid="native-sdk" data-email={email} />,
+}))
+let mockEmail: string | undefined
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockEmail ? { user: { email: mockEmail } } : null }),
+}))
 
 jest.mock('@/components/Global/ActionModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 
 const launch = jest.fn()
+const configure = jest.fn()
 // event name → registered handler, so a test can fire SDK events (e.g.
 // onApplicantSubmitted) against the mounted wrapper.
 const sdkHandlers: Record<string, (payload?: unknown) => void> = {}
@@ -47,7 +54,10 @@ const sdkHandlers: Record<string, (payload?: unknown) => void> = {}
 function installSdk() {
     Object.keys(sdkHandlers).forEach((key) => delete sdkHandlers[key])
     const builder: Record<string, unknown> = {}
-    builder.withConf = () => builder
+    builder.withConf = (conf: unknown) => {
+        configure(conf)
+        return builder
+    }
     builder.withOptions = () => builder
     builder.on = (event: string, handler: (payload?: unknown) => void) => {
         sdkHandlers[event] = handler
@@ -61,6 +71,8 @@ describe('SumsubKycWrapper', () => {
     beforeEach(() => {
         launch.mockClear()
         capture.mockClear()
+        configure.mockClear()
+        mockEmail = undefined
         onCapacitor = false
         installSdk()
     })
@@ -75,6 +87,26 @@ describe('SumsubKycWrapper', () => {
     // through — card application, POA, self-heal, start-action, restart-identity
     // included. Selecting the driver here is what keeps the WebSDK (and its
     // unreportable in-iframe "Initialization error") out of the WebView.
+    it.each([false, true])('defaults to the saved account email on native=%s', async (native) => {
+        onCapacitor = native
+        mockEmail = 'signup@example.com'
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={jest.fn()}
+                onComplete={jest.fn()}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+            />
+        )
+        if (native) {
+            expect(await screen.findByTestId('native-sdk')).toHaveAttribute('data-email', 'signup@example.com')
+        } else {
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            expect(configure).toHaveBeenCalledWith(expect.objectContaining({ email: 'signup@example.com' }))
+        }
+    })
+
     it('drives the native SDK on Capacitor and never loads the websdk', async () => {
         onCapacitor = true
         render(

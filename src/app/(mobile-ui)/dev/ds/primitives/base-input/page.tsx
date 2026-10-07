@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { Field } from '@/components/0_Bruddle/Field'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
@@ -20,7 +21,7 @@ export default function BaseInputPage() {
         <DocPage>
             <DocHeader
                 title="BaseInput"
-                description="Text input with sm/md size variants and optional right content slot."
+                description="The bare text control: one bordered input with sm/md sizes and optional leading/trailing slots. It has no label, helper or error line — that chrome is Field."
                 status="production"
             />
 
@@ -38,6 +39,38 @@ export default function BaseInputPage() {
                     'useState for a value that should survive a refresh or a share — use nuqs useQueryStates',
                 ]}
             />
+
+            <DocSection
+                title="Field vs BaseInput"
+                description="BaseInput is the bare control: the bordered text box and nothing else. Field is the chrome around one control: an optional label above it and one helper or error line under it. Field draws no box of its own, so a Field with no label, no helper and no error looks exactly like the control inside it."
+            >
+                <DocSection.Content>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-label-l">BaseInput alone</span>
+                            <BaseInput placeholder="Add a note" aria-label="Note" />
+                            <p className="text-body-xs text-foreground-secondary">
+                                Use it alone when the input has no label, no helper and no error of its own, like the
+                                note on Send, or when you build another input on top of it, like SearchInput.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <span className="text-label-l">Field around a BaseInput</span>
+                            <Field
+                                label="BIC"
+                                htmlFor="ds-base-input-compare-bic"
+                                error="A BIC has 8 or 11 characters."
+                            >
+                                <BaseInput id="ds-base-input-compare-bic" defaultValue="NOTABIC" />
+                            </Field>
+                            <p className="text-body-xs text-foreground-secondary">
+                                Use Field when the input has a label, a helper, or a validation error the user fixes in
+                                that input. Any form field that can fail validation goes in a Field, even with no label.
+                            </p>
+                        </div>
+                    </div>
+                </DocSection.Content>
+            </DocSection>
 
             <Playground
                 name="BaseInput"

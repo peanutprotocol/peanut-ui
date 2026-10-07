@@ -30,7 +30,30 @@ const LEGACY_DEVICE_PROFILES = {
     '360x800': { platform: 'android', label: 'Android' },
     '320x712': { platform: 'android', label: 'Android small' },
 }
-const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
+const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'new', 'removed'])
+// Older immutable reports used any nonzero pixel count as a change. Apply the
+// same two-decimal threshold as core.mjs before filtering or counting their rows.
+const normalizeComparison = (comparison) => ({
+    ...comparison,
+    screens: comparison.screens.map((row) => {
+        // Old immutable reports marked the whole pair unavailable when only the baseline lacked a harness.
+        if (
+            row.status === 'unavailable' &&
+            row.before?.status === 'unavailable' &&
+            row.after?.status === 'captured' &&
+            row.after.image
+        )
+            return { ...row, status: 'new' }
+        if (
+            row.status === 'changed' &&
+            Number.isFinite(row.percent) &&
+            row.percent >= 0 &&
+            Number(row.percent.toFixed(2)) === 0
+        )
+            return { ...row, status: 'unchanged', belowThreshold: true, diff: undefined }
+        return row
+    }),
+})
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
@@ -111,6 +134,13 @@ let rows = [],
     renderedCount = 0
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
+const newScreen = (row) => ['added', 'new'].includes(row.status) && unavailable(row.before) && !unavailable(row.after)
+function newScreenPlaceholder(row) {
+    const placeholder = el('div', undefined, 'missing new-screen')
+    placeholder.append(el('strong', 'New screen'), el('span', 'No before screenshot'))
+    if (row.before?.reason) placeholder.title = row.before.reason
+    return placeholder
+}
 const comparisonMode = () => report?.type === 'comparison' || (report?.type === 'collection' && !!activeComparison)
 const availableScreen = (row) =>
     [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
@@ -283,6 +313,11 @@ function zoom(row, mode = 'side') {
             ['After', after],
         ])
             if (s?.image) $('zoom-images').append(phonePreview(image(s.image, label, { preview: false }), label))
+            else if (label === 'Before' && newScreen(row)) {
+                const fig = el('figure', undefined, 'device-preview new-screen-shot')
+                fig.append(newScreenPlaceholder(row), el('figcaption', label))
+                $('zoom-images').append(fig)
+            }
     }
     updatePreviewPosition()
     if (!$('zoom').open) {
@@ -320,7 +355,11 @@ function renderTile(row) {
             : [row.flow, row.journey, row.kind === 'component' ? 'Isolated component' : 'App route']
                   .filter(Boolean)
                   .join(' · ')
-    head.append(el('span', row.status, `tag ${row.status}`), el('h2', row.name), el('div', detail, 'meta'))
+    head.append(
+        el('span', row.status === 'new' ? 'New screen' : row.status, `tag ${row.status}`),
+        el('h2', row.name),
+        el('div', detail, 'meta')
+    )
     if (row.note) head.append(el('p', row.note, 'collection-note'))
     tile.append(head)
     const showSingle = !comparisonMode() || (report.type === 'comparison' && viewMode === 'all')
@@ -331,7 +370,7 @@ function renderTile(row) {
               ['Before', row.before],
               ['After', row.after],
           ]) {
-        const fig = el('figure', undefined, 'shot')
+        const fig = el('figure', undefined, `shot${label === 'Before' && newScreen(row) ? ' new-screen-shot' : ''}`)
         fig.append(el('figcaption', label))
         if (!unavailable(s)) {
             const b = el('button')
@@ -339,7 +378,12 @@ function renderTile(row) {
             b.append(image(s.image, row.name))
             b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
             fig.append(b)
-        } else fig.append(el('div', s?.reason ?? 'Not in this version', 'missing'))
+        } else
+            fig.append(
+                label === 'Before' && newScreen(row)
+                    ? newScreenPlaceholder(row)
+                    : el('div', s?.reason ?? 'Not in this version', 'missing')
+            )
         pair.append(fig)
     }
     tile.append(pair)
@@ -347,7 +391,16 @@ function renderTile(row) {
     const link = el('a', 'Link to screen')
     link.href = `#${row.id}`
     foot.append(link)
-    if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% pixels changed`))
+    if (row.belowThreshold)
+        foot.append(
+            el(
+                'span',
+                Number.isInteger(row.pixels) && row.pixels > 0
+                    ? `${row.pixels} pixels below change threshold`
+                    : 'Below change threshold'
+            )
+        )
+    else if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% pixels changed`))
     tile.append(foot)
     return tile
 }
@@ -650,7 +703,7 @@ function renderCoverage() {
     } · ${rows.length} ${report.type === 'journeys' || report.type === 'collection' ? 'screenshots' : 'states'} · ${Object.entries(
         counts
     )
-        .map(([s, n]) => `${n} ${s}`)
+        .map(([s, n]) => `${n} ${s === 'new' ? 'new screens' : s}`)
         .join(' · ')}`
 }
 async function configureReportLocales(reportPath) {
@@ -756,8 +809,9 @@ async function start() {
             !Array.isArray(comparison.screens)
         )
             throw new Error('Unsupported comparison for this collection')
-        activeComparison = comparison
+        activeComparison = normalizeComparison(comparison)
     }
+    if (report.type === 'comparison') report = normalizeComparison(report)
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
     $('filters-row').hidden = false

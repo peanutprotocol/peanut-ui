@@ -5,10 +5,10 @@ import { useFlowStepper } from '@/hooks/useFlowStepper'
 import type { FlowStepGuard } from '@/hooks/useFlowStepper.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { isNativeBridge } from '@/utils/capacitor'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 
 /** ?screen=, not ?step=: at /setup entry, ?step=signup is an existing contract
- * that skips the invite gate (see determineInitialStep). */
+ * that opens the signup form directly (see determineInitialStep). */
 export const SETUP_SCREEN_PARAM = 'screen'
 
 /*
@@ -32,9 +32,9 @@ export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
  * handleBack directly — pushed WebView entries would never be consumed during
  * the flow, and Back after completing setup would pop through stale /setup
  * entries back into onboarding (Chip review round 1). Point of no return:
- * once a step with showBackButton=false renders (e.g. sign-test-transaction —
- * the passkey is already registered), every earlier step's guard refuses and
- * bounces back, so a history pop cannot re-enter the forms.
+ * once registration completes, the page locks steps before passkey-permission.
+ * Later Back presses can revisit the registered passkey explanation and
+ * preferences, while history pops cannot re-enter the registration forms.
  */
 export const useSetupFlow = () => {
     const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } =
@@ -76,6 +76,15 @@ export const useSetupFlow = () => {
 
     const currentIndex = screenIds.indexOf(stepper.step)
     const step: ISetupStep | undefined = steps[currentIndex]
+    // Browser history changes bypass handleBack/setScreenId. Derive arrival
+    // direction from the cursor too, before a newly mounted step chooses its view.
+    const previous = useRef({ screenId: stepper.step, index: currentIndex })
+    const cursorChanged = previous.current.screenId !== stepper.step
+    const arrivalDirection = cursorChanged ? (currentIndex >= previous.current.index ? 1 : -1) : direction
+    useLayoutEffect(() => {
+        if (cursorChanged) setDirection(arrivalDirection)
+        previous.current = { screenId: stepper.step, index: currentIndex }
+    }, [stepper.step, currentIndex, cursorChanged, arrivalDirection, setDirection])
 
     const setScreenId = useCallback(
         (screenId: ScreenId, options?: { history?: 'replace' | 'push' }) => {
@@ -122,7 +131,7 @@ export const useSetupFlow = () => {
     return {
         step,
         currentIndex,
-        direction,
+        direction: arrivalDirection,
         isFirstStep: currentIndex === 0,
         isLastStep: currentIndex === screenIds.length - 1,
         isLoading,

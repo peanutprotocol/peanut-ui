@@ -21,10 +21,26 @@ test('a request consumes unless it carries the preview marker', () => {
     expect(sponsorUserOperationArgs(op(PAYMASTER_PREVIEW_CONTEXT)).shouldConsume).toBe(false)
 })
 
-test('the user operation is forwarded untouched and the fee override is kept', () => {
+test('the user operation fields and fee override are kept without mutating the caller', () => {
     const userOperation = op(PAYMASTER_PREVIEW_CONTEXT)
     const args = sponsorUserOperationArgs(userOperation)
-    expect(args.userOperation).toBe(userOperation)
+    expect(args.userOperation).toEqual(userOperation)
     expect(args.shouldOverrideFee).toBe(true)
     expect(Object.isFrozen(PAYMASTER_PREVIEW_CONTEXT)).toBe(true)
+})
+
+test('preparation metadata never reaches the ZeroDev userOp payload', () => {
+    const userOperation = Object.freeze({
+        ...op(PAYMASTER_PREVIEW_CONTEXT),
+        paymasterContext: PAYMASTER_PREVIEW_CONTEXT,
+        parameters: ['paymaster', 'gas'],
+        signature: '0x1234',
+        callData: '0x5678',
+    })
+    const args = sponsorUserOperationArgs(userOperation)
+    expect(args.userOperation).not.toHaveProperty('paymasterContext')
+    expect(args.userOperation).not.toHaveProperty('parameters')
+    expect(args.userOperation).toMatchObject({ signature: '0x1234', callData: '0x5678', nonce: 1n })
+    expect(args.shouldConsume).toBe(false)
+    expect(userOperation.paymasterContext).toBe(PAYMASTER_PREVIEW_CONTEXT)
 })

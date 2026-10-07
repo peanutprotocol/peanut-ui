@@ -34,8 +34,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'Welcome to Peanut!':
         'visible title vs. its spoken form: es shows "¡Bienvenid@ a Peanut!", screen readers get "¡Te damos la bienvenida a Peanut!" (the @ is read as "arroba")',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
-    Username:
-        "signup asks for your own new handle (Tu usuario) vs. waitlist asks for the inviter's (Nombre de usuario)",
+    Username: 'signup handles and recipient/profile labels need different regional wording',
     'Mexican peso bank transfers': 'sentence fragment vs. standalone label casing',
     'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',

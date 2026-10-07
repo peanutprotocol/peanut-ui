@@ -64,6 +64,8 @@ interface TransactionDetailsHeaderCardProps {
     countryCode?: string | null
     /** one line under the status badge, e.g. why a deposit was returned */
     statusNote?: string
+    /** Identifies the counterparty beside its name in the title, e.g. a PIX key. */
+    nameDetail?: string
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -77,7 +79,9 @@ const getTitle = (
     nameKey?: TransactionNameKey,
     /** The name as it reads inside a sentence: the lowercase form of a
      *  generic label, otherwise the same as `userName`. */
-    inSentenceName: string = userName
+    inSentenceName: string = userName,
+    /** Identifies the counterparty beside its name, e.g. a PIX key. */
+    nameDetail?: string
 ): React.ReactNode => {
     let titleText = userName
 
@@ -182,7 +186,9 @@ const getTitle = (
                     // the title keeps the type wording "Paid to {name}" in every
                     // non-failed state — the status badge, not the verb tense,
                     // carries pending/cancelled. ("Paying to" retired with it.)
-                    titleText = t('title.paidTo', { name: sentenceName })
+                    titleText = t('title.paidTo', {
+                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
+                    })
                 }
                 break
             case 'bank_request_fulfillment':
@@ -242,6 +248,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     fullName,
     countryCode,
     statusNote,
+    nameDetail,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -343,7 +350,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             )}
             <div className="flex w-full flex-col items-center gap-2">
                 <div className="flex w-full flex-col items-center gap-1">
-                    <h2 className="flex items-center justify-center text-body-xs text-foreground-secondary">
+                    {/* A PIX-key title carries a person's name and key: masked in session replay. */}
+                    <h2
+                        className={`flex items-center justify-center text-body-xs text-foreground-secondary ${nameDetail ? 'ph-mask ph-no-capture' : ''}`}
+                    >
                         {isTest ? (
                             t('enjoyPeanut')
                         ) : (
@@ -366,7 +376,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                                 isLinkTransaction,
                                                 status,
                                                 nameKey,
-                                                inSentenceName
+                                                inSentenceName,
+                                                nameDetail
                                             ) as string)
                                 }
                                 isVerified={isVerified}

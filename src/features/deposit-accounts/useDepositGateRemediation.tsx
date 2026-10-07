@@ -8,9 +8,10 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
 import { useEffect, useState, type ReactNode } from 'react'
-import { railIdFor } from './rails'
+import { DEPOSIT_RAILS, railIdFor } from './rails'
 import type { DepositCorridor } from './types'
 
 /**
@@ -33,6 +34,7 @@ export function useDepositGateRemediation(): {
     const { gateFor } = useCapabilities()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
+    const bridgeProviderId = useBridgeProviderId()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [kycModalGate, setKycModalGate] = useState<GateState | undefined>()
     // The corridor the verification is for. It is what the backend opens the
@@ -40,7 +42,6 @@ export function useDepositGateRemediation(): {
     // (the list, the country pick, the claim) — so the user lands back on the
     // corridor they tapped, one verification later.
     const [kycCorridor, setKycCorridor] = useState<DepositCorridor | undefined>()
-    const [tosReasonCode, setTosReasonCode] = useState<string | undefined>()
 
     // the SDK takes over the screen; the modal that offered to open it should not
     // still be sitting behind it
@@ -58,7 +59,6 @@ export function useDepositGateRemediation(): {
                 // nothing for the user to do; the banner offers no button either
                 return
             case 'accept-tos':
-                setTosReasonCode(gate.reason?.code)
                 guardWithTos()
                 return
             case 'provide-email':
@@ -120,8 +120,11 @@ export function useDepositGateRemediation(): {
                 variant={kycModalGate ? resolveKycModalVariant(kycModalGate) : undefined}
                 providerMessage={(kycModalGate && getGateUserMessage(kycModalGate)) || undefined}
                 reasonCode={(kycModalGate && getGateReasonCode(kycModalGate)) || undefined}
+                providerId={
+                    kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'bridge' ? bridgeProviderId : undefined
+                }
             />
-            <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} reasonCode={tosReasonCode} />
+            <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} />
             <ProvideEmailStep
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}

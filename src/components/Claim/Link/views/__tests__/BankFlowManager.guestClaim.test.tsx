@@ -112,7 +112,10 @@ jest.mock('@/hooks/useDetermineBankClaimType', () => ({
     },
     useDetermineBankClaimType: () => ({ claimType: 'guest-bank-claim' }),
 }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null, fetchUser: jest.fn() }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
+    useOptionalAuth: () => ({ user: null }),
+}))
 jest.mock('@/context/loadingStates.context', () => {
     const { createContext } = jest.requireActual('react')
     return { loadingStateContext: createContext({ isLoading: false, setLoadingState: jest.fn() }) }

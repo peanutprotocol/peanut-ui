@@ -45,6 +45,7 @@ import {
     Puzzle,
     RectangleEllipsis,
     RectangleHorizontal,
+    Rows2,
     Rows3,
     Ruler,
     Shapes,
@@ -98,10 +99,12 @@ export interface NavGroup {
     items: NavItem[]
 }
 
+// patterns first: they are what most screens reach for. primitives and
+// foundations are the building blocks underneath them.
 export const TIERS: NavTier[] = [
-    { label: 'Foundations', href: '/dev/ds/foundations', icon: Blocks, key: 'foundations' },
-    { label: 'Primitives', href: '/dev/ds/primitives', icon: Component, key: 'primitives' },
     { label: 'Patterns', href: '/dev/ds/patterns', icon: Puzzle, key: 'patterns' },
+    { label: 'Primitives', href: '/dev/ds/primitives', icon: Component, key: 'primitives' },
+    { label: 'Foundations', href: '/dev/ds/foundations', icon: Blocks, key: 'foundations' },
     { label: 'Audit', href: '/dev/ds/audit', icon: ClipboardCheck, key: 'audit' },
     { label: 'Playground', href: '/dev/ds/playground', icon: FlaskConical, key: 'playground' },
 ]
@@ -264,7 +267,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'PinInput',
             icon: KeyRound,
             href: '/dev/ds/primitives/pin-input',
-            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board yet',
+            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board',
             status: 'limited',
         },
         {
@@ -345,6 +348,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/data-row',
             description:
                 'Label + value row, promoted from TransactionDetails/ReceiptRow. Copy, tooltip, loading, trailing slot',
+            status: 'production',
+        },
+        {
+            label: 'DataRowGroup',
+            icon: Rows2,
+            href: '/dev/ds/primitives/data-row-group',
+            description: 'One theme of rows in a receipt card. One dashed divider between groups, none inside',
             status: 'production',
         },
         {

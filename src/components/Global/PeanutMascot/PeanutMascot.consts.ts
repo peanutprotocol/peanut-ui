@@ -27,6 +27,7 @@ export const MASCOT_ART_FILL = 0.93
  * and convert the result back to viewBox units.
  */
 export const MASCOT_ART_BOXES: Record<MascotPose, MascotArtBox> = {
+    juggling: { x: 130.4, y: 104.4, w: 791.7, h: 893.7 },
     cheering: { x: 143.1, y: 0.8, w: 849.3, h: 980.8 },
     pointing: { x: 215.1, y: 123.0, w: 661.6, h: 816.0 },
     'pointing-down': { x: 265.0, y: 121.9, w: 572.9, h: 817.1 },
@@ -41,6 +42,7 @@ export const MASCOT_ART_BOXES: Record<MascotPose, MascotArtBox> = {
 
 /** Static Tailwind forms of each artwork ratio; keep in sync with MASCOT_ART_BOXES. */
 export const MASCOT_ASPECT_CLASSES: Record<MascotPose, string> = {
+    juggling: 'aspect-[791.7/893.7]',
     cheering: 'aspect-[849.3/980.8]',
     pointing: 'aspect-[661.6/816]',
     'pointing-down': 'aspect-[572.9/817.1]',
@@ -67,6 +69,7 @@ export const MASCOT_JITTER_FRAMES: number = 0
  * (`./lottie/${pose}.json`) is not statically analysable, so the bundler would ship all ten.
  */
 export const MASCOT_ANIMATION_LOADERS: Record<MascotPose, () => Promise<{ default: unknown }>> = {
+    juggling: () => import('@/assets/illustrations/lottie/mascot-juggle.json'),
     cheering: () => import('@/assets/mascot/lottie/cheering.json'),
     pointing: () => import('@/assets/mascot/lottie/pointing.json'),
     'pointing-down': () => import('@/assets/mascot/lottie/pointing-down.json'),
@@ -90,10 +93,10 @@ export const MASCOT_ANIMATION_LOADERS: Record<MascotPose, () => Promise<{ defaul
  * decouples it from how tall the white content panel below happens to be: the panel varies
  * per screen, which is what made the mascot shrink on the landing and finish steps.
  *
- * 35dvh matches the signup image container's own floor (see SetupWrapper), so the mascot
+ * 47dvh matches the signup image container's own floor (see SetupWrapper), so the mascot
  * never asks that container for more room than it already reserves.
  */
-export const MASCOT_HERO_CLASS = 'relative h-[35dvh] max-w-full md:h-[65dvh]'
+export const MASCOT_HERO_CLASS = 'relative h-[47dvh] max-w-full md:h-[65dvh]'
 
 /**
  * In-app state screens — errors, empty states, card status — where the mascot sits above a

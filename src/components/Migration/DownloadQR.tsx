@@ -18,8 +18,21 @@ import type { StoreHandoff } from '@/utils/migration.utils'
 export default function DownloadQR({ surface, handoff }: { surface: MigrationSurface; handoff?: StoreHandoff }) {
     const t = useTranslations('migration')
     const [payload, setPayload] = useState<string>()
+    const [iosPayload, setIosPayload] = useState<string>()
     useEffect(() => {
-        setPayload(handoff ? buildDeferredPayload(handoff.dest, handoff.invite) : undefined)
+        if (!handoff) {
+            setPayload(undefined)
+            setIosPayload(undefined)
+            return
+        }
+        try {
+            setPayload(buildDeferredPayload(handoff.dest, handoff.invite))
+            setIosPayload(buildDeferredPayload(handoff.dest, handoff.invite, 'ios'))
+        } catch {
+            // An unusable handoff must not hide the QR or store links.
+            setPayload(undefined)
+            setIosPayload(undefined)
+        }
     }, [handoff])
 
     useEffect(() => {
@@ -33,7 +46,7 @@ export default function DownloadQR({ surface, handoff }: { surface: MigrationSur
         <div className="flex w-full flex-col items-center gap-3 py-2">
             <QRCodeWrapper url={`${origin}/home?${APP_ENTRY_QUERY_PARAM}=1${payload ? `&${payload}` : ''}`} />
             <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
-            <StoreBadges surface={surface} payload={payload} />
+            <StoreBadges surface={surface} payload={payload} iosPayload={iosPayload} />
         </div>
     )
 }

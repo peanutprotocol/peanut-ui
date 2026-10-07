@@ -7,6 +7,7 @@ import { clearAuthState } from '@/utils/auth.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 import { AccountSetupError } from '@/services/account-setup'
+import type { SignupPreferences } from '@/types/signup-preferences'
 
 /**
  * shared hook for finalizing account setup after test transaction succeeds
@@ -44,7 +45,7 @@ export const useAccountSetup = () => {
      * remains the caller's so signup can redirect only after it has recorded
      * completion analytics and persisted the residence answer.
      */
-    const finalizeAccountSetup = async (address: string) => {
+    const finalizeAccountSetup = async (address: string, signupPreferences?: SignupPreferences) => {
         console.log('[useAccountSetup] Starting account finalization', { address, userId: user?.user.userId })
 
         if (!user) {
@@ -63,6 +64,7 @@ export const useAccountSetup = () => {
                 accountIdentifier: address,
                 accountType: WalletProviderType.PEANUT,
                 userId: user.user.userId as string,
+                ...(signupPreferences ? { signupPreferences } : {}),
             })
             Sentry.addBreadcrumb({
                 category: 'account-setup',

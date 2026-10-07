@@ -95,11 +95,13 @@ const SubtitleSkeleton = () => (
  */
 const GettingStartedChecklist = ({
     onboarding,
+    showWelcome = true,
     onHide,
     onStartIdentityCheck,
     onStartQrIdentityCheck,
 }: {
     onboarding: OnboardingState
+    showWelcome?: boolean
     onHide?: () => void
     /** opens the shared ID-check start (ActivationCTAs owns the flow and its modals) */
     onStartIdentityCheck?: () => void
@@ -250,31 +252,33 @@ const GettingStartedChecklist = ({
         <Section>
             {/* one height at every width: a one-line subtitle (wide screens) gets the
                 same card as a two-line one; 320 may grow when the title wraps */}
-            <Card
-                position="solo"
-                className="flex min-h-[90px] flex-col justify-center px-4 py-2"
-                data-testid="onboarding-welcome"
-            >
-                <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                        {/* es writes "Bienvenid@", which screen readers read as "arroba":
+            {showWelcome && (
+                <Card
+                    position="solo"
+                    className="flex min-h-[90px] flex-col justify-center px-4 py-2"
+                    data-testid="onboarding-welcome"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                            {/* es writes "Bienvenid@", which screen readers read as "arroba":
                             the visible title is hidden from them and a spoken form is read instead */}
-                        <span className="text-heading-card text-foreground-primary">
-                            <span aria-hidden>{t('welcomeTitle')}</span>
-                            <span className="sr-only">{t('welcomeTitleSpoken')}</span>
-                        </span>
-                        <span className="text-body-s text-foreground-secondary">
-                            {t('welcomeBody', { count: items.length })}
-                        </span>
-                    </div>
-                    {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
+                            <span className="text-heading-card text-foreground-primary">
+                                <span aria-hidden>{t('welcomeTitle')}</span>
+                                <span className="sr-only">{t('welcomeTitleSpoken')}</span>
+                            </span>
+                            <span className="text-body-s text-foreground-secondary">
+                                {t('welcomeBody', { count: items.length })}
+                            </span>
+                        </div>
+                        {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
                         PeanutMascot shows a still frame under reduced motion */}
-                    <div className="relative size-[72px] shrink-0">
-                        <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
-                        <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                        <div className="relative size-[72px] shrink-0">
+                            <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
+                            <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                        </div>
                     </div>
-                </div>
-            </Card>
+                </Card>
+            )}
             <div className="flex flex-col gap-1">
                 <span className="text-body-s text-foreground-secondary">
                     {t('progress', { done: doneCount, total: items.length })}

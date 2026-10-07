@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { twMerge } from '@/utils/tw'
 import { Icon } from '../Global/Icons/Icon'
 
-interface LinkButtonProps {
+interface LinkButtonProps extends React.AriaAttributes {
     /** Link text. */
     children: React.ReactNode
     /** Renders a Next.js <Link>. Omit to render a <button> with onClick. */
@@ -26,11 +26,11 @@ interface LinkButtonProps {
 // exported for behavior wrappers (DocsLink, ShareButton call sites) that must
 // keep their own element but wear this chrome — import it, never re-type it.
 export const LINK_BUTTON_CLASSES =
-    'relative inline-flex items-center gap-1 rounded text-body-xs text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary active:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus'
+    'relative inline-flex items-center gap-1 rounded text-body-xs text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-2 focus-visible:outline-action-focus'
 
 /**
  * Standalone link button from the figma link board (17980:17351): Body/XS
- * underlined, foreground/secondary at rest, foreground/primary on hover,
+ * underlined, foreground/secondary at rest, on hover and when pressed,
  * optional trailing icon. Covers standalone navigation links AND underlined
  * text actions (action-link node 17980-17352, same family — ruled 2026-09-02).
  * Never embed it inline in a sentence (inline links just underline the

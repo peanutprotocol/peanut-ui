@@ -15,14 +15,14 @@ import { openReceiptPdfUrl, receiptPdfPath } from './receipt-pdf-link.utils'
  * so the click is intercepted and the production URL opens in the system
  * browser sheet via the existing external-open pattern.
  *
- * The locale rides the URL, not a cookie: the PDF bytes vary by locale and
- * final receipts are CDN-cached by URL, and the native path opens an external
+ * The locale and receipt state ride the URL, not a cookie: the PDF bytes vary
+ * by both and final receipts are CDN-cached by URL, and the native path opens an external
  * browser that has no app cookies at all.
  */
-export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kind: string }) {
+export function DownloadReceiptPdfLink({ entryId, kind, version }: { entryId: string; kind: string; version: string }) {
     const t = useAppTranslations('transaction')
     const locale = useLocale()
-    const pdfPath = receiptPdfPath(entryId, kind, locale)
+    const pdfPath = receiptPdfPath(entryId, kind, locale, version)
 
     return (
         // primary: download is the public receipt's one primary

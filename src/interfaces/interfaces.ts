@@ -1,3 +1,4 @@
+import type { SignupPreferences } from '@/types/signup-preferences'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
 
@@ -259,6 +260,11 @@ export interface Account {
     sortCode?: string // uk bank accounts
     /** Why the API switched the account off, when it did — see isUsableSavedAccount. */
     deactivationReason?: string | null
+    /**
+     * Someone else's PIX key, saved from a payment. It can be paid again from
+     * Send, but the PIX withdrawal pays out only to the user's own account.
+     */
+    isPixRecipient?: boolean
 }
 
 interface userInvites {
@@ -308,6 +314,7 @@ export interface IUserProfile {
     // `capabilities` on /get-user. Read via useIdentityVerification(). The status
     // surfaces render this; no provider names. Optional during the migration.
     identityVerification?: IdentityVerification
+    signupPreferences?: SignupPreferences | null
     profileNameLocked?: boolean
     // Residence-based availability derived server-side from the residence the
     // user declared at signup. Read via useResidenceRestrictions(). Advisory

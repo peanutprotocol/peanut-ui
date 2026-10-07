@@ -3,10 +3,11 @@
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useNotifications } from '@/hooks/useNotifications'
+import { offerPushPrompt, useNotifications } from '@/hooks/useNotifications'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -17,7 +18,6 @@ import { formatUnits } from 'viem'
 // wrapped in error boundaries to gracefully handle chunk load failures
 const BalanceWarningDrawer = lazy(() => import('@/components/Global/BalanceWarningDrawer'))
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
-const NoMoreJailDrawer = lazy(() => import('@/components/Global/NoMoreJailDrawer'))
 const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
@@ -35,7 +35,7 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
  * post-signup, and balance warning.
  */
 export function HomeModals() {
-    const { showPermissionModal } = useNotifications()
+    const { showPermissionModal, oneSignalInitialized } = useNotifications()
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user } = useAuth()
@@ -45,19 +45,18 @@ export function HomeModals() {
     // migration download prompt outranks every other home modal (self-gating,
     // only during the native-migration notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
-    // Both celebration drawers open themselves (session storage / a user
-    // flag), and a pre-lockup invitee can qualify for both at once — two open
-    // vaul roots would stack overlays and scroll locks. The jail celebration
-    // goes first; the early-user drawer mounts only once it is out of the way.
-    const [jailCelebrationPending, setJailCelebrationPending] = useState(
-        () => typeof window !== 'undefined' && sessionStorage.getItem('showNoMoreJailModal') === 'true'
-    )
     // the migration prompt outranks the post-signup modal; unmounting the
     // manager skips its onVisibilityChange(false), so clear the state here or
     // it stays stuck true and suppresses the balance-warning modal
     useEffect(() => {
         if (showMigrationModal) setIsPostSignupActionModalVisible(false)
     }, [showMigrationModal])
+
+    // the context-free push ask, for users no money moment reached; it waits
+    // for the third session and its own snooze (see offerPushPrompt)
+    useEffect(() => {
+        if (oneSignalInitialized) void offerPushPrompt(PUSH_PROMPT_TRIGGERS.HOME_FALLBACK)
+    }, [oneSignalInitialized])
 
     // balance warning: only when balance is above threshold, unseen recently,
     // and no higher-priority modal is active
@@ -111,23 +110,13 @@ export function HomeModals() {
                 </LazyLoadErrorBoundary>
             )}
 
-            {/* these modals manage their own state internally */}
+            {/* this modal manages its own state internally */}
             {!showBalanceWarningDrawer && !showMigrationModal && (
-                <>
-                    <LazyLoadErrorBoundary>
-                        <Suspense fallback={null}>
-                            <NoMoreJailDrawer onVisibilityChange={setJailCelebrationPending} />
-                        </Suspense>
-                    </LazyLoadErrorBoundary>
-
-                    {!jailCelebrationPending && (
-                        <LazyLoadErrorBoundary>
-                            <Suspense fallback={null}>
-                                <EarlyUserDrawer />
-                            </Suspense>
-                        </LazyLoadErrorBoundary>
-                    )}
-                </>
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <EarlyUserDrawer />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
             )}
 
             <LazyLoadErrorBoundary>

@@ -57,10 +57,8 @@
     --color-background-page: #faf4f0;
     --color-background-disabled: #efeff0;
     --color-background-brand: #ff90e8;
-    /* the periwinkle panel behind the setup/onboarding illustration. same value
-       as the blue-300 primitive the hero painted by hand. no board defines it:
-       flagged for vlad. */
-    --color-background-setup-hero: #90a8ed;
+    /* Light blue from the onboarding animation/Figma reference. */
+    --color-background-setup-hero: #d8e7ff;
 
     --color-background-icon-bubble-green: #29cc6a;
     --color-background-icon-bubble-red: #ea8282;
@@ -126,6 +124,8 @@
     --color-avatar-green: #c7f9c6;
     --color-avatar-green-border: #29cc6a;
     --color-avatar-green-foreground: #3b730c;
+
+    --color-background-selection: var(--color-purple-200);
 
     --color-shadow-primary: #000000;
 
@@ -782,6 +782,11 @@
     [type='button'] {
         -webkit-tap-highlight-color: transparent;
     }
+
+    /* One animated setup tint shared by the hero and native safe-area fills. */
+    .setup-hero-background {
+        background-color: var(--setup-hero-background, var(--color-background-setup-hero));
+    }
 }
 
 /* ── component classes ported from the v3 plugin (addComponents). chains like
@@ -829,6 +834,13 @@
     }
     /* board sizes: l=48px, m=44px (default, on .btn), s=40px visual with a
        pseudo-element extending the hit area to 44px (touch-target law). */
+    /* Inline setup selectors: 36px visual with a 44px touch target. */
+    .btn-compact {
+        @apply relative mx-1.5 h-9 pr-2 pl-1.5 after:absolute after:inset-x-0 after:-inset-y-[5px];
+    }
+    .btn-compact-placeholder {
+        @apply pl-2.5;
+    }
     .btn-small {
         @apply relative h-10 px-2 text-button-s after:absolute after:-inset-0.5;
     }
@@ -867,6 +879,9 @@
     }
     .shadow-primary-8 {
         @apply shadow-[0.5rem_0.5rem_0_#000000];
+    }
+    .btn-shadow-primary-2 {
+        @apply shadow-[0.125rem_0.125rem_0_var(--color-shadow-primary)];
     }
     .btn-shadow-primary-3 {
         @apply shadow-[0.1875rem_0.1875rem_0_#000000];

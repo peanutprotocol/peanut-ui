@@ -9,6 +9,7 @@ import { authReady, getAuthHeaders } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { receiptPdfPath } from './receipt-pdf-link.utils'
 
 type ReceiptPdfFile = { blob: Blob; filename: string }
 
@@ -66,11 +67,15 @@ export function useReceiptPdfFile({
     entryId,
     kind,
     prefetch = false,
+    version = '',
 }: {
     entryId: string
     kind: string
     /** fetch eagerly on mount — the private-receipt behavior since #3159 */
     prefetch?: boolean
+    /** the receipt's current state; a change drops the file fetched for the
+     *  earlier state, so an open drawer never shares an outdated pdf */
+    version?: string
 }) {
     const t = useAppTranslations('transaction')
     const toast = useToast()
@@ -78,9 +83,9 @@ export function useReceiptPdfFile({
     const [pdf, setPdf] = useState<ReceiptPdfFile | null>(null)
     const [error, setError] = useState(false)
     const [busy, setBusy] = useState<'share' | 'download' | null>(null)
-    const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
-    // the identity a cached or in-flight file belongs to; a receipt/locale
-    // switch must never share the previous transaction's document
+    const pdfPath = receiptPdfPath(entryId, kind, locale, version)
+    // the identity a cached or in-flight file belongs to; a receipt, locale or
+    // state switch must never share the previous document
     const pathRef = useRef(pdfPath)
     pathRef.current = pdfPath
     // state alone cannot guard same-tick double taps (it only lands on the

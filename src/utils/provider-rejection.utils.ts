@@ -1,3 +1,4 @@
+import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
 import { type NextAction, type RailCapability } from '@/types/capabilities'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 
@@ -33,8 +34,10 @@ import { railUserMessage, railVerdict } from '@/utils/capability-gate'
  *   - happy           : nothing pending an action
  *   - fixable         : user can re-submit docs via self-heal (`requires-info`)
  *   - restart-identity: blocked + the rail carries a `restart-identity` action
- *                       (today: Manteca country-not-supported). Self-fixable
- *                       by re-verifying with a different document.
+ *                       (Manteca country-not-supported). Self-fixable by
+ *                       re-verifying with a different document. Also the state
+ *                       for an approval with no identity document on file
+ *                       (see {@link identityDocumentRestartAction}).
  *   - blocked         : terminal — contact support
  */
 export type ProviderRejectionState = 'happy' | 'fixable' | 'restart-identity' | 'blocked'
@@ -57,6 +60,18 @@ const PROVIDER_CODE: Record<'BRIDGE' | 'MANTECA', 'bridge' | 'manteca'> = {
 }
 
 /**
+ * The top-level `restart-identity` action the API sends for an approval with
+ * no identity document on file (api#1776). It is attached to no rail and the
+ * rails keep their status, so an enabled pool rail still pays while the user
+ * is asked for an identity document and a selfie.
+ */
+export function identityDocumentRestartAction(nextActions: NextAction[]): NextAction | undefined {
+    return nextActions.find(
+        (action) => action.kind === 'restart-identity' && action.purpose === IDENTITY_DOCUMENT_MISSING_CODE
+    )
+}
+
+/**
  * Derive the rejection state for a single provider from the per-rail VERDICT
  * ({@link railVerdict}: `rail.resolved` BE-derived, shared legacy fallback).
  *
@@ -70,14 +85,29 @@ const PROVIDER_CODE: Record<'BRIDGE' | 'MANTECA', 'bridge' | 'manteca'> = {
  *   - wait-marked rails resolve `pending` → `happy`: nothing user-actionable,
  *     so no fixable CTA (the legacy status check surfaced one that dead-ended).
  *
- * `nextActions` powers the legacy fallback's action-kind refinement; callers
- * without it get pure status semantics (what this util always had).
+ * `nextActions` powers the legacy fallback's action-kind refinement and the
+ * missing-document restart; callers without it get pure status semantics.
  */
 export function deriveProviderRejection(
     rails: RailCapability[],
     provider: 'BRIDGE' | 'MANTECA',
     nextActions: NextAction[] = []
 ): ProviderRejectionInfo {
+    // The identity check itself is incomplete, so a new check comes first,
+    // whatever the rails say. Read from the rails alone this user looks happy,
+    // and the Manteca surfaces would start Manteca onboarding instead of the
+    // identity check the API asks for. No userMessage: the copy comes from the
+    // reason code's catalog entry, which every render site resolves first.
+    if (identityDocumentRestartAction(nextActions)) {
+        return {
+            provider,
+            state: 'restart-identity',
+            userMessage: null,
+            reasonCode: IDENTITY_DOCUMENT_MISSING_CODE,
+            actionKey: null,
+        }
+    }
+
     const byKey = new Map(nextActions.map((action) => [action.key, action]))
     const candidates = rails
         .filter((rail) => rail.provider === PROVIDER_CODE[provider])
