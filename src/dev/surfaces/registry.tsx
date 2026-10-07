@@ -31,6 +31,7 @@ import { GuestVerificationModal } from '@/components/Global/GuestVerificationMod
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import { BankUnlockIntro } from '@/components/Kyc/BankUnlockIntroGate'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
@@ -383,6 +384,10 @@ export const SURFACES: Record<string, Surface> = {
     '20-a-setupnotificationsmodal': {
         ...SURFACE_META['20-a-setupnotificationsmodal'],
         render: () => <SetupNotificationsPrompt visible onAllow={noop} onClose={noop} />,
+    },
+    '21-b-bank-unlock-intro': {
+        ...SURFACE_META['21-b-bank-unlock-intro'],
+        render: () => <BankUnlockIntro onBack={noop} onContinue={noop} />,
     },
     '22-b-initiatekycmodal': {
         ...SURFACE_META['22-b-initiatekycmodal'],

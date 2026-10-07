@@ -226,6 +226,7 @@ export default function ActivationCTAs({
                     onStartQrIdentityCheck={qrIdentityCheck.start}
                 />
                 <InitiateKycModal
+                    showBankIntro
                     cooldownActive={!!kycFlow.errorCooldown}
                     visible={showInitiateKyc}
                     onClose={() => setShowInitiateKyc(false)}

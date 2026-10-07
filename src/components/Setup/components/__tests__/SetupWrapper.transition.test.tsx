@@ -15,6 +15,23 @@ jest.mock('@/components/Global/PeanutMascot', () => ({
 // Keep real AnimatePresence and motion: this catches an outgoing header losing its hero.
 jest.mock('framer-motion', () => ({ ...jest.requireActual('framer-motion'), useReducedMotion: () => false }))
 
+it('can reuse the benefit layout without signup progress or language controls', () => {
+    renderWithIntl(
+        <SetupWrapper
+            layoutType="signup"
+            screenId="advantage-bank"
+            image={{ pose: 'thinking' }}
+            title="Bank accounts"
+            showProgress={false}
+        >
+            <button>Continue</button>
+        </SetupWrapper>
+    )
+    expect(screen.getByTestId('card-illustration')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Language' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+})
+
 it('slides complete screens together with only the incoming screen accessible', async () => {
     const view = renderWithIntl(
         <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ pose: 'thinking' }} title="Pink card">
