@@ -114,25 +114,6 @@ const mascotVariants = {
 
 const STEP_TRANSITION = { duration: 0.5, ease: [0.22, 1, 0.36, 1] } as const
 
-const SETUP_KEYBOARD_FOCUS_KEYS = new Set([
-    'Tab',
-    'Enter',
-    ' ',
-    'ArrowUp',
-    'ArrowDown',
-    'ArrowLeft',
-    'ArrowRight',
-    'Home',
-    'End',
-    'PageUp',
-    'PageDown',
-])
-
-const isEditableFocusTarget = (target: EventTarget | null) =>
-    target instanceof HTMLTextAreaElement ||
-    (target instanceof HTMLInputElement && !['button', 'checkbox', 'radio', 'submit'].includes(target.type)) ||
-    (target instanceof HTMLElement && target.isContentEditable)
-
 const TransitioningContent = ({
     children,
     className,
@@ -569,29 +550,6 @@ export const SetupWrapper = memo(function SetupWrapper({
     useLayoutEffect(() => {
         previousStep.current = step
     }, [step])
-    useEffect(() => {
-        // A tapped text field can still match :focus-visible in Chromium. Track
-        // how focus was reached so pointer focus stays pink while keyboard
-        // navigation keeps a high-contrast ring. Typing in a field does not
-        // switch the focus style.
-        const root = document.documentElement
-        root.dataset.setupInputModality = 'keyboard'
-        const onPointerDown = () => {
-            root.dataset.setupInputModality = 'pointer'
-        }
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.metaKey || event.altKey || event.ctrlKey || !SETUP_KEYBOARD_FOCUS_KEYS.has(event.key)) return
-            if ((event.key === 'Enter' || event.key === ' ') && isEditableFocusTarget(event.target)) return
-            root.dataset.setupInputModality = 'keyboard'
-        }
-        document.addEventListener('pointerdown', onPointerDown, true)
-        document.addEventListener('keydown', onKeyDown, true)
-        return () => {
-            document.removeEventListener('pointerdown', onPointerDown, true)
-            document.removeEventListener('keydown', onKeyDown, true)
-            delete root.dataset.setupInputModality
-        }
-    }, [])
     useLayoutEffect(() => {
         // Safe-area strips follow the full-page checklist/celebration or blue hero.
         document.documentElement.style.setProperty(
@@ -632,7 +590,6 @@ export const SetupWrapper = memo(function SetupWrapper({
 
     return (
         <div
-            data-setup-flow="true"
             data-first-launch-intro={intro.active ? intro.phase : undefined}
             className={twMerge(
                 'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto bg-white',
