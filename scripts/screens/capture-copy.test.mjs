@@ -40,6 +40,16 @@ test('unknown capture strings remain unchanged', () => {
     assert.equal(localizedCaptureText('pt-BR', source)('Synthetic account'), 'Synthetic account')
 })
 
+test('the network drawer opens by its localized label in every app locale', () => {
+    for (const [locale, label] of Object.entries({
+        en: 'More networks',
+        'es-419': 'Más redes',
+        'es-AR': 'Más redes',
+        'pt-BR': 'Mais redes',
+    }))
+        assert.equal(localizedCaptureText(locale, source)('More networks'), label)
+})
+
 test('capture copy is read from the requested source checkout', () => {
     const targetSource = mkdtempSync(join(tmpdir(), 'capture-copy-'))
     const messages = join(targetSource, 'src/i18n/app/messages')

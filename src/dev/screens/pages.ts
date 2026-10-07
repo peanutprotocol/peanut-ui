@@ -6,7 +6,9 @@ export type PageCapture = {
     /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
     fixture?: string
     entryRoute?: string
-    actions?: Array<{ click: string } | { fill: { selector: string; value: string } }>
+    actions?: Array<{ click: string } | { clickSelector: string } | { fill: { selector: string; value: string } }>
+    /** Prove the requested overlay is open, including its selected row. */
+    expectSelector?: string
     routePattern?: string
     /** Accessible names clicked in order before the shot. */
     clicks?: string[]
@@ -159,5 +161,46 @@ PAGE_CAPTURES.push(
         route: '/profile/accounts',
         fixture: 'profile-accounts',
         clicks: ['Open new account'],
+    },
+    {
+        id: 'p73-token-selector-drawer',
+        name: 'Token selector — open drawer, selected token',
+        route: '/withdraw/crypto',
+        fixture: 'withdraw-crypto-destination',
+        actions: [{ clickSelector: '[data-testid="token-selector-trigger"]' }],
+        expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p74-network-selector-drawer',
+        name: 'Network selector — open drawer, selected network',
+        route: '/withdraw/crypto',
+        fixture: 'withdraw-crypto-destination',
+        actions: [{ clickSelector: '[data-testid="token-selector-trigger"]' }, { click: 'More networks' }],
+        expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p75-residence-country-dropdown',
+        name: 'Residence — open country dropdown, selected country',
+        route: '/dev/surfaces?s=03-a-residence-select',
+        actions: [{ clickSelector: '[role="combobox"]' }],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p76-exchange-currency-dropdown',
+        name: 'Exchange rate — open currency dropdown, selected currency',
+        route: '/profile/exchange-rate',
+        actions: [{ clickSelector: 'button[aria-haspopup="listbox"]' }],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p77-base-select-dropdown',
+        name: 'BaseSelect — open dropdown, selected option',
+        route: '/dev/ds/primitives/base-select',
+        actions: [
+            { clickSelector: 'button[role="combobox"]' },
+            { clickSelector: '[role="option"]' },
+            { clickSelector: 'button[role="combobox"]' },
+        ],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
     }
 )

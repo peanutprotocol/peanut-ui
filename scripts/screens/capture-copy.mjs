@@ -13,6 +13,7 @@ const COPY_PATHS = new Map([
     ["Chat couldn't load", 'global.supportDrawer.chatLoadFailed'],
     ['A small update to our terms', 'global.reConsent.title'],
     ['Open new account', 'depositAccounts.list.openTitle'],
+    ['More networks', 'global.tokenSelector.moreNetworksTitle'],
 ])
 
 const read = (source, locale) =>
