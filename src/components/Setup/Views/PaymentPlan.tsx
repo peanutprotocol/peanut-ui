@@ -242,7 +242,12 @@ export default function PaymentPlan({
                         title={t('fundingTitle')}
                         options={options.funding}
                         value={funding}
-                        label={(channel) => t(`funding.${channel}`)}
+                        label={(channel) =>
+                            channel === 'bank' &&
+                            options.funding.some((option) => option === 'brlBank' || option === 'arsBank')
+                                ? t('funding.bankCurrencies')
+                                : t(`funding.${channel}`)
+                        }
                         onChange={setFundingChannel}
                         onInteract={freeze}
                         animate={cycle}

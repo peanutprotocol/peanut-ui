@@ -68,7 +68,7 @@ it('groups bank providers, excludes cash, and leaves Peanut payments last', () =
         within(dialog)
             .getAllByRole('button')
             .map((x) => x.getAttribute('aria-label'))
-    ).toEqual(['Bank transfer (BRL)', 'Bank transfer', 'Crypto', 'Peanut to Peanut'])
+    ).toEqual(['Bank transfer (BRL)', 'Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Peanut to Peanut'])
     expect(within(dialog).queryByText('Cash')).not.toBeInTheDocument()
 })
 it('offers both card and QR in Brazil, and allows a deliberate Crypto payment choice', async () => {

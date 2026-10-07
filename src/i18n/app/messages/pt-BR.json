@@ -1015,6 +1015,7 @@
                 "crypto": "Cripto",
                 "peanut": "Peanut para Peanut",
                 "bank": "Transferência bancária",
+                "bankCurrencies": "Transferência bancária (USD, EUR, GBP, MXN)",
                 "brlBank": "Transferência bancária (BRL)",
                 "arsBank": "Transferência bancária (ARS)"
             },
