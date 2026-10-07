@@ -659,7 +659,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                             aria-hidden={intro.active}
                             inert={intro.active}
                             className={twMerge(
-                                'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh',
+                                // pb-10 keeps the pinned CTA clear of the home gesture area on top of the safe-area inset
+                                'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-10 md:h-dvh',
 
                                 fullScreen && 'md:h-auto md:flex-1'
                             )}
