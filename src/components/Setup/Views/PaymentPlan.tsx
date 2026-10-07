@@ -31,6 +31,7 @@ function ChannelPicker<C extends SetupChannel>({
     onChange,
     onInteract,
     animate,
+    previewValue,
 }: {
     kind: 'funding' | 'payment'
     title: string
@@ -40,6 +41,7 @@ function ChannelPicker<C extends SetupChannel>({
     onChange: (channel: C) => void
     onInteract: () => void
     animate: boolean
+    previewValue?: C
 }) {
     const [open, setOpen] = useState(false)
     const icon = (channel: SetupChannel) => <IconBubble {...CONCEPT_ICONS[SETUP_CHANNEL_CONCEPTS[channel]]} size="xs" />
@@ -85,7 +87,7 @@ function ChannelPicker<C extends SetupChannel>({
                         {animate ? (
                             <AnimatePresence initial={false} mode="popLayout">
                                 <motion.span
-                                    key={value}
+                                    key={previewValue ?? 'initial'}
                                     initial={{ y: '-100%', opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
                                     exit={{ y: '100%', opacity: 0 }}
@@ -234,6 +236,7 @@ export default function PaymentPlan({
                         onChange={setFundingChannel}
                         onInteract={freeze}
                         animate={cycle}
+                        previewValue={preview.funding}
                     />
                 </span>{' '}
                 {t('firstPayment')}{' '}
@@ -248,6 +251,7 @@ export default function PaymentPlan({
                         onChange={setPaymentChannel}
                         onInteract={freeze}
                         animate={cycle}
+                        previewValue={preview.payment}
                     />
                 </span>
             </h1>

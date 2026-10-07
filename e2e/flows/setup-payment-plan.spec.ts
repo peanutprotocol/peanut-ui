@@ -57,3 +57,35 @@ for (const locale of locales) {
         })
     }
 }
+
+test('settles initial options without animating, then changes only the scheduled selector', async ({ page }) => {
+    await page.addInitScript(() => {
+        sessionStorage.setItem('showNoMoreJailModal', 'true')
+        localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
+        localStorage.setItem(
+            'demo-user:user-preferences',
+            JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
+        )
+    })
+    await page.route('**/*', (route) =>
+        ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort()
+    )
+    await page.goto('/dev/surfaces?s=03-h-funding-methods&__fixture=setup-payment-plan')
+    const funding = page.getByTestId('setup-funding-channel')
+    const payment = page.getByTestId('setup-payment-channel')
+    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer (BRL)')
+    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Peanut card')
+    const visibleLabels = 'span[title] > span:not([aria-hidden="true"])'
+    await expect(funding.locator(visibleLabels)).toHaveCount(1)
+    await expect(payment.locator(visibleLabels)).toHaveCount(1)
+    await page.waitForTimeout(1000)
+    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer (BRL)')
+    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer', { timeout: 4000 })
+    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Peanut card')
+    await expect(payment.locator(visibleLabels)).toHaveCount(1)
+    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Bank transfer', { timeout: 3000 })
+    await funding.click()
+    await page.waitForTimeout(4300)
+    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer')
+    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Bank transfer')
+})
