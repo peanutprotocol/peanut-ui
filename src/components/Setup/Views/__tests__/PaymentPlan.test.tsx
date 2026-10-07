@@ -176,18 +176,31 @@ it('does not rotate for reduced motion, and keyboard focus stops both suggestion
         jest.useRealTimers()
     }
 })
-it('never cycles through Crypto as a payment suggestion', () => {
-    jest.useFakeTimers()
-    try {
-        renderWithIntl(ui('GB'))
-        for (let i = 0; i < 9; i++) {
-            act(() => jest.advanceTimersByTime(4000))
-            expect(screen.queryByRole('button', { name: 'Make a payment with: Crypto' })).not.toBeInTheDocument()
+it.each([
+    ['PT', true, ['Peanut card', 'Bank transfer', 'QR payments', 'Crypto', 'Peanut to Peanut', 'Peanut card']],
+    ['GB', true, ['QR payments', 'Crypto', 'Peanut to Peanut', 'QR payments']],
+    ['PT', false, ['Peanut to Peanut', 'Crypto', 'Peanut to Peanut']],
+])(
+    'rotates through all eligible payment options in %s (settled=%s) without starting on Crypto',
+    (country, settled, sequence) => {
+        jest.useFakeTimers()
+        try {
+            mockSettled = settled
+            renderWithIntl(ui(country))
+            expect(screen.getByTestId('setup-payment-channel')).toHaveAccessibleName(
+                `Make a payment with: ${sequence[0]}`
+            )
+            for (let i = 1; i < sequence.length; i++) {
+                act(() => jest.advanceTimersByTime(i === 1 ? 5500 : 4000))
+                expect(screen.getByTestId('setup-payment-channel')).toHaveAccessibleName(
+                    `Make a payment with: ${sequence[i]}`
+                )
+            }
+        } finally {
+            jest.useRealTimers()
         }
-    } finally {
-        jest.useRealTimers()
     }
-})
+)
 it('saves the displayed fallback defaults on Continue while the lookup remains unsettled', () => {
     mockSettled = false
     renderWithIntl(ui('PT', true))

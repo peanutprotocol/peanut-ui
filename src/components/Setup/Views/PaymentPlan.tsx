@@ -44,7 +44,16 @@ function ChannelPicker<C extends SetupChannel>({
     previewValue?: C
 }) {
     const [open, setOpen] = useState(false)
-    const icon = (channel: SetupChannel) => <IconBubble {...CONCEPT_ICONS[SETUP_CHANNEL_CONCEPTS[channel]]} size="xs" />
+    const icon = (channel: SetupChannel) => {
+        const concept = SETUP_CHANNEL_CONCEPTS[channel]
+        return (
+            <IconBubble
+                {...CONCEPT_ICONS[concept]}
+                size="xs"
+                color={concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color}
+            />
+        )
+    }
     return (
         <Drawer
             open={open}
@@ -190,9 +199,10 @@ export default function PaymentPlan({
                     const index = options.funding.indexOf(current.funding ?? options.funding[0])
                     return { ...current, funding: options.funding[(index + 1) % options.funding.length] }
                 }
-                // Crypto remains available for deliberate selection, never an automatic payment suggestion.
-                const payments = options.payment.filter((channel) => channel !== 'crypto')
-                const index = payments.findIndex((channel) => channel === (current.payment ?? payments[0]))
+                // Start with a non-Crypto default, then preview every eligible option.
+                const payments = options.payment
+                const initialPayment = payments.find((channel) => channel !== 'crypto') ?? 'peanut'
+                const index = payments.indexOf(current.payment ?? initialPayment)
                 return { ...current, payment: payments[(index + 1) % payments.length] }
             })
         }
