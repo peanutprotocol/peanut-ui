@@ -49,20 +49,18 @@ describe('SEOFooter labels', () => {
 
     it('names the send-money countries in the page language', () => {
         const texts = linkTexts(render(<SEOFooter locale="es-419" />).container)
-        expect(texts).toEqual(expect.arrayContaining(['Enviar a Brasil', 'Enviar desde Reino Unido']))
+        expect(texts).toEqual(expect.arrayContaining(['Enviar a Brasil', 'Enviar desde Estados Unidos']))
         expect(texts).not.toContain('Enviar a Brazil')
-        expect(linkTexts(render(<SEOFooter locale="en" />).container)).toContain('Send from UK')
+        expect(linkTexts(render(<SEOFooter locale="en" />).container)).toContain('Send from US')
     })
 
+    // Use countries the footer still links to. UK pages were removed on 2026-10-05 (mono e7d6d9771) and
+    // the UK case broke every content publish; the "do Reino Unido" article is covered in
+    // country-name.utils.test.ts, which does not depend on the content.
     it('gives pt-BR send-from links the article the country takes', () => {
         const texts = linkTexts(render(<SEOFooter locale="pt-br" />).container)
         expect(texts).toEqual(
-            expect.arrayContaining([
-                'Enviar da França',
-                'Enviar do Reino Unido',
-                'Enviar dos Estados Unidos',
-                'Enviar de Portugal',
-            ])
+            expect.arrayContaining(['Enviar da França', 'Enviar dos Estados Unidos', 'Enviar de Portugal'])
         )
         expect(texts).not.toContain('Enviar de França')
     })
