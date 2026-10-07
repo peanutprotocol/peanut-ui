@@ -55,6 +55,8 @@
 
     --color-background-default: #ffffff;
     --color-background-page: #faf4f0;
+    /* Payment receipt tabs, requested 2026-10-07. */
+    --color-background-tab-active: #dbeafe;
     --color-background-disabled: #efeff0;
     --color-background-brand: #ff90e8;
     /* Light blue from the onboarding animation/Figma reference. */

@@ -21,6 +21,7 @@ import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/re
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
 import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+import type { PaymentTimelineEvent } from '@/utils/history.utils'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -206,9 +207,10 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             // those rows read "Processing" forever after the money is credited.
             case 'COMPLETED':
                 return 'completed'
-            case 'UNDELIVERABLE':
             case 'RETURNED':
             case 'REFUNDED':
+                return 'refunded'
+            case 'UNDELIVERABLE':
             case 'ERROR':
             case 'FAILED':
             case 'EXPIRED':
@@ -540,6 +542,9 @@ export interface TransactionDetails {
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
+    intentStatus?: string
+    paymentStatus?: string
+    timeline?: PaymentTimelineEvent[]
     points?: number
     isRequestPotLink?: boolean
     requestPotPayments?: ChargeEntry[]
@@ -635,9 +640,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     if (isDepositBeingReturned) uiStatus = 'processing'
 
     // The return finished: the payer has the money and the intent is terminal.
-    // Bridge rails map RETURNED/REFUNDED to 'failed', which tells the user the
-    // deposit never worked. It did work, and then the bank sent it back — a
-    // different thing to know, and the only one that says what to do next.
+    // A returned deposit needs its own action label: it worked, and then
+    // the bank sent it back to the payer.
     const returnedStatus = entry.status?.toUpperCase()
     const isDepositReturned =
         direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED')
@@ -891,6 +895,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         claimedAt: entry.claimedAt,
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
+        intentStatus: entry.intentStatus,
+        paymentStatus: entry.status,
+        timeline: entry.timeline,
         haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
         isRequestPotLink: entry.isRequestLink,
         requestPotPayments: entry.charges,

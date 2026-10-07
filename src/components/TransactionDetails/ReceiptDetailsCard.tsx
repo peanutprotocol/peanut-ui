@@ -42,6 +42,7 @@ import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/gen
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
 import { RequestPotContributorRows } from './provider-rows/RequestPotContributorRows'
 import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { twMerge } from '@/utils/tw'
 
 // IBAN / CLABE are the standard scheme names — same in every locale.
 const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> = {
@@ -61,12 +62,14 @@ export function ReceiptDetailsCard({
     vm,
     shouldShowQrShare,
     inDrawer,
+    className,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
     /** the card sits in the details drawer, so the provider sheet stacks on top */
     inDrawer?: boolean
+    className?: string
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -108,7 +111,7 @@ export function ReceiptDetailsCard({
     const feeDisplay = transaction.fee !== undefined ? `$${formatAmount(transaction.fee as number)}` : 'N/A'
 
     return (
-        <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
+        <Card position={shouldShowQrShare ? 'top' : 'solo'} className={twMerge(receiptDataRowCardClassName, className)}>
             {/* request pot: progress and contributors first (Activity/Request board) */}
             <DataRowGroup>
                 {transaction.isRequestPotLink && <RequestPotProgressRow transaction={transaction} />}

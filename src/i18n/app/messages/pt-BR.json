@@ -2242,6 +2242,32 @@
         }
     },
     "transaction": {
+        "timeline": {
+            "title": "Acompanhamento do pagamento",
+            "information": "Informações do pagamento",
+            "updates": "Atualizações",
+            "details": "Detalhes",
+            "created": "Pagamento criado",
+            "pending": "Pagamento pendente",
+            "actionNeeded": "É necessário realizar uma ação para continuar",
+            "awaitingFunds": "Aguardando os fundos",
+            "inReview": "Pagamento em análise",
+            "fundsReceived": "Fundos recebidos",
+            "processing": "Pagamento em processamento",
+            "submitted": "Pagamento enviado para repasse",
+            "awaitingSettlement": "Aguardando a confirmação do pagamento",
+            "completed": "Pagamento concluído",
+            "failed": "O pagamento falhou",
+            "cancelled": "Pagamento cancelado",
+            "refunded": "Pagamento reembolsado",
+            "returned": "Pagamento devolvido",
+            "undeliverable": "Não foi possível entregar o pagamento",
+            "readyToClaim": "Link pronto para resgate",
+            "claimed": "Pagamento resgatado",
+            "upcoming": "Etapa ainda não alcançada",
+            "unrecorded": "Sem atualização registrada",
+            "notReached": "Etapa não alcançada"
+        },
         "drawerTitle": "Detalhes da transação",
         "officialReceipt": {
             "issuedBy": "Emitido por:",
