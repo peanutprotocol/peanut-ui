@@ -208,16 +208,24 @@ describe('useMultiPhaseKycFlow — one-shot onboarding', () => {
         expect(legacy.result.current.oneShotSetup).toBeNull()
     })
 
-    it('stays open when a reviewer takes the check, and closes on a rejection as the progress modal does', async () => {
+    it('stays open when a reviewer takes the check or wants a photo again, and closes on a rejection', async () => {
         const { result } = await submitFromChecklist()
         await act(async () => {
             mockWs.handler?.('IN_REVIEW')
         })
         expect(result.current.isModalOpen).toBe(true)
+        expect(result.current.oneShotRetake).toBe(false)
         expect(states(result.current)).toEqual(['under-review', 'under-review'])
 
+        // one photo to retake: the drawer stays, its header offers the retake
         await act(async () => {
             mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isModalOpen).toBe(true)
+        expect(result.current.oneShotRetake).toBe(true)
+
+        await act(async () => {
+            mockWs.handler?.('REJECTED')
         })
         expect(result.current.isModalOpen).toBe(false)
     })

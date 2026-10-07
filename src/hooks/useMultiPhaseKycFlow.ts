@@ -211,7 +211,7 @@ export const useMultiPhaseKycFlow = ({
     // in place of the phase modals. Every other flow, a later one in this same
     // hook included, keeps the phases below. The ref is the same answer for
     // handleSumsubApproved, which can run inside a start, before any render.
-    const { oneShotResidence } = useIdentityVerification()
+    const { oneShotResidence, needsAction, isTerminalFailure } = useIdentityVerification()
     const oneShotSession = useOneShotSession()
     // the ticked set: the server's copy (item 3b) outranks the tab's (item 9a)
     const oneShotIntents = user?.identityVerification?.kycIntents ?? oneShotSession?.intents ?? null
@@ -367,13 +367,17 @@ export const useMultiPhaseKycFlow = ({
     }, [closeVerificationProgressModal])
 
     // useSumsubKycFlow closes its progress modal when a reviewer takes the check
-    // (IN_REVIEW). An open setup drawer stays through it, since its rows say
-    // "Under review", and still closes with that modal on a rejection.
+    // (IN_REVIEW) or wants one photo again (ACTION_REQUIRED). An open setup
+    // drawer stays through both: its rows say "Under review", and its header
+    // offers the retake. It still closes with that modal on a rejection.
     useEffect(() => {
         if (!isOneShotFlow) return
-        if (liveKycStatus === 'IN_REVIEW') setForceShowModal((open) => open || isVerificationProgressModalOpen)
-        else if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') setForceShowModal(false)
+        if (liveKycStatus === 'IN_REVIEW' || liveKycStatus === 'ACTION_REQUIRED') {
+            setForceShowModal((open) => open || isVerificationProgressModalOpen)
+        } else if (liveKycStatus === 'REJECTED') setForceShowModal(false)
     }, [isOneShotFlow, liveKycStatus, isVerificationProgressModalOpen])
+    // one photo to retake: the check came back RETRY, and a new attempt can pass
+    const oneShotRetake = isOneShotFlow && (liveKycStatus === 'ACTION_REQUIRED' || needsAction) && !isTerminalFailure
 
     // refresh user store when kyc status transitions to a non-success state
     // so the drawer/status item reads the updated verification record
@@ -824,6 +828,7 @@ export const useMultiPhaseKycFlow = ({
         // one-shot onboarding: the setup rows that stand in for the phase modal, and the card step
         oneShotSetup,
         oneShotCard,
+        oneShotRetake,
 
         // ToS iframe
         tosLink,
