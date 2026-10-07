@@ -1766,6 +1766,24 @@
                         },
                         "description": "Default Response"
                     },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
                     "401": {
                         "content": {
                             "application/json": {
@@ -1785,24 +1803,6 @@
                         "description": "Default Response"
                     },
                     "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2214,6 +2214,9 @@
                                         },
                                         "error": {
                                             "type": "string"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -2234,6 +2237,9 @@
                                             "type": "string"
                                         },
                                         "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
                                             "type": "string"
                                         }
                                     },
@@ -2256,6 +2262,9 @@
                                         },
                                         "error": {
                                             "type": "string"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -2276,6 +2285,9 @@
                                             "type": "string"
                                         },
                                         "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
                                             "type": "string"
                                         }
                                     },
@@ -2341,6 +2353,15 @@
                         }
                     },
                     {
+                        "in": "query",
+                        "name": "sourceAmount",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                            "type": "string"
+                        }
+                    },
+                    {
                         "in": "header",
                         "name": "Authorization",
                         "required": true,
@@ -2384,6 +2405,89 @@
                     }
                 },
                 "summary": "Quote the USDC for a withdrawal typed in the destination currency",
+                "tags": [
+                    "offramp"
+                ]
+            }
+        },
+        "/bridge/offramp/rail-fees": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "currency": {
+                                            "enum": [
+                                                "USD"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "minimumAfterFeeUsd": {
+                                            "type": "string"
+                                        },
+                                        "rails": {
+                                            "items": {
+                                                "properties": {
+                                                    "feeUsd": {
+                                                        "type": "string"
+                                                    },
+                                                    "rail": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "ach"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "ach_same_day"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "wire"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "rail",
+                                                    "feeUsd"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "currency",
+                                        "minimumAfterFeeUsd",
+                                        "rails"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "The rails a USD bank payout may use, and the fee for each",
                 "tags": [
                     "offramp"
                 ]
@@ -3561,6 +3665,7 @@
                         "name": "chargeId",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -3578,6 +3683,7 @@
                         "name": "chargeId",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -3636,6 +3742,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -3786,6 +3893,191 @@
                 },
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/config/kyc-intents": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "residence",
+                        "required": true,
+                        "schema": {
+                            "pattern": "^[A-Za-z]{2}$",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "idCountry",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^[A-Za-z]{2}$",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "idCountry": {
+                                            "type": "string"
+                                        },
+                                        "intents": {
+                                            "properties": {
+                                                "bank": {
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reason": {
+                                                            "enum": [
+                                                                "under_minimum_age",
+                                                                "residence_unknown",
+                                                                "residence_sanctioned",
+                                                                "uk_resident_blocked",
+                                                                "residence_bank_restricted",
+                                                                "us_state_unsupported",
+                                                                "geo-blocked",
+                                                                "local_residence_unsupported",
+                                                                "manteca_us_nationality_restricted",
+                                                                "local_tax_id_missing",
+                                                                "document_country_unsupported"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "card": {
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reason": {
+                                                            "enum": [
+                                                                "under_minimum_age",
+                                                                "residence_unknown",
+                                                                "residence_sanctioned",
+                                                                "uk_resident_blocked",
+                                                                "residence_bank_restricted",
+                                                                "us_state_unsupported",
+                                                                "geo-blocked",
+                                                                "local_residence_unsupported",
+                                                                "manteca_us_nationality_restricted",
+                                                                "local_tax_id_missing",
+                                                                "document_country_unsupported"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "local": {
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reason": {
+                                                            "enum": [
+                                                                "under_minimum_age",
+                                                                "residence_unknown",
+                                                                "residence_sanctioned",
+                                                                "uk_resident_blocked",
+                                                                "residence_bank_restricted",
+                                                                "us_state_unsupported",
+                                                                "geo-blocked",
+                                                                "local_residence_unsupported",
+                                                                "manteca_us_nationality_restricted",
+                                                                "local_tax_id_missing",
+                                                                "document_country_unsupported"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "qr": {
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reason": {
+                                                            "enum": [
+                                                                "under_minimum_age",
+                                                                "residence_unknown",
+                                                                "residence_sanctioned",
+                                                                "uk_resident_blocked",
+                                                                "residence_bank_restricted",
+                                                                "us_state_unsupported",
+                                                                "geo-blocked",
+                                                                "local_residence_unsupported",
+                                                                "manteca_us_nationality_restricted",
+                                                                "local_tax_id_missing",
+                                                                "document_country_unsupported"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available"
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "required": [
+                                                "qr",
+                                                "local",
+                                                "card",
+                                                "bank"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "residence": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "residence",
+                                        "intents"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -7034,16 +7326,23 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "completed": {
+                                            "type": "boolean"
+                                        },
                                         "ms": {
                                             "type": "number"
                                         },
                                         "ok": {
                                             "type": "boolean"
+                                        },
+                                        "reason": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
                                         "ok",
-                                        "ms"
+                                        "ms",
+                                        "completed"
                                     ],
                                     "type": "object"
                                 }
@@ -9929,6 +10228,7 @@
                                     "pixKey": {
                                         "maxLength": 77,
                                         "minLength": 1,
+                                        "pattern": "\\S",
                                         "type": "string"
                                     }
                                 },
@@ -10428,11 +10728,11 @@
                                                         "minLength": 1,
                                                         "type": "string"
                                                     },
-                                                    "recipientAddress": {
+                                                    "preparedCoordinatorAddress": {
                                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
                                                     },
-                                                    "preparedCoordinatorAddress": {
+                                                    "recipientAddress": {
                                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
                                                     }
@@ -11133,11 +11433,11 @@
                                                         "minLength": 1,
                                                         "type": "string"
                                                     },
-                                                    "recipientAddress": {
+                                                    "preparedCoordinatorAddress": {
                                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
                                                     },
-                                                    "preparedCoordinatorAddress": {
+                                                    "recipientAddress": {
                                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
                                                     }
@@ -11311,6 +11611,127 @@
                 }
             }
         },
+        "/notifications/preferences": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "email": {
+                                            "type": "boolean"
+                                        },
+                                        "push": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "push",
+                                        "email"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "notifications"
+                ]
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "email": {
+                                        "type": "boolean"
+                                    },
+                                    "push": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "push",
+                                    "email"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "email": {
+                                            "type": "boolean"
+                                        },
+                                        "push": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "push",
+                                        "email"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "notifications"
+                ]
+            }
+        },
         "/notifications/unread-count": {
             "get": {
                 "responses": {
@@ -11440,6 +11861,33 @@
                         "required": false,
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "x-signup-analytics-state",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "enabled"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "disabled"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "unknown"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
                         }
                     }
                 ],
@@ -12415,6 +12863,24 @@
                                                 "message": {
                                                     "type": "string"
                                                 },
+                                                "status": {
+                                                    "enum": [
+                                                        "pending-identity"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "message"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
                                                 "rainUserId": {
                                                     "type": "string"
                                                 },
@@ -12452,8 +12918,81 @@
                                                         "pending-residence-blocked"
                                                     ],
                                                     "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "provider-not-in-plan"
+                                                    ],
+                                                    "type": "string"
                                                 }
                                             ]
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "reason": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "enum": [
+                                                "error"
+                                            ],
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "code",
+                                        "message"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "application-outcome-unknown"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "enum": [
+                                                "error"
+                                            ],
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "code",
+                                        "message"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "422": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "occupation-not-accepted"
+                                            ],
+                                            "type": "string"
                                         },
                                         "message": {
                                             "type": "string"
@@ -13832,11 +14371,11 @@
                                         "minLength": 1,
                                         "type": "string"
                                     },
-                                    "recipientAddress": {
+                                    "preparedCoordinatorAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                         "type": "string"
                                     },
-                                    "preparedCoordinatorAddress": {
+                                    "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                         "type": "string"
                                     }
@@ -14245,11 +14784,11 @@
                                                 "minLength": 1,
                                                 "type": "string"
                                             },
-                                            "recipientAddress": {
+                                            "preparedCoordinatorAddress": {
                                                 "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             },
-                                            "preparedCoordinatorAddress": {
+                                            "recipientAddress": {
                                                 "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             }
@@ -14670,11 +15209,11 @@
                                                 "minLength": 1,
                                                 "type": "string"
                                             },
-                                            "recipientAddress": {
+                                            "preparedCoordinatorAddress": {
                                                 "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             },
-                                            "preparedCoordinatorAddress": {
+                                            "recipientAddress": {
                                                 "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             }
@@ -15767,6 +16306,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -16023,6 +16563,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     },
@@ -16048,6 +16589,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -16312,6 +16854,7 @@
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -17895,15 +18438,6 @@
                 }
             }
         },
-        "/test-error": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/tokens/price": {
             "get": {
                 "parameters": [
@@ -18087,6 +18621,7 @@
                                         "type": "boolean"
                                     },
                                     "email": {
+                                        "maxLength": 320,
                                         "type": "string"
                                     },
                                     "emailVerificationCode": {
@@ -18102,10 +18637,6 @@
                                     "locale": {
                                         "maxLength": 16,
                                         "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8}){0,2}$",
-                                        "type": "string"
-                                    },
-                                    "offrampHandle": {
-                                        "maxLength": 320,
                                         "type": "string"
                                     },
                                     "pushSubscriptionId": {
@@ -18243,11 +18774,15 @@
                                                 },
                                                 "error": {
                                                     "type": "string"
+                                                },
+                                                "userMessage": {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required": [
                                                 "error",
-                                                "code"
+                                                "code",
+                                                "userMessage"
                                             ],
                                             "type": "object"
                                         }
@@ -18663,6 +19198,9 @@
                                                 "isActive": {
                                                     "type": "boolean"
                                                 },
+                                                "isPixRecipient": {
+                                                    "type": "boolean"
+                                                },
                                                 "label": {
                                                     "anyOf": [
                                                         {
@@ -18718,9 +19256,6 @@
                                                             "type": "null"
                                                         }
                                                     ]
-                                                },
-                                                "isPixRecipient": {
-                                                    "type": "boolean"
                                                 }
                                             },
                                             "required": [
@@ -18924,6 +19459,12 @@
                                                                             "rain-hosted"
                                                                         ],
                                                                         "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "restart-identity"
+                                                                        ],
+                                                                        "type": "string"
                                                                     }
                                                                 ]
                                                             },
@@ -19088,6 +19629,10 @@
                                                                 },
                                                                 "type": "object"
                                                             },
+                                                            "pendingSince": {
+                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning \u2014 the FE stops promising a quick setup past that.",
+                                                                "type": "string"
+                                                            },
                                                             "provider": {
                                                                 "anyOf": [
                                                                     {
@@ -19232,6 +19777,12 @@
                                                                                     {
                                                                                         "enum": [
                                                                                             "rain-hosted"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "restart-identity"
                                                                                         ],
                                                                                         "type": "string"
                                                                                     }
@@ -20977,6 +21528,89 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "nextAction": {
+                                            "properties": {
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "effectiveDate": {
+                                                    "type": "string"
+                                                },
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "kind": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "sumsub"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "accept-tos"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "wait"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "contact-support"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "provide-email"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "bridge-hosted"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "rain-hosted"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "restart-identity"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "levelKey": {
+                                                    "type": "string"
+                                                },
+                                                "purpose": {
+                                                    "type": "string"
+                                                },
+                                                "requirementKey": {
+                                                    "type": "string"
+                                                },
+                                                "tosUrl": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "kind",
+                                                "purpose"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "outcome": {
                                             "anyOf": [
                                                 {
@@ -21035,83 +21669,6 @@
                                         },
                                         "verificationUrl": {
                                             "type": "string"
-                                        },
-                                        "nextAction": {
-                                            "properties": {
-                                                "currency": {
-                                                    "type": "string"
-                                                },
-                                                "effectiveDate": {
-                                                    "type": "string"
-                                                },
-                                                "key": {
-                                                    "type": "string"
-                                                },
-                                                "kind": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "sumsub"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "accept-tos"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "wait"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "contact-support"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "provide-email"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "bridge-hosted"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "rain-hosted"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
-                                                },
-                                                "levelKey": {
-                                                    "type": "string"
-                                                },
-                                                "purpose": {
-                                                    "type": "string"
-                                                },
-                                                "requirementKey": {
-                                                    "type": "string"
-                                                },
-                                                "tosUrl": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "key",
-                                                "kind",
-                                                "purpose"
-                                            ],
-                                            "type": "object"
                                         }
                                     },
                                     "required": [
@@ -21150,6 +21707,9 @@
                                             "type": "string"
                                         },
                                         "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
                                             "type": "string"
                                         }
                                     },
@@ -21719,6 +22279,104 @@
                 }
             }
         },
+        "/users/kyc-intents": {
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "bank": {
+                                        "type": "boolean"
+                                    },
+                                    "card": {
+                                        "type": "boolean"
+                                    },
+                                    "local": {
+                                        "type": "boolean"
+                                    },
+                                    "qr": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "qr",
+                                    "local",
+                                    "card",
+                                    "bank"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "intents": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "bank": {
+                                                    "type": "boolean"
+                                                },
+                                                "card": {
+                                                    "type": "boolean"
+                                                },
+                                                "local": {
+                                                    "type": "boolean"
+                                                },
+                                                "qr": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "qr",
+                                                "local",
+                                                "card",
+                                                "bank"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "setAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "intents",
+                                        "setAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/kyc/refresh": {
             "post": {
                 "parameters": [
@@ -21996,6 +22654,12 @@
                                                                             "rain-hosted"
                                                                         ],
                                                                         "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "restart-identity"
+                                                                        ],
+                                                                        "type": "string"
                                                                     }
                                                                 ]
                                                             },
@@ -22160,6 +22824,10 @@
                                                                 },
                                                                 "type": "object"
                                                             },
+                                                            "pendingSince": {
+                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning \u2014 the FE stops promising a quick setup past that.",
+                                                                "type": "string"
+                                                            },
                                                             "provider": {
                                                                 "anyOf": [
                                                                     {
@@ -22304,6 +22972,12 @@
                                                                                     {
                                                                                         "enum": [
                                                                                             "rain-hosted"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "restart-identity"
                                                                                         ],
                                                                                         "type": "string"
                                                                                     }
@@ -22457,6 +23131,61 @@
                                                 "canRetry": {
                                                     "type": "boolean"
                                                 },
+                                                "kycIntents": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "bank": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "card": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "local": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "qr": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "qr",
+                                                                "local",
+                                                                "card",
+                                                                "bank"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "kycIntentsSetAt": {
+                                                    "anyOf": [
+                                                        {
+                                                            "format": "date-time",
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "oneShot": {
+                                                    "type": "boolean"
+                                                },
+                                                "oneShotStartedAt": {
+                                                    "anyOf": [
+                                                        {
+                                                            "format": "date-time",
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
                                                 "reason": {
                                                     "properties": {
                                                         "code": {
@@ -22481,11 +23210,11 @@
                                                     },
                                                     "type": "array"
                                                 },
-                                                "reviewedAt": {
-                                                    "type": "string"
-                                                },
                                                 "reviewPending": {
                                                     "type": "boolean"
+                                                },
+                                                "reviewedAt": {
+                                                    "type": "string"
                                                 },
                                                 "status": {
                                                     "anyOf": [
@@ -22692,6 +23421,89 @@
                 }
             }
         },
+        "/users/me/signup-attribution": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "attribution": {
+                                        "maxLength": 4096,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "attribution"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "accepted": {
+                                            "type": "boolean"
+                                        },
+                                        "reason": {
+                                            "enum": [
+                                                "attached",
+                                                "already_attached",
+                                                "expired",
+                                                "not_collecting",
+                                                "not_found",
+                                                "post_signup_touch"
+                                            ],
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "accepted",
+                                        "reason"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/me/verified-address": {
             "get": {
                 "responses": {
@@ -22891,6 +23703,9 @@
                                         },
                                         "retryAfterSeconds": {
                                             "type": "number"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -22915,6 +23730,9 @@
                                         },
                                         "retryAfterSeconds": {
                                             "type": "number"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -22939,6 +23757,9 @@
                                         },
                                         "retryAfterSeconds": {
                                             "type": "number"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -23662,89 +24483,6 @@
                         "description": "Default Response"
                     }
                 }
-            }
-        },
-        "/bridge/offramp/rail-fees": {
-            "get": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "Authorization",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "currency": {
-                                            "enum": [
-                                                "USD"
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "minimumAfterFeeUsd": {
-                                            "type": "string"
-                                        },
-                                        "rails": {
-                                            "items": {
-                                                "properties": {
-                                                    "feeUsd": {
-                                                        "type": "string"
-                                                    },
-                                                    "rail": {
-                                                        "anyOf": [
-                                                            {
-                                                                "enum": [
-                                                                    "ach"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "ach_same_day"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "wire"
-                                                                ],
-                                                                "type": "string"
-                                                            }
-                                                        ]
-                                                    }
-                                                },
-                                                "required": [
-                                                    "rail",
-                                                    "feeUsd"
-                                                ],
-                                                "type": "object"
-                                            },
-                                            "type": "array"
-                                        }
-                                    },
-                                    "required": [
-                                        "currency",
-                                        "minimumAfterFeeUsd",
-                                        "rails"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "The rails a USD bank payout may use, and the fee for each",
-                "tags": [
-                    "offramp"
-                ]
             }
         }
     },
