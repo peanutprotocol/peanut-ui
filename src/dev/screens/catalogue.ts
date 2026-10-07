@@ -170,7 +170,9 @@ export const SCREENS = orderedDefinitions.map((screen) => ({
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     expectSelector:
         screen.expectSelector ??
-        (/Drawer\b/.test(screen.name) || screen.route.includes('drawer=') ? '[role="dialog"]' : undefined),
+        (/Drawer\b/.test(screen.name) || screen.route.includes('drawer=')
+            ? '[role="dialog"]:not([aria-modal="false"])'
+            : undefined),
     camera: screen.id === '54-d-qrbottomdrawer' ? ('synthetic' as const) : screen.camera,
     requiresSource: ['fixture-avatar-picker', '66-e-avatarpicker'].includes(screen.id)
         ? 'src/components/Avatar/AvatarPicker.tsx'

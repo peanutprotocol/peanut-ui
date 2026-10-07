@@ -19,8 +19,8 @@ shares the exact visible view.
 Opening a page does not cover its closed selectors. The catalogue includes
 separate open checkpoints for token and network drawers, residence countries,
 exchange currencies, and BaseSelect. Each opens the real control and requires a
-visible selected option before and after stabilization; a missing overlay fails
-the capture instead of recording the underlying page. Actions that use text are
+selected option inside the viewport before and after stabilization; a missing
+overlay fails the capture instead of recording the underlying page. Actions that use text are
 resolved through the target revision's merged locale catalogue.
 
 Still captures finish finite overlay animations and remove `will-change` layer
