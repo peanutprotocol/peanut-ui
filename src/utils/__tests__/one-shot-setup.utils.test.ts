@@ -4,6 +4,7 @@
  * name promises works, and the identity check comes first. Item 9b builds on
  * both.
  */
+import type { FeatureSetup, FeatureSetupReport } from '@/services/kyc-intents'
 import type { NextAction, RailCapability, UserCapabilities } from '@/types/capabilities'
 import { localIdRestartAction, setupRows } from '@/utils/one-shot-setup.utils'
 
@@ -284,5 +285,56 @@ describe('setupRows, the states of item 9b', () => {
             })
             expect(all.map((row) => row.state)).toEqual(['under-review', 'under-review', 'setting-up', 'under-review'])
         })
+    })
+})
+
+/**
+ * Item 8c, second part: a feature added after the check. PUT /users/kyc-intents
+ * answers per feature; the answer fills a row whose rails say nothing yet, and
+ * a rail the API enrolled or enabled outranks it.
+ */
+describe('setupRows, a feature added after the check', () => {
+    const report = (bank: FeatureSetup, card: FeatureSetup = { state: 'not_requested' }): FeatureSetupReport => ({
+        qr: { state: 'on' },
+        local: { state: 'not_requested' },
+        card,
+        bank,
+    })
+    const rows = (caps: UserCapabilities, answer: FeatureSetupReport | null, intents = { ...ALL, local: false }) =>
+        setupRows({ intents, residence: 'BR', capabilities: caps, identityVerified: true, report: answer })
+
+    it('a refused document country reads needs a local ID, another refusal not available', () => {
+        const states = rows(
+            capabilities([]),
+            report(
+                { state: 'refused', reason: 'document_country_unsupported' },
+                { state: 'refused', reason: 'under_minimum_age' }
+            )
+        ).map((row) => [row.key, row.state])
+        expect(states).toEqual([
+            ['qr', 'setting-up'],
+            ['card', 'not-available'],
+            ['bank', 'needs-local-id'],
+        ])
+    })
+
+    it('a card that still needs its questions reads agreements needed', () => {
+        const [, card] = rows(capabilities([]), report({ state: 'setting_up' }, { state: 'action_required' }))
+        expect(card).toEqual({ key: 'card', state: 'agreements-needed' })
+    })
+
+    it('setting_up, pending and on leave the rails their word', () => {
+        for (const state of ['setting_up', 'pending', 'on'] as const) {
+            expect(rows(capabilities([]), report({ state }))[2]).toEqual({ key: 'bank', state: 'setting-up' })
+        }
+    })
+
+    it('an enabled rail outranks a refusal in the answer', () => {
+        const caps = capabilities([ach({ status: 'enabled' }), sepa({ status: 'enabled' })])
+        expect(rows(caps, report({ state: 'refused', reason: 'under_minimum_age' }))[2].state).toBe('available')
+    })
+
+    it('no answer: the rails decide, as after the SDK', () => {
+        expect(rows(capabilities([]), null)[2]).toEqual({ key: 'bank', state: 'setting-up' })
     })
 })
