@@ -73,13 +73,14 @@ test('two quick taps cannot launch two native share sheets', async () => {
     expect(download).toBeDisabled()
 })
 
-test.each(['URL change', 'unmount'])('invalidates native delivery on %s', async (change) => {
+test.each(['URL change', 'unmount', 'drawer close'])('invalidates native delivery on %s', async (change) => {
     let finishDelivery!: () => void
     ;(deliverReceiptAttachment as jest.Mock).mockReturnValue(new Promise<void>((resolve) => (finishDelivery = resolve)))
     const { rerender, unmount } = renderWithIntl(<ReceiptAttachmentRow url={url} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Download' }))
     const deliverySignal = (deliverReceiptAttachment as jest.Mock).mock.calls[0][1]
     if (change === 'unmount') unmount()
+    else if (change === 'drawer close') rerender(<ReceiptAttachmentRow url={url} isActive={false} />)
     else rerender(<ReceiptAttachmentRow url={`${url}?version=2`} />)
     expect(deliverySignal).toBeInstanceOf(AbortSignal)
     expect(deliverySignal.aborted).toBe(true)
@@ -118,3 +119,27 @@ test.each(['share failed', 'browser unavailable'])(
         expect(fetchReceiptAttachment).toHaveBeenCalledTimes(1)
     }
 )
+
+test('a closed receipt waits until reopening before loading its attachment', async () => {
+    const { rerender } = renderWithIntl(<ReceiptAttachmentRow url={url} isActive={false} />)
+    expect(fetchReceiptAttachment).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument()
+    rerender(<ReceiptAttachmentRow url={url} isActive />)
+    expect(await screen.findByRole('button', { name: 'Download' })).toBeEnabled()
+    expect(fetchReceiptAttachment).toHaveBeenCalledTimes(1)
+})
+
+test('closing during a fetch discards its result and reopening loads the attachment again', async () => {
+    let resolveOld!: (value: typeof file) => void
+    ;(fetchReceiptAttachment as jest.Mock).mockReturnValueOnce(new Promise((resolve) => (resolveOld = resolve)))
+    const { rerender } = renderWithIntl(<ReceiptAttachmentRow url={url} />)
+    const fetchSignal = (fetchReceiptAttachment as jest.Mock).mock.calls[0][1]
+    rerender(<ReceiptAttachmentRow url={url} isActive={false} />)
+    expect(fetchSignal.aborted).toBe(true)
+    await act(async () => resolveOld(file))
+    expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument()
+    expect(deliverReceiptAttachment).not.toHaveBeenCalled()
+    rerender(<ReceiptAttachmentRow url={url} isActive />)
+    expect(await screen.findByRole('button', { name: 'Download' })).toBeEnabled()
+    expect(fetchReceiptAttachment).toHaveBeenCalledTimes(2)
+})

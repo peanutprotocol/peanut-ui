@@ -61,12 +61,14 @@ export function ReceiptDetailsCard({
     vm,
     shouldShowQrShare,
     inDrawer,
+    isActive = true,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
     /** the card sits in the details drawer, so the provider sheet stacks on top */
     inDrawer?: boolean
+    isActive?: boolean
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -324,7 +326,7 @@ export function ReceiptDetailsCard({
                 )}
 
                 {rowVisibilityConfig.attachment && transaction.attachmentUrl && (
-                    <ReceiptAttachmentRow url={transaction.attachmentUrl} />
+                    <ReceiptAttachmentRow url={transaction.attachmentUrl} isActive={isActive} />
                 )}
             </DataRowGroup>
 

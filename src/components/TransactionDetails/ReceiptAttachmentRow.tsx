@@ -14,7 +14,7 @@ type AttachmentState = {
     file?: ReceiptAttachment
 }
 
-export function ReceiptAttachmentRow({ url }: { url: string }) {
+export function ReceiptAttachmentRow({ url, isActive = true }: { url: string; isActive?: boolean }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
     const [state, setState] = useState<AttachmentState>({ url, status: 'loading' })
@@ -31,9 +31,10 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
             deliveryController.current?.abort()
             deliveryController.current = null
         }
-    }, [url])
+    }, [url, isActive])
 
     useEffect(() => {
+        if (!isActive) return
         const controller = new AbortController()
         setState({ url, status: 'loading' })
         void fetchReceiptAttachment(url, controller.signal).then(
@@ -45,10 +46,10 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
             }
         )
         return () => controller.abort()
-    }, [url, attempt])
+    }, [url, attempt, isActive])
 
     const download = async () => {
-        if (!current.file || deliveryController.current) return
+        if (!isActive || !current.file || deliveryController.current) return
         const controller = new AbortController()
         deliveryController.current = controller
         setBusy(true)
@@ -71,7 +72,7 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
             loading={current.status === 'loading'}
             value={
                 current.status === 'ready' ? (
-                    <LinkButton onClick={() => void download()} disabled={busy}>
+                    <LinkButton onClick={() => void download()} disabled={busy || !isActive}>
                         {t('rows.download')}
                         <Icon name="download" size={14} className="shrink-0" />
                     </LinkButton>
@@ -80,7 +81,7 @@ export function ReceiptAttachmentRow({ url }: { url: string }) {
                         <span role="alert">{t('actions.attachmentUnavailable')}</span>
                         {current.status === 'error' && (
                             <LinkButton
-                                disabled={busy}
+                                disabled={busy || !isActive}
                                 onClick={() => (current.file ? void download() : setAttempt((value) => value + 1))}
                             >
                                 {tCommon('tryAgain')}
