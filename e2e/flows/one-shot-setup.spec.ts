@@ -150,6 +150,41 @@ test.describe('one-shot unlock from a method on Accounts', () => {
 })
 
 /**
+ * Item 8c, second part (D16): a user who already passed the one-shot check
+ * adds a feature from the same tap. No ID question, no SDK: the stored set
+ * grows by the tapped feature, PUT /users/kyc-intents sets it up, and the
+ * setup drawer shows the rows. The fixture answers the PUT inside the app, so
+ * the proof that no check starts is the SDK stub: it is never launched.
+ */
+test.describe('one-shot unlock from a method after the check', () => {
+    test('the tap on EUR adds the accounts to the stored set and opens the setup drawer, with no new check', async ({
+        page,
+    }) => {
+        await stubSumsubSdk(page, { submits: false })
+        await page.goto('/profile/accounts?__fixture=one-shot-unlock-add', { waitUntil: 'domcontentloaded' })
+        await page.getByTestId('bank-row-sepa').click({ timeout: 60_000 })
+        await expect(page.getByRole('heading', { name: 'Unlock EUR · Bank transfer' })).toBeVisible()
+        // no ID question, no list of what to have ready
+        await expect(page.getByText('Identity verified. No new check needed.')).toBeVisible()
+        await expect(page.getByRole('radiogroup')).toHaveCount(0)
+        await expect(page.getByTestId('kyc-prep-checklist')).toHaveCount(0)
+
+        await page.getByRole('button', { name: 'Set up now' }).click()
+
+        // the drawer lists the stored set: the ticks that were there (QR) and the tapped feature
+        const drawer = page.getByTestId('one-shot-setup')
+        await expect(drawer).toBeVisible({ timeout: 30_000 })
+        await expect(drawer.getByTestId('setup-row-qr')).toContainText('QR payments')
+        await expect(drawer.getByTestId('setup-row-qr')).toContainText('Available')
+        await expect(drawer.getByTestId('setup-row-bank')).toContainText('USD and EUR accounts')
+        await expect(drawer.getByTestId('setup-row-bank')).toContainText('Setting up')
+        await expect(drawer.getByTestId('setup-row-local')).toHaveCount(0)
+        await expect(drawer.getByTestId('setup-row-card')).toHaveCount(0)
+        await expect(page.locator('[data-sumsub-stub="launched"]')).toHaveCount(0)
+    })
+})
+
+/**
  * Item 9b: the card step after the session, and the state a refused document
  * leaves. The SDK stub submits every session it launches, the identity one and
  * the card questions alike; the fixtures answer POST /rain/cards in turn.

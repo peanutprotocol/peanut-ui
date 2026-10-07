@@ -7,8 +7,9 @@ import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubRel
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useOneShotCardChain } from '@/hooks/useOneShotCardChain'
-import { markOneShotStarted, useOneShotSession } from '@/hooks/useOneShotSession'
+import { markOneShotStarted } from '@/hooks/useOneShotSession'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import type { FeatureSetupReport } from '@/services/kyc-intents'
 import { deriveGate } from '@/utils/capability-gate'
 import { setupRows } from '@/utils/one-shot-setup.utils'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
@@ -211,12 +212,14 @@ export const useMultiPhaseKycFlow = ({
     // in place of the phase modals. Every other flow, a later one in this same
     // hook included, keeps the phases below. The ref is the same answer for
     // handleSumsubApproved, which can run inside a start, before any render.
-    const { oneShotResidence, needsAction, isTerminalFailure } = useIdentityVerification()
-    const oneShotSession = useOneShotSession()
-    // the ticked set: the server's copy (item 3b) outranks the tab's (item 9a)
-    const oneShotIntents = user?.identityVerification?.kycIntents ?? oneShotSession?.intents ?? null
+    // the ticked set: the server's (item 3b), or this tab's newer save (useOneShotSession)
+    const { oneShotResidence, oneShotIntents, needsAction, isTerminalFailure } = useIdentityVerification()
     const oneShotIntentsRef = useRef(oneShotIntents)
     oneShotIntentsRef.current = oneShotIntents
+    // what PUT /users/kyc-intents answered when a feature was added after the
+    // check (item 8c): fills the drawer's rows until the rails speak
+    const [oneShotReport, setOneShotReport] = useState<FeatureSetupReport | null>(null)
+    const oneShotAddedRef = useRef(false)
     // the card step runs beside the identity check: questions, agreements, POST /rain/cards
     const oneShotCard = useOneShotCardChain()
     const { start: startCardStep, reset: resetCardStep } = oneShotCard
@@ -225,6 +228,10 @@ export const useMultiPhaseKycFlow = ({
     const setOneShotFlow = useCallback((active: boolean) => {
         isOneShotFlowRef.current = active
         setIsOneShotFlow(active)
+        if (!active) {
+            setOneShotReport(null)
+            oneShotAddedRef.current = false
+        }
     }, [])
 
     const clearPreparingTimer = useCallback(() => {
@@ -241,10 +248,13 @@ export const useMultiPhaseKycFlow = ({
     // complete the flow — close everything, call original onKycSuccess
     const completeFlow = useCallback(() => {
         const effectiveIntent = lastIntentRef.current ?? regionIntent
-        posthog.capture(
-            effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
-            { region_intent: effectiveIntent, acquisition_source: acquisitionSource }
-        )
+        // a feature added after the check approved no identity: the event would count an approval twice
+        if (!oneShotAddedRef.current) {
+            posthog.capture(
+                effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
+                { region_intent: effectiveIntent, acquisition_source: acquisitionSource }
+            )
+        }
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
         setModalPhase('verifying')
@@ -503,7 +513,7 @@ export const useMultiPhaseKycFlow = ({
             // Off before the start: an approved user gets no token and the start
             // itself reports success, which must take the phases. On again only
             // for an SDK that opened on a stored set: the server's, or the one
-            // the checklist stored in this tab.
+            // this tab stored.
             setOneShotFlow(false)
             resetCardStep()
             const opened = await originalHandleInitiateKyc(
@@ -764,6 +774,28 @@ export const useMultiPhaseKycFlow = ({
 
     const depositBlocked = !verificationSession && !showWrapper && allBlocked && modalPhase === 'preparing'
 
+    // A feature added after the check (item 8c, D16): no SDK session. The
+    // drawer shows the stored set with what the API answered, and the
+    // submission window arms the poller that follows the rails it enrolled.
+    const showOneShotSetup = useCallback(
+        (report: FeatureSetupReport | null) => {
+            setOneShotFlow(true)
+            setOneShotReport(report)
+            oneShotAddedRef.current = true
+            setForceShowModal(true)
+            markSubmitted()
+            void fetchUser()
+        },
+        [setOneShotFlow, fetchUser]
+    )
+    // The add sheet's "Verify again with a {country} ID": the restart reopens
+    // the one-shot level (item 3), so its session is a one-shot flow and the
+    // drawer follows it when the SDK closes, as after the drawer's own button.
+    const handleOneShotRestart = useCallback(() => {
+        setOneShotFlow(true)
+        return handleRestartIdentity()
+    }, [setOneShotFlow, handleRestartIdentity])
+
     const identityVerified = user?.identityVerification?.status === 'verified'
     const cardChain = oneShotCard.chain
     const oneShotSetup = useMemo(
@@ -777,10 +809,11 @@ export const useMultiPhaseKycFlow = ({
                           capabilities,
                           identityVerified,
                           card: cardChain,
+                          report: oneShotReport,
                       }),
                   }
                 : null,
-        [isOneShotFlow, oneShotResidence, oneShotIntents, capabilities, identityVerified, cardChain]
+        [isOneShotFlow, oneShotResidence, oneShotIntents, capabilities, identityVerified, cardChain, oneShotReport]
     )
 
     return {
@@ -829,6 +862,8 @@ export const useMultiPhaseKycFlow = ({
         oneShotSetup,
         oneShotCard,
         oneShotRetake,
+        showOneShotSetup,
+        handleOneShotRestart,
 
         // ToS iframe
         tosLink,

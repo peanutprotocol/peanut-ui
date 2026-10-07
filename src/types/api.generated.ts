@@ -12631,6 +12631,24 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            features?: {
+                                bank: {
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                                card: {
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                                local: {
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                                qr: {
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                            };
                             intents: {
                                 bank: boolean;
                                 card: boolean;

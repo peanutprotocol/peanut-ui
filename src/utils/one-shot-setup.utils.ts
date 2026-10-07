@@ -1,4 +1,10 @@
-import { KYC_INTENT_KEYS, type KycIntentKey, type KycIntentSet } from '@/services/kyc-intents'
+import {
+    type FeatureSetup,
+    type FeatureSetupReport,
+    KYC_INTENT_KEYS,
+    type KycIntentKey,
+    type KycIntentSet,
+} from '@/services/kyc-intents'
 import type { NextAction, ProviderCode, RailCapability, RailOperation, UserCapabilities } from '@/types/capabilities'
 import { railVerdict } from '@/utils/capability-gate'
 import { cardRowState, DOCUMENT_COUNTRY_UNSUPPORTED, type CardChainState } from '@/utils/one-shot-card.utils'
@@ -133,6 +139,8 @@ function railState(
  *
  * @param input.residence ISO-2 declared residence: the country of the local bank transfers
  * @param input.card the card step's state, when the app knows it
+ * @param input.report what PUT /users/kyc-intents answered when a feature was
+ *   added after the check (item 8c): it fills a row its rails say nothing about yet
  */
 export function setupRows(input: {
     intents: KycIntentSet
@@ -140,6 +148,7 @@ export function setupRows(input: {
     capabilities: UserCapabilities | undefined
     identityVerified: boolean
     card?: CardChainState | null
+    report?: FeatureSetupReport | null
 }): SetupRow[] {
     const { rails = [], nextActions = [] } = input.capabilities ?? {}
     const actions = new Map(nextActions.map((action) => [action.key, action]))
@@ -155,6 +164,22 @@ export function setupRows(input: {
                 ? { key, state: cardStep, step: { provider: 'rain', reasonCode: 'main-kyc-required' } }
                 : { key, state: cardStep }
         }
-        return { key, ...fromRails }
+        // a rail the API enrolled or enabled outranks the answer that enrolled it;
+        // "no rail yet" is the one state the answer knows more about
+        const reported = fromRails.state === 'setting-up' ? reportedState(input.report?.[key]) : undefined
+        return reported ? { key, state: reported } : { key, ...fromRails }
     })
+}
+
+/** The row state the PUT answer gives a feature with no rail of its own yet. */
+function reportedState(entry: FeatureSetup | undefined): SetupRowState | undefined {
+    switch (entry?.state) {
+        case 'refused':
+            return entry.reason === DOCUMENT_COUNTRY_UNSUPPORTED ? 'needs-local-id' : 'not-available'
+        case 'action_required':
+            return 'agreements-needed'
+        default:
+            // setting_up and pending read "Setting up" already; `on` leaves the rail's word
+            return undefined
+    }
 }

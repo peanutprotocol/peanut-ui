@@ -21,6 +21,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
+import type { AddDone } from '@/components/IdentityVerification/UnlockMethodAddStep'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -211,13 +212,13 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // on a Pix row it had nothing to do with (189 users in prod, 2026-09-22).
     const [selectedRowKey, setSelectedRowKey] = useState<UnlockRowLabelKey | null>(null)
     // One-shot onboarding (TASK-23329, D16): the tap names the feature, so the
-    // unlock sheet stores it before the check and no checklist is shown. Only
-    // before the identity check passes: adding a feature after it needs the
-    // stored set and a new plan from the API, so that user keeps today's sheet.
+    // unlock sheet stores it before the check and no checklist is shown. Once
+    // the check is passed, the same tap adds the feature to the stored set and
+    // the API sets it up with no new check.
     const [selectedFeature, setSelectedFeature] = useState<KycIntentKey | null>(null)
     const oneShotUnlock =
-        oneShotResidence && !isIdentityVerified && selectedFeature
-            ? { residence: oneShotResidence, feature: selectedFeature }
+        oneShotResidence && selectedFeature
+            ? { residence: oneShotResidence, feature: selectedFeature, verified: isIdentityVerified }
             : null
     // Card recovery deep-links here when only a pending residence change is
     // blocking issuance. Keep the deep link live rather than snapshotting it,
@@ -324,6 +325,22 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         setSelectedRegion(null)
         setSelectedRowKey(null)
     }, [])
+
+    // The verified one-shot sheet's answer: a method already on refreshes the
+    // rows; one being set up hands the stored set to the setup drawer.
+    const { showOneShotSetup, handleOneShotRestart } = flow
+    const handleOneShotDone = useCallback(
+        (outcome: AddDone) => {
+            handleModalClose()
+            if (outcome.kind === 'on') void fetchUser()
+            else showOneShotSetup(outcome.report)
+        },
+        [handleModalClose, fetchUser, showOneShotSetup]
+    )
+    const handleOneShotVerifyAgain = useCallback(() => {
+        handleModalClose()
+        void handleOneShotRestart()
+    }, [handleModalClose, handleOneShotRestart])
 
     // Deliberately NO card redirect here (the old screen's Europe→/card hijack):
     // the card is its own row with its own destination, so a bank-method tap can
@@ -563,6 +580,8 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                     path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
                     isLoading={flow.isLoading}
                     oneShot={oneShotUnlock}
+                    onOneShotDone={handleOneShotDone}
+                    onOneShotVerifyAgain={handleOneShotVerifyAgain}
                 />
             )}
 

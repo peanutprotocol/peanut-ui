@@ -12,8 +12,14 @@ import { __resetOneShotSessionForTests, markOneShotStarted, recordOneShotIntents
 import { InitiateKycModal } from '../InitiateKycModal'
 
 let mockOneShotResidence: string | null = null
+// the stored set as /users/me carries it (item 3b)
+let mockKycIntents: Record<string, boolean> | null = null
 jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isRegionRestricted: false, oneShotResidence: mockOneShotResidence }),
+    useIdentityVerification: () => ({
+        isRegionRestricted: false,
+        oneShotResidence: mockOneShotResidence,
+        oneShotIntents: mockKycIntents,
+    }),
 }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
@@ -35,10 +41,12 @@ const renderModal = (props: Partial<React.ComponentProps<typeof InitiateKycModal
     )
 
 const ALL_INTENTS = { qr: true, local: true, card: true, bank: true }
+const SET_AT = '2026-10-07T10:00:00.000Z'
 
 describe('InitiateKycModal — one-shot onboarding', () => {
     beforeEach(() => {
         mockOneShotResidence = null
+        mockKycIntents = null
         __resetOneShotSessionForTests()
     })
 
@@ -46,7 +54,7 @@ describe('InitiateKycModal — one-shot onboarding', () => {
     // applicant from today's start screen; the questions are not asked twice
     it('skips the checklist once a stored set has a started session', () => {
         mockOneShotResidence = 'BR'
-        recordOneShotIntents(ALL_INTENTS)
+        recordOneShotIntents(ALL_INTENTS, SET_AT)
         markOneShotStarted()
         const onVerify = jest.fn()
         renderModal({ onVerify })
@@ -55,11 +63,26 @@ describe('InitiateKycModal — one-shot onboarding', () => {
         expect(onVerify).toHaveBeenCalledTimes(1)
     })
 
-    it('still asks when the set was stored but the SDK never opened', () => {
+    // the checklist's own save stores the set; the checklist must stay on
+    // screen for its answer to start the check
+    it('still asks when the set was stored by this tab but the SDK never opened', () => {
         mockOneShotResidence = 'BR'
-        recordOneShotIntents(ALL_INTENTS)
+        recordOneShotIntents(ALL_INTENTS, SET_AT)
+        mockKycIntents = ALL_INTENTS
         renderModal()
         expect(screen.getByText('unlock-checklist:BR')).toBeInTheDocument()
+    })
+
+    // item 3b: a reload or a second device finds the set on /users/me with no
+    // session in this tab, and resumes from today's start screen
+    it('skips the checklist when the set was stored before this tab', () => {
+        mockOneShotResidence = 'BR'
+        mockKycIntents = ALL_INTENTS
+        const onVerify = jest.fn()
+        renderModal({ onVerify })
+        expect(screen.queryByText(/unlock-checklist/)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
+        expect(onVerify).toHaveBeenCalledTimes(1)
     })
 
     it("keeps today's screen when the server did not flag the user", () => {

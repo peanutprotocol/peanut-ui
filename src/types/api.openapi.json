@@ -22318,6 +22318,494 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "features": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "bank": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "reason": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "under_minimum_age"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_unknown"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_sanctioned"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "uk_resident_blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_bank_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "us_state_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "geo-blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_residence_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "manteca_us_nationality_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_tax_id_missing"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "not_requested"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "card": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "reason": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "under_minimum_age"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_unknown"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_sanctioned"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "uk_resident_blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_bank_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "us_state_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "geo-blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_residence_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "manteca_us_nationality_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_tax_id_missing"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "not_requested"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "local": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "reason": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "under_minimum_age"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_unknown"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_sanctioned"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "uk_resident_blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_bank_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "us_state_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "geo-blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_residence_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "manteca_us_nationality_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_tax_id_missing"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "not_requested"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "qr": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "reason": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "under_minimum_age"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_unknown"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_sanctioned"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "uk_resident_blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "residence_bank_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "us_state_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "geo-blocked"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_residence_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "manteca_us_nationality_restricted"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "local_tax_id_missing"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "not_requested"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state"
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "required": [
+                                                "qr",
+                                                "local",
+                                                "card",
+                                                "bank"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "intents": {
                                             "additionalProperties": false,
                                             "properties": {
