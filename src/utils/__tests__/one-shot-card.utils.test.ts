@@ -4,6 +4,7 @@
  */
 import type { ApplyForCardResponse } from '@/services/rain'
 import {
+    applyFailureOf,
     cardChainStateFromFailure,
     cardChainStateFromResponse,
     cardRowState,
@@ -139,5 +140,29 @@ describe('cardStepIsOpen', () => {
         expect(cardStepIsOpen({ kind: 'setting-up' })).toBe(false)
         expect(cardStepIsOpen({ kind: 'checking' })).toBe(false)
         expect(cardStepIsOpen(null)).toBe(false)
+    })
+})
+
+describe('applyFailureOf', () => {
+    it('reads the code and message off the error and the reason off its body', () => {
+        const error = Object.assign(new Error('refused'), {
+            code: 'provider-not-in-plan',
+            cause: { status: 'error', code: 'provider-not-in-plan', reason: 'document_country_unsupported' },
+        })
+        expect(applyFailureOf(error)).toEqual({
+            code: 'provider-not-in-plan',
+            message: 'refused',
+            reason: 'document_country_unsupported',
+        })
+    })
+
+    it('tolerates a plain error, a numeric code and nothing at all', () => {
+        expect(applyFailureOf(new Error('down'))).toEqual({ code: undefined, message: 'down', reason: undefined })
+        expect(applyFailureOf({ code: 4001, message: 'rejected' })).toEqual({
+            code: undefined,
+            message: 'rejected',
+            reason: undefined,
+        })
+        expect(applyFailureOf(undefined)).toEqual({ code: undefined, message: '', reason: undefined })
     })
 })

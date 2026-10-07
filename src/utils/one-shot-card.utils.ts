@@ -69,6 +69,22 @@ export function cardChainStateFromResponse(res: ApplyForCardResponse): CardChain
     }
 }
 
+/**
+ * The failure shape off any thrown value. `rainRequest` throws an `ApiError`
+ * with the body as its `cause`, which is where the plan's `reason` lives.
+ * Duck-typed, like `wireErrorCode`: an error that crossed a serialization
+ * boundary loses its prototype.
+ */
+export function applyFailureOf(error: unknown): ApplyFailure {
+    const thrown = (error ?? {}) as { code?: unknown; message?: unknown; cause?: unknown }
+    const body = (thrown.cause ?? {}) as { reason?: unknown }
+    return {
+        code: typeof thrown.code === 'string' ? thrown.code : undefined,
+        message: typeof thrown.message === 'string' ? thrown.message : '',
+        reason: typeof body.reason === 'string' ? body.reason : undefined,
+    }
+}
+
 export function cardChainStateFromFailure(failure: ApplyFailure): CardChainState {
     switch (failure.code) {
         case 'provider-not-in-plan':
