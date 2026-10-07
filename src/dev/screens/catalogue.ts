@@ -170,6 +170,9 @@ export const SCREENS = orderedDefinitions.map((screen) => ({
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     expectSelector:
         screen.expectSelector ??
+        // The QR drawer intentionally rests at a small peek snap. Its visible
+        // title proves it is open without requiring half its full-height box.
+        (screen.id === '54-d-qrbottomdrawer' ? '[role="dialog"][data-state="open"] h2' : undefined) ??
         (/Drawer\b/.test(screen.name) || screen.route.includes('drawer=')
             ? '[role="dialog"]:not([aria-modal="false"])'
             : undefined),

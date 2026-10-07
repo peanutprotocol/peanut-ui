@@ -193,7 +193,11 @@ PAGE_CAPTURES.push(
         id: 'p75-residence-country-dropdown',
         name: 'Residence — open country dropdown, selected country',
         route: '/dev/surfaces?s=03-a-residence-select',
-        actions: [{ clickSelector: '[role="combobox"]' }],
+        actions: [
+            { clickSelector: '[role="combobox"]' },
+            { clickSelector: '[role="listbox"] [role="option"]' },
+            { clickSelector: '[role="combobox"]' },
+        ],
         expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
     },
     {

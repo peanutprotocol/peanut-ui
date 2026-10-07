@@ -14,6 +14,7 @@ const COPY_PATHS = new Map([
     ['A small update to our terms', 'global.reConsent.title'],
     ['Open new account', 'depositAccounts.list.openTitle'],
     ['More networks', 'global.tokenSelector.moreNetworksTitle'],
+    ['See all contributors', 'payment.contributors.seeAll'],
 ])
 
 const read = (source, locale) =>
