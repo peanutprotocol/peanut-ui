@@ -164,6 +164,31 @@ describe('app help drawers', () => {
         expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/${contentLocale}/terms.json`])
     })
 
+    it('tags English legal text served to a pt-BR reader and says it is English', async () => {
+        // pt-br has no legal translation, so the build writes the English document under pt-br.
+        served['/app-help/pt-br/card-esign.json'] = { ...article('card-esign', 'pt-br'), lang: 'en' }
+        renderLink('pt-BR', '/card-esign')
+        openHelp()
+        await screen.findByText('card-esign article pt-br')
+        expect(screen.getByRole('article', { name: 'card-esign pt-br' })).toHaveAttribute('lang', 'en')
+        expect(screen.getByText(en.common.inEnglish)).toBeInTheDocument()
+    })
+
+    it('adds no English notice when es-AR is served the es-419 text', async () => {
+        served['/app-help/es-ar/card-prohibited-activities.json'] = {
+            ...article('card-prohibited-activities', 'es-ar'),
+            lang: 'es-419',
+        }
+        renderLink('es-AR', '/card-prohibited-activities')
+        openHelp()
+        await screen.findByText('card-prohibited-activities article es-ar')
+        expect(screen.getByRole('article', { name: 'card-prohibited-activities es-ar' })).toHaveAttribute(
+            'lang',
+            'es-419'
+        )
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
+    })
+
     it('leaves the full help center link available', () => {
         renderLink('en', '/en/help')
         expect(screen.getByRole('link', { name: 'Read help' })).toHaveAttribute('href', '/en/help')
