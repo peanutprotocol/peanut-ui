@@ -335,6 +335,7 @@ export interface Translations {
     contentHubTitle: string
     contentHubSubtitle: string
     contentSearchPlaceholder: string
+    inEnglish: string // label on a hub item the fallback serves in English ("En inglés")
     filterAll: string
     filterBlog: string
     filterStories: string
