@@ -89,13 +89,18 @@ describe('app help drawers', () => {
     })
 
     it.each(APP_HELP_SLUGS)('opens the %s article on its own, without navigation', async (slug) => {
-        APP_HELP_SLUGS.forEach((each) => serve(each, 'en'))
+        APP_HELP_SLUGS.forEach((each) => {
+            served[`/app-help/en/${each}.json`] = { ...article(each, 'en'), lang: 'en' }
+        })
         const pathname = window.location.pathname
         renderLink('en', appHelpPagePath(slug, 'en'))
         openHelp()
         expect(await screen.findByText(`${slug} article en`)).toBeInTheDocument()
         expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/en/${slug}.json`])
         expect(window.location.pathname).toBe(pathname)
+        // An en reader of English text gets lang="en" but no "In English" note.
+        expect(screen.getByRole('article', { name: `${slug} en` })).toHaveAttribute('lang', 'en')
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
     })
 
     it.each([
@@ -186,6 +191,16 @@ describe('app help drawers', () => {
             'lang',
             'es-419'
         )
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
+    })
+
+    it('renders a payload from before lang was recorded with no notice and no lang', async () => {
+        serve('card-terms-us', 'pt-br')
+        renderLink('pt-BR', '/card-terms-us')
+        openHelp()
+        await screen.findByText('card-terms-us article pt-br')
+        expect(screen.getByRole('article', { name: 'card-terms-us pt-br' })).not.toHaveAttribute('lang')
+        expect(screen.getByRole('heading', { name: 'card-terms-us pt-br' })).not.toHaveAttribute('lang')
         expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
     })
 
