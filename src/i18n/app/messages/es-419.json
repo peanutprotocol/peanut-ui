@@ -2418,6 +2418,7 @@
             "downloadPdf": "Descargar comprobante (PDF)",
             "pdfDownloadedInstead": "Este navegador descargó el comprobante porque no permite compartir archivos.",
             "receiptPdfUnavailable": "El comprobante en PDF no está disponible. Inténtalo de nuevo.",
+            "attachmentUnavailable": "El archivo no está disponible. Inténtalo de nuevo o contacta a soporte.",
             "inviteFriends": "Invita amigos y gana más recompensas",
             "reportIssue": "¿Problemas con esta transacción?",
             "cancelDeposit": "Cancelar depósito",

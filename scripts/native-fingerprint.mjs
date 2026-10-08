@@ -100,6 +100,7 @@ export const NATIVE_DEPENDENCIES = [
     '@capacitor/clipboard',
     '@capacitor/core',
     '@capacitor/device',
+    '@capacitor/filesystem',
     '@capacitor/haptics',
     '@capacitor/ios',
     '@capacitor/keyboard',
@@ -174,6 +175,7 @@ export const NATIVE_INPUTS = [
 
     // iOS build surface: targets, deployment floor, capabilities.
     { kind: 'file', id: 'ios/App/App.xcodeproj/project.pbxproj', platform: 'ios' },
+    { kind: 'file', id: 'ios/App/App/PrivacyInfo.xcprivacy', platform: 'ios' },
 
     // Native resource contracts the config files delegate to, which nothing
     // else here moves for. On Android that is res/values — capacitor-passkey.xml

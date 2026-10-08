@@ -2418,6 +2418,7 @@
             "downloadPdf": "Download Receipt (PDF)",
             "pdfDownloadedInstead": "This browser downloaded the receipt because file sharing is unavailable.",
             "receiptPdfUnavailable": "Receipt PDF is unavailable. Please try again.",
+            "attachmentUnavailable": "Attachment is unavailable. Try again or contact support.",
             "inviteFriends": "Invite friends to earn more rewards",
             "reportIssue": "Issues with this transaction?",
             "cancelDeposit": "Cancel deposit",
