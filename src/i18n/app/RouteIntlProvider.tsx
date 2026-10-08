@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import type { AppLocale } from './config'
 import { onIntlError } from './intl-error'
 import type { AppMessages } from './messages'
+import { marketingBase } from './messages.marketing'
 
 /**
  * Pins next-intl to a localized marketing page's URL locale.
@@ -15,6 +16,8 @@ import type { AppMessages } from './messages'
  * nested provider shadows it for the page subtree with the catalog the server
  * loaded for the URL, so SSR, hydration and every later render agree. The app
  * locale itself (useAppLocale, the cookie, analytics) is untouched.
+ *
+ * Inside this subtree the content language is `useLocale()`, not `useAppLocale()`.
  */
 export function RouteIntlProvider({
     locale,
@@ -22,13 +25,14 @@ export function RouteIntlProvider({
     children,
 }: {
     locale: AppLocale
-    messages: AppMessages
+    /** Omitted for English, which ships in the bundle as marketingBase. */
+    messages?: AppMessages
     children: React.ReactNode
 }) {
     return (
         <NextIntlClientProvider
             locale={locale}
-            messages={messages}
+            messages={messages ?? marketingBase}
             timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
             onError={onIntlError}
         >
