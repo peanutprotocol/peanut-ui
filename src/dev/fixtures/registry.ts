@@ -23,6 +23,7 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { EURC_ASSET } from '@/constants/currency-accounts.consts'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -651,6 +652,27 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    'home-add-eurc': {
+        route: '/home',
+        about: 'USDC by default; + confirms adding a separate EURC account. Synthetic balance, no RPC or money movement.',
+        responses: { 'GET /users/currency-accounts': { available: [EURC_ASSET] } },
+    },
+    'home-eurc': {
+        route: '/home',
+        about: 'Existing EURC account: select EUR to see the euro balance without dollar-only actions or history.',
+        responses: {
+            'GET /users/currency-accounts': {
+                accounts: [{ ...EURC_ASSET, id: 'demo-eurc', address: WALLET_ACCOUNT.identifier, isDefault: false }],
+                available: [],
+            },
+        },
+    },
+    'home-add-eurc-error': {
+        route: '/home',
+        about: 'EURC enrollment failure keeps USDC available and offers retry.',
+        responses: { 'GET /users/currency-accounts': { available: [EURC_ASSET] } },
+        fails: ['POST /users/currency-accounts'],
+    },
     'home-verification-needed': {
         route: '/home',
         about: 'Home: Add, Send and Request beside an additional bank-transfer verification task.',

@@ -22,6 +22,22 @@ const body = async (path: string, options?: RequestInit) => {
 }
 
 describe('demoRespond — routing', () => {
+    it('provides USDC by default and persists an idempotent synthetic EURC enrollment', async () => {
+        const first = await body('/users/currency-accounts', { method: 'GET' })
+        expect(first.data.accounts[0]).toMatchObject({ asset: 'USDC', isDefault: true })
+        const added = await body('/users/currency-accounts', {
+            method: 'POST',
+            body: JSON.stringify({ asset: 'EURC' }),
+        })
+        const repeated = await body('/users/currency-accounts', {
+            method: 'POST',
+            body: JSON.stringify({ asset: 'EURC' }),
+        })
+        expect(added.data.account).toMatchObject({ asset: 'EURC', currency: 'EUR', chainId: '8453', isDefault: false })
+        expect(repeated.data.account.id).toBe(added.data.account.id)
+        const list = await body('/users/currency-accounts', { method: 'GET' })
+        expect(list.data.accounts.map((account: { asset: string }) => account.asset)).toEqual(['USDC', 'EURC'])
+    })
     it('answers wallet-portfolio synthetically instead of hitting the owner-only endpoint', async () => {
         const originalFetch = global.fetch
         global.fetch = jest.fn()

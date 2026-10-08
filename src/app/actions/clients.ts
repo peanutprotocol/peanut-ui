@@ -29,6 +29,8 @@ export function getTransportWithFallback(chainId: ChainId): Transport {
 }
 
 const ZERODEV_V3_URL = process.env.NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL
+const EURC_BASE_BUNDLER_URL = process.env.NEXT_PUBLIC_EURC_BASE_BUNDLER_URL
+const EURC_BASE_PAYMASTER_URL = process.env.NEXT_PUBLIC_EURC_BASE_PAYMASTER_URL
 const zerodevV3Url = (chainId: number | string) => `${ZERODEV_V3_URL}/chain/${chainId}`
 
 /**
@@ -108,6 +110,17 @@ if (ZERODEV_V3_URL) {
             bundlerUrl: lineaUrl,
             paymasterUrl: lineaUrl,
         }
+    }
+}
+
+// Dedicated EURC policy wins over recovery configuration. Do not fall back to
+// Arbitrum sponsorship URLs: chain-specific wallet setup must be explicit.
+if (EURC_BASE_BUNDLER_URL && EURC_BASE_PAYMASTER_URL) {
+    PUBLIC_CLIENTS_BY_CHAIN[base.id] = {
+        client: createPublicClient({ chain: base, transport: getTransportWithFallback(base.id) }) as PublicClient,
+        chain: base,
+        bundlerUrl: EURC_BASE_BUNDLER_URL,
+        paymasterUrl: EURC_BASE_PAYMASTER_URL,
     }
 }
 

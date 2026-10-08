@@ -1,3 +1,5 @@
+import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
+import type { CurrencyOperation, CurrencyOperationInput } from '@/services/currency-accounts'
 // Client-side demo API router. Reached only from callApi (api-fetch.ts) when
 // isDemoMode() is true after explicit entry on web or native. Returns synthetic
 // data so every screen loads with no JWT and no network. Pure: no writes, no
@@ -13,6 +15,7 @@ import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_US
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import { EURC_ASSET } from '@/constants/currency-accounts.consts'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -417,6 +420,8 @@ let demoAvatarKey: string | null = null
 // demo state: applying for the card flips the overview to a PENDING
 // application so the entry screen advances like the real flow
 let demoCardApplied = false
+let demoEurcEnabled = false
+const DEMO_EURC_ACCOUNT = { ...EURC_ASSET, id: 'demo-eurc', address: DEMO_ADDRESS, isDefault: false }
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
@@ -451,7 +456,132 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     },
 } satisfies DepositAccount
 
+const demoCurrencyOperations = new Map<string, CurrencyOperation>()
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
+    {
+        method: 'GET',
+        pattern: '/users/currency-accounts',
+        handler: () => ({
+            accounts: [
+                {
+                    id: 'demo-usdc',
+                    asset: 'USDC',
+                    currency: 'USD',
+                    chainId: CHAIN_ID,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+                    address: DEMO_ADDRESS,
+                    isDefault: true,
+                },
+                ...(demoEurcEnabled ? [DEMO_EURC_ACCOUNT] : []),
+            ],
+            available: [],
+        }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/currency-accounts',
+        handler: () => {
+            demoEurcEnabled = true
+            return { account: DEMO_EURC_ACCOUNT }
+        },
+    },
+    {
+        method: 'GET',
+        pattern: '/users/currency-accounts/EURC/capabilities',
+        handler: () => ({ receive: true, send: true, exchange: true, bankDeposit: true, bankWithdraw: true }),
+    },
+    {
+        method: 'GET',
+        pattern: '/users/currency-accounts/EURC/history',
+        handler: () => ({
+            entries: [],
+            operations: [...demoCurrencyOperations.values()],
+        }),
+    },
+    {
+        method: 'GET',
+        pattern: '/users/currency-accounts/EURC/bank-accounts',
+        handler: () => ({ accounts: [{ id: 'demo-eur-bank', label: 'Demo Bank · 3000' }] }),
+    },
+    {
+        method: 'GET',
+        pattern: '/users/currency-accounts/EURC/exchange-rate',
+        handler: () => ({ midmarket_rate: '1.1', indicative: true }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/currency-accounts/EURC/operations',
+        handler: ({ options }) => {
+            const input = parseBody(options) as unknown as CurrencyOperationInput
+            const existing = demoCurrencyOperations.get(input.requestKey)
+            if (existing) return existing
+            const recipient = input.recipient ?? DEMO_ADDRESS
+            const operation: CurrencyOperation = {
+                id: input.requestKey,
+                kind: input.kind,
+                sourceAsset: input.sourceAsset,
+                amount: input.amount,
+                status: input.kind === 'BANK_DEPOSIT' ? 'AWAITING_FUNDS' : 'READY',
+                userOpHash: null,
+                txHash: null,
+                errorCode: null,
+                bankInstructions:
+                    input.kind === 'BANK_DEPOSIT'
+                        ? {
+                              iban: 'DE89370400440532013000',
+                              bic: 'COBADEFFXXX',
+                              bank_beneficiary_name: 'Demo only',
+                              reference: 'DEMO ONLY',
+                              currency: 'EUR',
+                              amount: input.amount,
+                          }
+                        : null,
+                call:
+                    input.kind === 'BANK_DEPOSIT'
+                        ? null
+                        : {
+                              to: (input.sourceAsset === 'EURC'
+                                  ? EURC_ASSET.tokenAddress
+                                  : '0xaf88d065e77c8cc2239327c5edb3a432268e5831') as `0x${string}`,
+                              data: encodeFunctionData({
+                                  abi: erc20Abi,
+                                  functionName: 'transfer',
+                                  args: [recipient as `0x${string}`, parseUnits(input.amount, 6)],
+                              }),
+                              value: '0',
+                              chainId: input.sourceAsset === 'EURC' ? '8453' : '42161',
+                          },
+            }
+            demoCurrencyOperations.set(operation.id, operation)
+            return operation
+        },
+    },
+    {
+        method: 'GET',
+        pattern: '/users/currency-accounts/EURC/operations/:id',
+        handler: ({ params }) => demoCurrencyOperations.get(params.id) ?? new Response('{}', { status: 404 }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/currency-accounts/EURC/operations/:id/submit',
+        handler: ({ params }) => {
+            const op = demoCurrencyOperations.get(params.id)
+            if (!op) return new Response('{}', { status: 404 })
+            op.status = 'COMPLETED'
+            return op
+        },
+    },
+    {
+        method: 'DELETE',
+        pattern: '/users/currency-accounts/EURC/operations/:id',
+        handler: ({ params }) => {
+            const op = demoCurrencyOperations.get(params.id)
+            if (!op) return new Response('{}', { status: 404 })
+            op.status = 'CANCELLED'
+            return op
+        },
+    },
     // user
     {
         method: 'GET',

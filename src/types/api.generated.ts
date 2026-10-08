@@ -1095,6 +1095,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1107,6 +1108,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1119,6 +1121,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1131,6 +1134,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1155,6 +1159,7 @@ export interface paths {
                 query: {
                     destinationCurrency: "eur" | "gbp" | "mxn" | "cop";
                     destinationAmount?: string;
+                    sourceAmount?: string;
                 };
                 header: {
                     Authorization: string;
@@ -1176,6 +1181,52 @@ export interface paths {
                             rate: string;
                             sourceAmount?: string;
                             updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bridge/offramp/rail-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rails a USD bank payout may use, and the fee for each */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            currency: "USD";
+                            minimumAfterFeeUsd: string;
+                            rails: {
+                                feeUsd: string;
+                                rail: "ach" | "ach_same_day" | "wire";
+                            }[];
                         };
                     };
                 };
@@ -3971,8 +4022,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            completed: boolean;
                             ms: number;
                             ok: boolean;
+                            reason?: string;
                         };
                     };
                 };
@@ -6111,8 +6164,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -6370,8 +6423,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -6500,6 +6553,95 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        email: boolean;
+                        push: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6678,6 +6820,7 @@ export interface paths {
                 query?: never;
                 header?: {
                     "api-key"?: string;
+                    "x-signup-analytics-state"?: "enabled" | "disabled" | "unknown";
                 };
                 path?: never;
                 cookie?: never;
@@ -8204,8 +8347,8 @@ export interface paths {
                         executorSignature: string;
                         expiresAt: number;
                         preparationId: string;
-                        recipientAddress: string;
                         preparedCoordinatorAddress?: string;
+                        recipientAddress: string;
                     };
                 };
             };
@@ -8442,8 +8585,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -8711,8 +8854,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -10635,39 +10778,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/test-error": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/tokens/price": {
         parameters: {
             query?: never;
@@ -10825,7 +10935,6 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
-                        offrampHandle?: string;
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
@@ -10889,6 +10998,7 @@ export interface paths {
                             /** @enum {string} */
                             code: "RESIDENCE_CHANGE_UNAVAILABLE";
                             error: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -11083,6 +11193,7 @@ export interface paths {
                                 id: string;
                                 identifier: string | null;
                                 isActive: boolean;
+                                isPixRecipient: boolean;
                                 label: string | null;
                                 lastUsedAt: string | null;
                                 routingNumber: string | null;
@@ -11090,7 +11201,6 @@ export interface paths {
                                 type: string;
                                 updatedAt: string;
                                 userId: string | null;
-                                isPixRecipient: boolean;
                             };
                         };
                     };
@@ -11229,7 +11339,7 @@ export interface paths {
                                     currency?: string;
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -11249,6 +11359,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -11267,7 +11379,7 @@ export interface paths {
                                             currency?: string;
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -11546,6 +11658,662 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/currency-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            accounts: {
+                                address: string;
+                                asset: string;
+                                chainId: string;
+                                currency: string;
+                                decimals: number;
+                                id: string;
+                                isDefault: boolean;
+                                tokenAddress: string;
+                            }[];
+                            available: {
+                                asset: string;
+                                chainId: string;
+                                currency: string;
+                                decimals: number;
+                                tokenAddress: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        asset: "EURC";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            account: {
+                                address: string;
+                                asset: string;
+                                chainId: string;
+                                currency: string;
+                                decimals: number;
+                                id: string;
+                                isDefault: boolean;
+                                tokenAddress: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/bank-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            accounts: {
+                                id: string;
+                                label: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            bankDeposit: boolean;
+                            bankWithdraw: boolean;
+                            exchange: boolean;
+                            receive: boolean;
+                            send: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/exchange-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    from: "EURC" | "USDC";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            buy_rate: string;
+                            developerFeePercent: string;
+                            indicative: boolean;
+                            midmarket_rate: string;
+                            sell_rate: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            entries: {
+                                amount: string;
+                                /** @enum {string} */
+                                asset: "EURC";
+                                at: string;
+                                /** @enum {string} */
+                                currency: "EUR";
+                                direction: "CREDIT" | "DEBIT";
+                                id: string;
+                                kind: string;
+                                txHash: string | null;
+                            }[];
+                            operations: {
+                                amount: string;
+                                bankInstructions: {
+                                    [key: string]: string;
+                                } | null;
+                                call: {
+                                    chainId: string;
+                                    data: string;
+                                    to: string;
+                                    value: string;
+                                } | null;
+                                destinationCurrency: string;
+                                errorCode: string | null;
+                                externalAccountId: string | null;
+                                id: string;
+                                kind: "SEND" | "EXCHANGE" | "BANK_DEPOSIT" | "BANK_WITHDRAW";
+                                receipt: {
+                                    [key: string]: string;
+                                } | null;
+                                recipient: string | null;
+                                requestKey: string;
+                                sourceAsset: "EURC" | "USDC";
+                                status: string;
+                                txHash: string | null;
+                                userOpHash: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amount: string;
+                        externalAccountId?: string;
+                        kind: "SEND" | "EXCHANGE" | "BANK_DEPOSIT" | "BANK_WITHDRAW";
+                        recipient?: string;
+                        /** Format: uuid */
+                        requestKey: string;
+                        sourceAsset: "USDC" | "EURC";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            amount: string;
+                            bankInstructions: {
+                                [key: string]: string;
+                            } | null;
+                            call: {
+                                chainId: string;
+                                data: string;
+                                to: string;
+                                value: string;
+                            } | null;
+                            destinationCurrency: string;
+                            errorCode: string | null;
+                            externalAccountId: string | null;
+                            id: string;
+                            kind: "SEND" | "EXCHANGE" | "BANK_DEPOSIT" | "BANK_WITHDRAW";
+                            receipt: {
+                                [key: string]: string;
+                            } | null;
+                            recipient: string | null;
+                            requestKey: string;
+                            sourceAsset: "EURC" | "USDC";
+                            status: string;
+                            txHash: string | null;
+                            userOpHash: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/operations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            amount: string;
+                            bankInstructions: {
+                                [key: string]: string;
+                            } | null;
+                            call: {
+                                chainId: string;
+                                data: string;
+                                to: string;
+                                value: string;
+                            } | null;
+                            destinationCurrency: string;
+                            errorCode: string | null;
+                            externalAccountId: string | null;
+                            id: string;
+                            kind: "SEND" | "EXCHANGE" | "BANK_DEPOSIT" | "BANK_WITHDRAW";
+                            receipt: {
+                                [key: string]: string;
+                            } | null;
+                            recipient: string | null;
+                            requestKey: string;
+                            sourceAsset: "EURC" | "USDC";
+                            status: string;
+                            txHash: string | null;
+                            userOpHash: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            amount: string;
+                            bankInstructions: {
+                                [key: string]: string;
+                            } | null;
+                            call: {
+                                chainId: string;
+                                data: string;
+                                to: string;
+                                value: string;
+                            } | null;
+                            destinationCurrency: string;
+                            errorCode: string | null;
+                            externalAccountId: string | null;
+                            id: string;
+                            kind: "SEND" | "EXCHANGE" | "BANK_DEPOSIT" | "BANK_WITHDRAW";
+                            receipt: {
+                                [key: string]: string;
+                            } | null;
+                            recipient: string | null;
+                            requestKey: string;
+                            sourceAsset: "EURC" | "USDC";
+                            status: string;
+                            txHash: string | null;
+                            userOpHash: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/operations/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            amount: string;
+                            bankInstructions: {
+                                [key: string]: string;
+                            } | null;
+                            call: {
+                                chainId: string;
+                                data: string;
+                                to: string;
+                                value: string;
+                            } | null;
+                            destinationCurrency: string;
+                            errorCode: string | null;
+                            externalAccountId: string | null;
+                            id: string;
+                            kind: "SEND" | "EXCHANGE" | "BANK_DEPOSIT" | "BANK_WITHDRAW";
+                            receipt: {
+                                [key: string]: string;
+                            } | null;
+                            recipient: string | null;
+                            requestKey: string;
+                            sourceAsset: "EURC" | "USDC";
+                            status: string;
+                            txHash: string | null;
+                            userOpHash: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/currency-accounts/EURC/operations/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        operation: {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            amount: string;
+                            bankInstructions: {
+                                [key: string]: string;
+                            } | null;
+                            call: {
+                                chainId: string;
+                                data: string;
+                                to: string;
+                                value: string;
+                            } | null;
+                            destinationCurrency: string;
+                            errorCode: string | null;
+                            externalAccountId: string | null;
+                            id: string;
+                            kind: "SEND" | "EXCHANGE" | "BANK_DEPOSIT" | "BANK_WITHDRAW";
+                            receipt: {
+                                [key: string]: string;
+                            } | null;
+                            recipient: string | null;
+                            requestKey: string;
+                            sourceAsset: "EURC" | "USDC";
+                            status: string;
+                            txHash: string | null;
+                            userOpHash: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/deposit-accounts": {
         parameters: {
             query?: never;
@@ -11801,6 +12569,16 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
+                            nextAction?: {
+                                currency?: string;
+                                effectiveDate?: string;
+                                key: string;
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                levelKey?: string;
+                                purpose: string;
+                                requirementKey?: string;
+                                tosUrl?: string;
+                            };
                             outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
                                 issues: string[];
@@ -11808,16 +12586,6 @@ export interface paths {
                                 pending: string[];
                             };
                             verificationUrl?: string;
-                            nextAction?: {
-                                currency?: string;
-                                effectiveDate?: string;
-                                key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
-                                levelKey?: string;
-                                purpose: string;
-                                requirementKey?: string;
-                                tosUrl?: string;
-                            };
                         };
                     };
                 };
@@ -11841,6 +12609,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12581,7 +13350,7 @@ export interface paths {
                                     currency?: string;
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -12601,6 +13370,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -12619,7 +13390,7 @@ export interface paths {
                                             currency?: string;
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -12647,8 +13418,8 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
-                                reviewedAt?: string;
                                 reviewPending?: boolean;
+                                reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };
@@ -12713,6 +13484,64 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/signup-attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        attribution: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            accepted: boolean;
+                            /** @enum {string} */
+                            reason: "attached" | "already_attached" | "expired" | "not_collecting" | "not_found" | "post_signup_touch";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -12895,6 +13724,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12908,6 +13738,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12921,6 +13752,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13580,141 +14412,6 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bridge/offramp/rail-fees": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The rails a USD bank payout may use, and the fee for each */
-        get: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            currency: "USD";
-                            minimumAfterFeeUsd: string;
-                            rails: {
-                                feeUsd: string;
-                                rail: "ach" | "ach_same_day" | "wire";
-                            }[];
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/notifications/preferences": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            email: boolean;
-                            push: boolean;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        email: boolean;
-                        push: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            email: boolean;
-                            push: boolean;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
         post?: never;
         delete?: never;
         options?: never;

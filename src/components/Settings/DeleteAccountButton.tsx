@@ -40,13 +40,15 @@ const DeleteAccountButton: FC = () => {
     // waved through (stale/unreadable local balance), and then the server's
     // number is the one that actually blocked the deletion.
     const [blockedAmount, setBlockedAmount] = useState<string | null>(null)
+    const [blockedCurrency, setBlockedCurrency] = useState<'USD' | 'EURC'>('USD')
 
     // Deletion is irreversible — login is blocked forever and there is no
     // reactivation path — so funds left behind can never be reached again.
     const hasFundsToMove = spendableBalance !== undefined && spendableBalance >= DELETION_BALANCE_DUST_UNITS
 
-    const block = (amount: string | null) => {
+    const block = (amount: string | null, currency: 'USD' | 'EURC' = 'USD') => {
         setBlockedAmount(amount)
+        setBlockedCurrency(currency)
         setModalState('blocked')
         posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
     }
@@ -66,7 +68,7 @@ const DeleteAccountButton: FC = () => {
 
     const moveMoney = () => {
         setModalState('closed')
-        router.push('/withdraw')
+        router.push(blockedCurrency === 'EURC' ? '/home?currency=EURC' : '/withdraw')
     }
 
     const confirmDelete = async () => {
@@ -77,7 +79,7 @@ const DeleteAccountButton: FC = () => {
             setModalState('done')
         } catch (error) {
             if (error instanceof AccountHasBalanceError) {
-                block(error.balanceUsd)
+                block(error.balanceUsd, error.currency)
             } else {
                 posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
                 const code = wireErrorCode(error)
@@ -112,7 +114,10 @@ const DeleteAccountButton: FC = () => {
             mascotPose: 'pointing',
             mascotAlt: t('pointingPeanutAlt'),
             title: t('blockedTitle'),
-            description: t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
+            description:
+                blockedCurrency === 'EURC'
+                    ? t('blockedEurcDescription')
+                    : t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
             ctas: [{ text: t('blockedCta'), variant: 'primary', shadowSize: '4', onClick: moveMoney }],
             tertiaryCta: { text: t('blockedCancelCta'), onClick: close },
         },

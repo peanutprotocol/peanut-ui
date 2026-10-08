@@ -18,6 +18,7 @@ import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import AmountInput from '@/components/Global/AmountInput'
+import { CurrencyBalanceNotice } from '@/components/Global/CurrencyBalanceNotice'
 import UserCard from '@/components/User/UserCard'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import SupportCTA from '@/components/Global/SupportCTA'
@@ -88,6 +89,11 @@ export function SendInputView() {
                         balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
+                        balanceSupplement={
+                            isInsufficientBalance ? (
+                                <CurrencyBalanceNotice currency="USDC" amount={amount} />
+                            ) : undefined
+                        }
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
                 </div>

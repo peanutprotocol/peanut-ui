@@ -19,6 +19,48 @@ const renderSection = (onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
     })
 
 describe('BalanceSection submenu', () => {
+    it('formats euro units separately and hides dollar-only actions', () => {
+        render(
+            <BalanceSection
+                balance={2_500_000n}
+                currencySymbol="€"
+                decimals={6}
+                actions={null}
+                isFetching={false}
+                isHidden={false}
+                onToggleVisibility={() => {}}
+            />,
+            {
+                wrapper: withNuqsTestingAdapter({ searchParams: '' }),
+            }
+        )
+        expect(screen.getByText('€')).toBeInTheDocument()
+        expect(screen.getByText('2.5')).toBeInTheDocument()
+        expect(screen.queryByTestId('home-submenu-add')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('home-submenu-send')).not.toBeInTheDocument()
+    })
+
+    it('keeps the shared privacy control on the EURC balance', () => {
+        const toggle = jest.fn()
+        render(
+            <BalanceSection
+                balance={2_500_000n}
+                currencySymbol="€"
+                decimals={6}
+                actions={null}
+                isFetching={false}
+                isHidden={true}
+                onToggleVisibility={toggle}
+            />,
+            {
+                wrapper: withNuqsTestingAdapter({ searchParams: '' }),
+            }
+        )
+        expect(screen.getByText('****')).toBeInTheDocument()
+        expect(screen.queryByText('2.5')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'showBalance' }))
+        expect(toggle).toHaveBeenCalledTimes(1)
+    })
     it('request opens its drawer while it offers two ways to be paid', async () => {
         depositAccountsEnabled = true
         const urlUpdates: UrlUpdateEvent[] = []

@@ -84,6 +84,13 @@ describe('usersApi.requestDeletion', () => {
         await expect(usersApi.requestDeletion()).rejects.toMatchObject({ balanceUsd: null })
     })
 
+    it('preserves the EURC deletion gate without inventing a dollar balance', async () => {
+        mockServerFetch.mockResolvedValue(
+            response({ ok: false, body: { error: 'ACCOUNT_HAS_BALANCE', currency: 'EURC' } })
+        )
+        await expect(usersApi.requestDeletion()).rejects.toMatchObject({ balanceUsd: null, currency: 'EURC' })
+    })
+
     it('falls back to the generic failure for other error codes', async () => {
         mockServerFetch.mockResolvedValue(response({ ok: false, body: { error: 'BALANCE_UNAVAILABLE' } }))
 
