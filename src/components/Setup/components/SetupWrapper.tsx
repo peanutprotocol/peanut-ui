@@ -311,11 +311,12 @@ const ImageSection = ({
     step,
     totalSteps,
     direction = 0,
+    showProgress,
     prefersReducedMotion,
     intro,
 }: Pick<
     SetupWrapperProps,
-    'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'step' | 'totalSteps' | 'direction'
+    'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'step' | 'totalSteps' | 'direction' | 'showProgress'
 > & {
     prefersReducedMotion: boolean
     intro: ReturnType<typeof useFirstLaunchIntro>
@@ -475,7 +476,14 @@ const ImageSection = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
-                <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} hidden={intro.active} />
+                {showProgress && (
+                    <SetupProgressHeader
+                        step={step}
+                        totalSteps={totalSteps}
+                        screenId={screenId}
+                        hidden={intro.active}
+                    />
+                )}
             </motion.div>
         )
     }
@@ -640,6 +648,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 step={step}
                                 totalSteps={totalSteps}
                                 direction={transitionDirection}
+                                showProgress={showProgress}
                                 prefersReducedMotion={!!prefersReducedMotion}
                                 intro={intro}
                             />

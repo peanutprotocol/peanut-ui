@@ -89,6 +89,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'SetupNotificationsModal',
         path: 'Notifications/SetupNotificationsModal.tsx',
     },
+    '21-b-bank-unlock-intro': { name: 'Bank unlock — first-time introduction', path: 'Kyc/BankUnlockIntroScreen.tsx' },
     '22-b-initiatekycmodal': { name: 'InitiateKycModal (default)', path: 'Kyc/InitiateKycModal.tsx' },
     '23-b-kycreverificationpendingmodal': {
         name: 'KycReverificationPendingModal',
