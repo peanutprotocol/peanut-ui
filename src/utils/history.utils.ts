@@ -275,6 +275,9 @@ export type HistoryEntry = {
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
+    intentStatus?: string
+    /** Recorded public status events; audit payloads are never included. */
+    timeline?: PaymentTimelineEvent[]
     isVerified?: boolean
     points?: number
     /** Provider fee in USD (human units, e.g. 0.01). Populated by bridge offramp/onramp. */
@@ -286,6 +289,12 @@ export type HistoryEntry = {
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
     return FINAL_STATES.includes(transaction.status)
+}
+
+export interface PaymentTimelineEvent {
+    status: string
+    providerStatus?: string | null
+    time: string
 }
 
 export function getReceiptUrl(transaction: TransactionDetails): string | undefined {

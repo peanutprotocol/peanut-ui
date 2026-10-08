@@ -71,6 +71,20 @@ const baseEntry = (overrides: Partial<HistoryEntry>): HistoryEntry => ({
     ...overrides,
 })
 
+it('carries recorded intermediary events and the canonical state into the receipt', () => {
+    const timeline = [{ status: 'PROCESSING', providerStatus: 'payment_submitted', time: '2026-10-07T10:01:00Z' }]
+    const entry = baseEntry({
+        status: EHistoryStatus.PAYMENT_SUBMITTED,
+        intentStatus: 'PROCESSING',
+        timeline,
+        extraData: { kind: 'OFFRAMP', provider: 'BRIDGE' },
+    })
+    const details = mapTransactionDataForDrawer(entry).transactionDetails
+    expect(details.timeline).toEqual(timeline)
+    expect(details.intentStatus).toBe('PROCESSING')
+    expect(details.paymentStatus).toBe('PAYMENT_SUBMITTED')
+})
+
 interface ExpectedShape {
     direction?: string
     userName?: string
@@ -80,6 +94,14 @@ interface ExpectedShape {
     isPeerActuallyUser?: boolean
     cardPaymentDefined?: boolean
 }
+
+it.each([EHistoryStatus.REFUNDED, EHistoryStatus.RETURNED])(
+    'matches an outgoing %s timeline with a refunded badge',
+    (status) => {
+        const entry = baseEntry({ status, extraData: { kind: 'OFFRAMP', provider: 'BRIDGE' } })
+        expect(mapTransactionDataForDrawer(entry).transactionDetails.status).toBe('refunded')
+    }
+)
 
 interface TestCase {
     name: string

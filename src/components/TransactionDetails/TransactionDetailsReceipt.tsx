@@ -31,6 +31,8 @@ import {
 import { receiptHeadlineAmount } from './transaction-details.utils'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
+import { PaymentReceiptTabs } from './PaymentTimeline'
+import { buildPaymentTimeline } from './payment-timeline'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -66,6 +68,7 @@ export const TransactionDetailsReceipt = ({
     const { formattedTotalAmountCollected } = vm
 
     if (!transaction) return null
+    const hasPaymentTabs = !isPublic && buildPaymentTimeline(transaction).length > 0
 
     let usdAmount: number | bigint = 0
     if (transactionAmount) {
@@ -222,11 +225,18 @@ export const TransactionDetailsReceipt = ({
             {/* the one receipt-style card (dates, conversion, fee, memo,
                 provider rows, pot progress + contributors) */}
             {/* only the drawer passes setIsModalOpen; vaul's nested root throws outside a drawer */}
-            <ReceiptDetailsCard
+            <PaymentReceiptTabs
                 transaction={transaction}
-                vm={vm}
-                shouldShowQrShare={shouldShowQrShare}
-                inDrawer={!!setIsModalOpen}
+                isPublic={isPublic}
+                details={
+                    <ReceiptDetailsCard
+                        transaction={transaction}
+                        vm={vm}
+                        shouldShowQrShare={shouldShowQrShare}
+                        inDrawer={!!setIsModalOpen}
+                        className={hasPaymentTabs ? 'rounded-none border-0 px-0' : undefined}
+                    />
+                }
             />
 
             {/* Over-capture explainer — the words for the Initial hold /

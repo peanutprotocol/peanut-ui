@@ -2242,6 +2242,32 @@
         }
     },
     "transaction": {
+        "timeline": {
+            "title": "Payment timeline",
+            "information": "Payment information",
+            "updates": "Updates",
+            "details": "Details",
+            "created": "Payment created",
+            "pending": "Payment pending",
+            "actionNeeded": "Action needed to continue",
+            "awaitingFunds": "Waiting for funds",
+            "inReview": "Payment under review",
+            "fundsReceived": "Funds received",
+            "processing": "Payment processing",
+            "submitted": "Payment sent for payout",
+            "awaitingSettlement": "Waiting for payment confirmation",
+            "completed": "Payment complete",
+            "failed": "Payment failed",
+            "cancelled": "Payment cancelled",
+            "refunded": "Payment refunded",
+            "returned": "Payment returned",
+            "undeliverable": "Payment could not be delivered",
+            "readyToClaim": "Link ready to claim",
+            "claimed": "Payment claimed",
+            "upcoming": "Not reached yet",
+            "unrecorded": "No recorded update",
+            "notReached": "Not reached"
+        },
         "drawerTitle": "Transaction details",
         "officialReceipt": {
             "issuedBy": "Issued by:",

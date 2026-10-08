@@ -188,6 +188,22 @@ const WIRE_WITHDRAWAL_ENTRY = {
     extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
 }
 
+const PAYMENT_TIMELINE_ENTRY = {
+    ...WIRE_WITHDRAWAL_ENTRY,
+    uuid: 'fixture-payment-timeline',
+    createdAt: '2026-08-14T10:00:00.000Z',
+    completedAt: '2026-08-14T10:06:00.000Z',
+    timestamp: new Date('2026-08-14T10:00:00.000Z'),
+    status: 'PAYMENT_PROCESSED',
+    intentStatus: 'COMPLETED',
+    timeline: [
+        { status: 'PENDING', providerStatus: 'awaiting_funds', time: '2026-08-14T10:00:00.000Z' },
+        { status: 'PROCESSING', providerStatus: 'funds_received', time: '2026-08-14T10:02:00.000Z' },
+        { status: 'PROCESSING', providerStatus: 'payment_submitted', time: '2026-08-14T10:04:00.000Z' },
+        { status: 'COMPLETED', providerStatus: 'payment_processed', time: '2026-08-14T10:06:00.000Z' },
+    ],
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -1220,6 +1236,54 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/history',
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
+    },
+    'history-payment-timeline': {
+        route: '/history?tx=fixture-payment-timeline',
+        about: 'A completed bank payment with recorded funding, processing and payout updates.',
+        responses: { 'GET /users/history': { entries: [PAYMENT_TIMELINE_ENTRY], hasMore: false } },
+        waitFor: '[role="tablist"]',
+    },
+    'history-payment-processing': {
+        route: '/history?tx=fixture-payment-timeline',
+        about: 'A payment awaiting payout, with no invented completion step or timestamp.',
+        responses: {
+            'GET /users/history': {
+                entries: [
+                    {
+                        ...PAYMENT_TIMELINE_ENTRY,
+                        status: 'PAYMENT_SUBMITTED',
+                        intentStatus: 'PROCESSING',
+                        completedAt: null,
+                        timeline: PAYMENT_TIMELINE_ENTRY.timeline.slice(0, -1),
+                    },
+                ],
+                hasMore: false,
+            },
+        },
+        waitFor: '[role="tablist"]',
+    },
+    'history-payment-refunded': {
+        route: '/history?tx=fixture-payment-timeline',
+        about: 'A failed payment followed by a recorded refund, both visible in Updates.',
+        responses: {
+            'GET /users/history': {
+                entries: [
+                    {
+                        ...PAYMENT_TIMELINE_ENTRY,
+                        status: 'REFUNDED',
+                        intentStatus: 'REFUNDED',
+                        completedAt: null,
+                        timeline: [
+                            ...PAYMENT_TIMELINE_ENTRY.timeline.slice(0, -1),
+                            { status: 'FAILED', providerStatus: 'error', time: '2026-08-14T10:06:00.000Z' },
+                            { status: 'REFUNDED', providerStatus: 'refunded', time: '2026-08-14T10:08:00.000Z' },
+                        ],
+                    },
+                ],
+                hasMore: false,
+            },
+        },
+        waitFor: '[role="tablist"]',
     },
     'empty-history': {
         route: '/history',

@@ -91,6 +91,9 @@ async function settle(page: Page): Promise<void> {
     await page.waitForFunction((selector) => {
         const { innerHeight, innerWidth } = window
         return Array.from(document.querySelectorAll(selector)).every((el) => {
+            // Vaul hides the page and earlier dialogs behind the active receipt.
+            // A loader there cannot affect the shot or delay the visible drawer.
+            if (el.closest('[aria-hidden="true"]')) return true
             const box = el.getBoundingClientRect()
             return (
                 box.width === 0 || box.bottom <= 0 || box.top >= innerHeight || box.right <= 0 || box.left >= innerWidth
@@ -105,6 +108,7 @@ async function settle(page: Page): Promise<void> {
     // would wait forever.
     await page.waitForFunction(() =>
         Array.from(document.images).every((img) => {
+            if (img.closest('[aria-hidden="true"]')) return true
             const box = img.getBoundingClientRect()
             const offscreen =
                 box.width === 0 || box.bottom <= 0 || box.top >= innerHeight || box.right <= 0 || box.left >= innerWidth

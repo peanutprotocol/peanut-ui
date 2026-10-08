@@ -76,6 +76,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-background-page"
     },
     {
+        "name": "background-tab-active",
+        "value": "#dbeafe",
+        "section": "semantic",
+        "previewClass": "bg-background-tab-active"
+    },
+    {
         "name": "background-disabled",
         "value": "#efeff0",
         "section": "semantic",
