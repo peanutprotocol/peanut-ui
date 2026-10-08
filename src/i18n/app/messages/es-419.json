@@ -532,7 +532,7 @@
         },
         "update": {
             "title": "Actualización disponible",
-            "description": "Toca Actualizar. Peanut se recarga en unos segundos con la nueva versión.",
+            "description": "Toca Actualizar para instalar la nueva versión. Si Peanut se cierra, vuelve a abrirla.",
             "update": "Actualizar",
             "notNow": "Ahora no",
             "manualRestart": "Cierra Peanut desde el selector de apps y vuelve a abrirla para terminar la actualización.",

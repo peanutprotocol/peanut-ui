@@ -52,7 +52,7 @@ describe('OtaUpdateModal dismissal locking', () => {
         mockOta.pendingBundle = { id: 'bridge', version: '1.6.1000-android' }
         renderAt('idle')
         expect(
-            screen.getByText('Tap Update. Peanut refreshes in a few seconds with the new version.')
+            screen.getByText('Tap Update to install the new version. If Peanut closes, open it again.')
         ).toBeInTheDocument()
         expect(screen.queryByText(/1\.6\.1000/)).not.toBeInTheDocument()
     })
