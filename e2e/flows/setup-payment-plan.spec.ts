@@ -46,7 +46,7 @@ for (const locale of locales) {
             await expect(funding).not.toContainText(/[()]/)
             expect(await funding.evaluate((el) => el.getBoundingClientRect().width)).toBe(fundingWidth)
             await funding.click()
-            await expect(dialog.getByRole('button').nth(1)).toHaveCSS('background-color', 'rgb(220, 214, 255)')
+            await expect(dialog.getByRole('button').nth(1)).toHaveClass(/\bbg-background-selection\b/)
             await page.keyboard.press('Escape')
             await expect(dialog).not.toBeVisible()
             await payment.click()
