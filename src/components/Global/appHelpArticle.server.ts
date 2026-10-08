@@ -1,5 +1,5 @@
 import { createMdxComponents } from '@/components/Marketing/mdx/components'
-import { helpArticleTitle, readPageContentLocalized, resolveContentHref } from '@/lib/content'
+import { helpArticleTitle, readPageContentLocalizedResolved, resolveContentHref } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 import {
     APP_HELP_SLUGS,
@@ -8,13 +8,14 @@ import {
     type AppHelpArticle,
     type AppHelpSlug,
     type HelpLocale,
+    isHelpLocale,
 } from './appHelpTypes'
 import { serializeMdxTree } from './serializeMdxTree'
 
 type Frontmatter = { title: string }
 
 const readSource = (slug: AppHelpSlug, locale: HelpLocale) =>
-    readPageContentLocalized<Frontmatter>(appHelpContentType(slug), slug, locale)
+    readPageContentLocalizedResolved<Frontmatter>(appHelpContentType(slug), slug, locale)
 
 /** Every article with a published source, after the content locale fallback. */
 export function listAppHelpArticles(): Array<{ slug: AppHelpSlug; locale: HelpLocale }> {
@@ -28,8 +29,9 @@ export function listAppHelpArticles(): Array<{ slug: AppHelpSlug; locale: HelpLo
  * static article files, so no page render and no request compiles MDX.
  */
 export async function loadAppHelpArticle(slug: AppHelpSlug, locale: HelpLocale): Promise<AppHelpArticle | null> {
-    const source = readSource(slug, locale)
-    if (!source) return null
+    const resolved = readSource(slug, locale)
+    if (!resolved) return null
+    const source = resolved.content
 
     // Stand-ins for the marketing components: the tree records their names and
     // the drawer supplies its own compact versions.
@@ -50,6 +52,7 @@ export async function loadAppHelpArticle(slug: AppHelpSlug, locale: HelpLocale):
 
     return {
         title: helpArticleTitle(source.frontmatter.title),
+        lang: isHelpLocale(resolved.lang) ? resolved.lang : 'en',
         body: serializeMdxTree(content, {
             componentNames,
             resolveHref: (href) => resolveContentHref(href, locale),
