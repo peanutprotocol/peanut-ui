@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('receive-from', country, locale)
+    const contentLocale = contentLocaleFor('receive-from', country, locale) as Locale
 
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title:
                 useContentMetadata === true && typeof title === 'string' && title.trim()
                     ? title
@@ -66,6 +66,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized('receive-from', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('receive-from', country, locale) as Locale
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -74,6 +75,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: `/${locale}/receive-money-from/${country}` },

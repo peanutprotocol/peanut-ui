@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
+import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { availableContentLocales, contentLocaleFor, readPageContentLocalized } from '@/lib/content'
@@ -35,11 +36,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('legal', SLUG, locale)
+    const contentLocale = contentLocaleFor('legal', SLUG, locale) as Locale
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${contentLocale}/${SLUG}`,
@@ -57,6 +58,7 @@ export default async function TermsPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<LegalFrontmatter>('legal', SLUG, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('legal', SLUG, locale) as Locale
 
     // The verbatim markdown opens with its own `# Terms of Service`; the Hero
     // below already renders that title, so strip the body's leading h1.
@@ -69,6 +71,7 @@ export default async function TermsPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: displayTitle, href: url },
@@ -84,7 +87,7 @@ export default async function TermsPage({ params }: PageProps) {
                     : undefined
             }
         >
-            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitleTerms} />
+            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitleTerms} locale={locale} />
             {content}
         </ContentPage>
     )
