@@ -47,7 +47,7 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  after="4e0700504c38cae899ccb554d2b09a18cb74bdd5"
+                  after="a5657c31dbc079fe72ba26e7f755b0aa6b0bbaff"
                   [[ "$after" =~ ^[a-f0-9]{40}$ ]]
                   if [ "$EVENT" = pull_request ]; then
                     before=$(git merge-base "$PR_BASE" "$after")
@@ -117,7 +117,7 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.after }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} --only=artifact-bank-send-unverified,artifact-bank-send-processing,artifact-bank-send-rejected
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} --only=artifact-bank-send-unverified,artifact-bank-send-processing,artifact-bank-send-rejected,artifact-receipt-attachment,artifact-receipt-no-attachment,artifact-receipt-wire,artifact-request-partial-balance,artifact-request-paid-balance
             - name: Record required baseline mode
               if: github.event_name == 'pull_request' && needs.refs.outputs.capture_before == 'true'
               run: echo '{"requireSameRunBaseline":true}' > capture/screen-library-requirement.json
@@ -182,7 +182,7 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.before }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} --only=artifact-bank-send-unverified,artifact-bank-send-processing,artifact-bank-send-rejected
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} --only=artifact-bank-send-unverified,artifact-bank-send-processing,artifact-bank-send-rejected,artifact-receipt-attachment,artifact-receipt-no-attachment,artifact-receipt-wire,artifact-request-partial-balance,artifact-request-paid-balance
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
