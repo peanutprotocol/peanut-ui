@@ -67,7 +67,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                 { name: i18n.stories, href: `/${locale}/stories` },
             ]}
         >
-            <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} />
+            <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} locale={locale} />
             <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
                 {stories.length === 0 ? (
                     <EmptyState icon="docs" title={i18n.noStoriesPublished} />

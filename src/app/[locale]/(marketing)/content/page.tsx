@@ -87,7 +87,7 @@ export default async function ContentHubPage({ params }: PageProps) {
                 { name: i18n.content, href: `/${locale}/content` },
             ]}
         >
-            <Hero title={i18n.contentHubTitle} subtitle={i18n.contentHubSubtitle} />
+            <Hero title={i18n.contentHubTitle} subtitle={i18n.contentHubSubtitle} locale={typedLocale} />
             <Suspense fallback={<LandingFallback items={items} strings={strings} />}>
                 <ContentLanding items={items} locale={typedLocale} strings={strings} />
             </Suspense>

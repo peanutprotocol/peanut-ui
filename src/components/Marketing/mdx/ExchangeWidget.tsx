@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryStates } from 'nuqs'
-import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
+import ExchangeRateWidget, { type ExchangeRateWidgetLabels } from '@/components/Global/ExchangeRateWidget'
 import Star from '@/assets/illustrations/star.svg'
 import Image from 'next/image'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
@@ -19,9 +19,18 @@ interface ExchangeWidgetProps {
     destinationCurrency?: string
     /** ISO 4217 source currency code. Defaults to "USD". */
     sourceCurrency?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    ctaLabel?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    labels?: Partial<ExchangeRateWidgetLabels>
 }
 
-function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: ExchangeWidgetProps) {
+function ExchangeWidgetInner({
+    destinationCurrency,
+    sourceCurrency = 'USD',
+    ctaLabel = 'Send Money',
+    labels,
+}: ExchangeWidgetProps) {
     const router = useRouter()
     const [{ from, to }, setQuery] = useQueryStates(
         { from: parseAsString, to: parseAsString },
@@ -59,7 +68,8 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
             </div>
             <div className="relative z-10 mx-auto max-w-[640px] px-6 md:px-4">
                 <ExchangeRateWidget
-                    ctaLabel="Send Money"
+                    ctaLabel={ctaLabel}
+                    labels={labels}
                     ctaIcon="arrow-up-right"
                     ctaAction={(from, to) => {
                         router.push(`/send?from=${from}&to=${to}`)
@@ -88,7 +98,7 @@ const amountFieldSkeleton = (
  *   <ExchangeWidget destinationCurrency="ARS" />
  *   <ExchangeWidget destinationCurrency="BRL" sourceCurrency="EUR" />
  */
-export function ExchangeWidget({ destinationCurrency, sourceCurrency }: ExchangeWidgetProps) {
+export function ExchangeWidget(props: ExchangeWidgetProps) {
     return (
         <Suspense
             fallback={
@@ -112,7 +122,7 @@ export function ExchangeWidget({ destinationCurrency, sourceCurrency }: Exchange
                 </section>
             }
         >
-            <ExchangeWidgetInner destinationCurrency={destinationCurrency} sourceCurrency={sourceCurrency} />
+            <ExchangeWidgetInner {...props} />
         </Suspense>
     )
 }
