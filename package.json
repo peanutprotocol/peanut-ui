@@ -71,6 +71,7 @@
         "@capacitor/ios": "8.2.0",
         "@capacitor/keyboard": "^8.0.3",
         "@capacitor/preferences": "^8.0.1",
+        "@capacitor/share": "8.0.2",
         "@capacitor/splash-screen": "^8.0.1",
         "@capacitor/status-bar": "^8.0.2",
         "@capgo/capacitor-crisp": "^8.0.27",

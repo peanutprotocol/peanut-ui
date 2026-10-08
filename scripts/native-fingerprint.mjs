@@ -104,6 +104,7 @@ export const NATIVE_DEPENDENCIES = [
     '@capacitor/ios',
     '@capacitor/keyboard',
     '@capacitor/preferences',
+    '@capacitor/share',
     '@capacitor/splash-screen',
     '@capacitor/status-bar',
     '@capgo/capacitor-crisp',
