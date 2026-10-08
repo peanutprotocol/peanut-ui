@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: `${post.frontmatter.title} | Peanut`,
             description: post.frontmatter.description,
             canonical: `/${contentLocale}/blog/${slug}`,
@@ -46,6 +46,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             languages: getAlternatesFor(availableContentLocales('blog', slug), 'blog', slug),
         },
     }
+}
+
+// An ISO date parses as UTC midnight, so format in UTC or a viewer west of
+// Greenwich would see the day before. Unparseable dates show as authored.
+function formatPostDate(date: string, locale: Locale): string {
+    const parsed = new Date(date)
+    if (Number.isNaN(parsed.getTime())) return date
+    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(
+        parsed
+    )
 }
 
 export default async function BlogPostPageLocalized({ params }: PageProps) {
@@ -69,7 +79,8 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         inLanguage: contentLocale,
         author: { '@type': 'Organization', name: post.frontmatter.author ?? 'Peanut' },
         publisher: { '@type': 'Organization', name: 'Peanut', url: 'https://peanut.me' },
-        mainEntityOfPage: `https://peanut.me/${locale}/blog/${slug}`,
+        // the canonical URL: a fallback-served post canonicalizes to its content locale
+        mainEntityOfPage: `https://peanut.me/${contentLocale}/blog/${slug}`,
     }
 
     // FAQ schema from frontmatter (optional)
@@ -119,7 +130,9 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                 <header className="mb-8 border-b border-border-default pb-6">
                     <h1 className="text-heading-m md:text-heading-l">{post.frontmatter.title}</h1>
                     <p className="mt-2 text-body-l text-foreground-secondary">{post.frontmatter.description}</p>
-                    <time className="mt-3 block text-body-s text-foreground-secondary">{post.frontmatter.date}</time>
+                    <time dateTime={post.frontmatter.date} className="mt-3 block text-body-s text-foreground-secondary">
+                        {formatPostDate(post.frontmatter.date, locale)}
+                    </time>
                 </header>
                 {/* No `prose` wrapper: the body is compiled through createMdxComponents
                     like every other content route, and the element map already carries
@@ -128,7 +141,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                 <article>{post.content}</article>
                 {/* Foot of the page, not the top: the header already gives the way
                     back — same placement as every ContentPage route. */}
-                <Breadcrumb items={breadcrumbs} className="pt-8" />
+                <Breadcrumb items={breadcrumbs} label={i18n.breadcrumbLabel} className="pt-8" />
             </MarketingShell>
         </>
     )

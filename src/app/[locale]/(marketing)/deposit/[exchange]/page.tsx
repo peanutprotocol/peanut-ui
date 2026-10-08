@@ -56,10 +56,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (mdxContent && mdxContent.frontmatter.published !== false) {
         // A fallback-served page canonicalizes to the locale that owns the prose.
-        const contentLocale = contentLocaleFor('deposit', deposit.key, locale)
+        const contentLocale = contentLocaleFor('deposit', deposit.key, locale) as Locale
         return {
             ...metadataHelper({
-                locale,
+                locale: contentLocale,
                 title: mdxContent.frontmatter.title,
                 description: mdxContent.frontmatter.description,
                 canonical: `/${contentLocale}/deposit/${rawSlug}`,
@@ -100,6 +100,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('deposit', deposit.key, locale) as Locale
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -108,6 +109,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: deposit.displayName, href: url },

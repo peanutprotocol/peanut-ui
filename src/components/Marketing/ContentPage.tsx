@@ -17,6 +17,12 @@ interface ContentPageProps {
     article?: ArticleMeta
     /** Page locale — used for the error-boundary fallback copy. */
     locale?: Locale
+    /**
+     * Locale whose file serves the prose. Differs from `locale` on a fallback
+     * page (pt-br URL, English file), and the article's inLanguage must name
+     * the language the article is actually written in.
+     */
+    contentLocale?: Locale
 }
 
 /**
@@ -24,7 +30,13 @@ interface ContentPageProps {
  * Handles BreadcrumbList JSON-LD + visible breadcrumb nav.
  * The MDX body owns all layout (Hero is full-bleed, prose sections are contained).
  */
-export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_LOCALE }: ContentPageProps) {
+export function ContentPage({
+    children,
+    breadcrumbs,
+    article,
+    locale = DEFAULT_LOCALE,
+    contentLocale = locale,
+}: ContentPageProps) {
     const i18n = getTranslations(locale)
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
@@ -41,13 +53,17 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
     return (
         <>
             <JsonLd data={breadcrumbSchema} />
-            {article && <JsonLd data={articleSchema({ inLanguage: locale, ...article })} />}
+            {article && <JsonLd data={articleSchema({ inLanguage: contentLocale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
                 <article className="content-page select-text">
                     {children}
                     {/* the trail sits at the bottom of the page: the header already
                         gives the way back, so the crumbs are a footer affordance */}
-                    <Breadcrumb items={breadcrumbs} className={`mx-auto ${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4`} />
+                    <Breadcrumb
+                        items={breadcrumbs}
+                        label={i18n.breadcrumbLabel}
+                        className={`mx-auto ${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4`}
+                    />
                 </article>
             </MarketingErrorBoundary>
         </>

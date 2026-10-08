@@ -3,6 +3,7 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { CORRIDORS, getCountryName } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
+import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
@@ -35,11 +36,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!title || !description) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = corridorLocaleFor(to, from, locale)
+    const contentLocale = corridorLocaleFor(to, from, locale) as Locale
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title,
             description,
             canonical: `/${contentLocale}/send-money-from/${from}/to/${to}`,
@@ -59,6 +60,7 @@ export default async function FromToCorridorPage({ params }: PageProps) {
 
     const mdxSource = readCorridorContentLocalized<ContentFrontmatter>(to, from, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = corridorLocaleFor(to, from, locale) as Locale
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -70,6 +72,7 @@ export default async function FromToCorridorPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: `${fromName} → ${toName}`, href: url },
