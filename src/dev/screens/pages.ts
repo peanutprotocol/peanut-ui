@@ -230,3 +230,9 @@ PAGE_CAPTURES.push(
  {id:'artifact-request-partial-balance',name:'Request — partial balance payment received',route:'/dev/surfaces?s=87-f-request-created',fixture:'profile-edit'},
  {id:'artifact-request-paid-balance',name:'Request — paid from Peanut balance',route:'/dev/surfaces?s=87-f-request-created',fixture:'profile-edit'},
 )
+
+PAGE_CAPTURES.push(
+ {id:'artifact-bank-send-unverified',name:'Send to bank — verification required at entry',route:'/withdraw?method=bank',fixture:'home-new-user'},
+ {id:'artifact-bank-send-processing',name:'Send to bank — identity in review',route:'/withdraw?method=bank',fixture:'home-verify-processing',expectsLoading:true},
+ {id:'artifact-bank-send-rejected',name:'Send to bank — identity rejected',route:'/withdraw?method=bank',fixture:'home-identity-final-rejected'},
+)
