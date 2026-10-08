@@ -135,10 +135,60 @@ describe('withoutNoise', () => {
         expect(inner).not.toHaveBeenCalled()
     })
 
+    it('skips the mirror for a Brave iOS host-evaluated script error', () => {
+        const { inner, wrapped } = wrap()
+        wrapped.processEvent!(
+            event({
+                exception: {
+                    values: [
+                        {
+                            type: 'TypeError',
+                            value: "undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')",
+                            stacktrace: { frames: [{ filename: 'https://peanut.me/home' }] },
+                        },
+                    ],
+                },
+            })
+        )
+
+        expect(inner).not.toHaveBeenCalled()
+    })
+
     it('mirrors everything else', () => {
         const { inner, wrapped } = wrap()
         wrapped.processEvent!(event({ message: 'TypeError: x is not a function' }))
 
         expect(inner).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('initSentry — failed SDK load', () => {
+    afterEach(() => {
+        jest.dontMock('../sentry-lazy')
+    })
+
+    it('releases the start latch, so the next trigger loads the SDK again', async () => {
+        jest.resetModules()
+        process.env.NEXT_PUBLIC_VERCEL_ENV = 'production'
+        delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+        delete process.env.NEXT_PUBLIC_PERF_BARE
+        const sdk = {
+            init: jest.fn(),
+            getClient: jest.fn(),
+            captureException: jest.fn(),
+            captureConsoleIntegration: jest.fn(() => ({ name: 'CaptureConsole' })),
+        }
+        const loadSentry = jest.fn().mockRejectedValueOnce(new Error('ChunkLoadError')).mockResolvedValue(sdk)
+        jest.doMock('../sentry-lazy', () => ({ loadSentry }))
+        const { initSentry } = require('../sentry-init') as typeof import('../sentry-init')
+
+        initSentry()
+        await flush()
+        expect(sdk.init).not.toHaveBeenCalled()
+
+        initSentry()
+        await flush()
+        expect(loadSentry).toHaveBeenCalledTimes(2)
+        expect(sdk.init).toHaveBeenCalledTimes(1)
     })
 })

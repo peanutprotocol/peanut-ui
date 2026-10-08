@@ -559,6 +559,10 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
+            // The inline sw-registration script in layout.tsx registers /sw.js with error handling; the
+            // default auto-register is uncaught, and the default reloadOnOnline reloads any page mid-flow.
+            register: false,
+            reloadOnOnline: false,
             // explicitly include offline screen assets in precache
             additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
         })

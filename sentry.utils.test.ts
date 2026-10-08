@@ -1,5 +1,12 @@
 import type { ErrorEvent } from '@sentry/nextjs'
-import { beforeSendHandler, getEventSearchTexts, isTransientCapgoNoise, shouldIgnoreError } from './sentry.utils'
+import {
+    beforeSendHandler,
+    crossOriginScriptErrorContext,
+    getEventSearchTexts,
+    isBrowserHostScriptError,
+    isTransientCapgoNoise,
+    shouldIgnoreError,
+} from './sentry.utils'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 
 function eventWith(partial: {
@@ -466,5 +473,93 @@ describe('shouldIgnoreError — injected third-party scripts', () => {
     it('does not ignore our own bundle, including an unresolved app:/// frame', () => {
         expect(shouldIgnoreError(framedEvent('/_next/static/chunks/main-abc123.js'))).toBe(false)
         expect(shouldIgnoreError(framedEvent('app:///_next/static/chunks/main-abc123.js'))).toBe(false)
+    })
+})
+
+describe('isBrowserHostScriptError — Brave iOS host-evaluated scripts', () => {
+    // Brave evaluates these against the document itself: one `global code` frame on the page URL.
+    const documentFrame = { filename: 'https://peanut.me/en/help/refunds' }
+    const exception = (type: string, value: string, filename = documentFrame.filename) => ({
+        type,
+        value,
+        stacktrace: { frames: [{ filename }] },
+    })
+
+    it.each([
+        ['TypeError', "undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')"],
+        [
+            'TypeError',
+            'undefined is not an object (evaluating \'window.ethereum.selectedAddress = "0x0123456789abcdef0123456789abcdef01234567"\')',
+        ],
+        ['TypeError', "undefined is not an object (evaluating 'window.__firefox__.reader')"],
+        ['ReferenceError', "Can't find variable: __firefox__"],
+    ])('drops %s %s from the document', (type, value) => {
+        expect(isBrowserHostScriptError([exception(type, value)])).toBe(true)
+        const event = { exception: { values: [exception(type, value)] } } as unknown as ErrorEvent
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+
+    it('keeps the same text when it comes from our bundle', () => {
+        const value = "undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')"
+        expect(
+            isBrowserHostScriptError([exception('TypeError', value, 'https://peanut.me/_next/static/chunks/1.js')])
+        ).toBe(false)
+    })
+
+    it('keeps other window.ethereum failures', () => {
+        expect(
+            isBrowserHostScriptError([
+                exception('TypeError', "undefined is not an object (evaluating 'window.ethereum.selectedAddress')"),
+            ])
+        ).toBe(false)
+        expect(
+            isBrowserHostScriptError([
+                exception('TypeError', "undefined is not an object (evaluating 'window.ethereum.request')"),
+            ])
+        ).toBe(false)
+    })
+
+    it('keeps a chain, which no host one-liner produces', () => {
+        const value = "Can't find variable: __firefox__"
+        expect(isBrowserHostScriptError([exception('ReferenceError', value), exception('Error', 'wrapper')])).toBe(
+            false
+        )
+    })
+})
+
+describe('crossOriginScriptErrorContext', () => {
+    const scriptError = [{ type: 'Error', value: 'Script error.' }]
+    const scripts = [
+        { src: 'https://peanut.me/_next/static/chunks/main.js' },
+        { src: 'https://www.googletagmanager.com/gtag/js?id=G-1' },
+        { src: '' },
+    ]
+    const braveIos =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.2 Mobile/15E148 Safari/604.1 Brave'
+
+    it('names the cross-origin script hosts and the browser shell', () => {
+        expect(crossOriginScriptErrorContext(scriptError, scripts, 'https://peanut.me', braveIos)).toEqual({
+            script_error_cross_origin_hosts: ['www.googletagmanager.com'],
+            script_error_browser_shell: 'brave',
+        })
+    })
+
+    it('leaves every other exception alone', () => {
+        expect(
+            crossOriginScriptErrorContext(
+                [{ type: 'TypeError', value: 'x is not a function' }],
+                scripts,
+                'https://peanut.me',
+                braveIos
+            )
+        ).toBeNull()
+        expect(
+            crossOriginScriptErrorContext(
+                [{ ...scriptError[0], stacktrace: { frames: [{ filename: 'https://peanut.me/a.js' }] } }],
+                scripts,
+                'https://peanut.me',
+                braveIos
+            )
+        ).toBeNull()
     })
 })

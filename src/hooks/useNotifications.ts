@@ -3,6 +3,8 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
+import { isPermanentOneSignalInitError } from '@/services/onesignal/errors'
+import { isChunkLoadError } from '@/utils/chunk-error-recovery'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
@@ -95,6 +97,9 @@ let pendingPromptTriggers: PushPromptTrigger[] = []
 // the moment behind the OS dialog, for the permission events that follow it
 let permissionRequestTrigger: PushPromptTrigger | null = null
 let initializationPromise: Promise<void> | null = null
+const MAX_INIT_ATTEMPTS = 3
+let initAttempts = 0
+let initRetryArmed = false
 
 function handleLoginError(err: unknown) {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -259,6 +264,27 @@ function ensureInitialized(): Promise<void> {
     return initializationPromise
 }
 
+// The web SDK cannot be initialized twice in one document; there only its chunk load is retryable.
+function isRetryableInitFailure(error: unknown): boolean {
+    if (isChunkLoadError(error)) return true
+    return isCapacitor() && !isPermanentOneSignalInitError(error)
+}
+
+// Retried on the next online or foreground edge, never on a timer, so a device that stays offline costs nothing.
+function armInitRetry() {
+    if (initRetryArmed) return
+    initRetryArmed = true
+    const retry = () => {
+        if (document.visibilityState !== 'visible' || !navigator.onLine) return
+        initRetryArmed = false
+        window.removeEventListener('online', retry)
+        document.removeEventListener('visibilitychange', retry)
+        void ensureInitialized()
+    }
+    window.addEventListener('online', retry)
+    document.addEventListener('visibilitychange', retry)
+}
+
 async function initializeNotifications() {
     // demo sessions are synthetic: no push subscription, no external_id login
     if (isDemoMode()) return
@@ -267,9 +293,11 @@ async function initializeNotifications() {
         setState({ permissionState: Notification.permission as NotificationPermissionState })
     }
 
+    let initSucceeded = false
     try {
         const adapter = await getOneSignalAdapter()
         await adapter.init()
+        initSucceeded = true
 
         // Web half of the foreground-push badge refresh (the Set dedupes the
         // shared reference with useForegroundPushRefresh's registration; on
@@ -342,10 +370,26 @@ async function initializeNotifications() {
         await evaluateVisibility()
         void offerPendingPrompts()
     } catch (e) {
+        initAttempts += 1
+        // Only a failed init is retried: past it, the listeners and login above have already run.
+        if (!initSucceeded && isRetryableInitFailure(e) && initAttempts < MAX_INIT_ATTEMPTS) {
+            initializationPromise = null
+            addBreadcrumb({
+                category: 'onesignal',
+                message: 'init failed, retry armed',
+                data: { attempt: initAttempts, error: String(e) },
+            })
+            armInitRetry()
+            return
+        }
+        // Settled for good, so remounts don't report the same failure again.
         // Surface Brave/Shields SDK-block failures; previously silent.
-        initializationPromise = null
         console.warn('OneSignal init failed', e)
-        captureException(e, { level: 'warning', tags: { feature: 'onesignal', source: 'onesignal_init' } })
+        captureException(e, {
+            level: 'warning',
+            tags: { feature: 'onesignal', source: 'onesignal_init' },
+            extra: { attempts: initAttempts },
+        })
     }
 }
 
