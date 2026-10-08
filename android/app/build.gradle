@@ -127,26 +127,6 @@ if (meaWalletUser && meaWalletPass) {
     logger.lifecycle('[meawallet] no Nexus credentials — building without MPP SDK (push provisioning stubbed)')
 }
 
-// android-release.yml uploads the R8 mapping under this same UUID, which Sentry reads from the asset.
-def sentryProguardUuid = (System.getenv('SENTRY_PROGUARD_UUID') ?: '').trim()
-if (sentryProguardUuid) {
-    if (!(sentryProguardUuid ==~ /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)) {
-        throw new GradleException("SENTRY_PROGUARD_UUID is not a UUID: ${sentryProguardUuid}")
-    }
-    def sentryDebugMetaDir = layout.buildDirectory.dir('generated/sentry-debug-meta').get().asFile
-    def writeSentryDebugMeta = tasks.register('writeSentryDebugMeta') {
-        inputs.property('uuid', sentryProguardUuid)
-        outputs.dir(sentryDebugMetaDir)
-        doLast {
-            sentryDebugMetaDir.mkdirs()
-            new File(sentryDebugMetaDir, 'sentry-debug-meta.properties').text = "io.sentry.ProguardUuids=${sentryProguardUuid}\n"
-        }
-    }
-    android.sourceSets.main.assets.srcDirs += sentryDebugMetaDir
-    tasks.named('preBuild') { dependsOn writeSentryDebugMeta }
-    logger.lifecycle("[sentry] ProGuard UUID ${sentryProguardUuid}")
-}
-
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"

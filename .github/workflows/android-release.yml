@@ -259,16 +259,10 @@ jobs:
                       exit 1
                   fi
 
-            # Baked into the app (android/app/build.gradle) and used for the mapping upload below.
-            - name: Generate Sentry ProGuard UUID
-              id: proguard
-              run: echo "uuid=$(node -e 'console.log(require("crypto").randomUUID())')" >> "$GITHUB_OUTPUT"
-
             - name: Build signed AAB
               env:
                   SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
                   SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
-                  SENTRY_PROGUARD_UUID: ${{ steps.proguard.outputs.uuid }}
                   # native sentry sdk dsn — read by android/app/build.gradle into a
                   # manifest placeholder. same project dsn the js layer bakes into
                   # the static export above; no new secret needed.
@@ -393,24 +387,6 @@ jobs:
                   name: android-r8-mapping-${{ steps.version.outputs.name }}-${{ github.run_id }}-${{ github.run_attempt }}
                   path: android/app/build/outputs/mapping/release/
                   if-no-files-found: error
-
-            - name: Upload R8 mapping to Sentry
-              env:
-                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-                  SENTRY_PROGUARD_UUID: ${{ steps.proguard.outputs.uuid }}
-              run: |
-                  AAB=android/app/build/outputs/bundle/release/app-release.aab
-                  if [ "$(unzip -p "$AAB" base/assets/sentry-debug-meta.properties 2>/dev/null)" != "io.sentry.ProguardUuids=$SENTRY_PROGUARD_UUID" ]; then
-                      echo "::error::the AAB does not carry ProGuard UUID $SENTRY_PROGUARD_UUID — Sentry could not match its mapping" >&2
-                      exit 1
-                  fi
-                  # --uuid is hidden in sentry-cli 3.x but still honored; without it the UUID is derived from the file.
-                  node_modules/.bin/sentry-cli upload-proguard \
-                      --org peanut-c34d84c05 \
-                      --project peanut-ui \
-                      --uuid "$SENTRY_PROGUARD_UUID" \
-                      --require-one \
-                      android/app/build/outputs/mapping/release/mapping.txt
 
             - name: Upload to Google Play
               uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
