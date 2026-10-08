@@ -188,6 +188,30 @@ const WIRE_WITHDRAWAL_ENTRY = {
     extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
 }
 
+const RECEIPT_ATTACHMENT_ENTRY = {
+    uuid: 'fixture-receipt-attachment',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-14T10:00:00.000Z'),
+    amount: '25.00',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: {
+        identifier: 'ana',
+        type: 'PEANUT_WALLET',
+        isUser: true,
+        username: 'ana',
+        fullName: 'Ana Ruiz',
+    },
+    memo: 'Dinner',
+    extraData: { kind: 'P2P_REQUEST_FULFILL', usdAmount: '25.00' },
+    // synthetic url; the focused browser spec supplies the file without contacting s3.
+    attachmentUrl: 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf',
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -1220,6 +1244,25 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/history',
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
+    },
+    'history-receipt-attachment': {
+        route: '/history',
+        about: 'A completed request payment with an attachment. Open its receipt to check download states.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [RECEIPT_ATTACHMENT_ENTRY], hasMore: false },
+        },
+    },
+    'history-receipt-no-attachment': {
+        route: '/history',
+        about: 'The same completed request payment without an attachment. Open its receipt to check the missing row.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': {
+                entries: [{ ...RECEIPT_ATTACHMENT_ENTRY, attachmentUrl: null }],
+                hasMore: false,
+            },
+        },
     },
     'empty-history': {
         route: '/history',

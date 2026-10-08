@@ -5,8 +5,8 @@
  * who already paid a QR or whose residence has no QR rail.
  */
 import {
-    HOME_CHECKLIST_CTA_ID,
     RECURRING_CAROUSEL_CTAS,
+    blockedCardCtaId,
     hiddenCarouselCTAs,
     hideHomeCta,
     readHiddenHomeCtas,
@@ -66,20 +66,17 @@ describe('showQrPayCTA', () => {
 describe('one store for every Home CTA a user closes', () => {
     beforeEach(() => localStorage.clear())
 
-    it('hiding the checklist keeps the carousel cards already closed, and the reverse', () => {
+    it('hiding a blocked card keeps the carousel cards already closed, and the reverse', () => {
+        const blockedId = blockedCardCtaId('region-restricted', 'identity_region_restricted')
         hideHomeCta('u1', 'qr-payment')
-        hideHomeCta('u1', HOME_CHECKLIST_CTA_ID)
+        hideHomeCta('u1', blockedId)
         hideHomeCta('u1', 'invite-friends')
-        expect([...readHiddenHomeCtas('u1').keys()].sort()).toEqual([
-            HOME_CHECKLIST_CTA_ID,
-            'invite-friends',
-            'qr-payment',
-        ])
+        expect([...readHiddenHomeCtas('u1').keys()].sort()).toEqual([blockedId, 'invite-friends', 'qr-payment'])
     })
 
     it('is per user', () => {
-        hideHomeCta('u1', HOME_CHECKLIST_CTA_ID)
-        expect(readHiddenHomeCtas('u2').has(HOME_CHECKLIST_CTA_ID)).toBe(false)
+        hideHomeCta('u1', 'qr-payment')
+        expect(readHiddenHomeCtas('u2').has('qr-payment')).toBe(false)
     })
 })
 

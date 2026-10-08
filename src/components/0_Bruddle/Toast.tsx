@@ -57,6 +57,9 @@ interface ToastOptions {
     /** Self-designed toast content (badge celebrations): suppress the priority icon
      *  so Callout chrome doesn't stack onto the content's own artwork. */
     hideIcon?: boolean
+    /** Toasts never take actions: they auto-dismiss, so a button can vanish
+     *  before the user taps it (TASK-22914). Use an inline Callout or a banner. */
+    ctas?: never
 }
 
 export interface ToastMessage extends Omit<ToastOptions, 'id'> {

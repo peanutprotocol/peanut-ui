@@ -142,6 +142,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '52-d-contributorsdrawer': {
         name: 'ContributorsDrawer',
         path: 'features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx',
+        shotClick: 'See all contributors',
     },
     '53-d-cancelsendlinkdrawer': { name: 'CancelSendLinkDrawer', path: 'Global/CancelSendLinkDrawer/index.tsx' },
     '54-d-qrbottomdrawer': {
