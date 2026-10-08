@@ -31,6 +31,7 @@ async function main() {
         localeArg = arg('locale', 'en')
     if (!APP_LOCALES.includes(localeArg as AppLocale)) throw new Error(`Unsupported capture locale: ${localeArg}`)
     const captureLocale = localeArg as AppLocale
+    const confettiFrame = arg('confetti-frame') === 'true'
     const profile = captureProfile(arg('profile', '393x852'))
     const captureText = localizedCaptureText(captureLocale, source)
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
@@ -115,7 +116,7 @@ async function main() {
         locale: captureLocale,
         timezoneId: 'UTC',
         colorScheme: 'light' as const,
-        reducedMotion: 'reduce' as const,
+        reducedMotion: confettiFrame ? 'no-preference' as const : 'reduce' as const,
         serviceWorkers: 'block' as const,
     }
     const currentRoutes = routePatterns(resolve('.')),
@@ -128,7 +129,7 @@ async function main() {
     const selected = arg('only').split(',').filter(Boolean)
     const requireFullCatalogue = arg('full-catalogue') === 'true'
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
-    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
+    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;${confettiFrame?'motion-enabled;confetti-frame=700ms':'reduced-motion'}`
     const harness = identity([
         ...walk('scripts/screens').filter((p) => !p.endsWith('.test.mjs')),
         ...walk('src/dev/screens'),
@@ -228,12 +229,16 @@ async function main() {
             const transportFailures = new Set<string>()
             try {
                 await page.addInitScript('window.__name = (target) => target')
+                if (confettiFrame) await page.addInitScript('window.__screenCaptureConfettiFrame = true')
                 await page.addInitScript(installCaptureSafeArea, profile.device)
                 await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
                 await page.addInitScript((locale) => {
                     ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
                     // A constant draw is independent of unrelated startup call order.
-                    Math.random = () => 0.42
+                    if ((window as unknown as {__screenCaptureConfettiFrame?: boolean}).__screenCaptureConfettiFrame) {
+                        let seed = 123456789
+                        Math.random = () => { seed = (Math.imul(1664525, seed) + 1013904223) | 0; return (seed >>> 0) / 4294967296 }
+                    } else Math.random = () => 0.42
                     document.addEventListener(
                         'play',
                         (event) => {
@@ -455,6 +460,19 @@ async function main() {
                 }
                 if (screen.entryRoute)
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })
+                if (confettiFrame) {
+                    if (screen.id !== '07-e-setup-celebration') throw new Error('Confetti frame capture is only supported for setup celebration')
+                    await page.locator('[data-setup-celebration]').waitFor({state:'visible'})
+                    await page.evaluate(() => document.fonts.ready)
+                    await page.waitForFunction(() => [...document.querySelectorAll('canvas')].some(canvas => canvas.width > 0 && canvas.height > 0))
+                    await page.locator(FIXTURE_BANNER_CANDIDATE_SELECTOR).evaluateAll(hideFixtureBanners)
+                    await page.waitForTimeout(700)
+                    const frame = await page.screenshot({animations:'allow',caret:'hide',scale:'css'})
+                    const image = storeAsset(assets,frame)
+                    results.push({...metadata,status:'captured',image,thumbnail:image})
+                    console.log(`CAPTURED CONFETTI FRAME ${screen.id}`)
+                    continue
+                }
                 await page.waitForLoadState('networkidle', { timeout: 15000 })
                 if (screen.expectSelector)
                     await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
