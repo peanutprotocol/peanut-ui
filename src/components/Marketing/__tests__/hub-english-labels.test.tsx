@@ -1,5 +1,6 @@
 import { renderWithIntl } from '@/test-utils/intl'
-import { ContentLinkList, type ContentLandingStrings } from '../ContentLanding'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import ContentLanding, { ContentLinkList, type ContentLandingStrings } from '../ContentLanding'
 import HelpLanding from '../HelpLanding'
 import { getTranslations } from '@/i18n'
 import { isEnglishFallback } from '@/i18n/englishFallback'
@@ -91,6 +92,25 @@ describe('content hub English fallback label', () => {
         const row = rowFor(container, 'stablecoin-balance-visa-merchants')
 
         expect(row).toHaveTextContent(getTranslations('es-ar').inEnglish)
+        expect(row.querySelector('h3')).toHaveAttribute('lang', 'en')
+    })
+})
+
+describe('content hub search keeps the English label', () => {
+    it('labels an English item that a ?q= search returns', () => {
+        const { container } = renderWithIntl(
+            <NuqsTestingAdapter searchParams="?q=english">
+                <ContentLanding
+                    items={[item('english-only', 'en'), item('nativo', 'pt-br')]}
+                    locale="pt-br"
+                    strings={contentStrings('pt-br')}
+                />
+            </NuqsTestingAdapter>
+        )
+        const row = rowFor(container, 'english-only')
+
+        expect(rowFor(container, 'nativo')).toBeNull()
+        expect(row).toHaveTextContent('Em inglês')
         expect(row.querySelector('h3')).toHaveAttribute('lang', 'en')
     })
 })

@@ -8,6 +8,7 @@ import { Hero } from '@/components/Marketing/mdx/Hero'
 import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { ContentLinkRow } from '@/components/Marketing/ContentLinkRow'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { isEnglishFallback } from '@/i18n/englishFallback'
 import { readPageContentLocalizedResolved, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
 
 interface PageProps {
@@ -55,9 +56,10 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                 href: `/${resolved.lang}/stories/${encodeURIComponent(slug)}`,
                 title: resolved.content.frontmatter.title,
                 description: resolved.content.frontmatter.description,
+                lang: resolved.lang,
             }
         })
-        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string }>
+        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string; lang: string }>
 
     return (
         <ContentPage
@@ -73,16 +75,21 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                     <EmptyState icon="docs" title={i18n.noStoriesPublished} />
                 ) : (
                     <div className="flex flex-col">
-                        {stories.map((story, index) => (
-                            <ContentLinkRow
-                                key={story.slug}
-                                href={story.href}
-                                title={story.title}
-                                description={story.description}
-                                index={index}
-                                total={stories.length}
-                            />
-                        ))}
+                        {stories.map((story, index) => {
+                            const english = isEnglishFallback(story.lang, locale)
+                            return (
+                                <ContentLinkRow
+                                    key={story.slug}
+                                    href={story.href}
+                                    title={story.title}
+                                    description={story.description}
+                                    index={index}
+                                    total={stories.length}
+                                    lang={english ? story.lang : undefined}
+                                    languageLabel={english ? i18n.inEnglish : undefined}
+                                />
+                            )
+                        })}
                     </div>
                 )}
             </div>
