@@ -129,6 +129,13 @@
         <meta-data
             android:name="io.sentry.environment"
             android:value="native" />
+        <!-- ANR evidence: the raw system dump (native frames) plus main-thread samples before the hang -->
+        <meta-data
+            android:name="io.sentry.anr.attach-thread-dumps"
+            android:value="true" />
+        <meta-data
+            android:name="io.sentry.anr.profiling.sample-rate"
+            android:value="1.0" />
             <!-- CapacitorPasskey auto-configuration -->
         <meta-data
             android:name="asset_statements"
