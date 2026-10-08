@@ -10,43 +10,51 @@ import handPeace from '@/assets/illustrations/hand-peace.svg'
 import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 
 const NAV_LINK = 'text-heading-xs text-white'
 
 const SOCIALS = [
-    { href: 'https://x.com/joinpeanut', label: 'Follow us on X', icon: X_ICON, alt: 'X' },
-    { href: 'https://github.com/peanutprotocol', label: 'View our GitHub', icon: GITHUB_WHITE_ICON, alt: 'GitHub' },
-]
+    { href: 'https://x.com/joinpeanut', labelKey: 'footerFollowOnX', icon: X_ICON },
+    { href: 'https://github.com/peanutprotocol', labelKey: 'footerViewGithub', icon: GITHUB_WHITE_ICON },
+] as const
 
-const HandSigns = () => (
+// The hands are decorative: the two links carry their name in aria-label, so
+// every image takes alt="" and nothing English reaches a screen reader.
+const HandSigns = ({ i18n }: { i18n: Translations }) => (
     <section className="flex items-center gap-3">
         <a
             href="https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Watch Peanut teaser on YouTube (opens in a new tab)"
+            aria-label={i18n.footerTeaserLabel}
         >
             <Image src={handPeace} alt="" width={20} height={20} />
         </a>
-        <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
+        <Image src={handThumbsUp.src} alt="" width={20} height={20} />
         <a
             href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Never gonna give you up (opens in a new tab)"
+            aria-label={i18n.footerRickrollLabel}
         >
-            <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
+            <Image src={handMiddleFinger.src} alt="" width={20} height={20} />
         </a>
-        <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
+        <Image src={handWaving.src} alt="" width={25} height={25} />
     </section>
 )
 
-const SocialLinks = () => (
+const SocialLinks = ({ i18n }: { i18n: Translations }) => (
     <div className="flex items-center gap-4">
         {SOCIALS.map((social) => (
-            <a key={social.href} href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label}>
-                <Image src={social.icon} alt={social.alt} width={20} height={20} />
+            <a
+                key={social.href}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={i18n[social.labelKey]}
+            >
+                <Image src={social.icon} alt="" width={20} height={20} />
             </a>
         ))}
     </div>
@@ -65,7 +73,7 @@ export const FooterChrome = ({
         // Nav is on its own row because translated labels have different widths.
         <footer className="bg-black px-8 py-8 md:px-20">
             <div className="mb-6 flex justify-center md:hidden">
-                <HandSigns />
+                <HandSigns i18n={i18n} />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-6">
                 <section className="flex flex-col gap-1">
@@ -74,7 +82,7 @@ export const FooterChrome = ({
                         (see src/app/lp/page.tsx). Localized landings aren't in the
                         proxy matcher, so /{locale} is already auth-proof. */}
                     <Link prefetch={false} href={locale === DEFAULT_LOCALE ? '/lp' : `/${locale}`} className="flex">
-                        <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
+                        <Image src={PEANUT_LOGO} alt="Peanut" width={110} height={40} />
                     </Link>
                     <p className="text-body-xs text-white">
                         {i18n.footerMadeWithLove}{' '}
@@ -86,7 +94,7 @@ export const FooterChrome = ({
                 </section>
 
                 <div className="hidden md:block">
-                    <SocialLinks />
+                    <SocialLinks i18n={i18n} />
                 </div>
             </div>
 
@@ -94,7 +102,7 @@ export const FooterChrome = ({
                 On md+ the socials live in the brand row and the switcher in
                 the nav row. */}
             <div className="mt-6 flex items-center justify-between md:hidden">
-                <SocialLinks />
+                <SocialLinks i18n={i18n} />
                 <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
             </div>
 
@@ -125,7 +133,7 @@ export const FooterChrome = ({
                 </div>
                 <div className="hidden items-center gap-6 md:flex">
                     <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
-                    <HandSigns />
+                    <HandSigns i18n={i18n} />
                 </div>
             </nav>
             <FooterStoreLinks />
