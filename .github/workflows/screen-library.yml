@@ -77,7 +77,6 @@ jobs:
                   fi
                   echo "capture_before=$capture_before" >> "$GITHUB_OUTPUT"
     capture_after:
-        if: false
         needs: refs
         # PR commits capture the changed revision. Product-only PRs reuse the
         # verified baseline; harness-changing PRs also run capture_before.
@@ -90,7 +89,7 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: 4e0700504c38cae899ccb554d2b09a18cb74bdd5
+                  ref: ${{ github.sha }}
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
@@ -118,7 +117,7 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.after }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} --only=artifact-receipt-attachment,artifact-receipt-no-attachment,artifact-receipt-wire
             - name: Record required baseline mode
               if: github.event_name == 'pull_request' && needs.refs.outputs.capture_before == 'true'
               run: echo '{"requireSameRunBaseline":true}' > capture/screen-library-requirement.json
@@ -155,7 +154,7 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: 4e0700504c38cae899ccb554d2b09a18cb74bdd5
+                  ref: ${{ github.sha }}
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
@@ -183,7 +182,7 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.before }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} --only=artifact-receipt-attachment,artifact-receipt-no-attachment,artifact-receipt-wire
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:

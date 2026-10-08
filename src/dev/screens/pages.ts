@@ -219,3 +219,9 @@ PAGE_CAPTURES.push(
         expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
     }
 )
+
+PAGE_CAPTURES.push(
+ {id:'artifact-receipt-attachment',name:'Receipt — attachment ready to download',route:'/history',fixture:'history-receipt-attachment',actions:[{clickSelector:'[data-testid="transaction-card"]'}],expectSelector:'[role="dialog"][data-state="open"]',toBottom:true},
+ {id:'artifact-receipt-no-attachment',name:'Receipt — without an attachment',route:'/history',fixture:'history-receipt-no-attachment',actions:[{clickSelector:'[data-testid="transaction-card"]'}],expectSelector:'[role="dialog"][data-state="open"]',toBottom:true},
+ {id:'artifact-receipt-wire',name:'Receipt — wire withdrawal and fees',route:'/history',fixture:'history-wire-withdrawal',actions:[{clickSelector:'[data-testid="transaction-card"]'}],expectSelector:'[role="dialog"][data-state="open"]',toBottom:true},
+)

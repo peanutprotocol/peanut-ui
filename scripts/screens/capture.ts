@@ -284,6 +284,7 @@ async function main() {
                     try {
                         const request = route.request(),
                             url = new URL(request.url())
+                        if (url.href === 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf' || url.pathname === '/receipt/fixture-receipt-attachment/pdf' || url.pathname === '/screen-capture-api/receipt/fixture-receipt-attachment/pdf') return route.fulfill({status:200,contentType:'application/pdf',headers:{'access-control-allow-origin':'*'},body:Buffer.from('%PDF-1.4\n% Synthetic capture fixture\n%%EOF')})
                         if (url.origin === base.origin && url.pathname === '/crisp-proxy')
                             return route.fulfill({
                                 status: 200,
