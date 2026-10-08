@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
@@ -61,6 +61,25 @@ describe('useGetExchangeRate', () => {
             const { result } = renderHook(() => useGetExchangeRate({ accountType: AccountType.IBAN }), { wrapper })
             await waitFor(() => expect(result.current.isRateError).toBe(true), { timeout: 20000 })
             expect(result.current.exchangeRate).toBeNull()
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('refetchRate recovers from a failure in place', async () => {
+        jest.useFakeTimers()
+        try {
+            getExchangeRateMock.mockResolvedValue({ error: 'upstream 500' })
+            const { result } = renderHook(() => useGetExchangeRate({ accountType: AccountType.IBAN }), { wrapper })
+            await waitFor(() => expect(result.current.isRateError).toBe(true), { timeout: 20000 })
+
+            getExchangeRateMock.mockResolvedValue({ data: { sell_rate: '1.05' } })
+            act(() => {
+                void result.current.refetchRate()
+            })
+
+            await waitFor(() => expect(result.current.exchangeRate).toBe('1.05'))
+            expect(result.current.isRateError).toBe(false)
         } finally {
             jest.useRealTimers()
         }

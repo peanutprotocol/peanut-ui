@@ -35,6 +35,15 @@ describe('useCurrency', () => {
         expect(result.current.price).toBeNull()
     })
 
+    it('leaves the failure report to the FX layer, once per provider request', async () => {
+        mockGetCachedCurrencyPrice.mockRejectedValue(new Error('FX rate unavailable from manteca (timeout)'))
+
+        const { result } = renderHook(() => useCurrency('ARS'))
+
+        await waitFor(() => expect(result.current.isError).toBe(true))
+        expect(console.error).not.toHaveBeenCalled()
+    })
+
     // #1848: without refetch, a rate outage strands the user on the error state
     // until they leave the screen — the effect only re-runs when `code` changes.
     it('refetch recovers from a failure without remounting', async () => {

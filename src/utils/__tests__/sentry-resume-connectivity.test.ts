@@ -1,12 +1,18 @@
-import { fetchWithSentry } from '../sentry.utils'
+import { fetchWithSentry, TRANSPORT_TIMEOUT_RETRY_DELAY_MS } from '../sentry.utils'
 import { __resetConnectivityForTests, getRecentFailures, setConnectivityAppActive } from '../connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from '../native-http'
 import * as Sentry from '@/utils/sentry-lazy'
 
+const mockScopes: Array<{ setFingerprint: jest.Mock; setTag: jest.Mock }> = []
 jest.mock('@/utils/sentry-lazy', () => ({
     captureException: jest.fn(),
     captureMessage: jest.fn(),
-    withScope: jest.fn((cb: (scope: unknown) => void) => cb({ setFingerprint: jest.fn(), setTag: jest.fn() })),
+    addBreadcrumb: jest.fn(),
+    withScope: jest.fn((cb: (scope: unknown) => void) => {
+        const scope = { setFingerprint: jest.fn(), setTag: jest.fn() }
+        mockScopes.push(scope)
+        cb(scope)
+    }),
 }))
 
 jest.mock('../native-http', () => ({
@@ -19,6 +25,7 @@ let infoSpy: jest.SpyInstance
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockScopes.length = 0
     __resetConnectivityForTests()
     jest.mocked(canUseNativeHttp).mockReturnValue(false)
     infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
@@ -104,26 +111,103 @@ it('captures the generation before attempting the preferred native transport', a
     expect(getRecentFailures()).toBe(0)
 })
 
-it('ignores an overdue timeout from a suspended WebView and its transport retry', async () => {
-    jest.useFakeTimers()
-    try {
-        global.fetch = jest.fn(
-            (_url, options) =>
-                new Promise<Response>((_resolve, reject) => {
-                    options?.signal?.addEventListener('abort', () =>
-                        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
-                    )
-                })
-        )
+const abortError = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
+
+// Each leg hangs until its own timer aborts it; `answers` resolves legs in order.
+function stallingFetch(answers: Array<'stall' | 'ok'> = []) {
+    global.fetch = jest.fn(
+        (_url, options) =>
+            new Promise<Response>((resolve, reject) => {
+                if (answers.shift() === 'ok') return resolve({ ok: true, status: 200 } as Response)
+                options?.signal?.addEventListener('abort', () => reject(abortError()))
+            })
+    )
+}
+
+describe('a request interrupted by an app or tab suspension', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    it('gets one fresh foreground leg after resume instead of a spent budget', async () => {
+        stallingFetch(['stall', 'ok'])
+        const outcome = fetchWithSentry('https://api.peanut.me/users/me', {}, 1000)
+        setConnectivityAppActive(false)
+        jest.setSystemTime(Date.now() + 60_000)
+        setConnectivityAppActive(true)
+        await jest.advanceTimersByTimeAsync(1000 + TRANSPORT_TIMEOUT_RETRY_DELAY_MS)
+
+        await expect(outcome).resolves.toMatchObject({ ok: true })
+        expect(global.fetch).toHaveBeenCalledTimes(2)
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(getRecentFailures()).toBe(0)
+    })
+
+    it('reports the fresh leg when it also stalls in the foreground', async () => {
+        stallingFetch()
         const outcome = fetchWithSentry('https://api.peanut.me/users/me', {}, 1000).catch((error: unknown) => error)
         setConnectivityAppActive(false)
         jest.setSystemTime(Date.now() + 60_000)
         setConnectivityAppActive(true)
-        await jest.advanceTimersByTimeAsync(2000)
-        expect(await outcome).toMatchObject({ name: 'ConnectionTimeoutError' })
-        expect(getRecentFailures()).toBe(0)
+        await jest.advanceTimersByTimeAsync(1000 + TRANSPORT_TIMEOUT_RETRY_DELAY_MS + 1000)
+
+        const error = await outcome
+        expect(error).toMatchObject({ name: 'ConnectionTimeoutError' })
+        expect((error as { interrupted?: boolean }).interrupted).toBeUndefined()
+        expect(global.fetch).toHaveBeenCalledTimes(2)
         expect(Sentry.captureException).toHaveBeenCalledTimes(1)
-    } finally {
-        jest.useRealTimers()
-    }
+        expect(mockScopes[0].setFingerprint).toHaveBeenCalledWith(['timeout'])
+    })
+
+    it('detects a suspension from a late timer when no lifecycle event arrives (web)', async () => {
+        stallingFetch(['stall', 'ok'])
+        const outcome = fetchWithSentry('https://api.peanut.me/rain/cards', {}, 1000)
+        jest.setSystemTime(Date.now() + 60_000)
+        await jest.advanceTimersByTimeAsync(1000 + TRANSPORT_TIMEOUT_RETRY_DELAY_MS)
+
+        await expect(outcome).resolves.toMatchObject({ ok: true })
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    it('leaves a read stalled while still backgrounded to the focus refetch, unreported', async () => {
+        stallingFetch()
+        const outcome = fetchWithSentry('https://api.peanut.me/card', {}, 1000).catch((error: unknown) => error)
+        setConnectivityAppActive(false)
+        await jest.advanceTimersByTimeAsync(1000)
+
+        expect(await outcome).toMatchObject({ name: 'ConnectionTimeoutError', interrupted: true })
+        expect(global.fetch).toHaveBeenCalledTimes(1)
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Request interrupted by app suspension' })
+        )
+    })
+
+    it('reports an interrupted mutation on its own fingerprint and never retries it', async () => {
+        stallingFetch()
+        const outcome = fetchWithSentry('https://api.peanut.me/users/identity', { method: 'POST' }, 1000).catch(
+            (error: unknown) => error
+        )
+        setConnectivityAppActive(false)
+        jest.setSystemTime(Date.now() + 60_000)
+        setConnectivityAppActive(true)
+        await jest.advanceTimersByTimeAsync(1000)
+
+        expect(await outcome).toMatchObject({ name: 'ConnectionTimeoutError', interrupted: true })
+        expect(global.fetch).toHaveBeenCalledTimes(1)
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+        expect(jest.mocked(Sentry.captureException).mock.calls[0][1]).toMatchObject({ level: 'warning' })
+        expect(mockScopes[0].setFingerprint).toHaveBeenCalledWith(['timeout', 'interrupted'])
+        expect(mockScopes[0].setTag).toHaveBeenCalledWith('request.interrupted', 'true')
+    })
+
+    it('still reports a foreground timeout of both legs as before', async () => {
+        stallingFetch()
+        const outcome = fetchWithSentry('https://api.peanut.me/users/me', {}, 1000).catch((error: unknown) => error)
+        await jest.advanceTimersByTimeAsync(1000 + TRANSPORT_TIMEOUT_RETRY_DELAY_MS + 1000)
+
+        expect(await outcome).toMatchObject({ name: 'ConnectionTimeoutError' })
+        expect(global.fetch).toHaveBeenCalledTimes(2)
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+        expect(jest.mocked(Sentry.captureException).mock.calls[0][1]).toMatchObject({ level: 'error' })
+    })
 })
