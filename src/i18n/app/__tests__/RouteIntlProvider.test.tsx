@@ -66,4 +66,13 @@ describe('RouteIntlProvider', () => {
         // …but it never reaches the page subtree
         expect(screen.getByTestId('page')).toHaveTextContent('Cancelar (pt)')
     })
+
+    it('falls back to the bundled English catalog when no messages are sent', () => {
+        render(
+            <RouteIntlProvider locale="en">
+                <Probe id="page" />
+            </RouteIntlProvider>
+        )
+        expect(screen.getByTestId('page')).toHaveTextContent(en.common.cancel)
+    })
 })

@@ -1,40 +1,66 @@
+/** @jest-environment jsdom */
 /**
  * The server half picks the catalog from the URL segment, including the es-ar
- * overlay on es-419, so the prerendered HTML is already translated.
+ * overlay on es-419, so the prerendered HTML is already translated. It sends
+ * only the namespaces the wrapped tree reads, and nothing for English.
  */
 import { isValidElement } from 'react'
+import { render, screen } from '@testing-library/react'
 import { RouteIntl } from '../RouteIntl'
-import en from '@/i18n/app/messages/en.marketing.json'
+import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
 import es419 from '@/i18n/app/messages/es-419.marketing.json'
 import esAR from '@/i18n/app/messages/es-AR.marketing.json'
 import ptBR from '@/i18n/app/messages/pt-BR.marketing.json'
 
-type Props = { locale: string; messages: { shhhhh: { hero: { tagline: string } } } }
+jest.mock('next/dynamic', () => () => () => null)
 
-async function propsFor(locale: Parameters<typeof RouteIntl>[0]['locale']): Promise<Props> {
-    const element = await RouteIntl({ locale, children: null })
+type Messages = Record<string, Record<string, unknown>> & { shhhhh: { hero: { tagline: string } } }
+type Props = { locale: string; messages?: Messages }
+
+async function routeIntl(locale: Parameters<typeof RouteIntl>[0]['locale'], children: React.ReactNode = null) {
+    const element = await RouteIntl({ locale, children })
     if (!isValidElement<Props>(element)) throw new Error('RouteIntl must render an element')
-    return element.props
+    return element
 }
+
+// Every namespace a component under the wrapped tree calls useTranslations on:
+// ShhhhhFold / LandingPageClient, StickyMobileCTA / LandingDownloadCta,
+// NavHeader, Callout / Badge. A catalog cut that drops one renders raw keys.
+const NEEDED = ['common', 'migration', 'navigation', 'shhhhh']
 
 describe('RouteIntl', () => {
     it.each([
         ['pt-br', 'pt-BR', ptBR.shhhhh.hero.tagline],
         ['es-419', 'es-419', es419.shhhhh.hero.tagline],
         ['es-ar', 'es-AR', esAR.shhhhh.hero.tagline],
-        ['en', 'en', en.shhhhh.hero.tagline],
-    ])('%s renders %s copy', async (segment, appLocale, tagline) => {
-        const props = await propsFor(segment as 'en')
+    ])('%s sends the %s catalog with every namespace the page reads', async (segment, appLocale, tagline) => {
+        const { props } = await routeIntl(segment as 'pt-br')
         expect(props.locale).toBe(appLocale)
-        expect(props.messages.shhhhh.hero.tagline).toBe(tagline)
+        expect(props.messages?.shhhhh.hero.tagline).toBe(tagline)
+        for (const ns of NEEDED) expect(Object.keys(props.messages?.[ns] ?? {}).length).toBeGreaterThan(0)
+        // app-only weight stays out of the page payload
+        expect(props.messages).not.toHaveProperty('errors')
     })
 
     it('es-ar is an overlay: keys it does not override come from es-419', async () => {
-        const props = await propsFor('es-ar')
-        expect((props.messages.shhhhh.hero as Record<string, string>).wordmark).toBe(es419.shhhhh.hero.wordmark)
+        const { props } = await routeIntl('es-ar')
+        expect(props.messages?.shhhhh.hero).toHaveProperty('wordmark', es419.shhhhh.hero.wordmark)
     })
 
-    it('localized taglines are actually translated', () => {
-        expect(new Set([en, es419, esAR, ptBR].map((c) => c.shhhhh.hero.tagline)).size).toBe(4)
+    it('sends no catalog for English (the client already has marketingBase)', async () => {
+        const { props } = await routeIntl('en')
+        expect(props.locale).toBe('en')
+        expect(props.messages).toBeUndefined()
+    })
+
+    it.each([
+        ['pt-br', ptBR.shhhhh.hero.tagline],
+        ['en', 'Your money. Ready to spend.'],
+    ])('the card fold renders %s copy with no missing keys', async (segment, tagline) => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        render(await routeIntl(segment as 'en', <ShhhhhFold />))
+        expect(screen.getByText(tagline)).toBeInTheDocument()
+        expect(warn).not.toHaveBeenCalled()
+        warn.mockRestore()
     })
 })
