@@ -20,13 +20,15 @@ interface HeroProps {
     currency?: string
     /** Injected by createMdxComponents — never authored in MDX. */
     locale?: Locale
+    /** Language of `subtitle` when it differs from the prose around the Hero (a route-locale string on an English fallback page). */
+    subtitleLang?: Locale
 }
 
 /**
  * MDX Hero — large bold title (Roboto Flex), subtitle, white CTA button
  * on pink background.
  */
-export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE }: HeroProps) {
+export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, subtitleLang }: HeroProps) {
     const i18n = getTranslations(locale)
     return (
         <>
@@ -40,7 +42,10 @@ export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE }:
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]">
+                        <p
+                            lang={subtitleLang}
+                            className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]"
+                        >
                             {subtitle}
                         </p>
                     )}

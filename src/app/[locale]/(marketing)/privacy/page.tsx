@@ -87,7 +87,7 @@ export default async function PrivacyPage({ params }: PageProps) {
                     : undefined
             }
         >
-            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitlePrivacy} locale={locale} />
+            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitlePrivacy} subtitleLang={locale} locale={locale} />
             {content}
         </ContentPage>
     )

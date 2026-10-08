@@ -87,7 +87,7 @@ export default async function TermsPage({ params }: PageProps) {
                     : undefined
             }
         >
-            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitleTerms} locale={locale} />
+            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitleTerms} subtitleLang={locale} locale={locale} />
             {content}
         </ContentPage>
     )

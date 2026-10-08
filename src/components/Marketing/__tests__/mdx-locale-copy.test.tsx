@@ -60,6 +60,25 @@ describe('Hero marquee', () => {
     })
 })
 
+describe('Hero subtitle on an English fallback page', () => {
+    it('tags a route-locale subtitle with its own language', () => {
+        render(
+            <BareHero
+                title="Privacy Policy"
+                subtitle={ptBr.legalHeroSubtitlePrivacy}
+                subtitleLang="pt-br"
+                locale="pt-br"
+            />
+        )
+        expect(screen.getByText(ptBr.legalHeroSubtitlePrivacy).getAttribute('lang')).toBe('pt-br')
+    })
+
+    it('leaves the subtitle untagged by default', () => {
+        render(<BareHero title="Title" subtitle="Subtitle" />)
+        expect(screen.getByText('Subtitle').hasAttribute('lang')).toBe(false)
+    })
+})
+
 describe('ContentPage on a fallback page', () => {
     const jsonLd = (container: HTMLElement) =>
         [...container.querySelectorAll('script[type="application/ld+json"]')].map((node) => JSON.parse(node.innerHTML))
