@@ -963,6 +963,8 @@
                 "fullGuide": "Read the full guide"
             },
             "unsupported": "Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.",
+            "unsupportedIos": "Passkeys aren’t available on this device yet. Turn on iCloud Keychain and a passcode or Face ID, update iOS, then try again.",
+            "unsupportedDesktop": "This browser couldn’t reach your computer’s passkey service. Restart or update the browser and try again, or log in on your phone.",
             "origin": "This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.",
             "loginError": "We couldn’t verify your passkey. Please try again, or contact support if it keeps happening."
         },

@@ -42,6 +42,17 @@ describe('capturePasskeySignFailure', () => {
         })
     })
 
+    test('counts a ceremony guard timeout as a signing failure', () => {
+        const timeout = Object.assign(new Error('passkey ceremony did not settle within 60000ms'), {
+            name: 'CeremonyTimeoutError',
+        })
+        capturePasskeySignFailure(timeout, 'sign-user-op')
+        expect(posthog.capture).toHaveBeenCalledWith('passkey_sign_failed', {
+            error_name: 'CeremonyTimeoutError',
+            context: 'sign-user-op',
+        })
+    })
+
     test('ignores non-WebAuthn errors so signing catches can call it unconditionally', () => {
         // The signing catch blocks see every failure (insufficient funds,
         // bundler timeouts, …) — only WebAuthn ceremony errors may emit the
@@ -86,6 +97,11 @@ describe('classifyPasskeyError', () => {
 
     test('falls back to LOGIN_ERROR for unknown errors', () => {
         expect(classifyPasskeyError(new Error('mystery')).code).toBe('LOGIN_ERROR')
+    })
+
+    test('maps a browser request still pending from an earlier prompt to PASSKEY_INTERRUPTED', () => {
+        const err = Object.assign(new Error('A request is already pending.'), { name: 'OperationError' })
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_INTERRUPTED')
     })
 })
 
@@ -220,9 +236,33 @@ describe('getPasskeyErrorSetupKey', () => {
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_STATE'))).toBe('passkey.deviceState')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_INTERRUPTED'))).toBe('passkey.interrupted')
         expect(getPasskeyErrorSetupKey(passkeyError('NETWORK'))).toBe('passkey.serverUnreachable')
-        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_UNSUPPORTED'))).toBe('passkey.unsupported')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_ORIGIN'))).toBe('passkey.origin')
         expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_ERROR'))).toBe('passkey.loginError')
+    })
+
+    test.each([
+        [
+            'Mac Chrome',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+            'passkey.unsupportedDesktop',
+        ],
+        [
+            'Android',
+            'Mozilla/5.0 (Linux; Android 13; M2012K10C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
+            'passkey.unsupported',
+        ],
+        [
+            'iPhone',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Mobile/15E148 Safari/604.1',
+            'passkey.unsupportedIos',
+        ],
+    ])('gives %s its own unsupported-passkey guidance', (_platform, userAgent, key) => {
+        const ua = jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(userAgent)
+        try {
+            expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_UNSUPPORTED'))).toBe(key)
+        } finally {
+            ua.mockRestore()
+        }
     })
 
     test('returns undefined for non-PasskeyError failures and unknown codes', () => {
@@ -255,6 +295,12 @@ describe('normalizeNativePasskeyError', () => {
         )
         expect((err as Error).name).toBe('NotSupportedError')
         expect(classifyPasskeyError(err).code).toBe('PASSKEY_UNSUPPORTED')
+    })
+
+    test('treats the Android no-credential rejection as no passkey on this device, not a failed verification', () => {
+        const err = normalizeNativePasskeyError(capacitorRejection('No matching passkey was found.', 'NotFoundError'))
+        expect((err as Error).name).toBe('NotFoundError')
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
     })
 
     test('leaves an unattributable native failure alone rather than guessing', () => {

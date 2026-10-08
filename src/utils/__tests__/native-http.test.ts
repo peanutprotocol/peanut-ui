@@ -86,6 +86,41 @@ describe('nativeHttpRequest', () => {
         })
     })
 
+    it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+        'sends a bodyless %s as an empty JSON object, so Android cannot label it a form (415)',
+        async (method) => {
+            mockRequest.mockResolvedValue({ status: 200, data: '', headers: {} })
+            await nativeHttpRequest(
+                'https://api.test.com/users/me/delete',
+                { method, headers: { Authorization: 'Bearer t' } },
+                5000
+            )
+            expect(mockRequest).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    method,
+                    headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+                    data: '{}',
+                })
+            )
+        }
+    )
+
+    it('leaves bodyless reads and caller-typed requests as they are', async () => {
+        mockRequest.mockResolvedValue({ status: 200, data: '', headers: {} })
+        await nativeHttpRequest('https://api.test.com/users/me', { method: 'GET' }, 5000)
+        await nativeHttpRequest('https://api.test.com/healthz', { method: 'HEAD' }, 5000)
+        await nativeHttpRequest(
+            'https://api.test.com/upload',
+            { method: 'POST', headers: { 'Content-Type': 'text/plain' } },
+            5000
+        )
+        expect(mockRequest.mock.calls.map(([request]) => [request.method, request.headers, request.data])).toEqual([
+            ['GET', {}, undefined],
+            ['HEAD', {}, undefined],
+            ['POST', { 'content-type': 'text/plain' }, undefined],
+        ])
+    })
+
     it('returns a null body for 204 (Response() would throw otherwise)', async () => {
         mockRequest.mockResolvedValue({ status: 204, data: '', headers: {} })
         const res = await nativeHttpRequest('https://api.test.com/thing', { method: 'DELETE' }, 5000)
