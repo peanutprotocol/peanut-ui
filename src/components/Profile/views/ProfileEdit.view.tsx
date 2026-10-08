@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import isEmail from 'validator/lib/isEmail'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Icon } from '@/components/Global/Icons/Icon'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from '../components/ShowNameToggle'
 import ProfileEditField from '../components/ProfileEditField'
@@ -243,8 +243,8 @@ export const ProfileEditView = () => {
                 {!!user?.user.fullName?.trim() && (
                     <ListItem
                         position="solo"
-                        leading={<IconBubble icon="eye" size="s" color="blue" />}
-                        title={tMenu('showFullName')}
+                        leading={<Icon name="eye" size={24} />}
+                        title={tMenu('showMyFullName')}
                         trailing={<ShowNameToggle checked={showFullName} onChange={setShowFullName} />}
                     />
                 )}

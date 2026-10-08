@@ -1,4 +1,4 @@
-// Static balance + history overlaid in demo mode (utils/demo.ts).
+// Static balance + history overlaid in demo mode (utils/demo.ts). Native-only.
 
 import { parseUnits, type Address } from 'viem'
 import {
@@ -151,7 +151,6 @@ export const DEMO_USER: IUserProfile = {
     invitesSent: [],
     showEarlyUserModal: false,
     invitedBy: null,
-    residence: { declared: 'BR', declaredSecond: null, verified: null, kycReported: null },
     capabilities: DEMO_CAPABILITIES,
     identityVerification: DEMO_IDENTITY_VERIFICATION,
     accounts: [

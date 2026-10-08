@@ -114,7 +114,6 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             // break the socket for every user the moment the policy is enforced.
             'wss://api.peanut.me',
             'wss://*.peanut.me',
-            'https://peanut-notes.s3.eu-north-1.amazonaws.com',
             'https://*.ingest.sentry.io',
             'https://*.ingest.us.sentry.io',
             // Wildcarded because GA4 shards collection by region: EU traffic

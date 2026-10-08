@@ -37,14 +37,3 @@ it('lists flagged languages, ignores the current one and switches once per tap',
         expect(setLocale).toHaveBeenCalledWith('pt-BR')
     })
 })
-
-it('paints only the current language with the selected-row fill', () => {
-    renderWithIntl(
-        <AppLocaleContext.Provider value={{ locale: 'pt-BR', setLocale: jest.fn() }}>
-            <LanguageView />
-        </AppLocaleContext.Provider>
-    )
-
-    expect(screen.getByRole('button', { name: 'Português (Brasil)' })).toHaveClass('bg-background-selection')
-    expect(screen.getByRole('button', { name: 'English' })).not.toHaveClass('bg-background-selection')
-})

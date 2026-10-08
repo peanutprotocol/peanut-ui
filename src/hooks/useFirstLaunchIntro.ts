@@ -4,9 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { isNativeBridge } from '@/utils/capacitor'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { whenNativeSplashHidden } from '@/hooks/useSplashGate'
-import { FIRST_LAUNCH_INTRO_KEY, markFirstLaunchIntroSeen } from '@/utils/first-launch-intro'
 
-export { FIRST_LAUNCH_INTRO_KEY } from '@/utils/first-launch-intro'
+export const FIRST_LAUNCH_INTRO_KEY = 'peanut_first_launch_intro_v1'
 export const FIRST_LAUNCH_INTRO_DURATION_MS = 5_000
 const GREETING_DELAY_MS = 700
 
@@ -34,8 +33,6 @@ async function hasSeenIntro(): Promise<boolean> {
 
 /** First native landing only; Preferences survives WebView storage eviction and OTA updates. */
 export function useFirstLaunchIntro(enabled: boolean, preview?: 'play' | 'still') {
-    // Keep SSR and hydration identical; the layout effect resolves local state
-    // synchronously before paint when this is a returning visit.
     const [phase, setPhase] = useState<IntroPhase>(enabled ? 'checking' : 'done')
     const [played, setPlayed] = useState(false)
     const [mascotReady, setMascotReady] = useState(false)
@@ -53,22 +50,18 @@ export function useFirstLaunchIntro(enabled: boolean, preview?: 'play' | 'still'
             setPhase('intro')
             return
         }
-        // Returning to Landing must not paint even one frame of the blue intro.
-        if (readStoredValue(FIRST_LAUNCH_INTRO_KEY)) {
-            setPhase('done')
-            return
-        }
         let cancelled = false
         void hasSeenIntro().then((seen) => {
             if (cancelled) return
             if (seen) {
-                // Restore the synchronous flag after WebView storage eviction.
-                writeStoredValue(FIRST_LAUNCH_INTRO_KEY, '1')
                 setPhase('done')
                 return
             }
             // Claim the presentation before an OTA reload or another landing mount.
-            void markFirstLaunchIntroSeen()
+            writeStoredValue(FIRST_LAUNCH_INTRO_KEY, '1')
+            void import('@capacitor/preferences')
+                .then(({ Preferences }) => Preferences.set({ key: FIRST_LAUNCH_INTRO_KEY, value: '1' }))
+                .catch(() => {})
             setPlayed(true)
             setPhase('intro')
         })

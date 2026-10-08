@@ -59,6 +59,9 @@ export function showQrPayCTA(input: { canPayQrNow: boolean; hasMadeQrPayment: bo
     return input.canPayQrNow && input.hasMadeQrPayment === false
 }
 
+/** The getting-started checklist, hidden with "Hide" once only the payment row is left. */
+export const HOME_CHECKLIST_CTA_ID = 'home-checklist'
+
 /** The cards that replace the checklist when a door is shut (region refused, provider rejection). */
 export type BlockedCardKind =
     | 'region-restricted'
@@ -76,8 +79,8 @@ export function blockedCardCtaId(kind: BlockedCardKind, reasonCode: string | nul
 }
 
 /**
- * The Home CTAs a user closed that stay hidden now: carousel cards and
- * blocked cards share this one store (user preferences,
+ * The Home CTAs a user closed that stay hidden now: carousel cards and the
+ * getting-started checklist share this one store (user preferences,
  * `dismissedCarouselCTAs`).
  */
 export function readHiddenHomeCtas(userId: string | undefined): Map<string, Date> {

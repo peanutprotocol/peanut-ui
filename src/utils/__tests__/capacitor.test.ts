@@ -377,46 +377,6 @@ describe('openExternalUrl Help Center context', () => {
     })
 })
 
-describe('openExternalUrl cancellation', () => {
-    beforeEach(() => {
-        jest.resetModules()
-        mockBrowserOpen.mockReset().mockResolvedValue(undefined)
-        mockBrowserClose.mockReset().mockResolvedValue(undefined)
-    })
-
-    afterEach(() => {
-        delete window.Capacitor
-        jest.restoreAllMocks()
-    })
-
-    it.each(['web', 'android', 'ios'])('does not open a cancelled URL on %s', async (platform) => {
-        if (platform !== 'web') window.Capacitor = { getPlatform: () => platform, isNativePlatform: () => true }
-        const open = jest.spyOn(window, 'open').mockReturnValue(window)
-        const cap = require('../capacitor') as typeof import('../capacitor')
-        const controller = new AbortController()
-        controller.abort()
-        await expect(cap.openExternalUrl('https://example.com', controller.signal)).rejects.toMatchObject({
-            name: 'AbortError',
-        })
-        expect(open).not.toHaveBeenCalled()
-        expect(mockBrowserOpen).not.toHaveBeenCalled()
-        await cap.closeInAppBrowser()
-        expect(mockBrowserClose).not.toHaveBeenCalled()
-    })
-
-    it.each(['android', 'ios'])('does not open a stale URL after the %s Browser import', async (platform) => {
-        window.Capacitor = { getPlatform: () => platform, isNativePlatform: () => true }
-        const cap = require('../capacitor') as typeof import('../capacitor')
-        const controller = new AbortController()
-        const pending = cap.openExternalUrl('https://example.com', controller.signal)
-        controller.abort()
-        await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
-        expect(mockBrowserOpen).not.toHaveBeenCalled()
-        await cap.closeInAppBrowser()
-        expect(mockBrowserClose).not.toHaveBeenCalled()
-    })
-})
-
 describe('closeInAppBrowser', () => {
     beforeEach(() => {
         jest.resetModules()

@@ -2,24 +2,16 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { USER } from '@/constants/query.consts'
-import { DEMO_USER } from '@/constants/demo-data'
-import { disableDemoMode, isDemoMode } from '@/utils/demo'
-import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
 import { useState } from 'react'
 import SignupStep from '../Signup'
 
-const mockSetScreenId = jest.fn()
 const mockHandleNext = jest.fn(async (guard?: () => Promise<boolean>) => guard?.())
 const mockValidateInviter = jest.fn()
 const mockApiFetch = jest.fn()
 const mockStoredInvite = { code: '', type: 'DIRECT' }
 
-jest.mock('@/hooks/useSetupFlow', () => ({
-    useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: false, setScreenId: mockSetScreenId }),
-}))
+jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: false }) }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/services/invites', () => ({
@@ -44,39 +36,21 @@ jest.mock('@/components/Global/Drawer', () => ({
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
-const renderSignup = () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const view = renderWithIntl(
-        <QueryClientProvider client={queryClient}>
-            <SetupFlowProvider masterScreenIds={setupScreenIds}>
-                <SignupStep />
-                <FlowState />
-            </SetupFlowProvider>
-        </QueryClientProvider>
+const renderSignup = () =>
+    renderWithIntl(
+        <SetupFlowProvider masterScreenIds={setupScreenIds}>
+            <SignupStep />
+        </SetupFlowProvider>
     )
-    return { ...view, queryClient }
-}
-
-function FlowState() {
-    const { signupCompleted, residenceCountry, noBackLockScreenId } = useSetupFlowContext()
-    return (
-        <output data-testid="flow-state">
-            {JSON.stringify({ signupCompleted, residenceCountry, noBackLockScreenId })}
-        </output>
-    )
-}
 
 describe('optional inviter on signup', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        disableDemoMode()
         mockStoredInvite.code = ''
         mockStoredInvite.type = 'DIRECT'
         mockApiFetch.mockResolvedValue({ status: 404 })
         mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: true })
     })
-
-    afterEach(() => disableDemoMode())
 
     it('lets a direct signup continue without an inviter', async () => {
         renderSignup()
@@ -202,11 +176,7 @@ describe('optional inviter on signup', () => {
             )
         }
 
-        renderWithIntl(
-            <QueryClientProvider client={new QueryClient()}>
-                <FlowHarness />
-            </QueryClientProvider>
-        )
+        renderWithIntl(<FlowHarness />)
         fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
         await addInviterInDrawer('alice')
         fireEvent.click(screen.getByRole('button', { name: 'Switch step' }))
@@ -236,75 +206,5 @@ describe('optional inviter on signup', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Remove inviter' }))
         expect(mockStoredInvite).toEqual({ code: 'aliceinvitesyou', type: 'INVITE_LINK' })
         expect(await screen.findByText('Invited by alice.')).toBeInTheDocument()
-    })
-
-    it.each(['demo', 'DEMO', ' Demo '])(
-        'submits username %s into the demo celebration without an availability or invite API call',
-        async (code) => {
-            const { queryClient } = renderSignup()
-            let userRequestAborted = false
-            void queryClient
-                .fetchQuery({
-                    queryKey: [USER],
-                    queryFn: ({ signal }) =>
-                        new Promise((resolve) => {
-                            signal.addEventListener('abort', () => {
-                                userRequestAborted = true
-                                resolve(null)
-                            })
-                        }),
-                })
-                .catch(() => {})
-            fireEvent.change(screen.getByRole('textbox', { name: 'username' }), { target: { value: code } })
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
-            expect(isDemoMode()).toBe(false)
-            fireEvent.click(screen.getByRole('button', { name: 'Claim username' }))
-            await waitFor(() => expect(mockSetScreenId).toHaveBeenCalledWith('advantage-control'))
-            expect(isDemoMode()).toBe(true)
-            expect(userRequestAborted).toBe(true)
-            expect(queryClient.getQueryData([USER])).toEqual(DEMO_USER)
-            expect(screen.getByTestId('flow-state')).toHaveTextContent(
-                JSON.stringify({
-                    signupCompleted: true,
-                    residenceCountry: 'BR',
-                    noBackLockScreenId: 'advantage-control',
-                })
-            )
-            expect(mockValidateInviter).not.toHaveBeenCalled()
-            expect(mockApiFetch).not.toHaveBeenCalled()
-            expect(mockStoredInvite.code).toBe('')
-            expect(mockHandleNext).not.toHaveBeenCalled()
-        }
-    )
-
-    it('does not activate demo mode merely by typing the username', async () => {
-        const { unmount } = renderSignup()
-        fireEvent.change(screen.getByRole('textbox', { name: 'username' }), { target: { value: 'demo' } })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
-        unmount()
-        expect(isDemoMode()).toBe(false)
-        expect(mockSetScreenId).not.toHaveBeenCalled()
-        expect(mockApiFetch).not.toHaveBeenCalled()
-        expect(mockStoredInvite.code).toBe('')
-    })
-
-    it('treats demo as an ordinary inviter instead of a demo trigger', async () => {
-        renderSignup()
-        fireEvent.click(screen.getByRole('button', { name: 'Who invited you?' }))
-        await addInviterInDrawer('demo')
-        expect(mockValidateInviter).toHaveBeenCalledWith('demo')
-        expect(isDemoMode()).toBe(false)
-        expect(mockSetScreenId).not.toHaveBeenCalled()
-    })
-
-    it('checks similar usernames normally and does not activate demo mode', async () => {
-        renderSignup()
-        fireEvent.change(screen.getByRole('textbox', { name: 'username' }), { target: { value: 'demouser' } })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim username' })).toBeEnabled())
-        expect(mockApiFetch).toHaveBeenCalledWith('/users/username/demouser', expect.any(Object))
-        fireEvent.click(screen.getByRole('button', { name: 'Claim username' }))
-        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
-        expect(isDemoMode()).toBe(false)
-        expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 })

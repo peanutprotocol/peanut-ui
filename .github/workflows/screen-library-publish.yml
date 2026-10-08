@@ -79,11 +79,6 @@ jobs:
                   RUN_ATTEMPT: ${{ github.run_attempt }}
                   REPOSITORY: ${{ github.repository }}
                   SCREEN_LIBRARY_BASELINE_DIR: ${{ steps.baseline.outputs.mode == 'external' && 'incoming/baseline' || '' }}
-                  # These are the original caller event fields in workflow_call,
-                  # not values supplied by downloaded capture artifacts.
-                  PUSH_BEFORE: ${{ github.event.before }}
-                  MAIN_BEFORE: ${{ github.event.inputs.before_sha }}
-                  MAIN_AFTER: ${{ github.event.inputs.after_sha }}
                   SCREEN_LIBRARY_BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
                   SCREEN_LIBRARY_BASELINE_ARTIFACT: ${{ steps.baseline.outputs.artifact_name }}
               run: node scripts/screens/publish-run.mjs

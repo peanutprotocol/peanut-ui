@@ -27,11 +27,7 @@ test('reject unrelated workflow artifacts and stale attempts', () => {
     ])
         assert.throws(() => verifyRunIdentity({ ...run, ...changed }, repository, 123, 2), /provenance/)
 })
-test('post-merge and historical publishing accept only dev and main', () => {
+test('post-merge and historical publishing only accepts dev', () => {
     for (const event of ['push', 'workflow_dispatch'])
-        for (const head_branch of ['dev', 'main', 'feature']) {
-            const verify = () => verifyRunIdentity({ ...run, event, head_branch }, repository, 123, 2)
-            if (head_branch === 'feature') assert.throws(verify, /Only dev or main/)
-            else assert.doesNotThrow(verify)
-        }
+        assert.throws(() => verifyRunIdentity({ ...run, event, head_branch: 'main' }, repository, 123, 2), /Only dev/)
 })

@@ -9,7 +9,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     USER_OP_ENTRY_POINT,
 } from '@/constants/zerodev.consts'
-import { parseUnits, encodeFunctionData, erc20Abi } from 'viem'
+import { parseUnits, encodeFunctionData, erc20Abi, isAddress, isHex } from 'viem'
 import type { Hex, Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { capturePasskeySignFailure } from '@/utils/webauthn.utils'
@@ -20,7 +20,6 @@ import {
     type UnsignedUserOperation,
 } from './smartSpendPreparation'
 import { PAYMASTER_PREVIEW_CONTEXT } from './paymasterSponsorship'
-import { toSponsorshipRefresh, InvalidSponsorshipResponseError, type SponsorshipRefresh } from './sponsorshipRefresh'
 
 export interface SignedUserOpData {
     signedUserOp: UnsignedUserOperation & { signature: Hex }
@@ -43,6 +42,53 @@ export interface SignCallsUserOpOptions {
 }
 
 type KernelClient = ReturnType<ReturnType<typeof useKernelClient>['getClientForChain']>
+
+/** What the ZeroDev paymaster returns for an EntryPoint 0.7 sponsorship. */
+interface SponsorshipRefresh {
+    paymaster: Address
+    paymasterData: Hex
+    paymasterVerificationGasLimit: bigint
+    paymasterPostOpGasLimit: bigint
+    callGasLimit: bigint
+    verificationGasLimit: bigint
+    preVerificationGas: bigint
+    maxFeePerGas?: bigint
+    maxPriorityFeePerGas?: bigint
+}
+
+const isBigint = (value: unknown): value is bigint => typeof value === 'bigint'
+
+/**
+ * Narrow the paymaster response at runtime. A sponsorship with a missing or
+ * malformed field is not "probably fine" and must never be merged into the op.
+ */
+function toSponsorshipRefresh(value: unknown): SponsorshipRefresh | null {
+    if (!value || typeof value !== 'object') return null
+    const v = value as Record<string, unknown>
+    if (typeof v.paymaster !== 'string' || !isAddress(v.paymaster, { strict: false })) return null
+    if (typeof v.paymasterData !== 'string' || !isHex(v.paymasterData)) return null
+    const gas = [
+        v.paymasterVerificationGasLimit,
+        v.paymasterPostOpGasLimit,
+        v.callGasLimit,
+        v.verificationGasLimit,
+        v.preVerificationGas,
+    ]
+    if (!gas.every(isBigint)) return null
+    if (v.maxFeePerGas !== undefined && !isBigint(v.maxFeePerGas)) return null
+    if (v.maxPriorityFeePerGas !== undefined && !isBigint(v.maxPriorityFeePerGas)) return null
+    return {
+        paymaster: v.paymaster,
+        paymasterData: v.paymasterData,
+        paymasterVerificationGasLimit: v.paymasterVerificationGasLimit as bigint,
+        paymasterPostOpGasLimit: v.paymasterPostOpGasLimit as bigint,
+        callGasLimit: v.callGasLimit as bigint,
+        verificationGasLimit: v.verificationGasLimit as bigint,
+        preVerificationGas: v.preVerificationGas as bigint,
+        ...(v.maxFeePerGas !== undefined ? { maxFeePerGas: v.maxFeePerGas as bigint } : {}),
+        ...(v.maxPriorityFeePerGas !== undefined ? { maxPriorityFeePerGas: v.maxPriorityFeePerGas as bigint } : {}),
+    }
+}
 
 type PaymasterConfig = Exclude<NonNullable<KernelClient['paymaster']>, true>
 type PaymasterCallbacks = { getPaymasterData: NonNullable<PaymasterConfig['getPaymasterData']> }
@@ -79,12 +125,8 @@ async function consumeSponsorship(
         context: client.paymasterContext,
         ...userOperation,
     } as Parameters<PaymasterCallbacks['getPaymasterData']>[0])
-    const sponsorship = toSponsorshipRefresh(response, {
-        chainId,
-        maxFeePerGas: userOperation.maxFeePerGas,
-        maxPriorityFeePerGas: userOperation.maxPriorityFeePerGas,
-    })
-    if (!sponsorship) throw new InvalidSponsorshipResponseError(response)
+    const sponsorship = toSponsorshipRefresh(response)
+    if (!sponsorship) throw new Error('useSignUserOp: malformed sponsorship response after consuming the policy')
     return sponsorship
 }
 
@@ -238,13 +280,7 @@ export const useSignUserOp = () => {
                 capturePasskeySignFailure(error, 'sign-user-op')
                 captureException(error, {
                     tags: { feature: 'sign-user-op' },
-                    extra: {
-                        callCount: calls.length,
-                        chainId,
-                        ...(error instanceof InvalidSponsorshipResponseError
-                            ? { sponsorshipResponseShape: error.responseShape }
-                            : {}),
-                    },
+                    extra: { callCount: calls.length, chainId },
                 })
                 throw error
             }

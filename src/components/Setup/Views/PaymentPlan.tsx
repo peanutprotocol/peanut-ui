@@ -27,7 +27,6 @@ function ChannelPicker<C extends SetupChannel>({
     value,
     options,
     label,
-    compactLabel = label,
     onChange,
     onInteract,
     animate,
@@ -38,7 +37,6 @@ function ChannelPicker<C extends SetupChannel>({
     value: C
     options: readonly C[]
     label: (channel: C) => string
-    compactLabel?: (channel: C) => string
     onChange: (channel: C) => void
     onInteract: () => void
     animate: boolean
@@ -81,7 +79,7 @@ function ChannelPicker<C extends SetupChannel>({
                     <span
                         className="relative grid min-w-0 overflow-hidden text-left"
                         aria-live="off"
-                        title={compactLabel(value)}
+                        title={label(value)}
                     >
                         {/* All eligible labels share one grid cell: the longest translated
                             label sizes the selector without measuring or changing widths. */}
@@ -91,7 +89,7 @@ function ChannelPicker<C extends SetupChannel>({
                                 aria-hidden="true"
                                 className="invisible whitespace-nowrap [grid-area:1/1]"
                             >
-                                {compactLabel(channel)}
+                                {label(channel)}
                             </span>
                         ))}
                         {animate ? (
@@ -104,11 +102,11 @@ function ChannelPicker<C extends SetupChannel>({
                                     transition={{ duration: 0.3 }}
                                     className="block truncate [grid-area:1/1]"
                                 >
-                                    {compactLabel(value)}
+                                    {label(value)}
                                 </motion.span>
                             </AnimatePresence>
                         ) : (
-                            <span className="block truncate [grid-area:1/1]">{compactLabel(value)}</span>
+                            <span className="block truncate [grid-area:1/1]">{label(value)}</span>
                         )}
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
@@ -234,9 +232,6 @@ export default function PaymentPlan({
                         title={t('fundingTitle')}
                         options={options.funding}
                         value={funding}
-                        compactLabel={(channel) =>
-                            t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
-                        }
                         label={(channel) =>
                             channel === 'bank' &&
                             options.funding.some((option) => option === 'brlBank' || option === 'arsBank')

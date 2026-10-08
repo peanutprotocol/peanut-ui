@@ -9,20 +9,6 @@ const collections = readFileSync('.github/workflows/screen-library-collection.ym
 const publishRun = readFileSync('scripts/screens/publish-run.mjs', 'utf8')
 const baselinePublisher = readFileSync('scripts/screens/publish-baseline-viewports.mjs', 'utf8')
 
-test('main updates capture both full catalogues and retain the original push boundary in trusted publishing', () => {
-    assert.match(screenLibrary, /push:\n\s+branches: \[dev, main\]/)
-    assert.match(screenLibrary, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
-    assert.match(screenLibrary, /node scripts\/screens\/capture-revisions\.mjs >> "\$GITHUB_OUTPUT"/)
-    assert.equal((screenLibrary.match(/'refs\/heads\/main' && '--full-catalogue'/g) ?? []).length, 2)
-    assert.match(publisher, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
-    for (const field of ['before', 'after'])
-        assert.match(
-            publisher,
-            new RegExp(`MAIN_${field.toUpperCase()}: \\$\\{\\{ github\\.event\\.inputs\\.${field}_sha \\}\\}`)
-        )
-    assert.match(publishRun, /before: run\.event === 'push' \? process\.env\.PUSH_BEFORE : process\.env\.MAIN_BEFORE/)
-})
-
 test('capture workflows run on the standard Ubuntu pool', () => {
     assert.equal((screenLibrary.match(/runs-on: ubuntu-24\.04/g) ?? []).length, 3)
     assert.doesNotMatch(screenLibrary, /runs-on: macos-/)

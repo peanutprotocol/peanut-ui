@@ -118,14 +118,5 @@ Images and the archive are uploaded before the manifest commit marker. An incomp
 report can be browsed but cannot become `/screens/latest/`. Only full dev
 libraries advance that pointer; PR preview completion cannot move it.
 
-Main pushes also publish full `main/<locale>/<sha>/run-<id>-<attempt>` libraries
-and `compare-main/<locale>/<sha>/run-<id>-<attempt>` comparisons. The trusted
-publisher obtains the previous main SHA from the original push event, not from
-capture artifacts. Main reports appear under the dashboard's **Branch → Main**
-filter and do not move the dev latest pointer. See **Main release snapshots** in
-`SCREEN-LIBRARY.md` for manual release backfills and activation requirements.
-Dev pushes publish the matching `dev` and `compare-dev` pair with the same
-original-push-boundary rule; feature PR previews continue to use `pr-<number>`.
-
 
 References: [Cloudflare Access for Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/), [R2 bindings](https://developers.cloudflare.com/r2/api/workers/workers-api-usage/).

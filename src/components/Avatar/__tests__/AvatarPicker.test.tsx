@@ -204,7 +204,7 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         const [chosen, other] = tiles()
-        expect(chosen).toHaveClass('border', 'bg-background-selection', 'inset-ring', 'inset-ring-border-default')
+        expect(chosen).toHaveClass('border', 'bg-action-primary', 'inset-ring', 'inset-ring-border-default')
         expect(chosen).not.toHaveClass('border-2')
         expect(other).not.toHaveClass('inset-ring')
     })

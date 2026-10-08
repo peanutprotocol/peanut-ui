@@ -51,9 +51,7 @@ describe('OtaUpdateModal dismissal locking', () => {
     it('does not expose a Capgo compatibility ID as the release number', () => {
         mockOta.pendingBundle = { id: 'bridge', version: '1.6.1000-android' }
         renderAt('idle')
-        expect(
-            screen.getByText('Tap Update to install the new version. If Peanut closes, open it again.')
-        ).toBeInTheDocument()
+        expect(screen.getByText('Restart Peanut to finish installing the update.')).toBeInTheDocument()
         expect(screen.queryByText(/1\.6\.1000/)).not.toBeInTheDocument()
     })
 

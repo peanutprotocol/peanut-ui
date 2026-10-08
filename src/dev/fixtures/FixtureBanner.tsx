@@ -24,6 +24,7 @@ export function FixtureBanner() {
         <Callout
             data-fixture-banner=""
             data-testid="fixture-banner"
+            variant="floating"
             priority="attention"
             title={`Fixture: ${name}`}
             className="fixed right-4 bottom-[calc(var(--safe-bottom)_+_1rem)] left-4 z-50 mx-auto max-w-xl"

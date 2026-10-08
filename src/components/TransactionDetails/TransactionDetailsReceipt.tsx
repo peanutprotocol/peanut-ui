@@ -44,7 +44,6 @@ export const TransactionDetailsReceipt = ({
     avatarUrl,
     isPublic = false,
     showPublicIssuer = false,
-    isActive = true,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -58,8 +57,6 @@ export const TransactionDetailsReceipt = ({
     avatarUrl?: string
     isPublic?: boolean
     showPublicIssuer?: boolean
-    /** the drawer becomes inactive before its closing animation unmounts it. */
-    isActive?: boolean
 }) => {
     const t = useAppTranslations('transaction')
 
@@ -230,7 +227,6 @@ export const TransactionDetailsReceipt = ({
                 vm={vm}
                 shouldShowQrShare={shouldShowQrShare}
                 inDrawer={!!setIsModalOpen}
-                isActive={isActive}
             />
 
             {/* Over-capture explainer — the words for the Initial hold /

@@ -26,7 +26,6 @@ const FIXTURE_FILES = [
     'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
     'ios/App/App.xcodeproj/project.pbxproj',
     'ios/App/App/Info.plist',
-    'ios/App/App/PrivacyInfo.xcprivacy',
     'ios/App/App/App.entitlements',
     'ios/App/App/AppRelease.entitlements',
     'ios/App/App/ClipboardDetectPlugin.swift',
@@ -207,16 +206,6 @@ describe('native-fingerprint', () => {
             // xcodebuild archives against, so a pin can move on its own.
             'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
             (content) => content.replace('"version" : "5.12.0"', '"version" : "5.13.0"'),
-            () => expect(fingerprint()).not.toBe(before)
-        )
-    })
-
-    it('moves when the app privacy manifest changes', () => {
-        const before = fingerprint()
-
-        withPatchedInput(
-            'ios/App/App/PrivacyInfo.xcprivacy',
-            (content) => content.replace('C617.1', 'C617.2'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })

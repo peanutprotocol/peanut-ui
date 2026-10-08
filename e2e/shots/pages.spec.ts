@@ -20,7 +20,6 @@ import { expect, test } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
-import { CAPTURE_STATIC_CSS, finishOverlayAnimations } from '../../scripts/screens/capture-ui.mjs'
 
 const OUT_DIR = process.env.PAGES_OUT ?? 'e2e/__shots__/pages'
 const FIXTURE = 'profile-edit'
@@ -37,6 +36,16 @@ function seenOnceModals(): void {
     )
 }
 
+const FREEZE_CSS = `
+*, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    caret-color: transparent !important;
+    scroll-behavior: auto !important;
+}
+a[href*="__fixture=off"] { display: none !important; }
+`
+
 const LOADERS = '.animate-spin img[alt="Peanut mascot"], .animate-pulse'
 
 test.describe.configure({ mode: 'parallel' })
@@ -51,9 +60,8 @@ for (const capture of CAPTURES) {
         await page.addInitScript(seenOnceModals)
 
         const fixture = capture.fixture ?? FIXTURE
-        const entryRoute = capture.entryRoute ?? capture.route
-        const separator = entryRoute.includes('?') ? '&' : '?'
-        await page.goto(`${entryRoute}${separator}__fixture=${fixture}`, { waitUntil: 'domcontentloaded' })
+        const separator = capture.route.includes('?') ? '&' : '?'
+        await page.goto(`${capture.route}${separator}__fixture=${fixture}`, { waitUntil: 'domcontentloaded' })
 
         await expect
             .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), FIXTURE_STORAGE_KEY), {
@@ -85,19 +93,6 @@ for (const capture of CAPTURES) {
             }
         }
 
-        for (const action of capture.actions ?? []) {
-            if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
-            else if ('clickSelector' in action) await page.locator(action.clickSelector).first().click()
-            else {
-                await page.locator(action.fill.selector).fill(action.fill.value)
-                await page.waitForTimeout(250)
-            }
-        }
-        if (capture.entryRoute)
-            await page.waitForURL((destination) => destination.pathname === capture.route.split('?')[0])
-        if (capture.expectSelector)
-            await expect(page.locator(capture.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
-
         if (capture.toBottom) {
             await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
             await page.waitForTimeout(400)
@@ -109,9 +104,8 @@ for (const capture of CAPTURES) {
         const asked = capture.route.split('?')[0]
         if (landed !== asked) notes.push(`redirected to ${landed}`)
 
+        await page.addStyleTag({ content: FREEZE_CSS })
         await page.evaluate(() => document.fonts.ready.then(() => undefined))
-        await page.evaluate(finishOverlayAnimations)
-        await page.addStyleTag({ content: CAPTURE_STATIC_CSS })
         await page.waitForFunction(() =>
             Array.from(document.images).every((img) => {
                 const box = img.getBoundingClientRect()
@@ -119,8 +113,6 @@ for (const capture of CAPTURES) {
                 return offscreen || img.complete
             })
         )
-        if (capture.expectSelector)
-            await expect(page.locator(capture.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
 
         await mkdir(OUT_DIR, { recursive: true })
         await page.screenshot({

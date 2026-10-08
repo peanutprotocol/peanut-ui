@@ -314,16 +314,11 @@ const PaymentSuccessView = ({
                 <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
             )}
             <PageStack.Center className="relative z-10 gap-4">
-                {/* the card is the first child, so this box ends at the card's top edge. clipping
-                    there keeps the legs hidden: the lottie art fills more of its box than the old
-                    raster did, and a short card no longer covers the lower half */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-full -z-10 h-32 overflow-hidden">
-                    <PeanutMascot
-                        pose="cheering"
-                        alt="Peanut Mascot"
-                        className="absolute top-0 left-1/2 h-60 w-auto -translate-x-1/2"
-                    />
-                </div>
+                <PeanutMascot
+                    pose="cheering"
+                    alt="Peanut Mascot"
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
+                />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
                         <IconBubble icon="check" color="green" />

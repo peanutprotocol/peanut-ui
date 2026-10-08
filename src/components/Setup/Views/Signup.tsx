@@ -8,10 +8,6 @@ import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useQueryClient } from '@tanstack/react-query'
-import { USER } from '@/constants/query.consts'
-import { DEMO_USER } from '@/constants/demo-data'
-import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { invitesApi } from '@/services/invites'
 import { toInviteCode } from '@/utils/invite-code.utils'
@@ -40,21 +36,10 @@ const USERNAME_IDEAS = [
 
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const {
-        username,
-        setUsername,
-        inviterUsername,
-        setInviterUsername,
-        applyManualInvite,
-        clearManualInvite,
-        setResidenceCountry,
-        setSecondResidenceCountry,
-        setSignupCompleted,
-        setNoBackLockScreenId,
-    } = useSetupFlowContext()
-    const queryClient = useQueryClient()
+    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } =
+        useSetupFlowContext()
     const [error, setError] = useState('')
-    const { handleNext, isLoading, setScreenId } = useSetupFlow()
+    const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     // the drawer edits a draft; only a validated, added inviter reaches the flow context
@@ -142,21 +127,9 @@ const SignupStep = () => {
         setInviterOpen(false)
     }
 
-    const onNext = async () => {
-        if (!isValid || isChanging || isLoading) return
-        if (isDemoUsername(username)) {
-            enableDemoMode()
-            // Retire any pre-demo user request before seeding the synthetic session.
-            await queryClient.cancelQueries({ queryKey: [USER] })
-            queryClient.setQueryData([USER], DEMO_USER)
-            setResidenceCountry('BR')
-            setSecondResidenceCountry('')
-            setNoBackLockScreenId('advantage-control')
-            setSignupCompleted(true)
-            setScreenId('advantage-control')
-            return
-        }
-        return handleNext(async () => {
+    const onNext = () =>
+        handleNext(async () => {
+            if (!isValid) return false
             const code = toInviteCode(inviterUsername)
             if (code) {
                 applyManualInvite(code)
@@ -164,14 +137,10 @@ const SignupStep = () => {
             }
             return true
         })
-    }
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
         // clear error when starting a new validation
         setError('')
-
-        // Reserved local demo entry: typing validates it, but only submission activates the session.
-        if (isDemoUsername(username)) return true
 
         // handle empty input
         if (!username) {

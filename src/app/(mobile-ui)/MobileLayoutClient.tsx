@@ -111,7 +111,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             const url = new URL(window.location.href)
             if (url.searchParams.get('__reproduce')) return
         }
-        // An explicit demo session has no credentials and must stay in the app.
+        // Demo mode: never bounce to /setup. isDemoMode() reads the #demo hash
+        // (reliable on the first render after the hard-nav); persist it so later
+        // navigations that drop the hash stay in demo mode.
         if (isDemoMode()) enableDemoMode()
         // no user has two causes. the user query returns null for a 401, and throws
         // for a 5xx or a network failure. so an error here means the backend is

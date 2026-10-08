@@ -71,8 +71,7 @@ jest.mock('../useGrantSessionKey', () => ({
 jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: {} }))
 jest.mock('./../mixedEphemeralSpend', () => ({ tryMixedEphemeralSpend: jest.fn() }))
-let mockDemoMode = false
-jest.mock('@/utils/demo', () => ({ isDemoMode: () => mockDemoMode }))
+jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/services/rain', () => ({
     // Real shape: the hook narrows a cooldown with `instanceof`.
     RainCooldownError: class RainCooldownError extends Error {
@@ -131,7 +130,6 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockDemoMode = false
     queryClient = new QueryClient()
     mockOverview = { cards: [] }
     mockFreshOverview = { cards: [] }
@@ -159,24 +157,6 @@ function spendInput(overrides: Record<string, unknown> = {}) {
 }
 
 describe('useSpendBundle — draft back-out boundaries', () => {
-    it('keeps a demo spend local without preparing a withdrawal, signing, or broadcasting', async () => {
-        mockDemoMode = true
-        const { result } = renderHook(() => useSpendBundle(), { wrapper })
-        await act(async () => {
-            await expect(result.current.spend(spendInput())).resolves.toEqual({
-                strategy: 'smart-only',
-                userOpHash: `0x${'de'.repeat(32)}`,
-                receipt: null,
-            })
-        })
-        expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
-        expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
-        expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
-        expect(mockSignTypedData).not.toHaveBeenCalled()
-        expect(mockHandleSendUserOpEncoded).not.toHaveBeenCalled()
-        expect(tryMixedEphemeralSpend).not.toHaveBeenCalled()
-    })
-
     it('a charge-backed prep is NEVER cancelled, even when signing dies before broadcast', async () => {
         mockSignTypedData.mockRejectedValueOnce(new Error('ceremony dismissed'))
         const { result } = renderHook(() => useSpendBundle(), { wrapper })

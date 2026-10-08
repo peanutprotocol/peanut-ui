@@ -57,13 +57,6 @@ const normalizeComparison = (comparison) => ({
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
-const entryBranch = (entry) => {
-    if (entry.branch) return entry.branch
-    const channel = entry.path.split('/')[1] ?? ''
-    if (channel === 'main' || channel === 'compare-main' || channel.startsWith('main-')) return 'main'
-    if (channel === 'dev' || channel === 'compare-dev' || channel.startsWith('dev-')) return 'dev'
-    return channel
-}
 const entryProfile = (entry) => entry?.profile ?? '393x852'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
@@ -105,7 +98,7 @@ const versionDetails = (entry) => {
     const pathPr = /^pr-([1-9][0-9]*)$/.exec(channel)
     const prNumber =
         Number.isSafeInteger(entry.prNumber) && entry.prNumber > 0 ? entry.prNumber : Number(pathPr?.[1]) || null
-    const branch = entryBranch(entry)
+    const branch = entry.branch || (channel.startsWith('dev') ? 'dev' : channel.startsWith('main') ? 'main' : channel)
     const changedScreens =
         Number.isSafeInteger(entry.changedScreens) && entry.changedScreens >= 0 ? entry.changedScreens : null
     const kind =
@@ -192,8 +185,6 @@ function shareableParams(overrides = {}) {
     if (locale) params.set('locale', locale)
     if (!report && source === 'synthetic' && profile && profile !== '393x852') params.set('profile', profile)
     if (!report) {
-        const branch = overrides.branch ?? $('branch').value
-        if (source === 'synthetic' && branch) params.set('branch', branch)
         const date = overrides.date ?? $('date-strip').dataset.selectedDate
         if (parseIsoDate(date)) params.set('date', date)
     }
@@ -626,15 +617,7 @@ function renderDateStrip(availableEntries) {
 }
 function renderLanding() {
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
-    $('branch-control').hidden = selectedSource !== 'synthetic'
-    const branch = $('branch').dataset.initialized ? $('branch').value : requestedFilter('branch')
-    $('branch').value = ['dev', 'main'].includes(branch) ? branch : ''
-    $('branch').dataset.initialized = 'true'
-    const sourceEntries = indexEntries.filter(
-        (entry) =>
-            entrySource(entry) === selectedSource &&
-            (selectedSource !== 'synthetic' || !$('branch').value || entryBranch(entry) === $('branch').value)
-    )
+    const sourceEntries = indexEntries.filter((entry) => entrySource(entry) === selectedSource)
     const selectedProfile = populateProfile(
         sourceEntries,
         $('profile').value || requestedFilter('profile'),
@@ -724,7 +707,6 @@ function renderCoverage() {
         .join(' · ')}`
 }
 async function configureReportLocales(reportPath) {
-    $('branch-control').hidden = true
     if (report.type === 'collection') {
         reportLocaleEntries = (activeComparison ? [activeComparison.locale] : report.locales).map((locale) => ({
             locale,
@@ -813,7 +795,7 @@ async function start() {
     activeComparison = undefined
     if (comparisonPath) {
         if (
-            !/^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/.test(
+            !/^\d{4}-\d{2}-\d{2}\/(?:compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/.test(
                 comparisonPath
             )
         )
@@ -1013,7 +995,6 @@ $('source').addEventListener('change', () => {
     renderLanding()
 })
 $('profile').addEventListener('change', renderLanding)
-$('branch').addEventListener('change', renderLanding)
 $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''

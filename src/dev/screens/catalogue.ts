@@ -14,7 +14,6 @@ export type Screen = {
     requiresSource?: string
     entryRoute?: string
     actions?: PageCapture['actions']
-    expectSelector?: string
     routePattern?: string
     fixture: string
     clicks: string[]
@@ -168,14 +167,6 @@ export const SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
     sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
-    expectSelector:
-        screen.expectSelector ??
-        // The QR drawer intentionally rests at a small peek snap. Its visible
-        // title proves it is open without requiring half its full-height box.
-        (screen.id === '54-d-qrbottomdrawer' ? '[role="dialog"][data-state="open"] h2' : undefined) ??
-        (/Drawer\b/.test(screen.name) || screen.route.includes('drawer=')
-            ? '[role="dialog"]:not([aria-modal="false"])'
-            : undefined),
     camera: screen.id === '54-d-qrbottomdrawer' ? ('synthetic' as const) : screen.camera,
     requiresSource: ['fixture-avatar-picker', '66-e-avatarpicker'].includes(screen.id)
         ? 'src/components/Avatar/AvatarPicker.tsx'

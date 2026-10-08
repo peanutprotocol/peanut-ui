@@ -313,12 +313,12 @@
             "noInviteTitle": "Unite a Peanut"
         },
         "update": {
-            "title": "Actualización disponible",
-            "description": "Tocá Actualizar para instalar la nueva versión. Si Peanut se cierra, volvé a abrirla.",
-            "update": "Actualizar",
+            "title": "Actualización lista",
+            "description": "Reiniciá Peanut para terminar de instalar la actualización.",
+            "restartNow": "Reiniciar ahora",
             "notNow": "Ahora no",
             "manualRestart": "Cerrá Peanut desde el selector de apps y volvé a abrirla para terminar la actualización.",
-            "applyFailed": "La actualización no se instaló. Revisá tu conexión y probá de nuevo. Peanut sigue en la versión actual."
+            "applyFailed": "No se pudo aplicar la actualización. Revisá tu conexión y probá de nuevo: Peanut sigue con la versión con la que iniciaste."
         },
         "about": {
             "title": "Acerca de Peanut",
@@ -485,13 +485,13 @@
             "rewards": "¡Quiero recompensas!",
             "control": "Terminemos",
             "fees": "Me gusta",
-            "features": "Mantener estas opciones",
+            "features": "Está buenísimo",
             "bank": "¡Ahora sí!",
             "card": "Me encanta el rosa",
             "exchange": "Es una buena oferta",
             "local": "Vamos a pagar como locales",
             "people": "Tiene sentido",
-            "funding": "Mantener estas opciones"
+            "funding": "Sigamos"
         },
         "landing": {
             "signUp": "Registrate",
@@ -1651,7 +1651,8 @@
         },
         "earlyUserModal": {
             "title": "Ganá con tus invitaciones",
-            "description": "A partir de ahora, Peanut está abierto a cualquiera. Podés seguir invitando a tus amigos para ganar recompensas si se registran.",
+            "inviteOnly": "Peanut está abierto para todos. Tu enlace personal sigue registrando tus recompensas por referidos.",
+            "earnRules": "<b>Amigos que invitás →</b> ganás una parte de sus comisiones. <b>Sus invitados →</b> ganás una parte de la parte de ellos.",
             "shareSheetTitle": "Compartir enlace de invitación"
         },
         "noMoreJailModal": {

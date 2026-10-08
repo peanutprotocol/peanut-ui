@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
 import { beginClipboardCopy, copyTextToClipboard } from '@/utils/clipboard.utils'
-import { isNativeBridge } from '@/utils/capacitor'
 
 export type ShareActionOptions = {
     title?: string
@@ -19,36 +18,10 @@ export type ShareActionOptions = {
 )
 
 /**
- * opens the os share sheet, or returns undefined when there is none. web share
- * needs the click's user activation, so call it before any slow await. the
- * native plugin has no such limit and covers android's webview, which has no
- * navigator.share; binaries shipped before the plugin fall back to web share.
- * settles with the error instead of rejecting, so an early failure is never
- * reported as unhandled while the caller is still copying.
- */
-function openShareSheet(data: ShareData): Promise<Error | null> | undefined {
-    let sharing: Promise<void> | undefined
-    if (isNativeBridge() && window.Capacitor?.isPluginAvailable?.('Share')) {
-        sharing = import('@capacitor/share').then(async ({ Share }) => {
-            await Share.share({ title: data.title, text: data.text, url: data.url }).catch((err: unknown) => {
-                // the plugin rejects a dismissed sheet with "Share canceled"
-                if (err instanceof Error && /cancel/i.test(err.message)) err.name = 'AbortError'
-                throw err
-            })
-        })
-    } else {
-        sharing = navigator.share?.(data)
-    }
-    return sharing?.then(
-        () => null,
-        (error: unknown) => (error instanceof Error ? error : new Error(String(error)))
-    )
-}
-
-/**
  * the share behavior behind ShareButton, as a hook so non-button surfaces
  * (the receipt's more-actions drawer rows) reuse it without nesting buttons
- * (TASK-22452). copies to the clipboard and opens the share sheet.
+ * (TASK-22452). clipboard-first + web-share, byte-for-byte the logic that
+ * lived inside ShareButton.
  */
 export function useShareAction({
     url,
@@ -87,25 +60,23 @@ export function useShareAction({
         let copied = false
 
         try {
-            const shareData: ShareData = { title }
-            if (shareText) shareData.text = shareText
-            if (shareUrl) shareData.url = shareUrl
-            // opened before the copy settles: awaiting the clipboard write
-            // spends the click's user activation and the browser then refuses
-            // the share sheet, leaving only the copy (TASK-23176)
-            const sharing = openShareSheet(shareData)
-
-            // always copy to clipboard too (works on both desktop and mobile)
+            // always copy to clipboard first (works on both desktop and mobile)
             const contentToCopy = shareUrl || shareText || ''
             copied = await pendingCopy.resolve(contentToCopy)
             if (copied) {
                 toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
             }
 
-            const shareError = await sharing
-            if (shareError) throw shareError
+            // then try to open the share dialog if available (bonus for mobile)
+            if (navigator.share) {
+                const shareData: ShareData = { title }
+                if (shareText) shareData.text = shareText
+                if (shareUrl) shareData.url = shareUrl
 
-            if (!sharing && !copied) {
+                await navigator.share(shareData)
+            }
+
+            if (!navigator.share && !copied) {
                 const error = new Error('Clipboard copy failed and the Web Share API is unavailable')
                 toast.error(t('shareButton.sharingFailed'))
                 onError?.(error)

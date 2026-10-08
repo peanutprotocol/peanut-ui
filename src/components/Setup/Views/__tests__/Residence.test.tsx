@@ -271,7 +271,7 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Add money with: Crypto' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Make a payment with: Peanut to Peanut' })).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
 
@@ -375,7 +375,7 @@ describe('ResidenceStep', () => {
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
             expect.objectContaining({ residence_country: iso2, restriction_type: kind })
         )
-        fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
 
@@ -387,7 +387,7 @@ describe('ResidenceStep', () => {
         expect(screen.getByRole('button', { name: 'Make a payment with: Peanut to Peanut' })).toBeInTheDocument()
         expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
         expect(mockHandleNext).not.toHaveBeenCalled()
-        fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
@@ -407,7 +407,7 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'GB'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
-        fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED,
             expect.objectContaining({ residence_country: 'GB' })
@@ -435,7 +435,7 @@ describe('ResidenceStep', () => {
             expect(
                 screen.getByRole('heading', { level: 1, name: /I’ll add money to my Peanut account/ })
             ).toBeInTheDocument()
-            expect(screen.getByRole('button', { name: 'Keep these choices' })).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Looks good' })).toBeInTheDocument()
         })
 
         it('restores the checklist with the matching eligibility', () => {
@@ -541,6 +541,6 @@ it('lets users continue from the merged plan without changing residence', () => 
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
     expect(mockSetResidenceCountry).not.toHaveBeenCalled()
     expect(mockHandleNext).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Keep these choices' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Looks good' }))
     expect(mockHandleNext).toHaveBeenCalledTimes(1)
 })

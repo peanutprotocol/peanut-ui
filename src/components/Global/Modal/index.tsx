@@ -3,7 +3,6 @@ import { Fragment, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { useBackHandler } from '@/hooks/useBackHandler'
-import { useOverlayVisibility } from '@/utils/overlay-visibility'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Icons/Icon'
 
@@ -21,13 +20,6 @@ export type ModalProps = {
     hideOverlay?: boolean
     classNameWrapperDiv?: string
     preventClose?: boolean
-}
-
-// This child lives through Headless UI's exit transition. Deferred prompts
-// wait until the closing dialog and its focus lock have actually unmounted.
-const ModalVisibility = () => {
-    useOverlayVisibility(true)
-    return null
 }
 
 const Modal = ({
@@ -65,7 +57,6 @@ const Modal = ({
                     }
                 }}
             >
-                <ModalVisibility />
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-moderate"

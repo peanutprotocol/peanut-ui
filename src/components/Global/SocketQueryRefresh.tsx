@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { REQUEST_FULFILLMENT, TRANSACTIONS, USER } from '@/constants/query.consts'
+import { TRANSACTIONS, USER } from '@/constants/query.consts'
 import type { RainCardBalanceChangedData } from '@/services/websocket'
 
 // One webhook can move several rails, and each moved rail is its own push, all
@@ -30,15 +30,10 @@ export function SocketQueryRefresh() {
     // Default cancelRefetch (true) on purpose: a fetch already in flight when
     // the ping arrives started before the change and may lack the new row, so
     // it is aborted and restarted rather than joined.
-    const refetchRequestFulfillment = useCallback(() => {
-        void queryClient.invalidateQueries({ queryKey: [REQUEST_FULFILLMENT] })
-    }, [queryClient])
-
     const refetchHistoryAndBalance = useCallback(() => {
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         queryClient.invalidateQueries({ queryKey: ['balance'] })
-        refetchRequestFulfillment()
-    }, [queryClient, refetchRequestFulfillment])
+    }, [queryClient])
 
     const refetchRainOverview = useCallback(() => {
         queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY, userId] })
@@ -89,8 +84,6 @@ export function SocketQueryRefresh() {
         username: user?.user?.username ?? undefined,
         autoConnect: !!userId,
         onRefetchRequested: refetchHistoryAndBalance,
-        onHistoryEntry: refetchRequestFulfillment,
-        onConnect: refetchRequestFulfillment,
         onRailStatusUpdate: scheduleUserRefresh,
         onTosUpdate: scheduleUserRefresh,
         onRainCardBalanceChanged: handleRainCardBalanceChanged,

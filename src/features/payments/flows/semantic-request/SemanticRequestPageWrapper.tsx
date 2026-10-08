@@ -42,14 +42,8 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<ParseUrlError | null>(null)
 
-    // Next can hand us a new array when only ?tx= changes. Parsing that
-    // identical route again briefly unmounts the completed payment flow.
-    const recipientKey = JSON.stringify(recipient)
-
     // parse the url segments
     useEffect(() => {
-        const segments = JSON.parse(recipientKey) as string[]
-        let cancelled = false
         // Old admission links must never open a payable charge after public
         // launch — but a COMPLETED admission charge is a real payment whose
         // receipt must stay reachable. Resolve the charge first and only
@@ -85,7 +79,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             return
         }
 
-        if (segments.length === 0) {
+        if (!recipient || recipient.length === 0) {
             setError({ message: t('errors.invalidUrlFormat') } as ParseUrlError)
             setIsLoading(false)
             return
@@ -94,9 +88,8 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
         setIsLoading(true)
         setError(null)
 
-        parsePaymentURL(segments)
+        parsePaymentURL(recipient)
             .then((result) => {
-                if (cancelled) return
                 if (result.error) {
                     setError(result.error)
                 } else if (result.parsedUrl) {
@@ -109,17 +102,13 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
                 }
             })
             .catch((err) => {
-                if (cancelled) return
                 console.error('failed to parse url:', err)
                 setError({ message: t('errors.invalidUrlFormat') } as ParseUrlError)
             })
             .finally(() => {
-                if (!cancelled) setIsLoading(false)
+                setIsLoading(false)
             })
-        return () => {
-            cancelled = true
-        }
-    }, [recipientKey, chargeIdFromUrl, isRetiredCardPayment, router, t])
+    }, [recipient, chargeIdFromUrl, isRetiredCardPayment, router, t])
 
     // loading state — retired admission links stay here while the charge
     // resolves (paid → receipt below) or the redirect to /card lands, because

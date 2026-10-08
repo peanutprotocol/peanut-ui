@@ -4,17 +4,8 @@ on:
         branches: [dev]
         types: [opened, synchronize, reopened]
     push:
-        branches: [dev, main]
+        branches: [dev]
     workflow_dispatch:
-        inputs:
-            before_sha:
-                description: 'Main backfill: previous main SHA (defaults to the first parent of after_sha)'
-                type: string
-                required: false
-            after_sha:
-                description: 'Main backfill: released main SHA (defaults to the selected main revision)'
-                type: string
-                required: false
 
 permissions:
     contents: read
@@ -52,22 +43,16 @@ jobs:
                   PR_HEAD: ${{ github.event.pull_request.head.sha }}
                   PR_BASE: ${{ github.event.pull_request.base.sha }}
                   PUSH_HEAD: ${{ github.sha }}
-                  PUSH_BEFORE: ${{ github.event.before }}
-                  MAIN_BEFORE: ${{ inputs.before_sha }}
-                  MAIN_AFTER: ${{ inputs.after_sha }}
                   GH_TOKEN: ${{ github.token }}
               shell: bash
               run: |
                   set -euo pipefail
-                  if [ "$EVENT" = push ] || { [ "$GITHUB_REF" = refs/heads/main ] && [ "$EVENT" = workflow_dispatch ]; }; then
-                    node scripts/screens/capture-revisions.mjs >> "$GITHUB_OUTPUT"
-                    echo "capture_before=true" >> "$GITHUB_OUTPUT"
-                    exit 0
-                  fi
                   after="${PR_HEAD:-$PUSH_HEAD}"
                   [[ "$after" =~ ^[a-f0-9]{40}$ ]]
                   if [ "$EVENT" = pull_request ]; then
                     before=$(git merge-base "$PR_BASE" "$after")
+                  elif [ "$EVENT" = push ]; then
+                    before=$(node scripts/screens/integration.mjs "$after")
                   else
                     [ "$GITHUB_REF" = refs/heads/dev ] || { echo "Dispatch historical capture on dev" >&2; exit 1; }
                     before=$(git rev-list --first-parent -1 --before=2026-08-28T00:00:00+01:00 origin/main)
@@ -132,7 +117,7 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.after }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }}
             - name: Record required baseline mode
               if: github.event_name == 'pull_request' && needs.refs.outputs.capture_before == 'true'
               run: echo '{"requireSameRunBaseline":true}' > capture/screen-library-requirement.json
@@ -197,7 +182,7 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.before }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }}
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:

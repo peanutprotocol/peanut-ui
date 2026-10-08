@@ -50,7 +50,7 @@ name: ds-shots comment
 
 on:
     workflow_run:
-        workflows: [Tests, ds-shots]
+        workflows: [Tests]
         types: [completed]
 
 permissions:
@@ -72,8 +72,7 @@ jobs:
         # by concurrency after a newer push is already a no-op — its head SHA
         # no longer matches the PR, so both the bind and the stale path skip.
         if: >-
-            (github.event.workflow_run.event == 'pull_request' ||
-            (github.event.workflow_run.event == 'workflow_dispatch' && github.event.workflow_run.name == 'ds-shots')) &&
+            github.event.workflow_run.event == 'pull_request' &&
             github.event.workflow_run.head_repository.full_name == github.repository
         runs-on: ubuntu-latest
         timeout-minutes: 5
@@ -281,7 +280,7 @@ jobs:
                       echo
                       echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
                       echo
-                      echo "The newest [capture run]($RUN_URL) uploaded a diff report that could not be used: a broken archive, or a report that failed validation."
+                      echo "The newest [Tests run]($RUN_URL) uploaded a diff report that could not be used: a broken archive, or a report that failed validation."
                       echo 'The previous result on this comment no longer reflects the latest run, so it was cleared. This publisher run fails on purpose so someone looks.'
                       echo
                       echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'
@@ -327,7 +326,7 @@ jobs:
                       echo
                       echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
                       echo
-                      echo "The newest [capture run]($RUN_URL) produced no diff report in any attempt: ds-shots was skipped, failed before the diff, or had no cached baseline."
+                      echo "The newest [Tests run]($RUN_URL) produced no diff report in any attempt: ds-shots was skipped, failed before the diff, or had no cached baseline."
                       echo 'The previous result on this comment no longer reflects the latest run, so it was cleared.'
                       echo
                       echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'

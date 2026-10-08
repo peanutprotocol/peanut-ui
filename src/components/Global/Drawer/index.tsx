@@ -5,17 +5,6 @@ import { twMerge } from '@/utils/tw'
 import { Drawer as DrawerPrimitive } from 'vaul'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { acquireBottomNavHide } from '@/utils/bottom-nav-visibility'
-import { useOverlayVisibility } from '@/utils/overlay-visibility'
-
-const DrawerVisibilityContext = React.createContext<{ owner: symbol; open: boolean } | null>(null)
-
-// Radix keeps this child mounted during the exit animation, just like its
-// portalled content and focus lock. A force-mounted, closed sheet stays inert.
-const DrawerVisibility = ({ forceMount }: { forceMount?: true }) => {
-    const drawer = React.useContext(DrawerVisibilityContext)
-    useOverlayVisibility(!forceMount || !!drawer?.open, drawer?.owner)
-    return null
-}
 
 type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
     /**
@@ -24,8 +13,6 @@ type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
      * Root double-applies the background scale and fights over the scroll lock.
      */
     nested?: boolean
-    /** Identity used by a deferred announcement to exclude its own open surface. */
-    overlayOwner?: symbol
     /** Slide the app bottom nav out of view while this (modal) sheet is open. */
     hideBottomNav?: boolean
 }
@@ -41,23 +28,16 @@ const Drawer = ({
     shouldScaleBackground = true,
     nested = false,
     hideBottomNav = false,
-    overlayOwner,
     open,
     defaultOpen,
     onOpenChange,
     dismissible = true,
     modal = true,
-    children,
     ...props
 }: DrawerProps) => {
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false)
     const isControlled = open !== undefined
     const isOpen = isControlled ? open : uncontrolledOpen
-    const localOwner = React.useRef(Symbol('drawer'))
-    const owner = overlayOwner ?? localOwner.current
-    // Publish requested opens before the portal mounts; its child retains the
-    // same owner's hold until the closing content has actually left the DOM.
-    useOverlayVisibility(isOpen, owner)
 
     const handleOpenChange = React.useCallback(
         (next: boolean) => {
@@ -88,11 +68,7 @@ const Drawer = ({
             dismissible={dismissible}
             modal={modal}
             {...props}
-        >
-            <DrawerVisibilityContext.Provider value={{ owner, open: isOpen }}>
-                {children}
-            </DrawerVisibilityContext.Provider>
-        </Root>
+        />
     )
 }
 Drawer.displayName = 'Drawer'
@@ -142,7 +118,6 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 // coordination), which broke dragging the sheet from its body.
                 // pull-to-refresh ignores drawer touches itself (usePullToRefresh).
             >
-                <DrawerVisibility forceMount={props.forceMount} />
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
                 <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-full bg-foreground-secondary" />
                 {/* -mb-2 gives back the 8px shadow reserve below, so the sheet

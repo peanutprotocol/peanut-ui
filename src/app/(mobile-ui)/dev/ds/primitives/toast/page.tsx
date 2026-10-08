@@ -180,9 +180,8 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
             </DocSection>
 
             <DesignNote type="info">
-                Toasts never contain buttons. When the user must act, use an inline Callout or a banner. A toast
-                auto-dismisses, so an action inside it can vanish before the user taps it; passing ctas to a toast is a
-                type error. Keep toast copy short and user-facing.
+                Keep toast copy short and user-facing. Use the flow's inline Callout or a full-page error surface when
+                the user must keep seeing the message or take action before continuing.
             </DesignNote>
 
             <SectionDivider />
@@ -242,12 +241,6 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
                         type: 'string',
                         default: '(none)',
                         description: 'One-off container accent; standard tone styling remains provider-owned',
-                    },
-                    {
-                        name: 'ctas',
-                        type: 'never',
-                        default: '(none)',
-                        description: 'Not accepted. Toasts never contain buttons; use an inline Callout or a banner',
                     },
                     {
                         name: 'hideIcon',

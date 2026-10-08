@@ -413,7 +413,6 @@ jobs:
                   path: test-results/junit.xml
                   retention-days: 7
 
-    # Dev captures are opt-in via /ds-shots (ds-shots-request.yml).
     # Can this PR move a pixel? Answered from the PR file list over the API, so
     # a docs-only, workflow-only or test-only PR skips the capture with no
     # checkout and no install.
@@ -424,7 +423,6 @@ jobs:
         # neither the submodule checkout nor the comment can work. Skip it.
         if: >-
             github.event_name == 'pull_request' &&
-            github.event.pull_request.base.ref != 'dev' &&
             github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
         # Reads the PR file list and nothing else.
@@ -474,11 +472,11 @@ jobs:
     # block a merge. It is a review aid.
     #
     # Two roles, one set of steps, because the capture half is the same work:
-    #   • push to main or feat/design-system (the DS release train) →
+    #   • push to dev, main or feat/design-system (the DS release train) →
     #     capture that commit and cache it as a baseline.
     #     The cache has to be written from the base branch: an entry written by
     #     a PR run is scoped to that PR, and no sibling PR can read it. Written
-    #     from the base branch, sibling PRs restore it instead of building it.
+    #     from dev, ten PRs on that base restore it instead of building it.
     #   • pull request → capture the head, diff it against that baseline, and
     #     keep one comment up to date.
     ds-shots:
@@ -489,7 +487,7 @@ jobs:
         # it after a failed backdoor-scan, so that result is checked by hand.
         if: >-
             always() && needs.backdoor-scan.result == 'success' &&
-            ((github.event_name == 'push' && contains(fromJSON('["main","feat/design-system"]'), github.ref_name))
+            ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
             || needs.ds-shots-filter.outputs.render == 'true')
         runs-on: ubuntu-latest
         # Build, capture, regression specs, and the i18n overflow gate took

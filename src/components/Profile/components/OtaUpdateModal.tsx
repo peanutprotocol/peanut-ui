@@ -5,8 +5,8 @@ import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import { useTranslations } from 'next-intl'
 
 /**
- * "Update available" for a staged OTA bundle. The bundle is already downloaded;
- * the CTA is a plugin `set()`, which reloads the page on the spot; if the page is somehow
+ * "Update ready — restart to apply" for a staged OTA bundle. The restart is a
+ * plugin `set()`, which reloads the page on the spot; if the page is somehow
  * still alive afterwards the provider exits the app on Android and, on iOS
  * (no programmatic exit), swaps the copy for the app-switcher instruction.
  * An apply that never reached the plugin (offline re-stage, rejected reload)
@@ -38,7 +38,7 @@ const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () =>
                     ? [{ text: tCommon('gotIt'), shadowSize: '4', onClick: onClose }]
                     : [
                           {
-                              text: failed ? tCommon('tryAgain') : t('update'),
+                              text: failed ? tCommon('tryAgain') : t('restartNow'),
                               shadowSize: '4',
                               loading: applying,
                               disabled: applying,

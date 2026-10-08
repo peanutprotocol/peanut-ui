@@ -287,7 +287,7 @@ const CurrencyBox = ({
                 !comingSoon && 'cursor-pointer',
                 comingSoon && 'cursor-not-allowed bg-background-disabled opacity-75',
                 active && !comingSoon && 'bg-background-disabled',
-                selected && !comingSoon && 'border border-border-default bg-background-selection'
+                selected && !comingSoon && 'border border-border-default'
             )}
         >
             <div className="flex items-center gap-2">
@@ -310,22 +310,13 @@ const CurrencyBox = ({
                     >
                         {currency}
                     </h3>
-                    <span
-                        className={twMerge(
-                            'text-body-xs',
-                            selected && !comingSoon ? 'text-foreground-over-color-primary' : 'text-foreground-secondary'
-                        )}
-                    >
-                        {currencyName}
-                    </span>
+                    <span className="text-body-xs text-foreground-secondary">{currencyName}</span>
                 </div>
             </div>
 
             <div className="flex items-center gap-2">
                 {comingSoon && <Badge status="soon" size="small" />}
-                {selected && !comingSoon && (
-                    <Icon size={16} name="success" className="text-foreground-over-color-primary" />
-                )}
+                {selected && !comingSoon && <Icon size={16} name="success" className="text-foreground-secondary" />}
             </div>
         </li>
     )

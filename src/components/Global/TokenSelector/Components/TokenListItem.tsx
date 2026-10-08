@@ -6,7 +6,7 @@
  * mini-badge overlaid on a logo"), title = symbol, trailing = the wallet
  * balance when `showBalance` is set, plus a check on the selected row.
  *
- * selected = fill + check: `bg-background-selection` with
+ * selected = fill + check (kush ruling 2026-09-21): `bg-action-primary` with
  * `text-foreground-over-color-primary` on BOTH text lines and a trailing 20px
  * check, so colour never carries the state on its own (WCAG 1.4.1).
  *
@@ -80,7 +80,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                 position={position}
                 className={twMerge(
                     'transition-colors duration-instant active:bg-background-disabled',
-                    isSelected && 'bg-background-selection'
+                    isSelected && 'bg-action-primary'
                 )}
                 leading={
                     <DisplayIcon

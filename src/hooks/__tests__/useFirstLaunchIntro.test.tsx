@@ -1,8 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { FIRST_LAUNCH_INTRO_KEY, useFirstLaunchIntro } from '../useFirstLaunchIntro'
 
-import { markFirstLaunchIntroSeen } from '@/utils/first-launch-intro'
-
 let mockNative = true
 let mockSplashGone: Promise<void>
 const mockGet = jest.fn()
@@ -158,47 +156,4 @@ it('holds the isolated capture surface on the greeting without persisting any fl
     expect(result.current.active).toBe(true)
     expect(result.current.greetingVisible).toBe(true)
     expect(mockSet).not.toHaveBeenCalled()
-})
-
-it('opens landing immediately after logout even when this install never showed the intro', async () => {
-    await act(async () => {
-        await markFirstLaunchIntroSeen()
-    })
-    expect(mockSet).toHaveBeenCalledWith({ key: FIRST_LAUNCH_INTRO_KEY, value: '1' })
-    const { result } = renderHook(() => useFirstLaunchIntro(true))
-    expect(result.current.phase).toBe('done')
-    expect(result.current.active).toBe(false)
-    expect(result.current.played).toBe(false)
-    expect(mockGet).not.toHaveBeenCalled()
-})
-
-it('skips the checking frame when the intro was already seen', () => {
-    localStorage.setItem(FIRST_LAUNCH_INTRO_KEY, '1')
-    const { result } = renderHook(() => useFirstLaunchIntro(true))
-    expect(result.current.active).toBe(false)
-    expect(result.current.phase).toBe('done')
-    expect(mockGet).not.toHaveBeenCalled()
-})
-
-it('restores the local flag from native storage for later landing mounts', async () => {
-    mockGet.mockResolvedValue({ value: '1' })
-    const first = renderHook(() => useFirstLaunchIntro(true))
-    await flush()
-    first.unmount()
-    mockGet.mockClear()
-    const returning = renderHook(() => useFirstLaunchIntro(true))
-    expect(returning.result.current.active).toBe(false)
-    expect(mockGet).not.toHaveBeenCalled()
-})
-
-it('keeps logout unblocked when the native preference write hangs', async () => {
-    mockSet.mockImplementation(() => new Promise(() => {}))
-    const finished = jest.fn()
-    const marking = markFirstLaunchIntroSeen().then(finished)
-    await flush()
-    expect(localStorage.getItem(FIRST_LAUNCH_INTRO_KEY)).toBe('1')
-    expect(finished).not.toHaveBeenCalled()
-    await advance(700)
-    await marking
-    expect(finished).toHaveBeenCalledTimes(1)
 })

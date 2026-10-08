@@ -268,7 +268,7 @@
             "accounts": "Cuentas",
             "payments": "Pagos",
             "paymentLimits": "Límites de pago",
-            "showFullName": "Mostrar nombre completo",
+            "showMyFullName": "Mostrar nombre completo",
             "backup": "Respaldo",
             "exchangeRatesAndFees": "Tipos de cambio y comisiones",
             "starAlt": "estrella",
@@ -531,12 +531,12 @@
             "requestAction": "Solicitar"
         },
         "update": {
-            "title": "Actualización disponible",
-            "description": "Toca Actualizar para instalar la nueva versión. Si Peanut se cierra, vuelve a abrirla.",
-            "update": "Actualizar",
+            "title": "Actualización lista",
+            "description": "Reinicia Peanut para terminar de instalar la actualización.",
+            "restartNow": "Reiniciar ahora",
             "notNow": "Ahora no",
             "manualRestart": "Cierra Peanut desde el selector de apps y vuelve a abrirla para terminar la actualización.",
-            "applyFailed": "La actualización no se instaló. Revisa tu conexión e inténtalo de nuevo. Peanut sigue en la versión actual."
+            "applyFailed": "No se pudo aplicar la actualización. Revisa tu conexión e inténtalo de nuevo: Peanut sigue con la versión con la que iniciaste."
         },
         "storeUpdate": {
             "title": "Actualiza en {store}",
@@ -793,13 +793,13 @@
             "rewards": "¡Quiero recompensas!",
             "control": "Vamos a terminar",
             "fees": "Suena bien",
-            "features": "Mantener estas opciones",
+            "features": "Se ve bien",
             "bank": "¡Eso sí me gusta!",
             "card": "Me encanta el rosa",
             "exchange": "Es una buena oferta",
             "local": "Vamos a pagar como locales",
             "people": "Tiene sentido",
-            "funding": "Mantener estas opciones"
+            "funding": "Sigamos"
         },
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
@@ -1220,10 +1220,6 @@
             "badgePartial": "Pagado en parte",
             "paidByName": "Pagado por {name}",
             "paidByBank": "Pagado por transferencia bancaria"
-        },
-        "paymentReceived": {
-            "rowLabel": "Pago",
-            "received": "Pago recibido"
         }
     },
     "payment": {
@@ -2418,7 +2414,6 @@
             "downloadPdf": "Descargar comprobante (PDF)",
             "pdfDownloadedInstead": "Este navegador descargó el comprobante porque no permite compartir archivos.",
             "receiptPdfUnavailable": "El comprobante en PDF no está disponible. Inténtalo de nuevo.",
-            "attachmentUnavailable": "El archivo no está disponible. Inténtalo de nuevo o contacta a soporte.",
             "inviteFriends": "Invita amigos y gana más recompensas",
             "reportIssue": "¿Problemas con esta transacción?",
             "cancelDeposit": "Cancelar depósito",
@@ -3533,7 +3528,8 @@
         },
         "earlyUserModal": {
             "title": "Gana con tus invitaciones",
-            "description": "A partir de ahora, Peanut está abierto a cualquiera. Puedes seguir invitando a tus amigos para ganar recompensas si se registran.",
+            "inviteOnly": "Peanut está abierto para todos. Tu enlace personal sigue registrando tus recompensas por referidos.",
+            "earnRules": "<b>Amigos que invitas →</b> ganas una parte de sus comisiones. <b>Sus invitados →</b> ganas una parte de la parte de ellos.",
             "shareSheetTitle": "Compartir enlace de invitación",
             "shareCta": "Compartir link de invitación",
             "learnMore": "Saber más"

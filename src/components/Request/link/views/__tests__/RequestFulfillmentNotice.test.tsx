@@ -1,6 +1,6 @@
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { RequestFulfillmentNotice } from '../RequestFulfillmentNotice'
 
@@ -55,59 +55,6 @@ describe('RequestFulfillmentNotice', () => {
         expect(await screen.findByText('Partly paid')).toBeInTheDocument()
         expect(screen.getByText('$100 of $250 received')).toBeInTheDocument()
     })
-
-    it('includes bank and balance payments in progress while the request is still open', async () => {
-        getRequest.mockResolvedValue(
-            request({ bankFulfilment: 'partial', receivedAmount: '100', totalCollectedAmount: 50 })
-        )
-
-        renderNotice()
-
-        expect(await screen.findByText('$150 of $250 received')).toBeInTheDocument()
-        expect(screen.getByText('Payment')).toBeInTheDocument()
-        expect(screen.getByText('Partly paid')).toBeInTheDocument()
-        expect(screen.queryByText('$100 of $250 received')).not.toBeInTheDocument()
-    })
-
-    it('updates mixed-payment progress when another balance payment arrives', async () => {
-        const invalidate = jest.spyOn(client, 'invalidateQueries')
-        getRequest
-            .mockResolvedValueOnce(
-                request({ bankFulfilment: 'partial', receivedAmount: '100', totalCollectedAmount: 50 })
-            )
-            .mockResolvedValue(request({ bankFulfilment: 'partial', receivedAmount: '100', totalCollectedAmount: 75 }))
-
-        renderNotice()
-        expect(await screen.findByText('$150 of $250 received')).toBeInTheDocument()
-        invalidate.mockClear()
-
-        await act(async () => {
-            await client.invalidateQueries({ queryKey: ['request-fulfillment'] })
-        })
-
-        expect(await screen.findByText('$175 of $250 received')).toBeInTheDocument()
-        expect(screen.getByText('Partly paid')).toBeInTheDocument()
-        await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] }))
-    })
-
-    it.each([
-        ['100.00', 100.21, '200.21'],
-        ['10.00', 6.15, '16.15'],
-        ['100.009', 100.001, '200.01'],
-        ['100.004', 100.004, '200'],
-    ])(
-        'preserves cents when combining bank %s and balance %s payments',
-        async (receivedAmount, totalCollectedAmount, total) => {
-            getRequest.mockResolvedValue(
-                request({ tokenAmount: '500', bankFulfilment: 'partial', receivedAmount, totalCollectedAmount })
-            )
-
-            renderNotice()
-
-            expect(await screen.findByText(`$${total} of $500 received`)).toBeInTheDocument()
-            expect(screen.getByText('Partly paid')).toBeInTheDocument()
-        }
-    )
 
     it('names the payer once the request is paid', async () => {
         getRequest.mockResolvedValue(request({ bankFulfilment: 'paid', receivedAmount: '250', payerName: 'ANA SILVA' }))
@@ -213,7 +160,6 @@ describe('RequestFulfillmentNotice', () => {
             request({
                 bankFulfilment: 'partial',
                 receivedAmount: '40',
-                totalCollectedAmount: 210,
                 paidAt: '2026-09-20T22:00:00.000Z',
             })
         )
@@ -225,51 +171,20 @@ describe('RequestFulfillmentNotice', () => {
         expect(screen.getByText('$40 of $250 by bank transfer. The rest was paid another way.')).toBeInTheDocument()
     })
 
-    it('shows paid when the whole request was paid from a balance', async () => {
+    // The row reports the bank transfer. A request answered entirely inside
+    // Peanut has no bank transfer to report, so it shows no row at all.
+    it('shows nothing when the whole request was paid from a balance', async () => {
         getRequest.mockResolvedValue(request({ bankFulfilment: 'none', paidAt: '2026-09-20T22:00:00.000Z' }))
 
-        renderNotice()
-        expect(await screen.findByText('Payment received')).toBeInTheDocument()
-        expect(screen.getByText('Paid')).toBeInTheDocument()
+        const { container } = renderNotice()
+
+        await waitFor(() => expect(getRequest).toHaveBeenCalled())
+        expect(container).toBeEmptyDOMElement()
     })
 
-    it('also watches a request that shares no bank details', async () => {
+    it('does not poll a request that shares no bank details', () => {
         render(<RequestFulfillmentNotice requestId="req-1" bankPayable={false} />, { wrapper })
 
-        await waitFor(() => expect(getRequest).toHaveBeenCalledWith('req-1'))
+        expect(getRequest).not.toHaveBeenCalled()
     })
-})
-
-it('refreshes the visible notice on a socket invalidation without leaving the screen', async () => {
-    getRequest.mockResolvedValueOnce(request({})).mockResolvedValue(request({ totalCollectedAmount: 250 }))
-    renderNotice()
-    await waitFor(() => expect(getRequest).toHaveBeenCalledTimes(1))
-    await act(async () => {
-        await client.invalidateQueries({ queryKey: ['request-fulfillment'] })
-    })
-    expect(await screen.findByText('Payment received')).toBeInTheDocument()
-    expect(screen.getByText('Paid')).toBeInTheDocument()
-})
-
-it('recovers a missed push on the visible screen with a five-second poll', async () => {
-    jest.useFakeTimers()
-    try {
-        getRequest.mockResolvedValueOnce(request({})).mockResolvedValue(request({ totalCollectedAmount: 100 }))
-        renderNotice()
-        await act(async () => {
-            await jest.advanceTimersByTimeAsync(0)
-        })
-        expect(getRequest).toHaveBeenCalledTimes(1)
-        await act(async () => {
-            await jest.advanceTimersByTimeAsync(5000)
-        })
-        expect(getRequest).toHaveBeenCalledTimes(2)
-        await act(async () => {
-            await jest.advanceTimersByTimeAsync(1)
-        })
-        expect(screen.getByText('Partly paid')).toBeInTheDocument()
-        expect(screen.getByText('$100 of $250 received')).toBeInTheDocument()
-    } finally {
-        jest.useRealTimers()
-    }
 })

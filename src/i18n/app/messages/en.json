@@ -268,7 +268,7 @@
             "accounts": "Accounts",
             "payments": "Payments",
             "paymentLimits": "Payment limits",
-            "showFullName": "Show full name",
+            "showMyFullName": "Show full name",
             "backup": "Backup",
             "exchangeRatesAndFees": "Exchange rates and fees",
             "starAlt": "star",
@@ -531,12 +531,12 @@
             "requestAction": "Request"
         },
         "update": {
-            "title": "Update available",
-            "description": "Tap Update to install the new version. If Peanut closes, open it again.",
-            "update": "Update",
+            "title": "Update ready",
+            "description": "Restart Peanut to finish installing the update.",
+            "restartNow": "Restart now",
             "notNow": "Not now",
             "manualRestart": "Close Peanut from the app switcher and open it again to finish the update.",
-            "applyFailed": "The update didn't install. Check your connection and try again. Peanut is still on the current version."
+            "applyFailed": "The update couldn't be applied. Check your connection and try again — Peanut is still running the version you started with."
         },
         "storeUpdate": {
             "title": "Update in {store}",
@@ -793,13 +793,13 @@
             "rewards": "Ooh, rewards",
             "control": "Let's finish",
             "fees": "Sounds good",
-            "features": "Keep these choices",
+            "features": "Looks good",
             "bank": "Now we’re talking",
             "card": "Love the pink",
             "exchange": "That’s a good deal",
             "local": "Let’s go local",
             "people": "That makes sense",
-            "funding": "Keep these choices"
+            "funding": "Let’s keep going"
         },
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
@@ -1220,10 +1220,6 @@
             "badgePartial": "Partly paid",
             "paidByName": "Paid by {name}",
             "paidByBank": "Paid by bank transfer"
-        },
-        "paymentReceived": {
-            "rowLabel": "Payment",
-            "received": "Payment received"
         }
     },
     "payment": {
@@ -2418,7 +2414,6 @@
             "downloadPdf": "Download Receipt (PDF)",
             "pdfDownloadedInstead": "This browser downloaded the receipt because file sharing is unavailable.",
             "receiptPdfUnavailable": "Receipt PDF is unavailable. Please try again.",
-            "attachmentUnavailable": "Attachment is unavailable. Try again or contact support.",
             "inviteFriends": "Invite friends to earn more rewards",
             "reportIssue": "Issues with this transaction?",
             "cancelDeposit": "Cancel deposit",
@@ -3533,7 +3528,8 @@
         },
         "earlyUserModal": {
             "title": "Earn from invites",
-            "description": "From now on, Peanut is open to anyone. You can still invite your friends to earn rewards if they sign up.",
+            "inviteOnly": "Peanut is open to everyone. Your personal link still tracks referral rewards.",
+            "earnRules": "<b>Friends you invite →</b> you earn a cut of their fees. <b>Their invites →</b> you earn a cut of their cut.",
             "shareSheetTitle": "Share invite link",
             "shareCta": "Share Invite link",
             "learnMore": "Learn more"

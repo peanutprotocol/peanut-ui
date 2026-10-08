@@ -127,7 +127,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                         'transition-colors',
                                         // same fill as ListItem's pressed state: the DS has no separate hover token
                                         'hover:bg-background-disabled focus:bg-background-disabled',
-                                        'data-[state=checked]:bg-background-selection data-[state=checked]:text-foreground-over-color-primary'
+                                        'data-[state=checked]:bg-action-primary data-[state=checked]:text-foreground-inverse'
                                     )}
                                 >
                                     <ItemText className="text-label-l">{option.label}</ItemText>

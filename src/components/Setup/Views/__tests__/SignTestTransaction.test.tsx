@@ -68,7 +68,8 @@ jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
     default: () => <div data-testid="celebration-mascot" />,
 }))
-jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: jest.fn(), success: jest.fn() } }))
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: jest.fn() } }))
+jest.mock('../../components/CelebrationCurtain', () => ({ __esModule: true, default: () => <canvas /> }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/signup-attribution', () => ({
     readSignupAttributionAsync: (...args: unknown[]) => mockReadSignupAttributionAsync(...args),

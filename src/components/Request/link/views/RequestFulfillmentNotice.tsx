@@ -5,92 +5,59 @@ import Card from '@/components/Global/Card'
 import Badge from '@/components/Global/Badges/Badge'
 import { requestsApi } from '@/services/requests'
 import { formatTokenAmount } from '@/utils/general.utils'
-import { parseUsdAmountToUnits, printableUsdc } from '@/utils/balance.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { requestFulfillmentState, requestIsSettled } from '../requestFulfillment'
-import { REQUEST_FULFILLMENT, REQUEST_FULFILLMENT_POLL_MS, TRANSACTIONS } from '@/constants/query.consts'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { useEffect, useRef } from 'react'
 
-export const REQUEST_FULFILLMENT_QUERY_KEY = [REQUEST_FULFILLMENT] as const
+export const REQUEST_FULFILLMENT_QUERY_KEY = ['request-fulfillment'] as const
 
-export { REQUEST_FULFILLMENT_POLL_MS } from '@/constants/query.consts'
+/** how often the requester's screen asks whether the money arrived */
+export const REQUEST_FULFILLMENT_POLL_MS = 15_000
 
-/** Watch every request, including balance/crypto payments. Socket pushes invalidate
- * this query centrally; visible-screen polling recovers missed pushes. */
-export function RequestFulfillmentNotice({ requestId }: { requestId: string; bankPayable?: boolean }) {
+/**
+ * Whether a bank deposit answered this request, on the requester's own screen.
+ *
+ * Only a request that shares bank details can be paid this way, so only one
+ * polls. A request answered inside Peanut reports itself through the charge it
+ * created and needs nothing here.
+ */
+export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId: string; bankPayable: boolean }) {
     const t = useTranslations('request')
     const queryClient = useQueryClient()
 
     const { data } = useQuery({
         queryKey: [...REQUEST_FULFILLMENT_QUERY_KEY, requestId],
+        enabled: bankPayable,
         queryFn: () => requestsApi.get(requestId),
         refetchInterval: REQUEST_FULFILLMENT_POLL_MS,
-        refetchOnWindowFocus: 'always',
     })
 
     const state = data ? requestFulfillmentState(data) : null
-    const fromCharges = data?.totalCollectedAmount ?? 0
-    const lastObservedPayment = useRef<string | null>(null)
+    const lastObservedBankPayment = useRef<string | null>(null)
     useEffect(() => {
-        if (!data || !state || (state === 'unpaid' && !(fromCharges > 0) && !requestIsSettled(data))) return
+        if (!state || state === 'unpaid') return
         // The API serializes one request's Decimal amount consistently. Keep
         // its string form so comparisons never round money through Number.
-        const payment = `${requestId}:${state}:${data?.receivedAmount ?? ''}:${fromCharges}:${data?.paidAt ?? ''}`
-        if (payment === lastObservedPayment.current) return
-        lastObservedPayment.current = payment
+        const bankPayment = `${requestId}:${state}:${data?.receivedAmount ?? ''}`
+        if (bankPayment === lastObservedBankPayment.current) return
+        lastObservedBankPayment.current = bankPayment
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-    }, [data, fromCharges, queryClient, requestId, state])
+    }, [data?.receivedAmount, queryClient, requestId, state])
 
     if (!data || !state) return null
 
-    if (state === 'unpaid') {
-        const settled = requestIsSettled(data)
-        if (!(fromCharges > 0) && !settled) return null
-        const asked = Number(data.tokenAmount)
-        const paid = settled || !data.tokenAmount || (Number.isFinite(asked) && fromCharges >= asked)
-        return (
-            <Card position="solo" className="w-full px-4 py-0">
-                <DataRow
-                    label={t('paymentReceived.rowLabel')}
-                    value={
-                        paid
-                            ? t('paymentReceived.received')
-                            : t('paidByBank.receivedPartial', {
-                                  received: formatTokenAmount(String(fromCharges), 2) ?? String(fromCharges),
-                                  requested: formatTokenAmount(data.tokenAmount, 2) ?? data.tokenAmount,
-                              })
-                    }
-                    trailing={
-                        <Badge
-                            status={paid ? 'completed' : 'pending'}
-                            customText={t(paid ? 'paidByBank.badgePaid' : 'paidByBank.badgePartial')}
-                        />
-                    }
-                />
-            </Card>
-        )
-    }
+    // This row reports the bank transfer, so no bank money means no row — a
+    // request paid entirely inside Peanut has nothing to say here.
+    if (state === 'unpaid') return null
     // Whether anything is still OWED is a question about the request, not about
     // the bank. A request settled by a bank transfer plus a Peanut payment is
     // paid in full, and "Partly paid" would ask for the money twice.
     const settled = requestIsSettled(data)
 
-    // Bank deposits and settled charges are separate books. While money is
-    // still owed, progress must include both rather than just the bank part.
-    const showCombinedProgress = state === 'partial' && !settled && fromCharges > 0
-    const receivedAmount = showCombinedProgress
-        ? printableUsdc(
-              (parseUsdAmountToUnits(data.receivedAmount ?? '0') ?? 0n) + (parseUsdAmountToUnits(fromCharges) ?? 0n)
-          )
-        : (data.receivedAmount ?? '0')
-    // printableUsdc truncates sub-cent dust using integer units. Format that
-    // cent-exact result directly: formatTokenAmount's floating-point floor
-    // can subtract a cent even from a correct decimal sum (e.g. 16.15).
-    const received = showCombinedProgress
-        ? Number(receivedAmount).toLocaleString('en-US', { maximumFractionDigits: 2 })
-        : (formatTokenAmount(receivedAmount, 2) ?? receivedAmount)
+    const received = formatTokenAmount(data.receivedAmount ?? '0', 2) ?? data.receivedAmount ?? '0'
     const requested = formatTokenAmount(data.tokenAmount, 2) ?? data.tokenAmount ?? '0'
 
     // A part payment states both numbers, because the requester's next move is
@@ -113,7 +80,7 @@ export function RequestFulfillmentNotice({ requestId }: { requestId: string; ban
     return (
         <Card position="solo" className="w-full px-4 py-0">
             <DataRow
-                label={t(showCombinedProgress ? 'paymentReceived.rowLabel' : 'paidByBank.rowLabel')}
+                label={t('paidByBank.rowLabel')}
                 value={value}
                 trailing={
                     <Badge

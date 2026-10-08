@@ -1,8 +1,6 @@
 import { generateMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import Loading from '@/components/Global/Loading'
 import { WithdrawFlowProvider } from '@/features/withdraw/WithdrawFlowContext'
-import { BankSendIdentityGate } from '@/features/withdraw/BankSendIdentityGate'
 import React from 'react'
 
 export const metadata = generateMetadata({
@@ -14,11 +12,7 @@ export const metadata = generateMetadata({
 export default function WithdrawLayout({ children }: { children: React.ReactNode }) {
     return (
         <WithdrawFlowProvider>
-            <PageContainer>
-                <React.Suspense fallback={<Loading variant="mascot" />}>
-                    <BankSendIdentityGate>{children}</BankSendIdentityGate>
-                </React.Suspense>
-            </PageContainer>
+            <PageContainer>{children}</PageContainer>
         </WithdrawFlowProvider>
     )
 }

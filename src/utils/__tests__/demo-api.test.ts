@@ -62,7 +62,6 @@ describe('demoRespond — routing', () => {
         expect(res.status).toBe(200)
         expect(res.headers.get('content-type')).toBe('application/json')
         expect(data.user.username).toBe(DEMO_USER.user.username)
-        expect(data.residence).toMatchObject({ declared: 'BR', declaredSecond: null })
     })
 
     it('answers the verified-address read the bank form makes on open, even in strict capture mode', async () => {
@@ -314,18 +313,18 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
     })
 })
 
-describe('demo mode is server-inert', () => {
+describe('demo mode is web-safe', () => {
     afterEach(() => {
         jest.resetModules()
         jest.dontMock('@/utils/capacitor')
     })
 
-    it('isDemoMode() is false without a browser, even when enabled', () => {
+    it('isDemoMode() is false when not running under Capacitor', () => {
         jest.resetModules()
         jest.doMock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
-        enableDemoMode()
-        expect(isDemoMode()).toBe(false)
+        enableDemoMode() // even with the flag set...
+        expect(isDemoMode()).toBe(false) // ...web stays inert
     })
 })
 

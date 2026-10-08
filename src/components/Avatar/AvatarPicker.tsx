@@ -167,12 +167,12 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         // tile instead of stepping at a breakpoint. The 12px top padding lets the Earned tag
                                         // (4px down, 20px tall) overlap only the sticker's top corner, never the text or the
                                         // face. A name that wraps grows every row alike. The chosen tile follows the selected-rows
-                                        // rule in design.md: pale-blue background-selection fill, over-color ink on every line, and a second
+                                        // rule in design.md: action-primary fill, over-color ink on every line, and a second
                                         // channel besides colour (WCAG 1.4.1), here a 1px inset ring inside the 1px border:
                                         // it reads as a 2px edge but takes no layout, so the tile does not shift (QA-42).
                                         // inset-ring, not ring: globals.css redefines the bare ring utility.
                                         `relative flex flex-col items-center ${CARD_SURFACE} px-1 pt-3 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
-                                        checked && 'bg-background-selection inset-ring inset-ring-border-default'
+                                        checked && 'bg-action-primary inset-ring inset-ring-border-default'
                                     )}
                                 >
                                     {earned && (

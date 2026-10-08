@@ -11,6 +11,7 @@ import {
     type OnboardingInput,
     type VerifyRowInput,
     canAlreadyTransact,
+    canHideChecklist,
     holdsMoney,
     resolveOnboarding,
     selectFirstPaymentRoute,
@@ -85,9 +86,10 @@ describe('resolveOnboarding — every state on the page', () => {
         })
     })
 
-    it('ID check failed on a final decision: failed, never to-do', () => {
+    it('ID check failed on a final decision: failed, never to-do, and it cannot be hidden', () => {
         const state = resolve({ identity: { status: 'failed', isTerminalFailure: true } })
         expect(state).toMatchObject({ verify: 'failed', step: 'verify' })
+        expect(canHideChecklist(state)).toBe(false)
     })
 
     it('a FINAL rejection stored as action_required is failed too (the hook folds it into isTerminalFailure)', () => {
@@ -110,6 +112,7 @@ describe('resolveOnboarding — every state on the page', () => {
         }
         const state = resolve({ identity: { status: 'not_started', canTransact: true }, milestone: 'funded' })
         expect(state.step).toBe('first_payment')
+        expect(canHideChecklist(state)).toBe(true)
     })
 
     it('verified, $0: add money is next', () => {
@@ -207,6 +210,26 @@ describe('selectFirstPaymentRoute — the one eligibility selector', () => {
     it('the QR gate still loading → pending, whatever the card answer', () => {
         expect(selectFirstPaymentRoute({ canSpendViaCard: true, canPayQr: undefined })).toBe('pending')
         expect(selectFirstPaymentRoute({ canSpendViaCard: false, canPayQr: undefined })).toBe('pending')
+    })
+})
+
+describe('canHideChecklist — only once the payment row is the one left', () => {
+    const funded = { identityStatus: 'verified' as const, milestone: 'funded' as const, holdsMoney: true }
+
+    it('verified and funded, payment open → can hide', () => {
+        expect(canHideChecklist(resolve(funded))).toBe(true)
+    })
+
+    it('not before Add money is done, and not before the ID check is done', () => {
+        expect(canHideChecklist(resolve({ identityStatus: 'verified', milestone: 'verified' }))).toBe(false)
+        expect(canHideChecklist(resolve({ milestone: 'funded', holdsMoney: true }))).toBe(false)
+        expect(canHideChecklist(resolve({ identityStatus: 'processing', milestone: 'funded' }))).toBe(false)
+    })
+
+    it('not when there is nothing left to hide', () => {
+        expect(canHideChecklist(resolve({ ...funded, isActivated: true }))).toBe(false)
+        expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'none' }))).toBe(false)
+        expect(canHideChecklist(resolve({ ...funded, firstPaymentRoute: 'pending' }))).toBe(false)
     })
 })
 

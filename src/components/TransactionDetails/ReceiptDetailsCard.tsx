@@ -10,7 +10,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { DataRowGroup } from '@/components/0_Bruddle/DataRowGroup'
-import { ReceiptAttachmentRow } from './ReceiptAttachmentRow'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRows'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
@@ -61,14 +61,12 @@ export function ReceiptDetailsCard({
     vm,
     shouldShowQrShare,
     inDrawer,
-    isActive = true,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
     /** the card sits in the details drawer, so the provider sheet stacks on top */
     inDrawer?: boolean
-    isActive?: boolean
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -326,7 +324,15 @@ export function ReceiptDetailsCard({
                 )}
 
                 {rowVisibilityConfig.attachment && transaction.attachmentUrl && (
-                    <ReceiptAttachmentRow url={transaction.attachmentUrl} isActive={isActive} />
+                    <DataRow
+                        label={t('rows.attachment')}
+                        value={
+                            <LinkButton href={transaction.attachmentUrl} external>
+                                {t('rows.download')}
+                                <Icon name="download" size={14} className="shrink-0" />
+                            </LinkButton>
+                        }
+                    />
                 )}
             </DataRowGroup>
 

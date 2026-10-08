@@ -115,7 +115,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                                 position={getCardPosition(index, candidates.length)}
                                 className={twMerge(
                                     'transition-colors duration-instant active:bg-background-disabled',
-                                    isSelected && 'bg-background-selection'
+                                    isSelected && 'bg-action-primary'
                                 )}
                                 title={
                                     <span className={twMerge('block truncate', paint)}>

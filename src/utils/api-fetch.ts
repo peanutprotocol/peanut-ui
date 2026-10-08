@@ -29,8 +29,10 @@ type FetchOptions = RequestInit & {
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {
-    // Explicit demo sessions route to synthetic data before any auth/network work.
-    // Lazy import keeps the fixtures out of the initial bundle.
+    // Native-only demo mode: route to synthetic data before any header/network
+    // work. isDemoMode() is false on web, so this is unreachable for real users.
+    // Lazy import keeps the demo module (and its viem-using fixtures) out of the
+    // web bundle and out of every api-fetch importer's module graph.
     if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))
 
     // Dev fixtures: `?__fixture=<name>` answers every call from a named app

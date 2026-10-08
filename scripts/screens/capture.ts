@@ -1,4 +1,4 @@
-import { chromium, devices, expect } from '@playwright/test'
+import { chromium, devices } from '@playwright/test'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -13,12 +13,7 @@ import { captureProfile } from './capture-profiles.mjs'
 import { installCaptureSafeArea } from './capture-safe-area.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
 import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
-import {
-    CAPTURE_STATIC_CSS,
-    FIXTURE_BANNER_CANDIDATE_SELECTOR,
-    finishOverlayAnimations,
-    hideFixtureBanners,
-} from './capture-ui.mjs'
+import { FIXTURE_BANNER_CANDIDATE_SELECTOR, hideFixtureBanners } from './capture-ui.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -441,7 +436,6 @@ async function main() {
                 }
                 for (const action of actions ?? []) {
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
-                    else if ('clickSelector' in action) await page.locator(action.clickSelector).first().click()
                     else {
                         await page.locator(action.fill.selector).fill(action.fill.value)
                         // Pause like a person before the next tap. The app writes a typed value to the
@@ -454,8 +448,6 @@ async function main() {
                 if (screen.entryRoute)
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })
                 await page.waitForLoadState('networkidle', { timeout: 15000 })
-                if (screen.expectSelector)
-                    await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (screen.event) {
                     await page.waitForFunction(() => document.body.innerText.trim().length > 60)
                     await page.evaluate(
@@ -475,9 +467,10 @@ async function main() {
                         })
                     )
                 )
-                await page.evaluate(() => document.fonts.ready)
-                await page.evaluate(finishOverlayAnimations)
-                await page.addStyleTag({ content: CAPTURE_STATIC_CSS })
+                await page.addStyleTag({
+                    content:
+                        '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important} [data-testid="fixture-banner"],a[href*="__fixture=off"]{display:none!important}',
+                })
                 await page.locator(FIXTURE_BANNER_CANDIDATE_SELECTOR).evaluateAll(hideFixtureBanners)
                 await page.evaluate(() => document.fonts.ready)
                 if (screen.videoFrame !== undefined) await page.locator('video').first().waitFor({ state: 'attached' })
@@ -564,8 +557,6 @@ async function main() {
                 if (!stable) throw new Error('Screen did not stabilize')
                 if (expectedText && !(await page.getByText(expectedText, { exact: false }).first().isVisible()))
                     throw new Error('Expected screen content disappeared before capture')
-                if (screen.expectSelector)
-                    await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)

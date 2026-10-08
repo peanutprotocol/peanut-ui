@@ -1,6 +1,8 @@
 import { validateInviteCode } from '@/app/actions/invites'
 import { serverFetch } from '@/utils/api-fetch'
 import { toInviteCode } from '@/utils/general.utils'
+import { isCapacitor } from '@/utils/capacitor'
+import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
 import { badgeCampaignClaimsFromPayload, type BadgeCampaignClaim } from './badge-campaigns'
 import { parseLegacyInviteAcquisition, type LegacyInviteAcquisition } from './invite-acquisition'
@@ -110,6 +112,10 @@ export const invitesApi = {
     validateInviteCode: async (inviteCode: string): Promise<ValidateInviteResult> => {
         try {
             const res = await validateInviteCode(toInviteCode(inviteCode))
+            // demo code enables demo mode.
+            if (res.data?.success && isCapacitor() && isDemoInviteCode(inviteCode)) {
+                enableDemoMode()
+            }
             return {
                 success: res.data?.success || false,
                 attributionResolved: res.data?.attributionResolved === true,

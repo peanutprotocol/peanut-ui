@@ -13,17 +13,6 @@ name: Backdoor scan
 
 on:
     workflow_call:
-        inputs:
-            base_sha:
-                description: Trusted PR base commit; must be supplied with head_sha
-                type: string
-                required: false
-                default: ''
-            head_sha:
-                description: Exact PR head to scan before executing its code
-                type: string
-                required: false
-                default: ''
         secrets:
             TYPESAFE_API_KEY:
                 required: false
@@ -38,39 +27,16 @@ jobs:
         steps:
             - uses: actions/checkout@v4
               with:
-                  # Explicit PR ranges need their merge-base ancestry, not
-                  # just the final commit. Existing callers keep their depth.
-                  ref: ${{ inputs.head_sha || github.sha }}
-                  fetch-depth: ${{ inputs.base_sha != '' && '0' || '2' }}
+                  # HEAD^1 is the base tip of a PR merge commit, or the previous commit
+                  # on a push or schedule -- one commit of history is enough.
+                  fetch-depth: 2
                   persist-credentials: false
             - name: Scan the added lines for hidden code
               env:
                   TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-                  BASE_SHA: ${{ inputs.base_sha }}
-                  HEAD_SHA: ${{ inputs.head_sha }}
               run: |
-                  set -euo pipefail
-                  if [ -n "$BASE_SHA" ] || [ -n "$HEAD_SHA" ]; then
-                      if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || [[ ! "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-                          echo '::error::Explicit scans require both base_sha and head_sha as full commit SHAs'
-                          exit 1
-                      fi
-                      if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
-                          echo '::error::The checkout does not match the requested PR head'
-                          exit 1
-                      fi
-                      BASE=$BASE_SHA
-                      HEAD=$HEAD_SHA
-                      # Never execute the PR's scanner in explicit mode. A
-                      # missing trusted copy is an error, not a clean scan.
-                      git show "$BASE:scripts/backdoor-scan.mjs" > "$RUNNER_TEMP/backdoor-scan.mjs"
-                  else
-                      # HEAD^1 is the base tip of a PR merge commit, or the
-                      # previous commit for existing push/schedule callers.
-                      BASE=$(git rev-parse HEAD^1)
-                      HEAD=HEAD
-                      # Preserve bootstrap behavior for existing callers.
-                      git show "$BASE:scripts/backdoor-scan.mjs" > "$RUNNER_TEMP/backdoor-scan.mjs" 2>/dev/null \
-                          || cp scripts/backdoor-scan.mjs "$RUNNER_TEMP/backdoor-scan.mjs"
-                  fi
-                  node "$RUNNER_TEMP/backdoor-scan.mjs" --base "$BASE" --head "$HEAD" --allow-ref "$BASE" --jev
+                  BASE=$(git rev-parse HEAD^1)
+                  # Before the base branch has a scanner (the PR that adds it), use the PR's copy.
+                  git show "$BASE:scripts/backdoor-scan.mjs" > "$RUNNER_TEMP/backdoor-scan.mjs" 2>/dev/null \
+                      || cp scripts/backdoor-scan.mjs "$RUNNER_TEMP/backdoor-scan.mjs"
+                  node "$RUNNER_TEMP/backdoor-scan.mjs" --base "$BASE" --head HEAD --allow-ref "$BASE" --jev

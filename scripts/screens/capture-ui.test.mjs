@@ -1,35 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {
-    CAPTURE_STATIC_CSS,
-    FIXTURE_BANNER_CANDIDATE_SELECTOR,
-    finishOverlayAnimations,
-    hideFixtureBanners,
-} from './capture-ui.mjs'
-
-test('capture finishes finite overlay motion and leaves looping animations for static CSS', () => {
-    const finished = []
-    const animation = (name, endTime, playState = 'running') => ({
-        playState,
-        effect: { getComputedTiming: () => ({ endTime }) },
-        finish: () => finished.push(name),
-    })
-    finishOverlayAnimations({
-        querySelectorAll: () => [
-            {
-                getAnimations: () => [
-                    animation('drawer', 500),
-                    animation('popover', 150),
-                    animation('already-finished', 500, 'finished'),
-                    animation('spinner', Infinity),
-                ],
-            },
-        ],
-    })
-    assert.deepEqual(finished, ['drawer', 'popover'])
-    assert.match(CAPTURE_STATIC_CSS, /will-change:auto!important/)
-    assert.doesNotMatch(CAPTURE_STATIC_CSS, /transform\s*:|opacity\s*:|filter\s*:/)
-})
+import { FIXTURE_BANNER_CANDIDATE_SELECTOR, hideFixtureBanners } from './capture-ui.mjs'
 
 const element = ({ testId, role = 'alert', text = '' }) => {
     const declarations = []
