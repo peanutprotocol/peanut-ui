@@ -335,8 +335,9 @@ On the dashboard select **Branch → Main** to browse release snapshots and thei
 To backfill an earlier release, run **Screen library** with the `main` branch
 selected. Supply immutable `before_sha` and `after_sha` values, or leave them blank
 to compare the selected main revision with its first parent. A backfill only
-accepts ancestors of that immutable main revision; it cannot capture unmerged dev
-or PR commits as a main release. For the October 7 release, use
+accepts revisions on that immutable main revision's first-parent history, with
+before strictly earlier than after. Merged dev-side parents cannot be selected
+as main releases. For the October 7 release, use
 `d9a463c3a0a49a5916f1067d78b6837ba3eaf088` →
 `b10562637c0aee0805d4e8f63d2e663af2ad9f38`.
 
