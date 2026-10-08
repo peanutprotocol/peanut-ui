@@ -69,7 +69,7 @@ function ChannelPicker<C extends SetupChannel>({
                     variant="secondary"
                     size="compact"
                     shadowSize="2"
-                    aria-label={`${title}: ${compactLabel(value)}`}
+                    aria-label={`${title}: ${label(value)}`}
                     aria-haspopup="dialog"
                     data-testid={`setup-${kind}-channel`}
                     onPointerDown={onInteract}

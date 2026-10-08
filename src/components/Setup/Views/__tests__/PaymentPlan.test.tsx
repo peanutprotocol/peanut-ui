@@ -66,10 +66,10 @@ it.each([
     ['AR', 'ARS', 'arsBank', false],
     ['AR', 'ARS', 'arsBank', true],
 ] as const)(
-    'keeps %s %s (%s) funding labels compact and drawer labels complete (defaults=%s)',
+    'keeps %s %s (%s) funding text compact and accessible labels complete (defaults=%s)',
     async (country, currency, channel, defaults) => {
         renderWithIntl(ui(country, defaults))
-        const funding = screen.getByRole('button', { name: 'Add money with: Bank transfer' })
+        const funding = screen.getByRole('button', { name: `Add money with: Bank transfer (${currency})` })
         expect(funding).not.toHaveTextContent(/\(/)
         fireEvent.click(funding)
         const dialog = screen.getByRole('dialog')
@@ -81,10 +81,10 @@ it.each([
         expect(within(dialog).queryByText('Cash')).not.toBeInTheDocument()
         fireEvent.click(within(dialog).getByRole('button', { name: `Bank transfer (${currency})` }))
         await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
-        expect(funding).toHaveAccessibleName('Add money with: Bank transfer')
+        expect(funding).toHaveAccessibleName(`Add money with: Bank transfer (${currency})`)
         expect(screen.getByLabelText('Plan')).toHaveTextContent(`${channel}/`)
-        await choose('Add money with', 'Bank transfer', 'Bank transfer (USD, EUR, GBP, MXN)')
-        expect(funding).toHaveAccessibleName('Add money with: Bank transfer')
+        await choose('Add money with', `Bank transfer (${currency})`, 'Bank transfer (USD, EUR, GBP, MXN)')
+        expect(funding).toHaveAccessibleName('Add money with: Bank transfer (USD, EUR, GBP, MXN)')
         expect(funding).not.toHaveTextContent(/\(/)
         expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/')
     }
