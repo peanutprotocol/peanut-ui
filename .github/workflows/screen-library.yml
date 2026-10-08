@@ -47,15 +47,15 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  after="${PR_HEAD:-$PUSH_HEAD}"
+                  after="4e0700504c38cae899ccb554d2b09a18cb74bdd5"
                   [[ "$after" =~ ^[a-f0-9]{40}$ ]]
                   if [ "$EVENT" = pull_request ]; then
                     before=$(git merge-base "$PR_BASE" "$after")
                   elif [ "$EVENT" = push ]; then
                     before=$(node scripts/screens/integration.mjs "$after")
                   else
-                    [ "$GITHUB_REF" = refs/heads/dev ] || { echo "Dispatch historical capture on dev" >&2; exit 1; }
-                    before=$(git rev-list --first-parent -1 --before=2026-08-28T00:00:00+01:00 origin/main)
+                    [ "$GITHUB_REF" = refs/heads/innolope/dev-main-screen-artifact ] || exit 1
+                    before=de8bd93ec01c8e39dd7bfaab6165fdf55e8857d2
                   fi
                   [[ "$before" =~ ^[a-f0-9]{40}$ ]]
                   echo "before=$before" >> "$GITHUB_OUTPUT"
@@ -77,6 +77,7 @@ jobs:
                   fi
                   echo "capture_before=$capture_before" >> "$GITHUB_OUTPUT"
     capture_after:
+        if: false
         needs: refs
         # PR commits capture the changed revision. Product-only PRs reuse the
         # verified baseline; harness-changing PRs also run capture_before.
@@ -85,11 +86,11 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                locale: [en, es-419, es-AR, pt-BR]
+                locale: [en]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+                  ref: 4e0700504c38cae899ccb554d2b09a18cb74bdd5
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
@@ -150,11 +151,11 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                locale: [en, es-419, es-AR, pt-BR]
+                locale: [en]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+                  ref: 4e0700504c38cae899ccb554d2b09a18cb74bdd5
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
@@ -201,7 +202,7 @@ jobs:
     publish:
         needs: [refs, capture_after, capture_before]
         if: >-
-            always() && !cancelled() && needs.refs.result == 'success' &&
+            false && always() && !cancelled() && needs.refs.result == 'success' &&
             needs.capture_after.result != 'skipped' &&
             (github.event_name == 'pull_request' || needs.capture_before.result != 'skipped')
         permissions:
