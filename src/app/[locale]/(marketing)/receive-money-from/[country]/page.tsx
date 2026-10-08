@@ -37,7 +37,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale: contentLocale,
+            // og:locale follows the title: authored metadata is in the content
+            // locale, the i18n fallback is in the route locale
+            locale: useContentMetadata === true ? contentLocale : (locale as Locale),
             title:
                 useContentMetadata === true && typeof title === 'string' && title.trim()
                     ? title

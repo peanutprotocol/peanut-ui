@@ -56,7 +56,9 @@ export function ContentPage({
             {article && <JsonLd data={articleSchema({ inLanguage: contentLocale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
                 <article className="content-page select-text">
-                    {children}
+                    {/* the body is written in the content locale; on a fallback
+                        page that differs from the route (Hero marks its marquee) */}
+                    <div lang={contentLocale}>{children}</div>
                     {/* the trail sits at the bottom of the page: the header already
                         gives the way back, so the crumbs are a footer affordance */}
                     <Breadcrumb

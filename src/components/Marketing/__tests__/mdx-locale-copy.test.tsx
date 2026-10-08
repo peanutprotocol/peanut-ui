@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { createMdxComponents } from '../mdx/components'
+import { Hero as BareHero } from '../mdx/Hero'
 import { ContentPage } from '../ContentPage'
 import { getTranslations } from '@/i18n'
 
@@ -40,6 +41,25 @@ describe('MDX components on a pt-br page', () => {
     })
 })
 
+const marqueeFor = (locale: 'en' | 'es-ar') => {
+    const i18n = getTranslations(locale)
+    return [i18n.heroMarqueeNoFees, i18n.heroMarqueeInstant, '24/7', i18n.heroMarqueeDollars, 'USDT/USDC'].join(' | ')
+}
+
+describe('Hero marquee', () => {
+    it('stays English when rendered without a locale', () => {
+        render(<BareHero title="Title" />)
+        expect(screen.getByTestId('marquee').textContent).toBe(marqueeFor('en'))
+    })
+
+    it('renders the es-ar catalog on an es-ar page', () => {
+        const { Hero } = createMdxComponents('es-ar')
+        render(<Hero title="Título" />)
+        expect(screen.getByTestId('marquee').textContent).toBe(marqueeFor('es-ar'))
+        expect(screen.getByTestId('marquee').closest('[lang]')?.getAttribute('lang')).toBe('es-ar')
+    })
+})
+
 describe('ContentPage on a fallback page', () => {
     const jsonLd = (container: HTMLElement) =>
         [...container.querySelectorAll('script[type="application/ld+json"]')].map((node) => JSON.parse(node.innerHTML))
@@ -58,6 +78,7 @@ describe('ContentPage on a fallback page', () => {
 
         const article = jsonLd(container).find((schema) => schema['@type'] !== 'BreadcrumbList')
         expect(article.inLanguage).toBe('en')
+        expect(screen.getByText('body').closest('[lang]')?.getAttribute('lang')).toBe('en')
         expect(screen.getByRole('navigation', { name: ptBr.breadcrumbLabel })).toBeTruthy()
     })
 

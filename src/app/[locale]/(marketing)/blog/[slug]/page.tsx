@@ -138,7 +138,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                     like every other content route, and the element map already carries
                     the type tokens. The plugin classes only layered a second, divergent
                     set on top. */}
-                <article>{post.content}</article>
+                <article lang={contentLocale}>{post.content}</article>
                 {/* Foot of the page, not the top: the header already gives the way
                     back — same placement as every ContentPage route. */}
                 <Breadcrumb items={breadcrumbs} label={i18n.breadcrumbLabel} className="pt-8" />
