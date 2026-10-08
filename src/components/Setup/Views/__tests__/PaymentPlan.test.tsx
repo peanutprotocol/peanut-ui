@@ -60,17 +60,35 @@ it('starts with both first options visible and accepts or changes them through t
     fireEvent.click(screen.getByRole('button', { name: 'Keep these choices', hidden: true }))
     expect(next).toHaveBeenCalledTimes(1)
 })
-it('groups bank providers, excludes cash, and leaves Peanut payments last', () => {
-    renderWithIntl(ui('BR'))
-    fireEvent.click(screen.getByRole('button', { name: 'Add money with: Bank transfer (BRL)' }))
-    const dialog = screen.getByRole('dialog')
-    expect(
-        within(dialog)
-            .getAllByRole('button')
-            .map((x) => x.getAttribute('aria-label'))
-    ).toEqual(['Bank transfer (BRL)', 'Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Peanut to Peanut'])
-    expect(within(dialog).queryByText('Cash')).not.toBeInTheDocument()
-})
+it.each([
+    ['BR', 'BRL', 'brlBank', false],
+    ['BR', 'BRL', 'brlBank', true],
+    ['AR', 'ARS', 'arsBank', false],
+    ['AR', 'ARS', 'arsBank', true],
+] as const)(
+    'keeps %s %s (%s) funding labels compact and drawer labels complete (defaults=%s)',
+    async (country, currency, channel, defaults) => {
+        renderWithIntl(ui(country, defaults))
+        const funding = screen.getByRole('button', { name: 'Add money with: Bank transfer' })
+        expect(funding).not.toHaveTextContent(/\(/)
+        fireEvent.click(funding)
+        const dialog = screen.getByRole('dialog')
+        expect(
+            within(dialog)
+                .getAllByRole('button')
+                .map((x) => x.getAttribute('aria-label'))
+        ).toEqual([`Bank transfer (${currency})`, 'Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Peanut to Peanut'])
+        expect(within(dialog).queryByText('Cash')).not.toBeInTheDocument()
+        fireEvent.click(within(dialog).getByRole('button', { name: `Bank transfer (${currency})` }))
+        await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
+        expect(funding).toHaveAccessibleName('Add money with: Bank transfer')
+        expect(screen.getByLabelText('Plan')).toHaveTextContent(`${channel}/`)
+        await choose('Add money with', 'Bank transfer', 'Bank transfer (USD, EUR, GBP, MXN)')
+        expect(funding).toHaveAccessibleName('Add money with: Bank transfer')
+        expect(funding).not.toHaveTextContent(/\(/)
+        expect(screen.getByLabelText('Plan')).toHaveTextContent('bank/')
+    }
+)
 it('offers both card and QR in Brazil, and allows a deliberate Crypto payment choice', async () => {
     renderWithIntl(ui('BR'))
     fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Peanut card' }))
