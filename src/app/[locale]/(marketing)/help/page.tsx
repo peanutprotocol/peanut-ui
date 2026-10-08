@@ -133,7 +133,7 @@ export default async function HelpPage({ params }: PageProps) {
                 { name: i18n.help, href: `/${locale}/help` },
             ]}
         >
-            <Hero title={i18n.helpCenter} subtitle={i18n.helpCenterDescription} />
+            <Hero title={i18n.helpCenter} subtitle={i18n.helpCenterDescription} locale={locale} />
             <Suspense fallback={<HelpLandingSkeleton />}>
                 <HelpLanding
                     articles={translatedArticles}
