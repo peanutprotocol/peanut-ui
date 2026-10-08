@@ -268,7 +268,7 @@
             "accounts": "Contas",
             "payments": "Pagamentos",
             "paymentLimits": "Limites de pagamento",
-            "showMyFullName": "Mostrar nome completo",
+            "showFullName": "Mostrar nome completo",
             "backup": "Backup",
             "exchangeRatesAndFees": "Câmbio e taxas",
             "starAlt": "estrela",
@@ -531,12 +531,12 @@
             "requestAction": "Cobrar"
         },
         "update": {
-            "title": "Atualização pronta",
-            "description": "Reinicie o Peanut para concluir a instalação da atualização.",
-            "restartNow": "Reiniciar agora",
+            "title": "Atualização disponível",
+            "description": "Toque em Atualizar para instalar a nova versão. Se o Peanut fechar, abra de novo.",
+            "update": "Atualizar",
             "notNow": "Agora não",
             "manualRestart": "Feche o Peanut pelo seletor de apps e abra de novo para concluir a atualização.",
-            "applyFailed": "Não foi possível aplicar a atualização. Verifique sua conexão e tente novamente — o Peanut continua na versão com que você abriu."
+            "applyFailed": "A atualização não foi instalada. Verifique sua conexão e tente novamente. O Peanut continua na versão atual."
         },
         "storeUpdate": {
             "title": "Atualize na {store}",

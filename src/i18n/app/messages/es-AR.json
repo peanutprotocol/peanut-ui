@@ -313,12 +313,12 @@
             "noInviteTitle": "Unite a Peanut"
         },
         "update": {
-            "title": "Actualización lista",
-            "description": "Reiniciá Peanut para terminar de instalar la actualización.",
-            "restartNow": "Reiniciar ahora",
+            "title": "Actualización disponible",
+            "description": "Tocá Actualizar para instalar la nueva versión. Si Peanut se cierra, volvé a abrirla.",
+            "update": "Actualizar",
             "notNow": "Ahora no",
             "manualRestart": "Cerrá Peanut desde el selector de apps y volvé a abrirla para terminar la actualización.",
-            "applyFailed": "No se pudo aplicar la actualización. Revisá tu conexión y probá de nuevo: Peanut sigue con la versión con la que iniciaste."
+            "applyFailed": "La actualización no se instaló. Revisá tu conexión y probá de nuevo. Peanut sigue en la versión actual."
         },
         "about": {
             "title": "Acerca de Peanut",

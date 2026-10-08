@@ -8,20 +8,15 @@ import { IconBubble, type IconBubbleColor } from './IconBubble'
 import { LinkButton } from './LinkButton'
 
 export type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
-export type CalloutVariant = 'inline' | 'floating'
 
 interface CalloutCta {
     label: string
     onClick: () => void
 }
 
-interface CalloutProps {
+interface CalloutBaseProps {
     /** Sets the tone, background, and leading icon. */
     priority?: CalloutPriority
-    /** `inline` (default) is the tinted in-page banner. `floating` is the toast
-     *  surface: bordered card with a hard shadow, the tone carried by an icon
-     *  bubble, the countdown bar, and a 5% wash of the tone in the fill. */
-    variant?: CalloutVariant
     /** suppress the leading priority icon (self-designed content, e.g. badge toasts) */
     hideIcon?: boolean
     /** Optional bold first line. Body renders indented under it. */
@@ -38,11 +33,25 @@ interface CalloutProps {
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
     progressMs?: number
-    /** One or two underlined text actions on inline callouts only. Transient toasts have no actions. */
-    ctas?: [CalloutCta] | [CalloutCta, CalloutCta]
     className?: string
     'data-testid'?: string
 }
+
+/** `inline` (default) is the tinted in-page banner. `floating` is the toast
+ *  surface: bordered card with a hard shadow, the tone carried by an icon
+ *  bubble, the countdown bar, and a 5% wash of the tone in the fill.
+ *  ctas are inline only. A toast auto-dismisses, so an action inside it can
+ *  vanish before the user taps it (TASK-22914, hugo) — floating + ctas is a
+ *  type error, not just a runtime drop. */
+type CalloutProps = CalloutBaseProps &
+    (
+        | {
+              variant?: 'inline'
+              /** One or two underlined text actions. */
+              ctas?: [CalloutCta] | [CalloutCta, CalloutCta]
+          }
+        | { variant: 'floating'; ctas?: never }
+    )
 
 const PRIORITY_STYLES: Record<
     CalloutPriority,
