@@ -1,3 +1,4 @@
+import { classifyPasskeySentryEvent, isExpectedPasskeyDeviceEvent } from './src/utils/passkey-sentry-event'
 import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
 import { isExpectedCancellation, isExpectedCancellationChain } from './src/utils/expected-exception'
 // Shared Sentry utilities for filtering noise across all configs
@@ -653,9 +654,10 @@ export function cleanSensitiveHeaders(event: ErrorEvent): void {
  */
 export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
     redactQrTelemetry(event)
-    if (shouldIgnoreError(event)) {
+    if (isExpectedPasskeyDeviceEvent(event) || shouldIgnoreError(event)) {
         return null
     }
+    classifyPasskeySentryEvent(event)
     collapseNoisyFingerprint(event)
     cleanSensitiveHeaders(event)
     // Whether the device believed it was online at capture time — the free

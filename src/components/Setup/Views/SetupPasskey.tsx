@@ -1,3 +1,5 @@
+import { nativePasskeyFailure } from '@/utils/native-passkey-errors'
+import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -17,6 +19,7 @@ import {
     WebAuthnErrorName,
     classifyPasskeyError,
     getPasskeyErrorSetupKey,
+    getPasskeySetupKey,
     withWebAuthnRetry,
 } from '@/utils/webauthn.utils'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
@@ -185,6 +188,13 @@ const SetupPasskey = () => {
                 return
             }
 
+            if (nativePasskeyFailure(err)) {
+                reportPasskeyFailure(err, 'registration')
+                const classified = classifyPasskeyError(err)
+                setInlineError(t(getPasskeySetupKey(classified.code)))
+                return
+            }
+
             // notallowederror can mean two things:
             // 1. user actually cancelled (most common)
             // 2. browser blocked it (incognito, privacy settings, etc)
@@ -207,9 +217,9 @@ const SetupPasskey = () => {
                     setErrorName(WebAuthnErrorName.NotAllowed)
                     setShowErrorModal(true)
                 } else {
-                    // likely user cancellation - show simple inline error
-                    console.log('[SetupPasskey] User likely cancelled, showing inline error')
-                    setInlineError(t('passkey.cancelled'))
+                    // The browser does not identify why verification stopped.
+                    console.log('[SetupPasskey] Passkey verification incomplete, showing inline error')
+                    setInlineError(t('passkey.notCompleted'))
                 }
                 return
             }

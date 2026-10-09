@@ -84,6 +84,25 @@ describe('webauthn ceremony telemetry', () => {
         })
     })
 
+    it('counts every native device failure and its later successful recovery without raw error data', async () => {
+        const error = Object.assign(
+            new Error('The operation couldn’t be completed. Device must be unlocked to perform request.'),
+            { name: 'NotAllowedError' }
+        )
+        get.mockRejectedValueOnce(error)
+        await expect(withCeremonyPurpose('login', () => navigator.credentials.get({}))).rejects.toBe(error)
+        await withCeremonyPurpose('login', () => navigator.credentials.get({}))
+        const ceremonies = events('webauthn_ceremony')
+        expect(ceremonies).toHaveLength(2)
+        expect(ceremonies[0]).toMatchObject({
+            outcome: 'error',
+            native_reason: 'device_locked',
+            error_code: 'PASSKEY_DEVICE_LOCKED',
+        })
+        expect(ceremonies[0]).not.toHaveProperty('message')
+        expect(ceremonies[1]).toMatchObject({ outcome: 'ok' })
+    })
+
     it('counts every ceremony a flow triggered — the 2-vs-3 prompt question', async () => {
         await withCeremonyFlow(
             'link_create',

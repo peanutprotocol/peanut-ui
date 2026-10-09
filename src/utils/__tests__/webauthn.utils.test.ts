@@ -230,7 +230,7 @@ describe('getPasskeyErrorSetupKey', () => {
         Object.assign(new Error('curated english copy'), { name: 'PasskeyError', code })
 
     test('maps a known PasskeyError code to its translated setup.* catalog key', () => {
-        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_CANCELED'))).toBe('waitlist.loginCanceled')
+        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_CANCELED'))).toBe('passkey.notCompleted')
         expect(getPasskeyErrorSetupKey(passkeyError('CEREMONY_TIMEOUT'))).toBe('passkey.tookTooLong')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_NOT_READY'))).toBe('passkey.notReady')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_STATE'))).toBe('passkey.deviceState')

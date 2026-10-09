@@ -288,10 +288,13 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_INTERRUPTED' })
         expect(mockToWebAuthnKey).toHaveBeenCalledTimes(2)
         expect(clearAuthState).not.toHaveBeenCalled()
-        expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
-            level: 'warning',
-            tags: { error_type: 'login_interrupted' },
-        })
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({
+                level: 'warning',
+                tags: expect.objectContaining({ passkey_reason: 'authorization_failed' }),
+            })
+        )
     })
 })
 it('waits for fresh session hydration before publishing the verified wallet key and blocks a second ceremony', async () => {
@@ -592,4 +595,25 @@ describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () =
             }
         )
     })
+})
+
+// Native conditions cannot invalidate an existing working login.
+it.each([
+    ['Device must be unlocked to perform request.', 'PASSKEY_DEVICE_LOCKED'],
+    ['Stolen Device Protection is enabled and biometry is required.', 'PASSKEY_BIOMETRY_REQUIRED'],
+    [
+        'Unable to verify webcredentials association of TEAM.app with domain peanut.me. Please try again in a few seconds.',
+        'PASSKEY_ASSOCIATION_UNAVAILABLE',
+    ],
+    ['Application with identifier TEAM.app is not associated with domain peanut.me', 'PASSKEY_ORIGIN'],
+])('preserves the session after %s', async (message, code) => {
+    const { result } = renderHook(() => useZeroDev())
+    mockToWebAuthnKey.mockRejectedValue(
+        Object.assign(new Error('The operation couldn’t be completed. ' + message), { name: 'NotAllowedError' })
+    )
+    await act(async () => {
+        await expect(result.current.handleLogin()).rejects.toMatchObject({ name: 'PasskeyError', code })
+    })
+    expect(clearAuthState).not.toHaveBeenCalled()
+    expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
 })
