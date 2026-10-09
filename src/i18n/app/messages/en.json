@@ -12,6 +12,7 @@
         "retry": "Retry",
         "close": "Close",
         "loading": "Loading...",
+        "inEnglish": "In English",
         "somethingWentWrong": "Something went wrong",
         "genericError": "Something went wrong. Please try again or contact support.",
         "copiedToClipboard": "Copied to clipboard",
