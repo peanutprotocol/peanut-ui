@@ -3,6 +3,7 @@ import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testi
 import { StatementsPage } from '../StatementsPage'
 import { StatementDownloadError, prepareStatement, saveStatement } from '../statementDownload.utils'
 import { presetDates, toLocalDateString } from '../statementPeriod.utils'
+import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
 
 const mockToastSuccess = jest.fn()
 const mockCapture = jest.fn()
@@ -27,6 +28,7 @@ jest.mock('@/components/Global/NavHeader', () => ({
 }))
 jest.mock('@/utils/haptics', () => ({ impactHaptic: jest.fn(), heavyImpactHaptic: jest.fn(), WEB_TAP_MS: 15 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/bottom-nav-clearance.utils', () => ({ scrollClearOfBottomNav: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@/components/Card/share-asset/captureShareAsset', () => ({ downloadBlob: jest.fn() }))
 jest.mock('../statementDownload.utils', () => ({
@@ -189,6 +191,23 @@ describe('StatementsPage', () => {
         expect(periodField()).not.toContainElement(alert)
         // the CTA ends the page, so the error sits above it
         expect(downloadButton().compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+        // the page is long with the calendar open: the failure brings the button out from under the nav
+        expect(scrollClearOfBottomNav).toHaveBeenCalledWith(downloadButton())
         expect(save).not.toHaveBeenCalled()
+    })
+
+    it('brings Download out from under the bottom nav when a tap gives the period a last day, and not when a link opens on one', async () => {
+        renderPage('?from=2026-08-03&to=2026-08-14')
+        await settle()
+        expect(scrollClearOfBottomNav).not.toHaveBeenCalled()
+
+        // a tap on a finished period starts a new one, which has no last day yet
+        tapDay('2026-08-20')
+        await settle()
+        expect(scrollClearOfBottomNav).not.toHaveBeenCalled()
+
+        tapDay('2026-08-25')
+        await waitFor(() => expect(scrollClearOfBottomNav).toHaveBeenCalledTimes(1))
+        expect(scrollClearOfBottomNav).toHaveBeenCalledWith(downloadButton())
     })
 })

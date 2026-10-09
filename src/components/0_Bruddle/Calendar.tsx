@@ -44,6 +44,9 @@ interface Press {
  * statement period on Profile → Statements. Day cells are 44px (touch-target
  * law). Future days are unselectable — activity can only exist in the past.
  *
+ * Every month shows six week rows, so what sits under the calendar does not
+ * move when the month changes.
+ *
  * Selection follows design.md "selected list rows": the two picked days are
  * tiles (pale-blue fill + 1px inset ring), the days between take the fill alone.
  */
@@ -125,6 +128,7 @@ export const Calendar = ({ selected, onSelect, defaultMonth, className }: Calend
             <DayPicker
                 mode="range"
                 resetOnSelect
+                fixedWeeks
                 selected={shown}
                 modifiers={anchor ? { range_anchor: anchor } : undefined}
                 modifiersClassNames={{ range_anchor: RANGE_ENDPOINT }}
@@ -140,8 +144,10 @@ export const Calendar = ({ selected, onSelect, defaultMonth, className }: Calend
                     root: twMerge('relative w-full select-none', className),
                     months: 'flex w-full flex-col',
                     month: 'w-full',
-                    month_caption: 'flex h-10 items-center px-1 text-body-m-semibold text-foreground-primary',
-                    nav: 'absolute right-0 top-0 flex h-10 items-center gap-1',
+                    month_caption: 'flex h-10 items-center text-body-m-semibold text-foreground-primary',
+                    // -right-2.5: a 20px arrow sits in a 40px button, so the button steps 10px into
+                    // the page gutter and the arrow lines up with the right edge of the fields above
+                    nav: 'absolute -right-2.5 top-0 flex h-10 items-center gap-1',
                     button_previous: twMerge(
                         'relative flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover aria-disabled:opacity-40 after:absolute after:-inset-0.5',
                         focusRing
@@ -155,7 +161,8 @@ export const Calendar = ({ selected, onSelect, defaultMonth, className }: Calend
                     // scrolling the page; the rest of the calendar still scrolls
                     month_grid: 'mt-2 w-full border-collapse touch-none',
                     weekday: 'h-9 text-center text-body-xs text-foreground-secondary',
-                    day: 'p-0 text-center',
+                    // h-11: a week row of another month has no buttons and would collapse without it
+                    day: 'h-11 p-0 text-center',
                     day_button: twMerge(
                         'mx-auto flex size-11 items-center justify-center rounded-sm text-body-s transition-colors duration-instant disabled:cursor-default',
                         focusRing

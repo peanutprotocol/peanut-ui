@@ -78,6 +78,12 @@ describe('Calendar — look', () => {
         }
     })
 
+    it('shows six week rows in every month, so what sits under the calendar does not move', () => {
+        // February 2026 starts on a Sunday and needs four rows only
+        const { container } = setup(undefined, new Date(2026, 1, 1))
+        expect(container.querySelectorAll('tbody tr')).toHaveLength(6)
+    })
+
     it('marks today with a semibold day number, and dims the arrow that has no month to go to', () => {
         const { container, getByRole } = setup(undefined, new Date())
         const today = container.querySelector('[data-today="true"]')

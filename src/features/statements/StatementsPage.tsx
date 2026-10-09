@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { BaseSelect } from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -11,6 +11,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
 import { STATEMENT_FORMATS, type StatementFormat } from './statementDownload.utils'
 import { CUSTOM_PERIOD, STATEMENT_PERIOD_PRESETS, type StatementPeriodOption } from './statementPeriod.utils'
 import { useStatementDownload } from './useStatementDownload'
@@ -59,8 +60,23 @@ export function StatementsPage() {
           ? t('customPeriod.description')
           : undefined
 
+    // the calendar makes the page longer than the screen, and the fixed bottom
+    // nav then covers Download. When a tap gives the custom period a last day,
+    // or a failure appears, the page moves just far enough to show the button.
+    // A deep link that opens on a period does not scroll: nothing changed.
+    const downloadRef = useRef<HTMLButtonElement>(null)
+    const lastDay = period.isCustom ? days?.to?.getTime() : undefined
+    const shownLastDay = useRef(lastDay)
+    useEffect(() => {
+        if (lastDay !== undefined && lastDay !== shownLastDay.current) scrollClearOfBottomNav(downloadRef.current)
+        shownLastDay.current = lastDay
+    }, [lastDay])
+    useEffect(() => {
+        if (error) scrollClearOfBottomNav(downloadRef.current)
+    }, [error])
+
     return (
-        <PageStack>
+        <PageStack gap="6">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="flex flex-col gap-6">
                 {/* Format and Period are the same control (Aleks, 2026-10-01): one
@@ -97,6 +113,7 @@ export function StatementsPage() {
                     footer CTA"), and the error reads just above it */}
                 {error && <Callout priority="error">{t(`errors.${error}`)}</Callout>}
                 <Button
+                    ref={downloadRef}
                     variant="primary"
                     className="w-full"
                     loading={isDownloading}
