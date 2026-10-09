@@ -5,7 +5,10 @@ import type { ErrorEvent } from '@sentry/nextjs'
 const biometric = 'The operation couldn’t be completed. Stolen Device Protection is enabled and biometry is required.'
 const association =
     'The operation couldn’t be completed. Application with identifier TEAM.app is not associated with domain peanut.me'
-const event = (value: string): ErrorEvent => ({ exception: { values: [{ type: 'NotAllowedError', value }] } })
+const event = (value: string): ErrorEvent => ({
+    type: undefined,
+    exception: { values: [{ type: 'NotAllowedError', value }] },
+})
 
 it('keeps expected device requirements out of Sentry and the PostHog exception mirror', () => {
     const inner = jest.fn((e) => e)
@@ -27,6 +30,7 @@ it('groups association failures consistently before either sink receives them', 
 
 it('keeps a technical failure with a device-condition cause visible', () => {
     const e: ErrorEvent = {
+        type: undefined,
         exception: {
             values: [
                 { type: 'NotAllowedError', value: biometric },
