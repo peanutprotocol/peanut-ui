@@ -5,6 +5,8 @@ import { MASCOT_ART_FILL } from '@/components/Global/PeanutMascot/PeanutMascot.c
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import Link from 'next/link'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 import Image from 'next/image'
 import { useEffect, useCallback, useRef, type CSSProperties } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -115,6 +117,9 @@ const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, contentHrefs }: HeroProps) {
     const migrationOn = useMigrationFlag()
+    const hasKeepWebBypass = useKeepWebBypass()
+    // Web login works until the sunset block replaces /setup, so the link follows that same predicate.
+    const showWebLogin = !shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass })
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <div
@@ -213,8 +218,9 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
-                {/* Web login remains available until migration moves authentication into the app. */}
-                {!migrationOn && (
+                {/* Quiet text link under the download CTA: returning web users need a way in
+                    until the app cutover. The native app never renders this landing page. */}
+                {showWebLogin && (
                     <Link
                         prefetch={false}
                         href="/setup?step=login"
