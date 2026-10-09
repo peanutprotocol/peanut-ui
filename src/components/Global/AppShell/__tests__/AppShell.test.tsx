@@ -80,6 +80,23 @@ describe('AppShell bottom nav slot', () => {
 })
 
 describe('AppShell onboarding tint', () => {
+    it('reserves the bottom inset after content and covers content scrolling beneath it', () => {
+        const { container } = render(
+            <AppShell variant="onboarding" bottomInsetClassName="bg-white" modals={<div data-testid="modal" />}>
+                <button>Last action</button>
+            </AppShell>
+        )
+
+        const spacer = screen.getByRole('button', { name: 'Last action' }).nextElementSibling
+        expect(spacer).toHaveClass('h-safe-bottom', 'bg-white')
+        expect(spacer).toHaveAttribute('aria-hidden', 'true')
+        expect(spacer).not.toHaveClass('fixed')
+        const cover = container.querySelector('div.fixed.bottom-0')
+        expect(cover).toHaveClass('h-safe-bottom', 'bg-white', 'z-40', 'pointer-events-none')
+        expect(cover).not.toHaveClass('-z-10')
+        expect(cover?.nextElementSibling).toBe(screen.getByTestId('modal'))
+    })
+
     it('uses the shared hero color for the banner and edge-to-edge safe areas', () => {
         const { container } = render(
             <AppShell variant="onboarding" bottomInsetClassName="setup-hero-background" banner={<div>Banner</div>}>

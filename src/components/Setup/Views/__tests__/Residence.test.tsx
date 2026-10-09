@@ -12,6 +12,7 @@ import React from 'react'
 import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 import ResidenceStep from '@/components/Setup/Views/Residence'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
@@ -149,7 +150,7 @@ describe('ResidenceStep', () => {
     it('reveals the second selector via the multi-doc link', () => {
         render(<ResidenceStep />)
         expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByText('Have residence in more than one country?'))
+        fireEvent.click(screen.getByText(en.setup.residenceStep.multiDocLink))
         expect(screen.getByPlaceholderText('Second country')).toBeInTheDocument()
     })
 
@@ -158,7 +159,7 @@ describe('ResidenceStep', () => {
         // persisted after signup — collapsing must clear the stored pick.
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        const toggle = screen.getByRole('button', { name: /Have residence in more than one country/ })
+        const toggle = screen.getByRole('button', { name: en.setup.residenceStep.multiDocLink })
         expect(toggle).toHaveAttribute('aria-expanded', 'true')
         fireEvent.click(toggle)
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
@@ -168,11 +169,11 @@ describe('ResidenceStep', () => {
 
     it('opening the selector clears nothing', () => {
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: /Have residence in more than one country/ }))
+        fireEvent.click(screen.getByRole('button', { name: en.setup.residenceStep.multiDocLink }))
         expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
     })
 
-    it('shows the per-country availability comparison with the truth-first guidance', () => {
+    it('shows the per-country availability comparison with document guidance', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
@@ -184,8 +185,8 @@ describe('ResidenceStep', () => {
         expect(screen.getByText('British pound bank transfers')).toBeInTheDocument()
         expect(screen.getByText('US dollar bank transfers')).toBeInTheDocument()
         expect(screen.getAllByText('Peanut to Peanut')).toHaveLength(2)
-        expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
-        expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
+        expect(screen.getByText(en.setup.residenceStep.compare.guideTitle)).toBeInTheDocument()
+        expect(screen.getByText(en.setup.residenceStep.compare.guideDeclaration)).toBeInTheDocument()
     })
 
     it('replaces Next with one main-residence button per declared country', () => {
@@ -229,7 +230,7 @@ describe('ResidenceStep', () => {
         expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         view.rerender(<ResidenceStep />)
-        fireEvent.click(screen.getByText('Have residence in more than one country?'))
+        fireEvent.click(screen.getByText(en.setup.residenceStep.multiDocLink))
         fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
         mockSetupState = { residenceCountry: 'DE', secondResidenceCountry: '' }
         view.rerender(<ResidenceStep />)
@@ -301,7 +302,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('I’ll add money to my Peanut account')).not.toBeInTheDocument()
-        expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
+        expect(screen.getByText(en.setup.residenceStep.multiDocLink)).toBeInTheDocument()
     })
 
     // TASK-23054 R1: HK was restricted for a Sumsub document rule, which never
@@ -421,7 +422,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: "That's my home" }))
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
-        expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
+        expect(screen.getByText(en.setup.residenceStep.multiDocLink)).toBeInTheDocument()
     })
 
     describe('stepping back into the step', () => {
@@ -489,7 +490,7 @@ describe('ResidenceStep', () => {
             })
             expect(consumed).toBe(true)
             expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
-            expect(screen.getByText('Have residence in more than one country?')).toBeInTheDocument()
+            expect(screen.getByText(en.setup.residenceStep.multiDocLink)).toBeInTheDocument()
         })
 
         it('returns to the selector from the congrats view', () => {
