@@ -20,9 +20,8 @@ import {
 /**
  * Native one-tap add-to-wallet (Apple Pay / Google Pay via MeaWallet MPP).
  * `nativeAvailable` is false on web, on binaries without the SDK, behind the
- * launch flag, and when the card is already in the wallet — callers keep the
- * manual carousel in all those cases, so an OTA'd JS bundle on an old binary
- * degrades cleanly.
+ * launch flag, and when the card is already in the wallet. Callers use manual
+ * instructions or an added status, so old binaries degrade cleanly.
  */
 export function usePushProvisioning(card: { id: string; last4: string }) {
     const isFlagEnabled = useFeatureFlags()
@@ -55,7 +54,9 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             return
         }
         setNativeAvailable(false)
-        void getPushProvisioningAvailability(card.last4)
+        // Android's suffix lookup can match a different card. Check only wallet
+        // availability here; addCard checks the exact MeaWallet card token.
+        void getPushProvisioningAvailability(wallet === 'google' ? undefined : card.last4)
             .then(({ available, alreadyInWallet }) => {
                 if (!cancelled) {
                     setNativeAvailable(available && !alreadyInWallet)
@@ -69,7 +70,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         return () => {
             cancelled = true
         }
-    }, [availabilityScope, flagOn, card.id, card.last4])
+    }, [availabilityScope, flagOn, card.id, card.last4, wallet])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
         if (!flagOn || wallet === null || !nativeAvailable || checkedScope !== availabilityScope || addingRef.current) {
@@ -143,7 +144,13 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                       : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
                 { wallet, error: result.error }
             )
-            if (result.added) {
+            if (wallet === 'google' && (result.added || result.alreadyInWallet)) {
+                // Both results identify the exact card, unlike a suffix match.
+                if (availabilityScopeRef.current === scopeAtStart) {
+                    setNativeAvailable(false)
+                    setAlreadyInWallet(true)
+                }
+            } else if (result.added) {
                 // The iPhone may now have the card while a paired Watch can still
                 // take it. Recheck both devices instead of hiding the native row.
                 // An availability failure must not turn a successful add into a

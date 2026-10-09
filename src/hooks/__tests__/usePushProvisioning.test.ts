@@ -489,11 +489,8 @@ describe('usePushProvisioning', () => {
             mockedFlag.mockImplementation((key: string) => key === 'push-provisioning-google')
         })
 
-        it('provisions with Google credentials while Apple stays disabled, without writing Apple extension state', async () => {
+        it('requests Google provisioning while Apple stays disabled, without writing Apple extension state', async () => {
             mockedAddCard.mockResolvedValue({ added: true })
-            mockedAvailability
-                .mockResolvedValueOnce({ available: true, alreadyInWallet: false })
-                .mockResolvedValueOnce({ available: false, alreadyInWallet: true })
             const { result } = renderHook(() => usePushProvisioning(card))
             await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
             await act(async () => {
@@ -507,6 +504,7 @@ describe('usePushProvisioning', () => {
             )
             expect(mockedRememberCard).not.toHaveBeenCalled()
             expect(mockedSyncWalletAuthorizationToken).not.toHaveBeenCalled()
+            expect(mockedAvailability).toHaveBeenCalledTimes(1)
             expect(result.current.nativeAvailable).toBe(false)
             expect(result.current.alreadyInWallet).toBe(true)
         })
@@ -541,15 +539,48 @@ describe('usePushProvisioning', () => {
             expect(mockedGetProvisioningData).not.toHaveBeenCalled()
         })
 
-        it('reports an existing token without offering another provisioning action', async () => {
-            mockedAvailability.mockResolvedValue({ available: false, alreadyInWallet: true })
+        it('reports an existing token only after the native exact-card check', async () => {
+            mockedAddCard.mockResolvedValue({ added: false, alreadyInWallet: true })
             const { result } = renderHook(() => usePushProvisioning(card))
-            await waitFor(() => expect(result.current.alreadyInWallet).toBe(true))
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            expect(result.current.alreadyInWallet).toBe(false)
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: false, alreadyInWallet: true })
+            })
+            expect(result.current.alreadyInWallet).toBe(true)
             expect(result.current.nativeAvailable).toBe(false)
+        })
+
+        it('can provision a different card with the same suffix as an existing token', async () => {
+            mockedAvailability.mockImplementation(async (last4) => ({
+                available: last4 !== card.last4,
+                alreadyInWallet: last4 === card.last4,
+            }))
+            mockedAddCard
+                .mockResolvedValueOnce({ added: false, alreadyInWallet: true })
+                .mockResolvedValueOnce({ added: true })
+            mockedGetProvisioningData.mockImplementation(async (cardId) => ({
+                ...provisioningData,
+                cardId: cardId === card.id ? 'mea-card-1' : 'mea-card-2',
+            }))
+            const { result, rerender } = renderHook(({ selectedCard }) => usePushProvisioning(selectedCard), {
+                initialProps: { selectedCard: card },
+            })
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
             await act(async () => {
                 await result.current.addToWallet()
             })
-            expect(mockedGetProvisioningData).not.toHaveBeenCalled()
+            expect(result.current.alreadyInWallet).toBe(true)
+
+            rerender({ selectedCard: { id: 'card-2', last4: card.last4 } })
+            expect(result.current.alreadyInWallet).toBe(false)
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: true })
+            })
+            expect(mockedAddCard).toHaveBeenLastCalledWith(expect.objectContaining({ cardId: 'mea-card-2' }))
+            expect(result.current.alreadyInWallet).toBe(true)
+            expect(result.current.nativeAvailable).toBe(false)
         })
 
         it('preserves retry after user cancellation', async () => {

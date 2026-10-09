@@ -61,10 +61,10 @@ const PushProvisioning = nativeCapability<PushProvisioningPlugin>('PushProvision
 })
 
 /**
- * Can this device do one-tap wallet provisioning for this card? False on web,
- * on binaries without the MeaWallet SDK, before the Apple entitlement is
- * granted, and when the card is already in the wallet — exactly the cases
- * where the UI should keep the manual carousel (or hide the row).
+ * Can this device do one-tap wallet provisioning? Omit last4 on Android:
+ * its suffix lookup cannot distinguish cards with the same last four digits.
+ * The native addCard flow checks the exact card before provisioning.
+ * False on web, binaries without the SDK, or without required entitlements.
  */
 export async function getPushProvisioningAvailability(last4?: string): Promise<PushProvisioningAvailability> {
     return PushProvisioning.call('isAvailable', { last4 }, () => ({ available: false, alreadyInWallet: false }))
