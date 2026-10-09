@@ -64,6 +64,8 @@ const IGNORED_ERRORS = {
         'chrome-extension://',
         'moz-extension://',
         'safari-extension://',
+        // Firefox for iOS injects scripts that read `window.__firefox__`; nothing of ours does.
+        '__firefox__',
     ],
 
     // Third-party scripts we don't control

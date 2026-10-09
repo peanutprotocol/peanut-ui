@@ -511,3 +511,31 @@ describe('signCallsUserOp binds validation, fallback prepare and signature to on
         expect(signed?.signedUserOp.signature).toBe('0x5b')
     })
 })
+
+describe('signTransferUserOp', () => {
+    it('reports a signing failure once: signCallsUserOp owns the capture', async () => {
+        fake.account.signUserOperation.mockRejectedValue(new Error('User action is not allowed'))
+        const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        const { result } = renderHook(() => useSignUserOp())
+        await act(async () => {
+            await expect(
+                result.current.signTransferUserOp('0x00000000000000000000000000000000000000a1', '1.50', '42161')
+            ).rejects.toThrow('not allowed')
+        })
+        expect(captureException).toHaveBeenCalledTimes(1)
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    it('still reports an amount that cannot be encoded', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        const { result } = renderHook(() => useSignUserOp())
+        await act(async () => {
+            await expect(
+                result.current.signTransferUserOp('0x00000000000000000000000000000000000000a1', 'abc', '42161')
+            ).rejects.toThrow()
+        })
+        expect(captureException).toHaveBeenCalledTimes(1)
+        expect(fake.account.signUserOperation).not.toHaveBeenCalled()
+    })
+})

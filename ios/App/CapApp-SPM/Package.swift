@@ -25,7 +25,7 @@ let package = Package(
         .package(name: "CapacitorShare", path: "../../../node_modules/.pnpm/@capacitor+share@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/share"),
         .package(name: "CapacitorSplashScreen", path: "../../../node_modules/.pnpm/@capacitor+splash-screen@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/splash-screen"),
         .package(name: "CapacitorStatusBar", path: "../../../node_modules/.pnpm/@capacitor+status-bar@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/status-bar"),
-        .package(name: "CapgoCapacitorCrisp", path: "../../../node_modules/.pnpm/@capgo+capacitor-crisp@8.0.27_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-crisp"),
+        .package(name: "CapgoCapacitorCrisp", path: "../../../node_modules/.pnpm/@capgo+capacitor-crisp@8.2.3_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-crisp"),
         .package(name: "CapgoCapacitorInAppReview", path: "../../../node_modules/.pnpm/@capgo+capacitor-in-app-review@8.2.3_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-in-app-review"),
         .package(name: "CapgoCapacitorNativeBiometric", path: "../../../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.6.0_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-native-biometric"),
         .package(name: "CapgoCapacitorPasskey", path: "../../../node_modules/@capgo/capacitor-passkey"),

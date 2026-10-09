@@ -46,6 +46,9 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // incident by every mounted hook and its retries — the merchant page alone
     // runs three — and bury the backend signal that can actually be acted on.
     { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404, 429, 503] },
+    // The backend publishes no card comparison for this currency; useCardMarkupRate
+    // falls back to the static table and still renders the row (PEANUT-UI-T2E).
+    { pattern: /\/fx\/card-markup(?:\?|$)/, statuses: [404], errorCodes: ['FX_CARD_MARKUP_UNAVAILABLE'] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
@@ -523,6 +526,42 @@ export const sanitizeUrl = (url: string) => {
  */
 export const routeTag = (url: string): string => sanitizeUrl(url).replace(/^https?:\/\/[^/]+/, '') || '/'
 
+/** Share of read (non-mutating) request timeouts reported to Sentry. */
+export const READ_TIMEOUT_SAMPLE_RATE = 0.1
+
+/** Repeats of one failing read inside this window are counted, not reported. */
+export const NON_OK_REPORT_WINDOW_MS = 5 * 60_000
+const MAX_TRACKED_NON_OK = 200
+const nonOkReports = new Map<string, { reportedAt: number; suppressed: number }>()
+
+/*
+ * A read that fails keeps failing on every poll, retry and mounted consumer: one
+ * client produced 656 events in 5.5h for a single /rain/cards 401 (PEANUT-UI-R6Y)
+ * and 116 in 41s for a /users/history 429 (PEANUT-UI-SGK). The first report per
+ * window says the same thing. Mutations never pass through here: each is a
+ * distinct user action, and a suppressed one would hide a money-flow failure.
+ *
+ * Keyed by the full URL, not the sanitized fingerprint: two deposits polled at
+ * /rhino/status/{address} are two failures, and the second must still report.
+ * A storm is one URL repeating, so it is still collapsed.
+ */
+function claimNonOkReport(key: string, now: number): { report: boolean; suppressedSinceLast: number } {
+    const previous = nonOkReports.get(key)
+    if (previous && now - previous.reportedAt < NON_OK_REPORT_WINDOW_MS) {
+        previous.suppressed++
+        return { report: false, suppressedSinceLast: previous.suppressed }
+    }
+    nonOkReports.delete(key)
+    nonOkReports.set(key, { reportedAt: now, suppressed: 0 })
+    if (nonOkReports.size > MAX_TRACKED_NON_OK) nonOkReports.delete(nonOkReports.keys().next().value as string)
+    return { report: true, suppressedSinceLast: previous?.suppressed ?? 0 }
+}
+
+/** Test-only: forget which failing reads were already reported. */
+export function resetNonOkReportThrottle(): void {
+    nonOkReports.clear()
+}
+
 const reportNonOkResponse = async (
     url: string,
     options: RequestInit,
@@ -571,13 +610,20 @@ const reportNonOkResponse = async (
     // the status falls through and is reported.
     if (skipRule?.errorCodes && bodyCarriesSkippedCode(skipRule.errorCodes, errorContent)) return
 
+    const method = options.method || 'GET'
+    let suppressedSinceLast = 0
+    if (!isMutatingMethod(method)) {
+        const claim = claimNonOkReport(`${method} ${url} ${response.status}`, Date.now())
+        if (!claim.report) return
+        suppressedSinceLast = claim.suppressedSinceLast
+    }
+
     // console.info, not error — captureConsoleIntegration listens on error, so
     // an error here would be a SECOND Sentry event for every non-2xx in the
     // app, grouped by this call site rather than by request. The explicit
     // captureMessage below is the real report: it fingerprints on
     // [method, url, status] and carries headers, body and response.
     console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
-    const method = options.method || 'GET'
     const featureTag = getFeatureTag(url)
     Sentry.withScope((scope) => {
         // Set fingerprint to group similar errors
@@ -595,6 +641,7 @@ const reportNonOkResponse = async (
                 requestBody: sanitizeRequestBody(url, options.body),
                 status: response.status,
                 response: sanitizeResponseBody(url, errorContent),
+                ...(suppressedSinceLast ? { suppressedSinceLast } : {}),
             },
         })
     })
@@ -856,14 +903,17 @@ export const fetchWithSentry = async (
 
             const timeoutFeatureTag = getFeatureTag(url)
             const reportedByCaller = silentTimeout || callerReportsFailures
-            // React Query refetches an interrupted read on resume; an interrupted mutation lost the user's progress.
+            // Interrupted reads retry on resume. Sample other read timeouts; keep every mutation.
             const interruptedRead = lastLegInterrupted && !isMutatingMethod(method)
-            if (!repeatFailure && !reportedByCaller && !interruptedRead) {
+            const sampleRate = isMutatingMethod(method) ? 1 : READ_TIMEOUT_SAMPLE_RATE
+            const sampledOut = Math.random() >= sampleRate
+            if (!repeatFailure && !reportedByCaller && !interruptedRead && !sampledOut) {
                 Sentry.withScope((scope) => {
                     scope.setFingerprint(lastLegInterrupted ? ['timeout', 'interrupted'] : ['timeout'])
                     scope.setTag('route', routeTag(telemetryUrl))
                     scope.setTag('http.method', method)
                     if (lastLegInterrupted) scope.setTag('request.interrupted', 'true')
+                    scope.setTag('timeout_sample_rate', String(sampleRate))
                     if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
 
                     Sentry.captureException(timeoutError, {
@@ -877,7 +927,7 @@ export const fetchWithSentry = async (
                         },
                     })
                 })
-            } else if (reportedByCaller || interruptedRead) {
+            } else if (reportedByCaller || interruptedRead || sampledOut) {
                 // Not reported, but not erased: if the caller's fallback later
                 // fails for its own reasons, the timeout that preceded it is on
                 // the trail.
@@ -886,7 +936,9 @@ export const fetchWithSentry = async (
                     level: 'warning',
                     message: lastLegInterrupted
                         ? 'Request interrupted by app suspension'
-                        : 'Request timed out (silent)',
+                        : reportedByCaller
+                          ? 'Request timed out (silent)'
+                          : 'Request timed out (not sampled)',
                     data: { route: routeTag(telemetryUrl), method, timeoutMs },
                 })
             }
