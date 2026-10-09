@@ -1,5 +1,7 @@
 'use client'
 
+// DEPRECATED (TASK-23085): the /limits page is unmaintained; delete it and point limit links at Profile → Accounts / Payments / Card.
+
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
@@ -30,6 +32,10 @@ import REST_OF_WORLD_GLOBE_ICON from '@/assets/icons/rest-of-world-globe.svg'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { getProviderRoute } from '../utils'
 
+/**
+ * @deprecated TASK-23085: the /limits page is unmaintained and will be deleted.
+ * Point limit links at Profile → Accounts / Payments / Card instead.
+ */
 const LimitsPageView = () => {
     const t = useTranslations('limits')
     const tCommon = useTranslations('common')
