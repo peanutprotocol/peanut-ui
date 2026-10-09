@@ -1,3 +1,6 @@
+import * as React from 'react'
+import { act, cleanup, renderHook } from '@testing-library/react'
+
 let mockEnvironment = 'preview'
 const mockInit = jest.fn()
 const mockAdapter = {
@@ -13,6 +16,7 @@ const mockAdapter = {
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: async () => mockAdapter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/utils/sentry-env', () => ({ inferSentryEnvironment: () => mockEnvironment }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: jest.fn(), updateUserPreferences: jest.fn() }))
@@ -23,10 +27,8 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
 }))
 
-type Rtl = typeof import('@testing-library/react/pure')
-let cleanup: (() => void) | undefined
 afterEach(() => {
-    cleanup?.()
+    cleanup()
     jest.restoreAllMocks()
 })
 
@@ -34,9 +36,9 @@ async function initFailingWith(message: string) {
     // Each case is a fresh page. A permanent refusal intentionally settles
     // initialization for the document, so tests must not share that singleton.
     jest.resetModules()
+    // Keep the renderer and the reloaded hook on the same React instance.
+    jest.doMock('react', () => React)
     mockInit.mockReset().mockRejectedValue(new Error(message))
-    const { renderHook, act, cleanup: clean } = require('@testing-library/react/pure') as Rtl
-    cleanup = clean
     const { useNotifications } = require('../useNotifications') as typeof import('../useNotifications')
     const { captureException } = require('@sentry/nextjs') as { captureException: jest.Mock }
     const view = renderHook(() => useNotifications())
