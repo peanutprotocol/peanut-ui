@@ -101,8 +101,14 @@ export function useSemanticRequestFlow() {
     } = useWallet()
 
     // use token selector context for ui integration
-    const { selectedChainID, selectedTokenAddress, selectedTokenData, setSelectedChainID, setSelectedTokenAddress } =
-        useContext(tokenSelectorContext)
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        selectedTokenData,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+        refetchTokenData,
+    } = useContext(tokenSelectorContext)
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -241,7 +247,7 @@ export function useSemanticRequestFlow() {
             shouldReturnAfterCreatingCharge: boolean = false,
             bypassLoginCheck: boolean = false
         ): Promise<{ success: boolean }> => {
-            if (!recipient || !amount || !selectedTokenAddress || !selectedChainID || !selectedTokenData) {
+            if (!recipient || !amount || !selectedTokenAddress || !selectedChainID) {
                 setError({ showError: true, errorMessage: t('errors.missingData') })
                 return { success: false }
             }
@@ -278,21 +284,36 @@ export function useSemanticRequestFlow() {
                 }
 
                 if (!chargeResult) {
-                    if (!currentUsdAmount) {
+                    // A retry must refresh a missing/stale price even if the user never
+                    // leaves this screen. Existing charges already fix their token amount
+                    // and metadata, so they never depend on the price service here.
+                    let priceData = selectedTokenData
+                    if (!priceData || !isPriceFreshForConversion(priceData)) {
+                        priceData = await refetchTokenData()
+                    }
+                    if (
+                        !priceData ||
+                        priceData.address.toLowerCase() !== selectedTokenAddress.toLowerCase() ||
+                        priceData.chainId !== selectedChainID ||
+                        !Number.isFinite(priceData.price) ||
+                        priceData.price <= 0
+                    ) {
                         throw new Error('Token price is unavailable. Please try again.')
                     }
-                    // The input is USD unless the URL explicitly denominates it in tokens.
-                    // Keep that fiat amount separate from the destination token amount.
+                    const paymentUsdAmount = isTokenDenominated ? Number(amount) * priceData.price : Number(amount)
+                    if (!Number.isFinite(paymentUsdAmount) || paymentUsdAmount <= 0) {
+                        throw new Error('Token price is unavailable. Please try again.')
+                    }
                     let requestedTokenAmount = amount
-                    if (!isTokenDenominated && !isStableCoin(selectedTokenData.symbol)) {
-                        if (!tokenUsdPrice || !isPriceFreshForConversion(selectedTokenData)) {
+                    if (!isTokenDenominated && !isStableCoin(priceData.symbol)) {
+                        if (!isPriceFreshForConversion(priceData)) {
                             throw new Error('Token price is unavailable. Please try again.')
                         }
-                        const convertedAmount = Number(amount) / tokenUsdPrice
+                        const convertedAmount = Number(amount) / priceData.price
                         if (!Number.isFinite(convertedAmount) || convertedAmount <= 0) {
                             throw new Error('Token amount is invalid. Please try again.')
                         }
-                        requestedTokenAmount = floorFixed(convertedAmount, selectedTokenData.decimals)
+                        requestedTokenAmount = floorFixed(convertedAmount, priceData.decimals)
                         if (Number(requestedTokenAmount) <= 0) {
                             throw new Error('Amount is too small for this token.')
                         }
@@ -302,8 +323,8 @@ export function useSemanticRequestFlow() {
                         tokenAmount: requestedTokenAmount,
                         tokenAddress: selectedTokenAddress as Address,
                         chainId: selectedChainID,
-                        tokenSymbol: selectedTokenData.symbol,
-                        tokenDecimals: selectedTokenData.decimals,
+                        tokenSymbol: priceData.symbol,
+                        tokenDecimals: priceData.decimals,
                         recipientAddress: recipient.resolvedAddress,
                         // The only place the typed recipient still exists — the
                         // charge carries the address. createCharge keeps it only
@@ -312,10 +333,11 @@ export function useSemanticRequestFlow() {
                         transactionType: 'REQUEST',
                         reference: attachment.message,
                         attachment: attachment.file,
-                        currencyAmount: currentUsdAmount,
+                        currencyAmount: paymentUsdAmount.toString(),
                         currencyCode: 'USD',
                     })
                     setCharge(chargeResult)
+                    setUsdAmount(paymentUsdAmount.toString())
                 }
 
                 if (shouldReturnAfterCreatingCharge) {
@@ -389,14 +411,13 @@ export function useSemanticRequestFlow() {
         [
             recipient,
             amount,
-            currentUsdAmount,
             isTokenDenominated,
-            tokenUsdPrice,
             attachment,
             walletAddress,
             selectedTokenAddress,
             selectedChainID,
             selectedTokenData,
+            refetchTokenData,
             charge,
             isLoggedIn,
             isSameChainSameToken,
@@ -422,15 +443,15 @@ export function useSemanticRequestFlow() {
 
     // prepare route when entering confirm view
     const prepareRoute = useCallback(async () => {
-        if (!charge || !walletAddress || !selectedTokenData || !selectedChainID) return
+        if (!charge || !walletAddress) return
 
         // check if charge is for same chain and same token (no route needed)
         const isChargeSameChainToken =
             charge.chainId === PEANUT_WALLET_CHAIN.id.toString() &&
             areEvmAddressesEqual(charge.tokenAddress, PEANUT_WALLET_TOKEN)
 
-        // only calculate route if cross-chain or different token
-        if (needsRoute && !isChargeSameChainToken) {
+        // The charge supplies all destination details, even when the token-price query failed.
+        if (!isChargeSameChainToken) {
             await calculateRoute({
                 source: {
                     address: walletAddress as Address,
@@ -450,7 +471,7 @@ export function useSemanticRequestFlow() {
                 senderPeanutWalletAddress: walletAddress as Address,
             })
         }
-    }, [charge, walletAddress, selectedTokenData, selectedChainID, needsRoute, calculateRoute])
+    }, [charge, walletAddress, calculateRoute])
 
     // fetch charge from url if chargeIdFromUrl is present but charge is not loaded
     useEffect(() => {
