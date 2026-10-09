@@ -200,6 +200,7 @@ async function loadLanding(
         getElementById: (id) => elements.get(id),
         querySelector: (selector) => (selector === '.brand' ? brand : null),
     }
+    elements.document = document
     const context = vm.createContext({
         console,
         document,
@@ -226,6 +227,67 @@ async function loadLanding(
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
+
+test('PR report heading and tab title retain PR and branch context across view and filter changes', async () => {
+    const path = `2026-10-09/pr-3593/en/${'a'.repeat(40)}/run-37911623740-1`
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852, capturedAt: '2026-10-09T12:00:00Z' },
+        screens: [],
+    }
+    const elements = await loadLanding(`/screens/${path}/`, {
+        report,
+        index: [{ path, date: '2026-10-09', branch: 'innolope/store-country', prNumber: 3593, locale: 'en' }],
+    })
+    for (const update of [
+        () => {},
+        () => {
+            elements.get('view-mode').checked = true
+            elements.get('view-mode').dispatch('change')
+        },
+        () => elements.get('search').dispatch('input'),
+        () => {
+            elements.get('view-mode').checked = false
+            elements.get('view-mode').dispatch('change')
+        },
+    ]) {
+        update()
+        assert.equal(elements.get('title').textContent, 'PR #3593')
+        assert.match(elementText(elements.get('description')), /innolope\/store-country.*October 9, 2026/)
+        assert.equal(elements.document.title, 'PR #3593 · Peanut Screen library')
+    }
+})
+
+test('older report URLs identify the PR or branch when catalogue metadata is missing', async () => {
+    for (const [channel, expectedTitle, type] of [
+        ['pr-3593', 'PR #3593', 'comparison'],
+        ['compare-main', 'Main', 'comparison'],
+        ['compare-dev', 'Dev', 'comparison'],
+        ['main', 'Main', 'capture'],
+        ['dev', 'Dev', 'capture'],
+    ]) {
+        const capture = { width: 393, height: 852, capturedAt: '2026-10-09T12:00:00Z' }
+        const report = {
+            schema: 1,
+            type,
+            locale: 'en',
+            complete: true,
+            ...capture,
+            before: capture,
+            after: capture,
+            screens: [],
+        }
+        const elements = await loadLanding(`/screens/2026-10-09/${channel}/en/${'a'.repeat(40)}/`, { report })
+        assert.equal(elements.get('title').textContent, expectedTitle)
+        assert.equal(elements.document.title, `${expectedTitle} · Peanut Screen library`)
+        assert.match(elementText(elements.get('description')), /October 9, 2026/)
+        assert.doesNotMatch(elementText(elements.get('description')), /pr-3593/)
+    }
+})
 
 test('root shows the branded sign-in gate when Access redirects the catalogue request', async () => {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
