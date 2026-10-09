@@ -3,7 +3,6 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { COMPETITORS } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import type { Locale } from '@/i18n/types'
 import { getTranslations, t } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
@@ -43,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('compare', slug, locale) as Locale
+    const contentLocale = contentLocaleFor('compare', slug, locale)
 
     return {
         ...metadataHelper({
@@ -71,7 +70,7 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('compare', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
-    const contentLocale = contentLocaleFor('compare', slug, locale) as Locale
+    const contentLocale = contentLocaleFor('compare', slug, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)

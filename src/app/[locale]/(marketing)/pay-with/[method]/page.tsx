@@ -3,7 +3,6 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { PAYMENT_METHODS, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
@@ -34,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('pay-with', method, locale) as Locale
+    const contentLocale = contentLocaleFor('pay-with', method, locale)
 
     return {
         ...metadataHelper({
@@ -60,7 +59,7 @@ export default async function PayWithPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('pay-with', method, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
-    const contentLocale = contentLocaleFor('pay-with', method, locale) as Locale
+    const contentLocale = contentLocaleFor('pay-with', method, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)

@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('receive-from', country, locale) as Locale
+    const contentLocale = contentLocaleFor('receive-from', country, locale)
 
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
@@ -68,7 +68,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized('receive-from', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
-    const contentLocale = contentLocaleFor('receive-from', country, locale) as Locale
+    const contentLocale = contentLocaleFor('receive-from', country, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)

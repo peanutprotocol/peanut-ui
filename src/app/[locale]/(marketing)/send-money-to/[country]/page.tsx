@@ -3,7 +3,6 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SEND_TO_COUNTRIES, getCountryName } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale, localizedPath } from '@/i18n/config'
-import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
@@ -33,7 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('send-to', country, locale) as Locale
+    const contentLocale = contentLocaleFor('send-to', country, locale)
 
     return {
         ...metadataHelper({
@@ -56,7 +55,7 @@ export default async function SendMoneyToCountryPageLocalized({ params }: PagePr
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('send-to', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
-    const contentLocale = contentLocaleFor('send-to', country, locale) as Locale
+    const contentLocale = contentLocaleFor('send-to', country, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)

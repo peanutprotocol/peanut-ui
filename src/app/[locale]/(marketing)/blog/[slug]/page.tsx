@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!isValidLocale(locale)) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('blog', slug, locale) as Locale
+    const contentLocale = contentLocaleFor('blog', slug, locale)
     const post = await getPostBySlug(slug, contentLocale)
     if (!post) return {}
 
@@ -64,7 +64,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
 
     // Resolve through the full fallback chain (es-ar → es-419 → en), not
     // straight to English.
-    const contentLocale = contentLocaleFor('blog', slug, locale) as Locale
+    const contentLocale = contentLocaleFor('blog', slug, locale)
     const post = await getPostBySlug(slug, contentLocale)
     if (!post) notFound()
 

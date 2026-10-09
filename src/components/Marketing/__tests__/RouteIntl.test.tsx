@@ -2,12 +2,13 @@
 /**
  * The server half picks the catalog from the URL segment, including the es-ar
  * overlay on es-419, so the prerendered HTML is already translated. It sends
- * only the namespaces the wrapped tree reads, and nothing for English.
+ * every marketing namespace except `errors`, and nothing for English.
  */
 import { isValidElement } from 'react'
 import { render, screen } from '@testing-library/react'
 import { RouteIntl } from '../RouteIntl'
 import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
+import en from '@/i18n/app/messages/en.marketing.json'
 import es419 from '@/i18n/app/messages/es-419.marketing.json'
 import esAR from '@/i18n/app/messages/es-AR.marketing.json'
 import ptBR from '@/i18n/app/messages/pt-BR.marketing.json'
@@ -23,17 +24,15 @@ async function routeIntl(locale: Parameters<typeof RouteIntl>[0]['locale'], chil
     return element
 }
 
-// Every namespace a component under the wrapped tree calls useTranslations on:
-// ShhhhhFold / LandingPageClient, StickyMobileCTA / LandingDownloadCta,
-// NavHeader, Callout / Badge. A catalog cut that drops one renders raw keys.
-const NEEDED = ['common', 'migration', 'navigation', 'shhhhh']
+// every marketing namespace but `errors` (read only by AuthProvider, above the tree)
+const NEEDED = Object.keys(en).filter((ns) => ns !== 'errors')
 
 describe('RouteIntl', () => {
     it.each([
         ['pt-br', 'pt-BR', ptBR.shhhhh.hero.tagline],
         ['es-419', 'es-419', es419.shhhhh.hero.tagline],
         ['es-ar', 'es-AR', esAR.shhhhh.hero.tagline],
-    ])('%s sends the %s catalog with every namespace the page reads', async (segment, appLocale, tagline) => {
+    ])('%s sends the %s catalog with every namespace but errors', async (segment, appLocale, tagline) => {
         const { props } = await routeIntl(segment as 'pt-br')
         expect(props.locale).toBe(appLocale)
         expect(props.messages?.shhhhh.hero.tagline).toBe(tagline)

@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (mdxContent && mdxContent.frontmatter.published !== false) {
         // A fallback-served page canonicalizes to the locale that owns the prose.
-        const contentLocale = contentLocaleFor('deposit', deposit.key, locale) as Locale
+        const contentLocale = contentLocaleFor('deposit', deposit.key, locale)
         return {
             ...metadataHelper({
                 locale: contentLocale,
@@ -100,7 +100,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
-    const contentLocale = contentLocaleFor('deposit', deposit.key, locale) as Locale
+    const contentLocale = contentLocaleFor('deposit', deposit.key, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
