@@ -2,6 +2,8 @@ import { downloadFailure, prepareStatement, saveStatement } from '../statementDo
 import { serverFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
 import { CapacitorHttp } from '@capacitor/core'
+import { Filesystem } from '@capacitor/filesystem'
+import { Share } from '@capacitor/share'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -13,9 +15,18 @@ jest.mock('@/utils/auth-token', () => ({
 }))
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.example.test' }))
 jest.mock('@capacitor/core', () => ({ CapacitorHttp: { request: jest.fn() } }))
+jest.mock('@capacitor/filesystem', () => ({
+    Directory: { Cache: 'CACHE' },
+    Filesystem: { writeFile: jest.fn(), deleteFile: jest.fn(), readdir: jest.fn() },
+}))
+jest.mock('@capacitor/share', () => ({ Share: { share: jest.fn() } }))
 jest.mock('@/components/Card/share-asset/captureShareAsset', () => ({ downloadBlob: jest.fn() }))
 const fetchMock = serverFetch as jest.Mock
 const native = isCapacitor as jest.Mock
+/** An app binary with (or without) the Filesystem and Share plugins. */
+const appShipsFilePlugins = (available: boolean) => {
+    window.Capacitor = { getPlatform: () => 'android', isPluginAvailable: () => available }
+}
 
 const queryOf = (url: string) => new URLSearchParams(url.split('?')[1])
 
@@ -29,6 +40,11 @@ const pdfResponse = (disposition: string | null = null) => fileResponse('applica
 beforeEach(() => {
     jest.clearAllMocks()
     native.mockReturnValue(false)
+    delete window.Capacitor
+    ;(Filesystem.readdir as jest.Mock).mockRejectedValue(new Error('Directory does not exist'))
+    ;(Filesystem.writeFile as jest.Mock).mockResolvedValue({ uri: 'file:///cache/statements/activity.csv' })
+    ;(Filesystem.deleteFile as jest.Mock).mockResolvedValue(undefined)
+    ;(Share.share as jest.Mock).mockResolvedValue({})
 })
 
 describe('statement downloads', () => {
@@ -163,8 +179,58 @@ describe('statement downloads', () => {
         await expect(prepareStatement({ format: 'pdf', locale: 'en' })).rejects.toThrow('EXPORT_FAILED')
     })
 
-    it('does not claim success when the native share sheet is cancelled', async () => {
+    it('saves through the native file plugins when the app ships them', async () => {
         native.mockReturnValue(true)
+        appShipsFilePlugins(true)
+        const webShare = jest.fn()
+        Object.defineProperty(navigator, 'share', { configurable: true, value: webShare })
+        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).toBe('saved')
+        // 'file' in base64, written under the statement's own name
+        expect(Filesystem.writeFile).toHaveBeenCalledWith({
+            path: 'statements/activity.csv',
+            directory: 'CACHE',
+            data: 'ZmlsZQ==',
+            recursive: true,
+        })
+        expect(Share.share).toHaveBeenCalledWith({ files: ['file:///cache/statements/activity.csv'] })
+        expect(webShare).not.toHaveBeenCalled()
+        expect(downloadBlob).not.toHaveBeenCalled()
+    })
+
+    it('does not claim success when the native plugin share sheet is dismissed', async () => {
+        native.mockReturnValue(true)
+        appShipsFilePlugins(true)
+        ;(Share.share as jest.Mock).mockRejectedValue(new Error('Share canceled'))
+        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).toBe('cancelled')
+    })
+
+    it('reports a native share that fails as a failure, not as a save', async () => {
+        native.mockReturnValue(true)
+        appShipsFilePlugins(true)
+        ;(Share.share as jest.Mock).mockRejectedValue(new Error('No app can open this file'))
+        await expect(saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).rejects.toThrow(
+            'No app can open this file'
+        )
+    })
+
+    it('removes statement files older than a day from the cache, and keeps a recent one', async () => {
+        native.mockReturnValue(true)
+        appShipsFilePlugins(true)
+        const hour = 60 * 60 * 1000
+        ;(Filesystem.readdir as jest.Mock).mockResolvedValue({
+            files: [
+                { name: 'old.pdf', type: 'file', mtime: Date.now() - 25 * hour },
+                { name: 'recent.csv', type: 'file', mtime: Date.now() - hour },
+            ],
+        })
+        await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })
+        expect(Filesystem.deleteFile).toHaveBeenCalledTimes(1)
+        expect(Filesystem.deleteFile).toHaveBeenCalledWith({ path: 'statements/old.pdf', directory: 'CACHE' })
+    })
+
+    it('keeps the web share sheet in an app built before the file plugins, and does not claim a cancelled one', async () => {
+        native.mockReturnValue(true)
+        appShipsFilePlugins(false)
         Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true })
         Object.defineProperty(navigator, 'share', {
             configurable: true,
@@ -172,10 +238,12 @@ describe('statement downloads', () => {
         })
         expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).toBe('cancelled')
         expect(downloadBlob).not.toHaveBeenCalled()
+        expect(Share.share).not.toHaveBeenCalled()
     })
 
-    it('fails explicitly when native cannot save, rather than silently using an unsupported anchor', async () => {
+    it('fails explicitly when an app without the file plugins cannot share, rather than silently using an unsupported anchor', async () => {
         native.mockReturnValue(true)
+        appShipsFilePlugins(false)
         Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => false })
         await expect(saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).rejects.toThrow(
             'EXPORT_SAVE_UNAVAILABLE'

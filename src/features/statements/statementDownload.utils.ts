@@ -128,18 +128,71 @@ export async function prepareStatement(options: {
     return { blob, fileName: suppliedName ?? `peanut-activity.${options.format}` }
 }
 
+const CACHE_DIRECTORY = 'statements'
+const CACHE_KEEP_MS = 24 * 60 * 60 * 1000
+
+/** Writes the file to the app cache and hands it to the system share sheet through the native plugins. */
+async function shareFromCache(file: StatementFile): Promise<'saved' | 'cancelled'> {
+    const [{ Filesystem, Directory }, { Share }] = await Promise.all([
+        import('@capacitor/filesystem'),
+        import('@capacitor/share'),
+    ])
+    // the receiving app may read the file after the share sheet closes, so an
+    // earlier file goes at a later save, not after its own (as receipt attachments do)
+    try {
+        const { files } = await Filesystem.readdir({ path: CACHE_DIRECTORY, directory: Directory.Cache })
+        await Promise.all(
+            files
+                .filter((entry) => entry.type === 'file' && entry.mtime < Date.now() - CACHE_KEEP_MS)
+                .map((entry) =>
+                    Filesystem.deleteFile({ path: `${CACHE_DIRECTORY}/${entry.name}`, directory: Directory.Cache })
+                )
+        )
+    } catch {
+        // the cache directory does not exist before the first save
+    }
+    const data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result).split(',')[1])
+        reader.onerror = () => reject(reader.error ?? new Error('Unable to read the statement'))
+        reader.readAsDataURL(file.blob)
+    })
+    const { uri } = await Filesystem.writeFile({
+        path: `${CACHE_DIRECTORY}/${file.fileName}`,
+        directory: Directory.Cache,
+        data,
+        recursive: true,
+    })
+    try {
+        await Share.share({ files: [uri] })
+    } catch (error) {
+        // the plugin rejects a dismissed sheet with "Share canceled"
+        if (error instanceof Error && (error.message === 'Share canceled' || error.name === 'AbortError'))
+            return 'cancelled'
+        throw error
+    }
+    return 'saved'
+}
+
 /** Native callers invoke this on a fresh tap after preparation, preserving user activation. */
 export async function saveStatement(file: StatementFile): Promise<'saved' | 'cancelled'> {
-    if (isCapacitor()) {
-        const shared = new File([file.blob], file.fileName, { type: file.blob.type })
-        if (!navigator.share || !navigator.canShare?.({ files: [shared] }))
-            throw new StatementDownloadError('EXPORT_SAVE_UNAVAILABLE')
-        try {
-            await navigator.share({ files: [shared] })
-        } catch (error) {
-            if ((error as Error).name === 'AbortError') return 'cancelled'
-            throw error
-        }
-    } else downloadBlob(file.blob, file.fileName)
+    if (!isCapacitor()) {
+        downloadBlob(file.blob, file.fileName)
+        return 'saved'
+    }
+    // Android's WebView has no navigator.share, so an app that ships the file
+    // plugins saves through them. An app built before the plugins keeps the web
+    // share sheet, which needs the tap's user activation: no await comes before it.
+    if (window.Capacitor?.isPluginAvailable?.('Filesystem') && window.Capacitor?.isPluginAvailable?.('Share'))
+        return shareFromCache(file)
+    const shared = new File([file.blob], file.fileName, { type: file.blob.type })
+    if (!navigator.share || !navigator.canShare?.({ files: [shared] }))
+        throw new StatementDownloadError('EXPORT_SAVE_UNAVAILABLE')
+    try {
+        await navigator.share({ files: [shared] })
+    } catch (error) {
+        if ((error as Error).name === 'AbortError') return 'cancelled'
+        throw error
+    }
     return 'saved'
 }
