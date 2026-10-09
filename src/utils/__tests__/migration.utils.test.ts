@@ -48,14 +48,7 @@ jest.mock('@/utils/deferred-link', () => ({
 
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { openExternalUrl } from '@/utils/capacitor'
-import {
-    isPwaSunsetOn,
-    onStoreAnchorClick,
-    openStore,
-    storeAnchorHref,
-    storeForDevice,
-    storeIcon,
-} from '@/utils/migration.utils'
+import { isPwaSunsetOn, openStore, storeAnchorHref, storeForDevice, storeIcon } from '@/utils/migration.utils'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>
@@ -243,23 +236,8 @@ describe('store anchor helpers (self-navigating CTAs)', () => {
         expect(storeAnchorHref('android')).toBe(`play://listing?referrer=${encodeURIComponent('pnutdl=1')}`)
     })
 
-    it('ios anchor href stays bare — the clipboard rides on click instead', () => {
+    it('ios anchor href stays bare', () => {
         expect(storeAnchorHref('ios')).toBe(STORE_URL.ios)
-        onStoreAnchorClick('ios', MIGRATION_SURFACES.LANDING_HERO)
-        expect(mockCopyIOSHandoff).toHaveBeenCalledWith('pnutdl=1')
-    })
-
-    it('android click only tracks — the href already carries the payload', () => {
-        onStoreAnchorClick('android', MIGRATION_SURFACES.LANDING_HERO)
-        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
-        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('android')
-    })
-
-    it('ios anchor click counts the hand-off once the clipboard write resolves', async () => {
-        mockCopyIOSHandoff.mockResolvedValue(undefined)
-        onStoreAnchorClick('ios', MIGRATION_SURFACES.LANDING_HERO)
-        await Promise.resolve()
-        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('ios')
     })
 
     it('a payload failure falls back to the bare store url', () => {

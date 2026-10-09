@@ -68,15 +68,15 @@ describe('AppModalProvider', () => {
         expect(mockOpenStore).not.toHaveBeenCalled()
     })
 
-    it('opens the phone store with the calling surface', () => {
+    it('opens the same modal on a phone, so the login link is reachable there too', async () => {
         mockDeviceType.mockReturnValue(DeviceType.ANDROID)
         renderCta()
 
         fireEvent.click(screen.getByRole('button', { name: 'cta' }))
 
         expect(handled).toBe(true)
-        expect(mockOpenStore).toHaveBeenCalledWith('android', 'landing_rates')
-        expect(screen.queryByTestId('qr-modal')).not.toBeInTheDocument()
+        expect(await screen.findByTestId('qr-modal')).toHaveTextContent('landing_rates')
+        expect(mockOpenStore).not.toHaveBeenCalled()
     })
 
     it('does nothing with the flag off, so the CTA keeps its own behaviour', () => {

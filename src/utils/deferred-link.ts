@@ -351,8 +351,7 @@ function captureRestore(
  * "the hand-off is broken" from "nobody used it". Intentionally not fired inside
  * `playStoreUrlWithReferrer`/`copyIOSHandoff`: the first is a pure URL builder
  * invoked on render, so it would count impressions as taps.
- * Consumers: the store-bounce handlers in migration.utils (openStore /
- * onStoreAnchorClick); the download modal (TASK-20769) joins them when built.
+ * Consumers: the store-bounce handlers in migration.utils (openStore).
  */
 export function trackDeferredHandoffCreated(platform: 'ios' | 'android'): void {
     try {

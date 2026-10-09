@@ -110,9 +110,8 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 }
 
 /**
- * Store anchor URL with an Android install referrer.
- * Pair with onStoreAnchorClick for tracking and the iOS clipboard handoff.
- * Keep the anchor's default navigation so it works when popups are blocked.
+ * Store anchor URL with an Android install referrer: the no-JS fallback href
+ * of a download link whose click opens the download modal.
  */
 export function storeAnchorHref(store: StoreKind): string {
     if (!isCapacitor() && store === 'android') {
@@ -123,24 +122,4 @@ export function storeAnchorHref(store: StoreKind): string {
         }
     }
     return STORE_URL[store]
-}
-
-/** Track a store anchor click and write its iOS clipboard handoff. */
-export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) {
-    if (isCapacitor()) {
-        trackStoreClick(store, surface)
-        return
-    }
-    let payload = ''
-    try {
-        payload = buildDeferredPayload(undefined, undefined, store)
-    } catch {}
-    trackStoreClick(store, surface, !!payload)
-    if (store === 'ios' && payload)
-        void copyIOSHandoff(payload)
-            .then(() => trackDeferredHandoffCreated('ios'))
-            .catch(() => {})
-    // the anchor's href (built at render) carries the android hand-off; a
-    // successful rebuild here is the same approximation trackStoreClick uses
-    if (store === 'android' && payload) trackDeferredHandoffCreated('android')
 }

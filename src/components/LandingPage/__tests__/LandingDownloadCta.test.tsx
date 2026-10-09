@@ -13,7 +13,6 @@ jest.mock('@/utils/migration.utils', () => ({
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     trackStoreClick: (...args: unknown[]) => mockTrackStoreClick(...args),
     storeAnchorHref: () => '/store',
-    onStoreAnchorClick: jest.fn(),
 }))
 const mockIntercept = jest.fn(() => true)
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
@@ -49,7 +48,10 @@ it.each(['ios', 'android'])('has one store download action on %s', (device) => {
     mockDevice = device
     render(<LandingDownloadCta />)
     expect(screen.getAllByRole('link')).toHaveLength(1)
-    expect(screen.getByRole('link', { name: 'downloadNow' })).toHaveAttribute('href', '/store')
+    const link = screen.getByRole('link', { name: 'downloadNow' })
+    expect(link).toHaveAttribute('href', '/store')
+    fireEvent.click(link)
+    expect(mockIntercept).toHaveBeenCalledWith('landing_hero')
 })
 it.each([
     ['web', 'qr-code'],

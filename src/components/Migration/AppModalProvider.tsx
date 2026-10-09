@@ -1,13 +1,11 @@
 'use client'
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
-import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { openStore, storeForDevice } from '@/utils/migration.utils'
 import { type MigrationSurface } from '@/constants/migration.consts'
 
-// Load the QR library only after a desktop CTA is clicked.
+// Load the QR library only after a download CTA is clicked.
 const ScanToDownloadModal = dynamic(() => import('@/components/Migration/ScanToDownloadModal'), { ssr: false })
 
 type AppModalValue = (surface: MigrationSurface) => boolean
@@ -21,21 +19,17 @@ export function useAppModal(): AppModalValue {
 
 export function AppModalProvider({ children }: { children: ReactNode }) {
     const migrationOn = useMigrationFlag()
-    const { deviceType } = useDeviceType()
     const [surface, setSurface] = useState<MigrationSurface | null>(null)
 
     const interceptAppCta = useCallback<AppModalValue>(
         (nextSurface) => {
             if (!migrationOn || isCapacitor()) return false
-            const store = storeForDevice(deviceType)
-            if (!store) {
-                setSurface(nextSurface)
-                return true
-            }
-            openStore(store, nextSurface)
+            // phones too: the modal holds "Log in on web instead", the landing
+            // page's only login entry while signup is app-only
+            setSurface(nextSurface)
             return true
         },
-        [migrationOn, deviceType]
+        [migrationOn]
     )
 
     return (

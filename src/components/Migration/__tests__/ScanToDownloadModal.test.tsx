@@ -37,6 +37,15 @@ jest.mock('@/components/Migration/DownloadQR', () => ({
     __esModule: true,
     default: () => <div>download qr</div>,
 }))
+jest.mock('@/components/Migration/StoreButtons', () => ({
+    __esModule: true,
+    default: () => <div>store button</div>,
+}))
+let mockDevice = 'web'
+jest.mock('@/hooks/useGetDeviceType', () => ({
+    ...jest.requireActual('@/hooks/useGetDeviceType'),
+    useDeviceType: () => ({ deviceType: mockDevice }),
+}))
 
 describe('ScanToDownloadModal', () => {
     it('keeps dismissal on the modal chrome without rendering a close CTA', () => {
@@ -59,5 +68,17 @@ describe('ScanToDownloadModal', () => {
         render(<ScanToDownloadModal visible onClose={jest.fn()} surface="home_banner" />)
         expect(screen.getByRole('link', { name: 'sunset.supportLink' })).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'qr.logIn' })).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['web', 'download qr'],
+        ['ios', 'store button'],
+        ['android', 'store button'],
+    ])('on %s shows the %s next to Log in', (device, download) => {
+        mockDevice = device
+        render(<ScanToDownloadModal visible onClose={jest.fn()} surface="landing_hero" showLogIn />)
+        expect(screen.getByText(download)).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'qr.logIn' })).toHaveAttribute('href', '/setup?step=login')
+        mockDevice = 'web'
     })
 })
