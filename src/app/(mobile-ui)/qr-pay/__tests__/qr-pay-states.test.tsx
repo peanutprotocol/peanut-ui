@@ -453,7 +453,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: (props: any) => (
-        <div data-testid="payment-info-row">
+        <div data-testid="payment-info-row" title={props.moreInfoText}>
             {props.label}: {props.value}
         </div>
     ),
@@ -931,6 +931,24 @@ describe('GROUP 2: Payment Form States', () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValue(defaultLock)
     }
 
+    test('Pix explains potential card-fee savings without displaying a dollar estimate', async () => {
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
+        const { useCardMarkupRate } = require('@/hooks/useCardMarkupRate')
+        // Deliberately supply retired data: the form must still explain, not estimate.
+        useCardMarkupRate.mockReturnValueOnce({ data: { rate: 0.07, source: 'static' } })
+        hasCardMarkupComparison.mockImplementation(
+            jest.requireActual('@/utils/qr-payment.utils').hasCardMarkupComparison
+        )
+        calculateSavingsInCents.mockReturnValue(129)
+        setupMantecaPayment()
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+        await screen.findByText('PIX Merchant')
+        expect(screen.getByTitle(en.qrPay.info.saveVsCardTooltipBrl)).toHaveTextContent(en.qrPay.info.noForeignCardFees)
+        expect(screen.queryByText(/Save vs card/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/~\$1\.29/)).not.toBeInTheDocument()
+    })
+
     test('a positive BRL amount that rounds to zero USD still shows its minimum error', async () => {
         setupMantecaPayment({ code: '' })
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
@@ -1310,7 +1328,7 @@ describe('GROUP 3: Processing States', () => {
 // GROUP 4: Success States
 // ============================================================
 describe('GROUP 4: Success States', () => {
-    async function completeMantecaPayment(qrPaymentOverrides: Record<string, any> = {}) {
+    async function completeMantecaPayment(qrPaymentOverrides: Record<string, any> = {}, qrType = 'MERCADO_PAGO') {
         const baseQrPayment = {
             id: 'qp1',
             externalId: 'ext1',
@@ -1333,7 +1351,11 @@ describe('GROUP 4: Success States', () => {
         }
         mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue(baseQrPayment)
 
-        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        renderQrPay({
+            qrCode: qrType === 'PIX' ? 'pix://payment?id=123' : 'mercadopago://pay?id=123',
+            type: qrType,
+            t: '1',
+        })
 
         await waitFor(() => {
             expect(screen.getByText('Test Merchant')).toBeInTheDocument()
@@ -1694,6 +1716,41 @@ describe('GROUP 4: Success States', () => {
             const img = screen.queryAllByRole('img').find((el) => el.getAttribute('src') === '/mercado-pago.png')
             expect(img || screen.queryByText('Test Merchant')).toBeTruthy()
         })
+    })
+
+    test('Pix success does not claim savings from a retired Brazil estimate', async () => {
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
+        hasCardMarkupComparison.mockImplementation(
+            jest.requireActual('@/utils/qr-payment.utils').hasCardMarkupComparison
+        )
+        calculateSavingsInCents.mockReturnValue(129)
+        const lock = await mockMantecaApi.initiateQrPayment()
+        mockMantecaApi.initiateQrPayment.mockResolvedValue({
+            ...lock,
+            type: 'PIX',
+            paymentAsset: 'BRL',
+            paymentAssetAmount: '50',
+            paymentPrice: '5',
+        })
+        await completeMantecaPayment(
+            {
+                type: 'PIX',
+                details: {
+                    depositAddress: '0x123',
+                    paymentAsset: 'BRL',
+                    paymentAgainst: 'USD',
+                    paymentAgainstAmount: '10',
+                    paymentAssetAmount: '50',
+                    paymentPrice: '5',
+                    priceExpireAt: LIVE_QUOTE_EXPIRY,
+                    merchant: { name: 'Test Merchant' },
+                },
+            },
+            'PIX'
+        )
+
+        await screen.findByText(/Paid to/)
+        expect(screen.queryByText(/saved .*compared to card/i)).not.toBeInTheDocument()
     })
 
     test('Argentina QR3 success shows savings message', async () => {

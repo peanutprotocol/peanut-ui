@@ -27,10 +27,13 @@ import { fetchCardMarkup, FxApiError, type CardMarkup } from '@/utils/fx.utils'
  * against the price the user will actually get.
  */
 export function useCardMarkupRate(currencyCode: string | null | undefined, mantecaPriceUsdToLocal?: number | null) {
+    const isBrazil = currencyCode?.toUpperCase() === 'BRL'
     return useQuery<CardMarkup | null>({
         queryKey: ['cardMarkup', currencyCode?.toUpperCase(), mantecaPriceUsdToLocal ?? null],
         queryFn: async () => {
             const code = currencyCode!.toUpperCase()
+            // Also guard manual refetches against an older API's retired estimate.
+            if (code === 'BRL') return null
             try {
                 return await fetchCardMarkup(code, mantecaPriceUsdToLocal)
             } catch (error) {
@@ -42,7 +45,9 @@ export function useCardMarkupRate(currencyCode: string | null | undefined, mante
                 return fallback === undefined ? null : { rate: fallback, source: 'static' }
             }
         },
-        enabled: !!currencyCode,
+        enabled: !!currencyCode && !isBrazil,
+        // Disabling a query alone still exposes cached data from an older app.
+        select: isBrazil ? () => null : undefined,
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
         refetchOnWindowFocus: true,

@@ -6,13 +6,14 @@ import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction
 import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
+import { hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { useLocale, useTranslations } from 'next-intl'
 
 /**
  * Informational nudge on a card-spend receipt: when the merchant is in a
- * country where Peanut has a cheaper local rail (Argentina → QR, Brazil →
- * Pix), let the user know they could pay a better way next time.
+ * country with a modeled local-rail comparison (Argentina → QR), let the
+ * user know they could pay a better way next time.
  *
  * Percentage comes from `useCardMarkupRate` so confirm-screen "Save vs card"
  * and this nudge are sourced identically — single number, two surfaces.
@@ -27,7 +28,7 @@ export function LocalRailNudge({ transaction }: { transaction: TransactionDetail
 
     const iso2 = extractMerchantIso2(transaction.extraDataForDrawer.cardPayment?.merchantCountry)?.toUpperCase()
     const local = iso2 ? LOCAL_RAIL_BY_COUNTRY[iso2] : undefined
-    if (!iso2 || !local) return null
+    if (!iso2 || !local || !hasCardMarkupComparison(local.currency)) return null
 
     return <LocalRailNudgeBody iso2={iso2} local={local} />
 }

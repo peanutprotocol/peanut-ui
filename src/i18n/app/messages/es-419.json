@@ -1494,8 +1494,10 @@
         "info": {
             "exchangeRate": "Tipo de cambio",
             "saveVsCard": "Ahorro vs. tarjeta",
-            "saveVsCardTooltipBrl": "Con Peanut, tu pago se procesa a través de Pix al tipo de cambio actual del mercado. Las tarjetas extranjeras pueden añadir alrededor de un 3.5% de impuesto brasileño (IOF) y un 3% en comisiones por conversión de moneda.",
-            "saveVsCardTooltipArs": "Con Peanut, tu pago se procesa a través de Mercado Pago al tipo de cambio actual del mercado. Las tarjetas extranjeras pueden usar el tipo de cambio oficial y añadir alrededor de un 3% en comisiones del emisor."
+            "saveVsCardTooltipBrl": "Con Peanut, pagas a través de Pix y puedes ahorrarte la comisión de alrededor del 3% que cobran algunas tarjetas extranjeras.",
+            "saveVsCardTooltipArs": "Con Peanut, pagas a través de Mercado Pago al tipo de cambio actual del mercado y puedes ahorrarte la comisión de alrededor del 3% que cobran algunas tarjetas extranjeras.",
+            "foreignCardFees": "Comisiones de tarjetas extranjeras",
+            "noForeignCardFees": "Ninguna en este pago"
         },
         "success": {
             "youPaid": "Pagado a {merchant}",
