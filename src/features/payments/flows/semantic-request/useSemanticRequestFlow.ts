@@ -33,6 +33,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { chargesApi } from '@/services/charges'
 import { toApiAmount } from '@/components/Request/link/requestCurrency'
+import { isPriceFreshForConversion } from '@/utils/token-price.utils'
 
 export function useSemanticRequestFlow() {
     const t = useTranslations('payment')
@@ -284,7 +285,9 @@ export function useSemanticRequestFlow() {
                     // Keep that fiat amount separate from the destination token amount.
                     let requestedTokenAmount = amount
                     if (!isTokenDenominated && !isStableCoin(selectedTokenData.symbol)) {
-                        if (!tokenUsdPrice) throw new Error('Token price is unavailable. Please try again.')
+                        if (!tokenUsdPrice || !isPriceFreshForConversion(selectedTokenData)) {
+                            throw new Error('Token price is unavailable. Please try again.')
+                        }
                         const convertedAmount = Number(amount) / tokenUsdPrice
                         if (!Number.isFinite(convertedAmount) || convertedAmount <= 0) {
                             throw new Error('Token amount is invalid. Please try again.')

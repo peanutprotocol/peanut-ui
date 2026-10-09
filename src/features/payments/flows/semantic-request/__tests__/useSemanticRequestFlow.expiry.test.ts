@@ -396,6 +396,63 @@ describe('semantic request USD denomination with a selected token', () => {
         expect(Number(payload.tokenAmount)).toBe(0.004)
         expect(payload.currencyAmount).toBe('10')
     })
+
+    // TASK-23172: while the price provider was down the API served a 10-day-old
+    // ETH price, and this conversion sized the payment with it.
+    describe('never sizes a payment with an outdated price', () => {
+        const NOW = new Date('2026-10-09T12:00:00Z').getTime()
+
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.useFakeTimers({ now: NOW })
+            ctx.charge = null
+            ctx.currentView = 'INITIAL'
+            ctx.amount = '10'
+            ctx.isTokenDenominated = false
+            ctx.recipient.recipientType = 'ADDRESS'
+            mockTokenSelection.selectedChainID = '8453'
+            mockTokenSelection.selectedTokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+            mockTokenSelection.selectedTokenData = {
+                address: mockTokenSelection.selectedTokenAddress,
+                chainId: '8453',
+                decimals: 18,
+                symbol: 'ETH',
+                price: 2500,
+            }
+            mockCreateCharge.mockResolvedValue(originalCharge)
+        })
+        afterEach(() => jest.useRealTimers())
+
+        it('refuses a price the API flagged stale', async () => {
+            Object.assign(mockTokenSelection.selectedTokenData, {
+                stale: true,
+                updatedAt: new Date(NOW - 60_000).toISOString(),
+            })
+            const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+            await act(async () => {
+                await result.current.handlePayment(true, true)
+            })
+            expect(mockCreateCharge).not.toHaveBeenCalled()
+            expect(ctx.setError).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    showError: true,
+                    errorMessage: expect.stringContaining('price is unavailable'),
+                })
+            )
+        })
+
+        it('converts with a live price, even one fetched a while ago', async () => {
+            Object.assign(mockTokenSelection.selectedTokenData, {
+                stale: false,
+                updatedAt: new Date(NOW - 15 * 60_000).toISOString(),
+            })
+            const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+            await act(async () => {
+                await result.current.handlePayment(true, true)
+            })
+            expect(Number(mockCreateCharge.mock.calls[0][0].tokenAmount)).toBe(0.004)
+        })
+    })
 })
 
 /**
