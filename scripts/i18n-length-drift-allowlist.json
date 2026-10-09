@@ -1,0 +1,62 @@
+[
+    {
+        "key": "addMoney.bankDetails.sortCode",
+        "reason": "UK banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "depositAccounts.rows.sortCode",
+        "reason": "UK banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "transaction.bridge.sortCode",
+        "reason": "UK banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "withdraw.bank.sortCode",
+        "reason": "UK banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "withdraw.bankForm.sortCode",
+        "reason": "UK banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "addMoney.bankDetails.routingNumber",
+        "reason": "US banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "claim.bank.routingNumber",
+        "reason": "US banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "depositAccounts.rows.routingNumber",
+        "reason": "US banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "transaction.bridge.routingNumber",
+        "reason": "US banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "withdraw.bank.routingNumber",
+        "reason": "US banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "withdraw.bankForm.routingNumber",
+        "reason": "US banking term: the translation adds the English name in brackets so users can match it to their bank's form."
+    },
+    {
+        "key": "card.terms.title",
+        "reason": "Legal document name: it must match the translated document's own title."
+    },
+    {
+        "key": "profile.about.policies.cardEsign",
+        "reason": "Legal document name: it must match the translated document's own title."
+    },
+    {
+        "key": "profile.about.policies.cardTermsUs",
+        "reason": "Legal document name: it must match the translated document's own title."
+    },
+    {
+        "key": "profile.about.policies.privacy",
+        "reason": "Legal document name: it must match the translated document's own title."
+    }
+]
