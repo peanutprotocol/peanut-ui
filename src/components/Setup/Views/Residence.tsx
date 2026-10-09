@@ -248,12 +248,9 @@ const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {})
                         />
                     )}
                 </div>
-                {/* Dual-residence comparison: facts about each residence, not a
-                    menu of perks. The guidance leads with the truth norm; the
-                    order is presentation only and eligibility stays with the
-                    verification, so there is nothing to win by answering
-                    untruthfully. Entirely client-derived (restriction tiers +
-                    the same static rail map Unlock payments renders). */}
+                {/* Availability is client-derived from restriction tiers and
+                    the same rail map as Unlock payments. The guidance helps
+                    users pick the country they can verify with documents. */}
                 {hasPair && (
                     <div className="mt-2 flex flex-col gap-3">
                         <div className="grid grid-cols-2 gap-2">
@@ -299,7 +296,6 @@ const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {})
                                 {t('residenceStep.compare.guideTitle')}
                             </MiniHeader>
                             <p>{t('residenceStep.compare.guideDeclaration')}</p>
-                            <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
                         </Callout>
                     </div>
                 )}

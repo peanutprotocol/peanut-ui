@@ -838,7 +838,7 @@
         "residenceStep": {
             "countryPlaceholder": "Select country",
             "secondCountryPlaceholder": "Second country",
-            "multiDocLink": "Have residence in more than one country?",
+            "multiDocLink": "Have citizenship in another country?",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
             },
@@ -899,9 +899,8 @@
                     "card": "Peanut card"
                 },
                 "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
-                "guideTitle": "Which country goes first?",
-                "guideDeclaration": "Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.",
-                "guideOrder": "If both countries are truly home, pick the one to record as your main residence. Eligibility follows the residence you verify — the address you prove at the ID check.",
+                "guideTitle": "Which country should be selected?",
+                "guideDeclaration": "If you have a residence permit for either country, choose that one. Otherwise, choose the country that issued your ID, like a passport or driver’s license.",
                 "selectCountry": "Select {country}"
             }
         },
