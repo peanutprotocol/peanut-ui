@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { nativePasskeyFailure } from './native-passkey-errors'
 import { isIOSNative } from '@/utils/capacitor'
 
 /**
@@ -86,11 +87,16 @@ export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: stri
 // Keys are the closed set of classification codes — `PasskeyErrorCode` below —
 // so a new code can't silently fall into the wrong handler branch downstream.
 const PASSKEY_LOGIN_MESSAGES = {
-    LOGIN_CANCELED: 'Login was cancelled, or no passkey was found on this device. Try again, or create a wallet.',
+    LOGIN_CANCELED: 'Passkey verification wasn’t completed. Try again when ready.',
+    PASSKEY_ASSOCIATION_UNAVAILABLE:
+        'Passkey verification is temporarily unavailable. Wait a few seconds and try again.',
+    PASSKEY_DEVICE_LOCKED: 'Unlock the device, then try again.',
+    PASSKEY_BIOMETRY_REQUIRED: 'Use Face ID or Touch ID to verify the passkey, then try again.',
     PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
     PASSKEY_UNSUPPORTED: 'Passkeys aren’t available on this device or browser yet. Please try again on another device.',
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
-    PASSKEY_ORIGIN: 'This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.',
+    PASSKEY_ORIGIN:
+        'Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
     // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
     CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
@@ -106,7 +112,10 @@ export type PasskeyErrorCode = keyof typeof PASSKEY_LOGIN_MESSAGES
  * codes not listed fall back to the English message the error carries.
  */
 const PASSKEY_ERROR_SETUP_KEYS = {
-    LOGIN_CANCELED: 'waitlist.loginCanceled',
+    LOGIN_CANCELED: 'passkey.notCompleted',
+    PASSKEY_ASSOCIATION_UNAVAILABLE: 'passkey.associationUnavailable',
+    PASSKEY_DEVICE_LOCKED: 'passkey.deviceLocked',
+    PASSKEY_BIOMETRY_REQUIRED: 'passkey.biometryRequired',
     CEREMONY_TIMEOUT: 'passkey.tookTooLong',
     PASSKEY_NOT_READY: 'passkey.notReady',
     PASSKEY_STATE: 'passkey.deviceState',
@@ -155,10 +164,12 @@ export function getPasskeyErrorCode(error: unknown): PasskeyErrorCode | undefine
  */
 export function getPasskeyErrorSetupKey(error: unknown): PasskeyErrorSetupKey | undefined {
     const code = getPasskeyErrorCode(error)
+    return code ? getPasskeySetupKey(code) : undefined
+}
+
+export function getPasskeySetupKey(code: PasskeyErrorCode): PasskeyErrorSetupKey {
     if (code === 'PASSKEY_UNSUPPORTED') return PASSKEY_UNSUPPORTED_SETUP_KEYS[passkeyPlatform()]
-    return code && code in PASSKEY_ERROR_SETUP_KEYS
-        ? PASSKEY_ERROR_SETUP_KEYS[code as keyof typeof PASSKEY_ERROR_SETUP_KEYS]
-        : undefined
+    return PASSKEY_ERROR_SETUP_KEYS[code]
 }
 
 /**
@@ -244,21 +255,24 @@ function isNetworkError(error: Error): boolean {
 
 /**
  * Maps a passkey/WebAuthn failure to a curated { code, message } pair.
- * Classification order: known DOMException name → network heuristic → fallback.
+ * Classification order: specific native reason → DOMException name → network heuristic → fallback.
  */
 export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
     const normalized = normalizeNativePasskeyError(error)
     const err = normalized instanceof Error ? normalized : new Error(String(normalized))
     let code: PasskeyErrorCode = 'LOGIN_ERROR'
-    // iOS surfaces ceremony failures as a bare Error whose message carries the
-    // ASAuthorizationError code, not a DOMException name. 1001 is an actual
-    // cancellation; 1004 is a platform failure and, after its bounded retry is
-    // exhausted, must not falsely tell a user with passkeys that none exist.
-    if (/AuthenticationServices\.AuthorizationError error 1001/.test(err.message)) {
-        return { code: 'LOGIN_CANCELED', message: PASSKEY_LOGIN_MESSAGES['LOGIN_CANCELED'] }
-    }
-    if (IOS_AUTHORIZATION_FAILED.test(err.message)) {
-        return { code: 'PASSKEY_INTERRUPTED', message: PASSKEY_LOGIN_MESSAGES['PASSKEY_INTERRUPTED'] }
+    const nativeReason = nativePasskeyFailure(err)
+    const nativeCodes = {
+        association_unavailable: 'PASSKEY_ASSOCIATION_UNAVAILABLE',
+        association_mismatch: 'PASSKEY_ORIGIN',
+        device_locked: 'PASSKEY_DEVICE_LOCKED',
+        biometry_required: 'PASSKEY_BIOMETRY_REQUIRED',
+        authorization_failed: 'PASSKEY_INTERRUPTED',
+        canceled: 'LOGIN_CANCELED',
+    } as const satisfies Record<NonNullable<ReturnType<typeof nativePasskeyFailure>>, PasskeyErrorCode>
+    if (nativeReason) {
+        const nativeCode = nativeCodes[nativeReason]
+        return { code: nativeCode, message: PASSKEY_LOGIN_MESSAGES[nativeCode] }
     }
     switch (err.name) {
         case WebAuthnErrorName.NotAllowed:

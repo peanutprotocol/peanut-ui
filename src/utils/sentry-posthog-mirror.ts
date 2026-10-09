@@ -1,3 +1,4 @@
+import { classifyPasskeySentryEvent, isExpectedPasskeyDeviceEvent } from './passkey-sentry-event'
 import { redactQrTelemetry } from './qr-telemetry-privacy'
 import posthog from 'posthog-js'
 import { isExpectedCancellation, isExpectedExceptionChain } from './expected-exception'
@@ -42,6 +43,7 @@ export function withoutNoise<T extends EventProcessor>(integration: T): T {
         ...integration,
         processEvent: (event: SentryErrorEvent) => {
             const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
+            if (isExpectedPasskeyDeviceEvent(event)) return event
             if (frames.some((frame) => isThirdPartyScriptFrame(frame.filename || ''))) return event
             if (isBrowserHostScriptError(event.exception?.values ?? [])) return event
             const searchTexts = getEventSearchTexts(event)
@@ -51,6 +53,7 @@ export function withoutNoise<T extends EventProcessor>(integration: T): T {
             if (isExpectedExceptionChain(exceptions) || (!exceptions.length && isExpectedCancellation(event.message))) {
                 return event
             }
+            classifyPasskeySentryEvent(event)
             return inner(redactQrTelemetry(event))
         },
     }

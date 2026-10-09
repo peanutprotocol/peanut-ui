@@ -2085,73 +2085,104 @@ describe('GROUP 5: Error States', () => {
     })
 
     test('a signature that finishes AFTER the quote dies submits nothing and re-quotes', async () => {
-        // The lock is live at tap time and dead by the time signing resolves.
-        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
-            ...reconnectLock,
-            expiresInMs: 120,
-        })
-        mockSignSpend.mockImplementationOnce(
-            () => new Promise((resolve) => setTimeout(() => resolve({ strategy: 'smart-only' }), 200))
-        )
+        // Keep rendering speed separate from the quote/signature ordering under test.
+        const startedAt = Date.now()
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(startedAt)
+        try {
+            // The lock is live at tap time and dead by the time signing resolves.
+            mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+                ...reconnectLock,
+                expiresInMs: 120,
+            })
+            let finishSignature!: () => void
+            mockSignSpend.mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        finishSignature = () => resolve({ strategy: 'smart-only' })
+                    })
+            )
 
-        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
-        await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
-        })
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
 
-        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
-        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
-        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+            await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+            clock.mockReturnValue(startedAt + 200)
+            await act(async () => {
+                finishSignature()
+            })
+            await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+            expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        } finally {
+            clock.mockRestore()
+        }
     })
 
     test('a REPLACEMENT signed after the quote dies is never submitted', async () => {
-        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
-            ...reconnectLock,
-            expiresInMs: 400,
-        })
-        const mixedArtifact = (prep: string, coordinatorAddress: string) =>
-            registerSpendArtifactMeta(
-                {
-                    strategy: 'mixed' as const,
-                    rainPreparationId: prep,
-                    signedUserOp: {
-                        signedUserOp: { sender: '0x1', nonce: '0x0', callData: '0x', signature: '0x' },
-                        chainId: '42161',
-                        entryPointAddress: '0xentry',
+        // Keep rendering speed separate from the quote/signature ordering under test.
+        const startedAt = Date.now()
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(startedAt)
+        try {
+            mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({
+                ...reconnectLock,
+                expiresInMs: 400,
+            })
+            const mixedArtifact = (prep: string, coordinatorAddress: string) =>
+                registerSpendArtifactMeta(
+                    {
+                        strategy: 'mixed' as const,
+                        rainPreparationId: prep,
+                        signedUserOp: {
+                            signedUserOp: { sender: '0x1', nonce: '0x0', callData: '0x', signature: '0x' },
+                            chainId: '42161',
+                            entryPointAddress: '0xentry',
+                        },
                     },
-                },
-                { coordinatorAddress, mixedSpendContract: 'broadcast-first-revert-v1' }
+                    { coordinatorAddress, mixedSpendContract: 'broadcast-first-revert-v1' }
+                )
+            let finishSignature!: () => void
+            mockSignSpend
+                .mockResolvedValueOnce(mixedArtifact('prep-1', `0x${'a'.repeat(40)}`))
+                // Resolve the replacement only after advancing past the lock deadline.
+                .mockImplementationOnce(
+                    () =>
+                        new Promise((resolve) => {
+                            finishSignature = () => resolve(mixedArtifact('prep-2', `0x${'b'.repeat(40)}`))
+                        })
+                )
+            mockRainApi.refreshControllerAddress.mockResolvedValue({
+                coordinatorAddress: `0x${'b'.repeat(40)}`,
+                changed: true,
+            })
+            // First submit: definitive no-effect revert → recovery re-signs.
+            mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValueOnce(
+                Object.assign(new Error('Operation failed'), {
+                    name: 'ApiError',
+                    status: 500,
+                    code: 'USER_OP_REVERTED',
+                })
             )
-        mockSignSpend
-            .mockResolvedValueOnce(mixedArtifact('prep-1', `0x${'a'.repeat(40)}`))
-            // The replacement takes long enough that the lock dies first.
-            .mockImplementationOnce(
-                () =>
-                    new Promise((resolve) =>
-                        setTimeout(() => resolve(mixedArtifact('prep-2', `0x${'b'.repeat(40)}`)), 500)
-                    )
-            )
-        mockRainApi.refreshControllerAddress.mockResolvedValue({
-            coordinatorAddress: `0x${'b'.repeat(40)}`,
-            changed: true,
-        })
-        // First submit: definitive no-effect revert → recovery re-signs.
-        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValueOnce(
-            Object.assign(new Error('Operation failed'), { name: 'ApiError', status: 500, code: 'USER_OP_REVERTED' })
-        )
 
-        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
-        await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
-        })
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
 
-        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
-        // Exactly ONE submission ever happened — the replacement was refused
-        // because its quote had died, and the flow re-quoted instead.
-        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
-        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+            await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+            clock.mockReturnValue(startedAt + 500)
+            await act(async () => {
+                finishSignature()
+            })
+            // Exactly ONE submission ever happened — the replacement was refused
+            // because its quote had died, and the flow re-quoted instead.
+            await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+            expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        } finally {
+            clock.mockRestore()
+        }
     })
 
     test('after a failed re-quote, Pay retries the QUOTE only — same identity — before it can pay again', async () => {

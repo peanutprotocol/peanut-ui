@@ -965,8 +965,12 @@
             "unsupported": "Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.",
             "unsupportedIos": "Passkeys aren’t available on this device yet. Turn on iCloud Keychain and a passcode or Face ID, update iOS, then try again.",
             "unsupportedDesktop": "This browser couldn’t reach your computer’s passkey service. Restart or update the browser and try again, or log in on your phone.",
-            "origin": "This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.",
-            "loginError": "We couldn’t verify your passkey. Please try again, or contact support if it keeps happening."
+            "origin": "Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.",
+            "loginError": "We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.",
+            "notCompleted": "Passkey verification wasn’t completed. Try again when ready.",
+            "associationUnavailable": "Passkey verification is temporarily unavailable. Wait a few seconds and try again.",
+            "deviceLocked": "Unlock the device, then try again.",
+            "biometryRequired": "Use Face ID or Touch ID to verify the passkey, then try again."
         },
         "testTransaction": {
             "confirmTitle": "One last step",
@@ -3899,7 +3903,12 @@
         "loginIncomplete": "Login didn’t complete. Please try again.",
         "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
         "transferTemporarilyUnavailable": "Transfers are temporarily unavailable. Please check Activity before trying again.",
-        "userOpReverted": "This payment could not be completed. Please try again."
+        "userOpReverted": "This payment could not be completed. Please try again.",
+        "passkeyAssociationUnavailable": "Passkey verification is temporarily unavailable. Wait a few seconds and try again.",
+        "passkeyAssociationMismatch": "Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.",
+        "passkeyDeviceLocked": "Unlock the device, then try again.",
+        "passkeyBiometryRequired": "Use Face ID or Touch ID to verify the passkey, then try again.",
+        "passkeyVerificationIncomplete": "Passkey verification wasn’t completed. Try again when ready."
     },
     "appLock": {
         "title": "Welcome back!",

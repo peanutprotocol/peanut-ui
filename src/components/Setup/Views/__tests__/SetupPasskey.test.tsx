@@ -181,3 +181,28 @@ it('returning from email continues without registering another passkey', async (
         mockNoBackLock = null
     }
 })
+
+it.each([
+    ['Device must be unlocked to perform request.', 'Unlock the device, then try again.'],
+    [
+        'Stolen Device Protection is enabled and biometry is required.',
+        'Use Face ID or Touch ID to verify the passkey, then try again.',
+    ],
+    [
+        'Unable to verify webcredentials association of TEAM.app with domain peanut.me. Please try again in a few seconds.',
+        'Passkey verification is temporarily unavailable. Wait a few seconds and try again.',
+    ],
+])('shows specific recovery for %s', async (message, copy) => {
+    jest.clearAllMocks()
+    mockAddress = undefined
+    mockHandleNext = mockNext
+    mockApiFetch.mockResolvedValue({ status: 404 })
+    mockHandleRegister.mockRejectedValue(
+        Object.assign(new Error('The operation couldn’t be completed. ' + message), { name: 'NotAllowedError' })
+    )
+    renderWithIntl(<SetupPasskey />)
+    fireEvent.click(screen.getByRole('button'))
+    expect(await screen.findByText(copy)).toBeInTheDocument()
+    expect(screen.queryByText(/was cancelled/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button')).not.toBeDisabled()
+})

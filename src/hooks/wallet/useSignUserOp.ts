@@ -1,5 +1,6 @@
 'use client'
 
+import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { useCallback } from 'react'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -236,16 +237,17 @@ export const useSignUserOp = () => {
                 // would generate a second Sentry/PostHog exception for it.
                 console.warn('[useSignUserOp] Error signing calls UserOperation:', error)
                 capturePasskeySignFailure(error, 'sign-user-op')
-                captureException(error, {
-                    tags: { feature: 'sign-user-op' },
-                    extra: {
-                        callCount: calls.length,
-                        chainId,
-                        ...(error instanceof InvalidSponsorshipResponseError
-                            ? { sponsorshipResponseShape: error.responseShape }
-                            : {}),
-                    },
-                })
+                if (!reportPasskeyFailure(error, 'sign-user-op'))
+                    captureException(error, {
+                        tags: { feature: 'sign-user-op' },
+                        extra: {
+                            callCount: calls.length,
+                            chainId,
+                            ...(error instanceof InvalidSponsorshipResponseError
+                                ? { sponsorshipResponseShape: error.responseShape }
+                                : {}),
+                        },
+                    })
                 throw error
             }
         },
