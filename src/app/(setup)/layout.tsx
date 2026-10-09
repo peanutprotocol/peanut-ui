@@ -10,10 +10,6 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
-import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import SunsetScreen from '@/components/Migration/SunsetScreen'
-import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { filterSetupStepsForResidence } from '@/features/setup/filterSetupSteps'
@@ -22,8 +18,6 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const { setSteps, residenceCountry } = useSetupFlowContext()
     const residenceRestrictions = useResidenceRestrictionSets()
     const { deviceType } = useDeviceType()
-    const migrationOn = useMigrationFlag()
-    const hasKeepWebBypass = useKeepWebBypass()
 
     /*
      * Bottom-inset fill color. The content directly above the bottom inset (iOS
@@ -61,13 +55,6 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     }, [setSteps, residenceRestrictions, residenceCountry])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
-
-    // Past the cutover, web signup is switched off too. Use the same
-    // block as the mobile-ui layout (this route group has its own layout, so
-    // it needs its own gate). keep-web cookie/param bypasses.
-    if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass })) {
-        return <SunsetScreen />
-    }
 
     return (
         <AppShell

@@ -1800,16 +1800,15 @@
     "migration": {
         "downloadPeanut": "Descargar Peanut",
         "downloadPrompt": {
-            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va con vos, sin configurar nada.",
-            "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descargala ahora y continuá justo donde quedaste. Tu cuenta y tu dinero se mudan con vos automáticamente."
+            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va con vos, sin configurar nada."
         },
         "sunset": {
-            "sub": "Descargá la app y continuá justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí.",
             "supportLink": "¿Problemas para descargar la app? Hablá con nuestro soporte"
         },
         "qr": {
             "title": "Descargá la app de Peanut",
-            "scanHint": "Escaneá con la cámara de tu celular para descargar."
+            "scanHint": "Escaneá con la cámara de tu celular para descargar.",
+            "logIn": "Iniciá sesión en la web"
         },
         "smartLink": {
             "pickStore": "Elegí tu tienda y descargá la app."

@@ -4,10 +4,10 @@ import posthog from 'posthog-js'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { MIGRATION_SURFACES, type MigrationSurface } from '@/constants/migration.consts'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { openStore, type StoreHandoff } from '@/utils/migration.utils'
+import { openStore, storeForDevice, type StoreHandoff } from '@/utils/migration.utils'
 
 /**
  * During migration, send web guests to their store or a desktop QR modal.
@@ -33,16 +33,23 @@ export function useGuestStoreHandoff({
 
     const interceptGuestCta = (handoff?: StoreHandoff): boolean => {
         if (!migrationOn || isCapacitor()) return false
-        if (deviceType === DeviceType.WEB) {
+        const store = storeForDevice(deviceType)
+        if (!store) {
             setPending({ handoff })
             return true
         }
-        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', surface, handoff)
+        openStore(store, surface, handoff)
         return true
     }
 
     const storeHandoffModal = pending ? (
-        <ScanToDownloadModal visible onClose={() => setPending(null)} surface={surface} handoff={pending.handoff} />
+        <ScanToDownloadModal
+            visible
+            onClose={() => setPending(null)}
+            surface={surface}
+            handoff={pending.handoff}
+            showLogIn
+        />
     ) : null
 
     // Whether the next interceptGuestCta call will handle the click. Call sites label
