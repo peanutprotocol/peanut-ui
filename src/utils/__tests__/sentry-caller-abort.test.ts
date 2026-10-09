@@ -42,6 +42,11 @@ const hangingFetch = jest.fn(
  * replace the caller's signal, so the cancel never reached the network: on
  * 2026-09-24 ~100 superseded history requests kept running on staging.
  */
+// Read timeouts are sampled in production; report every one here so assertions are deterministic.
+beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0)
+})
+
 describe('fetchWithSentry — the caller can cancel', () => {
     let infoSpy: jest.SpyInstance
 

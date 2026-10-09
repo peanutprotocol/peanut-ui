@@ -129,6 +129,14 @@
         <meta-data
             android:name="io.sentry.environment"
             android:value="native" />
+        <!-- Google Play's pre-launch crawler: one virtual "Pixel 8 Pro" per uploaded
+             build, whose framework lacks JobScheduler.forNamespace, so WorkManager
+             crashes at startup (PEANUT-UI-T4J, ~19 events per release, no real
+             device). The crash happens in a content provider before any app code
+             runs, so a manifest pattern is the only filter that reaches it. -->
+        <meta-data
+            android:name="io.sentry.ignored-errors"
+            android:value="(?s).*No virtual method forNamespace\(Ljava/lang/String;\)Landroid/app/job/JobScheduler;.*" />
             <!-- CapacitorPasskey auto-configuration -->
         <meta-data
             android:name="asset_statements"

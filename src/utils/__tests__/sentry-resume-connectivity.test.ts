@@ -17,6 +17,11 @@ jest.mock('../native-http', () => ({
 const originalFetch = global.fetch
 let infoSpy: jest.SpyInstance
 
+// Read timeouts are sampled in production; report every one here so assertions are deterministic.
+beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0)
+})
+
 beforeEach(() => {
     jest.clearAllMocks()
     __resetConnectivityForTests()

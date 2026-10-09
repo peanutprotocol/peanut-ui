@@ -9,6 +9,7 @@ export function isExpectedCancellation(value: string | undefined): boolean {
             /\bactivity is cancelled by the user\b/i.test(value) ||
             /AuthenticationServices\.AuthorizationError error 1001\b/.test(value) ||
             /^\[16\] Canceled on BiometricPromptFragment\.$/.test(value) ||
+            /^\[16\] Cancelled by user\.$/.test(value) ||
             /^No matching passkey was found\.$/.test(value))
     )
 }

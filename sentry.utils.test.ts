@@ -29,6 +29,15 @@ describe('shouldIgnoreError — alreadyReported (fetchWithSentry wrapper)', () =
     })
 })
 
+describe('shouldIgnoreError — Firefox for iOS injected scripts', () => {
+    it.each([
+        ['TypeError', "undefined is not an object (evaluating 'window.__firefox__.reader')"],
+        ['ReferenceError', "Can't find variable: __firefox__"],
+    ])('ignores %s from the injected __firefox__ global', (type, value) => {
+        expect(shouldIgnoreError(eventWith({ type, value }))).toBe(true)
+    })
+})
+
 // Sentry orders `exception.values` root-cause-first, so a wrapper carrying a
 // `cause` lands at the end of the array — where the old values[0]-only lookup
 // never saw it.

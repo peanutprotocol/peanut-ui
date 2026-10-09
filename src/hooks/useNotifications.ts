@@ -6,6 +6,7 @@ import { getOneSignalAdapter, type NotificationPermissionState } from '@/service
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { onForegroundPushDelivered } from '@/utils/notifications-events'
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
@@ -345,8 +346,18 @@ async function initializeNotifications() {
         // Surface Brave/Shields SDK-block failures; previously silent.
         initializationPromise = null
         console.warn('OneSignal init failed', e)
+        if (isOriginBoundRefusalOffProduction(e)) return
         captureException(e, { level: 'warning', tags: { feature: 'onesignal', source: 'onesignal_init' } })
     }
+}
+
+// A OneSignal web app answers only on the origin it is registered for, so every
+// preview deploy and localhost is refused by design (PEANUT-UI-STG). On staging
+// or production the same refusal is a real misconfiguration and still reports.
+function isOriginBoundRefusalOffProduction(e: unknown): boolean {
+    if (!(e instanceof Error) || !e.message.startsWith('Can only be used on:')) return false
+    const environment = inferSentryEnvironment()
+    return environment === 'preview' || environment === 'development'
 }
 
 function countSession(userId: string) {
