@@ -1188,6 +1188,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         waitingForMerchantAmount,
         showOrderNotReadyModal,
         isLoadingPaymentData,
+        rateUnavailable,
         loadingState,
         isSuccess,
         hasUnsettledPayment: !!qrPayment && qrPaymentDisplayStatus(qrPayment.status) !== 'completed',

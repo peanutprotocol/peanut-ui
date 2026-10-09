@@ -17,9 +17,19 @@
  */
 import React from 'react'
 import posthog from 'posthog-js'
-import { act, render, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+
+// Keep the real page selector and rate recovery UI; unrelated screens need no
+// providers in this payment-controller integration test.
+jest.mock('../views/QrPayFormView', () => ({ QrPayFormView: () => <div>Payment form</div> }))
+jest.mock('../views/QrPayStatusView', () => ({ QrPayStatusView: () => <div>Payment status</div> }))
+jest.mock('../views/QrPaySuccessView', () => ({ QrPaySuccessView: () => <div>Payment success</div> }))
+jest.mock('../views/QrPayKycGateView', () => ({ QrPayKycGateView: () => null }))
+jest.mock('../views/QrPayProviderRejectionView', () => ({ QrPayProviderRejectionView: () => null }))
+jest.mock('../views/QrPayBlockedView', () => ({ QrPayBlockedView: () => null }))
+jest.mock('../views/QrPayProcessingView', () => ({ QrPayProcessingView: () => <div>Processing payment</div> }))
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const PAYMASTER = '0x2a1c0c8d0c0f0c8d0c0f0c8d0c0f0c8d0c0f0c8d'
@@ -51,7 +61,12 @@ jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: jest.fn() }))
 jest.mock('@/hooks/useAppReviewNudge', () => ({ useAppReviewNudge: jest.fn() }))
 jest.mock('@/config/underMaintenance.config', () => ({
     __esModule: true,
-    default: { disabledPaymentProviders: [] as string[] },
+    default: {
+        disabledPaymentProviders: [] as string[],
+        maintenanceBannerPaths: [],
+        enableFullMaintenance: false,
+        enableMaintenanceBanner: false,
+    },
 }))
 jest.mock('@/services/services.types', () => ({ PointsAction: { MANTECA_QR_PAYMENT: 'manteca_qr_payment' } }))
 jest.mock('@/app/actions/currency', () => ({ getCurrencyPrice: jest.fn(async () => ({ sell: 1200, buy: 1250 })) }))
@@ -188,6 +203,7 @@ import { resolveSpendStrategy, runCollateralSpendPreflight } from '@/hooks/walle
 import { rainApi } from '@/services/rain'
 import { LoadingStateContextProvider } from '@/context/loadingStates.context'
 import { QrPayFlowProvider, useQrPayFlow } from '../QrPayFlowContext'
+import { QrPayPage } from '../QrPayPage'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import type { QrPayFlowSurface } from '../useQrPayFlow'
 
@@ -272,16 +288,20 @@ function renderFlow(
         timestamp: '1',
         qrType: 'MERCADO_PAGO',
     },
-    options: { strict?: boolean } = {}
+    options: { strict?: boolean; page?: boolean } = {}
 ) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const tree = (
         <IntlWrapper>
             <QueryClientProvider client={queryClient}>
                 <LoadingStateContextProvider>
-                    <QrPayFlowProvider {...scan}>
-                        <Probe />
-                    </QrPayFlowProvider>
+                    {options.page ? (
+                        <QrPayPage {...scan} />
+                    ) : (
+                        <QrPayFlowProvider {...scan}>
+                            <Probe />
+                        </QrPayFlowProvider>
+                    )}
                 </LoadingStateContextProvider>
             </QueryClientProvider>
         </IntlWrapper>
@@ -716,6 +736,22 @@ describe('open-amount QR (no lock until Pay)', () => {
         await waitFor(() => expect(surface?.currency).toBeDefined())
         expect(surface?.rateUnavailable).toBe(false)
         expect(getCurrencyPrice).toHaveBeenCalledTimes(2)
+    })
+
+    test('the full open-amount QR page shows Retry without a currency and reaches the form after recovery', async () => {
+        jest.mocked(getCurrencyPrice).mockRejectedValueOnce(new Error('FX rate unavailable from manteca (timeout)'))
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow(undefined, { page: true })
+
+        const retry = await screen.findByRole('button', { name: /retry/i })
+        expect(screen.queryByText('Payment form')).not.toBeInTheDocument()
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+        fireEvent.click(retry)
+
+        await screen.findByText('Payment form')
+        expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+        expect(getCurrencyPrice).toHaveBeenCalledTimes(2)
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
     })
 
     test('the amount init is refused: lock_ready failed, attempt failed, nothing signed', async () => {
