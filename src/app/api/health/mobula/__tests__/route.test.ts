@@ -38,6 +38,13 @@ describe('GET /api/health/mobula', () => {
         expect(await response.json()).toMatchObject({ status: 'unhealthy', error: 'Price API returned 403' })
     })
 
+    it.each([0, -1, null, 'abc'])('a price of %p is not a usable answer', async (price) => {
+        respond(200, { data: { price } })
+        const response = await GET()
+        expect(response.status).toBe(500)
+        expect(await response.json()).toMatchObject({ status: 'unhealthy' })
+    })
+
     it('serves one verdict to every caller for five minutes, failures included', async () => {
         respond(403, { message: 'Forbidden' })
         const t0 = Date.now()

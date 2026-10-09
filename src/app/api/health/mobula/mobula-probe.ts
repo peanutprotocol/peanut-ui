@@ -54,7 +54,9 @@ async function probe(): Promise<MobulaVerdict> {
         if (!response.ok) return unhealthy(startedAt, `Price API returned ${response.status}`)
         const data = (await response.json().catch(() => null)) as { data?: { price?: unknown } } | null
         const price = data?.data?.price
-        if (typeof price !== 'number') return unhealthy(startedAt, 'Invalid price data structure')
+        if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
+            return unhealthy(startedAt, 'Invalid price data structure')
+        }
         const responseTime = Date.now() - startedAt
         return {
             httpStatus: 200,
