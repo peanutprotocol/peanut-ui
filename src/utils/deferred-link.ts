@@ -231,6 +231,17 @@ function stripClickIds(dest: string): string {
     return dest.slice(0, queryStart) + (kept ? '?' + kept : '') + hash
 }
 
+/** the latest touch that carries a utm_campaign, or whatever touch exists. */
+function latestCampaignTouch(
+    attribution: SignupAttributionContext | null
+): SignupAttributionContext['firstTouch'] | undefined {
+    if (!attribution) return undefined
+    const { firstTouch, lastTouch } = attribution
+    if (lastTouch?.utmCampaign) return lastTouch
+    if (firstTouch.utmCampaign) return firstTouch
+    return lastTouch ?? firstTouch
+}
+
 /**
  * builds the payload querystring from the current web context: locale from the
  * /{locale}/ path prefix, invite/badge campaign from their existing cookies, dest
@@ -269,8 +280,10 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
 
     // Play Console reads plain utm_* from the referrer and counts installs per
     // campaign. Only the campaign name and medium cross; ad click IDs never do
-    // (TASK-23382, decision 2).
-    const touch = attribution?.lastTouch ?? attribution?.firstTouch
+    // (TASK-23382, decision 2). A referrer-only return visit becomes lastTouch
+    // without a campaign; the install still belongs to the latest touch that
+    // named one, so fall back to firstTouch rather than reporting `web`.
+    const touch = latestCampaignTouch(attribution)
     params.set('utm_source', 'peanut.me')
     if (touch?.utmMedium) params.set('utm_medium', touch.utmMedium)
     params.set('utm_campaign', touch?.utmCampaign ?? 'web')

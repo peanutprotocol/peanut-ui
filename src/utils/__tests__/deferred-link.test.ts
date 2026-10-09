@@ -124,6 +124,36 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect([...params.keys()].filter((k) => !k.startsWith('utm_'))).toEqual(['pnutdl', 'at', 'dest'])
     })
 
+    it('keeps the known campaign in the Play referrer when the last touch is referrer-only', () => {
+        // first visit from the br-launch ad, then a return from an untagged
+        // external site right before the Android install tap: the install is
+        // still a br-launch install, not a `web` one.
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '44444444-4444-4444-8444-444444444444',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                utmSource: 'google',
+                utmMedium: 'cpc',
+                utmCampaign: 'br-launch',
+                path: '/pt-br/blog/guide',
+            },
+            lastTouch: {
+                occurredAt: new Date(Date.now() - 60 * 1000).toISOString(),
+                referrerHost: 'news.example',
+                path: '/',
+            },
+        })
+
+        const params = new URLSearchParams(buildDeferredPayload('/home'))
+        expect(params.get('utm_source')).toBe('peanut.me')
+        expect(params.get('utm_medium')).toBe('cpc')
+        expect(params.get('utm_campaign')).toBe('br-launch')
+    })
+
     it('never carries an ad click id inside dest, on either store (TASK-23382, decision 2)', () => {
         window.history.pushState(
             {},
