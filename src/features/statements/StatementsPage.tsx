@@ -92,6 +92,10 @@ export function StatementsPage() {
                 </div>
             </div>
             <PageStack.Footer>
+                {/* the CTA ends the page: the button stays the last child so the
+                    page's bottom-nav clearance lands on it (design.md "pinned
+                    footer CTA"), and the error reads just above it */}
+                {error && <Callout priority="error">{t(`errors.${error}`)}</Callout>}
                 <Button
                     variant="primary"
                     className="w-full"
@@ -101,9 +105,6 @@ export function StatementsPage() {
                 >
                     {t(isPrepared ? 'save' : 'download')}
                 </Button>
-                {/* the outcome reads under the action that caused it, so the CTA
-                    never jumps when the error appears */}
-                {error && <Callout priority="error">{t(`errors.${error}`)}</Callout>}
             </PageStack.Footer>
         </PageStack>
     )

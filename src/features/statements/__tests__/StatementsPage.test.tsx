@@ -179,7 +179,7 @@ describe('StatementsPage', () => {
         expect(calendar()).toBeInTheDocument()
     })
 
-    it('shows a refused download as a flow error under the button', async () => {
+    it('shows a refused download as a flow error above the button', async () => {
         prepare.mockRejectedValue(new StatementDownloadError('EXPORT_UNVERIFIED', 'reward-credit-missing'))
         renderPage('?from=2026-08-03&to=2026-08-14')
         fireEvent.click(downloadButton())
@@ -187,8 +187,8 @@ describe('StatementsPage', () => {
         const alert = await screen.findByRole('alert')
         expect(alert).toHaveTextContent('errors.unverified')
         expect(periodField()).not.toContainElement(alert)
-        // the outcome reads under the action that caused it; the CTA never moves
-        expect(downloadButton().compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        // the CTA ends the page, so the error sits above it
+        expect(downloadButton().compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
         expect(save).not.toHaveBeenCalled()
     })
 })
