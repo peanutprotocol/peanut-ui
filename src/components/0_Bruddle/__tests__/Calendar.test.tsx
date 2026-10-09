@@ -12,13 +12,13 @@ const AUGUST = new Date(2026, 7, 1)
 const aug = (day: number) => new Date(2026, 7, day)
 const iso = (day: number) => `2026-08-${String(day).padStart(2, '0')}`
 
-function setup(selected: DateRange | undefined) {
+function setup(selected: DateRange | undefined, month: Date = AUGUST) {
     const onSelect = jest.fn()
-    const { container } = render(<Calendar selected={selected} onSelect={onSelect} defaultMonth={AUGUST} />)
+    const { container, getByRole } = render(<Calendar selected={selected} onSelect={onSelect} defaultMonth={month} />)
     const cell = (day: number) => container.querySelector<HTMLElement>(`[data-day="${iso(day)}"]`)!
     const button = (day: number) => cell(day).querySelector('button')!
     const wrapper = container.firstElementChild as HTMLElement
-    return { onSelect, cell, button, wrapper }
+    return { onSelect, cell, button, wrapper, container, getByRole }
 }
 
 // jsdom has no layout, so hit-testing is scripted: the "pointer" is over `day`
@@ -51,8 +51,8 @@ describe('Calendar — taps', () => {
 
     it('highlights the start day while the range has no end yet', () => {
         const { cell } = setup({ from: aug(15), to: undefined })
-        expect(cell(15).className).toContain('bg-action-primary')
-        expect(cell(16).className).not.toContain('bg-action-primary')
+        expect(cell(15)).toHaveClass('bg-background-selection', 'inset-ring')
+        expect(cell(16)).not.toHaveClass('bg-background-selection')
     })
 
     it('gives a heavy haptic on press', () => {
@@ -61,6 +61,31 @@ describe('Calendar — taps', () => {
         fireEvent.pointerUp(window)
         expect(heavyImpactHaptic).toHaveBeenCalledTimes(1)
         expect(impactHaptic).not.toHaveBeenCalled()
+    })
+})
+
+describe('Calendar — look', () => {
+    it('rings the two ends of a range, fills the days between, and leaves the rest alone', () => {
+        const { cell } = setup({ from: aug(10), to: aug(14) })
+        for (const end of [10, 14]) {
+            expect(cell(end)).toHaveClass('bg-background-selection', 'inset-ring', 'inset-ring-border-default')
+        }
+        expect(cell(12)).toHaveClass('bg-background-selection')
+        expect(cell(12)).not.toHaveClass('inset-ring')
+        for (const outside of [9, 15]) {
+            expect(cell(outside)).not.toHaveClass('bg-background-selection')
+            expect(cell(outside)).not.toHaveClass('inset-ring')
+        }
+    })
+
+    it('marks today with a semibold day number, and dims the arrow that has no month to go to', () => {
+        const { container, getByRole } = setup(undefined, new Date())
+        const today = container.querySelector('[data-today="true"]')
+        expect(today).toHaveClass('[&>button]:text-body-s-semibold')
+        // the calendar ends at the current month, so its next arrow is unavailable
+        const next = getByRole('button', { name: /next month/i })
+        expect(next).toHaveAttribute('aria-disabled', 'true')
+        expect(next).toHaveClass('aria-disabled:opacity-40')
     })
 })
 

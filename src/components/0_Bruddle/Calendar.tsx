@@ -15,7 +15,8 @@ interface CalendarProps {
     className?: string
 }
 
-const RANGE_ENDPOINT = 'rounded-sm bg-action-primary text-foreground-primary'
+const RANGE_ENDPOINT =
+    'rounded-sm bg-background-selection inset-ring inset-ring-border-default text-foreground-over-color-primary'
 
 interface Press {
     anchor: Date
@@ -39,11 +40,12 @@ interface Press {
  * Haptics: a heavy tap on press and on the release that commits a drag, a light
  * tap for each new day the pointer crosses.
  *
- * code-only ❓ — no figma board yet (law 6): the primitive was ordered for the
- * activity download period (Aleks, 2026-09-15), now the statement period on
- * Profile → Statements; a board is owed via the figma-first flow. Day cells
- * are 44px (touch-target law). Future days are unselectable — activity can
- * only exist in the past.
+ * Ordered for the activity download period (Aleks, 2026-09-15), now the
+ * statement period on Profile → Statements. Day cells are 44px (touch-target
+ * law). Future days are unselectable — activity can only exist in the past.
+ *
+ * Selection follows design.md "selected list rows": the two picked days are
+ * tiles (pale-blue fill + 1px inset ring), the days between take the fill alone.
  */
 export const Calendar = ({ selected, onSelect, defaultMonth, className }: CalendarProps) => {
     const locale = useLocale()
@@ -141,27 +143,27 @@ export const Calendar = ({ selected, onSelect, defaultMonth, className }: Calend
                     month_caption: 'flex h-10 items-center px-1 text-body-m-semibold text-foreground-primary',
                     nav: 'absolute right-0 top-0 flex h-10 items-center gap-1',
                     button_previous: twMerge(
-                        'flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover disabled:opacity-40',
+                        'relative flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover aria-disabled:opacity-40 after:absolute after:-inset-0.5',
                         focusRing
                     ),
                     button_next: twMerge(
-                        'flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover disabled:opacity-40',
+                        'relative flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover aria-disabled:opacity-40 after:absolute after:-inset-0.5',
                         focusRing
                     ),
                     chevron: 'size-5 fill-current',
                     // touch-none: a finger sliding over the grid selects days instead of
                     // scrolling the page; the rest of the calendar still scrolls
                     month_grid: 'mt-2 w-full border-collapse touch-none',
-                    weekday: 'h-9 text-center text-label-m font-normal text-foreground-secondary',
+                    weekday: 'h-9 text-center text-body-xs text-foreground-secondary',
                     day: 'p-0 text-center',
                     day_button: twMerge(
                         'mx-auto flex size-11 items-center justify-center rounded-sm text-body-s transition-colors duration-instant disabled:cursor-default',
                         focusRing
                     ),
                     range_start: RANGE_ENDPOINT,
-                    range_middle: 'bg-action-primary/10',
+                    range_middle: 'bg-background-selection text-foreground-over-color-primary',
                     range_end: RANGE_ENDPOINT,
-                    today: 'font-bold',
+                    today: '[&>button]:text-body-s-semibold',
                     outside: 'text-foreground-secondary opacity-50',
                     disabled: 'text-foreground-secondary opacity-40',
                     hidden: 'invisible',

@@ -7,16 +7,35 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function CalendarPage() {
     const [range, setRange] = useState<DateRange | undefined>(undefined)
+    // the product recreation below starts on a finished range so the selection look shows
+    const [statementRange, setStatementRange] = useState<DateRange | undefined>({
+        from: new Date(2026, 7, 3),
+        to: new Date(2026, 7, 14),
+    })
 
     return (
         <DocPage>
             <DocHeader
                 title="Calendar"
-                description="Range calendar over react-day-picker, semantic tokens only. Day cells are 44px (touch-target law); future days are unselectable. code-only ❓ — a figma board is owed via the figma-first flow (ordered 2026-09-15 for the statement period on Profile → Statements)."
+                description="Range calendar over react-day-picker, semantic tokens only. Day cells are 44px (touch-target law); future days are unselectable. Ordered 2026-09-15 for the statement period on Profile → Statements."
                 status="limited"
+            />
+
+            <WhenToUse
+                use={[
+                    'Picking a date range, on a form page or in a drawer — the first tap sets the start, the second the end',
+                    'A range that ends today or earlier — days after today are unselectable',
+                    'A calendar that opens under the field it fills, so the page grows and the CTA moves down with it',
+                ]}
+                dontUse={[
+                    'A single preset choice such as "Last 30 days" — use BaseSelect',
+                    'Future dates — the calendar cannot select them',
+                ]}
             />
 
             <DocSection title="Range selection">
@@ -42,6 +61,25 @@ export default function CalendarPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Profile — Statements, custom period"
+                    path="src/features/statements/StatementsPage.tsx"
+                    description="Choosing Custom period under the Period field opens the calendar on the page, not in a drawer. The chosen days feed the file the Download button saves."
+                    code={`{period.isCustom && (
+    <Calendar selected={days} onSelect={period.selectDays} defaultMonth={days?.from} />
+)}`}
+                >
+                    <div className="max-w-xs">
+                        <Calendar
+                            selected={statementRange}
+                            onSelect={setStatementRange}
+                            defaultMonth={statementRange?.from}
+                        />
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }
