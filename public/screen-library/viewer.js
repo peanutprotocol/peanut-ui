@@ -58,8 +58,9 @@ const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
 const entryBranch = (entry) => {
-    if (entry.branch) return entry.branch
     const channel = entry.path.split('/')[1] ?? ''
+    if (/^compare-main-\d{4}-\d{2}-\d{2}$/.test(channel) && (!entry.branch || entry.branch === channel)) return 'main'
+    if (entry.branch) return entry.branch
     if (channel === 'main' || channel === 'compare-main' || channel.startsWith('main-')) return 'main'
     if (channel === 'dev' || channel === 'compare-dev' || channel.startsWith('dev-')) return 'dev'
     return channel

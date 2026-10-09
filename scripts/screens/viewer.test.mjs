@@ -262,10 +262,12 @@ test('PR report heading and tab title retain PR and branch context across view a
     }
 })
 
-test('older report URLs identify the PR or branch when catalogue metadata is missing', async () => {
-    for (const [channel, expectedTitle, type] of [
+test('older report URLs identify the PR or branch with missing or fallback catalogue metadata', async () => {
+    for (const [channel, expectedTitle, type, branch] of [
         ['pr-3593', 'PR #3593', 'comparison'],
         ['compare-main', 'Main', 'comparison'],
+        ['compare-main-2026-08-27', 'Main', 'comparison'],
+        ['compare-main-2026-08-27', 'Main', 'comparison', 'compare-main-2026-08-27'],
         ['compare-dev', 'Dev', 'comparison'],
         ['main', 'Main', 'capture'],
         ['dev', 'Dev', 'capture'],
@@ -281,7 +283,11 @@ test('older report URLs identify the PR or branch when catalogue metadata is mis
             after: capture,
             screens: [],
         }
-        const elements = await loadLanding(`/screens/2026-10-09/${channel}/en/${'a'.repeat(40)}/`, { report })
+        const path = `2026-10-09/${channel}/en/${'a'.repeat(40)}`
+        const elements = await loadLanding(`/screens/${path}/`, {
+            report,
+            index: branch ? [{ path, branch, date: '2026-10-09', locale: 'en' }] : [],
+        })
         assert.equal(elements.get('title').textContent, expectedTitle)
         assert.equal(elements.document.title, `${expectedTitle} · Peanut Screen library`)
         assert.match(elementText(elements.get('description')), /October 9, 2026/)
