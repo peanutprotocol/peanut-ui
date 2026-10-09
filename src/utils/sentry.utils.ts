@@ -537,6 +537,10 @@ const nonOkReports = new Map<string, { reportedAt: number; suppressed: number }>
  * and 116 in 41s for a /users/history 429 (PEANUT-UI-SGK). The first report per
  * window says the same thing. Mutations never pass through here: each is a
  * distinct user action, and a suppressed one would hide a money-flow failure.
+ *
+ * Keyed by the full URL, not the sanitized fingerprint: two deposits polled at
+ * /rhino/status/{address} are two failures, and the second must still report.
+ * A storm is one URL repeating, so it is still collapsed.
  */
 function claimNonOkReport(key: string, now: number): { report: boolean; suppressedSinceLast: number } {
     const previous = nonOkReports.get(key)
@@ -592,7 +596,7 @@ const reportNonOkResponse = async (
     const method = options.method || 'GET'
     let suppressedSinceLast = 0
     if (!isMutatingMethod(method)) {
-        const claim = claimNonOkReport(`${method} ${sanitizeUrl(url)} ${response.status}`, Date.now())
+        const claim = claimNonOkReport(`${method} ${url} ${response.status}`, Date.now())
         if (!claim.report) return
         suppressedSinceLast = claim.suppressedSinceLast
     }

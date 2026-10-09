@@ -351,6 +351,14 @@ describe('fetchWithSentry — a failing read reports once per window', () => {
         expect(Sentry.captureMessage).toHaveBeenCalledTimes(3)
     })
 
+    it('reports a failure for each distinct resource on one route', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(500))
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x1111111111111111111111111111111111111111')
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x2222222222222222222222222222222222222222')
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x2222222222222222222222222222222222222222')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(2)
+    })
+
     it('never throttles a mutation', async () => {
         global.fetch = jest.fn().mockResolvedValue(failing(500))
         await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST' })
