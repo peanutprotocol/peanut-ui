@@ -9,7 +9,7 @@ import { loadMessages } from '@/i18n/app/messages'
 import { APP_LOCALES } from '@/i18n/app/config'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
 let mockUser: any
 let mockModals: any
@@ -17,8 +17,11 @@ const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => mockModals }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn().mockResolvedValue({}) }))
+const mockGenerateInviteCodeLink = jest.fn((_username: string, _source?: string) => ({
+    inviteLink: 'https://peanut.me/invite?code=TEST',
+}))
 jest.mock('@/utils/general.utils', () => ({
-    generateInviteCodeLink: () => ({ inviteLink: 'https://peanut.me/invite?code=TEST' }),
+    generateInviteCodeLink: (username: string, source?: string) => mockGenerateInviteCodeLink(username, source),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
@@ -85,6 +88,8 @@ it('opens when clear and does not count itself as another drawer', async () => {
     expect(screen.getByText(en.global.earlyUserModal.description)).toBeInTheDocument()
     expect(screen.queryByText(/cut of their/)).not.toBeInTheDocument()
     expect(updateUserById).not.toHaveBeenCalled()
+    // The share button emits a tagged invite link (TASK-23382).
+    expect(mockGenerateInviteCodeLink).toHaveBeenCalledWith('alice', REFERRAL_SOURCES.EARLY_USER_DRAWER)
 })
 
 it.each([false, true])('waits for another modal regardless of mount order (first=%s)', async (announcementFirst) => {

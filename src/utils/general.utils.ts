@@ -1242,8 +1242,9 @@ export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string =
 /**
  * The inviter's shareable invite link. `source` names the share button that
  * emits it and rides as `utm_content`, so PostHog can credit the signup to
- * that button (TASK-23382). Without `source` the link stays plain: in-app
- * navigation and the QR claim target are not shares.
+ * that button (TASK-23382). Every share button passes a `source`. Without
+ * `source` the link stays plain: in-app navigation (guest modal) and the QR
+ * claim target are not shares.
  */
 export const generateInviteCodeLink = (username: string, source?: ReferralSource) => {
     const inviteCode = toInviteCode(username)
