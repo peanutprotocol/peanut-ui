@@ -549,6 +549,18 @@ describe('usePushProvisioning', () => {
             })
             expect(result.current.alreadyInWallet).toBe(true)
             expect(result.current.nativeAvailable).toBe(false)
+            expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_ALREADY_ADDED, {
+                wallet: 'google',
+                error: undefined,
+            })
+            expect(posthog.capture).not.toHaveBeenCalledWith(
+                ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
+                expect.anything()
+            )
+            expect(posthog.capture).not.toHaveBeenCalledWith(
+                ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_SUCCEEDED,
+                expect.anything()
+            )
         })
 
         it('can provision a different card with the same suffix as an existing token', async () => {

@@ -137,11 +137,13 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                 address: data.billingAddress,
             })
             posthog.capture(
-                result.added
-                    ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_SUCCEEDED
-                    : result.canceled
-                      ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED
-                      : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
+                result.alreadyInWallet
+                    ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_ALREADY_ADDED
+                    : result.added
+                      ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_SUCCEEDED
+                      : result.canceled
+                        ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED
+                        : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
                 { wallet, error: result.error }
             )
             if (wallet === 'google' && (result.added || result.alreadyInWallet)) {
