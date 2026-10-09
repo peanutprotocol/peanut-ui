@@ -189,7 +189,7 @@ describe('SetupWrapper transitions', () => {
         mockCapacitor.value = true
         mockReducedMotion.value = false
         mockSetBackgroundColor.mockClear()
-        document.documentElement.style.setProperty('--color-background-setup-hero', '#d8e7ff')
+        document.documentElement.style.setProperty('--color-background-setup-hero', '#90a8ed')
         document.documentElement.style.setProperty('--color-action-primary', '#ff90e8')
         try {
             const { rerender } = renderWithIntl(
@@ -207,7 +207,7 @@ describe('SetupWrapper transitions', () => {
                 jest.advanceTimersByTime(220)
                 await Promise.resolve()
             })
-            expect(mockSetBackgroundColor).toHaveBeenCalledWith({ color: '#d8e7ff' })
+            expect(mockSetBackgroundColor).toHaveBeenCalledWith({ color: '#90a8ed' })
 
             rerender(
                 <SetupWrapper
@@ -224,7 +224,7 @@ describe('SetupWrapper transitions', () => {
                 jest.advanceTimersByTime(220)
                 await Promise.resolve()
             })
-            expect(mockSetBackgroundColor).toHaveBeenLastCalledWith({ color: '#d8e7ff' })
+            expect(mockSetBackgroundColor).toHaveBeenLastCalledWith({ color: '#90a8ed' })
         } finally {
             mockCapacitor.value = false
             mockReducedMotion.value = true

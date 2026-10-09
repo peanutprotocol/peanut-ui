@@ -89,7 +89,7 @@ export const COLOR_TOKENS: ThemeToken[] = [
     },
     {
         "name": "background-setup-hero",
-        "value": "#d8e7ff",
+        "value": "#90a8ed",
         "section": "semantic",
         "previewClass": "bg-background-setup-hero"
     },

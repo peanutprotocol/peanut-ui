@@ -57,8 +57,11 @@
     --color-background-page: #faf4f0;
     --color-background-disabled: #efeff0;
     --color-background-brand: #ff90e8;
-    /* Light blue from the onboarding animation/Figma reference. */
-    --color-background-setup-hero: #d8e7ff;
+    /* the periwinkle panel behind the setup/onboarding illustration. same value
+       as the blue-300 primitive the hero painted by hand. no board defines it:
+       flagged for vlad. the pale #d8e7ff set on 5 Oct 2026 was reverted on
+       Konrad's call, 9 Oct 2026. */
+    --color-background-setup-hero: #90a8ed;
 
     --color-background-icon-bubble-green: #29cc6a;
     --color-background-icon-bubble-red: #ea8282;
