@@ -12,12 +12,15 @@ export default function ScanToDownloadModal({
     onClose,
     surface,
     handoff,
+    showLogIn = false,
 }: {
     visible: boolean
     onClose: () => void
     surface: MigrationSurface
     /** Optional guest context, such as /shhhhh's campaign and /card destination. */
     handoff?: StoreHandoff
+    /** Logged-out web visitors get "Log in" instead of the support link: signup is app-only, login is not. */
+    showLogIn?: boolean
 }) {
     const t = useTranslations('migration')
     const locale = useLocale() as AppLocale
@@ -31,7 +34,13 @@ export default function ScanToDownloadModal({
             content={
                 <div className="flex flex-col items-center gap-4">
                     <DownloadQR surface={surface} handoff={handoff} />
-                    <LinkButton href={localizeMarketingPath('/en/help', locale)}>{t('sunset.supportLink')}</LinkButton>
+                    {showLogIn ? (
+                        <LinkButton href="/setup?step=login">{t('qr.logIn')}</LinkButton>
+                    ) : (
+                        <LinkButton href={localizeMarketingPath('/en/help', locale)}>
+                            {t('sunset.supportLink')}
+                        </LinkButton>
+                    )}
                 </div>
             }
         />

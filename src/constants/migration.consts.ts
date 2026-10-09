@@ -2,10 +2,9 @@
  * PWA → native app migration (pwa-sunset).
  *
  * Everything here is dark until the `pwa-sunset` PostHog flag is flipped ON
- * (no deploy needed). Flag ON starts the notice window: download prompts +
- * store links appear and web signups close. Once MIGRATION_CUTOVER_DATE passes
- * (flag still ON), the web app is replaced by the full-screen sunset block
- * (SunsetScreen).
+ * (no deploy needed). Flag ON closes web signup and shows download prompts and
+ * store links. Existing accounts keep logging in on the web (ruled 2026-10-07,
+ * hugo): signup is app-only, the web app is not switched off.
  */
 
 export const PWA_SUNSET_FLAG = 'pwa-sunset'
@@ -18,24 +17,16 @@ export const PWA_SUNSET_FLAG = 'pwa-sunset'
  */
 export const APP_ENTRY_QUERY_PARAM = 'app_entry'
 
-// ponytail: cutover date is a constant; move to flag payload only if the date
-// needs to move without a deploy.
-export const MIGRATION_CUTOVER_DATE = new Date('2026-10-09T00:00:00Z')
-
 // how long "Remind me later" snoozes the download prompt modal
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
-
-// download prompt copy switches from celebratory to friendly-urgency once
-// the cutover is this close (Hugo's two-phase notice window)
-export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
 
 // how long "Not now" on the notifications pre-prompt snoozes before re-asking
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
 // support escape hatch for users who can't install the app: support DMs
-// `/home?keep-web=<token>`; visiting it stores a 90-day cookie that bypasses
-// the sunset block.
+// `/home?keep-web=<token>`; visiting it stores a 90-day cookie that reopens
+// web signup in that browser.
 // ponytail: static shared token, FE-only; per-user tokens need a BE endpoint.
 export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
@@ -66,7 +57,6 @@ export const STORE_NAME = {
 /** `surface` property for migration analytics events. */
 export const MIGRATION_SURFACES = {
     DOWNLOAD_MODAL: 'download_modal',
-    SUNSET_SCREEN: 'sunset_screen',
     LANDING_HERO: 'landing_hero',
     HOME_BANNER: 'home_banner',
     SETUP: 'setup',

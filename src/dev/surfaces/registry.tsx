@@ -495,9 +495,9 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <SupportedNetworksDrawer visible onClose={noop} />,
     },
     '41-c-migrationdownloadmodal': {
-        name: 'MigrationDownloadModal (early)',
+        name: 'MigrationDownloadModal',
         path: 'Migration/MigrationDownloadModal.tsx',
-        render: () => <MigrationDownloadModal forceVariant="early" />,
+        render: () => <MigrationDownloadModal forceVisible />,
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],

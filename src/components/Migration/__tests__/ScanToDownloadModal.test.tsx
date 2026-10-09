@@ -48,4 +48,16 @@ describe('ScanToDownloadModal', () => {
         expect(props).not.toHaveProperty('ctas')
         expect(screen.queryByRole('button', { name: 'close' })).not.toBeInTheDocument()
     })
+
+    it('offers Log in to logged-out visitors instead of the support link', () => {
+        render(<ScanToDownloadModal visible onClose={jest.fn()} surface="landing_hero" showLogIn />)
+        expect(screen.getByRole('link', { name: 'qr.logIn' })).toHaveAttribute('href', '/setup?step=login')
+        expect(screen.queryByRole('link', { name: 'sunset.supportLink' })).not.toBeInTheDocument()
+    })
+
+    it('keeps the support link for logged-in users', () => {
+        render(<ScanToDownloadModal visible onClose={jest.fn()} surface="home_banner" />)
+        expect(screen.getByRole('link', { name: 'sunset.supportLink' })).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'qr.logIn' })).not.toBeInTheDocument()
+    })
 })

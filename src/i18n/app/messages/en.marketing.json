@@ -125,19 +125,15 @@
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
             "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
-            "maybeLater": "I'll download it later",
-            "title": "Peanut is going app-only",
-            "description": "In {days, plural, one {# day} other {# days}} Peanut moves fully to the app. Download it now and pick up right where you left off. Your account and money move with you automatically.",
-            "remindLater": "Remind me later"
+            "maybeLater": "I'll download it later"
         },
         "sunset": {
-            "heading": "Peanut is now app-only",
-            "sub": "Download the app to pick up right where you left off. Your account and money are already there waiting for you.",
             "supportLink": "Having trouble downloading the app? Chat with our support"
         },
         "qr": {
             "title": "Get the Peanut app",
-            "scanHint": "Scan with your phone camera to download."
+            "scanHint": "Scan with your phone camera to download.",
+            "logIn": "Log in on web instead"
         },
         "banner": {
             "title": "The Peanut app is here!",
