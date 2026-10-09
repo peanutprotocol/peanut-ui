@@ -87,6 +87,61 @@ beforeEach(() => {
 })
 
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
+    it('tags the Play referrer with plain utm fields, web campaign by default (TASK-23382)', () => {
+        const payload = buildDeferredPayload('/home')
+        const params = new URLSearchParams(payload)
+        expect(params.get('utm_source')).toBe('peanut.me')
+        expect(params.get('utm_campaign')).toBe('web')
+        expect(params.has('utm_medium')).toBe(false)
+        expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=pnutdl%3D1%26')
+        expect(playStoreUrlWithReferrer(payload)).toContain('utm_source%3Dpeanut.me%26utm_campaign%3Dweb')
+        // the native parser only reads its own keys
+        expect(parseDeferredPayload(payload)).toEqual({ dest: '/home' })
+        // the iOS clipboard hand-off is a peanut.me url and stays untagged
+        expect(buildDeferredPayload('/home', undefined, 'ios')).not.toContain('utm_')
+    })
+
+    it('carries the web session campaign and medium into the Play referrer, never a click id', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'google',
+                utmMedium: 'cpc',
+                utmCampaign: 'br-launch',
+                path: '/pt-br/blog/guide',
+            },
+        })
+
+        const params = new URLSearchParams(buildDeferredPayload('/home'))
+        expect(params.get('utm_source')).toBe('peanut.me')
+        expect(params.get('utm_medium')).toBe('cpc')
+        expect(params.get('utm_campaign')).toBe('br-launch')
+        expect([...params.keys()].filter((k) => !k.startsWith('utm_'))).toEqual(['pnutdl', 'at', 'dest'])
+    })
+
+    it('drops the plain utm fields after the attribution token and before referral identities', () => {
+        saveToCookie('inviteCode', 'alice')
+        saveToCookie('campaignTag', 'nita')
+        const payload = buildDeferredPayload('/' + 'x'.repeat(MAX_PLAY_REFERRER_LENGTH))
+
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(payload)).toEqual({ invite: 'alice', badgeCampaigns: ['nita'] })
+        expect(payload).toContain('utm_campaign=web')
+
+        // `pnutdl%3D1%26invite%3D` is 22 encoded characters: this invite fits alone
+        // and leaves no room for `utm_source=peanut.me&utm_campaign=web`.
+        const invite = 'x'.repeat(MAX_PLAY_REFERRER_LENGTH - 32)
+        const squeezed = buildDeferredPayload('/home', invite)
+        expect(encodeURIComponent(squeezed).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(squeezed).not.toContain('utm_')
+        expect(parseDeferredPayload(squeezed)).toEqual({ invite })
+    })
+
     it('uses a compact attribution token within Play referrer limits', () => {
         saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
             schemaVersion: '1',

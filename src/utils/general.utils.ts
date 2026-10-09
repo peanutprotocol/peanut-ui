@@ -4,6 +4,8 @@ import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
+import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
+import { type ReferralSource } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
@@ -1237,9 +1239,21 @@ export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string =
     return `/setup?step=signup&redirect_uri=${redirectUri}`
 }
 
-export const generateInviteCodeLink = (username: string) => {
+/**
+ * The inviter's shareable invite link. `source` names the share button that
+ * emits it and rides as `utm_content`, so PostHog can credit the signup to
+ * that button (TASK-23382). Without `source` the link stays plain: in-app
+ * navigation and the QR claim target are not shares.
+ */
+export const generateInviteCodeLink = (username: string, source?: ReferralSource) => {
     const inviteCode = toInviteCode(username)
-    const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
+    const inviteLink = source
+        ? withUtm(
+              shareableUrl('/invite'),
+              { source: UTM_SOURCES.APP_SHARE, medium: UTM_MEDIUMS.REFERRAL, campaign: 'referral', content: source },
+              { code: inviteCode }
+          )
+        : shareableUrl(`/invite?code=${inviteCode}`)
     return { inviteLink, inviteCode }
 }
 

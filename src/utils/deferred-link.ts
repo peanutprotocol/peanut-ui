@@ -230,6 +230,14 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
     // iOS, including attribution that cannot fit in Android's 512 characters.
     if (store === 'ios') return params.toString()
 
+    // Play Console reads plain utm_* from the referrer and counts installs per
+    // campaign. Only the campaign name and medium cross; ad click IDs never do
+    // (TASK-23382, decision 2).
+    const touch = attribution?.lastTouch ?? attribution?.firstTouch
+    params.set('utm_source', 'peanut.me')
+    if (touch?.utmMedium) params.set('utm_medium', touch.utmMedium)
+    params.set('utm_campaign', touch?.utmCampaign ?? 'web')
+
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
         // A destination can be reopened from the original link. Preserve
         // referral and badge identities before optional marketing evidence.
@@ -238,6 +246,10 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
         params.delete(ATTRIBUTION_PARAM)
+    }
+
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        for (const key of ['utm_source', 'utm_medium', 'utm_campaign']) params.delete(key)
     }
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {

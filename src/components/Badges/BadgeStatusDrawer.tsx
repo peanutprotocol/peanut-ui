@@ -49,7 +49,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
     // the sharer's own invite link, so a guest signup credits them
-    const shareLink = getBadgeShareLink(username)
+    const shareLink = getBadgeShareLink(username, REFERRAL_SOURCES.BADGE_UNLOCK)
     useBadgeShareImpression(isOpen, REFERRAL_SOURCES.BADGE_UNLOCK, username)
 
     return (
