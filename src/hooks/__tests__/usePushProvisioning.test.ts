@@ -482,23 +482,112 @@ describe('usePushProvisioning', () => {
         expect(mockedAddCard).not.toHaveBeenCalled()
     })
 
-    // Google requires its own supplied Add to Google Wallet asset on any control
-    // that starts provisioning, and it ships with issuer onboarding. Until then
-    // Android keeps the manual carousel.
-    it('keeps the manual carousel on android binaries', async () => {
-        mockedIsIOS.mockReturnValue(false)
-        mockedIsAndroid.mockReturnValue(true)
-        mockedFlag.mockImplementation((key: string) => key === 'push-provisioning-google')
-        const { result } = renderHook(() => usePushProvisioning(card))
-
-        await waitFor(() => expect(result.current.nativeAvailable).toBe(false))
-        expect(mockedFlag).toHaveBeenCalledWith('push-provisioning-google')
-        expect(mockedFlag).not.toHaveBeenCalledWith('push-provisioning-apple')
-        await act(async () => {
-            expect(await result.current.addToWallet()).toEqual({ added: false, error: 'unavailable' })
+    describe('Android', () => {
+        beforeEach(() => {
+            mockedIsIOS.mockReturnValue(false)
+            mockedIsAndroid.mockReturnValue(true)
+            mockedFlag.mockImplementation((key: string) => key === 'push-provisioning-google')
         })
-        expect(mockedAvailability).not.toHaveBeenCalled()
-        expect(mockedGetProvisioningData).not.toHaveBeenCalled()
-        expect(mockedAddCard).not.toHaveBeenCalled()
+
+        it('provisions with Google credentials while Apple stays disabled, without writing Apple extension state', async () => {
+            mockedAddCard.mockResolvedValue({ added: true })
+            mockedAvailability
+                .mockResolvedValueOnce({ available: true, alreadyInWallet: false })
+                .mockResolvedValueOnce({ available: false, alreadyInWallet: true })
+            const { result } = renderHook(() => usePushProvisioning(card))
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: true })
+            })
+            expect(mockedFlag).toHaveBeenCalledWith('push-provisioning-google')
+            expect(mockedFlag).not.toHaveBeenCalledWith('push-provisioning-apple')
+            expect(mockedGetProvisioningData).toHaveBeenCalledWith(card.id, 'google')
+            expect(mockedAddCard).toHaveBeenCalledWith(
+                expect.objectContaining({ cardId: 'mea-card-1', cardSecret: 'secret' })
+            )
+            expect(mockedRememberCard).not.toHaveBeenCalled()
+            expect(mockedSyncWalletAuthorizationToken).not.toHaveBeenCalled()
+            expect(result.current.nativeAvailable).toBe(false)
+            expect(result.current.alreadyInWallet).toBe(true)
+        })
+
+        it('does not enable Google from the Apple or retired shared flag', async () => {
+            mockedFlag.mockImplementation((key: string) => key !== 'push-provisioning-google')
+            const { result } = renderHook(() => usePushProvisioning(card))
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: false, error: 'unavailable' })
+            })
+            expect(mockedAvailability).not.toHaveBeenCalled()
+            expect(mockedGetProvisioningData).not.toHaveBeenCalled()
+            expect(mockedAddCard).not.toHaveBeenCalled()
+        })
+
+        it('keeps the fallback on a binary without the SDK, even with the Google flag on', async () => {
+            mockedAvailability.mockResolvedValue({ available: false, alreadyInWallet: false })
+            const { result } = renderHook(() => usePushProvisioning(card))
+            await waitFor(() => expect(mockedAvailability).toHaveBeenCalled())
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: false, error: 'unavailable' })
+            })
+            expect(result.current.nativeAvailable).toBe(false)
+            expect(mockedGetProvisioningData).not.toHaveBeenCalled()
+        })
+
+        it('fails closed when the initial native availability lookup rejects', async () => {
+            mockedAvailability.mockRejectedValue(new Error('bridge unavailable'))
+            const { result } = renderHook(() => usePushProvisioning(card))
+            await act(async () => {})
+            expect(result.current.nativeAvailable).toBe(false)
+            expect(mockedGetProvisioningData).not.toHaveBeenCalled()
+        })
+
+        it('reports an existing token without offering another provisioning action', async () => {
+            mockedAvailability.mockResolvedValue({ available: false, alreadyInWallet: true })
+            const { result } = renderHook(() => usePushProvisioning(card))
+            await waitFor(() => expect(result.current.alreadyInWallet).toBe(true))
+            expect(result.current.nativeAvailable).toBe(false)
+            await act(async () => {
+                await result.current.addToWallet()
+            })
+            expect(mockedGetProvisioningData).not.toHaveBeenCalled()
+        })
+
+        it('preserves retry after user cancellation', async () => {
+            mockedAddCard.mockResolvedValue({ added: false, canceled: true })
+            const { result } = renderHook(() => usePushProvisioning(card))
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: false, canceled: true })
+            })
+            expect(result.current.nativeAvailable).toBe(true)
+            expect(result.current.alreadyInWallet).toBe(false)
+        })
+
+        it('blocks duplicate taps and cancels a fetched credential when the Google rollout closes', async () => {
+            let finishFetch!: (value: RainProvisioningDataResponse) => void
+            mockedGetProvisioningData.mockImplementation(
+                () =>
+                    new Promise((resolve) => {
+                        finishFetch = resolve
+                    })
+            )
+            const { result, rerender } = renderHook(() => usePushProvisioning(card))
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            let pending!: ReturnType<typeof result.current.addToWallet>
+            await act(async () => {
+                pending = result.current.addToWallet()
+                expect(await result.current.addToWallet()).toEqual({ added: false, error: 'unavailable' })
+            })
+            expect(mockedGetProvisioningData).toHaveBeenCalledTimes(1)
+            mockedFlag.mockReturnValue(false)
+            rerender()
+            await act(async () => {
+                finishFetch(provisioningData)
+                expect(await pending).toEqual({ added: false, canceled: true })
+            })
+            expect(mockedAddCard).not.toHaveBeenCalled()
+            expect(mockedRememberCard).not.toHaveBeenCalled()
+            expect(mockedSyncWalletAuthorizationToken).not.toHaveBeenCalled()
+        })
     })
 })

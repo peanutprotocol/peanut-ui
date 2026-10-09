@@ -14,6 +14,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
+import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
@@ -48,7 +49,10 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
-    const { nativeAvailable, isAdding, addToWallet } = usePushProvisioning({ id: card.id, last4: card.last4 })
+    const { nativeAvailable, alreadyInWallet, isAdding, addToWallet } = usePushProvisioning({
+        id: card.id,
+        last4: card.last4,
+    })
 
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
@@ -91,6 +95,15 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 onCopy={handleCopy}
             />
 
+            {walletPlatform === 'android' &&
+                (alreadyInWallet ? (
+                    <p role="status" className="text-center text-body-m text-foreground-secondary">
+                        {t('addedToGoogleWallet')}
+                    </p>
+                ) : nativeAvailable ? (
+                    <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+                ) : null)}
+
             {showAutoRenew && (
                 <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>
                     {t('autoRenewBody', { days: daysLeft })}
@@ -132,12 +145,13 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                             onClick={() => router.push('/card/physical')}
                         />
                         {walletLabel &&
+                            !(walletPlatform === 'android' && (nativeAvailable || alreadyInWallet)) &&
                             // use native provisioning when it is available
                             (nativeAvailable ? (
                                 <ListItem
                                     title={walletLabel}
                                     leading={<Icon name="wallet" size={24} />}
-                                    chevron
+                                    disabled={isAdding}
                                     onClick={() => void handleAddToWallet()}
                                 />
                             ) : (

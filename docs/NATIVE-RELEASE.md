@@ -954,13 +954,16 @@ PR alone cannot make Apple Wallet accept a card.
 flags. Both default off, including outside production. The retired
 `push-provisioning` flag no longer enables either platform in this app bundle.
 Apple Wallet metadata and authorization grants use only the Apple flag.
-Keep all flags off while older app bundles still use the shared flag.
+Keep the retired shared flag off for older app bundles.
 
-Android remains disabled in `usePushProvisioning`, even with the Google flag on.
-Complete these checks before removing that guard and enabling a test cohort:
+Android provisioning uses `push-provisioning-google` plus native SDK availability.
+The official localized Google Wallet button starts this flow; unavailable binaries
+and disabled flags retain the manual carousel. Apple extension grants and metadata
+remain iOS-only. Both flags must stay off while approval is pending.
+Complete these checks before enabling an approved test cohort:
 
-1. Supply Google's approved, localized Add to Google Wallet control for every
-   action that starts provisioning. Confirm issuer/TSP onboarding and approval
+1. Submit the supplied localized Add to Google Wallet control and flow for Google's
+   UX/branding review. Confirm issuer/TSP onboarding and approval
    for `me.peanut.wallet` and the Play app-signing certificate.
 2. Confirm with Rain and MeaWallet that the Android `GooglePay.pushCard` flow
    is approved for this program. The bridge currently uses that legacy flow;
