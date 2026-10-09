@@ -154,6 +154,32 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect(params.get('utm_campaign')).toBe('br-launch')
     })
 
+    it('keeps a campaign held only by the content touch in the Play referrer', () => {
+        // direct /home visit, then a tagged /content page, then a return from an
+        // untagged external site: the campaign survives only as firstContentTouch.
+        const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 1000).toISOString()
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '55555555-5555-4555-8555-555555555555',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: { occurredAt: minutesAgo(30), path: '/home' },
+            firstContentTouch: {
+                occurredAt: minutesAgo(20),
+                utmSource: 'guide-template',
+                utmMedium: 'content',
+                utmCampaign: 'guide',
+                path: '/content/guide',
+            },
+            lastTouch: { occurredAt: minutesAgo(1), referrerHost: 'news.example', path: '/' },
+        })
+
+        const params = new URLSearchParams(buildDeferredPayload('/home'))
+        expect(params.get('utm_medium')).toBe('content')
+        expect(params.get('utm_campaign')).toBe('guide')
+    })
+
     it('never carries an ad click id inside dest, on either store (TASK-23382, decision 2)', () => {
         window.history.pushState(
             {},

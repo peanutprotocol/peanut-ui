@@ -231,14 +231,19 @@ function stripClickIds(dest: string): string {
     return dest.slice(0, queryStart) + (kept ? '?' + kept : '') + hash
 }
 
-/** the latest touch that carries a utm_campaign, or whatever touch exists. */
+/**
+ * the latest touch that carries a utm_campaign, or whatever touch exists.
+ * lastTouch is the newest by construction and firstContentTouch is never
+ * older than firstTouch, so this order is recency order.
+ */
 function latestCampaignTouch(
     attribution: SignupAttributionContext | null
 ): SignupAttributionContext['firstTouch'] | undefined {
     if (!attribution) return undefined
-    const { firstTouch, lastTouch } = attribution
-    if (lastTouch?.utmCampaign) return lastTouch
-    if (firstTouch.utmCampaign) return firstTouch
+    const { firstTouch, firstContentTouch, lastTouch } = attribution
+    for (const touch of [lastTouch, firstContentTouch, firstTouch]) {
+        if (touch?.utmCampaign) return touch
+    }
     return lastTouch ?? firstTouch
 }
 
