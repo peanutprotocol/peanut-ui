@@ -53,8 +53,17 @@ export const REVIEW_URL = {
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
+/**
+ * Apple campaign tokens: `pt` is the provider token from App Store Connect >
+ * Analytics > Campaign links, `ct` the campaign name. App Store Connect
+ * counts a campaign only when both are present, so without the provider
+ * token the link stays plain.
+ */
+const IOS_STORE_URL = 'https://apps.apple.com/us/app/id6786373552'
+const APP_STORE_PROVIDER_TOKEN = process.env.NEXT_PUBLIC_APP_STORE_PROVIDER_TOKEN
+
 export const STORE_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552',
+    ios: APP_STORE_PROVIDER_TOKEN ? `${IOS_STORE_URL}?pt=${APP_STORE_PROVIDER_TOKEN}&ct=web` : IOS_STORE_URL,
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 

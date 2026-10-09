@@ -42,7 +42,7 @@ export const BadgeDetailDrawer = ({
     const { user: authUser } = useAuth()
     const username = authUser?.user?.username
     // the sharer's own invite link, so a guest signup credits them
-    const shareLink = getBadgeShareLink(username)
+    const shareLink = getBadgeShareLink(username, REFERRAL_SOURCES.BADGE_DETAIL)
     useBadgeShareImpression(isOpen && earned, REFERRAL_SOURCES.BADGE_DETAIL, username)
 
     const shareText = getBadgeShareText(code, title, shareLink, {

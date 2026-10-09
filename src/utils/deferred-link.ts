@@ -196,6 +196,58 @@ function stripLocalePrefix(path: string): string {
 }
 
 /**
+ * ad click identifiers that must never cross from web to app
+ * (TASK-23382, decision 2). campaign source/medium/campaign/content may cross;
+ * a per-click identifier may not. keep lowercase; matching is case-insensitive.
+ */
+const CLICK_ID_PARAMS = [
+    'gclid',
+    'gbraid',
+    'wbraid',
+    'dclid',
+    'fbclid',
+    'twclid',
+    'ttclid',
+    'msclkid',
+    'li_fat_id',
+    'sc_click_id',
+    'rdt_cid',
+    'yclid',
+    'epik',
+]
+
+/** removes every ad click identifier from a dest's query; path and hash stay. */
+function stripClickIds(dest: string): string {
+    const queryStart = dest.indexOf('?')
+    if (queryStart < 0) return dest
+    const hashStart = dest.indexOf('#', queryStart)
+    const query = hashStart >= 0 ? dest.slice(queryStart + 1, hashStart) : dest.slice(queryStart + 1)
+    const hash = hashStart >= 0 ? dest.slice(hashStart) : ''
+    const params = new URLSearchParams(query)
+    for (const key of [...params.keys()]) {
+        if (CLICK_ID_PARAMS.includes(key.toLowerCase())) params.delete(key)
+    }
+    const kept = params.toString()
+    return dest.slice(0, queryStart) + (kept ? '?' + kept : '') + hash
+}
+
+/**
+ * the latest touch that carries a utm_campaign, or whatever touch exists.
+ * lastTouch is the newest by construction and firstContentTouch is never
+ * older than firstTouch, so this order is recency order.
+ */
+function latestCampaignTouch(
+    attribution: SignupAttributionContext | null
+): SignupAttributionContext['firstTouch'] | undefined {
+    if (!attribution) return undefined
+    const { firstTouch, firstContentTouch, lastTouch } = attribution
+    for (const touch of [lastTouch, firstContentTouch, firstTouch]) {
+        if (touch?.utmCampaign) return touch
+    }
+    return lastTouch ?? firstTouch
+}
+
+/**
  * builds the payload querystring from the current web context: locale from the
  * /{locale}/ path prefix, invite/badge campaign from their existing cookies, dest
  * from the argument (defaults to the current path + query, locale stripped).
@@ -223,12 +275,23 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
     // restored claim page would render unclaimable. the working path is the
     // user re-tapping the original link — a universal link with the hash intact.
     const secretOnPage = dest === undefined && window.location.hash.startsWith('#p=')
-    const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
+    // ad click ids on the landing url (gclid, fbclid, ...) never ride inside dest.
+    const destination = stripClickIds(dest ?? stripLocalePrefix(window.location.pathname) + window.location.search)
     if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
     // The clipboard has no Play referrer limit. Keep the full valid journey on
     // iOS, including attribution that cannot fit in Android's 512 characters.
     if (store === 'ios') return params.toString()
+
+    // Play Console reads plain utm_* from the referrer and counts installs per
+    // campaign. Only the campaign name and medium cross; ad click IDs never do
+    // (TASK-23382, decision 2). A referrer-only return visit becomes lastTouch
+    // without a campaign; the install still belongs to the latest touch that
+    // named one, so fall back to firstTouch rather than reporting `web`.
+    const touch = latestCampaignTouch(attribution)
+    params.set('utm_source', 'peanut.me')
+    if (touch?.utmMedium) params.set('utm_medium', touch.utmMedium)
+    params.set('utm_campaign', touch?.utmCampaign ?? 'web')
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
         // A destination can be reopened from the original link. Preserve
@@ -238,6 +301,10 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
         params.delete(ATTRIBUTION_PARAM)
+    }
+
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        for (const key of ['utm_source', 'utm_medium', 'utm_campaign']) params.delete(key)
     }
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {

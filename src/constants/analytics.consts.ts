@@ -427,9 +427,13 @@ export const REFERRAL_SOURCES = {
     BADGE_DETAIL: 'badge_detail',
     BADGE_UNLOCK: 'badge_unlock',
     QR_PAY_SUCCESS: 'qr_pay_success',
+    // Early-user announcement drawer's share button (utm_content only, no
+    // referral CTA event).
+    EARLY_USER_DRAWER: 'early_user_drawer',
     // Pre-existing wire value — the receipt used this as an inline literal
     // before it was registered here. Do not rename.
     TRANSACTION_RECEIPT: 'transaction_receipt',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]
+export type ReferralSource = (typeof REFERRAL_SOURCES)[keyof typeof REFERRAL_SOURCES]
