@@ -1,3 +1,4 @@
+import { KycDocumentSelectionModal } from './KycDocumentSelectionModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useTranslations } from 'next-intl'
 import { KycRestartCooldownModal } from './KycRestartCooldownModal'
@@ -22,6 +23,17 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
     const t = useTranslations('kyc.correction')
     return (
         <>
+            {flow.documentPlan && (
+                <KycDocumentSelectionModal
+                    plan={flow.documentPlan}
+                    preferencesOnly={flow.documentPreferencesOnly}
+                    busy={flow.isLoading}
+                    error={flow.error}
+                    onClose={flow.dismissDocumentPlan}
+                    onFeatures={flow.updateDocumentFeatures}
+                    onConfirm={flow.confirmDocumentPlan}
+                />
+            )}
             <ActionModal
                 visible={flow.showCorrection === true}
                 onClose={flow.dismissCorrection}
@@ -38,10 +50,12 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 }}
             />
             <SumsubKycWrapper
+                documentConfig={flow.documentConfig}
                 sessionKey={
-                    flow.verificationSession
+                    flow.documentAttemptId ??
+                    (flow.verificationSession
                         ? `${flow.verificationSession.id}:${flow.verificationSession.generation}`
-                        : undefined
+                        : undefined)
                 }
                 visible={flow.showWrapper}
                 accessToken={flow.accessToken}

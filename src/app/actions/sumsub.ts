@@ -141,6 +141,8 @@ export const initiateSumsubKyc = async (params?: {
                 actionType: responseJson.actionType,
                 session: responseJson.session,
                 workflow: responseJson.workflow,
+                attemptId: responseJson.attemptId,
+                sdkConfig: responseJson.sdkConfig,
             },
         }
     } catch (e: unknown) {

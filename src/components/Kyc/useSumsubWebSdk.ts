@@ -40,6 +40,7 @@ export function useSumsubWebSdk({
     visible,
     sessionKey,
     accessToken,
+    documentConfig,
     email,
     onComplete,
     onSubmitted,
@@ -51,6 +52,8 @@ export function useSumsubWebSdk({
     accessTokenRef.current = accessToken
     // Read the latest default at launch without restarting an active SDK,
     // which would discard edits made inside Sumsub.
+    const documentConfigRef = useRef(documentConfig)
+    documentConfigRef.current = documentConfig
     const emailRef = useRef(email)
     emailRef.current = email
     const hasAccessToken = !!accessToken
@@ -233,6 +236,7 @@ export function useSumsubWebSdk({
                 .withConf({
                     lang: sumsubLocaleRef.current,
                     theme: 'light',
+                    ...documentConfigRef.current,
                     ...(emailRef.current ? { email: emailRef.current } : {}),
                 })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })

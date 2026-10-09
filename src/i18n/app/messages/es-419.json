@@ -3310,6 +3310,33 @@
             "taxId": "Tu identidad está verificada, pero no pudimos validar tu identificación fiscal para este país. Revísala y corrígela para habilitar las transferencias bancarias.",
             "details": "Hay información que debes actualizar para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
             "correct": "Corregir datos"
+        },
+        "documents": {
+            "title": "Elige tus documentos",
+            "description": "Elige los documentos que usarás aquí. Abriremos la verificación con estos documentos ya seleccionados.",
+            "features": "¿Qué te gustaría usar?",
+            "qr": "Pagos QR",
+            "local": "Transferencias bancarias locales",
+            "bank": "Cuentas bancarias internacionales",
+            "card": "Tarjeta Peanut",
+            "unavailable": "La verificación aún no está disponible para estas opciones. Prueba otra opción de pago.",
+            "documentSet": "Documentos necesarios",
+            "identity": "Documento de identidad",
+            "poa": "Comprobante de domicilio",
+            "documentType": "Tipo de documento",
+            "issuingCountry": "País de emisión",
+            "choose": "Elige una opción",
+            "continue": "Continuar a la verificación",
+            "passport": "Pasaporte",
+            "idCard": "Documento nacional de identidad",
+            "drivers": "Licencia de conducir",
+            "residencePermit": "Permiso de residencia",
+            "bankStatement": "Estado de cuenta bancario",
+            "utilityBill": "Factura de servicios",
+            "otherDocument": "Documento de respaldo",
+            "preferencesTitle": "Funciones de pago",
+            "preferencesDescription": "Elige las funciones de pago que quieres usar. Tu identidad sigue verificada.",
+            "preferencesContinue": "Continuar"
         }
     },
     "identity": {

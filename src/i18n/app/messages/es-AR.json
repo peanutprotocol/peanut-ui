@@ -1540,6 +1540,15 @@
             "taxId": "Tu identidad está verificada, pero no pudimos validar tu identificación fiscal para este país. Revisala y corregila para habilitar las transferencias bancarias.",
             "details": "Hay información que debés actualizar para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
             "correct": "Corregir datos"
+        },
+        "documents": {
+            "title": "Elegí tus documentos",
+            "description": "Elegí acá los documentos que vas a usar. Abriremos la verificación con estos documentos ya seleccionados.",
+            "unavailable": "La verificación todavía no está disponible para estas opciones. Probá otra opción de pago.",
+            "choose": "Elegí una opción",
+            "preferencesTitle": "Funciones de pago",
+            "preferencesDescription": "Elegí las funciones de pago que querés usar. Tu identidad sigue verificada.",
+            "preferencesContinue": "Continuar"
         }
     },
     "identity": {
