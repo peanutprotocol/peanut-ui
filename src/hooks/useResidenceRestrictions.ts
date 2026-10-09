@@ -66,22 +66,26 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
             user?.residenceRestrictions ??
             deriveResidenceRestrictionsFrom(
                 sets,
-                user?.residence?.declared || residenceCountry || readDeclaredResidence(userId)
+                user?.residence?.verified?.country ||
+                    user?.residence?.declared?.country ||
+                    residenceCountry ||
+                    readDeclaredResidence(userId)
             )
         // Same rule as the change modal: the server's answer wins whenever it
         // sends the field, `null` included. The device mirror is only for an
         // API that predates `declaredSecond`, and on a fresh device it is
         // absent — which silently skipped the intersection and kept offers
         // hidden from a dual-resident whose second country is unrestricted.
-        const serverSecond = user?.residence?.declaredSecond
+        const serverSecond = user?.residence?.secondaryDeclaredCountry
         const second = serverSecond === undefined ? readSecondResidence(userId) : serverSecond
         if (!second) return primary
         const secondary = deriveResidenceRestrictionsFrom(sets, second)
         return { banking: primary.banking && secondary.banking, card: primary.card && secondary.card }
     }, [
         user?.residenceRestrictions,
-        user?.residence?.declared,
-        user?.residence?.declaredSecond,
+        user?.residence?.verified?.country,
+        user?.residence?.declared?.country,
+        user?.residence?.secondaryDeclaredCountry,
         user?.user?.userId,
         residenceCountry,
         sets,

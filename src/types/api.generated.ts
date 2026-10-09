@@ -12069,7 +12069,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action. */
+        /** @description Open a non-destructive residence Applicant Action for legacy clients with a pending residence; otherwise reset IDENTITY only for an authorised document-replacement flow. */
         post: {
             parameters: {
                 query?: never;
@@ -12563,6 +12563,7 @@ export interface paths {
                 header: {
                     Authorization: string;
                     "api-key"?: string;
+                    "x-residence-format"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -12581,7 +12582,7 @@ export interface paths {
                                     currency?: string;
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -12601,6 +12602,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -12619,7 +12622,7 @@ export interface paths {
                                             currency?: string;
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -12638,6 +12641,35 @@ export interface paths {
                             depositAccounts: {
                                 enabled: boolean;
                             };
+                            geo?: {
+                                signup: {
+                                    device?: {
+                                        languages: string[];
+                                        locale: string | null;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        timeZone: string | null;
+                                    };
+                                    ipProvider?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        /** @enum {string} */
+                                        provider: "ipapi";
+                                    };
+                                    store?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        source: "app-store" | "google-play";
+                                    };
+                                    vercelIp?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                    };
+                                };
+                            } | null;
                             identityVerification: {
                                 actionMessage?: string;
                                 canRetry?: boolean;
@@ -12647,13 +12679,26 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
-                                reviewedAt?: string;
                                 reviewPending?: boolean;
+                                reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };
                             profileNameLocked: boolean;
                             residence: {
+                                declared: {
+                                    country: string | null;
+                                    secondCountry: string | null;
+                                    status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
+                                    updatedAt: string | null;
+                                } | null;
+                                secondaryDeclaredCountry: string | null;
+                                verified: {
+                                    country: string;
+                                    status: "VERIFIED" | "CHANGE_REQUESTED";
+                                    updatedAt: string | null;
+                                } | null;
+                            } | {
                                 declared: string | null;
                                 declaredSecond: string | null;
                                 kycReported: string | null;
@@ -13715,6 +13760,217 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/geo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            geo: {
+                                signup: {
+                                    device?: {
+                                        languages: string[];
+                                        locale: string | null;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        timeZone: string | null;
+                                    };
+                                    ipProvider?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        /** @enum {string} */
+                                        provider: "ipapi";
+                                    };
+                                    store?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        source: "app-store" | "google-play";
+                                    };
+                                    vercelIp?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                    };
+                                };
+                            } | null;
+                            residence: {
+                                declared: {
+                                    country: string | null;
+                                    secondCountry: string | null;
+                                    status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
+                                    updatedAt: string | null;
+                                } | null;
+                                secondaryDeclaredCountry: string | null;
+                                verified: {
+                                    country: string;
+                                    status: "VERIFIED" | "CHANGE_REQUESTED";
+                                    updatedAt: string | null;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedUserId: string;
+                        signup: {
+                            device?: {
+                                languages: string[];
+                                locale: string | null;
+                                /** Format: date-time */
+                                observedAt: string;
+                                timeZone: string | null;
+                            };
+                            ipProvider?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                                /** @enum {string} */
+                                provider: "ipapi";
+                            };
+                            store?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                                source: "app-store" | "google-play";
+                            };
+                            vercelIp?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                            };
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/residence-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    beforeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            events: {
+                                after: unknown;
+                                before: unknown;
+                                eventType: string;
+                                id: string;
+                                /** Format: date-time */
+                                occurredAt: string;
+                                sourceId: string | null;
+                                sourceType: string;
+                            }[];
+                            nextBeforeId: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;

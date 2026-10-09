@@ -1,10 +1,12 @@
 /** @jest-environment jsdom */
+import { normalizeResidence } from '@/utils/residence-profile'
+
 import { renderHook } from '@testing-library/react'
 import { deriveResidenceRestrictions, useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
 let mockUser: {
     residenceRestrictions?: { banking: boolean; card: boolean }
-    residence?: { declared?: string | null; declaredSecond?: string | null }
+    residence?: import('@/interfaces/interfaces').ResidenceProfile
     user?: { userId: string }
 } | null = null
 jest.mock('@/context/authContext', () => ({
@@ -62,6 +64,21 @@ describe('useResidenceRestrictions', () => {
         expect(result.current).toEqual({ banking: true, card: false })
     })
 
+    it('uses verified residence before a conflicting declaration when the server restriction summary is absent', () => {
+        mockUser = {
+            user: { userId: 'u1' },
+            residence: normalizeResidence({
+                verified: 'BR',
+                declared: 'RU',
+                pending: 'RU',
+                pendingStatus: 'COLLECTING',
+                declaredSecond: null,
+            }),
+        }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: false, card: false })
+    })
+
     it('falls back to the declared setup residence pre-account', () => {
         mockSetupState = { residenceCountry: 'UA' }
         const { result } = renderHook(() => useResidenceRestrictions())
@@ -76,7 +93,7 @@ describe('useResidenceRestrictions', () => {
         window.localStorage.clear()
         mockUser = {
             residenceRestrictions: { banking: true, card: true },
-            residence: { declared: 'RU', declaredSecond: 'BR' },
+            residence: normalizeResidence({ declared: 'RU', declaredSecond: 'BR' }),
             user: { userId: 'u1' },
         }
         const { result } = renderHook(() => useResidenceRestrictions())
@@ -87,7 +104,7 @@ describe('useResidenceRestrictions', () => {
         window.localStorage.setItem('peanut:secondResidence:u1', 'BR')
         mockUser = {
             residenceRestrictions: { banking: true, card: true },
-            residence: { declared: 'RU', declaredSecond: null },
+            residence: normalizeResidence({ declared: 'RU', declaredSecond: null }),
             user: { userId: 'u1' },
         }
         const { result } = renderHook(() => useResidenceRestrictions())

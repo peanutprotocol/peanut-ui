@@ -35,6 +35,7 @@ import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { resumeSignupGeo } from '@/services/signup-geo'
 import { markFirstLaunchIntroSeen } from '@/utils/first-launch-intro'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
@@ -101,6 +102,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refetch: fetchUser,
         error: userFetchError,
     } = useUserQuery(!appLocked)
+
+    const geoUserId = user?.user?.userId
+    useEffect(() => {
+        if (!geoUserId || appLocked) return
+        return resumeSignupGeo(geoUserId)
+    }, [geoUserId, appLocked])
 
     // Singleton auto-refresh poller — keeps the user query fresh while any
     // rail is provisioning OR a recent submission window is open. Mounted

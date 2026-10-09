@@ -91,7 +91,7 @@ export function useBankRows() {
     // means "no second residence", which `??` would wrongly treat like the
     // pre-deploy absent field and revive a stale device mirror. Only `undefined`
     // — an API that predates the field — falls back.
-    const serverSecond = residence?.declaredSecond
+    const serverSecond = residence?.secondaryDeclaredCountry
     const secondResidenceIso2 = serverSecond === undefined ? localSecond : serverSecond
     // Re-sync the mirror to the server's answer, including clearing it: it is
     // read elsewhere (useResidenceRestrictions), so leaving a disowned country
@@ -100,7 +100,7 @@ export function useBankRows() {
         if (userId && serverSecond !== undefined) storeSecondResidence(userId, serverSecond)
     }, [userId, serverSecond])
 
-    const residenceIso2 = residence?.verified ?? residence?.declared ?? localDeclared ?? null
+    const residenceIso2 = residence?.verified?.country ?? residence?.declared?.country ?? localDeclared ?? null
 
     const input: BankRowsInput = useMemo(
         () => ({

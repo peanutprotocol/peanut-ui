@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * useActivationStatus gathers the onboarding inputs from data Home already
  * loads; the rules themselves are pinned in activation-step.utils.test.ts.
@@ -209,7 +210,10 @@ describe('useActivationStatus', () => {
         (declared) => {
             mockCanSpendViaCard = true
             mockUseAuth.mockReturnValue({
-                user: { user: { userId: 'u1', isActivated: false }, residence: { declared, verified: null } },
+                user: {
+                    user: { userId: 'u1', isActivated: false },
+                    residence: normalizeResidence({ declared, verified: null }),
+                },
             })
             const { result } = renderHook(() => useActivationStatus())
             expect(result.current.onboarding.firstPaymentRoute).toBe('card_qr')
@@ -218,7 +222,10 @@ describe('useActivationStatus', () => {
 
     it('a new user without the card sees the QR path, not three rows', () => {
         mockUseAuth.mockReturnValue({
-            user: { user: { userId: 'u1', isActivated: false }, residence: { declared: 'US', verified: null } },
+            user: {
+                user: { userId: 'u1', isActivated: false },
+                residence: normalizeResidence({ declared: 'US', verified: null }),
+            },
         })
         const { result } = renderHook(() => useActivationStatus())
         expect(result.current.onboarding.firstPaymentRoute).toBe('qr')

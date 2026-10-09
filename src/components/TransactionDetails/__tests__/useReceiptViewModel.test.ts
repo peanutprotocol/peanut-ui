@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 // Locks the receipt view model's behaviour for the canonical TI wire shape.
 // Two surfaces:
 //   1. The "cancelled-sendlink-sender keeps its data" exemption (memo,
@@ -15,7 +16,7 @@ jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 let mockResidence: string | undefined
 jest.mock('@/context/authContext', () => ({
-    useOptionalAuth: () => ({ user: { residence: { verified: mockResidence } } }),
+    useOptionalAuth: () => ({ user: { residence: normalizeResidence({ verified: mockResidence }) } }),
 }))
 
 const baseTx: TransactionDetails = {

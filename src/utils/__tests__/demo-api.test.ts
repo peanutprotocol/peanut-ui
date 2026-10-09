@@ -62,7 +62,11 @@ describe('demoRespond — routing', () => {
         expect(res.status).toBe(200)
         expect(res.headers.get('content-type')).toBe('application/json')
         expect(data.user.username).toBe(DEMO_USER.user.username)
-        expect(data.residence).toMatchObject({ declared: 'BR', declaredSecond: null })
+        expect(data.residence).toMatchObject({
+            verified: null,
+            declared: { country: 'BR', status: 'UNVERIFIED', secondCountry: null },
+            secondaryDeclaredCountry: null,
+        })
     })
 
     it('answers the verified-address read the bank form makes on open, even in strict capture mode', async () => {

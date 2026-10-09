@@ -5,6 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rawDeviceTag } from '@/i18n/app/locale-store'
 import { getApiBaseUrl } from '@/utils/capacitor'
 import { normalizeCountrySignal } from '@/utils/country-signal'
+import { getStoreCountry, type StoreCountry } from '@/utils/store-country'
 
 export const SETUP_EDGE_COUNTRY_TIMEOUT_MS = 1500
 
@@ -15,6 +16,8 @@ export type SetupCountrySignals = {
     deviceLanguage: string | null
     browserLanguages: string[]
     deviceTimezone: string | null
+    storeCountry: StoreCountry | null
+    storeCountryCollectedAt: string | null
     collectedAt: string | null
 }
 
@@ -25,6 +28,8 @@ export const EMPTY_SETUP_COUNTRY_SIGNALS: SetupCountrySignals = {
     deviceLanguage: null,
     browserLanguages: [],
     deviceTimezone: null,
+    storeCountry: null,
+    storeCountryCollectedAt: null,
     collectedAt: null,
 }
 
@@ -61,6 +66,9 @@ export function setupCountrySignalProperties(snapshot = signals) {
         signup_device_language: snapshot.deviceLanguage,
         signup_browser_languages: snapshot.browserLanguages,
         signup_device_timezone: snapshot.deviceTimezone,
+        signup_store_country: snapshot.storeCountry?.countryCode ?? null,
+        signup_store_country_source: snapshot.storeCountry?.source ?? null,
+        signup_store_country_collected_at: snapshot.storeCountryCollectedAt,
         signup_country_signals_collected_at: snapshot.collectedAt,
         signup_country_edge_status: snapshot.edgeSettled ? 'settled' : 'pending',
         signup_country_suggestion: suggestion?.country ?? null,
@@ -118,6 +126,15 @@ async function readEdgeCountry() {
     }
 }
 
+async function readStoreCountry() {
+    try {
+        const storeCountry = await getStoreCountry()
+        if (storeCountry) publish({ storeCountry, storeCountryCollectedAt: new Date().toISOString() })
+    } catch {
+        // Store availability must not stop the other signup signals.
+    }
+}
+
 /** Started at setup entry; shared across mounts and the residence screen. */
 export function startSetupCountrySignals(): Promise<void> {
     if (typeof window === 'undefined') return Promise.resolve()
@@ -133,6 +150,7 @@ export function startSetupCountrySignals(): Promise<void> {
         publish({ deviceTimezone, browserLanguages, collectedAt: new Date().toISOString() })
         started = Promise.all([
             readEdgeCountry(),
+            readStoreCountry(),
             rawDeviceTag()
                 .then((tag) => publish({ deviceLanguage: tag?.trim().toLowerCase().slice(0, 64) || null }))
                 .catch(() => {}),

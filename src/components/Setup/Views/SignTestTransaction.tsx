@@ -19,6 +19,7 @@ import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
+import { attachSignupGeo } from '@/services/signup-geo'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
@@ -120,6 +121,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
 
     const completeSignup = async () => {
         console.log('[SignTestTransaction] Account setup complete')
+        if (user?.user?.userId) await attachSignupGeo(user.user.userId)
         // The final passkey confirmation has succeeded and the account exists.
         // The finish route redirects immediately; setup celebrates on its
         // dedicated final screen after the completion callback.
@@ -155,7 +157,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             await clearSignupAttribution()
         }
         // Keep the independently observed hints on the identified analytics
-        // profile. Only the user's declared residences go to /update-user.
+        // profile, and retain them separately in the API geo observation model.
         try {
             posthog.setPersonProperties(setupCountrySignalProperties())
         } catch {
