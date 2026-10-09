@@ -101,7 +101,7 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect(buildDeferredPayload('/home', undefined, 'ios')).not.toContain('utm_')
     })
 
-    it('carries the web session campaign and medium into the Play referrer, never a click id', () => {
+    it('carries the web session campaign and medium into the Play referrer', () => {
         saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
             schemaVersion: '1',
             journeyId: '33333333-3333-4333-8333-333333333333',
@@ -122,6 +122,35 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect(params.get('utm_medium')).toBe('cpc')
         expect(params.get('utm_campaign')).toBe('br-launch')
         expect([...params.keys()].filter((k) => !k.startsWith('utm_'))).toEqual(['pnutdl', 'at', 'dest'])
+    })
+
+    it('never carries an ad click id inside dest, on either store (TASK-23382, decision 2)', () => {
+        window.history.pushState(
+            {},
+            '',
+            '/pt-br/?utm_source=google&utm_medium=cpc&utm_campaign=br&gclid=CLICK123&fbclid=FB456&TWCLID=TW789'
+        )
+
+        const android = buildDeferredPayload()
+        expect(android).not.toContain('CLICK123')
+        expect(android).not.toContain('FB456')
+        expect(android).not.toContain('TW789')
+        expect(android).not.toMatch(/gclid|fbclid|twclid/i)
+        // the campaign fields on the landing url still ride; only the click ids go
+        expect(parseDeferredPayload(android)).toEqual({
+            lang: 'pt-br',
+            dest: '/?utm_source=google&utm_medium=cpc&utm_campaign=br',
+        })
+
+        const ios = buildDeferredPayload(undefined, undefined, 'ios')
+        expect(ios).not.toMatch(/CLICK123|FB456|TW789|gclid|fbclid|twclid/i)
+
+        // an explicit dest is scrubbed the same way; a click-id-only query drops cleanly
+        window.history.replaceState({}, '', '/')
+        expect(parseDeferredPayload(buildDeferredPayload('/claim/abc?gclid=X#p=secret'))).toEqual({
+            dest: '/claim/abc#p=secret',
+        })
+        expect(parseDeferredPayload(buildDeferredPayload('/home?gclid=X&ref=ok'))).toEqual({ dest: '/home?ref=ok' })
     })
 
     it('drops the plain utm fields after the attribution token and before referral identities', () => {

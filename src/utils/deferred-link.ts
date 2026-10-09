@@ -196,6 +196,42 @@ function stripLocalePrefix(path: string): string {
 }
 
 /**
+ * ad click identifiers that must never cross from web to app
+ * (TASK-23382, decision 2). campaign source/medium/campaign/content may cross;
+ * a per-click identifier may not. keep lowercase; matching is case-insensitive.
+ */
+const CLICK_ID_PARAMS = [
+    'gclid',
+    'gbraid',
+    'wbraid',
+    'dclid',
+    'fbclid',
+    'twclid',
+    'ttclid',
+    'msclkid',
+    'li_fat_id',
+    'sc_click_id',
+    'rdt_cid',
+    'yclid',
+    'epik',
+]
+
+/** removes every ad click identifier from a dest's query; path and hash stay. */
+function stripClickIds(dest: string): string {
+    const queryStart = dest.indexOf('?')
+    if (queryStart < 0) return dest
+    const hashStart = dest.indexOf('#', queryStart)
+    const query = hashStart >= 0 ? dest.slice(queryStart + 1, hashStart) : dest.slice(queryStart + 1)
+    const hash = hashStart >= 0 ? dest.slice(hashStart) : ''
+    const params = new URLSearchParams(query)
+    for (const key of [...params.keys()]) {
+        if (CLICK_ID_PARAMS.includes(key.toLowerCase())) params.delete(key)
+    }
+    const kept = params.toString()
+    return dest.slice(0, queryStart) + (kept ? '?' + kept : '') + hash
+}
+
+/**
  * builds the payload querystring from the current web context: locale from the
  * /{locale}/ path prefix, invite/badge campaign from their existing cookies, dest
  * from the argument (defaults to the current path + query, locale stripped).
@@ -223,7 +259,8 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
     // restored claim page would render unclaimable. the working path is the
     // user re-tapping the original link — a universal link with the hash intact.
     const secretOnPage = dest === undefined && window.location.hash.startsWith('#p=')
-    const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
+    // ad click ids on the landing url (gclid, fbclid, ...) never ride inside dest.
+    const destination = stripClickIds(dest ?? stripLocalePrefix(window.location.pathname) + window.location.search)
     if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
     // The clipboard has no Play referrer limit. Keep the full valid journey on
