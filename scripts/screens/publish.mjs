@@ -9,7 +9,7 @@ import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
 
 const immutableReportPath =
-    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/(?:440x956|360x800|320x712)\/[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
+    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/(?:440x956|360x800|320x712)\/[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
 
 const localeInfo = {
     en: { slug: 'en', label: 'English' },
@@ -17,7 +17,7 @@ const localeInfo = {
     'es-AR': { slug: 'es-ar', label: 'Español (Argentina)' },
     'pt-BR': { slug: 'pt-br', label: 'Português (Brasil)' },
 }
-const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
+const visualChangeStatuses = new Set(['changed', 'added', 'new', 'removed'])
 
 async function mapBounded(values, operation, limit = 8) {
     const output = new Array(values.length)

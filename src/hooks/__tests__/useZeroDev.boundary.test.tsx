@@ -33,7 +33,11 @@ jest.mock('@/context/kernelClient.context', () => ({
         ensureClientForChain: jest.fn(async () => undefined),
     }),
 }))
-jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+let mockDemoMode = false
+jest.mock('@/utils/demo', () => ({ isDemoMode: () => mockDemoMode }))
+afterEach(() => {
+    mockDemoMode = false
+})
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/services/invites', () => ({ invitesApi: {} }))
 jest.mock('@/services/badge-campaigns', () => ({}))
@@ -57,6 +61,21 @@ describe('handleSendUserOpEncoded — real broadcast boundary', () => {
     const calls = [
         { to: '0x0000000000000000000000000000000000000001' as `0x${string}`, value: 0n, data: '0x' as `0x${string}` },
     ]
+
+    it('simulates a demo payment without encoding, signing, or broadcasting a transaction', async () => {
+        mockDemoMode = true
+        const { encode, prepare, sign, send } = wireClient({})
+        const marker = jest.fn()
+        const { result } = renderHook(() => useZeroDev())
+        await expect(
+            result.current.handleSendUserOpEncoded(calls, '42161', { onBroadcastAttempt: marker })
+        ).resolves.toEqual({ userOpHash: `0x${'de'.repeat(32)}`, receipt: null })
+        expect(encode).not.toHaveBeenCalled()
+        expect(prepare).not.toHaveBeenCalled()
+        expect(sign).not.toHaveBeenCalled()
+        expect(send).not.toHaveBeenCalled()
+        expect(marker).not.toHaveBeenCalled()
+    })
 
     it.each([
         [

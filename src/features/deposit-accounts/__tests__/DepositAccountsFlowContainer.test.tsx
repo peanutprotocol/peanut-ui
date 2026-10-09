@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { DepositAccountsFlowContainer } from '../components/DepositAccountsFlowContainer'
 import { corridorRecord, emptyCorridorRecord } from '../rails'
 import type { DepositAccountView } from '../types'
@@ -31,7 +31,15 @@ jest.mock('../useDepositAccounts', () => ({
 
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { fullName: 'Ana Pérez' } } }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ openSupportWithMessage: jest.fn() }) }))
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
+const mockPush = jest.fn()
+let mockReturnTo = ''
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockPush }),
+}))
+jest.mock('nuqs', () => ({
+    parseAsString: {},
+    useQueryState: () => [mockReturnTo || null, jest.fn()],
+}))
 jest.mock('../useResidenceIso2s', () => ({ useResidenceIso2s: () => [] }))
 const mockVerifyCorridor = jest.fn()
 jest.mock('../useDepositGateRemediation', () => ({
@@ -40,14 +48,21 @@ jest.mock('../useDepositGateRemediation', () => ({
 jest.mock('../useEndorsementReview', () => ({ useEndorsementReview: () => undefined }))
 // the flow itself has its own tests; here only what the container hands it matters
 jest.mock('../components/DepositAccountsFlow', () => ({
-    DepositAccountsFlow: (props: { claimsEnabled?: boolean; corridors: string[] }) => (
+    DepositAccountsFlow: (props: {
+        claimsEnabled?: boolean
+        corridors: string[]
+        onTopUp: (corridor: 'SEPA_EU') => void
+    }) => (
         <div data-testid="flow" data-claims-enabled={String(props.claimsEnabled)}>
             {props.corridors.join(',')}
+            <button onClick={() => props.onTopUp('SEPA_EU')}>Top up</button>
         </div>
     ),
 }))
 
 beforeEach(() => {
+    mockPush.mockClear()
+    mockReturnTo = ''
     mockUseDepositAccounts.mockReset().mockReturnValue({
         corridors: ['SEPA_EU'],
         accounts: { ...emptyCorridorRecord<DepositAccountView>(), SEPA_EU: held },
@@ -79,5 +94,25 @@ describe('DepositAccountsFlowContainer while the rollout flag is off', () => {
         render(<DepositAccountsFlowContainer onExit={() => {}} />)
 
         expect(screen.getByTestId('flow')).toHaveAttribute('data-claims-enabled', 'true')
+    })
+})
+
+describe('bank top-up return navigation', () => {
+    it('preserves the card funding destination through the bank hub', () => {
+        mockReturnTo = '/card?card_step=funding'
+        render(<DepositAccountsFlowContainer onExit={() => {}} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Top up' }))
+        const topUp = new URL(mockPush.mock.calls[0][0], 'https://peanut.me')
+        const bankHub = new URL(topUp.searchParams.get('returnTo')!, 'https://peanut.me')
+        expect(bankHub.pathname).toBe('/add-money')
+        expect(bankHub.searchParams.get('method')).toBe('bank')
+        expect(bankHub.searchParams.get('returnTo')).toBe('/card?card_step=funding')
+    })
+    it('does not propagate an external return destination', () => {
+        mockReturnTo = 'https://example.com'
+        render(<DepositAccountsFlowContainer onExit={() => {}} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Top up' }))
+        const topUp = new URL(mockPush.mock.calls[0][0], 'https://peanut.me')
+        expect(topUp.searchParams.get('returnTo')).toBe('/add-money?method=bank')
     })
 })

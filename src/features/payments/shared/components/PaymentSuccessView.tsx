@@ -49,6 +49,8 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
+import type { ProviderId } from '@/types/provider.types'
 import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 // minimal user info needed for display
@@ -88,6 +90,8 @@ type DirectSuccessViewProps = {
     usdAmount?: string
     // optional pre-built transaction details (e.g. for deposit receipts where chargeDetails doesn't exist)
     transactionDetails?: TransactionDetails | null
+    /** The provider that moved the money; named in the fine print under the card. */
+    providerId?: ProviderId
 }
 
 const PaymentSuccessView = ({
@@ -110,6 +114,7 @@ const PaymentSuccessView = ({
     parsedPaymentData,
     usdAmount,
     transactionDetails: transactionDetailsProp,
+    providerId,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const t = useTranslations('payment')
@@ -309,11 +314,16 @@ const PaymentSuccessView = ({
                 <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
             )}
             <PageStack.Center className="relative z-10 gap-4">
-                <PeanutMascot
-                    pose="cheering"
-                    alt="Peanut Mascot"
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
-                />
+                {/* the card is the first child, so this box ends at the card's top edge. clipping
+                    there keeps the legs hidden: the lottie art fills more of its box than the old
+                    raster did, and a short card no longer covers the lower half */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-full -z-10 h-32 overflow-hidden">
+                    <PeanutMascot
+                        pose="cheering"
+                        alt="Peanut Mascot"
+                        className="absolute top-0 left-1/2 h-60 w-auto -translate-x-1/2"
+                    />
+                </div>
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
                         <IconBubble icon="check" color="green" />
@@ -371,6 +381,8 @@ const PaymentSuccessView = ({
                             {t('success.seeReceipt')}
                         </Button>
                     )}
+                    {/* fine print sits under the CTAs, never above them */}
+                    {providerId && <ProviderFinePrint providerId={providerId} />}
                 </div>
             </PageStack.Center>
 

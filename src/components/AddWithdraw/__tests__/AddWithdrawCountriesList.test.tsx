@@ -139,6 +139,7 @@ const mockFetchUser = jest.fn().mockResolvedValue(undefined)
 let mockAuthUser: unknown = { accounts: [] }
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockAuthUser, fetchUser: mockFetchUser }),
+    useOptionalAuth: () => ({ user: mockAuthUser }),
 }))
 // The submit resolves its gate from the profile the fetch returns, through the
 // real deriveGate — so a fetched profile says what its own bank rail allows.
@@ -223,7 +224,10 @@ jest.mock('@/features/destinations/country-rails', () => {
 })
 
 jest.mock('@/utils/bridge.utils', () => ({ railJurisdictionForBank: () => 'US' }))
-jest.mock('@/utils/regions.utils', () => ({ getBankRegionIntent: () => 'STANDARD' }))
+jest.mock('@/utils/regions.utils', () => ({
+    getBankRegionIntent: () => 'STANDARD',
+    providerForRegionIntent: jest.requireActual('@/utils/regions.utils').providerForRegionIntent,
+}))
 
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: any) => (
@@ -270,8 +274,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => 
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({
-    BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
-        props.visible ? <div data-testid="bridge-tos-step" data-reason={props.reasonCode} /> : null,
+    BridgeTosStep: (props: { visible: boolean }) => (props.visible ? <div data-testid="bridge-tos-step" /> : null),
 }))
 jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
     __esModule: true,
@@ -1263,7 +1266,7 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
                     await expect(submit()).resolves.toEqual({ error: 'gate_blocked', silent: true })
                 })
 
-                expect(screen.getByTestId('bridge-tos-step')).toHaveAttribute('data-reason', 'tos_required')
+                expect(screen.getByTestId('bridge-tos-step')).toBeInTheDocument()
                 expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
                 expect(addBankAccount).not.toHaveBeenCalled()
                 expect(mockSetSelectedBankAccount).not.toHaveBeenCalled()

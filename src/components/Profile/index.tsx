@@ -228,7 +228,10 @@ export const Profile = () => {
                 <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
             )}
             {isStoreUpdateModalMounted && (
-                <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+                <StoreUpdateModal
+                    visible={isStoreUpdateModalOpen && storeUpdateRequired}
+                    onClose={() => setIsStoreUpdateModalOpen(false)}
+                />
             )}
         </div>
     )

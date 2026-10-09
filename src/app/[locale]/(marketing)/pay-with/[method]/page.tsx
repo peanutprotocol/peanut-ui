@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${contentLocale}/pay-with/${method}`,
@@ -59,6 +59,7 @@ export default async function PayWithPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('pay-with', method, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('pay-with', method, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -67,6 +68,7 @@ export default async function PayWithPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: pm.name, href: url },

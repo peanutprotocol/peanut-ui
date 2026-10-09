@@ -180,7 +180,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 if (withdrawError || !data) {
                     // handle third-party account error with user-friendly message
                     if (withdrawError === 'TAX_ID_MISMATCH' || withdrawError === 'CUIT_MISMATCH') {
-                        setError(t('manteca.ownAccountOnly'))
+                        setError(tCommon('ownAccountOnly'))
                     } else {
                         // Prefer the API's human-written message over the raw
                         // wire code — CLAIM_STORE_UNAVAILABLE as literal screen

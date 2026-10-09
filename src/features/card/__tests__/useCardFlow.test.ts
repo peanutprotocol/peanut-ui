@@ -7,6 +7,7 @@ import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
 
 const mockCapture = jest.fn()
+let mockFunded = true
 let mockState = 'add-card'
 let mockOverview: Record<string, unknown> | undefined
 
@@ -50,6 +51,10 @@ jest.mock('@/components/Card/cardApply.utils', () => ({
 jest.mock('@/app/actions/sumsub', () => ({
     initiateSelfHealResubmission: jest.fn(),
 }))
+jest.mock('@/hooks/wallet/useWallet', () => ({
+    useWallet: () => ({ hasSufficientSpendableBalance: () => mockFunded }),
+}))
+
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ serializeGrant: jest.fn() }),
 }))
@@ -78,9 +83,53 @@ const mockApplyForCard = rainApi.applyForCard as jest.Mock
 describe('useCardFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockFunded = true
         mockState = 'add-card'
         mockOverview = undefined
         window.localStorage.clear()
+    })
+
+    it('does not contact Rain before a confirmed $10 balance for a new application', async () => {
+        mockFunded = false
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(result.current.needsFundingBeforeApply).toBe(true)
+        expect(result.current.fundingRequired).toBe(true)
+    })
+
+    it('rechecks funding if the balance drops after the terms screen opens', async () => {
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: false })
+        const { result, rerender } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        mockApplyForCard.mockClear()
+        mockFunded = false
+        rerender()
+        await act(async () => {
+            await result.current.handleAcceptTerms()
+        })
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(result.current.pendingTerms).toBeNull()
+        expect(result.current.fundingRequired).toBe(true)
+    })
+
+    it('keeps an existing application recovery accessible without the new minimum', async () => {
+        mockFunded = false
+        mockOverview = { status: { hasApplication: true, railStatus: 'PENDING' }, cards: [] }
+        mockApplyForCard.mockResolvedValue({ status: 'pending' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+        expect(result.current.needsFundingBeforeApply).toBe(false)
+        expect(result.current.fundingRequired).toBe(false)
     })
 
     it('opens the sumsub sdk on an incomplete apply response', async () => {

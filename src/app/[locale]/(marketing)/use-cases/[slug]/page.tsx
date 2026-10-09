@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${contentLocale}/use-cases/${slug}`,
@@ -55,6 +55,7 @@ export default async function UseCasePage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('use-cases', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('use-cases', slug, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -64,6 +65,7 @@ export default async function UseCasePage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: i18n.filterUseCases, href: hubHref },

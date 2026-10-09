@@ -120,6 +120,84 @@
                                     },
                                     "userId": {
                                         "type": "string"
+                                    },
+                                    "signupPreferences": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "fundingChannel": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "bank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "brlBank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "arsBank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "crypto"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "peanut"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "paymentChannel": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "bank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "card"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "qr"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "crypto"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "peanut"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": [
+                                            "fundingChannel",
+                                            "paymentChannel"
+                                        ],
+                                        "type": "object"
                                     }
                                 },
                                 "required": [
@@ -10064,7 +10142,7 @@
         },
         "/manteca/pix-key/saved": {
             "post": {
-                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send \u2192 Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
+                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
                 "parameters": [
                     {
                         "in": "header",
@@ -21416,6 +21494,44 @@
                         "schema": {
                             "type": "string"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/history/export": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "format",
+                        "required": true,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "csv"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "pdf"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "xlsx"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
                     },
                     {
                         "in": "query",
@@ -21426,11 +21542,55 @@
                         }
                     },
                     {
+                        "description": "Exclusive upper date-time bound",
                         "in": "query",
                         "name": "to",
                         "required": false,
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "timeZone",
+                        "required": false,
+                        "schema": {
+                            "maxLength": 64,
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Language of the PDF and XLSX labels, dates and amounts. CSV is always English.",
+                        "in": "query",
+                        "name": "locale",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "en"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "es-419"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "es-AR"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "pt-BR"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
                         }
                     }
                 ],
@@ -22670,6 +22830,91 @@
                                                 "card"
                                             ],
                                             "type": "object"
+                                        },
+                                        "signupPreferences": {
+                                            "anyOf": [
+                                                {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "fundingChannel": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "bank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "brlBank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "arsBank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "crypto"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "peanut"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "paymentChannel": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "bank"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "card"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "qr"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "crypto"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "peanut"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "fundingChannel",
+                                                        "paymentChannel"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -22678,7 +22923,8 @@
                                         "profileNameLocked",
                                         "residenceRestrictions",
                                         "residence",
-                                        "depositAccounts"
+                                        "depositAccounts",
+                                        "signupPreferences"
                                     ],
                                     "type": "object"
                                 }
@@ -23763,102 +24009,125 @@
                 ]
             }
         },
-        "/users/history/export": {
+        "/notifications/preferences": {
             "get": {
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "format",
-                        "required": true,
-                        "schema": {
-                            "anyOf": [
-                                {
-                                    "enum": [
-                                        "csv"
-                                    ],
-                                    "type": "string"
-                                },
-                                {
-                                    "enum": [
-                                        "pdf"
-                                    ],
-                                    "type": "string"
-                                },
-                                {
-                                    "enum": [
-                                        "xlsx"
-                                    ],
-                                    "type": "string"
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "from",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Exclusive upper date-time bound",
-                        "in": "query",
-                        "name": "to",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "timeZone",
-                        "required": false,
-                        "schema": {
-                            "maxLength": 64,
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Language of the PDF and XLSX labels, dates and amounts. CSV is always English.",
-                        "in": "query",
-                        "name": "locale",
-                        "required": false,
-                        "schema": {
-                            "anyOf": [
-                                {
-                                    "enum": [
-                                        "en"
-                                    ],
-                                    "type": "string"
-                                },
-                                {
-                                    "enum": [
-                                        "es-419"
-                                    ],
-                                    "type": "string"
-                                },
-                                {
-                                    "enum": [
-                                        "es-AR"
-                                    ],
-                                    "type": "string"
-                                },
-                                {
-                                    "enum": [
-                                        "pt-BR"
-                                    ],
-                                    "type": "string"
-                                }
-                            ]
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "email": {
+                                            "type": "boolean"
+                                        },
+                                        "push": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "push",
+                                        "email"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
-                }
+                },
+                "tags": [
+                    "notifications"
+                ]
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "email": {
+                                        "type": "boolean"
+                                    },
+                                    "push": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "push",
+                                    "email"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "email": {
+                                            "type": "boolean"
+                                        },
+                                        "push": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "push",
+                                        "email"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "notifications"
+                ]
             }
         }
     },

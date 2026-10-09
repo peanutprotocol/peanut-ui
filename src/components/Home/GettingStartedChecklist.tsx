@@ -16,8 +16,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
-import { type OnboardingState, canHideChecklist } from '@/utils/activation-step.utils'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { type OnboardingState } from '@/utils/activation-step.utils'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
@@ -95,12 +94,12 @@ const SubtitleSkeleton = () => (
  */
 const GettingStartedChecklist = ({
     onboarding,
-    onHide,
+    showWelcome = true,
     onStartIdentityCheck,
     onStartQrIdentityCheck,
 }: {
     onboarding: OnboardingState
-    onHide?: () => void
+    showWelcome?: boolean
     /** opens the shared ID-check start (ActivationCTAs owns the flow and its modals) */
     onStartIdentityCheck?: () => void
     /** starts the QR ID check (ActivationCTAs owns the flow and its modals) */
@@ -173,7 +172,7 @@ const GettingStartedChecklist = ({
             },
             {
                 id: 'add-money',
-                bubble: CONCEPT_ICONS.addMoney,
+                bubble: { ...CONCEPT_ICONS.addMoney, icon: 'plus' },
                 label: t('addMoney'),
                 // A residence no bank provider onboards drops the bank half
                 // rather than offering a route that cannot deliver.
@@ -250,31 +249,33 @@ const GettingStartedChecklist = ({
         <Section>
             {/* one height at every width: a one-line subtitle (wide screens) gets the
                 same card as a two-line one; 320 may grow when the title wraps */}
-            <Card
-                position="solo"
-                className="flex min-h-[90px] flex-col justify-center px-4 py-2"
-                data-testid="onboarding-welcome"
-            >
-                <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                        {/* es writes "Bienvenid@", which screen readers read as "arroba":
+            {showWelcome && (
+                <Card
+                    position="solo"
+                    className="flex min-h-[90px] flex-col justify-center px-4 py-2"
+                    data-testid="onboarding-welcome"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                            {/* es writes "Bienvenid@", which screen readers read as "arroba":
                             the visible title is hidden from them and a spoken form is read instead */}
-                        <span className="text-heading-card text-foreground-primary">
-                            <span aria-hidden>{t('welcomeTitle')}</span>
-                            <span className="sr-only">{t('welcomeTitleSpoken')}</span>
-                        </span>
-                        <span className="text-body-s text-foreground-secondary">
-                            {t('welcomeBody', { count: items.length })}
-                        </span>
-                    </div>
-                    {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
+                            <span className="text-heading-card text-foreground-primary">
+                                <span aria-hidden>{t('welcomeTitle')}</span>
+                                <span className="sr-only">{t('welcomeTitleSpoken')}</span>
+                            </span>
+                            <span className="text-body-s text-foreground-secondary">
+                                {t('welcomeBody', { count: items.length })}
+                            </span>
+                        </div>
+                        {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
                         PeanutMascot shows a still frame under reduced motion */}
-                    <div className="relative size-[72px] shrink-0">
-                        <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
-                        <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                        <div className="relative size-[72px] shrink-0">
+                            <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
+                            <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                        </div>
                     </div>
-                </div>
-            </Card>
+                </Card>
+            )}
             <div className="flex flex-col gap-1">
                 <span className="text-body-s text-foreground-secondary">
                     {t('progress', { done: doneCount, total: items.length })}
@@ -311,22 +312,6 @@ const GettingStartedChecklist = ({
                     )
                 })}
             </ListGroup>
-            {onHide && canHideChecklist(onboarding) && (
-                // tertiary dismiss (design.md), only once the payment row is the one
-                // left, so nobody hides the list before money is in. mt-4 on the
-                // section's gap-2 keeps the 24px the hit area needs under a row
-                <LinkButton
-                    onClick={() => {
-                        posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_HIDDEN, {
-                            first_payment_route: firstPaymentRoute,
-                        })
-                        onHide()
-                    }}
-                    className="mt-4 self-center text-body-s text-foreground-primary"
-                >
-                    {t('hide')}
-                </LinkButton>
-            )}
             {(isStatusDrawerOpen || keepStatusDrawerMounted) && (
                 <KycStatusDrawer
                     isOpen={isStatusDrawerOpen}

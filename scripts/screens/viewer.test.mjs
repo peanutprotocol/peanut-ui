@@ -13,6 +13,8 @@ const elementIds = [
     'view-mode-row',
     'source',
     'source-control',
+    'branch',
+    'branch-control',
     'locale',
     'profile',
     'profile-control',
@@ -574,6 +576,74 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.get('screens').children[0].id, 'failed')
     assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
 })
+
+for (const channel of ['pr-3392', 'compare-main'])
+    test(`${channel}: new and legacy after-only screens stay in visual changes with a New screen placeholder`, async () => {
+        const image = 'a'.repeat(64) + '.png'
+        const reason = 'This revision has no compatible scenario harness for this component'
+        const row = (id, status, baselineStatus = 'unavailable') => ({
+            id,
+            name: id,
+            flow: 'Setup and login',
+            kind: 'component',
+            status,
+            before: { status: baselineStatus, reason },
+            after: { status: 'captured', image, thumbnail: image },
+        })
+        const report = {
+            schema: 1,
+            type: 'comparison',
+            locale: 'en',
+            complete: false,
+            before: { width: 393, height: 852 },
+            after: { width: 393, height: 852 },
+            screens: [
+                row('legacy', 'unavailable'),
+                row('modern', 'new'),
+                row('added', 'added', 'absent'),
+                row('failed-baseline', 'failed', 'failed'),
+                row('excluded-baseline', 'excluded', 'excluded'),
+                {
+                    ...row('after-gap', 'unavailable'),
+                    before: { status: 'captured', image },
+                    after: { status: 'unavailable', reason },
+                },
+            ],
+        }
+        const elements = await loadLanding(`/screens/2026-10-06/${channel}/en/` + 'b'.repeat(40) + '/', {
+            report,
+            search: '?status=differences&view=changed',
+        })
+        assert.deepEqual(
+            elements.get('screens').children.map(({ id }) => id),
+            ['legacy', 'modern', 'added']
+        )
+        assert.match(elements.get('coverage').textContent, /2 new screens/)
+        assert.match(elements.get('coverage').textContent, /Incomplete capture/)
+        for (const tile of elements.get('screens').children) {
+            const before = tile.children[1].children[0]
+            assert.match(elementText(before), /New screen No before screenshot/)
+            assert.equal(imageSources(before).length, 0)
+            assert.equal(before.children[1].title, reason)
+            assert.equal(imageSources(tile).length, 1)
+            tile.children[1].children[1].children[1].onclick()
+            assert.match(elementText(elements.get('zoom-images')), /New screen No before screenshot/)
+            assert.equal(imageSources(elements.get('zoom-images')).length, 1)
+        }
+        elements.get('status').value = 'new'
+        elements.get('status').dispatch('input')
+        assert.deepEqual(
+            elements.get('screens').children.map(({ id }) => id),
+            ['legacy', 'modern']
+        )
+        assert.equal(elements.get('view-mode').checked, false)
+        elements.get('view-mode').checked = true
+        elements.get('view-mode').dispatch('change')
+        assert.equal(
+            elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
+            true
+        )
+    })
 
 test('screen preview uses the viewport device frame and supports chevrons and keyboard navigation', async () => {
     const first = 'a'.repeat(64) + '.webp'
@@ -1198,4 +1268,30 @@ test('hosted report 404 shows a report-not-found state instead of an unpublished
     assert.match(elements.get('empty-title').textContent, /report is not available/i)
     assert.doesNotMatch(elements.get('empty-title').textContent, /almost here/i)
     assert.match(elements.get('empty-message').textContent, /published report/i)
+})
+
+test('Main filter shows released full libraries and comparisons and survives a shared URL', async () => {
+    const commit = 'a'.repeat(40)
+    const entries = ['main', 'compare-main', 'dev', 'pr-1'].map((channel) => ({
+        path: `2026-10-08/${channel}/en/${commit}/run-50-1`,
+        date: '2026-10-08',
+        locale: 'en',
+        complete: true,
+    }))
+    const elements = await loadLanding('/', { index: entries, search: '?branch=main' })
+    assert.equal(elements.get('branch').value, 'main')
+    assert.equal(elements.get('branch-control').hidden, false)
+    assert.equal(versionLinks(elements).length, 2)
+    assert.ok(versionLinks(elements).every((link) => /\/(main|compare-main)\//.test(link.href)))
+    assert.match(elements.location.search, /branch=main/)
+    assert.ok(versionLinks(elements).some((link) => /Full library/.test(elementText(link))))
+    assert.ok(versionLinks(elements).some((link) => /Changed screens/.test(elementText(link))))
+    elements.get('branch').value = 'dev'
+    elements.get('branch').dispatch('change')
+    assert.equal(versionLinks(elements).length, 1)
+    assert.match(versionLinks(elements)[0].href, /\/dev\//)
+    elements.get('branch').value = ''
+    elements.get('branch').dispatch('change')
+    assert.equal(versionLinks(elements).length, 4)
+    assert.doesNotMatch(elements.location.search, /branch=/)
 })

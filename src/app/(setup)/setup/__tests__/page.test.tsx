@@ -6,6 +6,9 @@ import * as Sentry from '@sentry/nextjs'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 
+let mockNoBackLock: string | null = null
+let mockSignupCompleted = false
+const mockSetNoBackLock = jest.fn()
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
@@ -46,7 +49,9 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockStore,
         resetSetupFlow: jest.fn(),
-        setNoBackLockScreenId: jest.fn(),
+        noBackLockScreenId: mockNoBackLock,
+        signupCompleted: mockSignupCompleted,
+        setNoBackLockScreenId: mockSetNoBackLock,
         setSignupEntryFlow: jest.fn(),
     }),
 }))
@@ -64,6 +69,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
+jest.mock('@/features/setup/useSetupCountrySignals', () => ({ useSetupCountrySignals: jest.fn() }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web' },
     useDeviceType: () => ({ deviceType: 'android' }),
@@ -85,7 +91,21 @@ jest.mock('@/components/Setup/setup-entry', () => ({
 }))
 jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    SetupWrapper: ({
+        children,
+        showLogoutButton,
+        showBackButton,
+    }: {
+        children: React.ReactNode
+        showLogoutButton?: boolean
+        showBackButton?: boolean
+    }) => (
+        <div>
+            {showBackButton && <button>Go back</button>}
+            {showLogoutButton && <button>Logout</button>}
+            {children}
+        </div>
+    ),
 }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
 jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
@@ -113,6 +133,8 @@ const advance = (ms: number) =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    mockNoBackLock = null
+    mockSignupCompleted = false
     mockResolve.mockReset().mockReturnValue('landing')
     mockStore.steps = [landing]
     mockFlow.step = landing
@@ -280,6 +302,15 @@ it('suppresses timeout recovery when a completed session starts leaving for home
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
 })
 
+it('treats a stale legacy no-access profile as an authenticated account', async () => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: false } }
+
+    renderWithIntl(<SetupPage />)
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+})
+
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {
     mockNative = native
     Object.defineProperty(window, 'PublicKeyCredential', {
@@ -318,20 +349,23 @@ it('does not attribute a stored session-end page to a new signup', async () => {
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ signupEntryFlow: 'default' }))
 })
 
-it('settles a native badge campaign before redirecting an authenticated user home', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
-    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+it.each([true, false])(
+    'settles a native badge campaign before redirecting home (legacy access=%s)',
+    async (hasAppAccess) => {
+        mockAuth.user = { user: { username: 'alice', hasAppAccess } }
+        mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
 
-    renderWithIntl(<SetupPage />)
+        renderWithIntl(<SetupPage />)
 
-    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
-    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
-    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
-    expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
-        mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
-    )
-})
+        await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+        expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
+            mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
+        )
+    }
+)
 
 it('does not redirect home when setup unmounts before the native claim settles', async () => {
     mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
@@ -514,4 +548,60 @@ it('bounces a completed session home without showing the recovery screen', async
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
     expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
+})
+
+it('does not reinitialize the entry when residence eligibility changes the step list', async () => {
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
+    const card = { ...landing, screenId: 'advantage-card' as const, component: () => <div>Card step</div> }
+    mockStore.steps = [landing, card]
+    mockFlow.step = card
+    view.rerender(<SetupPage />)
+    await advance(200)
+    expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Card step')).toBeInTheDocument()
+})
+
+it('hides Logout on the final ready-to-start confirmation screen', async () => {
+    const ready: ISetupStep = {
+        ...landing,
+        screenId: 'advantage-control',
+        component: () => <div>Ready confirmation</div>,
+    }
+    mockStore.steps = [landing, ready]
+    mockFlow.step = ready
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.getByText('Ready confirmation')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
+})
+
+it.each(['notification-email', 'notification-permission', 'advantage-control'] as const)(
+    'shows Back on %s after registration',
+    async (screenId) => {
+        const step = { ...landing, screenId, showBackButton: true }
+        mockStore.steps = [step]
+        mockFlow.step = step
+        mockResolve.mockReturnValue(screenId)
+        mockNoBackLock = 'passkey-permission'
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
+        if (screenId === 'notification-email') expect(mockSetNoBackLock).toHaveBeenCalledWith('passkey-permission')
+    }
+)
+it('hides Back at the registered passkey boundary and during celebration', async () => {
+    const step = { ...landing, screenId: 'passkey-permission' as const, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(step.screenId)
+    mockNoBackLock = 'passkey-permission'
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
+    mockSignupCompleted = true
+    mockFlow.step = { ...step, screenId: 'advantage-control' }
+    view.rerender(<SetupPage />)
+    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
 })

@@ -6,7 +6,9 @@ export type PageCapture = {
     /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
     fixture?: string
     entryRoute?: string
-    actions?: Array<{ click: string } | { fill: { selector: string; value: string } }>
+    actions?: Array<{ click: string } | { clickSelector: string } | { fill: { selector: string; value: string } }>
+    /** Prove the requested overlay is open, including its selected row. */
+    expectSelector?: string
     routePattern?: string
     /** Accessible names clicked in order before the shot. */
     clicks?: string[]
@@ -105,8 +107,6 @@ PAGE_CAPTURES.push(
     { id: 'p44-card-add-to-wallet', name: 'Add card to wallet', route: '/card/add-to-wallet' },
     { id: 'p46-card-signature', name: 'Repair card signature', route: '/fix-card-signature' },
     { id: 'p47-pay-request', name: 'Pay a request', route: '/pay-request?id=synthetic-request' },
-    { id: 'p50-setup-session', name: 'Setup — existing session', route: '/setup', fixture: 'setup-pending' },
-    { id: 'p51-setup-finish', name: 'Setup completion', route: '/setup/finish', fixture: 'setup-pending' },
     { id: 'p52-kyc-success', name: 'Verification success', route: '/kyc/success' },
     { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance' },
     { id: 'p55-send-recipient', name: 'Send to a recipient', route: '/send/demo' },
@@ -162,5 +162,61 @@ PAGE_CAPTURES.push(
         fixture: 'profile-accounts',
         clicks: ['Open new account'],
     },
-    { id: 'p73-statements', name: 'Statements', route: '/profile/statements' }
+    {
+        id: 'p73-token-selector-drawer',
+        name: 'Token selector — open drawer, selected token',
+        route: '/withdraw/crypto',
+        fixture: 'withdraw-crypto-destination',
+        actions: [
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+        ],
+        expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p74-network-selector-drawer',
+        name: 'Network selector — open drawer, selected network',
+        route: '/withdraw/crypto',
+        fixture: 'withdraw-crypto-destination',
+        actions: [
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { click: 'More networks' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { click: 'More networks' },
+        ],
+        expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p75-residence-country-dropdown',
+        name: 'Residence — open country dropdown, selected country',
+        route: '/dev/surfaces?s=03-a-residence-select',
+        actions: [
+            { clickSelector: '[role="combobox"]' },
+            { clickSelector: '[role="listbox"] [role="option"]' },
+            { clickSelector: '[role="combobox"]' },
+        ],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p76-exchange-currency-dropdown',
+        name: 'Exchange rate — open currency dropdown, selected currency',
+        route: '/profile/exchange-rate',
+        actions: [{ clickSelector: 'button[aria-haspopup="listbox"]' }],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p77-base-select-dropdown',
+        name: 'BaseSelect — open dropdown, selected option',
+        route: '/dev/ds/primitives/base-select',
+        actions: [
+            { clickSelector: 'button[role="combobox"]' },
+            { clickSelector: '[role="option"]' },
+            { clickSelector: 'button[role="combobox"]' },
+        ],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    },
+    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' }
 )

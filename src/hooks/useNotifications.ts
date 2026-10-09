@@ -6,6 +6,7 @@ import { getOneSignalAdapter, type NotificationPermissionState } from '@/service
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { onForegroundPushDelivered } from '@/utils/notifications-events'
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
@@ -94,7 +95,7 @@ const countedSessions = new Set<string>()
 let pendingPromptTriggers: PushPromptTrigger[] = []
 // the moment behind the OS dialog, for the permission events that follow it
 let permissionRequestTrigger: PushPromptTrigger | null = null
-let initStarted = false
+let initializationPromise: Promise<void> | null = null
 
 function handleLoginError(err: unknown) {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -253,11 +254,15 @@ async function offerPendingPrompts() {
 const activePromptTrigger = () => (state.showPermissionModal ? state.promptTrigger : null)
 
 // initialize onesignal (web or native) via the platform adapter, once per page
-async function ensureInitialized() {
-    if (initStarted || typeof window === 'undefined') return
+function ensureInitialized(): Promise<void> {
+    if (typeof window === 'undefined' || isDemoMode()) return Promise.resolve()
+    if (!initializationPromise) initializationPromise = initializeNotifications()
+    return initializationPromise
+}
+
+async function initializeNotifications() {
     // demo sessions are synthetic: no push subscription, no external_id login
     if (isDemoMode()) return
-    initStarted = true
 
     if (typeof Notification !== 'undefined') {
         setState({ permissionState: Notification.permission as NotificationPermissionState })
@@ -334,14 +339,25 @@ async function ensureInitialized() {
         })
 
         setState({ oneSignalInitialized: true, sdkReady: true })
-        await syncExternalIdLink()
+        void syncExternalIdLink()
         await evaluateVisibility()
         void offerPendingPrompts()
     } catch (e) {
         // Surface Brave/Shields SDK-block failures; previously silent.
+        initializationPromise = null
         console.warn('OneSignal init failed', e)
+        if (isOriginBoundRefusalOffProduction(e)) return
         captureException(e, { level: 'warning', tags: { feature: 'onesignal', source: 'onesignal_init' } })
     }
+}
+
+// A OneSignal web app answers only on the origin it is registered for, so every
+// preview deploy and localhost is refused by design (PEANUT-UI-STG). On staging
+// or production the same refusal is a real misconfiguration and still reports.
+function isOriginBoundRefusalOffProduction(e: unknown): boolean {
+    if (!(e instanceof Error) || !e.message.startsWith('Can only be used on:')) return false
+    const environment = inferSentryEnvironment()
+    return environment === 'preview' || environment === 'development'
 }
 
 function countSession(userId: string) {
@@ -373,13 +389,35 @@ async function refreshPermissionState() {
 
 // request notification permission from user
 async function requestPermission(): Promise<NotificationPermissionState> {
-    if (typeof window === 'undefined' || !state.oneSignalInitialized) return 'default'
-
+    if (typeof window === 'undefined' || isDemoMode()) return 'default'
     setState({ isRequestingPermission: true })
     permissionRequestTrigger = activePromptTrigger()
     posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED, { trigger: permissionRequestTrigger })
 
     try {
+        if (!isCapacitor() && typeof Notification !== 'undefined') {
+            // Start the browser prompt in the Continue/click gesture, before
+            // any SDK import, initialization or network await. Permission is
+            // independent of OneSignal availability and preview-domain setup.
+            const newPermission =
+                Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
+            setState({ permissionState: newPermission })
+            void evaluateVisibility()
+            if (newPermission === 'granted') {
+                // Register delivery separately; a slow/unavailable provider
+                // must not suppress the system prompt or hold signup here.
+                void ensureInitialized()
+                    .then(async () => {
+                        if (!state.oneSignalInitialized) return
+                        const adapter = await getOneSignalAdapter()
+                        await adapter.requestPermission()
+                    })
+                    .catch(() => {})
+            }
+            return newPermission
+        }
+        if (!state.oneSignalInitialized) await ensureInitialized()
+        if (!state.oneSignalInitialized) return 'default'
         const adapter = await getOneSignalAdapter()
         const newPermission = await adapter.requestPermission()
         setState({ permissionState: newPermission })

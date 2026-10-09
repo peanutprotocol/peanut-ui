@@ -65,6 +65,10 @@ export interface paths {
                         chainId?: string;
                         telegramHandle?: string;
                         userId: string;
+                        signupPreferences?: {
+                            fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                        };
                     };
                 };
             };
@@ -11999,8 +12003,47 @@ export interface paths {
                     cursor?: string;
                     limit?: number;
                     targetUsername?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/history/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    format: "csv" | "pdf" | "xlsx";
                     from?: string;
+                    /** @description Exclusive upper date-time bound */
                     to?: string;
+                    timeZone?: string;
+                    /** @description Language of the PDF and XLSX labels, dates and amounts. CSV is always English. */
+                    locale?: "en" | "es-419" | "es-AR" | "pt-BR";
                 };
                 header?: never;
                 path?: never;
@@ -12666,6 +12709,10 @@ export interface paths {
                                 banking: boolean;
                                 card: boolean;
                             };
+                            signupPreferences: {
+                                fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                                paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                            } | null;
                         } & {
                             [key: string]: unknown;
                         };
@@ -13627,7 +13674,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/users/history/export": {
+    "/notifications/preferences": {
         parameters: {
             query?: never;
             header?: never;
@@ -13636,15 +13683,7 @@ export interface paths {
         };
         get: {
             parameters: {
-                query: {
-                    format: "csv" | "pdf" | "xlsx";
-                    from?: string;
-                    /** @description Exclusive upper date-time bound */
-                    to?: string;
-                    timeZone?: string;
-                    /** @description Language of the PDF and XLSX labels, dates and amounts. CSV is always English. */
-                    locale?: "en" | "es-419" | "es-AR" | "pt-BR";
-                };
+                query?: never;
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -13656,11 +13695,67 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
-        put?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        email: boolean;
+                        push: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
