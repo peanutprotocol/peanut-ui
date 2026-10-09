@@ -94,8 +94,8 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2(@capacitor/core@8.2.0)
       '@capgo/capacitor-updater':
-        specifier: 8.51.14
-        version: 8.51.14(@capacitor/core@8.2.0)
+        specifier: 8.51.23
+        version: 8.51.23(@capacitor/core@8.2.0)
       '@headlessui/react':
         specifier: ^2.2.9
         version: 2.2.9(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -709,8 +709,8 @@ packages:
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
-  '@capgo/capacitor-updater@8.51.14':
-    resolution: {integrity: sha512-2x4xEiS9nv3KSviSYKGS94yrZFoi12GYtn5vwv90BsEv7zc2dDh+Imk/F5eWAsSu20sHx5TBq3Hu/8BtWUA9JQ==}
+  '@capgo/capacitor-updater@8.51.23':
+    resolution: {integrity: sha512-1vC/msh6eg/Wa7nYa7u1wMUQoxuQ9ZZk+bT0pewkrfFpyvDWJFtASL1tFVewLrI4n2gQM/ctZD5QCh7XXMOWnw==}
     peerDependencies:
       '@capacitor/core': ^8.0.0
 
@@ -8909,7 +8909,7 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
-  '@capgo/capacitor-updater@8.51.14(@capacitor/core@8.2.0)':
+  '@capgo/capacitor-updater@8.51.23(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 

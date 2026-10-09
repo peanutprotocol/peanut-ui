@@ -114,9 +114,17 @@ export default async function HelpPage({ params }: PageProps) {
                 title: helpArticleTitle(content.frontmatter.title),
                 description: content.frontmatter.description,
                 category: content.frontmatter.category ?? 'General',
+                lang,
             }
         })
-        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string; category: string }>
+        .filter(Boolean) as Array<{
+        slug: string
+        href: string
+        title: string
+        description: string
+        category: string
+        lang: string
+    }>
 
     // Translate category names
     const translatedArticles = articles.map((a) => ({
@@ -133,11 +141,12 @@ export default async function HelpPage({ params }: PageProps) {
                 { name: i18n.help, href: `/${locale}/help` },
             ]}
         >
-            <Hero title={i18n.helpCenter} subtitle={i18n.helpCenterDescription} />
+            <Hero title={i18n.helpCenter} subtitle={i18n.helpCenterDescription} locale={locale} />
             <Suspense fallback={<HelpLandingSkeleton />}>
                 <HelpLanding
                     articles={translatedArticles}
                     categories={categories}
+                    locale={locale}
                     strings={{
                         searchPlaceholder: i18n.searchHelpArticles,
                         clearSearch: i18n.clearSearch,
@@ -146,6 +155,7 @@ export default async function HelpPage({ params }: PageProps) {
                         noResults: i18n.noContentResults,
                         cantFind: i18n.cantFindAnswer,
                         cantFindDesc: i18n.cantFindAnswerDesc,
+                        inEnglish: i18n.inEnglish,
                     }}
                 />
             </Suspense>

@@ -12,6 +12,7 @@
         "retry": "Tentar novamente",
         "close": "Fechar",
         "loading": "Carregando...",
+        "inEnglish": "Em inglês",
         "somethingWentWrong": "Algo deu errado",
         "genericError": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "copiedToClipboard": "Copiado para a área de transferência",
@@ -2418,7 +2419,7 @@
             "linkCopied": "Link copiado",
             "linkCopyFailed": "Não foi possível copiar o link",
             "downloadPdf": "Baixar comprovante (PDF)",
-            "pdfDownloadedInstead": "Este navegador baixou o comprovante porque não permite compartilhar arquivos.",
+            "pdfDownloadedInstead": "Não é possível compartilhar arquivos aqui. O download do comprovante foi iniciado.",
             "receiptPdfUnavailable": "O comprovante em PDF não está disponível. Tente novamente.",
             "attachmentUnavailable": "O anexo não está disponível. Tente novamente ou fale com o suporte.",
             "inviteFriends": "Convide amigos e ganhe mais recompensas",
@@ -2430,7 +2431,9 @@
                 "title": "{kind, select, deposit {Cancelar este depósito?} request {Cancelar esta cobrança?} other {Cancelar?}}",
                 "description": "Isso não pode ser desfeito. Se você já enviou a transferência bancária, <strong>não cancele</strong> — um depósito cancelado não pode mais ser associado à sua conta e o dinheiro voltará para o seu banco.",
                 "confirm": "{kind, select, deposit {Sim, cancelar o depósito} request {Sim, cancelar a cobrança} other {Sim, cancelar}}"
-            }
+            },
+            "nativeReceiptShareUnavailable": "O compartilhamento de comprovantes não está disponível nesta versão do Peanut. Atualize o app e tente novamente.",
+            "receiptShareFailed": "Não foi possível compartilhar o comprovante. Tente novamente."
         },
         "toast": {
             "linkCancelled": "Link cancelado com sucesso!",

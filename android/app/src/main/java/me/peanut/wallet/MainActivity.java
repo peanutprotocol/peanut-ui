@@ -30,6 +30,7 @@ public class MainActivity extends BridgeActivity {
     private static final String RENDERER_RECOVERY_AT = "peanut.rendererRecoveryAt";
     private static final String RENDERER_RECOVERY_INTENT = "peanut.rendererRecoveryIntent";
     private RendererRecovery rendererRecovery;
+    private WebViewRepaint webViewRepaint;
 
     private void useDarkStatusBarIcons() {
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
@@ -43,6 +44,35 @@ public class MainActivity extends BridgeActivity {
         // icons when our light WebView window returns to the foreground.
         useDarkStatusBarIcons();
         rendererRecovery.onResume();
+        webViewRepaint.onResume(hasWindowFocus());
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (webViewRepaint != null) webViewRepaint.onWindowFocusChanged(hasFocus);
+    }
+
+    private void repaintWebView() {
+        // RendererRecovery owns dead bridges. A live page needs a new draw,
+        // not a reload: preserve its route, form state and in-flight flows.
+        if (bridge == null || rendererRecovery.isPending() || !webViewRepaint.isActive()) return;
+        WebView view = bridge.getWebView();
+        Sentry.addBreadcrumb("Live WebView repaint requested after window focus", "webview.lifecycle");
+        view.onResume();
+        view.requestLayout();
+        view.postInvalidateOnAnimation();
+        // The first visible frame may be Android's saved task surface. Ask
+        // for another draw once Chromium has made the current DOM drawable.
+        view.postVisualStateCallback(0, new WebView.VisualStateCallback() {
+            @Override
+            public void onComplete(long requestId) {
+                if (bridge == null || bridge.getWebView() != view || rendererRecovery.isPending()
+                        || !webViewRepaint.isActive()) return;
+                Sentry.addBreadcrumb("Live WebView visual state ready", "webview.lifecycle");
+                view.postInvalidateOnAnimation();
+            }
+        });
     }
 
     @Override
@@ -56,12 +86,14 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onPause() {
+        webViewRepaint.onPause();
         rendererRecovery.onPause();
         super.onPause();
     }
 
     @Override
     public void onDestroy() {
+        webViewRepaint.onDestroy();
         rendererRecovery.onDestroy();
         super.onDestroy();
     }
@@ -85,10 +117,25 @@ public class MainActivity extends BridgeActivity {
     }
 
     private boolean recoverRenderer(WebView view, RenderProcessGoneDetail detail) {
-        if (!rendererRecovery.onRendererGone(SystemClock.elapsedRealtime())) return false;
-        if (bridge == null) return true;
-
-        Sentry.captureMessage("Android WebView renderer " + (detail.didCrash() ? "crashed" : "was killed"), SentryLevel.WARNING);
+        final boolean foreground = rendererRecovery.isForeground();
+        final boolean didCrash = detail.didCrash();
+        final boolean recoverable = rendererRecovery.onRendererGone(SystemClock.elapsedRealtime());
+        if (bridge == null) return recoverable;
+        final boolean backgroundReclamation = RendererLoss.isBackgroundReclamation(didCrash, foreground);
+        // Android routinely reclaims a background WebView under memory
+        // pressure. Recovery waits for resume; keep the diagnostic, but report
+        // genuine crashes and foreground losses at error severity.
+        Sentry.captureMessage(
+                backgroundReclamation ? "Android WebView renderer reclaimed in background"
+                        : "Android WebView renderer " + (didCrash ? "crashed" : "was killed"),
+                backgroundReclamation && recoverable ? SentryLevel.INFO : SentryLevel.ERROR,
+                scope -> {
+                    scope.setTag("renderer.did_crash", Boolean.toString(didCrash));
+                    scope.setTag("renderer.foreground", Boolean.toString(foreground));
+                    scope.setTag("renderer.recovery_scheduled", Boolean.toString(recoverable));
+                    scope.setExtra("renderer.priority_at_exit", Integer.toString(detail.rendererPriorityAtExit()));
+                });
+        if (!recoverable) return false;
 
         // The dead WebView cannot be reloaded. Tear down its plugins and detach
         // it, then let a fresh Activity build a fresh Capacitor bridge. Clearing
@@ -148,6 +195,9 @@ public class MainActivity extends BridgeActivity {
             if (recoveryIntent != null) setIntent(recoveryIntent);
         }
         Handler mainHandler = new Handler(Looper.getMainLooper());
+        webViewRepaint = new WebViewRepaint(
+                task -> getWindow().getDecorView().postOnAnimation(task),
+                this::repaintWebView);
         rendererRecovery = new RendererRecovery(
                 savedInstanceState == null ? -1 : savedInstanceState.getLong(RENDERER_RECOVERY_AT, -1),
                 task -> mainHandler.post(task),
@@ -156,6 +206,7 @@ public class MainActivity extends BridgeActivity {
                 });
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
+        registerPlugin(ReceiptSharePlugin.class);
         registerPushProvisioningPlugin();
         super.onCreate(savedInstanceState);
 

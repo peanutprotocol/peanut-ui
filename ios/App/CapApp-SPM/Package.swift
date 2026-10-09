@@ -16,7 +16,7 @@ let package = Package(
         .package(name: "CapacitorAppLauncher", path: "../../../node_modules/.pnpm/@capacitor+app-launcher@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/app-launcher"),
         .package(name: "CapacitorBrowser", path: "../../../node_modules/.pnpm/@capacitor+browser@8.0.3_@capacitor+core@8.2.0/node_modules/@capacitor/browser"),
         .package(name: "CapacitorCamera", path: "../../../node_modules/.pnpm/@capacitor+camera@8.2.0_@capacitor+core@8.2.0/node_modules/@capacitor/camera"),
-        .package(name: "CapacitorClipboard", path: "../../../node_modules/.pnpm/@capacitor+clipboard@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/clipboard"),
+        .package(name: "CapacitorClipboard", path: "../../../node_modules/.pnpm/@capacitor+clipboard@8.0.1_patch_hash=9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993_14f21bd37d5b3c1106d6da5e06e4b742/node_modules/@capacitor/clipboard"),
         .package(name: "CapacitorDevice", path: "../../../node_modules/.pnpm/@capacitor+device@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/device"),
         .package(name: "CapacitorFilesystem", path: "../../../node_modules/.pnpm/@capacitor+filesystem@8.1.3_@capacitor+core@8.2.0/node_modules/@capacitor/filesystem"),
         .package(name: "CapacitorHaptics", path: "../../../node_modules/.pnpm/@capacitor+haptics@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/haptics"),
@@ -29,7 +29,7 @@ let package = Package(
         .package(name: "CapgoCapacitorInAppReview", path: "../../../node_modules/.pnpm/@capgo+capacitor-in-app-review@8.2.3_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-in-app-review"),
         .package(name: "CapgoCapacitorNativeBiometric", path: "../../../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.6.0_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-native-biometric"),
         .package(name: "CapgoCapacitorPasskey", path: "../../../node_modules/@capgo/capacitor-passkey"),
-        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/.pnpm/@capgo+capacitor-updater@8.51.14_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-updater"),
+        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/.pnpm/@capgo+capacitor-updater@8.51.23_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-updater"),
         .package(name: "OnesignalCapacitorPlugin", path: "../../../node_modules/@onesignal/capacitor-plugin"),
         .package(name: "CapacitorNativeSettings", path: "../../../node_modules/.pnpm/capacitor-native-settings@8.2.0_@capacitor+core@8.2.0/node_modules/capacitor-native-settings"),
         .package(name: "SumsubCordovaIdensicMobileSdkPlugin", path: "../../capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin")

@@ -2,7 +2,7 @@ import { Hero } from '@/components/Marketing/mdx/Hero'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { t } from '@/i18n'
-import { type Translations } from '@/i18n/types'
+import { type Locale, type Translations } from '@/i18n/types'
 import { IncidentList } from './IncidentList'
 import {
     formatTime,
@@ -197,7 +197,7 @@ function UptimeBars({ provider, locale, i18n }: { provider: StatusProvider; loca
     )
 }
 
-export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary; locale: string; i18n: Translations }) {
+export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary; locale: Locale; i18n: Translations }) {
     const byKey = new Map(summary.providers.map((p) => [p.provider, p]))
     const { operationalCount, percent } = operationalScore(summary.providers)
     const ratioLabel = t(i18n.statusServicesOperational, {
@@ -213,7 +213,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                 match exactly. Subtitle is the window label rather than the
                 metadata description — a full sentence wraps to three lines at
                 the Hero's uppercase 2rem. */}
-            <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
+            <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} locale={locale} />
 
             <div className="mx-auto w-full max-w-3xl px-6 pb-12">
                 {/* Only when something is wrong. A healthy page still opens
