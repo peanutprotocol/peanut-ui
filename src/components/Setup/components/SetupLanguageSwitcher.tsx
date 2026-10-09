@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { APP_LOCALES, LOCALE_LABELS, type AppLocale } from '@/i18n/app/config'
+import { LanguageList } from '@/components/Global/LanguageList'
+import { type AppLocale } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/locale-context'
 import { useTranslations } from 'next-intl'
 
@@ -29,18 +29,7 @@ export function SetupLanguageSwitcher() {
             <DrawerContent>
                 <div className="flex flex-col gap-4 pb-4">
                     <DrawerTitle>{t('title')}</DrawerTitle>
-                    <div>
-                        {APP_LOCALES.map((option, index) => (
-                            <ListItem
-                                key={option}
-                                title={LOCALE_LABELS[option]}
-                                position={index === 0 ? 'top' : index === APP_LOCALES.length - 1 ? 'bottom' : 'middle'}
-                                trailing={locale === option ? <Icon name="check" size={20} /> : undefined}
-                                aria-label={LOCALE_LABELS[option]}
-                                onClick={() => void choose(option)}
-                            />
-                        ))}
-                    </div>
+                    <LanguageList onSelect={(value) => void choose(value)} />
                 </div>
             </DrawerContent>
         </Drawer>

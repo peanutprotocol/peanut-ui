@@ -162,7 +162,7 @@
                 "spend": "Gastar"
             },
             "rows": {
-                "p2p": "Pagos de Peanut a Peanut",
+                "p2p": "Peanut a Peanut",
                 "card": "Tarjeta Peanut",
                 "crypto": "Cripto",
                 "brl": "BRL · Pix",
@@ -313,12 +313,12 @@
             "noInviteTitle": "Unite a Peanut"
         },
         "update": {
-            "title": "Actualización lista",
-            "description": "Reiniciá Peanut para terminar de instalar la actualización.",
-            "restartNow": "Reiniciar ahora",
+            "title": "Actualización disponible",
+            "description": "Tocá Actualizar para instalar la nueva versión. Si Peanut se cierra, volvé a abrirla.",
+            "update": "Actualizar",
             "notNow": "Ahora no",
             "manualRestart": "Cerrá Peanut desde el selector de apps y volvé a abrirla para terminar la actualización.",
-            "applyFailed": "No se pudo aplicar la actualización. Revisá tu conexión y probá de nuevo: Peanut sigue con la versión con la que iniciaste."
+            "applyFailed": "La actualización no se instaló. Revisá tu conexión y probá de nuevo. Peanut sigue en la versión actual."
         },
         "about": {
             "title": "Acerca de Peanut",
@@ -405,15 +405,6 @@
     },
     "setup": {
         "choicesLater": "Podés cambiar tus opciones más adelante.",
-        "funding": {
-            "title": "¿Cómo vas a agregar plata a tu cuenta?",
-            "methods": {
-                "bank": "Transferencia bancaria",
-                "cash": "Efectivo",
-                "crypto": "Cripto",
-                "peanut": "De otra persona en Peanut"
-            }
-        },
         "steps": {
             "landing": {
                 "description": "Creá tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
@@ -436,7 +427,7 @@
             },
             "passkey-permission": {
                 "title": "Solo vos tenés el control.",
-                "description": "Tu passkey te da el control. Usá tu rostro, huella o bloqueo de pantalla para acceder a tu plata y aprobar pagos."
+                "description": "Usá tu rostro, huella o bloqueo de pantalla para aprobar pagos."
             },
             "advantage-control": {
                 "title": "¿Todo listo para empezar?",
@@ -447,7 +438,7 @@
             },
             "advantage-card": {
                 "title": "Una tarjeta rosa para tu día a día.",
-                "description": "Usá tu saldo de Peanut online y en comercios. Hacé que gastar sea simple, con tu saldo de Peanut listo para lo que traiga el día."
+                "description": "Usá tu saldo de Peanut para compras online y en locales."
             },
             "advantage-bank": {
                 "title": "Cuentas bancarias que viajan con vos.",
@@ -455,7 +446,7 @@
             },
             "advantage-fees": {
                 "title": "Decile adiós a las cuotas mensuales.",
-                "description": "Mantené tu cuenta de Peanut sin cuota mensual. Vos controlás cada pago, con todas las comisiones claramente indicadas antes de confirmar."
+                "description": "Vos controlás cada pago, con todas las comisiones claramente indicadas antes de confirmar."
             },
             "notification-email": {
                 "title": "Agregá tu correo electrónico",
@@ -488,19 +479,19 @@
         },
         "loginFailed": "No pudimos iniciar tu sesión. Intentalo de nuevo.",
         "cta": {
-            "claimName": "Me quedo con ese nombre",
+            "claimName": "Elegir nombre de usuario",
             "payments": "Me gusta",
             "home": "Acá vivo",
             "rewards": "¡Quiero recompensas!",
             "control": "Terminemos",
             "fees": "Me gusta",
-            "features": "Está buenísimo",
+            "features": "Mantener estas opciones",
             "bank": "¡Ahora sí!",
             "card": "Me encanta el rosa",
             "exchange": "Es una buena oferta",
             "local": "Vamos a pagar como locales",
             "people": "Tiene sentido",
-            "funding": "Sigamos"
+            "funding": "Mantener estas opciones"
         },
         "landing": {
             "signUp": "Registrate",
@@ -561,7 +552,7 @@
             "compare": {
                 "cardTitle": "Disponible con {country}",
                 "items": {
-                    "p2p": "Pagos de Peanut a Peanut",
+                    "p2p": "Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
                     "arQr": "Pagos QR y transferencias propias",
                     "spei": "Transferencias bancarias en pesos mexicanos",
@@ -671,6 +662,33 @@
         },
         "wrapper": {
             "introGreeting": "¡Hola! Soy Peanut"
+        },
+        "paymentPlan": {
+            "addMoney": "Voy a agregar dinero a mi cuenta Peanut",
+            "firstPayment": "y después lo voy a usar para pagar",
+            "fundingTitle": "Agregar dinero con",
+            "paymentTitle": "Hacer un pago con",
+            "hint": "La lista de opciones de pago depende de tu país de residencia.",
+            "funding": {
+                "crypto": "Cripto",
+                "peanut": "Peanut a Peanut",
+                "bank": "Transferencia bancaria",
+                "brlBank": "Transferencia bancaria (BRL)",
+                "arsBank": "Transferencia bancaria (ARS)"
+            },
+            "payment": {
+                "peanut": "Peanut a Peanut",
+                "card": "Tarjeta Peanut",
+                "bank": "Transferencia bancaria",
+                "crypto": "Cripto",
+                "qr": "Pagos QR"
+            },
+            "with": "con",
+            "unavailable": {
+                "banking": "Las transferencias bancarias no están disponibles en tu país.",
+                "card": "La tarjeta Peanut no está disponible en tu país.",
+                "both": "Las transferencias bancarias y la emisión de tarjetas no están disponibles en tu país."
+            }
         }
     },
     "loadingStates": {
@@ -1017,7 +1035,7 @@
             "lookingUpTitle": "Te estamos buscando…",
             "lookingUpBody": "Nos estamos ubicando.",
             "availableTitle": "Ya estás adentro.",
-            "fundingBody": "Agregá al menos $10 a tu saldo de Peanut para obtener tu tarjeta.",
+            "fundingBody": "Necesitás un saldo de al menos $10 en Peanut para obtener tu tarjeta.",
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conocé tu tarjeta Peanut.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
@@ -1170,7 +1188,9 @@
         },
         "actions": {
             "inviteFriends": "Invitá amigos y ganá más recompensas",
-            "cancelDepositFailed": "No pudimos cancelar este depósito. Intentalo de nuevo o contactá a soporte."
+            "cancelDepositFailed": "No pudimos cancelar este depósito. Intentalo de nuevo o contactá a soporte.",
+            "nativeReceiptShareUnavailable": "No se pueden compartir comprobantes en esta versión de Peanut. Actualizá la app e intentalo de nuevo.",
+            "receiptShareFailed": "No se pudo compartir el comprobante. Intentalo de nuevo."
         },
         "toast": {
             "linkCancelledRefresh": "¡Enlace cancelado! Actualizá para ver tu saldo al día.",
@@ -1633,8 +1653,7 @@
         },
         "earlyUserModal": {
             "title": "Ganá con tus invitaciones",
-            "inviteOnly": "Peanut está abierto para todos. Tu enlace personal sigue registrando tus recompensas por referidos.",
-            "earnRules": "<b>Amigos que invitás →</b> ganás una parte de sus comisiones. <b>Sus invitados →</b> ganás una parte de la parte de ellos.",
+            "description": "A partir de ahora, Peanut está abierto a cualquiera. Podés seguir invitando a tus amigos para ganar recompensas si se registran.",
             "shareSheetTitle": "Compartir enlace de invitación"
         },
         "noMoreJailModal": {

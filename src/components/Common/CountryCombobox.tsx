@@ -224,7 +224,7 @@ export const CountryCombobox = ({
                                     'flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l transition-colors select-none',
                                     // same fill as ListItem's pressed state (and BaseSelect's hover)
                                     index === activeIndex && 'bg-background-disabled',
-                                    isSelected && 'bg-action-primary text-foreground-inverse'
+                                    isSelected && 'bg-background-selection text-foreground-over-color-primary'
                                 )}
                             >
                                 <span>{option.label}</span>

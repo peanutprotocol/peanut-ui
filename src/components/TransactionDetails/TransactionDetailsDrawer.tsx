@@ -66,6 +66,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 back on its own. */}
             <DrawerContent accessibleTitle={t('drawerTitle')} scrollAreaRef={scrollAreaRef}>
                 <TransactionDetailsReceipt
+                    isActive={isOpen}
                     isLoading={isLoading}
                     transaction={transaction}
                     onClose={handleClose}

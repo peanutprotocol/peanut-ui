@@ -1,7 +1,8 @@
 import React from 'react'
-import { screen, waitFor } from '@testing-library/react'
+import { act, cleanup, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { SetupWrapper } from '../SetupWrapper'
+import { frameData, frameSteps, MotionGlobalConfig, time } from 'framer-motion'
 
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
@@ -12,10 +13,35 @@ jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
     default: () => <div data-testid="card-illustration" />,
 }))
+jest.mock('../OnboardingAnimation', () => ({ __esModule: true, default: () => null }))
 // Keep real AnimatePresence and motion: this catches an outgoing header losing its hero.
 jest.mock('framer-motion', () => ({ ...jest.requireActual('framer-motion'), useReducedMotion: () => false }))
 
-it('retains the complete card layout during exit before mounting the full-screen funding heading', async () => {
+beforeEach(() => {
+    MotionGlobalConfig.useManualTiming = true
+    frameData.timestamp = 0
+    time.set(0)
+})
+afterEach(() => {
+    cleanup()
+    MotionGlobalConfig.useManualTiming = false
+})
+
+// Drive real Motion frames instead of racing requestAnimationFrame against waitFor's timeout.
+async function finishTransition() {
+    for (let frame = 0; frame < 60; frame++) {
+        await act(async () => {
+            frameData.delta = 1000 / 60
+            frameData.timestamp += frameData.delta
+            frameData.isProcessing = true
+            time.set(frameData.timestamp)
+            for (const step of Object.values(frameSteps)) step.process(frameData)
+            frameData.isProcessing = false
+        })
+    }
+}
+
+it('slides complete screens together with only the incoming screen accessible', async () => {
     const view = renderWithIntl(
         <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ pose: 'thinking' }} title="Pink card">
             <button>Next</button>
@@ -23,15 +49,42 @@ it('retains the complete card layout during exit before mounting the full-screen
     )
     const hero = screen.getByTestId('card-illustration').closest('.setup-hero-background')
     view.rerender(
-        <SetupWrapper layoutType="signup" screenId="funding-methods" fullScreen>
+        <SetupWrapper layoutType="signup" screenId="advantage-bank" fullScreen>
             <h1>Fund your account</h1>
         </SetupWrapper>
     )
-    expect(screen.getByText('Pink card')).toBeInTheDocument()
+    expect(screen.getByText(/^Pink card/)).toBeInTheDocument()
     expect(hero).toBeInTheDocument()
-    expect(screen.queryByText('Fund your account')).not.toBeInTheDocument()
-    await waitFor(() => expect(screen.getByText('Fund your account')).toBeInTheDocument())
-    expect(screen.queryByText('Pink card')).not.toBeInTheDocument()
+    expect(screen.getByText('Fund your account')).toBeInTheDocument()
+    const outgoing = screen.getByText(/^Pink card/).closest('[aria-hidden="true"]')
+    expect(outgoing).toHaveAttribute('aria-hidden', 'true')
+    expect(outgoing).toHaveAttribute('inert')
+    expect(outgoing).toHaveClass('absolute', 'inset-x-0', 'top-0')
+    expect(screen.getByText('Fund your account').closest('[aria-hidden="false"]')).not.toHaveClass('absolute')
+    expect(screen.getAllByRole('heading')).toHaveLength(1)
+    await finishTransition()
+    expect(screen.queryByText(/^Pink card/)).not.toBeInTheDocument()
     expect(hero).not.toBeInTheDocument()
     expect(screen.getAllByRole('heading')).toHaveLength(1)
+})
+
+it('keeps the next illustration override when the outgoing screen cleans up', async () => {
+    const { useSetupImageOverride } = await import('../SetupWrapper')
+    const Override = ({ pose }: { pose: 'thinking' | 'cheering' }) => {
+        useSetupImageOverride({ pose })
+        return <h1>{pose}</h1>
+    }
+    const view = renderWithIntl(
+        <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ animation: 'card' }}>
+            <Override pose="thinking" />
+        </SetupWrapper>
+    )
+    view.rerender(
+        <SetupWrapper layoutType="signup" screenId="advantage-bank" image={{ animation: 'topup' }}>
+            <Override pose="cheering" />
+        </SetupWrapper>
+    )
+    await finishTransition()
+    expect(screen.queryByText('thinking')).not.toBeInTheDocument()
+    expect(screen.getByTestId('card-illustration')).toBeInTheDocument()
 })

@@ -40,6 +40,9 @@ jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: () => ({ interactions: {} }),
 }))
 
+jest.mock('../ChargeFulfillmentNotice', () => ({
+    ChargeFulfillmentNotice: ({ chargeId }: { chargeId: string }) => <div data-testid="charge-notice">{chargeId}</div>,
+}))
 const mockRequestByUsername = jest.fn()
 jest.mock('@/services/users', () => ({
     usersApi: { requestByUsername: (...args: unknown[]) => mockRequestByUsername(...args) },
@@ -117,7 +120,7 @@ beforeEach(() => {
         isError: false,
         refetch: jest.fn(),
     }
-    mockRequestByUsername.mockResolvedValue({})
+    mockRequestByUsername.mockResolvedValue({ data: { id: 'created-charge' } })
     mockHandoff = { interceptGuestCta: jest.fn(() => false), storeHandoffModal: null, handoffActive: false }
 })
 
@@ -189,6 +192,7 @@ describe('addressed requests', () => {
         fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
         fireEvent.click(screen.getByRole('button', { name: 'Request' }))
         await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(screen.getByTestId('charge-notice')).toHaveTextContent('created-charge')
         expect(mockRequestByUsername).toHaveBeenCalledWith(
             expect.objectContaining({
                 username: 'alice',

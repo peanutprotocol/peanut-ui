@@ -12,6 +12,7 @@
         "retry": "Retry",
         "close": "Close",
         "loading": "Loading...",
+        "inEnglish": "In English",
         "somethingWentWrong": "Something went wrong",
         "genericError": "Something went wrong. Please try again or contact support.",
         "copiedToClipboard": "Copied to clipboard",
@@ -268,7 +269,7 @@
             "accounts": "Accounts",
             "payments": "Payments",
             "paymentLimits": "Payment limits",
-            "showMyFullName": "Show full name",
+            "showFullName": "Show full name",
             "backup": "Backup",
             "exchangeRatesAndFees": "Exchange rates and fees",
             "starAlt": "star",
@@ -347,7 +348,7 @@
                 "spend": "Spend"
             },
             "rows": {
-                "p2p": "Peanut-to-Peanut payments",
+                "p2p": "Peanut to Peanut",
                 "card": "Peanut card",
                 "crypto": "Crypto",
                 "brl": "BRL · Pix",
@@ -398,7 +399,7 @@
             },
             "limits": {
                 "monthlyLeft": "{remaining} of {limit} left this month",
-                "p2pNoLimit": "No amount limits on Peanut-to-Peanut payments or crypto",
+                "p2pNoLimit": "No amount limits.",
                 "depositPerTransfer": "Per bank deposit",
                 "withdrawalPerTransfer": "Per bank withdrawal"
             },
@@ -531,12 +532,12 @@
             "requestAction": "Request"
         },
         "update": {
-            "title": "Update ready",
-            "description": "Restart Peanut to finish installing the update.",
-            "restartNow": "Restart now",
+            "title": "Update available",
+            "description": "Tap Update to install the new version. If Peanut closes, open it again.",
+            "update": "Update",
             "notNow": "Not now",
             "manualRestart": "Close Peanut from the app switcher and open it again to finish the update.",
-            "applyFailed": "The update couldn't be applied. Check your connection and try again — Peanut is still running the version you started with."
+            "applyFailed": "The update didn't install. Check your connection and try again. Peanut is still on the current version."
         },
         "storeUpdate": {
             "title": "Update in {store}",
@@ -697,15 +698,6 @@
     },
     "setup": {
         "choicesLater": "You can update your choices later.",
-        "funding": {
-            "title": "How are you going to fund your account?",
-            "methods": {
-                "bank": "Bank transfer",
-                "cash": "Cash",
-                "crypto": "Crypto",
-                "peanut": "From someone on Peanut"
-            }
-        },
         "steps": {
             "landing": {
                 "title": "Peanut makes dollars easy.",
@@ -729,7 +721,7 @@
             },
             "passkey-permission": {
                 "title": "Controlled only by you.",
-                "description": "Your passkey keeps you in control. Use your face, fingerprint, or screen lock to access your money and approve payments."
+                "description": "Use your face, fingerprint, or screen lock to approve payments."
             },
             "advantage-control": {
                 "title": "Ready to get started?",
@@ -741,7 +733,7 @@
             },
             "advantage-card": {
                 "title": "A pink card for your everyday.",
-                "description": "Spend your Peanut balance online and in stores. Make spending feel simple, with your Peanut balance ready for whatever the day brings."
+                "description": "Use your Peanut balance for online and in-store purchases."
             },
             "advantage-bank": {
                 "title": "Bank accounts that travel with you.",
@@ -749,7 +741,7 @@
             },
             "advantage-fees": {
                 "title": "Say goodbye to monthly fees.",
-                "description": "No monthly fee to keep your Peanut account. You’re in control of every payment, with all fees clearly shown before you confirm."
+                "description": "You’re in control of every payment, with all fees clearly shown before you confirm."
             },
             "notification-email": {
                 "title": "Please add your email",
@@ -796,19 +788,19 @@
         "next": "Next",
         "logIn": "Log In",
         "cta": {
-            "claimName": "Claim my name",
+            "claimName": "Claim username",
             "payments": "Sounds good",
             "home": "That's my home",
             "rewards": "Ooh, rewards",
             "control": "Let's finish",
             "fees": "Sounds good",
-            "features": "Looks good",
+            "features": "Keep these choices",
             "bank": "Now we’re talking",
             "card": "Love the pink",
             "exchange": "That’s a good deal",
             "local": "Let’s go local",
             "people": "That makes sense",
-            "funding": "Let’s keep going"
+            "funding": "Keep these choices"
         },
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
@@ -827,6 +819,10 @@
             "inviterUsernamePlaceholder": "their username",
             "inviterHelp": "Your inviter may earn rewards when you use Peanut.",
             "inviterNotFound": "We couldn't verify that username. Check it and try again.",
+            "invitedBy": "Invited by {username}.",
+            "changeInviter": "Change",
+            "addInviter": "Add inviter",
+            "removeInviter": "Remove inviter",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",
@@ -888,7 +884,7 @@
             "compare": {
                 "cardTitle": "Available with {country}",
                 "items": {
-                    "p2p": "Peanut-to-Peanut payments",
+                    "p2p": "Peanut to Peanut",
                     "pix": "PIX payments & transfers",
                     "arQr": "QR payments & own-account transfers",
                     "spei": "Mexican peso bank transfers",
@@ -1013,6 +1009,34 @@
             "continue": "Sounds good",
             "pushUnavailable": "Push notifications aren’t ready yet. Try again, or turn push off to continue.",
             "saveFailed": "We couldn’t save your settings. Please try again."
+        },
+        "paymentPlan": {
+            "addMoney": "I’ll add money to my Peanut account",
+            "firstPayment": "and then use it to pay",
+            "fundingTitle": "Add money with",
+            "paymentTitle": "Make a payment with",
+            "hint": "The list of payment options depends on your country of residence.",
+            "funding": {
+                "crypto": "Crypto",
+                "peanut": "Peanut to Peanut",
+                "bank": "Bank transfer",
+                "bankCurrencies": "Bank transfer (USD, EUR, GBP, MXN)",
+                "brlBank": "Bank transfer (BRL)",
+                "arsBank": "Bank transfer (ARS)"
+            },
+            "payment": {
+                "peanut": "Peanut to Peanut",
+                "card": "Peanut card",
+                "bank": "Bank transfer",
+                "crypto": "Crypto",
+                "qr": "QR payments"
+            },
+            "with": "with",
+            "unavailable": {
+                "banking": "Bank transfers aren’t available in your country.",
+                "card": "The Peanut card isn’t available in your country.",
+                "both": "Bank transfers and card issuing aren’t available in your country."
+            }
         }
     },
     "loadingStates": {
@@ -1197,6 +1221,10 @@
             "badgePartial": "Partly paid",
             "paidByName": "Paid by {name}",
             "paidByBank": "Paid by bank transfer"
+        },
+        "paymentReceived": {
+            "rowLabel": "Payment",
+            "received": "Payment received"
         }
     },
     "payment": {
@@ -1835,7 +1863,7 @@
             "lookingUpTitle": "Looking you up…",
             "lookingUpBody": "Checking your badges.",
             "availableTitle": "You're in.",
-            "fundingBody": "Add at least $10 to your Peanut balance to get your card.",
+            "fundingBody": "You need a Peanut balance of at least $10 to get your card.",
             "addFunds": "Add funds",
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
@@ -2389,8 +2417,9 @@
             "linkCopied": "Link copied",
             "linkCopyFailed": "Could not copy the link",
             "downloadPdf": "Download Receipt (PDF)",
-            "pdfDownloadedInstead": "This browser downloaded the receipt because file sharing is unavailable.",
+            "pdfDownloadedInstead": "File sharing is unavailable here. Receipt download started.",
             "receiptPdfUnavailable": "Receipt PDF is unavailable. Please try again.",
+            "attachmentUnavailable": "Attachment is unavailable. Try again or contact support.",
             "inviteFriends": "Invite friends to earn more rewards",
             "reportIssue": "Issues with this transaction?",
             "cancelDeposit": "Cancel deposit",
@@ -2400,7 +2429,9 @@
                 "title": "{kind, select, deposit {Cancel this deposit?} request {Cancel this request?} other {Cancel?}}",
                 "description": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",
                 "confirm": "{kind, select, deposit {Yes, cancel deposit} request {Yes, cancel request} other {Yes, cancel}}"
-            }
+            },
+            "nativeReceiptShareUnavailable": "Receipt sharing is unavailable in this version of Peanut. Update the app and try again.",
+            "receiptShareFailed": "Unable to share the receipt. Please try again."
         },
         "toast": {
             "linkCancelled": "Link cancelled successfully!",
@@ -3505,8 +3536,7 @@
         },
         "earlyUserModal": {
             "title": "Earn from invites",
-            "inviteOnly": "Peanut is open to everyone. Your personal link still tracks referral rewards.",
-            "earnRules": "<b>Friends you invite →</b> you earn a cut of their fees. <b>Their invites →</b> you earn a cut of their cut.",
+            "description": "From now on, Peanut is open to anyone. You can still invite your friends to earn rewards if they sign up.",
             "shareSheetTitle": "Share invite link",
             "shareCta": "Share Invite link",
             "learnMore": "Learn more"

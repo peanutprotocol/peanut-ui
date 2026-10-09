@@ -45,7 +45,8 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
 
 const SetupPasskey = () => {
     const t = useTranslations('setup')
-    const { username } = useSetupFlowContext()
+    const { username, noBackLockScreenId, setNoBackLockScreenId } = useSetupFlowContext()
+    const alreadyRegistered = noBackLockScreenId === 'passkey-permission'
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
@@ -78,6 +79,7 @@ const SetupPasskey = () => {
 
     // preflight check for common passkey issues
     useEffect(() => {
+        if (alreadyRegistered) return
         const runPreflightCheck = async () => {
             const result = await checkPasskeySupport()
             if (!result.isSupported && result.warning) {
@@ -86,10 +88,14 @@ const SetupPasskey = () => {
         }
 
         runPreflightCheck()
-    }, [])
+    }, [alreadyRegistered])
 
     // handle passkey registration with retry logic
     const handlePasskeySetup = async () => {
+        if (alreadyRegistered) {
+            await handleNext()
+            return
+        }
         if (setupInFlightRef.current) return
         setupInFlightRef.current = true
         setIsPreparing(true)
@@ -253,9 +259,10 @@ const SetupPasskey = () => {
         if (address && registrationInitiatedRef.current) {
             registrationInitiatedRef.current = false
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
+            setNoBackLockScreenId('passkey-permission')
             handleNext()
         }
-    }, [address, handleNext, deviceType])
+    }, [address, handleNext, deviceType, setNoBackLockScreenId])
 
     return (
         <div className="flex flex-1 flex-col">
@@ -292,11 +299,11 @@ const SetupPasskey = () => {
                             className="text-nowrap"
                             shadowSize="4"
                         >
-                            {t('passkey.setItUp')}
+                            {t(alreadyRegistered ? 'email.continue' : 'passkey.setItUp')}
                         </Button>
                     }
                 >
-                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
+                    <p className="text-center text-body-xs text-foreground-secondary">
                         <SetupDocLink kind="passkeys" href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
                             <Icon name="info" size={16} className="shrink-0" />
                             {t('passkey.learnMore')}

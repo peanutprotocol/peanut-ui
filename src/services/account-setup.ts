@@ -1,4 +1,5 @@
 import type { IUserProfile } from '@/interfaces/interfaces'
+import type { SignupPreferences } from '@/types/signup-preferences'
 
 export const ACCOUNT_SETUP_MAX_REQUEST_ATTEMPTS = 2
 
@@ -34,6 +35,7 @@ export class AccountSetupError extends Error {
 type CompleteAccountSetupOptions = {
     accountIdentifier: string
     accountType: string
+    signupPreferences?: SignupPreferences
     request: () => Promise<Response>
     fetchProfile: () => Promise<IUserProfile | null>
     maxRequestAttempts?: number
@@ -63,6 +65,7 @@ const profileHasAccount = (profile: IUserProfile | null, accountIdentifier: stri
 export const completeAccountSetup = async ({
     accountIdentifier,
     accountType,
+    signupPreferences,
     request,
     fetchProfile,
     maxRequestAttempts = ACCOUNT_SETUP_MAX_REQUEST_ATTEMPTS,
@@ -75,7 +78,13 @@ export const completeAccountSetup = async ({
 
     const reconcile = async (): Promise<boolean> => {
         try {
-            return profileHasAccount(await fetchProfile(), accountIdentifier, accountType)
+            const profile = await fetchProfile()
+            return (
+                profileHasAccount(profile, accountIdentifier, accountType) &&
+                (!signupPreferences ||
+                    (profile?.signupPreferences?.fundingChannel === signupPreferences.fundingChannel &&
+                        profile.signupPreferences.paymentChannel === signupPreferences.paymentChannel))
+            )
         } catch (error) {
             lastFailure = error
             return false

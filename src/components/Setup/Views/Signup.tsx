@@ -1,4 +1,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import SetupFooter from '../components/SetupFooter'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -6,15 +8,20 @@ import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useQueryClient } from '@tanstack/react-query'
+import { USER } from '@/constants/query.consts'
+import { DEMO_USER } from '@/constants/demo-data'
+import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { invitesApi } from '@/services/invites'
 import { toInviteCode } from '@/utils/invite-code.utils'
+import { readInviteCode } from '@/utils/invite-stash'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 // Valid username-shaped ideas, so the joke can double as inspiration.
@@ -33,18 +40,33 @@ const USERNAME_IDEAS = [
 
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } =
-        useSetupFlowContext()
+    const {
+        username,
+        setUsername,
+        inviterUsername,
+        setInviterUsername,
+        applyManualInvite,
+        clearManualInvite,
+        setResidenceCountry,
+        setSecondResidenceCountry,
+        setSignupCompleted,
+        setNoBackLockScreenId,
+    } = useSetupFlowContext()
+    const queryClient = useQueryClient()
     const [error, setError] = useState('')
-    const { handleNext, isLoading } = useSetupFlow()
+    const { handleNext, isLoading, setScreenId } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
-    const [showInviterInput, setShowInviterInput] = useState(Boolean(inviterUsername))
+    // the drawer edits a draft; only a validated, added inviter reaches the flow context
+    const [inviterOpen, setInviterOpen] = useState(false)
+    const [inviterDraft, setInviterDraft] = useState('')
     const [inviterValid, setInviterValid] = useState(false)
     const [inviterChanging, setInviterChanging] = useState(false)
     const [inviterError, setInviterError] = useState('')
-    const inviterValueRef = useRef(inviterUsername)
-    const inviterInputId = useId()
+    const inviterValueRef = useRef('')
+    // inviter behind an invite link (?code= or a stashed referral), shown until a manual one replaces it
+    const [linkInviter, setLinkInviter] = useState('')
+    const shownInviter = inviterUsername ? toInviteCode(inviterUsername) : linkInviter
     const prefersReducedMotion = useReducedMotion()
     const [suggestionIndex, setSuggestionIndex] = useState(-1)
     const [placeholderStopped, setPlaceholderStopped] = useState(false)
@@ -77,35 +99,79 @@ const SignupStep = () => {
         return valid
     }
 
-    const toggleInviterInput = () => {
-        if (showInviterInput) {
-            inviterValueRef.current = ''
-            clearManualInvite()
-            setInviterUsername('')
-            setInviterValid(false)
-            setInviterChanging(false)
-            setInviterError('')
-        } else {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
+    useEffect(() => {
+        // a manual inviter already wins over the link code, so there is nothing to resolve
+        if (inviterUsername) return
+        const code = readInviteCode()
+        if (!code) {
+            setLinkInviter('')
+            return
         }
-        setShowInviterInput(!showInviterInput)
+        let cancelled = false
+        void invitesApi.validateInviteCode(code).then((result) => {
+            if (!cancelled && result.success && result.attributionResolved && result.username) {
+                setLinkInviter(result.username)
+            }
+        })
+        return () => {
+            cancelled = true
+        }
+        // re-runs when a manual inviter is removed, so the restored link inviter shows again
+    }, [inviterUsername])
+
+    const openInviter = () => {
+        inviterValueRef.current = ''
+        setInviterDraft('')
+        setInviterValid(false)
+        setInviterChanging(false)
+        setInviterError('')
+        setInviterOpen(true)
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
     }
 
-    const onNext = () =>
-        handleNext(async () => {
-            if (!isValid) return false
+    const addInviter = () => {
+        setInviterUsername(inviterDraft)
+        setInviterOpen(false)
+    }
+
+    // undoes a mistaken manual inviter and restores the invite-link referral, if there was one
+    const removeInviter = () => {
+        inviterValueRef.current = ''
+        clearManualInvite()
+        setInviterUsername('')
+        setInviterOpen(false)
+    }
+
+    const onNext = async () => {
+        if (!isValid || isChanging || isLoading) return
+        if (isDemoUsername(username)) {
+            enableDemoMode()
+            // Retire any pre-demo user request before seeding the synthetic session.
+            await queryClient.cancelQueries({ queryKey: [USER] })
+            queryClient.setQueryData([USER], DEMO_USER)
+            setResidenceCountry('BR')
+            setSecondResidenceCountry('')
+            setNoBackLockScreenId('advantage-control')
+            setSignupCompleted(true)
+            setScreenId('advantage-control')
+            return
+        }
+        return handleNext(async () => {
             const code = toInviteCode(inviterUsername)
-            if (showInviterInput && code) {
-                if (!inviterValid || inviterChanging) return false
+            if (code) {
                 applyManualInvite(code)
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
             }
             return true
         })
+    }
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
         // clear error when starting a new validation
         setError('')
+
+        // Reserved local demo entry: typing validates it, but only submission activates the session.
+        if (isDemoUsername(username)) return true
 
         // handle empty input
         if (!username) {
@@ -203,7 +269,7 @@ const SignupStep = () => {
     return (
         <>
             <div className="flex h-full flex-1 flex-col justify-between gap-6">
-                <div className="flex w-full flex-1 flex-col justify-center gap-4">
+                <div className="flex w-full flex-1 flex-col gap-4">
                     <div className="flex flex-col gap-1">
                         <div
                             className="relative"
@@ -242,57 +308,6 @@ const SignupStep = () => {
                         </div>
                         <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={toggleInviterInput}
-                        aria-expanded={showInviterInput}
-                        aria-controls={inviterInputId}
-                        className="self-center text-body-s text-foreground-secondary underline underline-offset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                    >
-                        {t('signupStep.whoInvitedYou')}
-                    </button>
-
-                    <AnimatePresence initial={false}>
-                        {showInviterInput && (
-                            <motion.div
-                                id={inviterInputId}
-                                initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8 }}
-                                transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-                                className="flex w-full flex-col gap-1"
-                            >
-                                <ValidatedInput
-                                    aria-label={t('signupStep.inviterUsernameLabel')}
-                                    placeholder={t('signupStep.inviterUsernamePlaceholder')}
-                                    value={inviterUsername}
-                                    debounceTime={750}
-                                    validate={validateInviter}
-                                    shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
-                                    onUpdate={({ value, isValid, isChanging }) => {
-                                        inviterValueRef.current = value
-                                        setInviterUsername(value)
-                                        setInviterValid(isValid)
-                                        setInviterChanging(isChanging)
-                                        if (isChanging) {
-                                            clearManualInvite()
-                                            setInviterError('')
-                                        }
-                                    }}
-                                    isSetupFlow
-                                    isInputChanging={inviterChanging}
-                                />
-                                {inviterError ? (
-                                    <FieldError>{inviterError}</FieldError>
-                                ) : (
-                                    <p className="text-body-xs text-foreground-secondary">
-                                        {t('signupStep.inviterHelp')}
-                                    </p>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
                 <SetupFooter
                     actions={
@@ -302,19 +317,20 @@ const SignupStep = () => {
                             loading={isLoading}
                             shadowSize="4"
                             onClick={onNext}
-                            disabled={
-                                !isValid ||
-                                isChanging ||
-                                isLoading ||
-                                (showInviterInput &&
-                                    !!toInviteCode(inviterUsername) &&
-                                    (!inviterValid || inviterChanging))
-                            }
+                            disabled={!isValid || isChanging || isLoading}
                         >
                             {t('cta.claimName')}
                         </Button>
                     }
                 >
+                    {shownInviter ? (
+                        <div className="flex items-center gap-1 text-body-xs text-foreground-secondary">
+                            <span>{t('signupStep.invitedBy', { username: shownInviter })}</span>
+                            <LinkButton onClick={openInviter}>{t('signupStep.changeInviter')}</LinkButton>
+                        </div>
+                    ) : (
+                        <LinkButton onClick={openInviter}>{t('signupStep.whoInvitedYou')}</LinkButton>
+                    )}
                     <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
@@ -331,6 +347,47 @@ const SignupStep = () => {
                     </p>
                 </SetupFooter>
             </div>
+            <Drawer open={inviterOpen} onOpenChange={setInviterOpen} shouldScaleBackground={false}>
+                <DrawerContent>
+                    <div className="flex flex-col gap-4 pb-4">
+                        <DrawerTitle>{t('signupStep.whoInvitedYou')}</DrawerTitle>
+                        <p className="text-body-s text-foreground-secondary">{t('signupStep.inviterHelp')}</p>
+                        <div className="flex flex-col gap-1">
+                            <ValidatedInput
+                                aria-label={t('signupStep.inviterUsernameLabel')}
+                                placeholder={t('signupStep.inviterUsernamePlaceholder')}
+                                value={inviterDraft}
+                                debounceTime={750}
+                                validate={validateInviter}
+                                shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
+                                onUpdate={({ value, isValid, isChanging }) => {
+                                    inviterValueRef.current = value
+                                    setInviterDraft(value)
+                                    setInviterValid(isValid)
+                                    setInviterChanging(isChanging)
+                                    if (isChanging) setInviterError('')
+                                }}
+                                isSetupFlow
+                                isInputChanging={inviterChanging}
+                            />
+                            {inviterError && <FieldError>{inviterError}</FieldError>}
+                        </div>
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            disabled={!inviterValid || inviterChanging}
+                            onClick={addInviter}
+                        >
+                            {t('signupStep.addInviter')}
+                        </Button>
+                        {inviterUsername && (
+                            <LinkButton className="self-center" onClick={removeInviter}>
+                                {t('signupStep.removeInviter')}
+                            </LinkButton>
+                        )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
         </>
     )
 }

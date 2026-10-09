@@ -89,13 +89,18 @@ describe('app help drawers', () => {
     })
 
     it.each(APP_HELP_SLUGS)('opens the %s article on its own, without navigation', async (slug) => {
-        APP_HELP_SLUGS.forEach((each) => serve(each, 'en'))
+        APP_HELP_SLUGS.forEach((each) => {
+            served[`/app-help/en/${each}.json`] = { ...article(each, 'en'), lang: 'en' }
+        })
         const pathname = window.location.pathname
         renderLink('en', appHelpPagePath(slug, 'en'))
         openHelp()
         expect(await screen.findByText(`${slug} article en`)).toBeInTheDocument()
         expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/en/${slug}.json`])
         expect(window.location.pathname).toBe(pathname)
+        // An en reader of English text gets lang="en" but no "In English" note.
+        expect(screen.getByRole('article', { name: `${slug} en` })).toHaveAttribute('lang', 'en')
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
     })
 
     it.each([
@@ -162,6 +167,41 @@ describe('app help drawers', () => {
         openHelp()
         expect(await screen.findByText(`terms article ${contentLocale}`)).toBeInTheDocument()
         expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/${contentLocale}/terms.json`])
+    })
+
+    it('tags English legal text served to a pt-BR reader and says it is English', async () => {
+        // pt-br has no legal translation, so the build writes the English document under pt-br.
+        served['/app-help/pt-br/card-esign.json'] = { ...article('card-esign', 'pt-br'), lang: 'en' }
+        renderLink('pt-BR', '/card-esign')
+        openHelp()
+        await screen.findByText('card-esign article pt-br')
+        expect(screen.getByRole('article', { name: 'card-esign pt-br' })).toHaveAttribute('lang', 'en')
+        expect(screen.getByText(en.common.inEnglish)).toBeInTheDocument()
+    })
+
+    it('adds no English notice when es-AR is served the es-419 text', async () => {
+        served['/app-help/es-ar/card-prohibited-activities.json'] = {
+            ...article('card-prohibited-activities', 'es-ar'),
+            lang: 'es-419',
+        }
+        renderLink('es-AR', '/card-prohibited-activities')
+        openHelp()
+        await screen.findByText('card-prohibited-activities article es-ar')
+        expect(screen.getByRole('article', { name: 'card-prohibited-activities es-ar' })).toHaveAttribute(
+            'lang',
+            'es-419'
+        )
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
+    })
+
+    it('renders a payload from before lang was recorded with no notice and no lang', async () => {
+        serve('card-terms-us', 'pt-br')
+        renderLink('pt-BR', '/card-terms-us')
+        openHelp()
+        await screen.findByText('card-terms-us article pt-br')
+        expect(screen.getByRole('article', { name: 'card-terms-us pt-br' })).not.toHaveAttribute('lang')
+        expect(screen.getByRole('heading', { name: 'card-terms-us pt-br' })).not.toHaveAttribute('lang')
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
     })
 
     it('leaves the full help center link available', () => {

@@ -5,6 +5,7 @@
  */
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import {
+    MASCOT_ANIMATION_LOADERS,
     MASCOT_ART_BOXES,
     MASCOT_ASPECT_CLASSES,
     MASCOT_ART_FILL,
@@ -58,6 +59,18 @@ describe('PeanutMascot', () => {
         expect(config.renderer).toBe('svg')
         expect(config.autoplay).toBe(false)
         expect(config.animationData).toBeDefined()
+    })
+
+    it('loads the juggling mascot and holds a still frame under reduced motion', async () => {
+        setReducedMotion(true)
+        const { unmount } = render(<PeanutMascot pose="juggling" />)
+        await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalled())
+        expect(mockLoadAnimation.mock.calls[0][0].animationData).toEqual(
+            require('@/assets/illustrations/lottie/mascot-juggle.json')
+        )
+        await waitFor(() => expect(mockAnimation.goToAndStop).toHaveBeenCalledWith(0, true))
+        unmount()
+        expect(mockAnimation.destroy).toHaveBeenCalled()
     })
 
     it('signals readiness only after the artwork DOM loads', async () => {
@@ -176,12 +189,13 @@ describe('MASCOT_ART_BOXES', () => {
     // The art boxes are measured against a fixed comp size that is duplicated in
     // MASCOT_CANVAS_WIDTH/HEIGHT. Re-export one rig at a different canvas size and every
     // placement using it silently mis-centres, with nothing else in the suite noticing.
-    it('matches the canvas every rig is actually authored on', () => {
+    it('matches the canvas every rig is actually authored on', async () => {
         const poses = Object.keys(MASCOT_ART_BOXES) as (keyof typeof MASCOT_ART_BOXES)[]
-        expect(poses).toHaveLength(10)
+        expect(poses.sort()).toEqual(Object.keys(MASCOT_ANIMATION_LOADERS).sort())
 
         for (const pose of poses) {
-            const comp = require(`@/assets/mascot/lottie/${pose}.json`)
+            const { default: data } = await MASCOT_ANIMATION_LOADERS[pose]()
+            const comp = data as { w: number; h: number }
             expect([pose, comp.w, comp.h]).toEqual([pose, MASCOT_CANVAS_WIDTH, MASCOT_CANVAS_HEIGHT])
 
             // The art box drives placement, so it has to be a real, positive box. It is

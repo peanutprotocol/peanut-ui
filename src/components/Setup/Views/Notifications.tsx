@@ -15,7 +15,7 @@ import { notificationsApi } from '@/services/notifications'
 
 export default function NotificationsStep() {
     const t = useTranslations('setup.notifications')
-    const { notificationChoices, setNotificationChoices } = useSetupFlowContext()
+    const { notificationChoices, setNotificationChoices, setIsLoading: setSetupLoading } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
     const { requestPermission, afterPermissionAttempt } = useNotifications()
     const [saving, setSaving] = useState(false)
@@ -25,6 +25,7 @@ export default function NotificationsStep() {
         if (savingRef.current) return
         savingRef.current = true
         setSaving(true)
+        setSetupLoading(true)
         setError(undefined)
         try {
             const preferenceAttempt = notificationsApi.savePreferences(notificationChoices).then(
@@ -53,6 +54,7 @@ export default function NotificationsStep() {
         } finally {
             savingRef.current = false
             setSaving(false)
+            setSetupLoading(false)
         }
     }
     return (

@@ -9,6 +9,8 @@ const mockHandleRegister = jest.fn()
 const mockApiFetch = jest.fn()
 const mockLogin = jest.fn()
 let mockAddress: string | undefined
+let mockNoBackLock: string | null = null
+const mockSetNoBackLock = jest.fn()
 const mockNext = jest.fn()
 let mockHandleNext = mockNext
 
@@ -18,7 +20,13 @@ jest.mock('@/hooks/useZeroDev', () => ({
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext }) }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'Android' }) }))
-jest.mock('@/features/setup/SetupFlowContext', () => ({ useSetupFlowContext: () => ({ username: 'kim' }) }))
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useSetupFlowContext: () => ({
+        username: 'kim',
+        noBackLockScreenId: mockNoBackLock,
+        setNoBackLockScreenId: mockSetNoBackLock,
+    }),
+}))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: async () => ({ isSupported: true }) }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
@@ -155,4 +163,21 @@ it('advances only once when the successful passkey screen exits', async () => {
     mockHandleNext = jest.fn()
     view.rerender(<SetupPasskey />)
     expect(mockHandleNext).not.toHaveBeenCalled()
+})
+
+it('returning from email continues without registering another passkey', async () => {
+    mockNoBackLock = 'passkey-permission'
+    mockHandleNext = mockNext
+    mockNext.mockClear()
+    mockHandleRegister.mockClear()
+    mockApiFetch.mockClear()
+    try {
+        renderWithIntl(<SetupPasskey />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockHandleRegister).not.toHaveBeenCalled()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+    } finally {
+        mockNoBackLock = null
+    }
 })

@@ -19,6 +19,7 @@ const STRINGS = {
     noResults: 'Nothing matches your search.',
     cantFind: 'Cannot find an answer?',
     cantFindDesc: 'Chat with us.',
+    inEnglish: 'En inglés',
 }
 
 describe('HelpLanding owner links', () => {
@@ -40,6 +41,7 @@ describe('HelpLanding owner links', () => {
                         title: 'Passkeys',
                         description: 'Passkey help',
                         category: 'Security',
+                        lang: 'es-419',
                     },
                     {
                         slug: 'mercadopago-qr',
@@ -47,9 +49,11 @@ describe('HelpLanding owner links', () => {
                         title: 'Mercado Pago QR',
                         description: 'QR help',
                         category: 'Payments',
+                        lang: 'es-ar',
                     },
                 ]}
                 categories={['Security', 'Payments']}
+                locale="es-ar"
                 strings={STRINGS}
             />
         )
@@ -64,7 +68,7 @@ describe('HelpLanding owner links', () => {
         'keeps support instructions hidden until browser context is known (native: %s)',
         (native) => {
             jest.mocked(isNativeHelpContext).mockReturnValue(native)
-            const page = <HelpLanding articles={[]} categories={[]} strings={STRINGS} />
+            const page = <HelpLanding articles={[]} categories={[]} locale="en" strings={STRINGS} />
             const html = renderToString(<IntlWrapper>{page}</IntlWrapper>)
             // Static HTML can be visible for seconds before mobile JS hydrates.
             expect(html).not.toContain(STRINGS.cantFindDesc)
@@ -81,7 +85,7 @@ describe('HelpLanding owner links', () => {
         jest.mocked(isNativeHelpContext).mockReturnValue(true)
         mockSearchParams = new URLSearchParams('chat=open')
         window.$crisp = []
-        renderWithIntl(<HelpLanding articles={[]} categories={[]} strings={STRINGS} />)
+        renderWithIntl(<HelpLanding articles={[]} categories={[]} locale="en" strings={STRINGS} />)
         act(() => jest.advanceTimersByTime(200))
         expect(window.$crisp).toEqual([
             ['do', 'chat:show'],

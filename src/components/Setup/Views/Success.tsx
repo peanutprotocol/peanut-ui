@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { isDemoMode } from '@/utils/demo'
 import { useTranslations } from 'next-intl'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -8,14 +10,20 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { notifyHaptic } from '@/utils/haptics'
-import CelebrationCurtain from '../components/CelebrationCurtain'
+import { confettiPresets } from '@/utils/confetti'
 
 /** Full-page celebration with centered content and the shared mascot/confetti. */
 export function SetupCelebrationView() {
     const t = useTranslations('setup')
+    const celebrated = useRef(false)
+    useEffect(() => {
+        if (celebrated.current) return
+        celebrated.current = true
+        confettiPresets.success()
+    }, [])
+
     return (
         <PageStack className="flex-1" data-setup-celebration>
-            <CelebrationCurtain />
             <PageStack.Center className="relative z-10 items-center text-center">
                 <PeanutMascot pose="cheering" alt="" className="h-52 w-auto" />
                 <TitleBlock align="center" size="s" title={<h1>{t('steps.success.title')}</h1>}>
@@ -30,6 +38,7 @@ export function SetupCelebrationView() {
 
 export default function SuccessStep() {
     const { signupCompleted } = useSetupFlowContext()
+    const router = useRouter()
     const { handleRedirect } = useAccountSetup()
     const redirect = useRef(handleRedirect)
     redirect.current = handleRedirect
@@ -44,10 +53,12 @@ export default function SuccessStep() {
         const timer = setTimeout(() => {
             if (redirecting.current) return
             redirecting.current = true
-            redirect.current({ isNewAccount: true })
+            // Demo always opens the walkthrough home, even when signup came from a deep link.
+            if (isDemoMode()) router.replace('/home')
+            else redirect.current({ isNewAccount: true })
         }, 4500)
         return () => clearTimeout(timer)
-    }, [signupCompleted])
+    }, [signupCompleted, router])
     if (!signupCompleted) return null
     return <SetupCelebrationView />
 }

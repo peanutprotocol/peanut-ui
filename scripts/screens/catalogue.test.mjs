@@ -16,6 +16,22 @@ const screens = JSON.parse(
     )
 )
 
+test('open selectors are separate checkpoints and require a visible selected option', () => {
+    for (const id of [
+        'p73-token-selector-drawer',
+        'p74-network-selector-drawer',
+        'p75-residence-country-dropdown',
+        'p76-exchange-currency-dropdown',
+        'p77-base-select-dropdown',
+    ]) {
+        const screen = screens.find((screen) => screen.id === id)
+        assert.ok(screen?.actions.length)
+        assert.match(screen.expectSelector, /\[aria-selected="true"\]/)
+    }
+    for (const screen of screens.filter((screen) => /Drawer\b/.test(screen.name) || screen.route.includes('drawer=')))
+        assert.match(screen.expectSelector, /\[role="dialog"\]/)
+})
+
 test('the actual screen catalogue produces valid capture manifests in every locale', () => {
     for (const locale of ['en', 'es-419', 'es-AR', 'pt-BR']) {
         const manifest = validateCapture({
@@ -53,9 +69,9 @@ test('account setup keeps distinct integer steps in the intended journey order',
             '04-b-advantage-fees',
             '03-a-residence-select',
             '03-c-residence-congrats',
-            '03-b-advantage-bank',
+            '03-h-funding-methods',
             '03-f-advantage-exchange',
-            '03-d-funding-methods',
+            '03-i-payment-methods',
             '02-b-advantage-card',
             '03-e-advantage-local',
             '03-g-advantage-people',

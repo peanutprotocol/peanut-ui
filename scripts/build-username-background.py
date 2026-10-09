@@ -26,23 +26,23 @@ at_path = {"v": [[17,-17],[17,8],[27,17],[39,-3],[0,-40],[-39,-3],[-27,30],[18,3
 ink = [0, 0, 0, 1]
 pink = [232 / 255, 130 / 255, 208 / 255, 1]
 transform = {"ty": "tr", "p": prop([0,0]), "a": prop([0,0]), "s": prop([100,100]), "r": prop(0), "o": prop(100)}
-stroke = {"ty": "st", "c": prop(ink), "o": prop(100), "w": prop(8.3), "lc": 2, "lj": 2}
+stroke = {"ty": "st", "c": prop(ink), "o": prop(100), "w": prop(5.15), "lc": 2, "lj": 2}
 shapes = [
     {"ty": "gr", "it": [
         {"ty": "el", "p": prop([-2,0]), "s": prop([27,34]), "d": 1},
         stroke, {"ty": "fl", "c": prop(pink), "o": prop(100), "r": 1}, transform]},
     {"ty": "gr", "it": [{"ty": "sh", "ks": prop(at_path)}, stroke, transform]},
 ]
-# 20-second seamless loop; only 12px of travel at a 390px mobile viewport.
+# 5-second seamless loop; only 12px of travel at a 390px mobile viewport.
 placements = [(150,330,28,-30,-8), (900,405,-25,34,7), (155,780,24,28,6), (880,825,-26,-30,-7)]
 layers = []
 for index, (x,y,dx,dy,rotation) in enumerate(placements):
     layers.append({"ty": 4, "nm": "Floating @ " + str(index + 1), "ind": index + 1,
-                   "ddd": 0, "sr": 1, "ip": 0, "op": 600, "st": 0,
-                   "ks": {"p": motion([(0,[x,y,0]), (300,[x+dx,y+dy,0]), (600,[x,y,0])]),
+                   "ddd": 0, "sr": 1, "ip": 0, "op": 150, "st": 0,
+                   "ks": {"p": motion([(0,[x,y,0]), (75,[x+dx,y+dy,0]), (150,[x,y,0])]),
                           "a": prop([0,0,0]), "s": prop([150,150,100]),
-                          "r": motion([(0,[rotation]), (300,[-rotation]), (600,[rotation])]), "o": prop(70)},
+                          "r": motion([(0,[rotation]), (75,[-rotation]), (150,[rotation])]), "o": prop(70)},
                    "shapes": shapes})
-asset = {"v": "5.13.0", "fr": 30, "ip": 0, "op": 600, "w": 1050, "h": 1000,
+asset = {"v": "5.13.0", "fr": 30, "ip": 0, "op": 150, "w": 1050, "h": 1000,
          "nm": "Peanut username — floating @ signs", "ddd": 0, "assets": [], "layers": layers, "markers": []}
 Path('src/assets/onboarding/username-at.json').write_text(json.dumps(asset, separators=(',', ':')) + '\n')

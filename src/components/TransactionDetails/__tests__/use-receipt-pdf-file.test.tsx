@@ -4,7 +4,13 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { useReceiptPdfFile } from '../useReceiptPdfFile'
 import { isCapacitor } from '@/utils/capacitor'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
+import { NativeReceiptShareUnavailable, shareNativeReceipt } from '@/utils/native-receipt-share'
 import { CapacitorHttp } from '@capacitor/core'
+
+jest.mock('@/utils/native-receipt-share', () => ({
+    NativeReceiptShareUnavailable: class extends Error {},
+    shareNativeReceipt: jest.fn().mockResolvedValue(undefined),
+}))
 
 const mockToastError = jest.fn()
 const mockToastInfo = jest.fn()
@@ -303,5 +309,63 @@ describe('useReceiptPdfFile — receipt freshness', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'download' }))
         await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'amount-12.pdf'))
+    })
+})
+
+describe('native receipt delivery', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsCapacitor.mockReturnValue(true)
+        mockNativeRequest.mockResolvedValue({ status: 200, data: btoa('%PDF-native'), headers: {} })
+        ;(shareNativeReceipt as jest.Mock).mockResolvedValue(undefined)
+        Object.assign(navigator, { share: jest.fn(), canShare: () => false })
+    })
+    afterEach(() => Object.assign(navigator, { share: undefined, canShare: undefined }))
+
+    test.each(['share', 'download'])(
+        '%s opens the native file sheet even without browser file sharing',
+        async (action) => {
+            renderHarness({ entryId: 'native', kind: 'DIRECT_TRANSFER' })
+            const button = screen.getByRole('button', { name: action })
+            await waitFor(() => expect(button).toBeEnabled())
+            fireEvent.click(button)
+            await waitFor(() =>
+                expect(shareNativeReceipt).toHaveBeenCalledWith(
+                    expect.any(Blob),
+                    'peanut-receipt-native.pdf',
+                    expect.any(String),
+                    expect.any(Function)
+                )
+            )
+            expect(navigator.share).not.toHaveBeenCalled()
+            expect(mockDownloadBlob).not.toHaveBeenCalled()
+            expect(mockToastInfo).not.toHaveBeenCalled()
+        }
+    )
+
+    test('an old binary tells the user to update and never claims a file was downloaded', async () => {
+        ;(shareNativeReceipt as jest.Mock).mockRejectedValue(new NativeReceiptShareUnavailable())
+        renderHarness({ entryId: 'native', kind: 'DIRECT_TRANSFER' })
+        const button = screen.getByRole('button', { name: 'share' })
+        await waitFor(() => expect(button).toBeEnabled())
+        fireEvent.click(button)
+        await waitFor(() =>
+            expect(mockToastError).toHaveBeenCalledWith(
+                'Receipt sharing is unavailable in this version of Peanut. Update the app and try again.'
+            )
+        )
+        expect(mockDownloadBlob).not.toHaveBeenCalled()
+        expect(mockToastInfo).not.toHaveBeenCalled()
+    })
+
+    test('a real delivery failure does not ask users with the new bridge to update', async () => {
+        ;(shareNativeReceipt as jest.Mock).mockRejectedValue(new Error('chooser failed'))
+        renderHarness({ entryId: 'native', kind: 'DIRECT_TRANSFER' })
+        const button = screen.getByRole('button', { name: 'share' })
+        await waitFor(() => expect(button).toBeEnabled())
+        fireEvent.click(button)
+        await waitFor(() =>
+            expect(mockToastError).toHaveBeenCalledWith('Unable to share the receipt. Please try again.')
+        )
     })
 })

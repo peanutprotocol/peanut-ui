@@ -3,25 +3,22 @@ import { filterSetupStepsForResidence, setupFeatureScreensForResidence } from '.
 
 const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
 it.each([
-    ['PT', ['advantage-bank', 'advantage-card']],
-    ['AR', ['advantage-bank', 'advantage-local']],
-    ['BR', ['advantage-bank', 'advantage-local']],
-    [' ar ', ['advantage-bank', 'advantage-local']],
-    ['IN', ['advantage-bank', 'advantage-exchange']],
+    ['PT', ['advantage-card']],
+    ['AR', ['advantage-local']],
+    ['BR', ['advantage-local']],
+    [' ar ', ['advantage-local']],
+    ['IN', ['advantage-exchange']],
     ['JP', ['advantage-exchange', 'advantage-card']],
     ['RU', ['advantage-exchange', 'advantage-people']],
     ['', ['advantage-exchange', 'advantage-people']],
-])('keeps exactly two ordered feature screens for %s', (residence, expected) => {
+])('keeps the remaining ordered feature screens for %s', (residence, expected) => {
     expect(setupFeatureScreensForResidence(restrictions, residence as string)).toEqual(expected)
     const ids = filterSetupStepsForResidence(setupSteps, restrictions, residence as string).map((step) => step.screenId)
-    expect(ids.slice(ids.indexOf('residence') + 1, ids.indexOf('funding-methods') + 2)).toEqual([
-        expected[0],
-        'funding-methods',
-        expected[1],
-    ])
+    expect(ids.slice(ids.indexOf('residence') + 1, ids.indexOf('passkey-permission'))).toEqual(expected)
+    expect(ids).not.toContain('advantage-bank')
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).not.toContain('sign-test-transaction')
-    expect(setupSteps.find((step) => step.screenId === 'advantage-control')?.showBackButton).toBe(false)
+    expect(setupSteps.find((step) => step.screenId === 'advantage-control')?.showBackButton).toBe(true)
 })
 it('replaces a restricted bank slot with a backup even for Argentina and Brazil', () => {
     const sets = { ...restrictions, bankingOnly: new Set(['AR', 'BR']) }

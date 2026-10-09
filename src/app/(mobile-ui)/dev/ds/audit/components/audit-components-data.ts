@@ -596,7 +596,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 usedIn: [
                     'components/Home/HomeHistory.tsx',
                     'components/Common/CountryList.tsx',
-                    'components/Settings/LanguageView.tsx',
+                    'components/Global/LanguageList.tsx',
                     'features/limits/views/LimitsPageView.tsx',
                     'features/home/components/HomeActionDrawers.tsx',
                 ],
