@@ -961,8 +961,41 @@ and provide these additional secrets:
 
 The workflow decodes both profiles, verifies the entitlement, embeds both
 extensions, and checks the exported IPA before TestFlight upload. Until those
-profiles exist, the PostHog `push-provisioning` flag must remain off; a merged
+profiles exist, the PostHog `push-provisioning-apple` flag must remain off; a merged
 PR alone cannot make Apple Wallet accept a card.
+
+### Platform rollout flags
+
+`push-provisioning-apple` and `push-provisioning-google` are independent PostHog
+flags. Both default off, including outside production. The retired
+`push-provisioning` flag no longer enables either platform in this app bundle.
+Apple Wallet metadata and authorization grants use only the Apple flag.
+Keep the retired shared flag off for older app bundles.
+
+Android provisioning uses `push-provisioning-google` plus native SDK availability.
+The official localized Google Wallet button starts this flow; unavailable binaries
+and disabled flags retain the manual carousel. Apple extension grants and metadata
+remain iOS-only. Both flags must stay off while approval is pending.
+Complete these checks before enabling an approved test cohort:
+
+1. Submit the supplied localized Add to Google Wallet control and flow for Google's
+   UX/branding review. Confirm issuer/TSP onboarding and approval
+   for `me.peanut.wallet` and the Play app-signing certificate.
+2. Confirm with Rain and MeaWallet that the Android `GooglePay.pushCard` flow
+   is approved for this program. The bridge currently uses that legacy flow;
+   do not replace it with `push` without confirming provider support for
+   Unified Push Provisioning.
+3. Verify the deployed API routes and `WALLET_PROVISIONING_ENABLED=true` in
+   the exact environment. This server kill switch applies to both wallets;
+   the PostHog flags control app presentation, not credential authorization.
+4. Install the signed Play internal build with the MeaWallet SDK and production
+   `mea_config`. Verify the bridge class, its Capacitor annotation, and config
+   survive R8 and resource shrinking.
+5. Test on a supported physical device: a new card, existing token, pending
+   identity verification, cancellation, missing billing, and callback recovery.
+
+Apple entitlement approval is independent of these Google checks. Enabling
+the Google app flag does not enable Apple Wallet extensions.
 
 After both store builds succeed, App Release Android & iOS writes a compiled-capability
 attestation into the annotated release tag. OTA checks that attestation in

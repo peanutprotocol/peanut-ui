@@ -29,3 +29,6 @@ scripts/backdoor-scan.mjs
 
 # Google Fonts responses stored as served; next/font reads them as its own fetch.
 scripts/next-font-google/css/
+
+# Official Google Wallet artwork; retain the downloaded SVG files unchanged.
+public/wallet/google/*.svg

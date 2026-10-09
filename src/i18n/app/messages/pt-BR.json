@@ -1771,7 +1771,8 @@
         },
         "yourCard": {
             "navTitle": "Cartão",
-            "addToGoogleWallet": "Adicionar à Google Wallet",
+            "addToGoogleWallet": "Adicionar a Carteira do Google",
+            "addedToGoogleWallet": "Adicionado à Carteira do Google",
             "addToAppleWallet": "Adicionar à Apple Wallet",
             "walletAddSuccess": "Cartão adicionado à carteira",
             "walletAddFailed": "Não foi possível adicionar o cartão à sua carteira. Tente novamente.",
