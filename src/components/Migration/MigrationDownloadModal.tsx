@@ -5,14 +5,9 @@ import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import DownloadQR from '@/components/Migration/DownloadQR'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import {
-    DOWNLOAD_PROMPT_SNOOZE_DAYS,
-    MIGRATION_SURFACES,
-    MIGRATION_URGENCY_THRESHOLD_DAYS,
-    STORE_NAME,
-} from '@/constants/migration.consts'
-import { getMigrationCutoverTime, openStore } from '@/utils/migration.utils'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { DOWNLOAD_PROMPT_SNOOZE_DAYS, MIGRATION_SURFACES, STORE_NAME } from '@/constants/migration.consts'
+import { openStore, storeForDevice, storeIcon } from '@/utils/migration.utils'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
@@ -22,20 +17,20 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
 const SNOOZE_MS = DOWNLOAD_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
 /**
- * Post-login "Peanut is becoming an app" prompt (TASK-20826), shown on the
- * web app during the migration notice window (flag on, cutover not reached).
+ * Post-login "The Peanut app is here" prompt (TASK-20826), shown on the web
+ * app while the pwa-sunset flag is on. The web app stays available, so the
+ * prompt has no deadline and "Maybe later" snoozes it.
  * Self-gating; reports visibility so home can suppress lower-priority modals.
  */
 export default function MigrationDownloadModal({
     onVisibilityChange,
-    forceVariant,
+    forceVisible,
 }: {
     onVisibilityChange?: (visible: boolean) => void
-    /** Dev-surface override: render this variant unconditionally so the shot
-     *  harness can photograph a sheet that otherwise gates itself on the
-     *  PostHog flag, the cutover clock and the stored snooze. Never set in
-     *  production code. */
-    forceVariant?: 'early' | 'urgent'
+    /** Dev-surface override: render unconditionally so the shot harness can
+     *  photograph a sheet that otherwise gates itself on the PostHog flag and
+     *  the stored snooze. Never set in production code. */
+    forceVisible?: boolean
 }) {
     const t = useTranslations('migration')
     const migrationOn = useMigrationFlag()
@@ -73,7 +68,7 @@ export default function MigrationDownloadModal({
     const visibleFor = useRef<string | null>(null)
 
     useEffect(() => {
-        if (forceVariant) {
+        if (forceVisible) {
             setVisible(true)
             return
         }
@@ -81,9 +76,9 @@ export default function MigrationDownloadModal({
             setVisible(false)
             return
         }
-        // sunset block owns post-cutover; every ineligible path clears state so
-        // an already-shown modal disappears if the flag flips off mid-session
-        if (!migrationOn || !userId || isCapacitor() || Date.now() >= getMigrationCutoverTime()) {
+        // every ineligible path clears state so an already-shown modal
+        // disappears if the flag flips off mid-session
+        if (!migrationOn || !userId || isCapacitor()) {
             setVisible(false)
             return
         }
@@ -95,12 +90,12 @@ export default function MigrationDownloadModal({
         visibleFor.current = userId
         setVisible(true)
         posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD })
-    }, [migrationOn, userId, forceVariant, legalBlocking])
+    }, [migrationOn, userId, forceVisible, legalBlocking])
 
     // the committed visibility: the stored decision, only while it still
     // belongs to the current account and legal is not blocking it
     const renderVisible =
-        !!forceVariant ||
+        !!forceVisible ||
         (visible &&
             visibleFor.current === (userId ?? null) &&
             !legalBlocking &&
@@ -116,46 +111,35 @@ export default function MigrationDownloadModal({
         posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD })
     }
 
-    const daysLeft = Math.max(1, Math.ceil((getMigrationCutoverTime() - Date.now()) / (24 * 60 * 60 * 1000)))
-    const isDesktop = deviceType === DeviceType.WEB
-    const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
-
-    // two-phase copy: celebrate the app while the cutover is far, switch to
-    // friendly urgency (deadline in the copy) for the final stretch
-    const isUrgent = forceVariant ? forceVariant === 'urgent' : daysLeft <= MIGRATION_URGENCY_THRESHOLD_DAYS
+    const store = storeForDevice(deviceType)
 
     // a defer action: the tertiary link on every device (ruled 2026-09-25,
     // hugo — reverses the 2026-09-10 ghost/secondary split)
     const remindLaterCta = {
-        text: t(isUrgent ? 'downloadPrompt.remindLater' : 'downloadPrompt.maybeLater'),
+        text: t('downloadPrompt.maybeLater'),
         onClick: snooze,
     }
 
-    // both variants are modals (ruled 2026-09-10, kush): the download prompt is
-    // urgent and demands attention for its whole window, not just the final
-    // fortnight — the two-phase split only changes the copy
     return (
         <ActionModal
             visible={renderVisible}
             onClose={snooze}
             tone="peanut"
             icon="mobile-install"
-            title={t(isUrgent ? 'downloadPrompt.title' : 'downloadPrompt.earlyTitle')}
-            description={
-                isUrgent ? t('downloadPrompt.description', { days: daysLeft }) : t('downloadPrompt.earlyDescription')
-            }
-            content={isDesktop ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
+            title={t('downloadPrompt.earlyTitle')}
+            description={t('downloadPrompt.earlyDescription')}
+            content={!store ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
             ctaClassName="md:flex-col gap-4"
             tertiaryCta={remindLaterCta}
             ctas={
-                isDesktop
+                !store
                     ? undefined
                     : [
                           {
                               text: STORE_NAME[store],
                               variant: 'primary',
                               shadowSize: '4',
-                              icon: store === 'ios' ? ('apple-logo' as const) : ('google-play' as const),
+                              icon: storeIcon(store),
                               onClick: () => {
                                   posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
                                       modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD,

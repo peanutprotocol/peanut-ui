@@ -6,7 +6,11 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web', IOS: 'ios', ANDROID: 'android' },
     useDeviceType: () => ({ deviceType: 'web' }),
 }))
-jest.mock('@/utils/migration.utils', () => ({ trackStoreClick: jest.fn() }))
+jest.mock('@/utils/migration.utils', () => ({
+    trackStoreClick: jest.fn(),
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
+}))
 jest.mock('@/utils/deferred-link', () => ({
     copyIOSHandoff: jest.fn(),
     trackDeferredHandoffCreated: jest.fn(),

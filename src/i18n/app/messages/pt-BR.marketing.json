@@ -126,19 +126,15 @@
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
             "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
-            "maybeLater": "Baixo depois",
-            "title": "O Peanut vai ser só app",
-            "description": "Em {days, plural, one {# dia} other {# dias}} o Peanut se muda por completo para o app. Baixe agora e continue de onde parou. Sua conta e seu dinheiro se mudam com você automaticamente.",
-            "remindLater": "Lembrar depois"
+            "maybeLater": "Baixo depois"
         },
         "sunset": {
-            "heading": "O Peanut agora é só app",
-            "sub": "Baixe o app e continue de onde parou. Sua conta e seu dinheiro já estão lá esperando por você.",
             "supportLink": "Problemas para baixar o app? Fale com nosso suporte"
         },
         "qr": {
             "title": "Baixe o app do Peanut",
-            "scanHint": "Escaneie com a câmera do seu celular para baixar."
+            "scanHint": "Escaneie com a câmera do seu celular para baixar.",
+            "logIn": "Entrar pela web"
         },
         "banner": {
             "title": "O app do Peanut chegou!",

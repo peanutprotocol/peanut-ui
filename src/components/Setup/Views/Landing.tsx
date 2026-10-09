@@ -13,7 +13,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
-import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
+import { LINK_BUTTON_CLASSES, LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -30,10 +30,9 @@ const LandingStep = () => {
     const hasKeepWebBypass = useKeepWebBypass()
     const { deviceType } = useDeviceType()
 
-    // migration notice window on web (any device): NEW signups are closed —
-    // don't onboard users into a product that shuts in weeks; the app is the
-    // path. Existing users keep Log In until the cutover. Native app and
-    // keep-web bypass users see the normal card.
+    // pwa-sunset on web (any device): NEW signups are app-only, so the app
+    // download leads and Log In drops to a text link for existing accounts.
+    // Native app and keep-web bypass users see the normal card.
     const blockSignup = migrationOn && !isCapacitor() && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
@@ -67,41 +66,53 @@ const LandingStep = () => {
     return (
         <div className="flex flex-col gap-6">
             {blockSignup ? (
-                <div className="space-y-2 pb-2">
-                    {/* heading only above the desktop QR — a lone store button
+                <>
+                    <div className="space-y-2 pb-2">
+                        {/* heading only above the desktop QR — a lone store button
                             explains itself */}
-                    {deviceType === DeviceType.WEB && (
-                        <p className="text-center text-label-l text-foreground-primary">{tMigration('banner.title')}</p>
-                    )}
-                    <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
-                </div>
+                        {deviceType === DeviceType.WEB && (
+                            <p className="text-center text-label-l text-foreground-primary">
+                                {tMigration('banner.title')}
+                            </p>
+                        )}
+                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                    </div>
+                    <div className="text-center">
+                        <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
+                            {tMigration('qr.logIn')}
+                        </LinkButton>
+                    </div>
+                </>
             ) : (
-                <Button
-                    shadowSize="4"
-                    // native only: mid-ceremony Sign Up taps flashed the next setup
-                    // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
-                    // pend minutes — Sign Up must stay an escape hatch there, and a
-                    // mid-ceremony register fails cleanly as CeremonyConflictError.
-                    disabled={isLoggingIn && isCapacitor()}
-                    onClick={() => {
-                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
-                        handleNext()
-                    }}
-                >
-                    {t('landing.signUp')}
-                </Button>
+                <>
+                    <Button
+                        shadowSize="4"
+                        // native only: mid-ceremony Sign Up taps flashed the next setup
+                        // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
+                        // pend minutes — Sign Up must stay an escape hatch there, and a
+                        // mid-ceremony register fails cleanly as CeremonyConflictError.
+                        disabled={isLoggingIn && isCapacitor()}
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+                            handleNext()
+                        }}
+                    >
+                        {t('landing.signUp')}
+                    </Button>
+                    <Divider text={tCommon('or')} />
+                    <Button
+                        loading={isLoggingIn}
+                        shadowSize="4"
+                        disabled={isLoggingIn}
+                        variant="secondary"
+                        onClick={onLoginClick}
+                    >
+                        {t('logIn')}
+                    </Button>
+                </>
             )}
-            <Divider text={tCommon('or')} />
-            <Button
-                loading={isLoggingIn}
-                shadowSize="4"
-                disabled={isLoggingIn}
-                variant="secondary"
-                onClick={onLoginClick}
-            >
-                {t('logIn')}
-            </Button>
-            <div className="text-center">
+            {/* pt-1: two stacked text links need ~28px between their hit areas */}
+            <div className={blockSignup ? 'pt-1 text-center' : 'text-center'}>
                 <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
                     <Icon name="info" size={16} className="shrink-0" />
                     {t('landing.recoverWallet')}

@@ -1,22 +1,21 @@
 /** @jest-environment jsdom */
 /**
- * MigrationDownloadModal — the pwa-sunset "Peanut is becoming an app" prompt.
+ * MigrationDownloadModal — the pwa-sunset "The Peanut app is here" prompt.
  *
- * Gating contract: flag ON + logged-in web user + before the cutover + snooze
- * expired. Flag OFF (today's default) must render nothing — the key
- * flag-off-regression check for the migration PR.
+ * Gating contract: flag ON + logged-in web user + snooze expired. Flag OFF
+ * must render nothing. The web app stays available, so there is no deadline.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { DOWNLOAD_PROMPT_SNOOZE_DAYS, MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
+import { DOWNLOAD_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
-// freeze "now" 30 days before the cutover so the notice-window cases don't
-// start failing once the real calendar passes MIGRATION_CUTOVER_DATE
+// the day the old date-based web shutdown went live by mistake: the prompt
+// must still show, with no deadline in its copy
 const DAY_MS = 24 * 60 * 60 * 1000
-const FROZEN_NOW = MIGRATION_CUTOVER_DATE.getTime() - 30 * DAY_MS
+const FROZEN_NOW = new Date('2026-10-09T12:00:00Z').getTime()
 
 let mockFlagOn = false
 jest.mock('@/hooks/useMigrationFlag', () => ({
@@ -64,7 +63,7 @@ describe('MigrationDownloadModal', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('shows for a logged-in web user during the notice window', () => {
+    it('shows for a logged-in web user', () => {
         mockFlagOn = true
         render(<MigrationDownloadModal />)
         expect(screen.getByRole('dialog')).toBeInTheDocument()
@@ -90,11 +89,11 @@ describe('MigrationDownloadModal', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    it('stays hidden past the cutover (the sunset block owns that state)', () => {
+    it('shows the app copy with no deadline', () => {
         mockFlagOn = true
-        nowSpy.mockReturnValue(MIGRATION_CUTOVER_DATE.getTime() + 1000)
         render(<MigrationDownloadModal />)
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(screen.getByText('The Peanut app is here!')).toBeInTheDocument()
+        expect(screen.queryByText(/\bdays?\b/i)).not.toBeInTheDocument()
     })
 
     it('remind-me-later snoozes and reports visibility', async () => {

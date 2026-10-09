@@ -34,10 +34,6 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
-import SunsetScreen from '@/components/Migration/SunsetScreen'
-import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 
 /**
  * How long the protected auth gate may show the mascot before it gives up.
@@ -73,8 +69,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const migrationOn = useMigrationFlag()
-    const hasKeepWebBypass = useKeepWebBypass()
 
     // detect online/offline status for full-page offline screen
     const { isOnline, isInitialized } = useNetworkStatus()
@@ -210,12 +204,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 </div>
             )
         }
-    }
-
-    // Past the cutover, the web app is switched off and the native app is the
-    // only way forward. The keep-web cookie bypasses this for public guest links.
-    if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass, isPublic: isPublicPath })) {
-        return <SunsetScreen />
     }
 
     return (

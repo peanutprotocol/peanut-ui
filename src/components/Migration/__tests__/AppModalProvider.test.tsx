@@ -13,6 +13,8 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     useDeviceType: () => ({ deviceType: mockDeviceType() }),
 }))
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     openStore: (...args: unknown[]) => mockOpenStore(...args),
 }))
 jest.mock('@/components/Migration/ScanToDownloadModal', () => ({

@@ -360,7 +360,6 @@ export const ANALYTICS_EVENTS = {
     // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
     // `store` ∈ 'ios' | 'android'. qr_shown fires once per QR display (the
     // smart QR serves both stores, so it has no store dimension).
-    MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
     // guest Join/Continue-with-Peanut CTA rendered to a logged-out web
     // visitor during the window — the impression leg of the guest funnel
     MIGRATION_GUEST_CTA_SHOWN: 'migration_guest_cta_shown',
