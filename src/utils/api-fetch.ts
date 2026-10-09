@@ -29,10 +29,8 @@ type FetchOptions = RequestInit & {
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {
-    // Native-only demo mode: route to synthetic data before any header/network
-    // work. isDemoMode() is false on web, so this is unreachable for real users.
-    // Lazy import keeps the demo module (and its viem-using fixtures) out of the
-    // web bundle and out of every api-fetch importer's module graph.
+    // Explicit demo sessions route to synthetic data before any auth/network work.
+    // Lazy import keeps the fixtures out of the initial bundle.
     if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))
 
     // Dev fixtures: `?__fixture=<name>` answers every call from a named app
@@ -113,6 +111,12 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     }
 }
 
+// A slow API makes every request a problem event, and that flood is what
+// fills the posthog-js client rate limiter. 20 per page load is enough to see
+// that the API is slow and on which routes.
+const API_PROBLEM_EVENT_LIMIT = 20
+let apiProblemEventCount = 0
+
 interface ApiTimingInput {
     route: string
     method: string
@@ -161,6 +165,8 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
     }
 
     if (error || (statusCode !== undefined && statusCode >= 500) || durationMs >= API_SLOW_THRESHOLD_MS) {
+        if (apiProblemEventCount >= API_PROBLEM_EVENT_LIMIT) return
+        apiProblemEventCount++
         posthog.capture(ANALYTICS_EVENTS.API_REQUEST_PROBLEM, {
             ...properties,
             problem:

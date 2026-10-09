@@ -114,6 +114,7 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             // break the socket for every user the moment the policy is enforced.
             'wss://api.peanut.me',
             'wss://*.peanut.me',
+            'https://peanut-notes.s3.eu-north-1.amazonaws.com',
             'https://*.ingest.sentry.io',
             'https://*.ingest.us.sentry.io',
             // Wildcarded because GA4 shards collection by region: EU traffic
@@ -317,6 +318,12 @@ let nextConfig = {
     // file tracer — include them for the deployed serverless function.
     outputFileTracingIncludes: {
         '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
+    },
+
+    // Dynamic content reads can trace the submodule's .git metadata. Vercel
+    // CLI 62.4.0 rejects it in prebuilt functions; cover both files and folders.
+    outputFileTracingExcludes: {
+        '/*': ['**/.git', '**/.git/**'],
     },
 
     // Experimental features for optimization
@@ -552,6 +559,11 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
+            // layout.tsx registers the worker itself, web-only and inside a try/catch.
+            // Serwist's own auto-register has no error handling: every crawler or
+            // headless browser that refuses a worker became an unhandled rejection
+            // (PEANUT-UI-P51, SQ8, NPK, Q7X, SKX — ~2.5k events in 30 days).
+            register: false,
             // explicitly include offline screen assets in precache
             additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
         })

@@ -1,5 +1,5 @@
 // Client-side demo API router. Reached only from callApi (api-fetch.ts) when
-// isDemoMode() is true — native-only, gated, never runs on web. Returns synthetic
+// isDemoMode() is true after explicit entry on web or native. Returns synthetic
 // data so every screen loads with no JWT and no network. Pure: no writes, no
 // side-effects, no real money can move (UserOps are hard-stopped elsewhere).
 

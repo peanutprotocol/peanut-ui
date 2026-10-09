@@ -1,8 +1,8 @@
 /**
  * Normalises a username into an invite code.
  *
- * Tolerates hand-typed input ("Who invited you?" asks for a username, so people
- * paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
+ * Tolerates copied profile handles (`@alice ` or ` Alice`): trims whitespace
+ * and strips a leading @.
  *
  * Kept in its own module because `demo.ts` needs only this helper, and
  * importing it from `general.utils` drags that module's chain/token metadata

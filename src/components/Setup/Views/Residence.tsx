@@ -1,48 +1,45 @@
-import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
+import SetupFooter from '../components/SetupFooter'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
+import PaymentPlan from './PaymentPlan'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
-import { useGeoLocation } from '@/hooks/useGeoLocation'
+import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
+import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { isValidEmail } from '@/utils/format.utils'
 import { residenceAvailability } from '@/utils/residence-availability'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
-type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
-type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
+type ResidenceView = 'select' | 'restricted' | 'partial' | 'congrats'
+type ResidenceStepProps = { initialView?: ResidenceView; handle?: string; entryDirection?: number }
 type PartialRestriction = 'card' | 'banking'
 
-const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
+const PAYMENT_PLAN_IMAGE = { animation: 'topup' } as const
+
+const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
         useSetupFlowContext()
-    const { handleNext, isLoading, direction } = useSetupFlow()
-    const { countryCode: geoCountryCode } = useGeoLocation()
+    const { handleNext, isLoading, direction: flowDirection } = useSetupFlow()
+    const direction = entryDirection ?? flowDirection
+    const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
-    const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
+    const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
 
-    // Stepping BACK into this step (from the passkey step) must land on the
-    // screen the user actually left: a restricted pick left from its heads-up,
-    // so re-derive that view from the stored country. The congrats view is not
-    // restored — it needs settled server data to be an honest claim, and the
-    // selector is the natural place to change the answer. Forward entry and
-    // deep links (direction 1 / 0) always start on the selector.
+    // Back must restore the plan for every residence, then a second Back
+    // returns to the selector. Forward entry still starts with the country.
     const [view, setView] = useState<ResidenceView>(() => {
         if (initialView) return initialView
         if (direction >= 0 || !residenceCountry) return 'select'
@@ -50,20 +47,17 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {
             return 'partial'
         }
-        return 'select'
+        return 'congrats'
     })
     useBackHandler(() => {
         if (!isLoading) setView('select')
         return true
     }, view !== 'select')
-    const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>(() =>
-        restrictionSets.bankingOnly.has(residenceCountry) ? 'banking' : 'card'
-    )
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
-    const [email, setEmail] = useState('')
-    const [emailError, setEmailError] = useState('')
+    const secondCountryId = useId()
     // whether the current selection came from the geo suggestion, untouched
     const wasPrefilledRef = useRef(false)
+    const prefillSourceRef = useRef<string | null>(null)
 
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
@@ -76,17 +70,19 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
 
     // The geo guess, only if it is actually offered in the list.
     const geoSuggestion = useMemo(() => {
-        if (!geoCountryCode) return undefined
-        const suggested = geoCountryCode.toUpperCase()
-        return countryOptions.some((option) => option.value === suggested) ? suggested : undefined
-    }, [geoCountryCode, countryOptions])
+        return setupCountrySuggestion(
+            countrySignals,
+            countryOptions.map((option) => option.value)
+        )
+    }, [countrySignals, countryOptions])
 
     // Geo is a suggestion only: preselect the dropdown when nothing is chosen
     // yet, never auto-advance, and never trigger the restricted screen from it.
     useEffect(() => {
         if (residenceCountry || !geoSuggestion) return
         wasPrefilledRef.current = true
-        setResidenceCountry(geoSuggestion)
+        prefillSourceRef.current = geoSuggestion.source
+        setResidenceCountry(geoSuggestion.country)
     }, [geoSuggestion, residenceCountry, setResidenceCountry])
 
     const onResidenceChange = (value: string) => {
@@ -103,7 +99,9 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             residence_country: primary,
             second_residence_country: second || undefined,
             was_prefilled: wasPrefilledRef.current,
-            geo_country: geoCountryCode?.toUpperCase() || undefined,
+            geo_country: countrySignals.ipCountry || undefined,
+            residence_prefill_source: wasPrefilledRef.current ? prefillSourceRef.current : null,
+            ...setupCountrySignalProperties(countrySignals),
         })
         if (restrictionSets.full.has(primary)) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
@@ -122,30 +120,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 residence_country: primary,
                 restriction_type: partial,
             })
-            setPartialRestriction(partial)
             setView('partial')
-            return
-        }
-        // The congrats claim is definitive, so it only renders from settled
-        // data: until the server lookup resolves (either way), advance
-        // silently rather than asserting "nothing is restricted" off the
-        // bundled mirror. Heads-ups still render from the mirror — they only
-        // ever over-warn.
-        if (!restrictionSetsSettled) {
-            void handleNext()
-            return
-        }
-        // "Nothing is restricted where you live" must hold for the whole
-        // declared residence set: a restricted second country just showed its
-        // limits on the compare cards, so the congrats claim would contradict
-        // them. Advance silently instead — the heads-ups stay primary-driven.
-        if (
-            second &&
-            (restrictionSets.full.has(second) ||
-                restrictionSets.cardOnly.has(second) ||
-                restrictionSets.bankingOnly.has(second))
-        ) {
-            void handleNext()
             return
         }
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, {
@@ -188,34 +163,10 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         void handleNext()
     }
 
-    const onNotifySubmit = () => {
-        if (!isValidEmail(email)) {
-            setEmailError(t('residenceStep.errors.invalidEmail'))
-            return
-        }
-        setEmailError('')
-        // No account exists yet, so the contact lives on the PostHog person
-        // until a pre-account waitlist endpoint exists.
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_NOTIFY_SUBMITTED, {
-            residence_country: residenceCountry,
-        })
-        posthog.setPersonProperties({
-            residence_notify_email: email,
-            residence_notify_country: residenceCountry,
-        })
-        setView('notify-done')
-    }
+    useSetupImageOverride(view !== 'select' ? PAYMENT_PLAN_IMAGE : null)
 
-    // celebration illustration for the "Good news" outcome only — the selector
-    // it shares a step with keeps the step's neutral greeting
-    useSetupImageOverride(useMemo(() => (view === 'congrats' ? { pose: 'cheering' as const } : null), [view]))
-
-    /* The tier sets render from the bundled mirror and are replaced by the
-       server-authoritative lists asynchronously. A congrats view reached
-       before that response must not outlive it: re-evaluate on every set
-       change and demote to the matching heads-up (or back to the selector
-       when the second residence turned out restricted). Heads-up views are
-       never demoted — over-warning is stale-safe. */
+    // Keep the analytics outcome aligned with updated server tiers. All
+    // outcomes share the same payment plan; its options re-derive from these sets.
     useEffect(() => {
         if (view !== 'congrats') return
         if (restrictionSets.full.has(residenceCountry)) {
@@ -235,191 +186,68 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 residence_country: residenceCountry,
                 restriction_type: partial,
             })
-            setPartialRestriction(partial)
             setView('partial')
             return
         }
-        const second = deriveResidenceRestrictionsFrom(restrictionSets, secondResidenceCountry)
-        if (second.banking || second.card) setView('select')
-    }, [restrictionSets, view, residenceCountry, secondResidenceCountry])
+    }, [restrictionSets, view, residenceCountry])
 
-    if (view === 'congrats') {
-        /* One paragraph, gates kept honest: dollars and @username sends need
-           no ID check; the bank rail unlocks with verification. The card IS
-           named here as of 2026-09-05 (slava's call, reversing the earlier
-           product direction that kept it unnamed in onboarding), and the
-           clause describes the identity verification needed to apply.
-
-           The clause carries no country framing, which is what Rain's
-           §7 forbids (content/_system/guidelines/partners/rain/marketing-compliance.md:
-           acceptance framing only, never availability or issuance keyed to a
-           place). Naming the card at all is still gated on the restriction
-           sets — a residence Rain prohibits, or GB, never reaches this branch.
-
-           The gate itself reads the KYC-time residence geo
-           (product/card.md), not the residence declared here, so a
-           declaration that does not survive verification can still be
-           refused later — which is why this sentence promises a process, not
-           an entitlement.
-
-           The rail phrase comes from the same per-country map the compare cards render and is
-           named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
-           the rest of the world the map falls back to 'bank', which here means
-           blockchain-only — so the ID-check clause is dropped entirely rather
-           than promising a rail verification cannot deliver. */
-        const availability = residenceAvailability(restrictionSets, residenceCountry)
-        const railItem = availability.available.find((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
-        // Read off the same restriction sets the compare cards use rather than
-        // trusting that reaching this view implies an unrestricted card: a
-        // routing change upstream must not turn this into a false claim.
-        const hasCard = availability.available.includes('card')
+    if (view !== 'select') {
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.congrats.title')}
-                    </h1>
-                    <p className="text-body-m text-foreground-secondary">
-                        {railItem
-                            ? t('residenceStep.congrats.description', {
-                                  rail: t(`residenceStep.congrats.rails.${railItem}`),
-                              })
-                            : t('residenceStep.congrats.descriptionNoRail')}
-                        {hasCard && ` ${t('residenceStep.congrats.cardClause')}`}
-                    </p>
-                </div>
-                <div className="flex w-full flex-col gap-4">
-                    <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
-                        {t('residenceStep.congrats.continue')}
-                    </Button>
-                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
-                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
-                        {t('residenceStep.restricted.changeCountry')}
-                    </LinkButton>
-                </div>
-            </div>
-        )
-    }
-
-    if (view === 'partial') {
-        return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.partial.title')}
-                    </h1>
-                    <p className="text-body-m text-foreground-secondary">
-                        {partialRestriction === 'card'
-                            ? t('residenceStep.partial.cardDescription')
-                            : t('residenceStep.partial.bankingDescription')}
-                    </p>
-                </div>
-                <div className="flex w-full flex-col gap-4">
-                    <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
-                        {t('residenceStep.partial.continue')}
-                    </Button>
-                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
-                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
-                        {t('residenceStep.restricted.changeCountry')}
-                    </LinkButton>
-                </div>
-            </div>
-        )
-    }
-
-    if (view === 'restricted' || view === 'notify' || view === 'notify-done') {
-        return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.restricted.title')}
-                    </h1>
-                    <p className="text-body-m text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
-                    {view === 'notify' && (
-                        <div className="mt-2 flex flex-col gap-2">
-                            <BaseInput
-                                type="email"
-                                inputMode="email"
-                                autoComplete="email"
-                                placeholder={t('residenceStep.restricted.emailPlaceholder')}
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                            {emailError && <FieldError>{emailError}</FieldError>}
-                        </div>
-                    )}
-                    {view === 'notify-done' && (
-                        <p className="text-label-l">{t('residenceStep.restricted.notifyDone')}</p>
-                    )}
-                </div>
-                <div className="flex w-full flex-col gap-4">
-                    {view === 'notify' ? (
-                        <Button shadowSize="4" onClick={onNotifySubmit}>
-                            {t('residenceStep.restricted.notifySubmit')}
-                        </Button>
-                    ) : (
-                        <Button shadowSize="4" onClick={onRestrictedContinue} loading={isLoading} disabled={isLoading}>
-                            {t('residenceStep.restricted.continueAnyway')}
-                        </Button>
-                    )}
-                    {view === 'restricted' && (
-                        <Button variant="secondary" onClick={() => setView('notify')}>
-                            {t('residenceStep.restricted.notifyMe')}
-                        </Button>
-                    )}
-                    {/* mt-2 on top of gap-4: 24px from the CTAs, the tertiary spacing floor */}
-                    <LinkButton className="mt-2 self-center" onClick={() => setView('select')} disabled={isLoading}>
-                        {t('residenceStep.restricted.changeCountry')}
-                    </LinkButton>
-                </div>
-            </div>
+            <PaymentPlan
+                onContinue={view === 'restricted' ? onRestrictedContinue : () => void handleNext()}
+                loading={isLoading}
+            >
+                <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
+                    {t('residenceStep.restricted.changeCountry')}
+                </LinkButton>
+            </PaymentPlan>
         )
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-between gap-6">
+        <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
             <div className="flex w-full flex-col gap-2">
-                {/* Rendered here, not by the step chrome, so the heads-up
+                {/* Rendered here, not by the step chrome, so the checklist
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
-                <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
-                <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
+                <h1 className="w-full text-left text-heading-s">{t('steps.residence.title')}</h1>
+                <p className="mb-6 text-body-m leading-[1.625rem] text-foreground-secondary">
+                    {t('steps.residence.description')}
+                </p>
                 <CountryCombobox
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
                     // Falls back to the suggestion for the one frame between
                     // mount and the effect below committing it, so the field
                     // opens already filled instead of visibly changing itself.
-                    value={residenceCountry || geoSuggestion}
+                    value={residenceCountry || geoSuggestion?.country}
                     onValueChange={onResidenceChange}
                     onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
                 />
-                <Accordion
-                    type="single"
-                    collapsible
-                    variant="link"
-                    value={showSecondCountry ? 'second-country' : ''}
-                    onValueChange={(value) => {
-                        // Collapsing must also clear the stored pick — an
-                        // invisible second residence would still be sent to
-                        // analytics and persisted after signup.
-                        if (!value && secondResidenceCountry) setSecondResidenceCountry('')
-                        setShowSecondCountry(!!value)
-                    }}
-                >
-                    <Accordion.Item value="second-country">
-                        <Accordion.Trigger>{t('residenceStep.multiDocLink')}</Accordion.Trigger>
-                        <Accordion.Content>
-                            <CountryCombobox
-                                options={countryOptions}
-                                placeholder={t('residenceStep.secondCountryPlaceholder')}
-                                value={secondResidenceCountry || undefined}
-                                onValueChange={(value) => setSecondResidenceCountry(value)}
-                                onClear={hasPair ? () => onRemoveCountry('second') : undefined}
-                            />
-                        </Accordion.Content>
-                    </Accordion.Item>
-                </Accordion>
+                <div className="py-3 text-center">
+                    <LinkButton
+                        aria-expanded={showSecondCountry}
+                        aria-controls={secondCountryId}
+                        onClick={() => {
+                            // An invisible second residence must not be persisted.
+                            if (showSecondCountry && secondResidenceCountry) setSecondResidenceCountry('')
+                            setShowSecondCountry(!showSecondCountry)
+                        }}
+                    >
+                        {t('residenceStep.multiDocLink')}
+                    </LinkButton>
+                </div>
+                <div id={secondCountryId}>
+                    {showSecondCountry && (
+                        <CountryCombobox
+                            options={countryOptions}
+                            placeholder={t('residenceStep.secondCountryPlaceholder')}
+                            value={secondResidenceCountry || undefined}
+                            onValueChange={(value) => setSecondResidenceCountry(value)}
+                            onClear={hasPair ? () => onRemoveCountry('second') : undefined}
+                        />
+                    )}
+                </div>
                 {/* Dual-residence comparison: facts about each residence, not a
                     menu of perks. The guidance leads with the truth norm; the
                     order is presentation only and eligibility stays with the
@@ -440,14 +268,15 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                         <BulletList
                                             size="xs"
                                             items={[
-                                                ...summary.available.map((item) =>
-                                                    t(`residenceStep.compare.items.${item}`)
-                                                ),
+                                                ...summary.available
+                                                    .filter((item) => item !== 'p2p')
+                                                    .map((item) => t(`residenceStep.compare.items.${item}`)),
                                                 ...summary.unavailable.map((item) => (
                                                     <span key={item} className="line-through">
                                                         {t(`residenceStep.compare.missing.${item}`)}
                                                     </span>
                                                 )),
+                                                t('residenceStep.compare.items.p2p'),
                                             ]}
                                         />
                                         {/* One verification enrols every rail in the region's
@@ -477,33 +306,37 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
             </div>
             {/* One button per declared country: the tap IS the main-residence
                 declaration, so there is no separate order control to get wrong. */}
-            {hasPair ? (
-                <div className="flex w-full flex-col gap-3">
-                    {[residenceCountry, secondResidenceCountry].map((iso2) => (
+            <SetupFooter
+                actions={
+                    hasPair ? (
+                        <div className="flex w-full flex-col gap-3">
+                            {[secondResidenceCountry, residenceCountry].map((iso2) => (
+                                <Button
+                                    key={iso2}
+                                    shadowSize="4"
+                                    variant={iso2 === residenceCountry ? 'primary' : 'secondary'}
+                                    onClick={() => onSelectPrimary(iso2)}
+                                    disabled={isLoading}
+                                    loading={isLoading}
+                                >
+                                    {t('residenceStep.compare.selectCountry', {
+                                        country: countryOptions.find((option) => option.value === iso2)?.label ?? iso2,
+                                    })}
+                                </Button>
+                            ))}
+                        </div>
+                    ) : (
                         <Button
-                            key={iso2}
                             shadowSize="4"
-                            variant={iso2 === residenceCountry ? 'primary' : 'secondary'}
-                            onClick={() => onSelectPrimary(iso2)}
-                            disabled={isLoading}
+                            onClick={onContinue}
+                            disabled={!residenceCountry || isLoading}
                             loading={isLoading}
                         >
-                            {t('residenceStep.compare.selectCountry', {
-                                country: countryOptions.find((option) => option.value === iso2)?.label ?? iso2,
-                            })}
+                            {t('cta.home')}
                         </Button>
-                    ))}
-                </div>
-            ) : (
-                <Button
-                    shadowSize="4"
-                    onClick={onContinue}
-                    disabled={!residenceCountry || isLoading}
-                    loading={isLoading}
-                >
-                    {t('next')}
-                </Button>
-            )}
+                    )
+                }
+            />
         </div>
     )
 }

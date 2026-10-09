@@ -70,4 +70,28 @@ describe('InitiateKycModal — country_payments', () => {
         renderModal({ variant: 'country_payments', regionName: 'Brazil', prepPath: 'extended', taxIdCountry: 'BR' })
         expect(screen.getByText('CPF. Needed for local bank transfers.')).toBeInTheDocument()
     })
+
+    it('heads the checklist with the account provider: Manteca from the country, Bridge from the caller', () => {
+        const { unmount } = renderModal({ variant: 'country_payments', prepPath: 'extended', taxIdCountry: 'AR' })
+        const checklist = screen.getByTestId('kyc-prep-checklist')
+        // the row is the first in the card, above the ID row
+        const rowLabels = Array.from(checklist.querySelectorAll('.ds-data-row-label')).map((el) => el.textContent)
+        expect(rowLabels[0]).toBe('Account provider')
+        expect(rowLabels[1]).toBe('ID')
+        expect(screen.getByText('Manteca')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Manteca' })).toBeInTheDocument()
+        // the documents footnote stays, as before
+        expect(screen.getByText("Peanut doesn't store any of your documents")).toBeInTheDocument()
+        unmount()
+
+        const { unmount: unmountBridge } = renderModal({ providerId: 'bridge-eea' })
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        unmountBridge()
+
+        // a caller that does not know the provider names none
+        renderModal()
+        expect(screen.queryByText('Account provider')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /^About / })).not.toBeInTheDocument()
+    })
 })

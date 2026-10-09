@@ -3,6 +3,7 @@
 import type { BundleInfo } from '@capgo/capacitor-updater'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { completeOtaLaunchDecision, isSplashVisible } from '@/hooks/useSplashGate'
+import { useStoreUpdateAvailable } from '@/hooks/useStoreUpdateAvailable'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
 import type { OtaApplyOutcome } from '@/utils/capgo-updater'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
@@ -20,7 +21,7 @@ export type OtaApplyState = 'idle' | 'applying' | 'manual-restart' | 'failed'
 export interface OtaUpdateContextValue {
     /** downloaded bundle waiting for a safe launch or explicit restart */
     pendingBundle: BundleInfo | null
-    /** the newest bundle targets a newer native binary — only the store can update */
+    /** a newer native binary is needed and a newer release is confirmed available in this platform's store */
     storeUpdateRequired: boolean
     applyState: OtaApplyState
     /** restart onto `pendingBundle` now (native only) */
@@ -46,7 +47,8 @@ const OtaUpdateContext = createContext<OtaUpdateContextValue>({
  */
 export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
     const [pendingBundle, setPendingBundle] = useState<BundleInfo | null>(null)
-    const [storeUpdateRequired, setStoreUpdateRequired] = useState(false)
+    const [nativeUpdateRequired, setNativeUpdateRequired] = useState(false)
+    const storeUpdateRequired = useStoreUpdateAvailable(nativeUpdateRequired)
     const [applyState, setApplyState] = useState<OtaApplyState>('idle')
     const fallbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
     // Read and written synchronously: two taps landing in the same tick both see
@@ -62,14 +64,14 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         // candidate existing, and failure must not prevent updater initialization.
         runningBundleOutranksBinary()
             .then((required) => {
-                if (!disposed && required) setStoreUpdateRequired(true)
+                if (!disposed && required) setNativeUpdateRequired(true)
             })
             .catch((err) => console.warn('[capgo] running floor read failed:', err))
 
         // A download from an earlier launch (or a legacy native queue) may be
         // waiting. Read through the gate, which drops incompatible bundles.
         importWithChunkRetry(() => import('@/utils/capgo-updater'))
-            .then((updater) => updater.readStagedBundle({ onStoreUpdateRequired: () => setStoreUpdateRequired(true) }))
+            .then((updater) => updater.readStagedBundle({ onStoreUpdateRequired: () => setNativeUpdateRequired(true) }))
             .then((bundle) => {
                 if (!disposed && bundle) setPendingBundle((current) => current ?? bundle)
             })
@@ -79,7 +81,7 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
             .then(async (updater) => {
                 const remove = await updater.initCapgoUpdater({
                     onUpdateAvailable: (bundle) => setPendingBundle(bundle),
-                    onStoreUpdateRequired: () => setStoreUpdateRequired(true),
+                    onStoreUpdateRequired: () => setNativeUpdateRequired(true),
                 })
                 // Unmounted while init was still resolving: run the cleanup now
                 // or the listeners it registered are never removed.

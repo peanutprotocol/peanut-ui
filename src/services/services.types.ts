@@ -187,8 +187,10 @@ export interface RequestProps {
 export type TChargeTransactionType = 'REQUEST' | 'DIRECT_SEND' | 'DEPOSIT' | 'WITHDRAW'
 
 export interface CreateChargeRequest {
-    pricing_type: 'fixed_price'
-    local_price: LocalPrice
+    /** `no_price` leaves the amount to the requestee of a request to a Peanut user */
+    pricing_type: 'fixed_price' | 'no_price'
+    /** required with `fixed_price` */
+    local_price?: LocalPrice
     baseUrl: string
     requestId?: string
     requestProps?: RequestProps
@@ -278,6 +280,12 @@ export interface TRequestChargeResponse {
     fulfillmentPayment: Payment | null
     currencyCode: string
     currencyAmount: string
+    /**
+     * The requestee chooses the amount and sets it before paying
+     * (`chargesApi.setAmount`). `tokenAmount` and `currencyAmount` are null
+     * until then. Absent on an API deployed before it.
+     */
+    openAmount?: boolean
     timeline: TimelineEntry[]
     requestee?: {
         userId: string

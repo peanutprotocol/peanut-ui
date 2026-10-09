@@ -18,7 +18,7 @@ const error = (message, status) => json({ error: message }, status)
 const safeId = /^[a-z0-9][a-z0-9-]{0,119}$/
 const safeRepository = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 const safeReportPath =
-    /^\d{4}-\d{2}-\d{2}\/(?:compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/
+    /^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/
 const CAPTURE_STALE_AFTER_MS = 90 * 60 * 1000
 const COMPARISON_SEARCH_LIMIT = 100
 
@@ -260,8 +260,9 @@ async function comparisonSearch(url, env) {
             beforeCommit: report.before.commit,
             afterCommit: report.after.commit,
             ...(entry.prNumber ? { prNumber: entry.prNumber } : {}),
-            changedScreens: report.screens.filter((screen) => ['changed', 'added', 'removed'].includes(screen.status))
-                .length,
+            changedScreens: report.screens.filter((screen) =>
+                ['changed', 'added', 'new', 'removed'].includes(screen.status)
+            ).length,
         })
     }
     return json({

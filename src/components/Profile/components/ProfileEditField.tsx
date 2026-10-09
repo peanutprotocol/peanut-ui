@@ -17,6 +17,7 @@ interface ProfileEditFieldProps {
     inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
     maxLength?: number
     error?: string
+    inputSize?: 'sm' | 'md'
 }
 
 /**
@@ -45,6 +46,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
             inputMode,
             maxLength,
             error,
+            inputSize = 'sm',
         },
         ref
     ) => {
@@ -73,7 +75,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? `${id}-error` : undefined}
                         id={id}
-                        size="sm"
+                        size={inputSize}
                         type={type}
                         value={value}
                         onChange={(e) => onChange(e.target.value)}

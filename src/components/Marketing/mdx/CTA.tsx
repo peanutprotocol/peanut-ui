@@ -43,9 +43,10 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 pt-24 pb-10 md:px-4 md:pt-28 md:pb-14`}>
                 <div className="relative">
+                    {/* no alt: the mascot is decorative, so it stays out of the
+                        accessibility tree instead of announcing English */}
                     <PeanutMascot
                         pose="pointing-down"
-                        alt="Peanut mascot"
                         className="absolute -top-24 left-1/2 -z-0 h-40 w-40 -translate-x-1/2 md:-top-28 md:h-48 md:w-48"
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">

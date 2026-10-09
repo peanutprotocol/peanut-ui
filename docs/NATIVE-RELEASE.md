@@ -749,6 +749,22 @@ reviewed commit once both bridges are inactive.
   naming the running bundle is never read back as an update.
   It fails **open** on a version either side cannot parse: refusing every update on an
   off-scheme version is the worse of the two failures.
+- **Store update prompts require store availability as well as native compatibility debt.**
+  `useStoreUpdateAvailable` checks the existing updater plugin's `getAppUpdateInfo()`
+  before exposing the Profile store update row/modal. Android uses Play's device/account
+  eligibility and compares native version codes, including same-version replacement builds.
+  An uploaded internal build, Capgo native floor or release tag alone cannot show the prompt.
+  The check runs when compatibility debt is detected and again on native foreground; pending,
+  unknown, failed, timed-out and unsupported lookups hide the offer. Compatible OTA restart
+  offers and native compatibility/disarm checks stay independent of store availability.
+  On iOS, lookups require a fresh App Store country from the optional `StoreCountry` bridge,
+  a newer public store version and a supported minimum OS. Old binaries without that bridge
+  hide the store hint rather than guessing a country from locale, IP or residence. The JS
+  reader is shared with the store-country work in #3593; this change adds no native bridge.
+  TestFlight availability is not App Store availability. This fix uses the existing updater
+  API and needs no plugin upgrade, but an installed binary must receive it through a compatible
+  OTA or a later store build. Publishing an incompatible OTA cannot repair an older install.
+
 - **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
   hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
   plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,

@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
+import { CAPTURE_PROFILES } from './capture-profiles.mjs'
 import {
     validateCapture,
     validateJourneys,
@@ -73,6 +74,36 @@ test('same pixels remain unchanged; changed pixels get a diff', () => {
     assert.ok(r.screens[0].diff)
     assert.equal(compare(capture([screen('home')]), capture([screen('home')]), dir).screens[0].status, 'unchanged')
 })
+test('four-pixel rendering noise stays unchanged and the first visible percentage still changes', () => {
+    for (const [profile, { width, height }] of Object.entries(CAPTURE_PROFILES)) {
+        const image = new PNG({ width, height })
+        image.data.fill(255)
+        const original = storeAsset(dir, PNG.sync.write(image))
+        const firstChangedPixelCount = Math.ceil(width * height * 0.00005)
+        const profiledCapture = (imageName) => ({
+            ...capture([screen('home', imageName)]),
+            width,
+            height,
+            profile: `en-${profile}`,
+        })
+        for (const count of [4, firstChangedPixelCount - 1, firstChangedPixelCount]) {
+            const noisy = PNG.sync.read(PNG.sync.write(image))
+            // Isolated solid pixels avoid pixelmatch's anti-aliasing exclusions.
+            for (let i = 0; i < count; i++) {
+                const offset = (100 * width + 100 + i * 3) * 4
+                noisy.data[offset] = noisy.data[offset + 1] = noisy.data[offset + 2] = 0
+            }
+            const changedImage = storeAsset(dir, PNG.sync.write(noisy))
+            const row = compare(profiledCapture(original), profiledCapture(changedImage), dir).screens[0]
+            assert.equal(row.pixels, count)
+            assert.equal(row.percent, (count / (width * height)) * 100)
+            assert.equal(row.status, count < firstChangedPixelCount ? 'unchanged' : 'changed')
+            assert.equal(row.belowThreshold, count < firstChangedPixelCount ? true : undefined)
+            assert.equal(Boolean(row.diff), count >= firstChangedPixelCount)
+            if (row.status === 'changed') assert.notEqual(row.percent.toFixed(2), '0.00')
+        }
+    }
+})
 test('capture metadata preserves journey order and comparisons use it instead of screen IDs', () => {
     const later = { ...screen('alpha'), order: 20, journey: 'Account setup' }
     const earlier = { ...screen('zeta'), order: 10, journey: 'Account setup' }
@@ -90,9 +121,20 @@ test('failure cannot become a removed or unchanged screen', () => {
     assert.equal(r.screens[0].status, 'failed')
     assert.equal(r.complete, false)
 })
-test('historical unsupported state is unavailable, not new', () => {
+test('a captured state with an unavailable baseline is new to review and retains the baseline gap', () => {
     const old = { ...screen('home'), status: 'unavailable', reason: 'Adapter unavailable' }
-    assert.equal(compare(capture([old]), capture([screen('home')]), dir).screens[0].status, 'unavailable')
+    const result = compare(capture([old]), capture([screen('home')]), dir)
+    assert.equal(result.screens[0].status, 'new')
+    assert.equal(result.screens[0].before.status, 'unavailable')
+    assert.equal(result.screens[0].before.reason, 'Adapter unavailable')
+    assert.equal(result.screens[0].after.image, a)
+    assert.equal(result.screens[0].diff, undefined)
+    assert.equal(result.complete, false)
+    for (const status of ['failed', 'excluded']) {
+        const gap = { ...old, status }
+        assert.equal(compare(capture([gap]), capture([screen('home')]), dir).screens[0].status, status)
+    }
+    assert.equal(compare(capture([screen('home')]), capture([old]), dir).screens[0].status, 'unavailable')
 })
 test('intentional exclusions and absent routes remain distinguishable from failures', () => {
     const excluded = { ...screen('excluded'), status: 'excluded', reason: 'Alias covered elsewhere' }

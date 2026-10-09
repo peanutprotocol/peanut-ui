@@ -10,8 +10,8 @@ let mockFlow: {
     isOnboardingComplete: boolean
     isActivated: boolean
     onboarding: OnboardingState
-    isChecklistHidden?: boolean
     hiddenHomeCtas?: ReadonlySet<string>
+    showWelcome?: boolean
 }
 jest.mock('../useHomeFlow', () => ({
     useHomeFlow: () => ({
@@ -22,17 +22,21 @@ jest.mock('../useHomeFlow', () => ({
         isSpendableBalanceStale: false,
         isBalanceHidden: false,
         toggleBalanceVisibility: jest.fn(),
-        hideChecklist: jest.fn(),
         hideCta: jest.fn(),
-        isChecklistHidden: false,
         hiddenHomeCtas: new Set<string>(),
+        showWelcome: true,
         ...mockFlow,
     }),
 }))
 jest.mock('../useHomeViewAnalytics', () => ({ useHomeViewAnalytics: () => {} }))
 jest.mock('@/components/Home/ActivationCTAs', () => ({
     __esModule: true,
-    default: () => <div>activation-checklist</div>,
+    default: ({ showWelcome }: { showWelcome: boolean }) => (
+        <div>
+            activation-checklist
+            {showWelcome && <span>welcome-card</span>}
+        </div>
+    ),
 }))
 jest.mock('@/components/Home/HomeCarouselCTA', () => ({ __esModule: true, default: () => <div>home-carousel</div> }))
 jest.mock('@/components/Home/EnableAutoBalanceBanner', () => ({ __esModule: true, default: () => null }))
@@ -100,6 +104,14 @@ describe('HomePage — never two CTA classes at once', () => {
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
     })
 
+    it('an expired welcome keeps the checklist in its Home slot', () => {
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, showWelcome: false }
+        render(<HomePage />)
+        expect(screen.queryByText('welcome-card')).not.toBeInTheDocument()
+        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+
     it('after the first payment: the carousel, no checklist', () => {
         mockFlow = {
             isOnboardingComplete: true,
@@ -134,27 +146,8 @@ describe('HomePage — never two CTA classes at once', () => {
         expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
     })
 
-    it('a hidden checklist with only the payment row left hands over to the carousel', () => {
-        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, isChecklistHidden: true }
-        render(<HomePage />)
-        expect(screen.getByText('home-carousel')).toBeInTheDocument()
-        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
-    })
-
-    it('a hidden checklist comes back while it may not be hidden (money not in yet)', () => {
-        mockFlow = {
-            isOnboardingComplete: false,
-            isActivated: false,
-            onboarding: { ...FUNDED, addMoneyDone: false, step: 'add_money' },
-            isChecklistHidden: true,
-        }
-        render(<HomePage />)
-        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
-    })
-
-    it('hiding never hides a rejection card', () => {
-        mockHasProviderRejection = true
-        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, isChecklistHidden: true }
+    it('with only the payment row left the checklist stays: it has no hide (TASK-23340)', () => {
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
         render(<HomePage />)
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()

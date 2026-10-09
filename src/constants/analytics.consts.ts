@@ -8,6 +8,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── Signup funnel ──
     SIGNUP_STEP_VIEWED: 'signup_step_viewed',
+    SIGNUP_COUNTRY_SIGNALS_CAPTURED: 'signup_country_signals_captured',
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
     SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',
@@ -18,18 +19,16 @@ export const ANALYTICS_EVENTS = {
     HOME_VIEWED: 'home_viewed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
-    HOME_CHECKLIST_HIDDEN: 'home_checklist_hidden',
     HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
-    SIGNUP_WAITLIST_VIEWED: 'signup_waitlist_viewed',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
-    SIGNUP_EXISTING_SESSION_PROMPTED: 'signup_existing_session_prompted',
+    SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
+    SIGNUP_INVITER_ADDED: 'signup_inviter_added',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
-    SIGNUP_EXISTING_SESSION_LOGGED_OUT: 'signup_existing_session_logged_out',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
     SIGNUP_PASSKEY_FAILED: 'signup_passkey_failed',
@@ -157,7 +156,6 @@ export const ANALYTICS_EVENTS = {
     INVITE_CODE_VALIDATED: 'invite_code_validated',
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
-    WAITLIST_STEP_VIEWED: 'waitlist_step_viewed',
 
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',

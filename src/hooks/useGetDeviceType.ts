@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 export enum DeviceType {
     IOS = 'ios',
@@ -37,9 +37,14 @@ function detectDeviceType(): DeviceType {
  * Used to get the user's device type
  * @returns {object} An object with the device type
  */
+const subscribeDeviceType = () => () => {}
+const serverDeviceType = () => DeviceType.WEB
+
 export const useDeviceType = () => {
-    // Initialize with detected value immediately (no null state)
-    const [deviceType] = useState<DeviceType>(() => detectDeviceType())
+    // Hydration must use the same WEB snapshot as prerendering. The actual
+    // device lands immediately after hydration; subsequent client mounts
+    // still read it synchronously.
+    const deviceType = useSyncExternalStore(subscribeDeviceType, detectDeviceType, serverDeviceType)
 
     return { deviceType }
 }

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -16,7 +17,10 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { writeStoredValue } from '@/utils/safe-storage'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
@@ -27,6 +31,12 @@ export function useCardFlow() {
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
+    const { hasSufficientSpendableBalance } = useWallet()
+    const isCardFunded = hasSufficientSpendableBalance(10)
+    const [fundingRequired, setFundingRequired] = useState(false)
+    useEffect(() => {
+        if (isCardFunded) setFundingRequired(false)
+    }, [isCardFunded])
 
     const {
         data: cardInfo,
@@ -41,6 +51,8 @@ export function useCardFlow() {
     })
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
+    const needsFundingBeforeApply =
+        !overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded
     const { serializeGrant } = useGrantSessionKey()
     const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -258,6 +270,7 @@ export function useCardFlow() {
         if (state === 'loading' || state === 'pending' || state === 'manual-review') return
         awaitingIssuanceRef.current = false
         if (state === 'add-card') setApplyError(t('page.issueFailed'))
+        if (state === 'active') void offerPushPrompt(PUSH_PROMPT_TRIGGERS.CARD_READY)
     }, [overview, state, t])
 
     // The user picked their residence country on the confirmation screen.
@@ -294,6 +307,13 @@ export function useCardFlow() {
 
     const handleApply = useCallback(
         async (termsAccepted = false, serializedApproval?: string) => {
+            // A cached display balance cannot unlock a new application. Existing
+            // applications and approved reissues retain their recovery paths.
+            if (needsFundingBeforeApply) {
+                setFundingRequired(true)
+                setPendingTerms(null)
+                return
+            }
             setApplyError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
                 terms_accepted: termsAccepted,
@@ -306,6 +326,9 @@ export function useCardFlow() {
                     ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
                     : undefined
                 const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
+                if (termsAccepted && res.status === 'pending' && userId) {
+                    writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
+                }
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
@@ -320,7 +343,7 @@ export function useCardFlow() {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, pendingTerms, t]
+        [advanceFromApplyResponse, pendingTerms, needsFundingBeforeApply, userId, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -503,6 +526,9 @@ export function useCardFlow() {
     return {
         // data
         user,
+        isCardFunded,
+        needsFundingBeforeApply,
+        fundingRequired,
         fetchUser,
         cardInfo,
         cardInfoError,

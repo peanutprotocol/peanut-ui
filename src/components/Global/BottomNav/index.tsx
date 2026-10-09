@@ -8,6 +8,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useForegroundPushRefresh } from '@/hooks/useForegroundPushRefresh'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
+import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -15,6 +16,7 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PILL_THUMB, PILL_TRACK } from '@/components/0_Bruddle/PillSurface'
 import { TAB_ORDER, type TabId } from './tab-order'
+import { isCapacitor } from '@/utils/capacitor'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -84,8 +86,10 @@ export const BottomNav = () => {
     const pathname = usePathname()
     const router = useRouter()
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
+    const isWebSupportOpen = isSupportModalOpen && !isCapacitor()
     const { triggerHaptic } = useAppHaptic()
-    const hasUnreadSupport = useSupportUnread()
+    const { user } = useAuth()
+    const hasUnreadSupport = useSupportUnread(!!user?.user.userId, user?.user.userId)
     // the badge above is event-driven; this makes sure a web session that
     // never mounts useNotifications (direct /card or /history load) still
     // gets the foreground-push event the badge listens for
@@ -168,7 +172,7 @@ export const BottomNav = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeTab])
 
-    const selectedTab = isSupportModalOpen ? 'support' : activeTab
+    const selectedTab = isWebSupportOpen ? 'support' : activeTab
     const activeBox = selectedTab ? boxes[selectedTab] : undefined
 
     const clampX = (x: number) => {
@@ -287,7 +291,7 @@ export const BottomNav = () => {
                 <button
                     type="button"
                     aria-label={t('support')}
-                    aria-expanded={isSupportModalOpen}
+                    aria-expanded={isWebSupportOpen}
                     {...tabPressHandlers('support')}
                     onClick={() => setIsSupportModalOpen(true)}
                     className={tabClass}

@@ -1,8 +1,9 @@
 'use client'
-import { type FC } from 'react'
+import { type FC, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
+import { CardAcquisitionScreen, CardMilestoneScreen } from './components/CardAcquisitionScreen'
+import { readStoredValue, removeStoredValue } from '@/utils/safe-storage'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardCountryConfirmScreen from '@/components/Card/CardCountryConfirmScreen'
@@ -18,6 +19,11 @@ export const CardPage: FC = () => {
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
     const {
+        user,
+        cardInfo,
+        isCardFunded,
+        needsFundingBeforeApply,
+        fundingRequired,
         fetchUser,
         cardInfoError,
         refetchCardInfo,
@@ -54,6 +60,12 @@ export const CardPage: FC = () => {
         setIsSupportModalOpen,
         onBack,
     } = useCardFlow()
+
+    const celebrationKey = `card_issuance_celebration_pending_v1:${user?.user.userId}`
+    const [showIssuedCelebration, setShowIssuedCelebration] = useState(false)
+    useEffect(() => {
+        setShowIssuedCelebration(state === 'active' && readStoredValue(celebrationKey) === '1')
+    }, [state, celebrationKey])
 
     if (state === 'loading') {
         return (
@@ -118,6 +130,19 @@ export const CardPage: FC = () => {
         // Terms screen takes precedence over the state-machine target — the
         // user already clicked "Get your card" or completed Sumsub; we need
         // to collect consent before letting them back out to Add Card.
+        if (fundingRequired) {
+            return (
+                <CardAcquisitionScreen
+                    userId={user?.user.userId ?? ''}
+                    eligible={true}
+                    funded={isCardFunded}
+                    needsFundingBeforeApply={needsFundingBeforeApply}
+                    fundingRequired
+                    onApply={() => handleApply(false)}
+                    onPrev={onBack}
+                />
+            )
+        }
         if (pendingTerms) {
             return (
                 <CardTermsScreen
@@ -130,7 +155,23 @@ export const CardPage: FC = () => {
         }
         switch (state) {
             case 'add-card':
-                return <AddCardEntryScreen onApply={() => handleApply(false)} onPrev={onBack} applyError={applyError} />
+                return (
+                    <CardAcquisitionScreen
+                        key={user?.user.userId}
+                        userId={user?.user.userId ?? ''}
+                        eligible={
+                            !!cardInfo?.isEligible &&
+                            !overview?.status.hasApplication &&
+                            overview?.status.railStatus !== 'ENABLED'
+                        }
+                        funded={isCardFunded}
+                        needsFundingBeforeApply={needsFundingBeforeApply}
+                        fundingRequired={fundingRequired}
+                        onApply={() => handleApply(false)}
+                        onPrev={onBack}
+                        applyError={applyError}
+                    />
+                )
             case 'pending':
                 return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
             case 'manual-review':
@@ -209,6 +250,17 @@ export const CardPage: FC = () => {
                 )
             }
             case 'active': {
+                if (showIssuedCelebration) {
+                    return (
+                        <CardMilestoneScreen
+                            issued
+                            onContinue={() => {
+                                removeStoredValue(celebrationKey)
+                                setShowIssuedCelebration(false)
+                            }}
+                        />
+                    )
+                }
                 const card = findActiveCard(overview)!
                 return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
             }

@@ -1,4 +1,5 @@
 'use client'
+import { ChargeFulfillmentNotice } from './ChargeFulfillmentNotice'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -12,6 +13,8 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { offerPushPrompt } from '@/hooks/useNotifications'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { useAuth } from '@/context/authContext'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
@@ -64,6 +67,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         rawFile: undefined,
     })
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
+    const [createdChargeId, setCreatedChargeId] = useState<string | null>(null)
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
     const { setLoadingState, loadingState } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -79,6 +83,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     } = useUserByUsername(username)
 
     const resetRequestState = () => {
+        setCreatedChargeId(null)
         setView('initial')
         setCurrentInputValue('')
         setAttachmentOptions({
@@ -93,8 +98,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const isButtonDisabled = useMemo(() => {
+        // A blank amount is valid: the requestee chooses it before paying.
         const parsedAmount = parseFloat(currentInputValue)
-        const isAmountInvalid = isNaN(parsedAmount) || parsedAmount <= 0
+        const isAmountInvalid = currentInputValue !== '' && (isNaN(parsedAmount) || parsedAmount <= 0)
         return (
             !recipientUser?.username ||
             recipientUser.username.toLowerCase() !== username?.toLowerCase() ||
@@ -128,14 +134,16 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 throw new Error('No recipient address available')
             }
 
-            await usersApi.requestByUsername({
+            const createdCharge = await usersApi.requestByUsername({
                 username: recipientUser!.username,
                 amount: currentInputValue,
                 toAddress,
                 attachment: attachmentOptions,
             })
             setLoadingState('Idle')
+            setCreatedChargeId(createdCharge.data?.id ?? null)
             setView('success')
+            void offerPushPrompt(PUSH_PROMPT_TRIGGERS.REQUEST_CREATED)
         } catch (error) {
             const status = apiErrorStatus(error)
             let errorMessage = t('errors.createRequestFailed')
@@ -345,9 +353,13 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 )}
 
                 <PageStack.Center className="gap-4">
+                    {createdChargeId && <ChargeFulfillmentNotice chargeId={createdChargeId} />}
                     <PaymentSuccessView
                         user={recipientUser}
-                        amount={formatAmount(currentInputValue)}
+                        // currencyAmount is shown as given, in place of an amount the requestee chooses
+                        {...(currentInputValue
+                            ? { amount: formatAmount(currentInputValue) }
+                            : { currencyAmount: t('theirChoice') })}
                         message={attachmentOptions.message}
                         type="REQUEST"
                     />

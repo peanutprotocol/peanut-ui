@@ -8,6 +8,10 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import posthog from 'posthog-js'
+import { enableDemoMode, disableDemoMode } from '@/utils/demo'
+import { demoRespond } from '@/utils/demo-api'
+
+jest.mock('@/utils/demo-api', () => ({ demoRespond: jest.fn() }))
 
 jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) })),
@@ -38,10 +42,24 @@ const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.captur
 describe('apiFetch', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        disableDemoMode()
     })
 
     afterEach(() => {
         jest.restoreAllMocks()
+        disableDemoMode()
+    })
+
+    it('intercepts web demo writes before auth headers or real network requests', async () => {
+        ;(isCapacitor as jest.Mock).mockReturnValue(false)
+        const synthetic = { ok: true }
+        ;(demoRespond as jest.Mock).mockResolvedValue(synthetic)
+        enableDemoMode()
+        const options = { method: 'POST', body: JSON.stringify({ residenceCountry: 'BR' }) }
+        expect(await apiFetch('/update-user', options)).toBe(synthetic)
+        expect(demoRespond).toHaveBeenCalledWith('/update-user', options)
+        expect(getAuthHeaders).not.toHaveBeenCalled()
+        expect(mockFetchWithSentry).not.toHaveBeenCalled()
     })
 
     describe('url', () => {
@@ -227,6 +245,26 @@ describe('apiFetch', () => {
                 'api_request_problem',
                 expect.objectContaining({ outcome: 'timeout', problem: 'timeout' })
             )
+        })
+
+        it('stops sending problem events after 20 in one page load', async () => {
+            jest.spyOn(Math, 'random').mockReturnValue(0.9)
+
+            await jest.isolateModulesAsync(async () => {
+                const { apiFetch: freshApiFetch } = await import('../api-fetch')
+                const { default: freshPosthog } = await import('posthog-js')
+                const { fetchWithSentry: freshFetch } = await import('@/utils/sentry.utils')
+
+                for (let i = 0; i < 25; i++) {
+                    ;(freshFetch as jest.Mock).mockRejectedValueOnce(new Error('offline'))
+                    await expect(freshApiFetch('/points/cash-status')).rejects.toThrow('offline')
+                }
+
+                const problems = (freshPosthog.capture as jest.Mock).mock.calls.filter(
+                    ([name]) => name === 'api_request_problem'
+                )
+                expect(problems).toHaveLength(20)
+            })
         })
     })
 })

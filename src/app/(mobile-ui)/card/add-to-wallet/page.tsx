@@ -2,6 +2,8 @@
 import { type FC, useEffect } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import AddToWalletCarousel from '@/components/Card/AddToWalletCarousel'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
@@ -17,6 +19,9 @@ const AddToWalletPage: FC = () => {
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_VIEWED, { platform: platform ?? 'unknown' })
     }, [platform])
+    useEffect(() => {
+        void offerPushPrompt(PUSH_PROMPT_TRIGGERS.CARD_READY)
+    }, [])
     return (
         <PageContainer>
             <AddToWalletCarousel onDone={onDone} onPrev={onBack} />

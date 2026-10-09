@@ -7,6 +7,8 @@ export interface SumsubSdkProps {
     sessionKey?: string
     visible: boolean
     accessToken: string | null
+    /** Initial, editable email default; never fixed identity information. */
+    email?: string
     onClose: () => void
     onComplete: () => void
     /**

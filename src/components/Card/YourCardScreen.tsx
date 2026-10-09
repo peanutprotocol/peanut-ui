@@ -16,6 +16,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import CancelCardModal from '@/components/Card/CancelCardModal'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useCardReveal } from '@/hooks/useCardReveal'
@@ -86,14 +87,18 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
 
             {revealError && <Callout priority="error">{revealError}</Callout>}
 
-            <CardFace
-                last4={card.last4}
-                isLocked={isLocked}
-                revealed={revealed}
-                loading={isRevealing}
-                onToggleReveal={isLocked || isRevealing ? undefined : toggle}
-                onCopy={handleCopy}
-            />
+            {/* issuer line reads as the card's caption: inline gap XS/4 (design.md spacing) */}
+            <div className="flex flex-col gap-1">
+                <CardFace
+                    last4={card.last4}
+                    isLocked={isLocked}
+                    revealed={revealed}
+                    loading={isRevealing}
+                    onToggleReveal={isLocked || isRevealing ? undefined : toggle}
+                    onCopy={handleCopy}
+                />
+                <ProviderFinePrint providerId="third-national" label="cardProvider" />
+            </div>
 
             {walletPlatform === 'android' &&
                 (alreadyInWallet ? (

@@ -40,6 +40,9 @@ jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: () => ({ interactions: {} }),
 }))
 
+jest.mock('../ChargeFulfillmentNotice', () => ({
+    ChargeFulfillmentNotice: ({ chargeId }: { chargeId: string }) => <div data-testid="charge-notice">{chargeId}</div>,
+}))
 const mockRequestByUsername = jest.fn()
 jest.mock('@/services/users', () => ({
     usersApi: { requestByUsername: (...args: unknown[]) => mockRequestByUsername(...args) },
@@ -82,7 +85,9 @@ jest.mock('@/components/Payment/Views/Error.validation.view', () => ({
 
 jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
     __esModule: true,
-    default: () => <div data-testid="payment-success" />,
+    default: ({ amount, currencyAmount }: { amount?: string; currencyAmount?: string }) => (
+        <div data-testid="payment-success">{currencyAmount ?? amount}</div>
+    ),
 }))
 
 jest.mock('@/components/Global/AmountInput', () => ({
@@ -115,7 +120,7 @@ beforeEach(() => {
         isError: false,
         refetch: jest.fn(),
     }
-    mockRequestByUsername.mockResolvedValue({})
+    mockRequestByUsername.mockResolvedValue({ data: { id: 'created-charge' } })
     mockHandoff = { interceptGuestCta: jest.fn(() => false), storeHandoffModal: null, handoffActive: false }
 })
 
@@ -187,6 +192,7 @@ describe('addressed requests', () => {
         fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
         fireEvent.click(screen.getByRole('button', { name: 'Request' }))
         await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(screen.getByTestId('charge-notice')).toHaveTextContent('created-charge')
         expect(mockRequestByUsername).toHaveBeenCalledWith(
             expect.objectContaining({
                 username: 'alice',
@@ -194,6 +200,21 @@ describe('addressed requests', () => {
                 toAddress: '0x000000000000000000000000000000000000dEaD',
             })
         )
+    })
+
+    test('sends a request with no amount, for the requestee to choose', async () => {
+        renderView()
+        expect(screen.getByRole('button', { name: 'Request' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'Request' }))
+        await waitFor(() => expect(screen.getByTestId('payment-success')).toBeInTheDocument())
+        expect(screen.getByTestId('payment-success')).toHaveTextContent('Their choice')
+        expect(mockRequestByUsername).toHaveBeenCalledWith(expect.objectContaining({ username: 'alice', amount: '' }))
+    })
+
+    test.each(['0', '0.00', '.'])('refuses a typed amount of %s', (amount) => {
+        renderView()
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: amount } })
+        expect(screen.getByRole('button', { name: 'Request' })).toBeDisabled()
     })
 
     test('keeps an eligible cached session usable when the auth refresh fails', async () => {

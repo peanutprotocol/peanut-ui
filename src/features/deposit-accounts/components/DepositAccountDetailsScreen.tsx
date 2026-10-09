@@ -7,6 +7,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { instructionRows } from '../instructionRows'
 import type { DepositRuleKey } from '../ruleLines'
 import type { DepositAccountView, DepositRail } from '../types'
@@ -57,6 +58,7 @@ export function DepositAccountDetailsScreen({
     onContactSupport: () => void
 }) {
     const { t, rowLabels, railLabels, arrivalDetail, accountRailName, ruleLines } = useDepositAccountCopy()
+    const bridgeProviderId = useBridgeProviderId()
 
     if (account.status === 'revoked') {
         return (
@@ -146,7 +148,10 @@ export function DepositAccountDetailsScreen({
                 ) : (
                     <>
                         <div className="flex flex-col gap-2">
-                            <DepositDetailsCard rows={rows} />
+                            <DepositDetailsCard
+                                rows={rows}
+                                providerId={rail.provider === 'bridge' ? bridgeProviderId : null}
+                            />
                             {/* Only a line that decides whether a transfer lands at
                                 all stays outside the toggle: a transfer without the
                                 reference is not matched, and an own-name-only rule

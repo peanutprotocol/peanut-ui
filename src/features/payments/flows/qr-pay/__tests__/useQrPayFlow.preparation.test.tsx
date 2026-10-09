@@ -540,9 +540,7 @@ describe('Pay on a locked amount', () => {
                 ['strategy_ready', null],
                 ['attempt_finished', 'failed'],
             ])
-            // Routed collateral-only executes on the mixed pipeline, so that is
-            // the strategy the attempt reports.
-            expect(stages().find((s) => s.stage === 'strategy_ready')).toMatchObject({ strategy: 'mixed' })
+            expect(stages().find((s) => s.stage === 'strategy_ready')).toMatchObject({ strategy: 'collateral-only' })
             expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
             expect(fakeClient.account.signTypedData).not.toHaveBeenCalled()
             expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()

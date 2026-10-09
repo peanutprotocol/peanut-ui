@@ -29,6 +29,15 @@ describe('shouldIgnoreError — alreadyReported (fetchWithSentry wrapper)', () =
     })
 })
 
+describe('shouldIgnoreError — Firefox for iOS injected scripts', () => {
+    it.each([
+        ['TypeError', "undefined is not an object (evaluating 'window.__firefox__.reader')"],
+        ['ReferenceError', "Can't find variable: __firefox__"],
+    ])('ignores %s from the injected __firefox__ global', (type, value) => {
+        expect(shouldIgnoreError(eventWith({ type, value }))).toBe(true)
+    })
+})
+
 // Sentry orders `exception.values` root-cause-first, so a wrapper carrying a
 // `cause` lands at the end of the array — where the old values[0]-only lookup
 // never saw it.
@@ -37,6 +46,41 @@ function chainedEvent(values: Array<{ type: string; value: string }>): ErrorEven
 }
 
 describe('shouldIgnoreError — chained exceptions', () => {
+    it.each(['User rejected the request', '[16] Canceled on BiometricPromptFragment.'])(
+        'retains a technical outer exception whose root cause is cancellation: %s',
+        (value) => {
+            const event = chainedEvent([
+                { type: 'Error', value },
+                { type: 'TypeError', value: 'Cannot read properties of undefined' },
+            ])
+            expect(shouldIgnoreError(event)).toBe(false)
+            expect(beforeSendHandler(event)).not.toBeNull()
+        }
+    )
+
+    it('retains a technical root cause wrapped by a cancellation', () => {
+        expect(
+            shouldIgnoreError(
+                chainedEvent([
+                    { type: 'TypeError', value: 'Cannot read properties of undefined' },
+                    { type: 'Error', value: 'User rejected the request' },
+                ])
+            )
+        ).toBe(false)
+    })
+
+    it('suppresses an all-cancellation chain and a standalone cancellation message', () => {
+        expect(
+            shouldIgnoreError(
+                chainedEvent([
+                    { type: 'Error', value: '[16] Canceled on BiometricPromptFragment.' },
+                    { type: 'Error', value: 'User canceled the request' },
+                ])
+            )
+        ).toBe(true)
+        expect(shouldIgnoreError({ message: 'User canceled the request' } as ErrorEvent)).toBe(true)
+    })
+
     it('ignores a wrapper that is not the first value (the real PEANUT-UI-SNP shape)', () => {
         const event = chainedEvent([
             { type: 'Error', value: 'Request to https://api.peanut.me/bridge/exchange-rate timed out after 20000ms' },

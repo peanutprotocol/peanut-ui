@@ -439,7 +439,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
             return
         }
         if (fit.dropped >= droppableTabCount) return
-        // The triggers are `shrink-0`, so they never squeeze to fit: they
+        // The triggers are `min-w-max` (in `Tabs`), so they never squeeze to fit: they
         // overflow the tablist's own box and its `scrollWidth` reads their
         // full demand. That is what keeps one measurement honest for both
         // jobs — the trim here, and the scroll the row falls back to once
@@ -554,7 +554,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                                 // at the widths this row really gets, `track`
                                 // scattered three chips across a full-width
                                 // pill instead of filling it). The trim still
-                                // converges — `shrink-0` keeps every chip at
+                                // converges — `min-w-max` keeps every chip at
                                 // its content width when the equal share is
                                 // too small, so `scrollWidth` still reports
                                 // the overflow the loop measures.

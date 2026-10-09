@@ -123,10 +123,7 @@ function InvitePageContent() {
         // A logged-in visitor on either claim path will be auto-routed by the
         // effect below — keep the loading spinner so they don't see the CTA flash.
         const canClaimBadgeCampaign = hasAcquisitionBadgeCampaigns
-        if (
-            user?.user &&
-            (canClaimBadgeCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.onboardingResolved))
-        ) {
+        if (user?.user && (canClaimBadgeCampaign || (!redirectUri && inviteCodeData?.onboardingResolved))) {
             setShouldShowContent(false)
             return
         }
@@ -142,7 +139,7 @@ function InvitePageContent() {
         if (inviteCode && (isLoading || !inviteCodeData)) return
 
         const hasValidInvite = !!inviteCodeData?.onboardingResolved && !!inviteCodeData.username
-        const isInviteAutoClaim = !redirectUri && user.user.hasAppAccess && hasValidInvite
+        const isInviteAutoClaim = !redirectUri && hasValidInvite
         const canClaimBadgeCampaign = hasAcquisitionBadgeCampaigns
         if (!isInviteAutoClaim && !canClaimBadgeCampaign) return
 
@@ -248,10 +245,15 @@ function InvitePageContent() {
         // typed claim result is consumed after registration.
         if (hasUrlBadgeCampaigns) queuePendingBadgeCampaigns(urlBadgeCampaigns)
 
-        // during the migration window guests go to the stores, not signup —
-        // cookie/queue bookkeeping above still runs so a keep-web signup or
-        // post-install link re-tap recovers the invite context.
-        if (!user?.user && interceptGuestCta()) {
+        // A desktop download QR opens on another device, so the inviter must
+        // travel in the handoff rather than relying on this browser's cookies.
+        if (
+            !user?.user &&
+            interceptGuestCta({
+                invite: hasValidInvite || hasBackendLegacyAcceptance ? inviteCode : undefined,
+                dest: safeRedirectUri || undefined,
+            })
+        ) {
             // keep the mid-flow destination (e.g. a pending claim) recoverable
             // after the store round-trip, same as handleLoginWithBadgeCampaign
             if (safeRedirectUri) saveRedirectUrl()
@@ -299,7 +301,7 @@ function InvitePageContent() {
                 <ValidationErrorView
                     title={t('invalidCodeTitle')}
                     message={t('invalidCodeMessage')}
-                    buttonText={tSetup('waitlist.joinWaitlist')}
+                    buttonText={tSetup('landing.signUp')}
                     redirectTo="/setup"
                 />
             </div>

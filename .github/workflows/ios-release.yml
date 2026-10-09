@@ -216,14 +216,19 @@ jobs:
 
             - name: Build web + sync iOS
               env:
+                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+                  SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
                   # postsync stamps project.pbxproj; without this it would stamp
                   # package.json's version, which no longer tracks releases.
                   IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}
                   MEAWALLET_NEXUS_USER: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' && secrets.MEAWALLET_NEXUS_USER_IOS || '' }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' && secrets.MEAWALLET_NEXUS_PASSWORD_IOS || '' }}
                   KEEP_LOTTIE_PROFILE: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
+                  # macos-15 (7 gb) gives node a ~2 gb default heap; the webpack build now needs more. 4 gb matches the ubuntu default where android passes.
+                  NODE_OPTIONS: --max-old-space-size=4096
               run: |
-                  node scripts/native-build.js && npx cap sync ios
+                  node scripts/native-build.js
+                  npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
 
             - name: Write MeaWallet config

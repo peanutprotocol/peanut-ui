@@ -13,6 +13,9 @@ const mockSetWebAuthnKey = jest.fn()
 const mockUpdateUserPreferences = jest.fn()
 const mockToPasskeyValidator = jest.fn()
 const mockSetAuthToken = jest.fn()
+const mockLogoutUser = jest.fn()
+const mockGetClientForChain = jest.fn()
+const mockEnsureClientForChain = jest.fn()
 let mockUseRealProvider = false
 let mockSavedKey: unknown
 
@@ -25,7 +28,7 @@ const passkeyTestGlobals = globalThis as PasskeyTestGlobals
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: { user: { userId: 'u1', username: 'alice' }, accounts: [] },
-        logoutUser: jest.fn(),
+        logoutUser: mockLogoutUser,
         fetchUser: jest.fn(),
         hydrateLoginSession: mockHydrateLoginSession,
     }),
@@ -36,8 +39,8 @@ jest.mock('@/context/kernelClient.context', () => ({
             ? jest.requireActual('@/context/kernelClient.context').useKernelClient()
             : {
                   setWebAuthnKey: mockSetWebAuthnKey,
-                  getClientForChain: jest.fn(),
-                  ensureClientForChain: jest.fn(),
+                  getClientForChain: mockGetClientForChain,
+                  ensureClientForChain: mockEnsureClientForChain,
               },
 }))
 jest.mock('@/context/loadingStates.context', () => {
@@ -93,9 +96,8 @@ jest.mock('@/services/consent', () => ({ signupConsentDocuments: () => [] }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/auth-token', () => ({ setAuthToken: (...args: unknown[]) => mockSetAuthToken(...args) }))
 jest.mock('@/utils/walletCredential.utils', () => ({
-    isStaleKeyError: () => false,
+    ...jest.requireActual('@/utils/walletCredential.utils'),
     isStaleClientForUser: () => false,
-    createStaleSessionError: () => new Error('stale'),
 }))
 jest.mock('@sentry/nextjs', () => ({
     captureException: (...args: unknown[]) => mockCaptureException(...args),
@@ -443,4 +445,91 @@ it('retains a newly registered key if API session hydration fails', async () => 
     expect(mockSetWebAuthnKey).not.toHaveBeenCalled()
     const { zeroDevFlowActions } = jest.requireMock('@/hooks/useZeroDevFlow')
     expect(zeroDevFlowActions.setIsRegistering).toHaveBeenCalledWith(false)
+})
+
+describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () => {
+    const calls = [{ to: '0x0000000000000000000000000000000000000001' as const, value: 0n, data: '0x' as const }]
+    let errorSpy: jest.SpyInstance
+    let client: {
+        account: { encodeCalls: jest.Mock; signUserOperation: jest.Mock }
+        prepareUserOperation: jest.Mock
+        sendUserOperation: jest.Mock
+        waitForUserOperationReceipt: jest.Mock
+    }
+
+    beforeEach(() => {
+        errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        client = {
+            account: {
+                encodeCalls: jest.fn().mockResolvedValue('0xencoded'),
+                signUserOperation: jest.fn().mockResolvedValue('0xsignature'),
+            },
+            prepareUserOperation: jest.fn().mockResolvedValue({ callData: '0xencoded' }),
+            sendUserOperation: jest.fn(),
+            waitForUserOperationReceipt: jest.fn(),
+        }
+        mockGetClientForChain.mockReturnValue(client)
+        mockEnsureClientForChain.mockResolvedValue(undefined)
+    })
+
+    afterEach(() => errorSpy.mockRestore())
+
+    describe.each(['prepare', 'sign', 'send'] as const)('%s failure', (stage) => {
+        const sendRejectingWith = async (error: unknown) => {
+            const failingCall =
+                stage === 'prepare'
+                    ? client.prepareUserOperation
+                    : stage === 'sign'
+                      ? client.account.signUserOperation
+                      : client.sendUserOperation
+            failingCall.mockRejectedValue(error)
+            const { result } = renderHook(() => useZeroDev())
+            let thrown: unknown
+            await act(async () => {
+                try {
+                    await result.current.handleSendUserOpEncoded(calls, '42161')
+                } catch (error) {
+                    thrown = error
+                }
+            })
+            return thrown
+        }
+
+        it.each(['UserOperation reverted with reason: AA24 signature error', 'wapk: unauthorized'])(
+            'clears the saved credential and logs out for %s',
+            async (message) => {
+                const error = new Error(message)
+                const thrown = await sendRejectingWith(error)
+
+                expect(thrown).toMatchObject({
+                    message: 'Your session has expired. Please log in again.',
+                    isStaleKeyError: true,
+                    cause: error,
+                })
+                expect(mockUpdateUserPreferences).toHaveBeenCalledTimes(1)
+                expect(mockUpdateUserPreferences).toHaveBeenCalledWith('u1', { webAuthnKey: undefined })
+                expect(mockLogoutUser).toHaveBeenCalledTimes(1)
+                expect(mockUpdateUserPreferences.mock.invocationCallOrder[0]).toBeLessThan(
+                    mockLogoutUser.mock.invocationCallOrder[0]
+                )
+                expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled()
+                const { zeroDevFlowActions } = jest.requireMock('@/hooks/useZeroDevFlow')
+                expect(zeroDevFlowActions.setIsSendingUserOp).toHaveBeenLastCalledWith(false)
+            }
+        )
+
+        it.each(['401 unauthorized', 'network request failed'])(
+            'preserves the saved credential for %s',
+            async (message) => {
+                const error = new Error(message)
+                expect(await sendRejectingWith(error)).toBe(error)
+
+                expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
+                expect(mockLogoutUser).not.toHaveBeenCalled()
+                expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled()
+                const { zeroDevFlowActions } = jest.requireMock('@/hooks/useZeroDevFlow')
+                expect(zeroDevFlowActions.setIsSendingUserOp).toHaveBeenLastCalledWith(false)
+            }
+        )
+    })
 })

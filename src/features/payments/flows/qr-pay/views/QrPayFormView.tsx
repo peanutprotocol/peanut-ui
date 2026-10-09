@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import GlobalCard from '@/components/Global/Card'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -15,6 +16,8 @@ import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorTex
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
@@ -34,8 +37,11 @@ export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
+    const tProvider = useTranslations('provider')
     const {
         paymentProcessor,
+        targetMantecaCountry,
         paymentLock,
         qrPayment,
         merchantName,
@@ -55,6 +61,7 @@ export function QrPayFormView() {
         balanceErrorMessage,
         shouldBlockPay,
         isLoading,
+        loadingState,
         quoteUpdatedNotice,
         isQuoteRecovering,
         payQR,
@@ -89,6 +96,14 @@ export function QrPayFormView() {
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
+
+    // the manteca entity behind the rail, for the provider row (TASK-23295)
+    const providerId =
+        paymentProcessor === 'MANTECA' && targetMantecaCountry
+            ? targetMantecaCountry === 'BR'
+                ? 'manteca-br'
+                : 'manteca-ar'
+            : null
 
     return (
         <>
@@ -145,6 +160,16 @@ export function QrPayFormView() {
                             </div>
                         </div>
                     </Card>
+
+                    {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
+                    {pixKeySave.isOffered && (
+                        <SaveAddressPrompt
+                            checked={pixKeySave.checked}
+                            nickname={pixKeySave.nickname}
+                            onCheckedChange={pixKeySave.setChecked}
+                            onNicknameChange={pixKeySave.setNickname}
+                        />
+                    )}
 
                     {/* Amount Card */}
                     {currency && (
@@ -204,7 +229,7 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
+                            moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null
@@ -226,19 +251,21 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder
+                            hideBottomBorder={!providerId}
                         />
+                        {providerId && (
+                            <PaymentInfoRow
+                                hideBottomBorder
+                                label={
+                                    <span className="flex items-center gap-1">
+                                        {tProvider('label.provider')}
+                                        <ProviderHelp providerId={providerId} />
+                                    </span>
+                                }
+                                value={PROVIDERS[providerId].brand}
+                            />
+                        )}
                     </GlobalCard>
-
-                    {/* Same place as the crypto review screen's address-book prompt. */}
-                    {pixKeySave.isOffered && (
-                        <SaveAddressPrompt
-                            checked={pixKeySave.checked}
-                            nickname={pixKeySave.nickname}
-                            onCheckedChange={pixKeySave.setChecked}
-                            onNicknameChange={pixKeySave.setNickname}
-                        />
-                    )}
 
                     {/* Send Button */}
                     <Button
@@ -262,8 +289,14 @@ export function QrPayFormView() {
                             limitsValidation.isBlocking
                         }
                     >
-                        {isLoading ? tCommon('loading') : tNav('pay')}
+                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
+
+                    {isLoading && (
+                        <p role="status" className="text-center text-body-s text-foreground-secondary">
+                            {tLoading(loadingStateKey(loadingState))}
+                        </p>
+                    )}
 
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (

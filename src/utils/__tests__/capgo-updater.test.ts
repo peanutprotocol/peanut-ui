@@ -25,6 +25,9 @@ const mockUpdater = {
 }
 const mockPlatform = { android: true, binaryVersion: '1.5.0' as string | null }
 
+// Format-valid v2 metadata only; the mocked native plugin owns RSA verification.
+const signedSessionKey = `${Buffer.alloc(16, 1).toString('base64')}:${Buffer.alloc(256, 1).toString('base64')}`
+
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/capacitor', () => ({
@@ -79,6 +82,102 @@ async function launch(): Promise<void> {
     await jest.advanceTimersByTimeAsync(5_000)
 }
 
+describe('OTA signing metadata', () => {
+    it.each([undefined, [{ file_name: 'index.html', file_hash: 'a'.repeat(512) }]])(
+        'forwards format-valid signing metadata unchanged to native verification (manifest %p)',
+        async (manifest) => {
+            const latest = {
+                url: 'https://cdn.test/signed.zip',
+                version: '1.5.4',
+                sessionKey: signedSessionKey,
+                checksum: 'a'.repeat(512),
+                manifest,
+            }
+            mockUpdater.getLatest.mockResolvedValue(latest)
+            await launch()
+            expect(mockUpdater.download).toHaveBeenCalledWith(latest)
+            expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBe('b-1')
+        }
+    )
+
+    it('leaves cryptographic rejection to native without staging the rejected bundle', async () => {
+        const onUpdateFailed = jest.fn()
+        mockUpdater.getLatest.mockResolvedValue({
+            url: 'https://cdn.test/forged.zip',
+            version: '1.5.4',
+            sessionKey: signedSessionKey,
+            checksum: 'a'.repeat(512),
+        })
+        mockUpdater.download.mockRejectedValue(new Error('Invalid RSA checksum'))
+        await initCapgoUpdater({ onUpdateFailed })
+        await jest.advanceTimersByTimeAsync(5_000)
+        expect(mockUpdater.download).toHaveBeenCalledTimes(1)
+        expect(onUpdateFailed).toHaveBeenCalledWith('Invalid RSA checksum')
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+    })
+
+    it('rejects unsigned metadata when joining beta', async () => {
+        const { joinBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.setChannel.mockResolvedValue({ status: 'ok' })
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/beta.zip', version: '1.5.4' })
+        await expect(joinBetaOtaChannel()).resolves.toBe('failed')
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+    })
+
+    it.each([
+        undefined,
+        null,
+        '',
+        ' ',
+        'not-a-session-key',
+        ':',
+        `${signedSessionKey}:extra`,
+        `:${signedSessionKey.split(':')[1]}`,
+        `${signedSessionKey.split(':')[0]}:`,
+        'invalid-base64:invalid-base64',
+        `${Buffer.alloc(15).toString('base64')}:${signedSessionKey.split(':')[1]}`,
+        `${signedSessionKey.split(':')[0]}:${Buffer.alloc(255).toString('base64')}`,
+        { sessionKey: signedSessionKey },
+    ])('rejects missing or malformed sessionKey %p before downloading', async (sessionKey) => {
+        const onUpdateFailed = jest.fn()
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/unsigned.zip', version: '1.5.4', sessionKey })
+        await initCapgoUpdater({ onUpdateFailed })
+        await jest.advanceTimersByTimeAsync(5_000)
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+        expect(onUpdateFailed).toHaveBeenCalledWith('OTA signing metadata is missing or invalid')
+    })
+
+    it('rejects unsigned manifest metadata before downloading', async () => {
+        mockUpdater.getLatest.mockResolvedValue({
+            url: 'https://cdn.test/unsigned.zip',
+            version: '1.5.4',
+            manifest: [
+                { file_name: 'index.html', file_hash: 'a'.repeat(64), download_url: 'https://cdn.test/index.html' },
+            ],
+        })
+        await launch()
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoDownloadedBundleId')).toBeNull()
+    })
+
+    it('rejects unsigned metadata before reusing a saved version', async () => {
+        const onUpdateAvailable = jest.fn()
+        window.localStorage.setItem('capgoDownloadedBundleId', 'saved')
+        mockUpdater.list.mockResolvedValue({ bundles: [{ id: 'saved', version: '1.5.4' }] })
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/unsigned.zip', version: '1.5.4' })
+        await initCapgoUpdater({ onUpdateAvailable })
+        await jest.advanceTimersByTimeAsync(5_000)
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(onUpdateAvailable).not.toHaveBeenCalled()
+    })
+})
+
 it('keeps a dev pre-release binary on its built-in JS', async () => {
     process.env.NEXT_PUBLIC_NATIVE_PRERELEASE = 'true'
     try {
@@ -106,6 +205,7 @@ describe.each([
         mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.51.14' })
         mockUpdater.download.mockResolvedValue(bridge)
         mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
             url: 'https://cdn.test/legacy-bridge.zip',
             version: bridgeVersion,
             comment: bridgeComment,
@@ -128,6 +228,7 @@ describe.each([
 
         const cutover = { id: 'cutover', version: '1.7.1' }
         mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
             url: 'https://cdn.test/cutover.zip',
             version: cutover.version,
             comment: '[ota-floors: android=1.7.0 ios=1.7.0]',
@@ -194,7 +295,11 @@ it('logs a transient failure at info, not error', async () => {
 
 it('downloads an OTA without arming a background install, then finds it on a later launch', async () => {
     const bundle = { id: 'b-1', version: '1.5.4' }
-    mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.5.4.zip', version: bundle.version })
+    mockUpdater.getLatest.mockResolvedValue({
+        sessionKey: signedSessionKey,
+        url: 'https://cdn.test/1.5.4.zip',
+        version: bundle.version,
+    })
     await launch()
     expect(mockUpdater.download).toHaveBeenCalledTimes(1)
     expect(mockUpdater.next).not.toHaveBeenCalled()
@@ -280,6 +385,19 @@ it('logs a known-fatal failure at error on the first launch', async () => {
     await launch()
     expect(error).toHaveBeenCalledWith('[capgo] update check failed:', 'Checksum mismatch for bundle')
     expect(info).not.toHaveBeenCalled()
+})
+
+it('reports a known-fatal failure once per binary build, not on every launch', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('disable_auto_update_under_native'))
+    await launch()
+    await launch()
+    expect(error).toHaveBeenCalledTimes(1)
+    expect(info).toHaveBeenCalledWith('[capgo] update check failed:', 'disable_auto_update_under_native')
+
+    // A store update to a build that is still refused is news again.
+    mockPlatform.binaryVersion = '1.6.0'
+    await launch()
+    expect(error).toHaveBeenCalledTimes(2)
 })
 
 it('escalates the same failure to error on the third consecutive launch', async () => {
@@ -457,7 +575,11 @@ describe('beta channel opt-in', () => {
         await jest.advanceTimersByTimeAsync(5_000)
         expect(mockUpdater.getLatest).toHaveBeenCalledTimes(1)
 
-        mockUpdater.getLatest.mockResolvedValue({ url: 'https://bundles/beta', version: '1.1.10846' })
+        mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
+            url: 'https://bundles/beta',
+            version: '1.1.10846',
+        })
         mockUpdater.download.mockResolvedValue({ id: 'beta-bundle' })
         const joined = joinBetaOtaChannel()
         await jest.advanceTimersByTimeAsync(0)
@@ -472,7 +594,11 @@ describe('beta channel opt-in', () => {
 
     it('joins the staging channel and stages its bundle straight away', async () => {
         const { joinBetaOtaChannel, BETA_OTA_CHANNEL } = await import('../capgo-updater')
-        mockUpdater.getLatest.mockResolvedValue({ url: 'https://bundles/1.1.10846', version: '1.1.10846' })
+        mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
+            url: 'https://bundles/1.1.10846',
+            version: '1.1.10846',
+        })
         mockUpdater.download.mockResolvedValue({ id: 'beta-bundle' })
         await expect(joinBetaOtaChannel()).resolves.toBe('staged')
         expect(mockUpdater.setChannel).toHaveBeenCalledWith({ channel: BETA_OTA_CHANNEL })
@@ -765,7 +891,11 @@ describe('store-update gate', () => {
     })
 
     it('never downloads a bundle built for a newer binary', async () => {
-        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.6.0.zip', version: '1.6.0' })
+        mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
+            url: 'https://cdn.test/1.6.0.zip',
+            version: '1.6.0',
+        })
         const onStoreUpdateRequired = jest.fn()
         await initCapgoUpdater({ onStoreUpdateRequired })
         await jest.advanceTimersByTimeAsync(5_000)
@@ -791,7 +921,11 @@ describe('store-update gate', () => {
     )
 
     it('still stages an OTA inside the running binary build', async () => {
-        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.5.4.zip', version: '1.5.4' })
+        mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
+            url: 'https://cdn.test/1.5.4.zip',
+            version: '1.5.4',
+        })
         mockUpdater.download.mockResolvedValue({ id: 'b-4', version: '1.5.4' })
         const onUpdateAvailable = jest.fn()
         await initCapgoUpdater({ onUpdateAvailable })
@@ -824,6 +958,7 @@ describe('store-update gate', () => {
         mockPlatform.android = false
         mockPlatform.binaryVersion = '1.5.0'
         mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
             url: 'https://cdn.test/1.6.3.zip',
             version: '1.6.3',
             comment: 'abc1234 — subject [ota-floors: android=1.6.0 ios=1.5.0]',
@@ -847,6 +982,7 @@ describe('store-update gate', () => {
             const bundle = { id: `ios-${patch}`, version: `1.6.${patch}-ios` }
             mockUpdater.getNextBundle.mockResolvedValue(null)
             mockUpdater.getLatest.mockResolvedValue({
+                sessionKey: signedSessionKey,
                 url: `https://cdn.test/${bundle.version}.zip`,
                 version: bundle.version,
                 comment: '[ota-floors: android=1.6.0 ios=1.5.0]',
@@ -944,7 +1080,11 @@ describe('store-update gate', () => {
 
     it('lets the update through when the binary version cannot be read', async () => {
         mockPlatform.binaryVersion = null
-        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.6.0.zip', version: '1.6.0' })
+        mockUpdater.getLatest.mockResolvedValue({
+            sessionKey: signedSessionKey,
+            url: 'https://cdn.test/1.6.0.zip',
+            version: '1.6.0',
+        })
         mockUpdater.download.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
         await initCapgoUpdater()
         await jest.advanceTimersByTimeAsync(5_000)

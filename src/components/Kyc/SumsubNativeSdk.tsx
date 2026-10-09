@@ -44,6 +44,7 @@ export const ORPHANED_SDK_GRACE_MS = 2000
 export const SumsubNativeSdk = ({
     visible,
     accessToken,
+    email,
     onClose,
     onComplete,
     onError,
@@ -60,6 +61,9 @@ export const SumsubNativeSdk = ({
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
+    // A profile refresh must not relaunch the SDK over the user's KYC edits.
+    const emailRef = useRef(email)
+    emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
     const onSubmittedRef = useRef(onSubmitted)
     const sumsubLocaleRef = useRef(toSumsubLocale(locale))
@@ -137,6 +141,7 @@ export const SumsubNativeSdk = ({
                     },
                 })
                 .withLocale(sumsubLocaleRef.current)
+                .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
                 .build()
 

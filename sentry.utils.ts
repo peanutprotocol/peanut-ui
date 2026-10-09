@@ -1,4 +1,5 @@
 import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
+import { isExpectedCancellation, isExpectedCancellationChain } from './src/utils/expected-exception'
 // Shared Sentry utilities for filtering noise across all configs
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
@@ -63,6 +64,8 @@ const IGNORED_ERRORS = {
         'chrome-extension://',
         'moz-extension://',
         'safari-extension://',
+        // Firefox for iOS injects scripts that read `window.__firefox__`; nothing of ours does.
+        '__firefox__',
     ],
 
     // Third-party scripts we don't control
@@ -99,6 +102,19 @@ const IGNORED_ERRORS = {
     ],
 }
 
+const POSTHOG_RATE_LIMIT_NOTICE = /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i
+
+/**
+ * posthog-js console.errors this each time its client rate limiter drops a
+ * capture. Mirrored into PostHog as a `$exception`, the notice is itself a
+ * capture the limiter drops, which logs the notice again: one slow session
+ * produced 544 of them in five minutes. Exported for the PostHog mirror
+ * wrapper, whose processEvent hook runs before beforeSend.
+ */
+export function isPosthogRateLimitNotice(searchTexts: string[]): boolean {
+    return searchTexts.some((text) => POSTHOG_RATE_LIMIT_NOTICE.test(text.trim()))
+}
+
 // Deliberate product and SDK outcomes. Keep these outside IGNORED_ERRORS' fuzzy
 // substring matcher: a technical error that merely includes similar prose must
 // remain visible. Error classes are exact; messages are anchored to the complete
@@ -115,7 +131,7 @@ const EXPECTED_BEHAVIOR_MESSAGES = [
     /^You reached the limit of (?:10|20|30) cross-chain (?:withdrawals|transfers) per (?:hour|day|30 days)\. Try again in .+$/i,
     /^You reached the limit for withdrawals to other networks(?:\..*)?$/i,
     /^Company has exceeded their debt limit\.?$/i,
-    /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i,
+    POSTHOG_RATE_LIMIT_NOTICE,
 ]
 
 function isExpectedBehaviorError(event: ErrorEvent, searchTexts: string[]): boolean {
@@ -264,6 +280,14 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // a defect, and those would drown out the real failures.
     const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const searchTexts = getEventSearchTexts(event)
+    const exceptions = (event.exception?.values ?? []).filter((exception) => exception.type || exception.value)
+    const isCancellationChain = isExpectedCancellationChain(exceptions)
+    if (isCancellationChain || (!exceptions.length && isExpectedCancellation(event.message))) return true
+    const isMixedCancellationChain =
+        !isCancellationChain &&
+        exceptions.length > 0 &&
+        (isExpectedCancellation(event.message) ||
+            exceptions.some((exception) => isExpectedCancellation(exception.value)))
 
     /*
      * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo
@@ -308,6 +332,9 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
 
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
+        // The legacy fuzzy cancellation patterns must not undo the chain-wide
+        // policy above by matching the canceled root cause of a technical error.
+        if (group === 'userRejected' && isMixedCancellationChain) continue
         if (isCriticalFlow && group !== 'userRejected') continue
         for (const pattern of patterns) {
             if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {

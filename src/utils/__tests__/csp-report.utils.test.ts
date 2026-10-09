@@ -48,6 +48,18 @@ describe('shouldIgnoreCspReport', () => {
         expect(shouldIgnoreCspReport({ 'blocked-uri': 'https://arb1.arbitrum.io/rpc' })).toBe(false)
     })
 
+    it.each(['https://vercel.live/_next-live/feedback/feedback.js', 'vercel.live'])(
+        "drops Vercel's preview toolbar, which never runs in production: %s",
+        (blockedUri) => {
+            expect(shouldIgnoreCspReport({ 'blocked-uri': blockedUri })).toBe(true)
+        }
+    )
+
+    it('keeps a host that only contains the toolbar name', () => {
+        expect(shouldIgnoreCspReport({ 'blocked-uri': 'https://notvercel.live/x.js' })).toBe(false)
+        expect(shouldIgnoreCspReport({ 'blocked-uri': 'inline' })).toBe(false)
+    })
+
     it('does not treat a missing blocked-uri as noise', () => {
         expect(shouldIgnoreCspReport({})).toBe(false)
     })

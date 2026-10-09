@@ -230,9 +230,11 @@ export async function closeInAppBrowser(): Promise<void> {
     }
 }
 
-export async function openExternalUrl(url: string): Promise<void> {
+export async function openExternalUrl(url: string, signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) throw new DOMException('Browser navigation cancelled', 'AbortError')
     if (isCapacitor()) {
         const { Browser } = await import('@capacitor/browser')
+        if (signal?.aborted) throw new DOMException('Browser navigation cancelled', 'AbortError')
         inAppBrowserOpen = true
         await Browser.open({ url: withNativeHelpContext(url) })
     } else if (!window.open(url, '_blank')) {

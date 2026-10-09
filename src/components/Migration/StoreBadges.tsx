@@ -7,7 +7,15 @@ import { trackStoreClick } from '@/utils/migration.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 /** Show the device's store when known, or both stores on desktop. */
-export default function StoreBadges({ surface, payload }: { surface: MigrationSurface; payload?: string }) {
+export default function StoreBadges({
+    surface,
+    payload,
+    iosPayload,
+}: {
+    surface: MigrationSurface
+    payload?: string
+    iosPayload?: string
+}) {
     // Repeated taps must not inflate the handoff count used to measure successful installs.
     const counted = useRef(new Set<string>())
     const countHandoff = (store: 'ios' | 'android', handoff: string) => {
@@ -28,12 +36,13 @@ export default function StoreBadges({ surface, payload }: { surface: MigrationSu
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
-                        trackStoreClick(s, surface, !!payload)
-                        if (!payload) return
-                        if (s === 'android') countHandoff(s, payload)
+                        const handoff = s === 'ios' ? (iosPayload ?? payload) : payload
+                        trackStoreClick(s, surface, !!handoff)
+                        if (!handoff) return
+                        if (s === 'android') countHandoff(s, handoff)
                         else
-                            void copyIOSHandoff(payload)
-                                .then(() => countHandoff(s, payload))
+                            void copyIOSHandoff(handoff)
+                                .then(() => countHandoff(s, handoff))
                                 .catch(() => {})
                     }}
                     className="w-full"

@@ -1,4 +1,4 @@
-import { RHINO_SUPPORTED_TOKENS, getSupportedTokens } from '@/constants/rhino.consts'
+import { getSupportedTokens } from '@/constants/rhino.consts'
 
 // A token advertised on a network Rhino's SDA doesn't accept means silent,
 // permanent loss for the user (no webhook fires). These lists must mirror
@@ -18,9 +18,10 @@ describe('getSupportedTokens', () => {
     })
 
     test('every advertised token has a logo', () => {
-        expect(RHINO_SUPPORTED_TOKENS.map((t) => t.name)).toEqual(['USDT', 'USDC', 'ETH'])
-        for (const token of RHINO_SUPPORTED_TOKENS) {
-            expect(token.logoUrl).toMatch(/^https:\/\//)
+        for (const network of ['EVM', 'SOL', 'TRON'] as const) {
+            for (const token of getSupportedTokens(network)) {
+                expect(token.logoUrl).toMatch(/^https:\/\//)
+            }
         }
     })
 })

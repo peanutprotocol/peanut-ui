@@ -34,7 +34,9 @@ export async function getExchangeRate(
 
         return { data }
     } catch (error) {
-        console.error('Error calling get exchange rate API:', error)
+        // apiFetch records the transport failure; the caller owns recovery.
+        // A second console exception here adds no diagnostic context.
+        console.warn('Error calling get exchange rate API:', error)
         if (error instanceof Error) {
             return { error: error.message }
         }

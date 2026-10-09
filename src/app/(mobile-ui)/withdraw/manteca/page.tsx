@@ -592,13 +592,9 @@ function MantecaBankWithdrawFlow() {
             setLoadingState('Preparing transaction')
 
             // Step 1: Sign the spend artifact (but don't broadcast yet).
-            // Routing picks the funding SOURCE; execution runs on the mixed
-            // pipeline whenever collateral is involved — including a fully
-            // collateral-funded offramp from an empty smart account — because
-            // that route has a durable reservation and definitive failure
-            // codes, so a late controller rotation is recoverable on this same
-            // lock. Cost: the passkey fallback is two taps (one where the
-            // ephemeral path is enabled).
+            // Collateral that covers the amount signs directly: one admin
+            // signature for an approved account. Mixed funding combines both
+            // balances and also needs a UserOp signature.
             // Same terms on a recovery re-sign: only the prep and the signature
             // are fresh — amount, recipient and the price lock below are not.
             const signSpendInput = () => ({
@@ -688,10 +684,9 @@ function MantecaBankWithdrawFlow() {
 
             setLoadingState('Withdrawing')
 
-            // Step 2: Send signed artifact to backend. The modern mixed/userOp
-            // route broadcasts the funding op FIRST — a definitive revert
-            // leaves no provider order behind, which is what makes the
-            // replacement below safe. No stuck funds either way.
+            // Step 2: Send signed artifact to backend. Only a proven pre-effect
+            // failure (controller changed, or a definitive mixed revert) is
+            // replaced below; pending or unknown outcomes are never re-signed.
             // Built from the artifact actually being submitted: a recovery
             // replacement carries a fresh prep + signature under the SAME lock.
             const withdrawBody = (artifact: typeof signedArtifact) => {
@@ -772,7 +767,7 @@ function MantecaBankWithdrawFlow() {
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
-                    setErrorMessage(t('errors.ownAccountOnly'))
+                    setErrorMessage(tCommon('ownAccountOnly'))
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
                     setOutcome('failure')
@@ -1217,7 +1212,7 @@ function MantecaBankWithdrawFlow() {
                             )}
 
                             <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
-                                <span>{t('manteca.ownAccountOnly')}</span>
+                                <span>{tCommon('ownAccountOnly')}</span>
                             </div>
                         </div>
 
@@ -1281,7 +1276,7 @@ function MantecaBankWithdrawFlow() {
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
+                            moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}

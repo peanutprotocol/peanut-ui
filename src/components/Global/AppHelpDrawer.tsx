@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import Loading from '@/components/Global/Loading'
+import { isEnglishFallback } from '@/i18n/englishFallback'
 import AppHelpArticleBody from './AppHelpMdx'
 import { getCachedAppHelpArticle, loadAppHelpArticle } from './appHelpArticle'
 import type { AppHelpArticle, AppHelpSlug, HelpLocale } from './appHelpTypes'
@@ -23,6 +24,9 @@ export default function AppHelpDrawer({ slug, locale, open, onClose, onUnavailab
     const key = `${locale}/${slug}`
     const [loaded, setLoaded] = useState<{ key: string; article: AppHelpArticle } | null>(null)
     const article = loaded?.key === key ? loaded.article : getCachedAppHelpArticle(slug, locale)
+    // Legal text is English-only by policy, so pt-br and es readers get the English
+    // document: tag it for screen readers and say so.
+    const english = article?.lang !== undefined && isEnglishFallback(article.lang, locale)
 
     // Load only while open: closing drops a pending result, so a late failure cannot
     // open the help page after the reader dismissed the drawer. Reopening retries.
@@ -47,7 +51,7 @@ export default function AppHelpDrawer({ slug, locale, open, onClose, onUnavailab
             <DrawerContent>
                 <div className="sticky top-0 z-10 bg-white pb-2">
                     <DrawerHeader className="flex flex-row items-start justify-between gap-2 p-0 text-left">
-                        <DrawerTitle className="text-heading-s text-foreground-primary">
+                        <DrawerTitle className="text-heading-s text-foreground-primary" lang={article?.lang}>
                             {article?.title ?? tCommon('loading')}
                         </DrawerTitle>
                         <DrawerClose asChild>
@@ -62,7 +66,8 @@ export default function AppHelpDrawer({ slug, locale, open, onClose, onUnavailab
                         </DrawerClose>
                     </DrawerHeader>
                 </div>
-                <article className="pb-6" aria-label={article?.title} aria-busy={!article}>
+                {english && <p className="pb-2 text-body-s text-foreground-secondary">{tCommon('inEnglish')}</p>}
+                <article className="pb-6" aria-label={article?.title} aria-busy={!article} lang={article?.lang}>
                     {article ? (
                         <AppHelpArticleBody body={article.body} />
                     ) : (

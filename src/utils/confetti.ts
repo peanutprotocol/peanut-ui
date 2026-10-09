@@ -19,8 +19,12 @@ const defaultConfettiConfig = {
     gravity: 0.3,
     decay: 0.96,
     startVelocity: 15,
-    colors: ['#FFE400', '#FFBD00', '#E89400', '#FFCA6C', '#FDFFB8'],
+    // canvas-confetti paints on a canvas and cannot read css variables, so these
+    // are the ds token hex values: yellow-400, yellow-500, yellow-600, yellow-200, badge-attention
+    colors: ['#fde047', '#ffc900', '#dcae01', '#fae184', '#ffe6b3'],
 }
+
+export const STAR_CONFETTI_COLORS = defaultConfettiConfig.colors
 
 /*
  * prefers-reduced-motion asks for less motion, not less feedback.

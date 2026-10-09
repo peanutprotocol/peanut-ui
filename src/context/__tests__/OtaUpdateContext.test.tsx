@@ -26,6 +26,10 @@ const mockUpdater = {
     delete: jest.fn().mockResolvedValue(undefined),
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
+let mockStoreUpdateAvailable = true
+jest.mock('@/hooks/useStoreUpdateAvailable', () => ({
+    useStoreUpdateAvailable: (required: boolean) => required && mockStoreUpdateAvailable,
+}))
 // splashVisible false by default: these cases are about a bundle staged while
 // the user is already in the app, where the launch apply deliberately stands
 // down. The behind-the-splash window has its own describe block.
@@ -53,6 +57,9 @@ import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
 import * as otaGate from '@/utils/ota-native-gate'
 import * as chunkRecovery from '@/utils/chunk-error-recovery'
 
+// Format-valid metadata; native signature verification is mocked in this suite.
+const signedSessionKey = `${Buffer.alloc(16, 1).toString('base64')}:${Buffer.alloc(256, 1).toString('base64')}`
+
 const STAGED = { id: 'b-2', version: '1.2.0', downloaded: '', checksum: '', status: 'pending' as const }
 
 const wrapper = ({ children }: { children: React.ReactNode }) => <OtaUpdateProvider>{children}</OtaUpdateProvider>
@@ -62,6 +69,7 @@ let warn: jest.SpyInstance
 let error: jest.SpyInstance
 
 beforeEach(() => {
+    mockStoreUpdateAvailable = true
     jest.useFakeTimers()
     window.localStorage.clear()
     platform.android = true
@@ -69,6 +77,7 @@ beforeEach(() => {
     platform.splashVisible = false
     platform.binaryVersion = null
     mockUpdater.notifyAppReady.mockReset().mockResolvedValue(undefined)
+    mockUpdater.download.mockClear()
     mockUpdater.addListener.mockReset().mockResolvedValue({ remove: jest.fn() })
     mockUpdater.delete.mockReset().mockResolvedValue(undefined)
     mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
@@ -96,7 +105,9 @@ afterEach(() => {
 
 /** The recovery path after a rejected set(): a genuinely newer bundle to re-stage. */
 const withRestageableBundle = () => {
-    mockUpdater.getLatest.mockReset().mockResolvedValue({ url: 'https://cdn.test/b-3.zip', version: '1.3.0' })
+    mockUpdater.getLatest
+        .mockReset()
+        .mockResolvedValue({ url: 'https://cdn.test/b-3.zip', version: '1.3.0', sessionKey: signedSessionKey })
     mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
 }
 
@@ -183,6 +194,37 @@ it('flags a store update when the served bundle needs a newer binary', async () 
     })
     expect(result.current.storeUpdateRequired).toBe(true)
     expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
+})
+
+it('hides the store prompt while approval is pending and still refuses the incompatible OTA', async () => {
+    mockStoreUpdateAvailable = false
+    mockUpdater.getLatest.mockRejectedValue(new Error('disable_auto_update_to_metadata'))
+    const { result } = setup()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+    expect(result.current.storeUpdateRequired).toBe(false)
+    expect(result.current.pendingBundle).toBeNull()
+    expect(mockUpdater.download).not.toHaveBeenCalled()
+})
+
+it('still disarms an incompatible queued bundle while store approval is pending', async () => {
+    mockStoreUpdateAvailable = false
+    platform.binaryVersion = '1.1.0'
+    mockUpdater.getNextBundle.mockResolvedValueOnce(STAGED).mockResolvedValue(null)
+    const { result } = setup()
+    await waitFor(() => expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-2' }))
+    expect(result.current.storeUpdateRequired).toBe(false)
+    expect(result.current.pendingBundle).toBeNull()
+    expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+})
+
+it('still offers a compatible staged OTA while store approval is pending', async () => {
+    mockStoreUpdateAvailable = false
+    platform.binaryVersion = '1.2.0'
+    const { result } = await withStagedBundle()
+    expect(result.current.pendingBundle).toEqual(STAGED)
+    expect(result.current.storeUpdateRequired).toBe(false)
 })
 
 // A native release publishes a bundle carrying its own version, and a device on
@@ -405,7 +447,7 @@ it('drops the marker while the recovery re-stage is in flight, so a kill is not 
     let markerDuringRestage: string | null | undefined
     mockUpdater.getLatest.mockReset().mockImplementation(async () => {
         markerDuringRestage = window.localStorage.getItem('capgoPendingApply')
-        return { url: 'https://cdn.test/b-3.zip', version: '1.3.0' }
+        return { url: 'https://cdn.test/b-3.zip', version: '1.3.0', sessionKey: signedSessionKey }
     })
     mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
     const { result } = await withStagedBundle()
@@ -425,7 +467,8 @@ it('does not exit while the fallback re-download is still running after set() re
     let finishDownload!: () => void
     mockUpdater.getLatest.mockReset().mockReturnValue(
         new Promise((resolve) => {
-            finishDownload = () => resolve({ url: 'https://cdn.test/b-3.zip', version: '1.3.0' })
+            finishDownload = () =>
+                resolve({ url: 'https://cdn.test/b-3.zip', version: '1.3.0', sessionKey: signedSessionKey })
         })
     )
     mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
@@ -719,5 +762,14 @@ it('surfaces an incompatible running bundle even without a newer or staged candi
     jest.spyOn(otaGate, 'runningBundleOutranksBinary').mockResolvedValue(true)
     const { result } = setup()
     await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
+    expect(result.current.pendingBundle).toBeNull()
+})
+
+it('hides the running-bundle store hint while store approval is pending', async () => {
+    mockStoreUpdateAvailable = false
+    const check = jest.spyOn(otaGate, 'runningBundleOutranksBinary').mockResolvedValue(true)
+    const { result } = setup()
+    await waitFor(() => expect(check).toHaveBeenCalled())
+    expect(result.current.storeUpdateRequired).toBe(false)
     expect(result.current.pendingBundle).toBeNull()
 })
