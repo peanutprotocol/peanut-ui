@@ -138,14 +138,18 @@ async function shareFromCache(file: StatementFile): Promise<'saved' | 'cancelled
         import('@capacitor/share'),
     ])
     // the receiving app may read the file after the share sheet closes, so an
-    // earlier file goes at a later save, not after its own (as receipt attachments do)
+    // earlier save goes at a later one, not after its own (as receipt attachments do)
     try {
         const { files } = await Filesystem.readdir({ path: CACHE_DIRECTORY, directory: Directory.Cache })
         await Promise.all(
             files
-                .filter((entry) => entry.type === 'file' && entry.mtime < Date.now() - CACHE_KEEP_MS)
+                .filter((entry) => entry.mtime < Date.now() - CACHE_KEEP_MS)
                 .map((entry) =>
-                    Filesystem.deleteFile({ path: `${CACHE_DIRECTORY}/${entry.name}`, directory: Directory.Cache })
+                    Filesystem.rmdir({
+                        path: `${CACHE_DIRECTORY}/${entry.name}`,
+                        directory: Directory.Cache,
+                        recursive: true,
+                    })
                 )
         )
     } catch {
@@ -157,8 +161,13 @@ async function shareFromCache(file: StatementFile): Promise<'saved' | 'cancelled
         reader.onerror = () => reject(reader.error ?? new Error('Unable to read the statement'))
         reader.readAsDataURL(file.blob)
     })
+    // one folder per save: the same period saved twice has the same file name, and a
+    // second save must not replace the bytes behind the address the first one shared
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+        byte.toString(16).padStart(2, '0')
+    ).join('')
     const { uri } = await Filesystem.writeFile({
-        path: `${CACHE_DIRECTORY}/${file.fileName}`,
+        path: `${CACHE_DIRECTORY}/${id}/${file.fileName}`,
         directory: Directory.Cache,
         data,
         recursive: true,

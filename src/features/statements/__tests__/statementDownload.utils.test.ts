@@ -17,7 +17,7 @@ jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.ex
 jest.mock('@capacitor/core', () => ({ CapacitorHttp: { request: jest.fn() } }))
 jest.mock('@capacitor/filesystem', () => ({
     Directory: { Cache: 'CACHE' },
-    Filesystem: { writeFile: jest.fn(), deleteFile: jest.fn(), readdir: jest.fn() },
+    Filesystem: { writeFile: jest.fn(), rmdir: jest.fn(), readdir: jest.fn() },
 }))
 jest.mock('@capacitor/share', () => ({ Share: { share: jest.fn() } }))
 jest.mock('@/components/Card/share-asset/captureShareAsset', () => ({ downloadBlob: jest.fn() }))
@@ -43,7 +43,7 @@ beforeEach(() => {
     delete window.Capacitor
     ;(Filesystem.readdir as jest.Mock).mockRejectedValue(new Error('Directory does not exist'))
     ;(Filesystem.writeFile as jest.Mock).mockResolvedValue({ uri: 'file:///cache/statements/activity.csv' })
-    ;(Filesystem.deleteFile as jest.Mock).mockResolvedValue(undefined)
+    ;(Filesystem.rmdir as jest.Mock).mockResolvedValue(undefined)
     ;(Share.share as jest.Mock).mockResolvedValue({})
 })
 
@@ -185,9 +185,9 @@ describe('statement downloads', () => {
         const webShare = jest.fn()
         Object.defineProperty(navigator, 'share', { configurable: true, value: webShare })
         expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).toBe('saved')
-        // 'file' in base64, written under the statement's own name
+        // 'file' in base64, written under the statement's own name in a folder of its own
         expect(Filesystem.writeFile).toHaveBeenCalledWith({
-            path: 'statements/activity.csv',
+            path: expect.stringMatching(/^statements\/[0-9a-f]{32}\/activity\.csv$/),
             directory: 'CACHE',
             data: 'ZmlsZQ==',
             recursive: true,
@@ -213,19 +213,33 @@ describe('statement downloads', () => {
         )
     })
 
-    it('removes statement files older than a day from the cache, and keeps a recent one', async () => {
+    it('gives the same statement saved twice two cache files, so the first share keeps its bytes', async () => {
+        native.mockReturnValue(true)
+        appShipsFilePlugins(true)
+        await saveStatement({ blob: new Blob(['first']), fileName: 'activity.csv' })
+        await saveStatement({ blob: new Blob(['second']), fileName: 'activity.csv' })
+        const [first, second] = (Filesystem.writeFile as jest.Mock).mock.calls.map(([options]) => options.path)
+        expect(first).not.toBe(second)
+        expect(first.endsWith('/activity.csv') && second.endsWith('/activity.csv')).toBe(true)
+    })
+
+    it('removes saves older than a day from the cache, and keeps a recent one', async () => {
         native.mockReturnValue(true)
         appShipsFilePlugins(true)
         const hour = 60 * 60 * 1000
         ;(Filesystem.readdir as jest.Mock).mockResolvedValue({
             files: [
-                { name: 'old.pdf', type: 'file', mtime: Date.now() - 25 * hour },
-                { name: 'recent.csv', type: 'file', mtime: Date.now() - hour },
+                { name: 'old-save', type: 'directory', mtime: Date.now() - 25 * hour },
+                { name: 'recent-save', type: 'directory', mtime: Date.now() - hour },
             ],
         })
         await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })
-        expect(Filesystem.deleteFile).toHaveBeenCalledTimes(1)
-        expect(Filesystem.deleteFile).toHaveBeenCalledWith({ path: 'statements/old.pdf', directory: 'CACHE' })
+        expect(Filesystem.rmdir).toHaveBeenCalledTimes(1)
+        expect(Filesystem.rmdir).toHaveBeenCalledWith({
+            path: 'statements/old-save',
+            directory: 'CACHE',
+            recursive: true,
+        })
     })
 
     it('keeps the web share sheet in an app built before the file plugins, and does not claim a cancelled one', async () => {
