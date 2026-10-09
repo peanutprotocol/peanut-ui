@@ -16,6 +16,8 @@ import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorTex
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
@@ -36,8 +38,10 @@ export function QrPayFormView() {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
+    const tProvider = useTranslations('provider')
     const {
         paymentProcessor,
+        targetMantecaCountry,
         paymentLock,
         qrPayment,
         merchantName,
@@ -92,6 +96,14 @@ export function QrPayFormView() {
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
+
+    // the manteca entity behind the rail, for the provider row (TASK-23295)
+    const providerId =
+        paymentProcessor === 'MANTECA' && targetMantecaCountry
+            ? targetMantecaCountry === 'BR'
+                ? 'manteca-br'
+                : 'manteca-ar'
+            : null
 
     return (
         <>
@@ -217,7 +229,7 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
+                            moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null
@@ -239,8 +251,20 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder
+                            hideBottomBorder={!providerId}
                         />
+                        {providerId && (
+                            <PaymentInfoRow
+                                hideBottomBorder
+                                label={
+                                    <span className="flex items-center gap-1">
+                                        {tProvider('label.provider')}
+                                        <ProviderHelp providerId={providerId} />
+                                    </span>
+                                }
+                                value={PROVIDERS[providerId].brand}
+                            />
+                        )}
                     </GlobalCard>
 
                     {/* Send Button */}

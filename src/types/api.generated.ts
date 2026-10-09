@@ -65,6 +65,10 @@ export interface paths {
                         chainId?: string;
                         telegramHandle?: string;
                         userId: string;
+                        signupPreferences?: {
+                            fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                        };
                     };
                 };
             };
@@ -12664,6 +12668,10 @@ export interface paths {
                                 banking: boolean;
                                 card: boolean;
                             };
+                            signupPreferences: {
+                                fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                                paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                            } | null;
                         } & {
                             [key: string]: unknown;
                         };
@@ -13618,6 +13626,95 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        email: boolean;
+                        push: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;

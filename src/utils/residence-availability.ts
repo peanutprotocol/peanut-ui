@@ -10,7 +10,7 @@ export type AvailabilityRailKey = Exclude<AvailabilityItemKey, 'p2p' | 'card' | 
 
 export interface ResidenceAvailability {
     iso2: string
-    /** what this residence makes available, always led by the universal P2P layer */
+    /** what this residence makes available, with universal P2P payments last */
     available: AvailabilityItemKey[]
     /** what this residence rules out, from the restriction tiers */
     unavailable: Array<'banking' | 'card'>
@@ -103,7 +103,7 @@ export function bankRailsFor(iso2: string): AvailabilityItemKey[] {
 export function residenceAvailability(sets: ResidenceRestrictionSets, iso2: string): ResidenceAvailability {
     const code = iso2.toUpperCase()
     const restrictions = deriveResidenceRestrictionsFrom(sets, code)
-    const available: AvailabilityItemKey[] = ['p2p']
+    const available: AvailabilityItemKey[] = []
     const unavailable: Array<'banking' | 'card'> = []
 
     if (restrictions.banking) unavailable.push('banking')
@@ -111,6 +111,8 @@ export function residenceAvailability(sets: ResidenceRestrictionSets, iso2: stri
 
     if (restrictions.card) unavailable.push('card')
     else available.push('card')
+
+    available.push('p2p')
 
     return { iso2: code, available, unavailable, multiCurrency: spansMultipleCurrencies(available) }
 }

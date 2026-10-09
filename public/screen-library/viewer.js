@@ -30,23 +30,40 @@ const LEGACY_DEVICE_PROFILES = {
     '360x800': { platform: 'android', label: 'Android' },
     '320x712': { platform: 'android', label: 'Android small' },
 }
-const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
+const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'new', 'removed'])
 // Older immutable reports used any nonzero pixel count as a change. Apply the
 // same two-decimal threshold as core.mjs before filtering or counting their rows.
 const normalizeComparison = (comparison) => ({
     ...comparison,
-    screens: comparison.screens.map((row) =>
-        row.status === 'changed' &&
-        Number.isFinite(row.percent) &&
-        row.percent >= 0 &&
-        Number(row.percent.toFixed(2)) === 0
-            ? { ...row, status: 'unchanged', belowThreshold: true, diff: undefined }
-            : row
-    ),
+    screens: comparison.screens.map((row) => {
+        // Old immutable reports marked the whole pair unavailable when only the baseline lacked a harness.
+        if (
+            row.status === 'unavailable' &&
+            row.before?.status === 'unavailable' &&
+            row.after?.status === 'captured' &&
+            row.after.image
+        )
+            return { ...row, status: 'new' }
+        if (
+            row.status === 'changed' &&
+            Number.isFinite(row.percent) &&
+            row.percent >= 0 &&
+            Number(row.percent.toFixed(2)) === 0
+        )
+            return { ...row, status: 'unchanged', belowThreshold: true, diff: undefined }
+        return row
+    }),
 })
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
+const entryBranch = (entry) => {
+    if (entry.branch) return entry.branch
+    const channel = entry.path.split('/')[1] ?? ''
+    if (channel === 'main' || channel === 'compare-main' || channel.startsWith('main-')) return 'main'
+    if (channel === 'dev' || channel === 'compare-dev' || channel.startsWith('dev-')) return 'dev'
+    return channel
+}
 const entryProfile = (entry) => entry?.profile ?? '393x852'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
@@ -88,7 +105,7 @@ const versionDetails = (entry) => {
     const pathPr = /^pr-([1-9][0-9]*)$/.exec(channel)
     const prNumber =
         Number.isSafeInteger(entry.prNumber) && entry.prNumber > 0 ? entry.prNumber : Number(pathPr?.[1]) || null
-    const branch = entry.branch || (channel.startsWith('dev') ? 'dev' : channel.startsWith('main') ? 'main' : channel)
+    const branch = entryBranch(entry)
     const changedScreens =
         Number.isSafeInteger(entry.changedScreens) && entry.changedScreens >= 0 ? entry.changedScreens : null
     const kind =
@@ -124,6 +141,13 @@ let rows = [],
     renderedCount = 0
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
+const newScreen = (row) => ['added', 'new'].includes(row.status) && unavailable(row.before) && !unavailable(row.after)
+function newScreenPlaceholder(row) {
+    const placeholder = el('div', undefined, 'missing new-screen')
+    placeholder.append(el('strong', 'New screen'), el('span', 'No before screenshot'))
+    if (row.before?.reason) placeholder.title = row.before.reason
+    return placeholder
+}
 const comparisonMode = () => report?.type === 'comparison' || (report?.type === 'collection' && !!activeComparison)
 const availableScreen = (row) =>
     [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
@@ -168,6 +192,8 @@ function shareableParams(overrides = {}) {
     if (locale) params.set('locale', locale)
     if (!report && source === 'synthetic' && profile && profile !== '393x852') params.set('profile', profile)
     if (!report) {
+        const branch = overrides.branch ?? $('branch').value
+        if (source === 'synthetic' && branch) params.set('branch', branch)
         const date = overrides.date ?? $('date-strip').dataset.selectedDate
         if (parseIsoDate(date)) params.set('date', date)
     }
@@ -296,6 +322,11 @@ function zoom(row, mode = 'side') {
             ['After', after],
         ])
             if (s?.image) $('zoom-images').append(phonePreview(image(s.image, label, { preview: false }), label))
+            else if (label === 'Before' && newScreen(row)) {
+                const fig = el('figure', undefined, 'device-preview new-screen-shot')
+                fig.append(newScreenPlaceholder(row), el('figcaption', label))
+                $('zoom-images').append(fig)
+            }
     }
     updatePreviewPosition()
     if (!$('zoom').open) {
@@ -333,7 +364,11 @@ function renderTile(row) {
             : [row.flow, row.journey, row.kind === 'component' ? 'Isolated component' : 'App route']
                   .filter(Boolean)
                   .join(' · ')
-    head.append(el('span', row.status, `tag ${row.status}`), el('h2', row.name), el('div', detail, 'meta'))
+    head.append(
+        el('span', row.status === 'new' ? 'New screen' : row.status, `tag ${row.status}`),
+        el('h2', row.name),
+        el('div', detail, 'meta')
+    )
     if (row.note) head.append(el('p', row.note, 'collection-note'))
     tile.append(head)
     const showSingle = !comparisonMode() || (report.type === 'comparison' && viewMode === 'all')
@@ -344,7 +379,7 @@ function renderTile(row) {
               ['Before', row.before],
               ['After', row.after],
           ]) {
-        const fig = el('figure', undefined, 'shot')
+        const fig = el('figure', undefined, `shot${label === 'Before' && newScreen(row) ? ' new-screen-shot' : ''}`)
         fig.append(el('figcaption', label))
         if (!unavailable(s)) {
             const b = el('button')
@@ -352,7 +387,12 @@ function renderTile(row) {
             b.append(image(s.image, row.name))
             b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
             fig.append(b)
-        } else fig.append(el('div', s?.reason ?? 'Not in this version', 'missing'))
+        } else
+            fig.append(
+                label === 'Before' && newScreen(row)
+                    ? newScreenPlaceholder(row)
+                    : el('div', s?.reason ?? 'Not in this version', 'missing')
+            )
         pair.append(fig)
     }
     tile.append(pair)
@@ -586,7 +626,15 @@ function renderDateStrip(availableEntries) {
 }
 function renderLanding() {
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
-    const sourceEntries = indexEntries.filter((entry) => entrySource(entry) === selectedSource)
+    $('branch-control').hidden = selectedSource !== 'synthetic'
+    const branch = $('branch').dataset.initialized ? $('branch').value : requestedFilter('branch')
+    $('branch').value = ['dev', 'main'].includes(branch) ? branch : ''
+    $('branch').dataset.initialized = 'true'
+    const sourceEntries = indexEntries.filter(
+        (entry) =>
+            entrySource(entry) === selectedSource &&
+            (selectedSource !== 'synthetic' || !$('branch').value || entryBranch(entry) === $('branch').value)
+    )
     const selectedProfile = populateProfile(
         sourceEntries,
         $('profile').value || requestedFilter('profile'),
@@ -672,10 +720,11 @@ function renderCoverage() {
     } · ${rows.length} ${report.type === 'journeys' || report.type === 'collection' ? 'screenshots' : 'states'} · ${Object.entries(
         counts
     )
-        .map(([s, n]) => `${n} ${s}`)
+        .map(([s, n]) => `${n} ${s === 'new' ? 'new screens' : s}`)
         .join(' · ')}`
 }
 async function configureReportLocales(reportPath) {
+    $('branch-control').hidden = true
     if (report.type === 'collection') {
         reportLocaleEntries = (activeComparison ? [activeComparison.locale] : report.locales).map((locale) => ({
             locale,
@@ -764,7 +813,7 @@ async function start() {
     activeComparison = undefined
     if (comparisonPath) {
         if (
-            !/^\d{4}-\d{2}-\d{2}\/(?:compare-dev|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/.test(
+            !/^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/.test(
                 comparisonPath
             )
         )
@@ -964,6 +1013,7 @@ $('source').addEventListener('change', () => {
     renderLanding()
 })
 $('profile').addEventListener('change', renderLanding)
+$('branch').addEventListener('change', renderLanding)
 $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
@@ -27,7 +27,9 @@ interface ProvideEmailStepProps {
 export default function ProvideEmailStep({ visible, onComplete, onSkip }: ProvideEmailStepProps) {
     const t = useTranslations('kyc')
     const { user, fetchUser } = useAuth()
-    const [email, setEmail] = useState('')
+    const savedEmail = user?.user.email || ''
+    const [email, setEmail] = useState(savedEmail)
+    const editedRef = useRef(false)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     // flow/api failure — not attributable to the email field, rendered as a
@@ -36,11 +38,16 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
 
     useEffect(() => {
         if (visible) {
+            editedRef.current = false
             setEmail('')
             setError(null)
             setFlowError(null)
         }
     }, [visible])
+
+    useEffect(() => {
+        if (visible && !editedRef.current) setEmail(savedEmail)
+    }, [visible, savedEmail])
 
     const handleSave = useCallback(async () => {
         // one visible cause at a time: reset both channels before selecting
@@ -99,7 +106,10 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     <ProfileEditField
                         label={t('provideEmail.emailLabel')}
                         value={email}
-                        onChange={setEmail}
+                        onChange={(value) => {
+                            editedRef.current = true
+                            setEmail(value)
+                        }}
                         placeholder={t('provideEmail.emailPlaceholder')}
                         type="email"
                     />

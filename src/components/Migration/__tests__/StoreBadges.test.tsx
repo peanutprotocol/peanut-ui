@@ -51,6 +51,19 @@ it('counts an iOS handoff only after the clipboard write succeeds, once per payl
     expect(trackDeferredHandoffCreated).toHaveBeenCalledTimes(1)
 })
 
+it('copies the full iOS payload while keeping the Android store link bounded', async () => {
+    const iosPayload = `${payload}&at=full-journey`
+    render(<StoreBadges surface="landing_door" payload={payload} iosPayload={iosPayload} />)
+    expect(screen.getByRole('link', { name: 'Google Play' })).toHaveAttribute(
+        'href',
+        `https://play.google.com/store/apps?referrer=${payload}`
+    )
+    await act(async () => {
+        fireEvent.click(screen.getByRole('link', { name: 'App Store' }))
+    })
+    expect(copyIOSHandoff).toHaveBeenCalledWith(iosPayload)
+})
+
 it('does not count a failed iOS clipboard write', async () => {
     jest.mocked(copyIOSHandoff).mockRejectedValue(new Error('Clipboard denied'))
     render(<StoreBadges surface="landing_door" payload={payload} />)

@@ -25,7 +25,7 @@
  *  6. a signing failure still propagates.
  */
 import { act, renderHook } from '@testing-library/react'
-import { custom, type Hex } from 'viem'
+import { custom, toHex, type Hex } from 'viem'
 import { arbitrum } from 'viem/chains'
 import { createBundlerClient } from 'viem/account-abstraction'
 
@@ -43,8 +43,15 @@ jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
 }))
 
 import { useSignUserOp } from '../useSignUserOp'
+import { captureException } from '@sentry/nextjs'
 import { buildUsdcTransferCall, type PreparedSmartSpend } from '../smartSpendPreparation'
 import { PAYMASTER_PREVIEW_CONTEXT, sponsorUserOperationArgs } from '../paymasterSponsorship'
+import { mantecaApi } from '@/services/manteca'
+import { serverFetch } from '@/utils/api-fetch'
+import apiSchema from '@/types/api.openapi.json'
+import { jsonParse } from '@/utils/cookie-url.utils'
+
+jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn(), serverFetch: jest.fn() }))
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const RECIPIENT = '0x4e5b89fd498f333ed7f2a59c5f23d5b5dc41b3de'
@@ -97,7 +104,7 @@ function makeAccount(label: string) {
         getNonce: jest.fn(async () => 7n),
         getStubSignature: jest.fn(async () => '0x57'),
         encodeCalls: jest.fn(async (calls: { data: string }[]) => calls[0].data),
-        signUserOperation: jest.fn(async () => `0x5${label}`),
+        signUserOperation: jest.fn(async (_userOperation: unknown) => `0x5${label}`),
         getAddress: jest.fn(async () => ACCOUNT),
         isDeployed: jest.fn(async () => true),
         decodeCalls: jest.fn(),
@@ -246,6 +253,105 @@ describe('prepareCallsUserOp (warmup) through viem', () => {
 })
 
 describe('signCallsUserOp with a pre-Pay candidate', () => {
+    const ultraRelayResponse = {
+        ...sponsorship('0xf00d'),
+        paymaster: undefined,
+        paymasterData: undefined,
+        paymasterVerificationGasLimit: 0n,
+        paymasterPostOpGasLimit: 0n,
+    }
+
+    it('reuses an UltraRelay preview with one consumption and signs without an on-chain paymaster', async () => {
+        fake.sponsor.mockResolvedValue(ultraRelayResponse as never)
+        const { result } = renderHook(() => useSignUserOp())
+        const prepared = await result.current.prepareCallsUserOp(CALLS)
+        const signed = await result.current.signCallsUserOp(CALLS, '42161', {
+            prepared: { ...prepared, lockCode: 'LOCK123', lockExpiresAtMs: NOW + 60_000 },
+        })
+        expect(consumptions(fake)).toEqual([false, true])
+        expect(fake.account.getStubSignature).toHaveBeenCalledTimes(1)
+        expect(fake.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(signed.signedUserOp).toMatchObject({ callGasLimit: 2n, maxFeePerGas: 0n, signature: '0x5a' })
+        expect(signed.signedUserOp.paymaster).toBeUndefined()
+        expect(signed.signedUserOp.paymasterData).toBeUndefined()
+    })
+
+    it('clears a preview paymaster when the consuming refresh uses UltraRelay', async () => {
+        fake.sponsor.mockResolvedValueOnce(ultraRelayResponse as never)
+        const { signed, onPrepared } = await signWith(candidate())
+        expect(onPrepared).toHaveBeenCalledWith('reused')
+        expect(consumptions(fake)).toEqual([true])
+        expect(fake.account.getStubSignature).not.toHaveBeenCalled()
+        for (const key of ['paymaster', 'paymasterData'] as const) {
+            expect(signed?.signedUserOp[key]).toBeUndefined()
+            expect(fake.account.signUserOperation.mock.calls[0][0]).toHaveProperty(key, undefined)
+        }
+        for (const key of ['paymasterVerificationGasLimit', 'paymasterPostOpGasLimit'] as const) {
+            expect(signed?.signedUserOp[key]).toBe(0n)
+            expect(fake.account.signUserOperation.mock.calls[0][0]).toHaveProperty(key, 0n)
+        }
+    })
+
+    it('serializes the gas-only signed QR completion with every field required by the API contract', async () => {
+        fake.sponsor.mockResolvedValueOnce(ultraRelayResponse as never)
+        const { signed } = await signWith(candidate())
+        const response = { status: 'COMPLETED' }
+        jest.mocked(serverFetch).mockResolvedValue({ ok: true, json: async () => response } as Response)
+        await expect(
+            mantecaApi.completeQrPaymentWithSignedTx({ kind: 'userOp', paymentLockCode: 'LOCK123', ...signed! })
+        ).resolves.toEqual(response)
+        expect(serverFetch).toHaveBeenCalledWith(
+            '/manteca/qr-payment/complete-with-signed-tx',
+            expect.objectContaining({ method: 'POST' })
+        )
+        const serialized = String(jest.mocked(serverFetch).mock.calls[0][1]?.body)
+        const payload = JSON.parse(serialized)
+        const decoded = jsonParse(serialized)
+        const schema = apiSchema.paths['/manteca/qr-payment/complete-with-signed-tx'].post.requestBody.content[
+            'application/json'
+        ].schema.anyOf.find((variant) => 'signedUserOp' in variant.properties)
+        if (!schema || !('signedUserOp' in schema.properties) || !schema.properties.signedUserOp)
+            throw new Error('Missing signed QR API contract')
+        for (const required of schema.required) expect(payload).toHaveProperty(required)
+        for (const required of schema.properties.signedUserOp.required)
+            expect(payload.signedUserOp).toHaveProperty(required)
+        expect(payload.signedUserOp.paymaster).toBeUndefined()
+        expect(payload.signedUserOp.paymasterData).toBeUndefined()
+        for (const key of ['paymasterVerificationGasLimit', 'paymasterPostOpGasLimit']) {
+            expect(payload.signedUserOp[key]).toEqual({ '@type': 'BigInt', value: '0' })
+            expect(decoded.signedUserOp[key]).toBe(0n)
+            expect(toHex(BigInt(decoded.signedUserOp[key]))).toBe('0x0')
+        }
+        expect(consumptions(fake)).toEqual([true])
+    })
+
+    it('reports only response field names and types for an invalid consuming response', async () => {
+        fake.sponsor.mockResolvedValueOnce({ ...ultraRelayResponse, maxFeePerGas: 1n } as never)
+        await expect(signWith(candidate())).rejects.toThrow('malformed sponsorship')
+        expect(consumptions(fake)).toEqual([true])
+        expect(fake.account.signUserOperation).not.toHaveBeenCalled()
+        expect(captureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({
+                extra: {
+                    callCount: 1,
+                    chainId: '42161',
+                    sponsorshipResponseShape: {
+                        paymaster: 'undefined',
+                        paymasterData: 'undefined',
+                        callGasLimit: 'bigint',
+                        verificationGasLimit: 'bigint',
+                        preVerificationGas: 'bigint',
+                        paymasterVerificationGasLimit: 'bigint',
+                        paymasterPostOpGasLimit: 'bigint',
+                        maxFeePerGas: 'bigint',
+                        maxPriorityFeePerGas: 'bigint',
+                    },
+                },
+            })
+        )
+    })
+
     it('re-reads the nonce FIRST, then consumes one sponsorship for the candidate, then signs — no viem preparation', async () => {
         const { signed, onPrepared } = await signWith(candidate())
 

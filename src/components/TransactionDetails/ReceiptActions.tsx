@@ -25,7 +25,7 @@ import { type TransactionDetails } from './transactionTransformer'
 import { hasReceiptPage, isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { openExternalUrl } from '@/utils/capacitor'
+import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
 import { resolveInAppNavigation } from '@/utils/native-routes'
@@ -222,7 +222,7 @@ export function ReceiptActions({
             // public-capability kinds keep their pre-existing url download —
             // anchor on web, system browser on native, no bearer, no wait.
             // only private kinds use the authenticated file hook.
-            const downloadViaUrl = hasPublicReceiptPage
+            const downloadViaUrl = hasPublicReceiptPage && !isCapacitor()
             moreActions.push({
                 icon: 'download',
                 title: t('actions.downloadPdf'),

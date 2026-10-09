@@ -31,6 +31,9 @@ interface BaseSelectProps {
     options: BaseSelectOption[]
     placeholder?: string
     value?: string
+    /** Compact trigger label while keeping descriptive menu options. */
+    valueLabel?: string
+    contentClassName?: string
     onValueChange?: (value: string) => void
     onBlur?: () => void
     className?: string
@@ -46,6 +49,8 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
             options,
             placeholder = 'Select...',
             value,
+            valueLabel,
+            contentClassName,
             onValueChange,
             onBlur,
             className,
@@ -85,7 +90,9 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                     <Value
                         placeholder={placeholder}
                         className="text-foreground-primary data-[placeholder]:text-foreground-secondary"
-                    />
+                    >
+                        {valueLabel}
+                    </Value>
                     <SelectIcon>
                         <Icon name="chevron-down" className="size-4 text-foreground-primary" />
                     </SelectIcon>
@@ -98,7 +105,8 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                             // Radix measured (which honours collisionPadding below),
                             // so a long list shrinks and scrolls instead of running
                             // under the nav.
-                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-background-default shadow-4'
+                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-background-default shadow-4',
+                            contentClassName
                         )}
                         position="popper"
                         sideOffset={4}
@@ -119,7 +127,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                         'transition-colors',
                                         // same fill as ListItem's pressed state: the DS has no separate hover token
                                         'hover:bg-background-disabled focus:bg-background-disabled',
-                                        'data-[state=checked]:bg-action-primary data-[state=checked]:text-foreground-inverse'
+                                        'data-[state=checked]:bg-background-selection data-[state=checked]:text-foreground-over-color-primary'
                                     )}
                                 >
                                     <ItemText className="text-label-l">{option.label}</ItemText>

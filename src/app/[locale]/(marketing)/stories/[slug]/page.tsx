@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${contentLocale}/stories/${slug}`,
@@ -56,6 +56,7 @@ export default async function StoryPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('stories', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('stories', slug, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -64,6 +65,7 @@ export default async function StoryPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: i18n.filterStories, href: `/${locale}/stories` },

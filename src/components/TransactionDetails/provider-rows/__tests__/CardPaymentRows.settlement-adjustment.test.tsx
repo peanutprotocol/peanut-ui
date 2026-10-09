@@ -59,6 +59,7 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
     test('over-capture shows Initial hold and a positive Adjustment (incident: 4591 → 5509)', () => {
         render(
             <CardPaymentRows
+                group="money"
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: '5509' })}
             />
         )
@@ -71,6 +72,7 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
     test('partial capture shows a negative Adjustment', () => {
         render(
             <CardPaymentRows
+                group="money"
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '11323', settledAmount: '7653' })}
             />
         )
@@ -82,6 +84,7 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
     test('adjusted but settledAmount missing → Initial hold row only, no Adjustment', () => {
         render(
             <CardPaymentRows
+                group="money"
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: null })}
             />
         )
@@ -92,6 +95,7 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
     test('stuck-true flag with equal amounts → no Adjustment row, no false difference claim', () => {
         render(
             <CardPaymentRows
+                group="money"
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: '4591' })}
             />
         )
@@ -102,7 +106,21 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
     test('non-adjusted settle renders neither row', () => {
         render(
             <CardPaymentRows
+                group="money"
                 transaction={makeTransaction({ settlementAdjusted: false, authAmount: '6831', settledAmount: '6831' })}
+            />
+        )
+        expect(screen.queryByText('Initial hold')).not.toBeInTheDocument()
+        expect(screen.queryByText('Adjustment')).not.toBeInTheDocument()
+    })
+})
+
+describe('CardPaymentRows — groups', () => {
+    test('the hold rows belong to the money group and nothing of theirs leaks into trace', () => {
+        render(
+            <CardPaymentRows
+                group="trace"
+                transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: '5509' })}
             />
         )
         expect(screen.queryByText('Initial hold')).not.toBeInTheDocument()

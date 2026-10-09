@@ -11,6 +11,11 @@
 
 import type { Fixture } from './types'
 import {
+    RESTRICTED_RESIDENCE_ISO2,
+    CARD_RESTRICTED_RESIDENCE_ISO2,
+    BANKING_RESTRICTED_RESIDENCE_ISO2,
+} from '@/constants/residence.consts'
+import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
     CLAIMABLE_USD_PREVIEW,
@@ -181,6 +186,30 @@ const WIRE_WITHDRAWAL_ENTRY = {
     recipientAccount: { identifier: '938636999398030', type: 'US', isUser: false },
     currency: { amount: '80.00', code: 'USD' },
     extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
+}
+
+const RECEIPT_ATTACHMENT_ENTRY = {
+    uuid: 'fixture-receipt-attachment',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-14T10:00:00.000Z'),
+    amount: '25.00',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: {
+        identifier: 'ana',
+        type: 'PEANUT_WALLET',
+        isUser: true,
+        username: 'ana',
+        fullName: 'Ana Ruiz',
+    },
+    memo: 'Dinner',
+    extraData: { kind: 'P2P_REQUEST_FULFILL', usdAmount: '25.00' },
+    // synthetic url; the focused browser spec supplies the file without contacting s3.
+    attachmentUrl: 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf',
 }
 
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
@@ -626,10 +655,16 @@ const REQUEST_PAY_EUR = {
 }
 
 export const FIXTURES: Record<string, Fixture> = {
-    'setup-pending': {
-        route: '/setup',
-        about: 'Resume an unfinished account setup',
-        responses: { 'GET /users/me': { user: { hasAppAccess: false }, accounts: [] } },
+    'setup-payment-plan': {
+        route: '/dev/surfaces?s=03-c-residence-congrats',
+        about: 'Signup funding and payment choices with settled residence eligibility.',
+        responses: {
+            'GET /config/residence-restrictions': {
+                full: [...RESTRICTED_RESIDENCE_ISO2],
+                cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
+                bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
+            },
+        },
     },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
@@ -979,6 +1014,33 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
         },
     },
+    'card-onboarding': {
+        route: '/card?card_step=eligibility',
+        about: 'Card onboarding: eligibility, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-available': {
+        route: '/card?card_step=available',
+        about: 'Card onboarding: available, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-funding': {
+        route: '/card?card_step=funding',
+        about: 'Card onboarding: funding, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
     'card-holder': {
         route: '/card',
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',
@@ -1182,6 +1244,25 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/history',
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
+    },
+    'history-receipt-attachment': {
+        route: '/history',
+        about: 'A completed request payment with an attachment. Open its receipt to check download states.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [RECEIPT_ATTACHMENT_ENTRY], hasMore: false },
+        },
+    },
+    'history-receipt-no-attachment': {
+        route: '/history',
+        about: 'The same completed request payment without an attachment. Open its receipt to check the missing row.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': {
+                entries: [{ ...RECEIPT_ATTACHMENT_ENTRY, attachmentUrl: null }],
+                hasMore: false,
+            },
+        },
     },
     'empty-history': {
         route: '/history',

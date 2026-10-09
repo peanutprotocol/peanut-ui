@@ -212,6 +212,16 @@ describe('the details screen, collapsed and open', () => {
             DEPOSIT_RAILS.SEPA_EU
         )
 
+    it('ends the details card with Account provider · Bridge and its (?)', () => {
+        renderEur()
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        // after the bank fields, inside the same card
+        const iban = screen.getByText('DE89 3704 0044 0532 0130 00')
+        expect(iban.compareDocumentPosition(screen.getByText('Bridge')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
     it('shows only the title, the card, the toggle and the actions while closed', () => {
         renderEur()
 

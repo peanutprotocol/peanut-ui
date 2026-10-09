@@ -66,6 +66,7 @@ test('index backfills card metadata and shares comparison counts with its full d
                 screens: [
                     { status: 'changed' },
                     { status: 'added' },
+                    { status: 'new' },
                     { status: 'removed' },
                     { status: 'unchanged' },
                     { status: 'absent' },
@@ -78,11 +79,11 @@ test('index backfills card metadata and shares comparison counts with its full d
     const devEntry = indexed.find((entry) => entry.path === devLibraryPath)
     assert.deepEqual(
         { branch: prEntry.branch, prNumber: prEntry.prNumber, changedScreens: prEntry.changedScreens },
-        { branch: 'pr-3166', prNumber: 3166, changedScreens: 3 }
+        { branch: 'pr-3166', prNumber: 3166, changedScreens: 4 }
     )
     assert.deepEqual(
         { branch: devEntry.branch, prNumber: devEntry.prNumber, changedScreens: devEntry.changedScreens },
-        { branch: 'dev', prNumber: 3166, changedScreens: 3 }
+        { branch: 'dev', prNumber: 3166, changedScreens: 4 }
     )
 })
 

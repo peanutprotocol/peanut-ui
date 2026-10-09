@@ -9,12 +9,16 @@ const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
 
 const launch = jest.fn()
+const configure = jest.fn()
 const sdkHandlers: Record<string, (payload?: unknown) => void> = {}
 
 function installSdk() {
     Object.keys(sdkHandlers).forEach((key) => delete sdkHandlers[key])
     const builder: Record<string, unknown> = {}
-    builder.withConf = () => builder
+    builder.withConf = (conf: unknown) => {
+        configure(conf)
+        return builder
+    }
     builder.withOptions = () => builder
     builder.on = (event: string, handler: (payload?: unknown) => void) => {
         sdkHandlers[event] = handler
@@ -54,6 +58,18 @@ describe('useSumsubWebSdk', () => {
         expect(launch).toHaveBeenCalledWith(container)
         expect(capture).toHaveBeenCalledWith('kyc_sdk_launched', expect.anything())
         expect(result.current.sdkLoadError).toBe(false)
+    })
+
+    it('prefills the email once without relaunching over an in-progress email edit', () => {
+        const args = baseArgs()
+        const { result, rerender } = renderHookWithIntl(({ email }) => useSumsubWebSdk({ ...args, email }), {
+            initialProps: { email: 'signup@example.com' },
+        })
+        act(() => result.current.setSdkContainer(document.createElement('div')))
+        expect(configure).toHaveBeenCalledWith(expect.objectContaining({ email: 'signup@example.com' }))
+        rerender({ email: 'updated-profile@example.com' })
+        expect(launch).toHaveBeenCalledTimes(1)
+        expect(configure).toHaveBeenCalledTimes(1)
     })
 
     it('routes a single-level submit to onComplete and flips hasSubmittedRef', () => {

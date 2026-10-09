@@ -2,7 +2,13 @@
 // Android splash teardown against a window that is released by the time the app
 // resumes and draws, crashing the process. The hide must park until active.
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { completeOtaLaunchDecision, isSplashVisible, useSplashGate, resetSplashGateForTests } from '../useSplashGate'
+import {
+    completeOtaLaunchDecision,
+    isSplashVisible,
+    useSplashGate,
+    resetSplashGateForTests,
+    whenNativeSplashHidden,
+} from '../useSplashGate'
 
 jest.mock('next/navigation', () => ({ usePathname: () => '/home' }))
 
@@ -125,4 +131,16 @@ describe('useSplashGate', () => {
 
         await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
     })
+})
+
+it('signals the animated intro only after the native hide promise settles', async () => {
+    let finishHide!: () => void
+    hide.mockImplementationOnce(() => new Promise<void>((resolve) => (finishHide = resolve)))
+    const introReady = jest.fn()
+    void whenNativeSplashHidden().then(introReady)
+    renderHook(() => useSplashGate())
+    await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
+    expect(introReady).not.toHaveBeenCalled()
+    await act(async () => finishHide())
+    expect(introReady).toHaveBeenCalledTimes(1)
 })

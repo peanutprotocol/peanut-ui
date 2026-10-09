@@ -102,7 +102,7 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
         // a hiccup.
         return (
             <div className="bg-background-page">
-                <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
+                <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} locale={locale} />
                 <div className="mx-auto w-full max-w-3xl px-6 pb-12">
                     <StatusBanner
                         state="down"

@@ -23,15 +23,14 @@ const NEW_USER: OnboardingState = {
     step: 'verify',
 }
 
-const mockOnHide = jest.fn()
 const mockStartIdentityCheck = jest.fn()
 const mockStartQrIdentityCheck = jest.fn()
-const render = (onboarding: Partial<OnboardingState> = {}) =>
+const render = (onboarding: Partial<OnboardingState> = {}, showWelcome = true) =>
     rtlRender(
         <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
             <GettingStartedChecklist
                 onboarding={{ ...NEW_USER, ...onboarding }}
-                onHide={mockOnHide}
+                showWelcome={showWelcome}
                 onStartIdentityCheck={mockStartIdentityCheck}
                 onStartQrIdentityCheck={mockStartQrIdentityCheck}
             />
@@ -218,14 +217,14 @@ describe('GettingStartedChecklist', () => {
             const onboarding = { ...NEW_USER, firstPaymentRoute: 'card' as const, cardHeld: false }
             const view = rtlRender(
                 <NuqsTestingAdapter>
-                    <GettingStartedChecklist onboarding={onboarding} onHide={mockOnHide} />
+                    <GettingStartedChecklist onboarding={onboarding} />
                 </NuqsTestingAdapter>,
                 { wrapper: IntlWrapper }
             )
             expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
             view.rerender(
                 <NuqsTestingAdapter>
-                    <GettingStartedChecklist onboarding={{ ...onboarding, cardHeld: true }} onHide={mockOnHide} />
+                    <GettingStartedChecklist onboarding={{ ...onboarding, cardHeld: true }} />
                 </NuqsTestingAdapter>
             )
             expect(screen.getByText('Pay with the card')).toBeInTheDocument()
@@ -315,27 +314,23 @@ describe('GettingStartedChecklist', () => {
     })
 })
 
-describe('GettingStartedChecklist — Hide', () => {
-    beforeEach(() => jest.clearAllMocks())
-
-    it('shows once only the payment row is left, and hides on tap with an event', () => {
+describe('GettingStartedChecklist — no Hide (TASK-23340)', () => {
+    it('keeps the list with only the payment row left: it goes away only when every row is done', () => {
         render({ verify: 'done', addMoneyDone: true, step: 'first_payment' })
-        fireEvent.click(screen.getByText('Hide'))
-        expect(mockOnHide).toHaveBeenCalled()
-        expect(mockCapture).toHaveBeenCalledWith('home_checklist_hidden', { first_payment_route: 'card_qr' })
-    })
-
-    it.each<[string, Partial<OnboardingState>]>([
-        ['before verify', { addMoneyDone: true }],
-        ['before Add money', { verify: 'done', step: 'add_money' }],
-        ['while the ID check is in review', { verify: 'in_review', addMoneyDone: true, step: 'first_payment' }],
-    ])('never %s', (_label, onboarding) => {
-        render(onboarding)
         expect(screen.queryByText('Hide')).not.toBeInTheDocument()
     })
 })
 
 describe('GettingStartedChecklist — welcome card and one done row', () => {
+    it('keeps the progress and every checklist step after the welcome expires', () => {
+        render({}, false)
+        expect(screen.queryByTestId('onboarding-welcome')).not.toBeInTheDocument()
+        expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
+        expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(4)
+        fireEvent.click(screen.getByText('Add money'))
+        expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
+    })
+
     it('welcomes with the real step count and the progress', () => {
         render()
         // visible title (hidden from screen readers) plus its spoken form

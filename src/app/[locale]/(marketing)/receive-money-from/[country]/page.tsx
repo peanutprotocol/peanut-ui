@@ -37,7 +37,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            // og:locale follows the title: authored metadata is in the content
+            // locale, the i18n fallback is in the route locale
+            locale: useContentMetadata === true ? contentLocale : (locale as Locale),
             title:
                 useContentMetadata === true && typeof title === 'string' && title.trim()
                     ? title
@@ -66,6 +68,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized('receive-from', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('receive-from', country, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -74,6 +77,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: `/${locale}/receive-money-from/${country}` },
