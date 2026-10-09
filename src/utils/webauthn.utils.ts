@@ -88,8 +88,7 @@ export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: stri
 const PASSKEY_LOGIN_MESSAGES = {
     LOGIN_CANCELED: 'Login was cancelled, or no passkey was found on this device. Try again, or create a wallet.',
     PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
-    PASSKEY_UNSUPPORTED:
-        'Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.',
+    PASSKEY_UNSUPPORTED: 'Passkeys aren’t available on this device or browser yet. Please try again on another device.',
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
     PASSKEY_ORIGIN: 'This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
@@ -118,6 +117,30 @@ const PASSKEY_ERROR_SETUP_KEYS = {
     LOGIN_ERROR: 'passkey.loginError',
 } as const satisfies Record<PasskeyErrorCode, string>
 
+type PasskeyPlatform = 'android' | 'ios' | 'desktop'
+
+const PASSKEY_UNSUPPORTED_SETUP_KEYS = {
+    android: 'passkey.unsupported',
+    ios: 'passkey.unsupportedIos',
+    desktop: 'passkey.unsupportedDesktop',
+} as const satisfies Record<PasskeyPlatform, string>
+
+type PasskeyErrorSetupKey =
+    | (typeof PASSKEY_ERROR_SETUP_KEYS)[PasskeyErrorCode]
+    | (typeof PASSKEY_UNSUPPORTED_SETUP_KEYS)[PasskeyPlatform]
+
+// Same split as useDeviceType, inlined so this widely imported module stays free of the hook.
+function passkeyPlatform(): PasskeyPlatform {
+    if (typeof navigator === 'undefined') return 'desktop'
+    const ua = navigator.userAgent
+    if (/android/i.test(ua)) return 'android'
+    const isDesktopChrome = /Macintosh/.test(ua) && /Chrome\//.test(ua) && !/CriOS/.test(ua)
+    if (/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1 && !isDesktopChrome)) {
+        return 'ios'
+    }
+    return 'desktop'
+}
+
 /** Reads the classification code off a thrown PasskeyError, if it carries one. */
 export function getPasskeyErrorCode(error: unknown): PasskeyErrorCode | undefined {
     if (!(error instanceof Error) || error.name !== 'PasskeyError') return undefined
@@ -130,10 +153,9 @@ export function getPasskeyErrorCode(error: unknown): PasskeyErrorCode | undefine
  * undefined when no translated equivalent exists (the caller then renders the
  * error's own English message as the fallback).
  */
-export function getPasskeyErrorSetupKey(
-    error: unknown
-): (typeof PASSKEY_ERROR_SETUP_KEYS)[keyof typeof PASSKEY_ERROR_SETUP_KEYS] | undefined {
+export function getPasskeyErrorSetupKey(error: unknown): PasskeyErrorSetupKey | undefined {
     const code = getPasskeyErrorCode(error)
+    if (code === 'PASSKEY_UNSUPPORTED') return PASSKEY_UNSUPPORTED_SETUP_KEYS[passkeyPlatform()]
     return code && code in PASSKEY_ERROR_SETUP_KEYS
         ? PASSKEY_ERROR_SETUP_KEYS[code as keyof typeof PASSKEY_ERROR_SETUP_KEYS]
         : undefined
@@ -253,6 +275,14 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         case 'SecurityError':
             code = 'PASSKEY_ORIGIN'
+            break
+        // native NoCredentialException: this device holds no Peanut passkey
+        case 'NotFoundError':
+            code = 'LOGIN_CANCELED'
+            break
+        // Chromium: "A request is already pending." — an earlier prompt still owns the authenticator
+        case 'OperationError':
+            code = 'PASSKEY_INTERRUPTED'
             break
         // ceremony guards from passkeyCeremony.utils (TASK-21782)
         case 'CeremonyTimeoutError':
@@ -421,10 +451,10 @@ export const PASSKEY_WARNINGS = {
  * mining `$exception` by message substring. NotAllowedError dominates: iOS
  * third-party credential providers (1Password) can wedge and refuse every
  * assertion until unlocked or the device restarts (TASK-20000, ~45 users in
- * the 30 days to 2026-06-10). No-ops for non-WebAuthn errors so signing
- * catch blocks can call it without pre-filtering.
+ * the 30 days to 2026-06-10). No-ops for anything other than a WebAuthn
+ * failure or a ceremony timeout, so signing catch blocks need no pre-filter.
  */
-const WEBAUTHN_ERROR_NAMES = new Set<string>(Object.values(WebAuthnErrorName))
+const SIGN_FAILURE_NAMES = new Set<string>([...Object.values(WebAuthnErrorName), 'CeremonyTimeoutError'])
 
 /**
  * useZeroDev captures the raw WebAuthn failure with full context before throwing
@@ -437,6 +467,6 @@ export function isAlreadyReported(error: unknown): boolean {
 }
 
 export function capturePasskeySignFailure(error: unknown, context: string): void {
-    if (!(error instanceof Error) || !WEBAUTHN_ERROR_NAMES.has(error.name)) return
+    if (!(error instanceof Error) || !SIGN_FAILURE_NAMES.has(error.name)) return
     posthog.capture(ANALYTICS_EVENTS.PASSKEY_SIGN_FAILED, { error_name: error.name, context })
 }

@@ -50,4 +50,6 @@ export class WebAuthnAbortService {
     static createNewAbortSignal() {
         return new AbortController().signal
     }
+
+    static cancelCeremony = jest.fn()
 }

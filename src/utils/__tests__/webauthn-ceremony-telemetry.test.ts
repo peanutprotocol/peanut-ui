@@ -17,6 +17,7 @@ import {
     clearCeremonyLog,
     getCeremonyLog,
     installCeremonyTelemetry,
+    openCredentialCall,
     withCeremonyFlow,
     withCeremonyPurpose,
 } from '@/utils/webauthn-ceremony-telemetry'
@@ -167,6 +168,24 @@ describe('webauthn ceremony telemetry', () => {
             id: 'cred',
         })
         expect(getCeremonyLog()).toHaveLength(1)
+    })
+
+    it('reports the newest OS call still pending, and nothing once it settles', async () => {
+        let settle!: (value: unknown) => void
+        get.mockReturnValueOnce(new Promise((resolve) => (settle = resolve)))
+        const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1_000)
+        try {
+            const pending = navigator.credentials.get({})
+            expect(openCredentialCall()).toEqual({ inFlight: true, elapsedMs: 0 })
+            nowSpy.mockReturnValue(61_000)
+            expect(openCredentialCall()).toEqual({ inFlight: true, elapsedMs: 60_000 })
+
+            settle({ id: 'cred' })
+            await pending
+            expect(openCredentialCall()).toEqual({ inFlight: false })
+        } finally {
+            nowSpy.mockRestore()
+        }
     })
 
     it('patches navigator.credentials only once', async () => {

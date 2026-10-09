@@ -245,6 +245,65 @@ export function isThirdPartyScriptFrame(filename: string): boolean {
     return THIRD_PARTY_SCRIPT_FRAMES.some((pattern) => filename.includes(pattern))
 }
 
+/** The exception shape shared by Sentry events and PostHog's `$exception_list`. */
+interface ExceptionLike {
+    type?: string
+    value?: string
+    stacktrace?: { frames?: ReadonlyArray<{ filename?: string }> }
+}
+
+/*
+ * One-liners Brave iOS evaluates into the page from native code: its wallet
+ * (WalletTabHelper.swift) assigns `window.ethereum.selectedAddress`, and
+ * `__firefox__` is the user-script namespace it inherits from Firefox iOS. They
+ * throw on pages without an injected provider. Our code never assigns either
+ * global, so the complete text plus the absence of any bundle frame is proof
+ * of origin.
+ */
+const BROWSER_HOST_SCRIPT_ERRORS = [
+    /^undefined is not an object \(evaluating 'window\.ethereum\.selectedAddress = (?:undefined|"0x[0-9a-fA-F]{40}")'\)$/,
+    /^undefined is not an object \(evaluating 'window\.__firefox__\.[\w$]+'\)$/,
+    /^Can't find variable: __firefox__$/,
+]
+
+export function isBrowserHostScriptError(exceptions: ReadonlyArray<ExceptionLike>): boolean {
+    if (exceptions.length !== 1) return false
+    const [exception] = exceptions
+    if (exception.type !== 'TypeError' && exception.type !== 'ReferenceError') return false
+    if (!BROWSER_HOST_SCRIPT_ERRORS.some((pattern) => pattern.test(exception.value ?? ''))) return false
+    return (exception.stacktrace?.frames ?? []).every((frame) => !(frame.filename ?? '').includes('/_next/'))
+}
+
+const BROWSER_SHELLS: ReadonlyArray<[RegExp, string]> = [
+    [/\bBrave\b/, 'brave'],
+    [/FxiOS/, 'firefox-ios'],
+    [/CriOS/, 'chrome-ios'],
+    [/; wv\)/, 'android-webview'],
+]
+
+/**
+ * Attribution for a cross-origin `Script error.`, which the browser strips of
+ * message and stack: the cross-origin scripts on the page and the browser shell.
+ */
+export function crossOriginScriptErrorContext(
+    exceptions: ReadonlyArray<ExceptionLike>,
+    scripts: ReadonlyArray<{ src: string }>,
+    origin: string,
+    userAgent: string
+): Record<string, unknown> | null {
+    if (exceptions.length !== 1 || !/^Script error\.?$/.test(exceptions[0].value ?? '')) return null
+    if (exceptions[0].stacktrace?.frames?.length) return null
+    const hosts = new Set<string>()
+    for (const { src } of scripts) {
+        try {
+            const url = new URL(src)
+            if (url.origin !== origin) hosts.add(url.host)
+        } catch {}
+    }
+    const shell = BROWSER_SHELLS.find(([pattern]) => pattern.test(userAgent))?.[1] ?? 'other'
+    return { script_error_cross_origin_hosts: [...hosts].slice(0, 10), script_error_browser_shell: shell }
+}
+
 /**
  * The texts every noise predicate matches against, one entry per field.
  * Matching each field independently — rather than one concatenated string —
@@ -348,6 +407,8 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     if (isTransientCapgoNoise(searchTexts)) {
         return true
     }
+
+    if (isBrowserHostScriptError(event.exception?.values ?? [])) return true
 
     // Ignore errors from browser extensions (client-side only, but safe to check everywhere)
     const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])

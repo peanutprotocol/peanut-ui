@@ -6,6 +6,7 @@ import type { ErrorEvent as SentryErrorEvent } from '@sentry/nextjs'
 
 import {
     getEventSearchTexts,
+    isBrowserHostScriptError,
     isPosthogRateLimitNotice,
     isThirdPartyScriptFrame,
     isTransientCapgoNoise,
@@ -42,6 +43,7 @@ export function withoutNoise<T extends EventProcessor>(integration: T): T {
         processEvent: (event: SentryErrorEvent) => {
             const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
             if (frames.some((frame) => isThirdPartyScriptFrame(frame.filename || ''))) return event
+            if (isBrowserHostScriptError(event.exception?.values ?? [])) return event
             const searchTexts = getEventSearchTexts(event)
             if (isTransientCapgoNoise(searchTexts)) return event
             if (isPosthogRateLimitNotice(searchTexts)) return event

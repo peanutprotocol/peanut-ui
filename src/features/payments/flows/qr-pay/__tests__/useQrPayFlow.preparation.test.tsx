@@ -188,6 +188,7 @@ import { resolveSpendStrategy, runCollateralSpendPreflight } from '@/hooks/walle
 import { rainApi } from '@/services/rain'
 import { LoadingStateContextProvider } from '@/context/loadingStates.context'
 import { QrPayFlowProvider, useQrPayFlow } from '../QrPayFlowContext'
+import { getCurrencyPrice } from '@/app/actions/currency'
 import type { QrPayFlowSurface } from '../useQrPayFlow'
 
 const mockResolveSpendStrategy = resolveSpendStrategy as jest.Mock
@@ -699,6 +700,22 @@ describe('open-amount QR (no lock until Pay)', () => {
         expect(stages().find((s) => s.stage === 'signing_preparation_ready')).toMatchObject({ preparation: 'fresh' })
         expect(completionBody().clientPaymentAttemptId).toBe(stages()[0].client_payment_attempt_id)
         await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('a failed live price blocks pricing with a retry instead of hanging or using a cached rate', async () => {
+        jest.mocked(getCurrencyPrice).mockRejectedValueOnce(new Error('FX rate unavailable from manteca (timeout)'))
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow()
+
+        await waitFor(() => expect(surface?.rateUnavailable).toBe(true))
+        expect(surface?.currency).toBeUndefined()
+        expect(getCurrencyPrice).toHaveBeenCalledTimes(1)
+
+        act(() => surface?.retryRate())
+
+        await waitFor(() => expect(surface?.currency).toBeDefined())
+        expect(surface?.rateUnavailable).toBe(false)
+        expect(getCurrencyPrice).toHaveBeenCalledTimes(2)
     })
 
     test('the amount init is refused: lock_ready failed, attempt failed, nothing signed', async () => {

@@ -24,6 +24,8 @@ type FetchOptions = RequestInit & {
     includeAuth?: boolean
     /** See `FetchWithSentryOptions.silentTimeout`. Rides through on the spread. */
     silentTimeout?: boolean
+    /** See `FetchWithSentryOptions.callerReportsFailures`. Rides through on the spread. */
+    callerReportsFailures?: boolean
     /** Hide sensitive URL, request, response and error data in fetch telemetry. */
     redactTelemetry?: boolean
 }
@@ -138,7 +140,9 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
     // error name. Keep AbortError too for alternate/native transports.
     const errorName = error instanceof Error ? error.name : undefined
     const timedOut = errorName === 'ConnectionTimeoutError' || errorName === 'AbortError'
-    const outcome = error ? (timedOut ? 'timeout' : 'network_error') : response?.ok ? 'success' : 'http_error'
+    const interrupted = timedOut && (error as { interrupted?: unknown }).interrupted === true
+    const failureKind = interrupted ? 'interrupted' : timedOut ? 'timeout' : 'network_error'
+    const outcome = error ? failureKind : response?.ok ? 'success' : 'http_error'
     const serverDurationMs = parseServerTiming(response?.headers?.get?.('server-timing') ?? null)
     const properties = {
         route,
@@ -170,13 +174,7 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
         posthog.capture(ANALYTICS_EVENTS.API_REQUEST_PROBLEM, {
             ...properties,
             problem:
-                error != null
-                    ? timedOut
-                        ? 'timeout'
-                        : 'network_error'
-                    : statusCode !== undefined && statusCode >= 500
-                      ? 'server_error'
-                      : 'slow',
+                error != null ? failureKind : statusCode !== undefined && statusCode >= 500 ? 'server_error' : 'slow',
         })
     }
 }

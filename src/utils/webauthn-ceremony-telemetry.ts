@@ -70,6 +70,7 @@ let inFlight = 0
 let seq = 0
 let flowCounter = 0
 let lastEndedAt: number | null = null
+const openCallStarts = new Map<number, number>()
 const purposeStack: CeremonyPurpose[] = []
 const flowStack: FlowFrame[] = []
 let log: CeremonyRecord[] = []
@@ -211,6 +212,7 @@ async function trace<T>(
         openFlows: flowStack.length,
         ...describeOptions(kind, options),
     }
+    openCallStarts.set(base.seq, startedAt)
 
     try {
         const result = await run()
@@ -227,7 +229,22 @@ async function trace<T>(
         throw error
     } finally {
         inFlight -= 1
+        openCallStarts.delete(base.seq)
     }
+}
+
+/**
+ * The newest navigator.credentials call still waiting on the OS, so a guard
+ * timeout can tell a live sheet from a call that never started or never called
+ * back. Undefined until the wrapper is installed, when nothing can be known.
+ */
+export function openCredentialCall(): { inFlight: boolean; elapsedMs?: number } | undefined {
+    if (!installed) return undefined
+    let newest: number | undefined
+    for (const startedAt of openCallStarts.values()) {
+        if (newest === undefined || startedAt > newest) newest = startedAt
+    }
+    return newest === undefined ? { inFlight: false } : { inFlight: true, elapsedMs: Date.now() - newest }
 }
 
 /**

@@ -32,6 +32,7 @@ export default function useGetExchangeRate({ accountType, enabled = true }: IExc
         data: exchangeRate,
         isFetching: isFetchingRate,
         isError: isRateError,
+        refetch: refetchRate,
     } = useQuery({
         queryKey: ['exchangeRate', accountType],
         queryFn: async () => {
@@ -58,5 +59,5 @@ export default function useGetExchangeRate({ accountType, enabled = true }: IExc
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     })
 
-    return { exchangeRate: exchangeRate ?? null, isFetchingRate, isRateError }
+    return { exchangeRate: exchangeRate ?? null, isFetchingRate, isRateError, refetchRate }
 }

@@ -191,6 +191,44 @@ describe('useEndorsementReview', () => {
         Object.defineProperty(window, 'location', { configurable: true, value: original })
     })
 
+    it('falls back to this tab when Safari hands back a tab it cannot detach, and stays tappable', async () => {
+        const close = jest.fn()
+        const undetachable = {
+            closed: false,
+            close,
+            location: { href: '' },
+            set opener(_value: unknown) {
+                throw new DOMException('Blocked a frame from accessing a cross-origin frame.', 'SecurityError')
+            },
+        }
+        ;(window.open as jest.Mock).mockReturnValue(undetachable)
+        claimDepositAccount.mockResolvedValue({ ...REQUIRED, verificationUrl: PAGE })
+        const assign = jest.fn()
+        const original = window.location
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            value: {
+                ...original,
+                set href(url: string) {
+                    assign(url)
+                },
+            },
+        })
+        try {
+            const { result } = renderHook(() => useEndorsementReview(), { wrapper })
+
+            await act(() => result.current.start('BANK_TRANSFER_CO'))
+            expect(close).toHaveBeenCalled()
+            expect(undetachable.location.href).toBe('')
+            expect(assign).toHaveBeenCalledWith(PAGE)
+
+            await act(() => result.current.start('BANK_TRANSFER_CO'))
+            expect(claimDepositAccount).toHaveBeenCalledTimes(2)
+        } finally {
+            Object.defineProperty(window, 'location', { configurable: true, value: original })
+        }
+    })
+
     it('re-reads the accounts when the user comes back from the page', async () => {
         claimDepositAccount.mockResolvedValue({ ...REQUIRED, verificationUrl: PAGE })
         const { result } = renderHook(() => useEndorsementReview(), { wrapper })

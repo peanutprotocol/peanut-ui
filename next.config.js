@@ -559,11 +559,10 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
-            // layout.tsx registers the worker itself, web-only and inside a try/catch.
-            // Serwist's own auto-register has no error handling: every crawler or
-            // headless browser that refuses a worker became an unhandled rejection
-            // (PEANUT-UI-P51, SQ8, NPK, Q7X, SKX — ~2.5k events in 30 days).
+            // layout.tsx registers the worker with error handling. Avoid both uncaught
+            // auto-registration and an online event reloading a page mid-payment.
             register: false,
+            reloadOnOnline: false,
             // explicitly include offline screen assets in precache
             additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
         })

@@ -2,12 +2,15 @@
 
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 
 // note: push notifications are now handled by onesignal via useNotifications hook.
 // the legacy PushProvider (web-push based) has been removed.
 
-const AppFlowProviders = dynamic(() => import('./appFlowProviders').then((m) => m.AppFlowProviders))
+const AppFlowProviders = dynamic(() =>
+    importWithChunkRetry(() => import('./appFlowProviders')).then((m) => m.AppFlowProviders)
+)
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     // Marketing routes render without the wallet provider tree, which keeps the

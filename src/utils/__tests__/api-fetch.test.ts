@@ -247,6 +247,22 @@ describe('apiFetch', () => {
             )
         })
 
+        it('separates a request interrupted by an app suspension from a timeout', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            const interrupted = Object.assign(new Error('Peanut is taking too long'), {
+                name: 'ConnectionTimeoutError',
+                interrupted: true,
+            })
+            mockFetchWithSentry.mockRejectedValueOnce(interrupted)
+
+            await expect(apiFetch('/users/me')).rejects.toBe(interrupted)
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({ outcome: 'interrupted', problem: 'interrupted' })
+            )
+        })
+
         it('stops sending problem events after 20 in one page load', async () => {
             jest.spyOn(Math, 'random').mockReturnValue(0.9)
 
