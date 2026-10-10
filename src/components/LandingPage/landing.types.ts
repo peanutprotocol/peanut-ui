@@ -1,4 +1,5 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
 
 // shared shape of the landing hero CTA buttons (hero.tsx renders them,
 // LandingPageClient builds them from the content system / migration override)
@@ -25,6 +26,16 @@ export interface LandingSupportedRailsStrings {
     free: string
     /** conjunction for the non-EVM chain list, shared with the plain-text answer */
     joinAnd: string
+}
+
+/** One bank rail in the supported-rails FAQ, from supportedFiatRails. */
+export interface FiatRailListing {
+    corridor: DepositCorridor
+    flag: string
+    name: string
+    currency: string
+    /** Country or area the rail pays into, in the reader's language. */
+    region: string
 }
 
 export interface LandingProblemStrings {
