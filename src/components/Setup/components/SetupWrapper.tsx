@@ -95,14 +95,16 @@ const stepVariants = {
     exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%' }),
 }
 
-// The hero stays put between steps; its art crossfades instead of sliding, so
-// nothing is cut off at the hero's edge mid-transition.
-const crossfadeVariants = {
-    enter: { opacity: 0 },
-    center: { opacity: 1 },
-    exit: { opacity: 0 },
+// The blue hero stays put between steps; its art moves and fades at once: the
+// old art drifts out the way the panel goes while the new art drifts in, both
+// fading, overlapping (Hugo, 2026-10-10). Short drift, so nothing reaches the
+// hero's edge before it is gone.
+const artVariants = {
+    enter: (direction: number) => ({ x: direction < 0 ? '-30%' : '30%', opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (direction: number) => ({ x: direction < 0 ? '30%' : '-30%', opacity: 0 }),
 }
-const CROSSFADE_TRANSITION = { duration: 0.22, ease: 'easeInOut' } as const
+const ART_TRANSITION = { duration: 0.24, ease: [0.22, 1, 0.36, 1] } as const
 
 const STEP_TRANSITION = { duration: 0.5, ease: [0.22, 1, 0.36, 1] } as const
 
@@ -227,9 +229,10 @@ const ImageSection = ({
     image,
     screenId,
     imageClassName,
+    direction = 0,
     prefersReducedMotion,
     intro,
-}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'> & {
+}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction'> & {
     prefersReducedMotion: boolean
     intro: ReturnType<typeof useFirstLaunchIntro>
 }) => {
@@ -310,10 +313,11 @@ const ImageSection = ({
             />
         )
     const animatedIllustration = (
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} custom={direction}>
             <motion.div
                 key={imageKey}
-                variants={crossfadeVariants}
+                variants={artVariants}
+                custom={direction}
                 initial="enter"
                 exit="exit"
                 animate={
@@ -331,7 +335,7 @@ const ImageSection = ({
                         ? { duration: 0 }
                         : intro.played
                           ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-                          : CROSSFADE_TRANSITION
+                          : ART_TRANSITION
                 }
                 className={twMerge(
                     'absolute inset-x-0 flex items-center justify-center',
@@ -365,18 +369,19 @@ const ImageSection = ({
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}
             >
-                {/* Per-step backgrounds crossfade with the art: clouds on the landing
+                {/* Per-step backgrounds move with the art: clouds on the landing
                     screen only, so later illustrations stay clear, and the "@" signs on
                     the username step. */}
-                <AnimatePresence initial={false}>
+                <AnimatePresence initial={false} custom={direction}>
                     {screenId === 'landing' && !intro.active && (
                         <motion.div
                             key="landing-clouds"
-                            variants={crossfadeVariants}
+                            variants={artVariants}
+                            custom={direction}
                             initial="enter"
                             animate="center"
                             exit="exit"
-                            transition={prefersReducedMotion ? { duration: 0 } : CROSSFADE_TRANSITION}
+                            transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
                             className="pointer-events-none absolute inset-0"
                         >
                             <CloudsBackground minimal />
@@ -385,11 +390,12 @@ const ImageSection = ({
                     {screenId === 'signup' && (
                         <motion.div
                             key="username-background"
-                            variants={crossfadeVariants}
+                            variants={artVariants}
+                            custom={direction}
                             initial="enter"
                             animate="center"
                             exit="exit"
-                            transition={prefersReducedMotion ? { duration: 0 } : CROSSFADE_TRANSITION}
+                            transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
                             className="pointer-events-none absolute inset-0"
                         >
                             <UsernameBackground />
@@ -556,6 +562,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         screenId={screenId}
                         layoutType={layoutType}
                         image={image}
+                        direction={transitionDirection}
                         prefersReducedMotion={!!prefersReducedMotion}
                         intro={intro}
                     />
@@ -590,7 +597,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 className={twMerge(
                                     // The footer's reserved secondary slot keeps the primary CTA clear of the
                                     // home gesture area, so the panel needs only pb-6 above the safe-area inset.
-                                    'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh short:pt-6 short:pb-4',
+                                    'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh compact:pt-6 compact:pb-4 short:pt-4 short:pb-3 tight:pt-3 tight:pb-2',
 
                                     fullScreen && 'md:h-auto md:flex-1'
                                 )}
@@ -599,9 +606,9 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     className={twMerge(
                                         'flex w-full flex-1 flex-col justify-between md:flex-1',
                                         contentClassName,
-                                        'gap-8 short:gap-6',
+                                        'gap-8 compact:gap-5 short:gap-4 tight:gap-3',
                                         // signup matches residence: the field sits 24px under the description
-                                        screenId === 'signup' && 'gap-6',
+                                        screenId === 'signup' && 'gap-6 compact:gap-5 short:gap-4 tight:gap-3',
                                         !sunsetLanding && 'md:flex-1 md:justify-between',
                                         fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                     )}

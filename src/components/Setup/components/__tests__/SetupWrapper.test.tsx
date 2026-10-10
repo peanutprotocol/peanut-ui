@@ -63,7 +63,6 @@ jest.mock('framer-motion', () => ({
                 inert={inert}
                 data-enter-x={typeof variants?.enter === 'function' ? variants.enter(custom).x : undefined}
                 data-exit-x={typeof variants?.exit === 'function' ? variants.exit(custom).x : undefined}
-                data-enter-opacity={typeof variants?.enter === 'object' ? variants.enter.opacity : undefined}
                 data-transition-duration={transition?.duration}
                 data-animate-y={animate?.y}
             >
@@ -404,9 +403,9 @@ describe('SetupWrapper transitions', () => {
         // The hero stays mounted; only the white panel is replaced and slides.
         expect(nextHero).toBe(hero)
         expect(screen.getByText('Second step').closest('.bg-white')).not.toBe(panel)
-        // The art crossfades inside the hero instead of sliding.
-        expect(screen.getByTestId('mascot').parentElement).not.toHaveAttribute('data-enter-x')
-        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-opacity', '0')
+        // The art moves and fades inside the still hero: a short drift, not a full-width slide.
+        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '30%')
+        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '-30%')
         expect(screen.getByText('Next step').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '100%')
     })
 
@@ -440,6 +439,8 @@ describe('SetupWrapper transitions', () => {
 
         expect(screen.getByText('Welcome').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '-100%')
         expect(screen.getByText('Welcome').closest('[data-exit-x]')).toHaveAttribute('data-exit-x', '100%')
+        // the art drifts the same way as the panel
+        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '-30%')
     })
 
     it('uses an instant transition for reduced motion', () => {

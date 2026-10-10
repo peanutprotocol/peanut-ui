@@ -17,12 +17,17 @@ export default function SetupFooter({
     children?: ReactNode
 }) {
     return (
-        <div className="mt-auto flex w-full shrink-0 flex-col gap-8 short:gap-4" data-setup-footer>
+        <div
+            className="mt-auto flex w-full shrink-0 flex-col gap-8 compact:gap-4 short:gap-3 tight:gap-2"
+            data-setup-footer
+        >
             <div className="flex w-full flex-col gap-6">
                 {children && <div className="flex flex-col items-center gap-3 text-center">{children}</div>}
                 <div className="flex w-full flex-col gap-4">{actions}</div>
             </div>
-            <div className="flex h-16 shrink-0 flex-col items-center gap-3 text-center short:h-12">{secondary}</div>
+            <div className="flex h-16 shrink-0 flex-col items-center gap-3 text-center compact:h-12 short:h-11">
+                {secondary}
+            </div>
         </div>
     )
 }

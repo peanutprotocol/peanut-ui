@@ -68,7 +68,7 @@ it('slides the panels with only the incoming one accessible; the hero is not par
     expect(screen.getAllByRole('heading')).toHaveLength(1)
 })
 
-it('keeps one hero mounted between steps and crossfades its art', async () => {
+it('keeps one hero mounted between steps while its art moves and fades', async () => {
     const view = renderWithIntl(
         <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ pose: 'thinking' }} title="Pink card">
             <button>Next</button>

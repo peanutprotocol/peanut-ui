@@ -160,7 +160,7 @@ const ResidenceStep = () => {
                     onValueChange={onResidenceChange}
                     onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
                 />
-                <div className="py-3 text-center">
+                <div className="py-3 text-center compact:py-1 tight:py-0">
                     <LinkButton
                         aria-expanded={showSecondCountry}
                         aria-controls={secondCountryId}

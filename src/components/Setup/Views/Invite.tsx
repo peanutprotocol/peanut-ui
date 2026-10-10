@@ -82,7 +82,7 @@ export default function InviteStep() {
                     prefix="@"
                     className="rounded-sm"
                 />
-                <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
+                <div className="min-h-8 compact:min-h-6">{error && <FieldError>{error}</FieldError>}</div>
             </div>
             <SetupFooter
                 actions={
