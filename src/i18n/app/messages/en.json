@@ -793,7 +793,7 @@
             "usernamePlaceholder": "Username",
             "inviterUsernameLabel": "Username of the person who invited you",
             "inviterUsernamePlaceholder": "Username",
-            "inviterNotFound": "We couldn't verify that username. Check it and try again.",
+            "inviterNotFound": "We couldn’t find this user.",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",

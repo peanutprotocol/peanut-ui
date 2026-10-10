@@ -93,7 +93,7 @@ describe('Invited by a friend?', () => {
         mockValidateInviter.mockResolvedValue({ success: false, attributionResolved: false })
         renderInvite()
         fireEvent.change(field(), { target: { value: 'nobody' } })
-        expect(await screen.findByText("We couldn't verify that username. Check it and try again.")).toBeInTheDocument()
+        expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
         fireEvent.click(continueButton())
         expect(mockHandleNext).not.toHaveBeenCalled()

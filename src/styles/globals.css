@@ -789,6 +789,19 @@
     }
 
     /* One animated setup tint shared by the hero and native safe-area fills. */
+    /*
+     * The sign-up hero: one height per viewport, the same on every step, so the
+     * screen does not jump when the step changes. It is 40% of the screen, less
+     * when the tallest step's copy (--setup-content-reserve, measured per width
+     * at the phone sizes we support) would otherwise push the primary button off
+     * screen. md:h-dvh overrides it on desktop.
+     */
+    .setup-hero-height {
+        height: max(
+            12dvh,
+            min(40dvh, calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - var(--setup-content-reserve)))
+        );
+    }
     .setup-hero-background {
         background-color: var(--setup-hero-background, var(--color-background-setup-hero));
     }
@@ -924,6 +937,34 @@
     --safe-right: var(--safe-area-inset-right);
     --safe-bottom: var(--safe-area-inset-bottom);
     --safe-left: var(--safe-area-inset-left);
+}
+
+/* Room the tallest sign-up step's copy (the payment plan, then residence) needs
+   below the hero (.setup-hero-height), measured at 320-430px wide plus a few px.
+   Narrow screens wrap more lines; short screens use the tighter paddings (the
+   `short` variant). Re-measure after a copy change that adds a line. */
+:root {
+    --setup-content-reserve: 484px;
+}
+@media (max-width: 369px) {
+    :root {
+        --setup-content-reserve: 534px;
+    }
+}
+@media (max-width: 340px) {
+    :root {
+        --setup-content-reserve: 564px;
+    }
+}
+@media (max-height: 699px) {
+    :root {
+        --setup-content-reserve: 432px;
+    }
+}
+@media (max-width: 369px) and (max-height: 699px) {
+    :root {
+        --setup-content-reserve: 472px;
+    }
 }
 
 /* bottom-nav springs (TASK-22208, /dev/nav-bounce variant D): real
