@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
 import { FAQs } from './faq'
 import { SupportedRailsFaqAnswer } from './SupportedRailsFaqAnswer'
-import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
+import { SUPPORTED_RAILS_FAQ_ID, supportedFiatRails } from '@/constants/faq.consts'
 import Manteca from './Manteca'
 import { RegulatedRails } from './RegulatedRails'
 import { YourMoney } from './yourMoney'
@@ -51,7 +51,11 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
     const faqQuestions = faqData.questions.map((question) => ({
         ...question,
         ...(question.id === SUPPORTED_RAILS_FAQ_ID
-            ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
+            ? {
+                  answerContent: (
+                      <SupportedRailsFaqAnswer strings={strings.supportedRails} rails={supportedFiatRails(locale)} />
+                  ),
+              }
             : {}),
         ...(learnMoreHrefs[question.id] ? { learnMoreHref: learnMoreHrefs[question.id] } : {}),
     }))
