@@ -24,8 +24,11 @@ const originalFetch = global.fetch
 let infoSpy: jest.SpyInstance
 
 // Read timeouts are sampled in production; report every one here so assertions are deterministic.
+// 0.05 stays under READ_TIMEOUT_SAMPLE_RATE (0.1). Not 0: source-map's quicksort picks its pivot with
+// Math.random, and a constant 0 makes it recurse once per mapping until the stack overflows when a
+// stack trace is mapped under coverage (CI flake).
 beforeEach(() => {
-    jest.spyOn(Math, 'random').mockReturnValue(0)
+    jest.spyOn(Math, 'random').mockReturnValue(0.05)
 })
 
 beforeEach(() => {

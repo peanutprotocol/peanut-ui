@@ -50,8 +50,8 @@ jest.mock('framer-motion', () => ({
             inert?: boolean
             className?: string
             variants?: {
-                enter: (direction: number) => { x: string | number }
-                exit: (direction: number) => { x: string | number }
+                enter: ((direction: number) => { x?: string | number; opacity?: number }) | { opacity?: number }
+                exit: ((direction: number) => { x?: string | number; opacity?: number }) | { opacity?: number }
             }
             custom?: number
             transition?: { duration?: number }
@@ -61,8 +61,9 @@ jest.mock('framer-motion', () => ({
                 className={className}
                 aria-hidden={ariaHidden}
                 inert={inert}
-                data-enter-x={variants?.enter(custom).x}
-                data-exit-x={variants?.exit(custom).x}
+                data-enter-x={typeof variants?.enter === 'function' ? variants.enter(custom).x : undefined}
+                data-exit-x={typeof variants?.exit === 'function' ? variants.exit(custom).x : undefined}
+                data-enter-opacity={typeof variants?.enter === 'object' ? variants.enter.opacity : undefined}
                 data-transition-duration={transition?.duration}
                 data-animate-y={animate?.y}
             >
@@ -323,16 +324,44 @@ describe('SetupWrapper transitions', () => {
         )
     })
 
-    it('shows no step dots: only the language switcher sits on the hero', () => {
-        const { container } = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="advantage-fees" step={2} image={{ pose: 'thinking' }}>
+    it('shows no step dots, and keeps the language switcher in the fixed top bar on every step', () => {
+        // The top bar sits outside the sliding step content: one switcher, in the same element,
+        // whether or not the step has a back button, so it cannot move with a transition.
+        const { container, rerender } = renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
+                <div>Welcome</div>
+            </SetupWrapper>
+        )
+        const topBar = container.querySelector('[data-setup-top-bar]')
+        const switcher = screen.getByRole('button', { name: /language|EN/i })
+        expect(topBar).toContainElement(switcher)
+        expect(container.querySelector('.setup-hero-background')).not.toContainElement(switcher)
+        expect(topBar?.firstElementChild).toHaveClass('size-10')
+        rerender(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="advantage-fees"
+                step={2}
+                image={{ pose: 'thinking' }}
+                showBackButton
+                onBack={jest.fn()}
+            >
                 <div>Accounts</div>
             </SetupWrapper>
         )
         expect(screen.queryByRole('group', { name: /Step \d of \d/ })).not.toBeInTheDocument()
-        expect(container.querySelector('.setup-hero-background')).toContainElement(
-            screen.getByRole('button', { name: /language|EN/i })
+        expect(container.querySelector('[data-setup-top-bar]')).toBe(topBar)
+        expect(screen.getAllByRole('button', { name: /language|EN/i })).toEqual([switcher])
+        expect(topBar?.firstElementChild).toContainElement(screen.getByRole('button', { name: 'Go back' }))
+    })
+
+    it('hides the language switcher on a full-page step without progress (the celebration)', () => {
+        renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="advantage-control" fullScreen showProgress={false}>
+                <div>All set!</div>
+            </SetupWrapper>
         )
+        expect(screen.queryByRole('button', { name: /language|EN/i })).not.toBeInTheDocument()
     })
 
     it('keeps the outer shell while transitioning each complete screen layout', () => {
@@ -369,18 +398,15 @@ describe('SetupWrapper transitions', () => {
 
         expect(container.firstElementChild).toBe(shell)
         expect(shell).not.toHaveClass('bg-background-setup-hero')
-        // On phones the hero gives way to the copy (40% down to 18%); desktop keeps the full-height side hero.
-        expect(screen.getByTestId('mascot').closest('.setup-hero-background')).toHaveClass(
-            'h-[40dvh]',
-            'min-h-[18dvh]',
-            'shrink',
-            'md:h-dvh',
-            'md:shrink-0'
-        )
+        // One hero height per viewport on every step (.setup-hero-height); desktop keeps the full-height side hero.
+        const nextHero = screen.getByTestId('mascot').closest('.setup-hero-background')
+        expect(nextHero).toHaveClass('setup-hero-height', 'shrink-0', 'md:h-dvh')
+        // The hero stays mounted; only the white panel is replaced and slides.
+        expect(nextHero).toBe(hero)
         expect(screen.getByText('Second step').closest('.bg-white')).not.toBe(panel)
-        expect(hero).not.toBeInTheDocument()
-        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '100%')
-        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '-100%')
+        // The art crossfades inside the hero instead of sliding.
+        expect(screen.getByTestId('mascot').parentElement).not.toHaveAttribute('data-enter-x')
+        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-opacity', '0')
         expect(screen.getByText('Next step').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '100%')
     })
 
@@ -412,9 +438,8 @@ describe('SetupWrapper transitions', () => {
             </SetupWrapper>
         )
 
-        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '-100%')
-        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '100%')
         expect(screen.getByText('Welcome').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '-100%')
+        expect(screen.getByText('Welcome').closest('[data-exit-x]')).toHaveAttribute('data-exit-x', '100%')
     })
 
     it('uses an instant transition for reduced motion', () => {

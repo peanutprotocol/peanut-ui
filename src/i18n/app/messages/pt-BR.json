@@ -793,7 +793,8 @@
             "usernamePlaceholder": "Usuário",
             "inviterUsernameLabel": "Usuário de quem convidou você",
             "inviterUsernamePlaceholder": "Usuário",
-            "inviterNotFound": "Não conseguimos verificar esse usuário. Confira e tente de novo.",
+            "inviterNotFound": "Não encontramos esse usuário.",
+            "inviterCheckFailed": "Não conseguimos verificar esse usuário. Tente de novo.",
             "errors": {
                 "required": "O nome de usuário é obrigatório",
                 "tooShort": "O nome de usuário deve ter pelo menos 4 caracteres",

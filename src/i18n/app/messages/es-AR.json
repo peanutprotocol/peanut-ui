@@ -461,13 +461,13 @@
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
         },
         "signupStep": {
-            "inviterNotFound": "No pudimos verificar ese usuario. Revisalo e intentá de nuevo.",
             "errors": {
                 "invalid": "El nombre de usuario no es válido, usá uno diferente",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo o contactá a soporte."
             },
-            "termsAgreement": "Al crear una cuenta, aceptás los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
+            "termsAgreement": "Al crear una cuenta, aceptás los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>",
+            "inviterCheckFailed": "No pudimos revisar este usuario. Intentá de nuevo."
         },
         "residenceStep": {
             "countryPlaceholder": "Seleccioná el país",

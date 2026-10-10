@@ -11,6 +11,8 @@ export async function validateInviteCode(inviteCode: string): Promise<{
         legacyAcquisition?: LegacyInviteAcquisition
     }
     error?: string
+    /** HTTP status of a rejected lookup; absent when the request itself failed. */
+    status?: number
 }> {
     try {
         const response = await serverFetch('/invites/validate', {
@@ -26,7 +28,7 @@ export async function validateInviteCode(inviteCode: string): Promise<{
                 data && typeof data === 'object' && typeof (data as { error?: unknown }).error === 'string'
                     ? (data as { error: string }).error
                     : 'Failed to validate invite code.'
-            return { error }
+            return { error, status: response.status }
         }
 
         const body = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}

@@ -89,11 +89,20 @@ describe('Invited by a friend?', () => {
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
-    it('explains an inviter that cannot be verified and keeps Continue disabled', async () => {
+    it('says the check did not work when the lookup request fails, not that the user is missing', async () => {
         mockValidateInviter.mockResolvedValue({ success: false, attributionResolved: false })
         renderInvite()
+        fireEvent.change(field(), { target: { value: 'alice' } })
+        expect(await screen.findByText('We couldn’t check this username. Try again.')).toBeInTheDocument()
+        expect(screen.queryByText('We couldn’t find this user.')).not.toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
+    })
+
+    it('explains an inviter that does not exist and keeps Continue disabled', async () => {
+        mockValidateInviter.mockResolvedValue({ success: false, notFound: true, attributionResolved: false })
+        renderInvite()
         fireEvent.change(field(), { target: { value: 'nobody' } })
-        expect(await screen.findByText("We couldn't verify that username. Check it and try again.")).toBeInTheDocument()
+        expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
         fireEvent.click(continueButton())
         expect(mockHandleNext).not.toHaveBeenCalled()
