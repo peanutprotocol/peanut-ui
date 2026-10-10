@@ -30,8 +30,8 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '03-c-residence-congrats': {
-        name: 'Residence — funding and first payment',
-        path: 'Setup/Views/Residence.tsx',
+        name: 'Payment plan',
+        path: 'Setup/Views/PaymentPlan.tsx',
         shotFixture: 'setup-payment-plan',
     },
     '03-h-funding-methods': {
@@ -52,12 +52,9 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
-    '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
+    '06-b-invite': { name: 'Invited by a friend', path: 'Setup/Views/Invite.tsx' },
     '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },
-    '03-e-advantage-local': { name: 'Setup benefit — QR payments', path: 'Setup/Views/Advantage.tsx' },
-    '03-f-advantage-exchange': { name: 'Setup benefit — Exchange rates', path: 'Setup/Views/Advantage.tsx' },
-    '03-g-advantage-people': { name: 'Setup benefit — Payments by username', path: 'Setup/Views/Advantage.tsx' },
-    '04-b-advantage-fees': { name: 'Setup benefit — monthly fees', path: 'Setup/Views/Advantage.tsx' },
+    '04-b-advantage-fees': { name: 'Setup benefit — accounts', path: 'Setup/Views/Advantage.tsx' },
     '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
     '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },
     '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
@@ -219,8 +216,8 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Card/ApplicationStatusScreen.tsx',
     },
     '83-f-choice-residence-restricted': {
-        name: 'Setup residence — restricted',
-        path: 'Setup/Views/Residence.tsx',
+        name: 'Setup payment plan — restricted residence',
+        path: 'Setup/Views/PaymentPlan.tsx',
     },
     '84-f-choice-public-profile-guest': {
         name: 'Public profile — guest actions',

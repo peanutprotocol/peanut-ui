@@ -7,7 +7,7 @@ import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
-import Divider from '@/components/0_Bruddle/Divider'
+import SetupFooter from '../components/SetupFooter'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
@@ -24,7 +24,6 @@ import { isCapacitor } from '@/utils/capacitor'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
-    const tCommon = useTranslations('common')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
@@ -63,28 +62,41 @@ const LandingStep = () => {
         }
     }
 
+    const recoveryLink = (
+        <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
+            <Icon name="info" size={16} className="shrink-0" />
+            {t('landing.recoverWallet')}
+        </SetupDocLink>
+    )
+
+    if (blockSignup) {
+        return (
+            <div className="flex flex-col gap-6">
+                <div className="space-y-2 pb-2">
+                    {/* heading only above the desktop QR — a lone store button
+                        explains itself */}
+                    {deviceType === DeviceType.WEB && (
+                        <p className="text-center text-label-l text-foreground-primary">{tMigration('banner.title')}</p>
+                    )}
+                    <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                </div>
+                <div className="text-center">
+                    <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
+                        {tMigration('qr.logIn')}
+                    </LinkButton>
+                </div>
+                {/* pt-1: two stacked text links need ~28px between their hit areas */}
+                <div className="pt-1 text-center">{recoveryLink}</div>
+            </div>
+        )
+    }
+
+    // Sign up sits at the primary height every step shares; Log in takes the slot below it.
     return (
-        <div className="flex flex-col gap-6">
-            {blockSignup ? (
-                <>
-                    <div className="space-y-2 pb-2">
-                        {/* heading only above the desktop QR — a lone store button
-                            explains itself */}
-                        {deviceType === DeviceType.WEB && (
-                            <p className="text-center text-label-l text-foreground-primary">
-                                {tMigration('banner.title')}
-                            </p>
-                        )}
-                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
-                    </div>
-                    <div className="text-center">
-                        <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
-                            {tMigration('qr.logIn')}
-                        </LinkButton>
-                    </div>
-                </>
-            ) : (
-                <>
+        <div className="flex flex-1 flex-col">
+            <div className="text-left">{recoveryLink}</div>
+            <SetupFooter
+                actions={
                     <Button
                         shadowSize="4"
                         // native only: mid-ceremony Sign Up taps flashed the next setup
@@ -99,25 +111,20 @@ const LandingStep = () => {
                     >
                         {t('landing.signUp')}
                     </Button>
-                    <Divider text={tCommon('or')} />
+                }
+                secondary={
                     <Button
                         loading={isLoggingIn}
                         shadowSize="4"
+                        className="w-full"
                         disabled={isLoggingIn}
                         variant="secondary"
                         onClick={onLoginClick}
                     >
                         {t('logIn')}
                     </Button>
-                </>
-            )}
-            {/* pt-1: two stacked text links need ~28px between their hit areas */}
-            <div className={blockSignup ? 'pt-1 text-center' : 'text-center'}>
-                <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
-                    <Icon name="info" size={16} className="shrink-0" />
-                    {t('landing.recoverWallet')}
-                </SetupDocLink>
-            </div>
+                }
+            />
         </div>
     )
 }

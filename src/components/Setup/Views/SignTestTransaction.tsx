@@ -5,6 +5,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupFooter from '../components/SetupFooter'
+import SetupTitleBlock from '../components/SetupTitleBlock'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { updateUserById } from '@/app/actions/users'
@@ -49,34 +50,41 @@ export function SetupConfirmationView({
 }) {
     const t = useTranslations('setup')
     const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
+    const button = (
+        <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
+            {buttonText || t(merged ? 'cta.finish' : 'testTransaction.confirmAndFinish')}
+        </Button>
+    )
+    // In the sign-up flow this is the "Only for you" step: the shared title block
+    // at the top, the passkey confirmation on the pinned primary.
+    if (merged) {
+        return (
+            <div className="flex flex-1 flex-col gap-6">
+                <SetupTitleBlock
+                    title={showTitle ? t('steps.advantage-control.title') : undefined}
+                    description={t('steps.advantage-control.description')}
+                />
+                {error && <Callout priority="error">{error}</Callout>}
+                <SetupFooter actions={button} />
+            </div>
+        )
+    }
     return (
         <PageStack className="flex-1">
-            <PageStack.Center className={merged ? 'my-0' : undefined}>
-                {showTitle && (
-                    <h1 className="text-heading-s">
-                        {t(merged ? 'steps.advantage-control.title' : 'testTransaction.confirmTitle')}
-                    </h1>
-                )}
+            <PageStack.Center>
+                {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
                 <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
-                    {t(merged ? 'steps.advantage-control.description' : 'steps.sign-test-transaction.description')}
+                    {t('steps.sign-test-transaction.description')}
                 </p>
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
-            <SetupFooter
-                actions={
-                    <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
-                        {buttonText || t('testTransaction.confirmAndFinish')}
-                    </Button>
-                }
-            >
-                {!merged && (
-                    <p className="text-center text-body-xs text-foreground-secondary">
-                        <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
-                            <Icon name="info" size={16} className="shrink-0" />
-                            {t('passkey.learnMore')}
-                        </LinkButton>
-                    </p>
-                )}
+            <SetupFooter actions={button}>
+                <p className="text-center text-body-xs text-foreground-secondary">
+                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
+                        <Icon name="info" size={16} className="shrink-0" />
+                        {t('passkey.learnMore')}
+                    </LinkButton>
+                </p>
             </SetupFooter>
             <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
         </PageStack>
@@ -372,7 +380,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
     const getButtonText = () => {
         if (isFetchingUser || !user) return tCommon('loading')
         if (testTransactionCompleted && displayError) return t('testTransaction.retryAccountSetup')
-        return t('testTransaction.confirmAndFinish')
+        return undefined
     }
 
     return (

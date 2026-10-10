@@ -700,12 +700,12 @@
         "choicesLater": "Você pode mudar suas escolhas depois.",
         "steps": {
             "landing": {
-                "title": "Com o Peanut, dólares ficam fáceis.",
-                "description": "Crie sua conta em segundos para guardar, enviar ou sacar dólares rápido, onde quer que você esteja no mundo."
+                "title": "Receba de qualquer lugar. Gaste no mundo todo.",
+                "description": "Receba em USD ou EUR com dados bancários no seu nome. Gaste com cartão ou QR, onde você estiver."
             },
             "signup": {
-                "title": "Escolha um usuário",
-                "description": "Escolha seu nome de usuário. Você vai usá-lo para enviar e receber dinheiro."
+                "title": "Garantir usuário",
+                "description": "As pessoas encontram e pagam você pelo seu usuário."
             },
             "advantage-payments": {
                 "title": "Pague qualquer pessoa com um toque.",
@@ -713,59 +713,47 @@
             },
             "residence": {
                 "title": "País de residência legal",
-                "description": "O país onde você mora legalmente e tem seu endereço, não onde você está viajando. Isso decide quais formas de pagamento você pode desbloquear."
+                "description": "Onde você tem residência legal. Não onde nasceu nem para onde está viajando."
             },
             "advantage-rewards": {
                 "title": "Coisas boas são melhores em companhia.",
                 "description": "Convide amigos e desbloqueie recompensas quando eles usarem o Peanut."
             },
-            "passkey-permission": {
-                "title": "Só você tem o controle.",
-                "description": "Use seu rosto, impressão digital ou bloqueio de tela para aprovar pagamentos."
-            },
             "advantage-control": {
-                "title": "Tudo pronto para começar?",
-                "description": "Confirme com sua passkey para concluir a configuração. Seu dinheiro continua sendo seu, e você decide o que acontece depois."
+                "title": "Só para você",
+                "description": "Só você pode usar sua digital ou Face ID para controlar sua conta. O Peanut nunca pode mover nem congelar seu dinheiro. Experimente agora."
             },
             "sign-test-transaction": {
                 "title": "Conta pronta",
                 "description": "É só confirmar que é você — um toque e pronto."
             },
             "advantage-card": {
-                "title": "Um cartão rosa para o seu dia a dia.",
-                "description": "Use seu saldo Peanut para compras online e em lojas físicas."
+                "title": "Um cartão Visa Platinum emitido nos EUA.",
+                "description": "Ah, e ele é <pink>rosa</pink>."
             },
             "advantage-bank": {
                 "title": "Contas bancárias que viajam com você.",
                 "description": "Receba transferências bancárias em várias moedas e use seu saldo com a Peanut."
             },
             "advantage-fees": {
-                "title": "Diga adeus às mensalidades.",
-                "description": "Você controla cada pagamento, com todas as tarifas claramente indicadas antes de confirmar."
+                "title": "Euros? Dólares? Pesos? Sim.",
+                "description": "Abra contas nas moedas em que você recebe. Abertura grátis, sem mensalidade."
             },
             "notification-email": {
-                "title": "Adicione seu e-mail",
-                "description": "Nunca enviamos spam. Seu e-mail será usado para notícias e atualizações importantes da sua conta."
+                "title": "Sem spam. Juro de dedinho.",
+                "description": "Você pode cancelar quando quiser."
             },
             "notification-permission": {
-                "title": "Seu dinheiro pode precisar da sua atenção.",
-                "description": "Ative as notificações. Saiba na hora quando o dinheiro chega, um pagamento é concluído ou sua conta precisa de atenção."
+                "title": "Ative as notificações",
+                "description": "Saiba na hora quando o dinheiro chega, um pagamento é concluído ou sua conta precisa de atenção."
             },
             "success": {
                 "title": "Tudo pronto!",
-                "description": "Sua conta da Peanut está pronta. Hora de deixá-la com a sua cara."
+                "description": "Sua conta da Peanut está pronta."
             },
-            "advantage-local": {
-                "title": "Pague como quem mora aqui.",
-                "description": "Use redes de pagamento locais, como Pix e Mercado Pago."
-            },
-            "advantage-exchange": {
-                "title": "Tenha as melhores taxas de câmbio",
-                "description": "Pague com facilidade, onde quer que suas viagens levem você."
-            },
-            "advantage-people": {
-                "title": "Pague pessoas, não números de conta.",
-                "description": "Encontre um amigo pelo @usuário e envie um pagamento em segundos."
+            "invite": {
+                "title": "Convite de um amigo?",
+                "description": "Digite o usuário da pessoa para que ela ganhe recompensas quando você usar o Peanut."
             }
         },
         "existingSession": {
@@ -780,27 +768,16 @@
             "logout": "Sair"
         },
         "wrapper": {
-            "starAlt": "estrela",
             "illustrationAlt": "Ilustração da seção",
-            "stepIndicator": "Passo {current} de {total}",
             "introGreeting": "Oi, eu sou o Peanut"
         },
         "next": "Avançar",
         "logIn": "Entrar",
         "cta": {
-            "claimName": "Escolher nome de usuário",
-            "payments": "Gostei",
-            "home": "É aqui que moro",
-            "rewards": "Oba, recompensas!",
-            "control": "Vamos terminar",
-            "fees": "Gostei",
-            "features": "Manter estas escolhas",
-            "bank": "Agora sim!",
-            "card": "Adorei o rosa",
-            "exchange": "É um bom negócio",
-            "local": "Vamos pagar como os locais",
-            "people": "Faz sentido",
-            "funding": "Manter estas escolhas"
+            "claimName": "Garantir",
+            "continue": "Continuar",
+            "confirm": "Confirmar",
+            "finish": "Concluir"
         },
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {
@@ -813,16 +790,10 @@
             "loginUnexpectedError": "Ocorreu um erro inesperado ao fazer login."
         },
         "signupStep": {
-            "usernamePlaceholder": "seu usuário",
-            "whoInvitedYou": "Quem convidou você?",
-            "inviterUsernameLabel": "Usuário do Peanut de quem convidou você",
-            "inviterUsernamePlaceholder": "usuário de quem convidou você",
-            "inviterHelp": "Quem convidou você pode ganhar recompensas quando você usar o Peanut.",
+            "usernamePlaceholder": "Usuário",
+            "inviterUsernameLabel": "Usuário de quem convidou você",
+            "inviterUsernamePlaceholder": "Usuário",
             "inviterNotFound": "Não conseguimos verificar esse usuário. Confira e tente de novo.",
-            "invitedBy": "Convite de {username}.",
-            "changeInviter": "Alterar",
-            "addInviter": "Adicionar quem convidou",
-            "removeInviter": "Remover quem convidou",
             "errors": {
                 "required": "O nome de usuário é obrigatório",
                 "tooShort": "O nome de usuário deve ter pelo menos 4 caracteres",
@@ -833,7 +804,7 @@
                 "checkFailed": "Não conseguimos verificar a disponibilidade do usuário. Tente de novo.",
                 "checkFailedSupport": "Não conseguimos verificar a disponibilidade do usuário. Tente de novo ou fale com o suporte."
             },
-            "termsAgreement": "Ao criar uma conta você aceita os <terms>Termos e Condições</terms> e a <privacy>Política de Privacidade</privacy>"
+            "termsAgreement": "Ao criar uma conta, você aceita os <terms>Termos e Condições</terms> e a <privacy>Política de Privacidade</privacy>"
         },
         "residenceStep": {
             "countryPlaceholder": "Selecione o país",
@@ -905,7 +876,6 @@
             }
         },
         "passkey": {
-            "setItUp": "Configurar",
             "notAvailable": "As passkeys ainda não estão disponíveis neste dispositivo. Tente de novo.",
             "cancelled": "A configuração da passkey foi cancelada. Tente de novo quando quiser.",
             "tookTooLong": "Isso está demorando mais do que deveria. Tente de novo.",
@@ -999,7 +969,7 @@
             "alreadyRegistered": "O usuário com este email já estava cadastrado.",
             "recoveryGuide": "Como recuperar sua conta",
             "label": "E-mail",
-            "placeholder": "voce@exemplo.com",
+            "placeholder": "E-mail",
             "continue": "Continuar",
             "invalid": "Digite um e-mail válido.",
             "notReady": "Sua conta ainda está carregando. Tente novamente em instantes.",
@@ -1007,30 +977,27 @@
             "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações."
         },
         "notifications": {
-            "pushLabel": "Notificações push do app",
+            "pushLabel": "Notificações push",
             "pushDescription": "Novidades direto no seu celular.",
-            "emailLabel": "Notificações por e-mail",
             "emailDescription": "Novidades na sua caixa de entrada.",
-            "continue": "Gostei",
+            "continue": "Continuar",
             "pushUnavailable": "As notificações push ainda não estão prontas. Tente novamente ou desative o push para continuar.",
             "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
         },
         "paymentPlan": {
-            "addMoney": "Vou adicionar dinheiro à minha conta Peanut",
-            "firstPayment": "e depois usar para pagar",
             "fundingTitle": "Adicionar dinheiro com",
             "paymentTitle": "Fazer um pagamento com",
-            "hint": "A lista de opções de pagamento depende do seu país de residência.",
+            "hint": "As opções dependem da sua residência.",
             "funding": {
                 "crypto": "Cripto",
-                "peanut": "Peanut para Peanut",
+                "peanut": "Outro usuário do Peanut",
                 "bank": "Transferência bancária",
                 "bankCurrencies": "Transferência bancária (USD, EUR, GBP, MXN)",
                 "brlBank": "Transferência bancária (BRL)",
                 "arsBank": "Transferência bancária (ARS)"
             },
             "payment": {
-                "peanut": "Peanut para Peanut",
+                "peanut": "Outro usuário do Peanut",
                 "card": "Cartão Peanut",
                 "bank": "Transferência bancária",
                 "crypto": "Cripto",
@@ -1041,7 +1008,15 @@
                 "banking": "As transferências bancárias não estão disponíveis no seu país.",
                 "card": "O cartão Peanut não está disponível no seu país.",
                 "both": "As transferências bancárias e a emissão de cartões não estão disponíveis no seu país."
-            }
+            },
+            "fundingLead": "Primeiro você vai adicionar dinheiro",
+            "spendLead": "e depois gastar",
+            "choose": "Escolher",
+            "continue": "Continuar"
+        },
+        "inviteStep": {
+            "continue": "Continuar",
+            "skip": "Pular"
         }
     },
     "loadingStates": {

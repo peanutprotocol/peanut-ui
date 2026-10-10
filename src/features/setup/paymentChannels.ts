@@ -29,21 +29,16 @@ export function setupChannelsForResidence(
             : known && !restrictions.banking && country === 'AR'
               ? ['arsBank']
               : []
-    const bridgeBank = bridge ? (['bank'] as const) : []
-    const bank: SetupFundingChannel[] = [...local, ...bridgeBank]
+    const bank: SetupFundingChannel[] = [...local, ...(bridge ? (['bank'] as const) : [])]
     const card = known && !restrictions.card
     // product/countries.md: QR is available after verification in every non-sanctioned residence.
     // Occupied territories and age are checked during verification, not this country-only preview.
     const qr = known && !['KP', 'IR', 'CU', 'SY', 'RU', 'BY', 'MM'].includes(country)
+    // Spending is the Peanut Card and QR payments (Hugo, 2026-10-10). Where neither is
+    // offered, paying another Peanut user keeps the plan answerable.
+    const spend: SetupPaymentChannel[] = [...(card ? ['card' as const] : []), ...(qr ? ['qr' as const] : [])]
     return {
         funding: [...bank, 'crypto', 'peanut'],
-        payment: [
-            ...(card ? ['card' as const] : []),
-            // Manteca bank rails only withdraw to the user's own account; QR pays third parties.
-            ...bridgeBank,
-            ...(qr ? ['qr' as const] : []),
-            'crypto',
-            'peanut',
-        ],
+        payment: spend.length > 0 ? spend : ['peanut'],
     }
 }

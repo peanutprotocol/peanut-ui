@@ -67,24 +67,3 @@ it('slides complete screens together with only the incoming screen accessible', 
     expect(hero).not.toBeInTheDocument()
     expect(screen.getAllByRole('heading')).toHaveLength(1)
 })
-
-it('keeps the next illustration override when the outgoing screen cleans up', async () => {
-    const { useSetupImageOverride } = await import('../SetupWrapper')
-    const Override = ({ pose }: { pose: 'thinking' | 'cheering' }) => {
-        useSetupImageOverride({ pose })
-        return <h1>{pose}</h1>
-    }
-    const view = renderWithIntl(
-        <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ animation: 'card' }}>
-            <Override pose="thinking" />
-        </SetupWrapper>
-    )
-    view.rerender(
-        <SetupWrapper layoutType="signup" screenId="advantage-bank" image={{ animation: 'topup' }}>
-            <Override pose="cheering" />
-        </SetupWrapper>
-    )
-    await finishTransition()
-    expect(screen.queryByText('thinking')).not.toBeInTheDocument()
-    expect(screen.getByTestId('card-illustration')).toBeInTheDocument()
-})

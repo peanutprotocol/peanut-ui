@@ -25,16 +25,20 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: '9eb731e649de21ef8a28fca821f4123d63be55f0765a0843fe42bac31bbbe0bd',
     },
     'card-terms-us': {
-        version: '2026-06-01',
-        hash: '431def76a1838075b8110dff955da06a3d561d61229117c14127deef9f09e1ca',
+        version: '2026-10-08',
+        hash: '5401c45fef1b8006355a6fb19d8bedf56c53eb48b73e3f9d2afb4eb70daa7c8d',
     },
     privacy: {
-        version: '2026-08-27',
-        hash: 'da1d914e134c2ac6b75ca6d83211ae443880c709a288a1e285efead347f70181',
+        version: '2026-09-29',
+        hash: 'db3eb7845bf56d187bc2052ce352274ca6cf5263d7e83cecc05ebbf017b68b5c',
+    },
+    'real-time-funding-terms': {
+        version: '2026-09-29',
+        hash: '59e2db2c52e64fcd5f92587203f671a97d687b204f621dc4590635d6c37eeb27',
     },
     terms: {
-        version: '2026-07-15',
-        hash: '6ed61c54c9b6c1c40ab053c597c83288b36bf07f0470627b67634db0e41d7398',
+        version: '2026-09-26',
+        hash: '1098bda28be7baf5a438ae18b095a938e4c9e090b838d59727432fdc9255a3aa',
     },
 } as const
 
