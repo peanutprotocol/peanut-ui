@@ -136,13 +136,16 @@ const TransitioningContent = ({
 }
 
 /**
- * navigation component for back, skip and logout buttons
- * rendered at the top of the layout when any button is enabled
+ * The top bar: back on the left; skip, logout and the language switcher on the
+ * right. It sits outside the sliding step content, so nothing in it moves when
+ * the user changes step, and the back slot keeps its width when a step has no
+ * back button.
  */
 const Navigation = memo(function Navigation({
     showBackButton,
     showSkipButton,
     showLogoutButton,
+    showLanguageSwitcher,
     onBack,
     onSkip,
     onLogout,
@@ -150,10 +153,10 @@ const Navigation = memo(function Navigation({
 }: Pick<
     SetupWrapperProps,
     'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
->) {
+> & { showLanguageSwitcher: boolean }) {
     const t = useTranslations('setup.navigation')
 
-    if (!showBackButton && !showSkipButton && !showLogoutButton) return null
+    if (!showBackButton && !showSkipButton && !showLogoutButton && !showLanguageSwitcher) return null
 
     // Icons inherit currentColor: the circle fills on hover/active, and a
     // hard-coded fill vanished into the fill colour.
@@ -161,8 +164,11 @@ const Navigation = memo(function Navigation({
     // Match app navigation at 16px from either horizontal edge and 16px below
     // the safe-area boundary; on web --safe-top is zero.
     return (
-        <div className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 flex w-full items-center justify-between px-4">
-            <div>
+        <div
+            data-setup-top-bar
+            className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 flex w-full items-center justify-between px-4"
+        >
+            <div className="size-10 shrink-0">
                 {showBackButton && (
                     <Button
                         variant="ghost"
@@ -196,6 +202,7 @@ const Navigation = memo(function Navigation({
                         <Icon name="logout" size={20} />
                     </Button>
                 )}
+                {showLanguageSwitcher && <SetupLanguageSwitcher />}
             </div>
         </div>
     )
@@ -205,32 +212,6 @@ function UsernameBackground() {
     return (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0" data-username-background>
             <OnboardingAnimation name="username" background />
-        </div>
-    )
-}
-
-/** The top row of the hero: the language switcher, clear of the back button. */
-function SetupHeaderRow({
-    screenId,
-    hidden = false,
-    compact = false,
-}: {
-    screenId: ScreenId
-    hidden?: boolean
-    compact?: boolean
-}) {
-    return (
-        <div
-            aria-hidden={hidden}
-            inert={hidden}
-            className={twMerge(
-                hidden && 'invisible',
-                'pointer-events-none z-20 flex h-11 w-full items-center justify-end gap-3 px-4 md:px-6',
-                compact ? 'relative my-4 shrink-0' : 'absolute inset-x-0 top-4 md:top-8',
-                screenId === 'sign-test-transaction' && 'pr-16 md:pr-16'
-            )}
-        >
-            <SetupLanguageSwitcher />
         </div>
     )
 }
@@ -395,7 +376,6 @@ const ImageSection = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
-                <SetupHeaderRow screenId={screenId} hidden={intro.active} />
             </motion.div>
         )
     }
@@ -518,6 +498,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                 showBackButton={showBackButton}
                 showSkipButton={showSkipButton}
                 showLogoutButton={showLogoutButton}
+                // Hidden during the first-launch intro, and on a full-page step without progress (the celebration).
+                showLanguageSwitcher={!intro.active && (!fullScreen || showProgress)}
                 onBack={onBack}
                 onSkip={onSkip}
                 onLogout={onLogout}
@@ -539,7 +521,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                     >
                         {/* illustration section */}
                         {fullScreen ? (
-                            showProgress && <SetupHeaderRow screenId={screenId} compact />
+                            // Keeps the content clear of the fixed top bar.
+                            showProgress && <div aria-hidden="true" className="my-4 h-11 shrink-0" />
                         ) : (
                             <ImageSection
                                 imageClassName={imageClassName}

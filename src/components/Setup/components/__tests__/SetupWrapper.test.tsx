@@ -323,16 +323,44 @@ describe('SetupWrapper transitions', () => {
         )
     })
 
-    it('shows no step dots: only the language switcher sits on the hero', () => {
-        const { container } = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="advantage-fees" step={2} image={{ pose: 'thinking' }}>
+    it('shows no step dots, and keeps the language switcher in the fixed top bar on every step', () => {
+        // The top bar sits outside the sliding step content: one switcher, in the same element,
+        // whether or not the step has a back button, so it cannot move with a transition.
+        const { container, rerender } = renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
+                <div>Welcome</div>
+            </SetupWrapper>
+        )
+        const topBar = container.querySelector('[data-setup-top-bar]')
+        const switcher = screen.getByRole('button', { name: /language|EN/i })
+        expect(topBar).toContainElement(switcher)
+        expect(container.querySelector('.setup-hero-background')).not.toContainElement(switcher)
+        expect(topBar?.firstElementChild).toHaveClass('size-10')
+        rerender(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="advantage-fees"
+                step={2}
+                image={{ pose: 'thinking' }}
+                showBackButton
+                onBack={jest.fn()}
+            >
                 <div>Accounts</div>
             </SetupWrapper>
         )
         expect(screen.queryByRole('group', { name: /Step \d of \d/ })).not.toBeInTheDocument()
-        expect(container.querySelector('.setup-hero-background')).toContainElement(
-            screen.getByRole('button', { name: /language|EN/i })
+        expect(container.querySelector('[data-setup-top-bar]')).toBe(topBar)
+        expect(screen.getAllByRole('button', { name: /language|EN/i })).toEqual([switcher])
+        expect(topBar?.firstElementChild).toContainElement(screen.getByRole('button', { name: 'Go back' }))
+    })
+
+    it('hides the language switcher on a full-page step without progress (the celebration)', () => {
+        renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="advantage-control" fullScreen showProgress={false}>
+                <div>All set!</div>
+            </SetupWrapper>
         )
+        expect(screen.queryByRole('button', { name: /language|EN/i })).not.toBeInTheDocument()
     })
 
     it('keeps the outer shell while transitioning each complete screen layout', () => {

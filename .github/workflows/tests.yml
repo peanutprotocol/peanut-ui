@@ -888,6 +888,9 @@ jobs:
             - name: Run the drawer shadow-clip spec
               run: npx playwright test e2e/flows/drawer-shadow-clip.spec.ts --config=playwright.regression.config.ts
 
+            - name: Run the sign-up top bar spec
+              run: npx playwright test e2e/flows/setup-top-bar.spec.ts --config=playwright.regression.config.ts
+
             - name: Upload results on failure
               if: failure()
               uses: actions/upload-artifact@v4
