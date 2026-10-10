@@ -213,14 +213,23 @@ it('saves an explicit opt-out, blocks on a failed save, and retries the same cho
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
     expect(mockSave).toHaveBeenCalledTimes(2)
 })
-it('never waits on the best-effort save when push is on', async () => {
+it('waits for the push opt-in write, so a later opt-out on this step cannot be overwritten by it', async () => {
     mockPermission.mockResolvedValueOnce('granted')
-    mockSave.mockReturnValueOnce(new Promise(() => {}))
+    let resolveSave!: () => void
+    mockSave.mockReturnValueOnce(
+        new Promise<void>((resolve) => {
+            resolveSave = resolve
+        })
+    )
     renderStep(<NotificationsStep />)
     fireEvent.click(pushToggle())
     await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'true'))
     await waitFor(() => expect(pushToggle()).not.toBeDisabled())
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await act(async () => {})
+    expect(mockSave).toHaveBeenCalledWith({ push: true, email: true })
+    expect(mockNext).not.toHaveBeenCalled()
+    await act(async () => resolveSave())
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
 it('advances past a failed best-effort save when push is on', async () => {

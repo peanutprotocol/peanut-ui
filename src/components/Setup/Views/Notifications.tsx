@@ -71,8 +71,10 @@ export default function NotificationsStep() {
                     return
                 }
             } else if (push) {
-                // Best effort: subscribed is the server default, so signup never waits on it.
-                void notificationsApi.savePreferences({ push: true, email: true }).catch(() => {})
+                // Subscribed is the server default, so a failure never blocks signup. The write is
+                // still awaited: left in flight, it could land after an opt-out made by coming back
+                // to this step, and the API keeps the last write.
+                await notificationsApi.savePreferences({ push: true, email: true }).catch(() => {})
             }
             await handleNext()
         } finally {
