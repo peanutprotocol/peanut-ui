@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
@@ -10,6 +10,7 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import {
     setupChannelsForResidence,
@@ -19,7 +20,21 @@ import {
     type SetupPaymentChannel,
 } from '@/features/setup/paymentChannels'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
 import SetupFooter from '../components/SetupFooter'
+
+function ChannelIcon({ channel }: { channel: SetupChannel | null }) {
+    // Nothing chosen yet: an empty gray bubble (design.md: gray = nothing selected).
+    if (!channel) return <IconBubble icon={<span />} size="xs" color="gray" />
+    const concept = SETUP_CHANNEL_CONCEPTS[channel]
+    return (
+        <IconBubble
+            {...CONCEPT_ICONS[concept]}
+            size="xs"
+            color={concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color}
+        />
+    )
+}
 
 function ChannelPicker<C extends SetupChannel>({
     kind,
@@ -28,88 +43,43 @@ function ChannelPicker<C extends SetupChannel>({
     options,
     label,
     compactLabel = label,
+    placeholder,
     onChange,
-    onInteract,
-    animate,
-    previewValue,
 }: {
     kind: 'funding' | 'payment'
     title: string
-    value: C
+    value: C | null
     options: readonly C[]
     label: (channel: C) => string
     compactLabel?: (channel: C) => string
+    placeholder: string
     onChange: (channel: C) => void
-    onInteract: () => void
-    animate: boolean
-    previewValue?: C
 }) {
     const [open, setOpen] = useState(false)
-    const icon = (channel: SetupChannel) => {
-        const concept = SETUP_CHANNEL_CONCEPTS[channel]
-        return (
-            <IconBubble
-                {...CONCEPT_ICONS[concept]}
-                size="xs"
-                color={concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color}
-            />
-        )
-    }
+    const shown = value ? compactLabel(value) : placeholder
     return (
-        <Drawer
-            open={open}
-            onOpenChange={(next) => {
-                if (next) onInteract()
-                setOpen(next)
-            }}
-            shouldScaleBackground={false}
-        >
+        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
             <DrawerTrigger asChild>
                 <Button
                     variant="secondary"
                     size="compact"
                     shadowSize="2"
-                    aria-label={`${title}: ${label(value)}`}
+                    aria-label={`${title}: ${value ? label(value) : placeholder}`}
                     aria-haspopup="dialog"
                     data-testid={`setup-${kind}-channel`}
-                    onPointerDown={onInteract}
-                    onFocus={onInteract}
                     className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
-                    icon={icon(value)}
+                    icon={<ChannelIcon channel={value} />}
                     iconContainerClassName="size-6"
                 >
-                    <span
-                        className="relative grid min-w-0 overflow-hidden text-left"
-                        aria-live="off"
-                        title={compactLabel(value)}
-                    >
-                        {/* All eligible labels share one grid cell: the longest translated
-                            label sizes the selector without measuring or changing widths. */}
-                        {options.map((channel) => (
-                            <span
-                                key={channel}
-                                aria-hidden="true"
-                                className="invisible whitespace-nowrap [grid-area:1/1]"
-                            >
-                                {compactLabel(channel)}
+                    <span className="relative grid min-w-0 overflow-hidden text-left" title={shown}>
+                        {/* All labels share one grid cell: the longest translated label
+                            sizes the picker, so choosing never changes its width. */}
+                        {[placeholder, ...options.map(compactLabel)].map((text) => (
+                            <span key={text} aria-hidden="true" className="invisible whitespace-nowrap [grid-area:1/1]">
+                                {text}
                             </span>
                         ))}
-                        {animate ? (
-                            <AnimatePresence initial={false} mode="popLayout">
-                                <motion.span
-                                    key={previewValue ?? 'initial'}
-                                    initial={{ y: '-100%', opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    exit={{ y: '100%', opacity: 0 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="block truncate [grid-area:1/1]"
-                                >
-                                    {compactLabel(value)}
-                                </motion.span>
-                            </AnimatePresence>
-                        ) : (
-                            <span className="block truncate [grid-area:1/1]">{compactLabel(value)}</span>
-                        )}
+                        <span className="block truncate [grid-area:1/1]">{shown}</span>
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
@@ -126,7 +96,7 @@ function ChannelPicker<C extends SetupChannel>({
                                         {label(channel)}
                                     </span>
                                 }
-                                leading={icon(channel)}
+                                leading={<ChannelIcon channel={channel} />}
                                 trailing={channel === value ? <Icon name="check" size={20} /> : undefined}
                                 aria-label={label(channel)}
                                 className={
@@ -145,88 +115,44 @@ function ChannelPicker<C extends SetupChannel>({
     )
 }
 
-export default function PaymentPlan({
-    onContinue,
-    children,
-    loading = false,
-    animateSuggestions = true,
-}: {
-    onContinue: () => void
-    children?: ReactNode
-    loading?: boolean
-    animateSuggestions?: boolean
-}) {
+/**
+ * How the user plans to add money and spend it. Both pickers start empty and
+ * Continue waits for both choices; the options follow the declared residence.
+ */
+export default function PaymentPlanStep() {
     const t = useTranslations('setup.paymentPlan')
-    const tSetup = useTranslations('setup')
     const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel } =
         useSetupFlowContext()
+    const { handleNext, isLoading } = useSetupFlow()
     const { sets, settled } = useResidenceRestrictionSetsWithStatus()
     const options = useMemo(
         () => setupChannelsForResidence(sets, residenceCountry, settled),
         [sets, residenceCountry, settled]
     )
-    const reducedMotion = useReducedMotion()
-    const [interacted, setInteracted] = useState(!!fundingChannel || !!paymentChannel)
-    const stopped = useRef(interacted)
-    const [preview, setPreview] = useState<{ funding?: SetupFundingChannel; payment?: SetupPaymentChannel }>({})
-    const cycle = animateSuggestions && !interacted && !reducedMotion && !loading
-    const funding =
-        fundingChannel && options.funding.includes(fundingChannel)
-            ? fundingChannel
-            : preview.funding && options.funding.includes(preview.funding)
-              ? preview.funding
-              : options.funding[0]
-    const payment =
-        paymentChannel && options.payment.includes(paymentChannel)
-            ? paymentChannel
-            : preview.payment && options.payment.includes(preview.payment)
-              ? preview.payment
-              : (options.payment.find((channel) => channel !== 'crypto') ?? 'peanut')
-    const freeze = () => {
-        stopped.current = true
-        setInteracted(true)
-        if (funding) setFundingChannel(funding)
-        if (payment) setPaymentChannel(payment)
-    }
-    useEffect(() => {
-        if (!cycle) return
-        let top = true
-        const advance = () => {
-            if (stopped.current || document.visibilityState === 'hidden') return
-            const fundingTurn = top
-            top = !top
-            setPreview((current) => {
-                if (fundingTurn) {
-                    const index = options.funding.indexOf(current.funding ?? options.funding[0])
-                    return { ...current, funding: options.funding[(index + 1) % options.funding.length] }
-                }
-                // Start with a non-Crypto default, then preview every eligible option.
-                const payments = options.payment
-                const initialPayment = payments.find((channel) => channel !== 'crypto') ?? 'peanut'
-                const index = payments.indexOf(current.payment ?? initialPayment)
-                return { ...current, payment: payments[(index + 1) % payments.length] }
-            })
-        }
-        let interval: ReturnType<typeof setInterval> | undefined
-        const start = setTimeout(() => {
-            advance()
-            interval = setInterval(advance, 2000)
-        }, 3500)
-        return () => {
-            clearTimeout(start)
-            clearInterval(interval)
-        }
-    }, [cycle, options.funding, options.payment])
+    const funding = fundingChannel && options.funding.includes(fundingChannel) ? fundingChannel : null
+    const payment = paymentChannel && options.payment.includes(paymentChannel) ? paymentChannel : null
+
+    // A changed residence can remove a choice the user made on an earlier visit.
     useEffect(() => {
         if (!settled || !residenceCountry.trim()) return
         if (fundingChannel && !options.funding.includes(fundingChannel)) setFundingChannel(null)
         if (paymentChannel && !options.payment.includes(paymentChannel)) setPaymentChannel(null)
     }, [settled, residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel, options])
 
+    const onContinue = () => {
+        if (!funding || !payment) return
+        if (sets.full.has(residenceCountry)) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED, {
+                residence_country: residenceCountry,
+            })
+        }
+        void handleNext()
+    }
+
     return (
         <div className="flex w-full flex-1 flex-col gap-8">
             <h1 className="text-heading-m leading-[2.75rem]">
-                {t('addMoney')}{' '}
+                {t('fundingLead')}{' '}
                 <span className="inline-block max-w-full whitespace-nowrap">
                     {t('with')}{' '}
                     <ChannelPicker<SetupFundingChannel>
@@ -234,6 +160,7 @@ export default function PaymentPlan({
                         title={t('fundingTitle')}
                         options={options.funding}
                         value={funding}
+                        placeholder={t('choose')}
                         compactLabel={(channel) =>
                             t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
                         }
@@ -244,12 +171,10 @@ export default function PaymentPlan({
                                 : t(`funding.${channel}`)
                         }
                         onChange={setFundingChannel}
-                        onInteract={freeze}
-                        animate={cycle}
-                        previewValue={preview.funding}
                     />
-                </span>{' '}
-                {t('firstPayment')}{' '}
+                </span>
+                <span aria-hidden="true" className="block h-4" />
+                {t('spendLead')}{' '}
                 <span className="inline-block max-w-full whitespace-nowrap">
                     {t('with')}{' '}
                     <ChannelPicker<SetupPaymentChannel>
@@ -257,11 +182,9 @@ export default function PaymentPlan({
                         title={t('paymentTitle')}
                         options={options.payment}
                         value={payment}
+                        placeholder={t('choose')}
                         label={(channel) => t(`payment.${channel}`)}
                         onChange={setPaymentChannel}
-                        onInteract={freeze}
-                        animate={cycle}
-                        previewValue={preview.payment}
                     />
                 </span>
             </h1>
@@ -272,21 +195,16 @@ export default function PaymentPlan({
             <SetupFooter
                 actions={
                     <Button
-                        onClick={() => {
-                            if (!funding || !payment) return
-                            setFundingChannel(funding)
-                            setPaymentChannel(payment)
-                            onContinue()
-                        }}
-                        disabled={loading}
-                        loading={loading}
+                        shadowSize="4"
+                        className="w-full"
+                        onClick={onContinue}
+                        disabled={!funding || !payment || isLoading}
+                        loading={isLoading}
                     >
-                        {tSetup('cta.features')}
+                        {t('continue')}
                     </Button>
                 }
-            >
-                {children}
-            </SetupFooter>
+            />
         </div>
     )
 }

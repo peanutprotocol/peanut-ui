@@ -1,16 +1,26 @@
-# Setup animations
+# Sign-up hero loops
 
-- Security and notifications: existing variants from [mono #255](https://github.com/peanutprotocol/mono/pull/255), `projects/onboarding-animations/`.
-- Card imports the existing `card-flip` illustration from [UI #3562](https://github.com/peanutprotocol/peanut-ui/pull/3562). Banking imports `globe-world-route`, based on the loop-fixed export from [UI #3579](https://github.com/peanutprotocol/peanut-ui/pull/3579), commit `ea98dbd816f459b75aa552482bf67dfadeeae5fe`: LATAM-to-Europe bank transfers. Three softly glowing background stars are added and visible from frame 0; the original globe, route and pop layers remain unchanged. Its current SHA-256 is `7008a01d95d089553addbf77b8a89c005211afc7b30bc6c6aaf1e742c1ac2468`.
-- Email, fees and exchange rates import the existing `envelope-verify`, zero-total `receipt` and `coin-swap` assets from `src/assets/illustrations/lottie/`, published in [UI #3562](https://github.com/peanutprotocol/peanut-ui/pull/3562).
-- The available-features checklist (screen 6) uses the existing `phone-to-phone` asset; the funding checklist (screen 9) uses `wallet-topup`. Both import unchanged from `src/assets/illustrations/lottie/`, with reduced-motion still frames at 36 and 32 respectively. All mobile setup heroes occupy 40% of the viewport; longer content scrolls. Both checklists use the same compact 48px data-row height, including when a label wraps onto two lines.
-- Residence retains the document arrangement from UI #3392 commit `3e38ce80c`, with more noticeable, staggered floating and gentle tilting of the passport, ID and checkmark. The original four-second loop and reduced-motion arrangement remain. Its passport carries the requested Peanut coat of arms instead of the globe. Rebuild the vector emblem with `python3 scripts/build-residence-crest.py`; the generator preserves these movement keyframes.
-- `username-at.json` is the requested missing background asset. It refines #255’s @ style with tangent-continuous cubic curves and a smooth inner oval, both using the same 5.15-unit outline (about 2.6 px on a 390 × 844 phone), with the pink fill painted behind the inner stroke; the right-hand return clears the oval to avoid doubled strokes, with four independent signs outside the central mascot area. Transparent 1050 × 1000 canvas, 30fps, a seamless 20-second loop, no fonts or external images. Regenerate from the UI root with `python3 scripts/build-username-background.py`.
+One Lottie file per sign-up screen, played by `src/components/Setup/components/OnboardingAnimation.tsx`. To change a screen's loop, replace its file here. No code changes.
 
-The shared onboarding player pauses when the page is hidden and holds a still frame for reduced motion (the printed receipt at frame 32, the open envelope at frame 40, both exchange coins at frame 0, and frame 0 for the other assets).
+| File | Screen | Source in mono `inbox/signup-polish/animations/out/` |
+| --- | --- | --- |
+| `invite.json` | Invited by a friend? | `invite-liked-r5.json` |
+| `residence.json` | Residence | `residence-r20.json` |
+| `add-money.json` | Payment plan | `add-money-wallet-r26.json` |
+| `accounts.json` | Accounts | `accounts-r16.json` |
+| `card.json` | Peanut Card | `card-r16.json` |
+| `email.json` | Email | `email-r13.json` |
+| `notifications.json` | Notifications | `notifications-r10.json` |
+| `finish.json` | Only for you | `finish-r10.json` |
 
-Security uses #255’s existing mascot-on-safe variant. Notifications uses `13-notifications-object-alt-2.json` (a phone receiving an update), copied unchanged from the same PR.
+The picks are the entries marked `"pick": true` in that folder's `final.json`. Welcome shows the waving mascot and the clouds, and the username screen shows the thinking mascot over `username-at.json`. Neither has a loop file.
 
-The local-payments feature reuses #255’s `local.json` = `05-local-object` (QR scanning). “Pay people, not account numbers” imports the unchanged `plane-delivery.json` illustration from [UI #3579](https://github.com/peanutprotocol/peanut-ui/pull/3579), commit `ea98dbd816f459b75aa552482bf67dfadeeae5fe`. It shows a banknote plane delivering money into a phone, using the existing compact feature scale and a reduced-motion still frame at 30. No new animation artwork was created.
+How a loop plays, from its markers (`loopPlayback.utils.ts`):
 
-Username @ signs play at 4× speed (a five-second loop, twice the previous playback speed), and the banking globe now plays at 1× instead of 0.5×. Card flip holds its final frame for 1000ms after each cycle before restarting. Visibility changes and reduced motion cancel pending restarts.
+- `intro` plays once, `idle` repeats for 2.5 s, then `outro` plays (or the intro restarts), and the cycle repeats.
+- A comp with `pp.idle_once: true` plays its `idle` once and goes straight into the `outro`, with no 2.5 s hold.
+- A loop with only an `idle` marker cycles that segment. A loop with no `idle` marker loops end to end.
+- Under `prefers-reduced-motion` the loop shows the first frame of `idle`.
+- The comp is not clipped to its box: the loop may draw across the whole hero, and the hero's edge clips it.
+
+`username-at.json` is the floating "@" background on the username screen. Regenerate it from the UI root with `python3 scripts/build-username-background.py`. Its signs are opaque: at 70% the pink fill read as mauve on the hero blue.

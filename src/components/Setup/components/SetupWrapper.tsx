@@ -1,8 +1,7 @@
 import OnboardingAnimation from './OnboardingAnimation'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
-import starImage from '@/assets/icons/star.png'
+import SetupTitleBlock from './SetupTitleBlock'
 import { Button } from '@/components/0_Bruddle/Button'
-import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
@@ -40,21 +39,6 @@ export const useSetupFullScreen = (enabled: boolean) => {
     }, [enabled, setFullScreen])
 }
 
-const SetupImageContext = createContext<(illustration: SetupIllustration | null) => void>(() => {})
-
-/**
- * Lets a step's sub-view swap the wrapper's illustration for as long as it is
- * mounted. Sub-views are not steps, so they have no step config of their own
- * to carry an image.
- */
-export const useSetupImageOverride = (illustration: SetupIllustration | null) => {
-    const setImage = useContext(SetupImageContext)
-    useLayoutEffect(() => {
-        setImage(illustration)
-        return () => setImage(null)
-    }, [illustration, setImage])
-}
-
 /**
  * props interface for the SetupWrapper component
  * defines the structure and configuration options for the setup flow
@@ -65,8 +49,12 @@ interface SetupWrapperProps {
     children: ReactNode
     image?: SetupIllustration
     imageClassName?: HTMLDivElement['className']
-    title?: string
-    description?: string
+    title?: ReactNode
+    description?: ReactNode
+    /** Sell screens lead with the larger heading. */
+    titleSize?: 's' | 'm'
+    /** The description continues the heading as a second statement. */
+    descriptionInTitle?: boolean
     contentClassName?: HTMLDivElement['className']
     titleClassName?: HTMLDivElement['className']
     showBackButton?: boolean
@@ -77,7 +65,6 @@ interface SetupWrapperProps {
     onLogout?: () => void
     isLoggingOut?: boolean
     step?: number
-    totalSteps?: number
     direction?: number
     /** Isolated Screen Library presentation; never reads or writes install state. */
     firstLaunchIntroPreview?: 'play' | 'still'
@@ -85,11 +72,12 @@ interface SetupWrapperProps {
     showProgress?: boolean
 }
 
-// define responsive height classes for different layout types
-// short phones (under 800px tall) get a 34dvh hero so the panel below keeps room;
-// the media query stops at md so desktop keeps the full-height hero
+// On phones the screen is exactly one viewport tall and the hero gives way first:
+// it starts at 40% of the viewport and shrinks, down to 18%, when the step's copy
+// needs the room, so the primary action stays on screen at the same height on
+// every step. Desktop keeps the full-height side hero.
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'h-[40dvh] shrink-0 md:h-dvh [@media(max-height:799px)_and_(max-width:767px)]:h-[34dvh]',
+    signup: 'h-[40dvh] min-h-[18dvh] shrink md:h-dvh md:min-h-0 md:shrink-0',
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
@@ -146,17 +134,6 @@ const TransitioningContent = ({
         </motion.div>
     )
 }
-
-// define animated star decorations positions and sizes
-// each array element represents a star with specific positioning and animation
-const STAR_POSITIONS = [
-    'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
-    // mobile top-[24%], not [10%]: the nav row (Iniciar sesión / skip) owns the
-    // top band and the star sat right under the text (TASK-22366 nit)
-    'right-[10%] md:right-[15%] lg:right-[15%] top-[24%] md:top-[20%] size-10 md:size-14',
-    'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
-] as const
 
 /**
  * navigation component for back, skip and logout buttons
@@ -232,68 +209,27 @@ function UsernameBackground() {
     )
 }
 
-// Count the residence checklist as a screen, while keeping five stable groups
-// across the two residence-dependent feature slots.
-const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
-    landing: 0,
-    signup: 1,
-    'advantage-fees': 2,
-    'advantage-card': 6,
-    residence: 3,
-    'advantage-bank': 5,
-    'advantage-exchange': 5,
-    'advantage-local': 6,
-    'advantage-people': 6,
-    'passkey-permission': 8,
-    'notification-email': 9,
-    'notification-permission': 10,
-    'advantage-control': 12,
-    'sign-test-transaction': 12,
-}
-
-function SetupProgressHeader({
-    step,
-    totalSteps,
+/** The top row of the hero: the language switcher, clear of the back button. */
+function SetupHeaderRow({
     screenId,
     hidden = false,
     compact = false,
 }: {
-    step?: number
-    totalSteps?: number
     screenId: ScreenId
     hidden?: boolean
     compact?: boolean
 }) {
-    const t = useTranslations('setup.wrapper')
-    const screenIndex =
-        screenId === 'advantage-exchange' && step !== undefined
-            ? step === 4
-                ? 5
-                : 6
-            : (SETUP_PROGRESS_SCREEN_INDEX[screenId] ?? step ?? 0)
-    const progressGroup = Math.min(4, Math.floor(screenIndex / 3))
     return (
         <div
             aria-hidden={hidden}
             inert={hidden}
             className={twMerge(
                 hidden && 'invisible',
-                'pointer-events-none z-20 flex h-11 w-full items-center gap-3 px-4 md:px-6',
+                'pointer-events-none z-20 flex h-11 w-full items-center justify-end gap-3 px-4 md:px-6',
                 compact ? 'relative my-4 shrink-0' : 'absolute inset-x-0 top-4 md:top-8',
                 screenId === 'sign-test-transaction' && 'pr-16 md:pr-16'
             )}
         >
-            <div className="w-9 shrink-0" aria-hidden="true" />
-            <div className="flex min-w-0 flex-1 justify-center">
-                {step !== undefined && totalSteps !== undefined && totalSteps > 0 && step >= 0 && step < totalSteps && (
-                    <CarouselDots
-                        count={5}
-                        activeIndex={progressGroup}
-                        className="pointer-events-none"
-                        aria-label={t('stepIndicator', { current: progressGroup + 1, total: 5 })}
-                    />
-                )}
-            </div>
             <SetupLanguageSwitcher />
         </div>
     )
@@ -308,15 +244,10 @@ const ImageSection = ({
     image,
     screenId,
     imageClassName,
-    step,
-    totalSteps,
     direction = 0,
     prefersReducedMotion,
     intro,
-}: Pick<
-    SetupWrapperProps,
-    'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'step' | 'totalSteps' | 'direction'
-> & {
+}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction'> & {
     prefersReducedMotion: boolean
     intro: ReturnType<typeof useFirstLaunchIntro>
 }) => {
@@ -417,7 +348,10 @@ const ImageSection = ({
                 className={twMerge(
                     'absolute inset-x-0 flex items-center justify-center',
                     intro.active && !intro.played && 'invisible top-[calc(50%_-_22dvh)] h-[44dvh]',
-                    !introPresentation && 'top-16 bottom-2 md:top-20 md:bottom-8'
+                    !introPresentation &&
+                        ('animation' in image
+                            ? 'top-14 bottom-1 md:top-20 md:bottom-8'
+                            : 'top-16 bottom-2 md:top-20 md:bottom-8')
                 )}
             >
                 {illustration}
@@ -442,20 +376,6 @@ const ImageSection = ({
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}
             >
-                {/* render animated star decorations */}
-                {screenId === 'landing' &&
-                    !intro.active &&
-                    STAR_POSITIONS.map((positions, index) => (
-                        <Image
-                            key={index}
-                            src={starImage.src}
-                            alt={t('starAlt')}
-                            width={56}
-                            height={56}
-                            className={twMerge(positions, 'absolute z-10')}
-                            priority={index === 0}
-                        />
-                    ))}
                 {/* Keep clouds on the landing screen so later illustrations stay clear. */}
                 {screenId === 'landing' && !intro.active && <CloudsBackground minimal />}
                 {screenId === 'signup' && <UsernameBackground />}
@@ -475,7 +395,7 @@ const ImageSection = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
-                <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} hidden={intro.active} />
+                <SetupHeaderRow screenId={screenId} hidden={intro.active} />
             </motion.div>
         )
     }
@@ -505,6 +425,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     image,
     title,
     description,
+    titleSize = 's',
+    descriptionInTitle = false,
     contentClassName,
     showBackButton,
     showSkipButton,
@@ -517,20 +439,11 @@ export const SetupWrapper = memo(function SetupWrapper({
     imageClassName,
     titleClassName,
     step,
-    totalSteps,
     direction = 0,
     firstLaunchIntroPreview,
     fullScreen: fullScreenProp = false,
     showProgress = true,
 }: SetupWrapperProps) {
-    const [imageOverride, setImageOverride] = useState<{ screenId: ScreenId; image: SetupIllustration } | null>(null)
-    const setImageForScreen = useCallback(
-        (illustration: SetupIllustration | null) =>
-            setImageOverride((current) =>
-                illustration ? { screenId, image: illustration } : current?.screenId === screenId ? null : current
-            ),
-        [screenId]
-    )
     const [fullScreenOverride, setFullScreenOverride] = useState<ScreenId | null>(null)
     const setFullScreenForScreen = useCallback(
         (enabled: boolean) =>
@@ -538,8 +451,6 @@ export const SetupWrapper = memo(function SetupWrapper({
         [screenId]
     )
     const fullScreen = fullScreenProp || fullScreenOverride === screenId
-    const featureParagraph =
-        (screenId.startsWith('advantage-') && screenId !== 'advantage-control') || screenId === 'passkey-permission'
     const prefersReducedMotion = useReducedMotion()
     const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)
@@ -623,22 +534,18 @@ export const SetupWrapper = memo(function SetupWrapper({
                         prefersReducedMotion={!!prefersReducedMotion}
                         className={twMerge(
                             'col-start-1 row-start-1 mx-auto flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full min-w-0 flex-grow flex-col bg-white',
-                            !fullScreen && 'md:flex-row'
+                            !fullScreen && 'max-md:h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:flex-row'
                         )}
                     >
                         {/* illustration section */}
                         {fullScreen ? (
-                            showProgress && (
-                                <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} compact />
-                            )
+                            showProgress && <SetupHeaderRow screenId={screenId} compact />
                         ) : (
                             <ImageSection
                                 imageClassName={imageClassName}
                                 screenId={screenId}
                                 layoutType={layoutType}
-                                image={imageOverride?.screenId === screenId ? imageOverride.image : image}
-                                step={step}
-                                totalSteps={totalSteps}
+                                image={image}
                                 direction={transitionDirection}
                                 prefersReducedMotion={!!prefersReducedMotion}
                                 intro={intro}
@@ -659,8 +566,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                             aria-hidden={intro.active}
                             inert={intro.active}
                             className={twMerge(
-                                // pb-10 keeps the pinned CTA clear of the home gesture area on top of the safe-area inset
-                                'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-10 md:h-dvh',
+                                // The footer's reserved secondary slot keeps the primary CTA clear of the
+                                // home gesture area, so the panel needs only pb-6 above the safe-area inset.
+                                // shrink-0: the copy keeps its height and the hero above gives way.
+                                'flex shrink-0 flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh md:shrink short:pt-6 short:pb-4',
 
                                 fullScreen && 'md:h-auto md:flex-1'
                             )}
@@ -669,72 +578,39 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 className={twMerge(
                                     'flex w-full flex-1 flex-col justify-between md:flex-1',
                                     contentClassName,
-                                    'gap-8',
+                                    'gap-8 short:gap-6',
                                     // signup matches residence: the field sits 24px under the description
                                     screenId === 'signup' && 'gap-6',
-                                    screenId !== 'landing' && 'md:flex-1 md:justify-between',
+                                    !sunsetLanding && 'md:flex-1 md:justify-between',
                                     fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                 )}
                             >
-                                {/* title and description container. Skipped entirely when
-                        the step renders its own heading (titleInView +
-                        descriptionInView): the wrapper is height-capped on
-                        desktop, so an empty slot would push the content down
-                        by up to 12rem. */}
-                                {(title || description) && (
-                                    <div
-                                        className={twMerge(
-                                            'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
-                                            (screenId === 'landing' || screenId === 'signup') && 'space-y-2',
-                                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
-                                            sunsetLanding && 'md:h-auto md:max-h-none',
-                                            featureParagraph && 'space-y-0 md:max-h-none'
-                                        )}
-                                    >
-                                        {featureParagraph ? (
-                                            <h1 className="w-full text-left text-heading-m leading-[2.75rem]">
-                                                {title && `${title}${/[.!?]$/.test(title) ? '' : '.'} `}
-                                                {description}
-                                            </h1>
-                                        ) : (
-                                            <>
-                                                {title && (
-                                                    <h1
-                                                        className={twMerge(
-                                                            'w-full text-left text-heading-s',
-                                                            sunsetLanding && 'md:text-center',
-                                                            titleClassName
-                                                        )}
-                                                    >
-                                                        {title}
-                                                    </h1>
-                                                )}
-                                                {description && (
-                                                    <p
-                                                        className={twMerge(
-                                                            'text-body-m leading-[1.625rem] text-foreground-secondary',
-                                                            sunsetLanding && 'md:text-center'
-                                                        )}
-                                                    >
-                                                        {description}
-                                                    </p>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                {/* Renders nothing when the step owns its heading (titleInView +
+                                    descriptionInView): an empty, height-capped slot would push
+                                    the content down on desktop. */}
+                                <SetupTitleBlock
+                                    title={title}
+                                    description={description}
+                                    size={titleSize}
+                                    descriptionInTitle={descriptionInTitle}
+                                    className={twMerge(
+                                        'md:max-h-48 md:max-w-xs',
+                                        screenId === 'join-beta' && 'md:max-h-12',
+                                        (sunsetLanding || titleSize === 'm') && 'md:h-auto md:max-h-none'
+                                    )}
+                                    titleClassName={twMerge(sunsetLanding && 'md:text-center', titleClassName)}
+                                    descriptionClassName={sunsetLanding ? 'md:text-center' : undefined}
+                                />
                                 {/* main content area */}
                                 <div
                                     className={twMerge(
                                         'mx-auto w-full',
                                         fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
-                                        screenId !== 'landing' && 'flex flex-1 flex-col'
+                                        !sunsetLanding && 'flex flex-1 flex-col'
                                     )}
                                 >
                                     <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
-                                        <SetupImageContext.Provider value={setImageForScreen}>
-                                            {children}
-                                        </SetupImageContext.Provider>
+                                        {children}
                                     </SetupFullScreenContext.Provider>
                                 </div>
                             </div>

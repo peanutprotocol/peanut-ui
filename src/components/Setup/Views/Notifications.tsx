@@ -4,8 +4,8 @@ import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import SetupFooter from '../components/SetupFooter'
-import { Card } from '@/components/0_Bruddle/Card'
-import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -13,14 +13,45 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { notificationsApi } from '@/services/notifications'
 
+/**
+ * Push notifications only; the email was collected on the step before. The toggle
+ * starts off, and turning it on asks the OS for permission in the same tap.
+ */
 export default function NotificationsStep() {
     const t = useTranslations('setup.notifications')
     const { notificationChoices, setNotificationChoices, setIsLoading: setSetupLoading } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
     const { requestPermission, afterPermissionAttempt } = useNotifications()
     const [saving, setSaving] = useState(false)
+    const [requesting, setRequesting] = useState(false)
     const [error, setError] = useState<string>()
+    // Only a user who turned push on and then off again opted out. The default
+    // off state and an OS refusal leave the account's server default alone.
+    const [optedOut, setOptedOut] = useState(false)
     const savingRef = useRef(false)
+    const push = notificationChoices.push
+
+    const onToggle = async (on: boolean) => {
+        setError(undefined)
+        setNotificationChoices({ ...notificationChoices, push: on })
+        if (!on) {
+            setOptedOut(true)
+            return
+        }
+        setOptedOut(false)
+        setRequesting(true)
+        try {
+            // Started inside the tap, so the browser accepts the permission request.
+            const permission = await requestPermission()
+            await afterPermissionAttempt()
+            if (permission !== 'granted') setNotificationChoices({ ...notificationChoices, push: false })
+        } catch {
+            setNotificationChoices({ ...notificationChoices, push: false })
+        } finally {
+            setRequesting(false)
+        }
+    }
+
     const save = async () => {
         if (savingRef.current) return
         savingRef.current = true
@@ -28,28 +59,21 @@ export default function NotificationsStep() {
         setSetupLoading(true)
         setError(undefined)
         try {
-            const preferenceAttempt = notificationsApi.savePreferences(notificationChoices).then(
-                () => true,
-                () => false
-            )
-            // Start permission inside the click gesture, before awaiting the
-            // preference write. SDK errors and OS denial still allow signup.
-            const permissionAttempt = (async () => {
-                if (notificationChoices.push) {
-                    try {
-                        await requestPermission()
-                        await afterPermissionAttempt()
-                    } catch {}
+            if (optedOut && !push) {
+                // An explicit opt-out must be acknowledged before leaving: unset
+                // preferences default to subscribed on the server.
+                const saved = await notificationsApi.savePreferences({ push: false, email: true }).then(
+                    () => true,
+                    () => false
+                )
+                if (!saved) {
+                    setError(t('saveFailed'))
+                    return
                 }
-            })()
-            // Unset API preferences default to subscribed. An explicit opt-out
-            // must be acknowledged before leaving; default-on saves remain
-            // best effort so signup stays available during API failures.
-            if ((!notificationChoices.push || !notificationChoices.email) && !(await preferenceAttempt)) {
-                setError(t('saveFailed'))
-                return
+            } else if (push) {
+                // Best effort: subscribed is the server default, so signup never waits on it.
+                void notificationsApi.savePreferences({ push: true, email: true }).catch(() => {})
             }
-            await permissionAttempt
             await handleNext()
         } finally {
             savingRef.current = false
@@ -57,33 +81,29 @@ export default function NotificationsStep() {
             setSetupLoading(false)
         }
     }
+
     return (
         <div className="flex w-full flex-1 flex-col gap-6">
             <div className="flex flex-1 flex-col justify-center gap-3">
-                <Card className="divide-y divide-dashed divide-border-default px-4">
-                    {(['push', 'email'] as const).map((channel) => (
-                        <DataRow
-                            spacious
-                            key={channel}
-                            label={t(`${channel}Label`)}
-                            value={
-                                <Toggle
-                                    aria-label={t(`${channel}Label`)}
-                                    checked={notificationChoices[channel]}
-                                    onChange={(value) => {
-                                        setNotificationChoices({ ...notificationChoices, [channel]: value })
-                                    }}
-                                    disabled={saving}
-                                />
-                            }
+                <ListItem
+                    className="py-3"
+                    title={t('pushLabel')}
+                    // A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling).
+                    leading={<IconBubble icon="bell" size="s" color="blue" />}
+                    trailing={
+                        <Toggle
+                            aria-label={t('pushLabel')}
+                            checked={push}
+                            onChange={(value) => void onToggle(value)}
+                            disabled={saving || requesting}
                         />
-                    ))}
-                </Card>
+                    }
+                />
                 {error && <Callout priority="error">{error}</Callout>}
             </div>
             <SetupFooter
                 actions={
-                    <Button onClick={save} shadowSize="4" loading={saving} disabled={saving}>
+                    <Button onClick={save} shadowSize="4" loading={saving} disabled={saving || requesting}>
                         {t('continue')}
                     </Button>
                 }

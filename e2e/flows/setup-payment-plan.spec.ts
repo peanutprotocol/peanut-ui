@@ -22,10 +22,13 @@ for (const locale of locales) {
             await page.goto('/dev/surfaces?s=03-h-funding-methods&__fixture=setup-payment-plan')
             const funding = page.getByTestId('setup-funding-channel')
             const payment = page.getByTestId('setup-payment-channel')
+            const continueButton = page.locator('[data-setup-footer] button').first()
             await expect(funding).toBeVisible()
             await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
             await expect(funding).toHaveJSProperty('offsetHeight', 36)
             await page.evaluate(() => document.fonts.ready)
+            // Nothing is preselected, so Continue waits for both answers.
+            await expect(continueButton).toBeDisabled()
             const fundingWidth = await funding.evaluate((el) => el.getBoundingClientRect().width)
             const paymentWidth = await payment.evaluate((el) => el.getBoundingClientRect().width)
             await funding.click()
@@ -49,12 +52,15 @@ for (const locale of locales) {
             await expect(dialog.getByRole('button').nth(1)).toHaveClass(/\bbg-background-selection\b/)
             await page.keyboard.press('Escape')
             await expect(dialog).not.toBeVisible()
+            await expect(continueButton).toBeDisabled()
             await payment.click()
-            await expect(dialog.getByRole('button')).toHaveCount(5)
-            await dialog.getByRole('button').nth(2).click()
+            // Spending is the Peanut Card and QR payments.
+            await expect(dialog.getByRole('button')).toHaveCount(2)
+            await dialog.getByRole('button').nth(1).click()
             await expect(dialog).not.toBeVisible()
             await expect(payment).toHaveJSProperty('offsetHeight', 36)
             expect(await payment.evaluate((el) => el.getBoundingClientRect().width)).toBe(paymentWidth)
+            await expect(continueButton).toBeEnabled()
             await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
             // The app permits vertical scrolling rather than clipping long translated copy.
             await payment.scrollIntoViewIfNeeded()
@@ -62,37 +68,3 @@ for (const locale of locales) {
         })
     }
 }
-
-test('settles initial options without animating, then changes only the scheduled selector', async ({ page }) => {
-    await page.addInitScript(() => {
-        sessionStorage.setItem('showNoMoreJailModal', 'true')
-        localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
-        localStorage.setItem(
-            'demo-user:user-preferences',
-            JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
-        )
-    })
-    await page.route('**/*', (route) =>
-        ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort()
-    )
-    await page.goto('/dev/surfaces?s=03-h-funding-methods&__fixture=setup-payment-plan')
-    const funding = page.getByTestId('setup-funding-channel')
-    const payment = page.getByTestId('setup-payment-channel')
-    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer (BRL)')
-    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Peanut card')
-    const visibleLabels = 'span[title] > span:not([aria-hidden="true"])'
-    await expect(funding.locator(visibleLabels)).toHaveCount(1)
-    await expect(payment.locator(visibleLabels)).toHaveCount(1)
-    await page.waitForTimeout(1000)
-    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer (BRL)')
-    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer (USD, EUR, GBP, MXN)', {
-        timeout: 4000,
-    })
-    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Peanut card')
-    await expect(payment.locator(visibleLabels)).toHaveCount(1)
-    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Bank transfer', { timeout: 3000 })
-    await funding.click()
-    await page.waitForTimeout(4300)
-    await expect(funding).toHaveAttribute('aria-label', 'Add money with: Bank transfer (USD, EUR, GBP, MXN)')
-    await expect(payment).toHaveAttribute('aria-label', 'Make a payment with: Bank transfer')
-})

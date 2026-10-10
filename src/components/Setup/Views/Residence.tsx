@@ -6,14 +6,11 @@ import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
-import PaymentPlan from './PaymentPlan'
-import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { residenceAvailability } from '@/utils/residence-availability'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
@@ -21,38 +18,18 @@ import posthog from 'posthog-js'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
-type ResidenceView = 'select' | 'restricted' | 'partial' | 'congrats'
-type ResidenceStepProps = { initialView?: ResidenceView; handle?: string; entryDirection?: number }
 type PartialRestriction = 'card' | 'banking'
 
-const PAYMENT_PLAN_IMAGE = { animation: 'topup' } as const
-
-const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {}) => {
+const ResidenceStep = () => {
     const t = useTranslations('setup')
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
         useSetupFlowContext()
-    const { handleNext, isLoading, direction: flowDirection } = useSetupFlow()
-    const direction = entryDirection ?? flowDirection
+    const { handleNext, isLoading } = useSetupFlow()
     const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
     const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
 
-    // Back must restore the plan for every residence, then a second Back
-    // returns to the selector. Forward entry still starts with the country.
-    const [view, setView] = useState<ResidenceView>(() => {
-        if (initialView) return initialView
-        if (direction >= 0 || !residenceCountry) return 'select'
-        if (restrictionSets.full.has(residenceCountry)) return 'restricted'
-        if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {
-            return 'partial'
-        }
-        return 'congrats'
-    })
-    useBackHandler(() => {
-        if (!isLoading) setView('select')
-        return true
-    }, view !== 'select')
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const secondCountryId = useId()
     // whether the current selection came from the geo suggestion, untouched
@@ -103,30 +80,23 @@ const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {})
             residence_prefill_source: wasPrefilledRef.current ? prefillSourceRef.current : null,
             ...setupCountrySignalProperties(countrySignals),
         })
-        if (restrictionSets.full.has(primary)) {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
-                residence_country: primary,
-            })
-            setView('restricted')
-            return
-        }
+        // The outcome events name what the payment plan will offer for this residence.
         const partial: PartialRestriction | null = restrictionSets.cardOnly.has(primary)
             ? 'card'
             : restrictionSets.bankingOnly.has(primary)
               ? 'banking'
               : null
-        if (partial) {
+        if (restrictionSets.full.has(primary)) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, { residence_country: primary })
+        } else if (partial) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
                 residence_country: primary,
                 restriction_type: partial,
             })
-            setView('partial')
-            return
+        } else {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, { residence_country: primary })
         }
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, {
-            residence_country: primary,
-        })
-        setView('congrats')
+        void handleNext()
     }
 
     const onContinue = () => continueWith(residenceCountry, secondResidenceCountry)
@@ -156,64 +126,9 @@ const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {})
         setShowSecondCountry(false)
     }
 
-    const onRestrictedContinue = () => {
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED, {
-            residence_country: residenceCountry,
-        })
-        void handleNext()
-    }
-
-    useSetupImageOverride(view !== 'select' ? PAYMENT_PLAN_IMAGE : null)
-
-    // Keep the analytics outcome aligned with updated server tiers. All
-    // outcomes share the same payment plan; its options re-derive from these sets.
-    useEffect(() => {
-        if (view !== 'congrats') return
-        if (restrictionSets.full.has(residenceCountry)) {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
-                residence_country: residenceCountry,
-            })
-            setView('restricted')
-            return
-        }
-        const partial: PartialRestriction | null = restrictionSets.cardOnly.has(residenceCountry)
-            ? 'card'
-            : restrictionSets.bankingOnly.has(residenceCountry)
-              ? 'banking'
-              : null
-        if (partial) {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
-                residence_country: residenceCountry,
-                restriction_type: partial,
-            })
-            setView('partial')
-            return
-        }
-    }, [restrictionSets, view, residenceCountry])
-
-    if (view !== 'select') {
-        return (
-            <PaymentPlan
-                onContinue={view === 'restricted' ? onRestrictedContinue : () => void handleNext()}
-                loading={isLoading}
-            >
-                <LinkButton className="self-center" onClick={() => setView('select')} disabled={isLoading}>
-                    {t('residenceStep.restricted.changeCountry')}
-                </LinkButton>
-            </PaymentPlan>
-        )
-    }
-
     return (
         <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
             <div className="flex w-full flex-col gap-2">
-                {/* Rendered here, not by the step chrome, so the checklist
-                    sub-views can replace them with their own single heading
-                    (titleInView/descriptionInView on the step). */}
-                <h1 className="w-full text-left text-heading-s">{t('steps.residence.title')}</h1>
-                <p className="mb-6 text-body-m leading-[1.625rem] text-foreground-secondary">
-                    {t('steps.residence.description')}
-                </p>
                 <CountryCombobox
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
@@ -328,7 +243,7 @@ const ResidenceStep = ({ initialView, entryDirection }: ResidenceStepProps = {})
                             disabled={!residenceCountry || isLoading}
                             loading={isLoading}
                         >
-                            {t('cta.home')}
+                            {t('cta.confirm')}
                         </Button>
                     )
                 }
