@@ -56,8 +56,8 @@ describe('useSetupFlow (URL stepper)', () => {
         ['IN', ['advantage-fees']],
         ['JP', ['advantage-card']],
         ['RU', []],
-    ])('walks the sell screens offered after the payment plan for %s', async (country, features) => {
-        const { result } = renderFlow({ screen: 'payment-plan' })
+    ])('walks the sell screens offered between residence and the payment plan for %s', async (country, features) => {
+        const { result } = renderFlow({ screen: 'residence' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
         await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country as string))
         for (const expected of features) {
@@ -69,13 +69,13 @@ describe('useSetupFlow (URL stepper)', () => {
         await act(async () => {
             await result.current.flow.handleNext()
         })
-        expect(result.current.flow.step?.screenId).toBe('notification-email')
+        expect(result.current.flow.step?.screenId).toBe('payment-plan')
         for (const expected of [...features].reverse()) {
             await act(async () => result.current.flow.handleBack())
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
         await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe('payment-plan')
+        expect(result.current.flow.step?.screenId).toBe('residence')
     })
 
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
@@ -167,9 +167,9 @@ describe('useSetupFlow (URL stepper)', () => {
         for (const expected of [
             'notification-permission',
             'notification-email',
+            'payment-plan',
             'advantage-card',
             'advantage-fees',
-            'payment-plan',
             'residence',
         ]) {
             await act(async () => {
@@ -260,16 +260,16 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
-    it('creates the account on the username step, then residence, plan, sell screens, contact and finish', () => {
+    it('creates the account on the username step, then residence, sell screens, plan, contact and finish', () => {
         expect(SETUP_POST_REGISTRATION_SCREEN).toBe('residence')
         expect(setupScreenIds).toEqual([
             'landing',
             'invite',
             'signup',
             'residence',
-            'payment-plan',
             'advantage-fees',
             'advantage-card',
+            'payment-plan',
             'notification-email',
             'notification-permission',
             'advantage-control',

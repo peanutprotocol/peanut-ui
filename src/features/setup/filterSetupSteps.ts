@@ -2,10 +2,10 @@ import type { ISetupStep, ScreenId } from '@/components/Setup/Setup.types'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 
-/** Sell screens after the payment plan; each one only shows where its product is offered. */
+/** Sell screens before the payment plan, so the card is seen before the plan asks how to spend; each shows only where its product is offered. */
 const FEATURE_SCREENS: readonly ScreenId[] = ['advantage-fees', 'advantage-card']
 
-/** Residence-dependent introductions after the payment plan: accounts, then the card. */
+/** Residence-dependent introductions between residence and the payment plan: accounts, then the card. */
 export function setupFeatureScreensForResidence(
     restrictions: ResidenceRestrictionSets,
     residence: string

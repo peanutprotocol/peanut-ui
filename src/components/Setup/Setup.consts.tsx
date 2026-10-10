@@ -40,17 +40,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
     {
-        screenId: 'payment-plan',
-        layoutType: 'signup',
-        image: { animation: 'add-money' },
-        component: PaymentPlanStep,
-        showBackButton: true,
-        // The plan's heading holds the two pickers, so the step renders it.
-        titleInView: true,
-        descriptionInView: true,
-        contentClassName: 'flex flex-col gap-6 md:justify-center',
-    },
-    {
         screenId: 'advantage-fees',
         layoutType: 'signup',
         image: { animation: 'accounts' },
@@ -67,6 +56,17 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         titleSize: 'm',
         descriptionInTitle: true,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+    {
+        screenId: 'payment-plan',
+        layoutType: 'signup',
+        image: { animation: 'add-money' },
+        component: PaymentPlanStep,
+        showBackButton: true,
+        // The plan's heading holds the two pickers, so the step renders it.
+        titleInView: true,
+        descriptionInView: true,
         contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {

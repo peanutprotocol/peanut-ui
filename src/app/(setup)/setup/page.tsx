@@ -43,9 +43,9 @@ import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 // The steps after registration; reaching any of them arms the no-back lock.
 const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
     'residence',
-    'payment-plan',
     'advantage-fees',
     'advantage-card',
+    'payment-plan',
     'notification-email',
     'notification-permission',
     'advantage-control',
