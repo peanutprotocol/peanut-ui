@@ -3,7 +3,7 @@ import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestriction
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 
 /** Sell screens before the payment plan, so the card is seen before the plan asks how to spend; each shows only where its product is offered. */
-const FEATURE_SCREENS: readonly ScreenId[] = ['advantage-fees', 'advantage-card']
+export const SETUP_FEATURE_SCREENS: readonly ScreenId[] = ['advantage-fees', 'advantage-card']
 
 /** Residence-dependent introductions between residence and the payment plan: accounts, then the card. */
 export function setupFeatureScreensForResidence(
@@ -13,7 +13,7 @@ export function setupFeatureScreensForResidence(
     const country = residence.trim().toUpperCase()
     if (!country) return []
     const restrictionsForCountry = deriveResidenceRestrictionsFrom(restrictions, country)
-    return FEATURE_SCREENS.filter((id) =>
+    return SETUP_FEATURE_SCREENS.filter((id) =>
         id === 'advantage-fees' ? !restrictionsForCountry.banking : !restrictionsForCountry.card
     )
 }
@@ -24,5 +24,5 @@ export function filterSetupStepsForResidence(
     residence: string
 ) {
     const selected = setupFeatureScreensForResidence(restrictions, residence)
-    return steps.filter((step) => !FEATURE_SCREENS.includes(step.screenId) || selected.includes(step.screenId))
+    return steps.filter((step) => !SETUP_FEATURE_SCREENS.includes(step.screenId) || selected.includes(step.screenId))
 }

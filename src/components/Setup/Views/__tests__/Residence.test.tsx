@@ -21,9 +21,19 @@ const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper:
 const mockSetResidenceCountry = jest.fn()
 const mockSetSecondResidenceCountry = jest.fn()
 let mockSetupState: { residenceCountry: string; secondResidenceCountry: string }
+// The layout re-filters the step list after the residence lands; null follows it, a country pins a stale list.
+let mockStepsCountry: string | null = null
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockSetupState,
+        steps: jest
+            .requireActual('@/features/setup/filterSetupSteps')
+            .setupFeatureScreensForResidence(
+                mockRestrictionSets ??
+                    jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+                mockStepsCountry ?? mockSetupState.residenceCountry
+            )
+            .map((screenId: string) => ({ screenId })),
         fundingChannel: 'crypto',
         paymentChannel: 'peanut',
         setFundingChannel: jest.fn(),
@@ -82,6 +92,7 @@ describe('ResidenceStep', () => {
         resetBackHandlersForTests()
         mockIsLoading = false
         mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
+        mockStepsCountry = null
         mockGeoCountry = null
         mockEdgeCountry = null
         mockEdgeSettled = true
@@ -210,6 +221,27 @@ describe('ResidenceStep', () => {
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
             expect.objectContaining({ residence_country: 'DE', second_residence_country: 'BR' })
         )
+    })
+
+    it('advances only once the step list follows a promoted residence that offers other sell screens', () => {
+        // BR offers accounts and the card; JP offers only the card (bankingOnly here). Advancing in
+        // the same click would follow BR's list onto Accounts, which JP does not show.
+        mockRestrictionSets = { full: new Set(), bankingOnly: new Set(['JP']), cardOnly: new Set() }
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'JP' }
+        const view = render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Select Japan' }))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('JP')
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        // the residence landed, but the layout has not re-filtered yet
+        mockSetupState = { residenceCountry: 'JP', secondResidenceCountry: 'BR' }
+        mockStepsCountry = 'BR'
+        view.rerender(<ResidenceStep />)
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        // both country buttons wait, so a second tap cannot start another advance
+        view.container.querySelectorAll('[data-setup-footer] button').forEach((button) => expect(button).toBeDisabled())
+        mockStepsCountry = null
+        view.rerender(<ResidenceStep />)
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
     it('clearing the first country leaves the second as the only residence', () => {

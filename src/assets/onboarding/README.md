@@ -5,7 +5,7 @@ One Lottie file per sign-up screen, played by `src/components/Setup/components/O
 | File | Screen | Source in mono `inbox/signup-polish/animations/out/` |
 | --- | --- | --- |
 | `invite.json` | Invited by a friend? | `invite-liked-r5.json` |
-| `residence.json` | Residence | `residence-r20.json` |
+| `residence.json` | Residence | `residence-r21.json` |
 | `add-money.json` | Payment plan | `add-money-wallet-r28.json` |
 | `accounts.json` | Accounts | `accounts-r16.json` |
 | `card.json` | Peanut Card | `card-r16.json` |
