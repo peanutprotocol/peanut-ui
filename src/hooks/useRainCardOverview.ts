@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { rainApi, type RainCardOverview } from '@/services/rain'
 import { useAuth } from '@/context/authContext'
+import { ApiError } from '@/services/api-error'
 
 export const RAIN_CARD_OVERVIEW_QUERY_KEY = 'rain-card-overview'
 
@@ -33,7 +34,12 @@ export const useRainCardOverview = () => {
         // `hasApplication: false` every time. Card users keep the 30s cadence;
         // everyone else refetches on focus, and the `user_rail_status_changed`
         // invalidation from SocketQueryRefresh resumes polling the moment they apply.
-        refetchInterval: (query) => (query.state.data?.status?.hasApplication === false ? false : 30_000),
+        refetchInterval: (query) => {
+            // A rejected session stays rejected: every 30s poll would only repeat
+            // the 401 (PEANUT-UI-R6Y). Focus and socket invalidations still refetch.
+            if (query.state.error instanceof ApiError && query.state.error.status === 401) return false
+            return query.state.data?.status?.hasApplication === false ? false : 30_000
+        },
         refetchOnWindowFocus: true,
         retry: 1,
     })

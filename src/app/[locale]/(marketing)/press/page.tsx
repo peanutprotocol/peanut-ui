@@ -142,12 +142,11 @@ export default async function PressPage({ params }: PageProps) {
                         <section className="flex flex-col gap-4">
                             <h2 className="text-heading-xs">{i18n.pressCompanyDescription}</h2>
                             <Card className="p-6" shadowSize="4">
-                                {/* labels stay english — untranslated before this change too */}
                                 {(
                                     [
-                                        ['Short', fm.boilerplate.short],
-                                        ['Medium', fm.boilerplate.medium],
-                                        ['Press / Partner', fm.boilerplate.press],
+                                        [i18n.pressBoilerplateShort, fm.boilerplate.short],
+                                        [i18n.pressBoilerplateMedium, fm.boilerplate.medium],
+                                        [i18n.pressBoilerplatePress, fm.boilerplate.press],
                                     ] as const
                                 )
                                     .filter(([, text]) => !!text)

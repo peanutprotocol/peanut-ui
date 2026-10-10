@@ -749,6 +749,22 @@ reviewed commit once both bridges are inactive.
   naming the running bundle is never read back as an update.
   It fails **open** on a version either side cannot parse: refusing every update on an
   off-scheme version is the worse of the two failures.
+- **Store update prompts require store availability as well as native compatibility debt.**
+  `useStoreUpdateAvailable` checks the existing updater plugin's `getAppUpdateInfo()`
+  before exposing the Profile store update row/modal. Android uses Play's device/account
+  eligibility and compares native version codes, including same-version replacement builds.
+  An uploaded internal build, Capgo native floor or release tag alone cannot show the prompt.
+  The check runs when compatibility debt is detected and again on native foreground; pending,
+  unknown, failed, timed-out and unsupported lookups hide the offer. Compatible OTA restart
+  offers and native compatibility/disarm checks stay independent of store availability.
+  On iOS, lookups require a fresh App Store country from the optional `StoreCountry` bridge,
+  a newer public store version and a supported minimum OS. Old binaries without that bridge
+  hide the store hint rather than guessing a country from locale, IP or residence. The JS
+  reader is shared with the store-country work in #3593; this change adds no native bridge.
+  TestFlight availability is not App Store availability. This fix uses the existing updater
+  API and needs no plugin upgrade, but an installed binary must receive it through a compatible
+  OTA or a later store build. Publishing an incompatible OTA cannot repair an older install.
+
 - **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
   hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
   plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,
@@ -945,8 +961,41 @@ and provide these additional secrets:
 
 The workflow decodes both profiles, verifies the entitlement, embeds both
 extensions, and checks the exported IPA before TestFlight upload. Until those
-profiles exist, the PostHog `push-provisioning` flag must remain off; a merged
+profiles exist, the PostHog `push-provisioning-apple` flag must remain off; a merged
 PR alone cannot make Apple Wallet accept a card.
+
+### Platform rollout flags
+
+`push-provisioning-apple` and `push-provisioning-google` are independent PostHog
+flags. Both default off, including outside production. The retired
+`push-provisioning` flag no longer enables either platform in this app bundle.
+Apple Wallet metadata and authorization grants use only the Apple flag.
+Keep the retired shared flag off for older app bundles.
+
+Android provisioning uses `push-provisioning-google` plus native SDK availability.
+The official localized Google Wallet button starts this flow; unavailable binaries
+and disabled flags retain the manual carousel. Apple extension grants and metadata
+remain iOS-only. Both flags must stay off while approval is pending.
+Complete these checks before enabling an approved test cohort:
+
+1. Submit the supplied localized Add to Google Wallet control and flow for Google's
+   UX/branding review. Confirm issuer/TSP onboarding and approval
+   for `me.peanut.wallet` and the Play app-signing certificate.
+2. Confirm with Rain and MeaWallet that the Android `GooglePay.pushCard` flow
+   is approved for this program. The bridge currently uses that legacy flow;
+   do not replace it with `push` without confirming provider support for
+   Unified Push Provisioning.
+3. Verify the deployed API routes and `WALLET_PROVISIONING_ENABLED=true` in
+   the exact environment. This server kill switch applies to both wallets;
+   the PostHog flags control app presentation, not credential authorization.
+4. Install the signed Play internal build with the MeaWallet SDK and production
+   `mea_config`. Verify the bridge class, its Capacitor annotation, and config
+   survive R8 and resource shrinking.
+5. Test on a supported physical device: a new card, existing token, pending
+   identity verification, cancellation, missing billing, and callback recovery.
+
+Apple entitlement approval is independent of these Google checks. Enabling
+the Google app flag does not enable Apple Wallet extensions.
 
 After both store builds succeed, App Release Android & iOS writes a compiled-capability
 attestation into the annotated release tag. OTA checks that attestation in

@@ -21,6 +21,7 @@ import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -69,9 +70,11 @@ const subscribeWebViewSupport = () => () => {}
 const unsupportedWebView = () => isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
 const serverUnsupportedWebView = () => false
 
-const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
+const AppGlobals = dynamic(() => importWithChunkRetry(() => import('./AppGlobals')).then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
-const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
+const AppIntlProvider = dynamic(() =>
+    importWithChunkRetry(() => import('@/i18n/app/AppIntlProvider')).then((m) => m.AppIntlProvider)
+)
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     const unsupported = useSyncExternalStore(subscribeWebViewSupport, unsupportedWebView, serverUnsupportedWebView)

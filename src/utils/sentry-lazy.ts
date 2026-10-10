@@ -1,4 +1,6 @@
 import type { Scope, SeverityLevel } from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 
 /**
  * Fire-and-forget Sentry reporting that loads the SDK on first use.
@@ -17,18 +19,36 @@ import type { Scope, SeverityLevel } from '@sentry/nextjs'
  */
 type SentryModule = typeof import('@sentry/nextjs')
 
+/*
+ * A failed SDK chunk must neither disable reporting for the rest of the
+ * document nor escape as an unhandled rejection: the inline chunk-recovery
+ * script reloads the page on any unhandled ChunkLoadError. Each later call
+ * starts a fresh load, up to MAX_LOAD_ATTEMPTS; the final failure goes to
+ * PostHog, the one channel left.
+ */
+const MAX_LOAD_ATTEMPTS = 3
+
 let loaded: SentryModule | undefined
 let loading: Promise<SentryModule> | undefined
+let failedLoads = 0
 
 export function loadSentry(): Promise<SentryModule> {
     if (loaded) return Promise.resolve(loaded)
-    loading ??= import('@sentry/nextjs').then((m) => (loaded = m))
+    if (!loading) {
+        const attempt = importWithChunkRetry(() => import('@sentry/nextjs')).then((m) => (loaded = m))
+        loading = attempt
+        attempt.catch((error) => {
+            failedLoads += 1
+            if (failedLoads < MAX_LOAD_ATTEMPTS) loading = undefined
+            else posthog.captureException(error, { source: 'sentry_sdk_load' })
+        })
+    }
     return loading
 }
 
 function withSdk(fn: (S: SentryModule) => void): void {
     if (loaded) fn(loaded)
-    else void loadSentry().then(fn)
+    else void loadSentry().then(fn, () => {})
 }
 
 // The SDK's own signatures are overloaded; these mirror the shapes actually

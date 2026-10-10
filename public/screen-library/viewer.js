@@ -58,8 +58,9 @@ const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
 const entryBranch = (entry) => {
-    if (entry.branch) return entry.branch
     const channel = entry.path.split('/')[1] ?? ''
+    if (/^compare-main-\d{4}-\d{2}-\d{2}$/.test(channel) && (!entry.branch || entry.branch === channel)) return 'main'
+    if (entry.branch) return entry.branch
     if (channel === 'main' || channel === 'compare-main' || channel.startsWith('main-')) return 'main'
     if (channel === 'dev' || channel === 'compare-dev' || channel.startsWith('dev-')) return 'dev'
     return channel
@@ -130,6 +131,7 @@ const image = (name, alt, options) => {
 }
 let rows = [],
     report,
+    reportTitle = '',
     activeComparison,
     active,
     activeMode = 'screen',
@@ -425,7 +427,9 @@ function appendNextPage() {
 }
 function render() {
     const changedMode = report?.type === 'comparison' && viewMode === 'changed'
-    if (report?.type === 'comparison') $('title').textContent = changedMode ? 'See what changed.' : 'Every screen.'
+    if (report?.type === 'comparison')
+        $('title').textContent = reportTitle || (changedMode ? 'See what changed.' : 'Every screen.')
+    document.title = `${$('title').textContent} · Peanut Screen library`
     filteredRows = filteredScreenRows()
     renderedCount = 0
     $('screens').className =
@@ -924,6 +928,18 @@ async function start() {
         $('flow').append(o)
     }
     await configureReportLocales(reportPath)
+    if (!offline && ['capture', 'comparison'].includes(report.type)) {
+        const entry = indexEntries.find((candidate) => candidate.path === reportPath) ?? { path: reportPath }
+        const { branch, prNumber } = versionDetails(entry)
+        const namedBranch = branch && !/^pr-[1-9][0-9]*$/.test(branch) ? branch : ''
+        const branchTitle = namedBranch === 'main' ? 'Main' : namedBranch === 'dev' ? 'Dev' : namedBranch
+        reportTitle = prNumber ? `PR #${prNumber}` : branchTitle
+        if (reportTitle) $('title').textContent = reportTitle
+        if (prNumber && namedBranch) {
+            $('description').replaceChildren(el('strong', namedBranch))
+            if (captureDate) $('description').append(' · ', el('span', captureDate))
+        }
+    }
     const requestedView = requestedFilter('view')
     if (report.type === 'comparison' && ['all', 'changed'].includes(requestedView)) viewMode = requestedView
     $('view-mode').checked = viewMode === 'all'

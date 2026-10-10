@@ -75,9 +75,8 @@ export const useCurrency = (currencyCode: string | null) => {
                 setPrice(price)
                 setIsLoading(false)
             })
-            .catch((err) => {
+            .catch(() => {
                 if (cancelled) return
-                console.error(err)
                 // Drop the previous currency's rate: keeping it would let a
                 // consumer that gates on `price` alone price the new currency
                 // with the old one's number.

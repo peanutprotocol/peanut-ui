@@ -62,6 +62,13 @@ export function openAppHelpPage(slug: AppHelpSlug, locale: HelpLocale): void {
         return
     }
     const tab = window.open(path, '_blank')
-    if (tab) tab.opener = null
-    else window.location.assign(path)
+    if (!tab) {
+        window.location.assign(path)
+        return
+    }
+    try {
+        tab.opener = null
+    } catch {
+        // WebKit can return an already cross-origin proxy; the tab shows our own help page, so keep it
+    }
 }

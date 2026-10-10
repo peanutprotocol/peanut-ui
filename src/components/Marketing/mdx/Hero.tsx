@@ -2,6 +2,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -16,13 +18,18 @@ interface HeroProps {
     ctaHref?: string
     /** @deprecated — ignored. Use standalone <ExchangeWidget> in MDX body instead. */
     currency?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
+    /** Language of `subtitle` when it differs from the prose around the Hero (a route-locale string on an English fallback page). */
+    subtitleLang?: Locale
 }
 
 /**
  * MDX Hero — large bold title (Roboto Flex), subtitle, white CTA button
  * on pink background.
  */
-export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
+export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, subtitleLang }: HeroProps) {
+    const i18n = getTranslations(locale)
     return (
         <>
             <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-24">
@@ -35,7 +42,10 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]">
+                        <p
+                            lang={subtitleLang}
+                            className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]"
+                        >
                             {subtitle}
                         </p>
                     )}
@@ -57,11 +67,20 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                     )}
                 </div>
             </section>
-            <MarqueeComp
-                message={['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC']}
-                imageSrc={HandThumbsUp.src}
-                backgroundColor="bg-action-secondary"
-            />
+            {/* marquee words come from the route-locale catalog, not the MDX file */}
+            <div lang={locale}>
+                <MarqueeComp
+                    message={[
+                        i18n.heroMarqueeNoFees,
+                        i18n.heroMarqueeInstant,
+                        '24/7',
+                        i18n.heroMarqueeDollars,
+                        'USDT/USDC',
+                    ]}
+                    imageSrc={HandThumbsUp.src}
+                    backgroundColor="bg-action-secondary"
+                />
+            </div>
             {/* Spacer ensures consistent gap between Hero block and prose content */}
             <div className="h-10 md:h-14" />
         </>

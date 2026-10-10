@@ -9,6 +9,7 @@ import type {
     PushSubscriptionChange,
 } from './types'
 import { isOneSignalDebug } from './debug'
+import { OneSignalConfigError, isPermanentOneSignalInitError } from './errors'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 async function nativePermission(): Promise<NotificationPermissionState> {
@@ -132,7 +133,7 @@ function attachUnderlyingListeners() {
 export const nativeOneSignalAdapter: OneSignalAdapter = {
     init() {
         if (initPromise) return initPromise
-        initPromise = (async () => {
+        const attempt = (async () => {
             const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
             if (!appId) {
                 // captured here too so a swallowed init() rejection can't hide a broken build config
@@ -140,14 +141,21 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
                     level: 'warning',
                     tags: { feature: 'onesignal', onesignal: 'missing-app-id' },
                 })
-                throw new Error('OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID is required')
+                throw new OneSignalConfigError(
+                    'OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID is required'
+                )
             }
             if (isOneSignalDebug()) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
             await OneSignal.initialize(appId)
             attachUnderlyingListeners()
             setTimeout(() => captureSubscriptionSnapshot('init'), 10_000)
         })()
-        return initPromise
+        initPromise = attempt
+        // initialize() and the guarded listener attach are safe to repeat, so only a permanent failure sticks
+        attempt.catch((error) => {
+            if (initPromise === attempt && !isPermanentOneSignalInitError(error)) initPromise = null
+        })
+        return attempt
     },
 
     async login(externalId) {

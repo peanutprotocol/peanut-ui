@@ -29,7 +29,7 @@
         "components/Card/CardPinScreen.tsx": 105,
         "components/Card/CardTermsScreen.tsx": 78,
         "components/Card/PhysicalCardScreen.tsx": 80,
-        "components/Card/YourCardScreen.tsx": 199,
+        "components/Card/YourCardScreen.tsx": 203,
         "components/Claim/Link/Initial.view.tsx": 363,
         "components/Claim/Link/Onchain/Success.view.tsx": 162,
         "components/Claim/Link/views/BankFlowManager.view.tsx": 385,

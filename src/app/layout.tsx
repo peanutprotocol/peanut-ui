@@ -268,6 +268,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <Script
                                 src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
                                 strategy="lazyOnload"
+                                crossOrigin="anonymous"
                             />
                             <Script id="google-analytics" strategy="lazyOnload">
                                 {`

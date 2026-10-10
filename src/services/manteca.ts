@@ -263,14 +263,20 @@ export const mantecaApi = {
 
         return response.json()
     },
-    getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
+    getPrices: async (
+        { asset, against }: { asset: string; against: string },
+        options: { callerReportsFailures?: boolean } = {}
+    ): Promise<MantecaPrice> => {
         const response = await serverFetch(`/manteca/prices?asset=${asset}&against=${against}`, {
             method: 'GET',
+            ...options,
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Get prices failed: ${response.statusText}`)
+            throw Object.assign(new Error(errorData.message || `Get prices failed: ${response.statusText}`), {
+                status: response.status,
+            })
         }
 
         return response.json()

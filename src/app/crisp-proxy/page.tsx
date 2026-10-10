@@ -97,6 +97,7 @@ function bootCrisp(payload: CrispInitPayload | null, onSessionLoaded: () => void
     const script = document.createElement('script')
     script.src = 'https://client.crisp.chat/l.js'
     script.async = true
+    script.crossOrigin = 'anonymous'
     script.onerror = () => {
         window.__crispLoadFailed = true
     }

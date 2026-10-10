@@ -242,6 +242,35 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
     // stayed on the pending path forever: blanked currency.amount, and (via
     // the shared isFinalState consumers) an endless 15s receipt poll and a
     // PENDING_TTL PDF cache that never promotes to the final one.
+    it('leaves a shared FX failure to the FX layer instead of logging it once per row', async () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        mockGetCachedCurrencyPrice.mockRejectedValue(new Error('FX rate unavailable from bridge (timeout)'))
+        const rows: HistoryEntry[] = [
+            ...[1, 2, 3].map((n) => ({
+                ...baseEntry,
+                uuid: `onramp-${n}`,
+                amount: '2.00',
+                currency: { amount: '2.00', code: 'eur' },
+                extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
+            })),
+            {
+                ...baseEntry,
+                uuid: 'offramp-1',
+                status: 'COMPLETED' as HistoryEntry['status'],
+                amount: '2.00',
+                currency: { amount: '2.00', code: 'eur' },
+                extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+            },
+        ]
+
+        const results = await Promise.all(rows.map(completeHistoryEntry))
+
+        expect(results).toHaveLength(4)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledTimes(4)
+        expect(errorSpy).not.toHaveBeenCalled()
+        errorSpy.mockRestore()
+    })
+
     it.each(['RETURNED', 'UNDELIVERABLE'])('treats OFFRAMP status=%s as final', async (status) => {
         const entry: HistoryEntry = {
             ...baseEntry,

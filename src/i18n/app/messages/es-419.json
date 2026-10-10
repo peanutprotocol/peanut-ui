@@ -12,6 +12,7 @@
         "retry": "Reintentar",
         "close": "Cerrar",
         "loading": "Cargando...",
+        "inEnglish": "En inglés",
         "somethingWentWrong": "Algo salió mal",
         "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
         "copiedToClipboard": "Copiado al portapapeles",
@@ -837,7 +838,7 @@
         "residenceStep": {
             "countryPlaceholder": "Selecciona el país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tienes residencia en más de un país?",
+            "multiDocLink": "¿Tienes ciudadanía de otro país?",
             "errors": {
                 "invalidEmail": "Ingresa un correo electrónico válido"
             },
@@ -898,9 +899,8 @@
                     "card": "Tarjeta Peanut"
                 },
                 "multiCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
-                "guideTitle": "¿Qué país va primero?",
-                "guideDeclaration": "Ambos deben ser países donde realmente tienes residencia legal. Es una declaración, y los proveedores la verifican durante la verificación de identidad, incluido el comprobante de domicilio.",
-                "guideOrder": "Si ambos países son realmente tu hogar, elige cuál quedará registrado como tu residencia principal. La elegibilidad depende de la residencia que verifiques: el domicilio que compruebas en la verificación de identidad.",
+                "guideTitle": "¿Qué país debes seleccionar?",
+                "guideDeclaration": "Si tienes un permiso de residencia de alguno de los dos países, elige ese país. Si no, elige el país que emitió tu documento de identidad, como un pasaporte o una licencia de conducir.",
                 "selectCountry": "Elegir {country}"
             }
         },
@@ -963,8 +963,14 @@
                 "fullGuide": "Leer la guía completa"
             },
             "unsupported": "Las passkeys todavía no están disponibles en este dispositivo. Inicia sesión con una cuenta de Google, actualiza Google Play Services e inténtalo de nuevo.",
-            "origin": "Esta app no está autorizada para usar passkeys en peanut.me. Actualiza a la última versión.",
-            "loginError": "No pudimos verificar tu passkey. Inténtalo de nuevo o contacta a soporte si sigue pasando."
+            "unsupportedIos": "Las passkeys todavía no están disponibles en este dispositivo. Activa el Llavero de iCloud y un código o Face ID, actualiza iOS e inténtalo de nuevo.",
+            "unsupportedDesktop": "Este navegador no pudo conectarse al servicio de passkeys de tu computadora. Reinicia o actualiza el navegador e inténtalo de nuevo, o inicia sesión desde tu teléfono.",
+            "origin": "Las passkeys no están disponibles en esta app por el momento. Actualiza Peanut o contacta a soporte si el problema continúa.",
+            "loginError": "No pudimos verificar tu passkey. Inténtalo de nuevo o contacta a soporte si sigue pasando.",
+            "notCompleted": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras.",
+            "associationUnavailable": "La verificación con passkey no está disponible por el momento. Espera unos segundos e inténtalo de nuevo.",
+            "deviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
+            "biometryRequired": "Usa Face ID o Touch ID para verificar la passkey e inténtalo de nuevo."
         },
         "testTransaction": {
             "confirmTitle": "Un último paso",
@@ -1770,7 +1776,8 @@
         },
         "yourCard": {
             "navTitle": "Tarjeta",
-            "addToGoogleWallet": "Agregar a Google Wallet",
+            "addToGoogleWallet": "Agregar a la Billetera de Google",
+            "addedToGoogleWallet": "Agregada a la Billetera de Google",
             "addToAppleWallet": "Agregar a Apple Wallet",
             "walletAddSuccess": "Tarjeta agregada a la billetera",
             "walletAddFailed": "No pudimos agregar la tarjeta a tu billetera. Intenta de nuevo.",
@@ -2416,7 +2423,7 @@
             "linkCopied": "Enlace copiado",
             "linkCopyFailed": "No se pudo copiar el enlace",
             "downloadPdf": "Descargar comprobante (PDF)",
-            "pdfDownloadedInstead": "Este navegador descargó el comprobante porque no permite compartir archivos.",
+            "pdfDownloadedInstead": "No se pueden compartir archivos aquí. Se inició la descarga del comprobante.",
             "receiptPdfUnavailable": "El comprobante en PDF no está disponible. Inténtalo de nuevo.",
             "attachmentUnavailable": "El archivo no está disponible. Inténtalo de nuevo o contacta a soporte.",
             "inviteFriends": "Invita amigos y gana más recompensas",
@@ -2428,7 +2435,9 @@
                 "title": "{kind, select, deposit {¿Cancelar este depósito?} request {¿Cancelar esta solicitud?} other {¿Cancelar?}}",
                 "description": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong> — un depósito cancelado ya no puede asociarse a tu cuenta y el dinero volverá a tu banco.",
                 "confirm": "{kind, select, deposit {Sí, cancelar el depósito} request {Sí, cancelar la solicitud} other {Sí, cancelar}}"
-            }
+            },
+            "nativeReceiptShareUnavailable": "No se pueden compartir comprobantes en esta versión de Peanut. Actualiza la app e inténtalo de nuevo.",
+            "receiptShareFailed": "No se pudo compartir el comprobante. Inténtalo de nuevo."
         },
         "toast": {
             "linkCancelled": "¡Enlace cancelado con éxito!",
@@ -3894,7 +3903,12 @@
         "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo.",
         "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento.",
         "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisa tu actividad antes de volver a intentarlo.",
-        "userOpReverted": "No se pudo completar el pago. Intenta de nuevo."
+        "userOpReverted": "No se pudo completar el pago. Intenta de nuevo.",
+        "passkeyAssociationUnavailable": "La verificación con passkey no está disponible por el momento. Espera unos segundos e inténtalo de nuevo.",
+        "passkeyAssociationMismatch": "Las passkeys no están disponibles en esta app por el momento. Actualiza Peanut o contacta a soporte si el problema continúa.",
+        "passkeyDeviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
+        "passkeyBiometryRequired": "Usa Face ID o Touch ID para verificar la passkey e inténtalo de nuevo.",
+        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras."
     },
     "appLock": {
         "title": "¡Hola de nuevo!",

@@ -4,7 +4,9 @@ import {
     CLIENT_FETCH_TIMEOUT_MS,
     SERVER_FETCH_TIMEOUT_MS,
     TRANSPORT_TIMEOUT_RETRY_DELAY_MS,
+    NON_OK_REPORT_WINDOW_MS,
     fetchWithSentry,
+    resetNonOkReportThrottle,
     resolveDefaultTimeoutMs,
     sanitizeRequestBody,
     sanitizeResponseBody,
@@ -27,6 +29,12 @@ jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
     hasRecentFailure: jest.fn(() => false),
 }))
+
+// Read timeouts are sampled in production; report every one here so assertions are deterministic.
+beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0)
+    resetNonOkReportThrottle()
+})
 
 describe('fetchWithSentry — expected-response suppression', () => {
     const mockResponse = (status: number, body: unknown): Response =>
@@ -296,6 +304,78 @@ describe('fetchWithSentry — expected-response suppression', () => {
             'POST to https://api.peanut.me/some/endpoint failed with status 400',
             expect.objectContaining({ level: 'warning' })
         )
+    })
+})
+
+describe('fetchWithSentry — a failing read reports once per window', () => {
+    const failing = (status: number, body: unknown = {}): Response =>
+        ({
+            ok: false,
+            status,
+            clone: () => ({
+                json: () => Promise.resolve(body),
+                text: () => Promise.resolve(JSON.stringify(body)),
+            }),
+        }) as unknown as Response
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.spyOn(console, 'info').mockImplementation(() => {})
+    })
+
+    afterEach(() => jest.useRealTimers())
+
+    it('reports a repeating read failure once, then again with the count after the window', async () => {
+        jest.useFakeTimers({ now: 1_000_000 })
+        global.fetch = jest.fn().mockResolvedValue(failing(429))
+        const url = 'https://api.peanut.me/users/history?limit=50'
+
+        for (let i = 0; i < 5; i++) await fetchWithSentry(url)
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+
+        jest.setSystemTime(1_000_000 + NON_OK_REPORT_WINDOW_MS)
+        await fetchWithSentry(url)
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(2)
+        expect((Sentry.captureMessage as jest.Mock).mock.calls[1][1].extra.suppressedSinceLast).toBe(4)
+    })
+
+    it('keeps a different status or endpoint separate', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValueOnce(failing(429))
+            .mockResolvedValueOnce(failing(500))
+            .mockResolvedValueOnce(failing(429))
+        await fetchWithSentry('https://api.peanut.me/users/history?limit=50')
+        await fetchWithSentry('https://api.peanut.me/users/history?limit=50')
+        await fetchWithSentry('https://api.peanut.me/rain/cards')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(3)
+    })
+
+    it('reports a failure for each distinct resource on one route', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(500))
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x1111111111111111111111111111111111111111')
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x2222222222222222222222222222222222222222')
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x2222222222222222222222222222222222222222')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(2)
+    })
+
+    it('never throttles a mutation', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(500))
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST' })
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST' })
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not report a currency with no published card comparison', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(404, { error: 'FX_CARD_MARKUP_UNAVAILABLE' }))
+        await fetchWithSentry('https://api.peanut.me/fx/card-markup?currency=ARS')
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports any other card-markup 404', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(404, { error: 'NOT_FOUND' }))
+        await fetchWithSentry('https://api.peanut.me/fx/card-markup?currency=ARS')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
     })
 })
 

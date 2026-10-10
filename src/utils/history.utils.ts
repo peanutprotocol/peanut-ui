@@ -498,11 +498,8 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 try {
                     const price = await getCachedCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
-                } catch (error) {
-                    console.error(
-                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                        error
-                    )
+                } catch {
+                    // Reported once per provider request by the FX layer, not once per row.
                 }
             }
             break
@@ -529,11 +526,8 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                             const price = await getCachedCurrencyPrice(entry.currency.code)
                             const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
                             entry.currency.amount = converted.toString()
-                        } catch (error) {
-                            console.error(
-                                `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                                error
-                            )
+                        } catch {
+                            // Reported once per provider request by the FX layer, not once per row.
                         }
                     } else {
                         // Unlike ONRAMP, OFFRAMP's `currency.amount` genuinely

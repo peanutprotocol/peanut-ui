@@ -184,7 +184,7 @@ export function SemanticRequestConfirmView() {
                                     tokenIconUrl={requestedTokenIconUrl}
                                     chainIconUrl={requestedChainIconUrl}
                                     resolvedTokenSymbol={requestedResolvedTokenSymbol}
-                                    fallbackTokenSymbol={selectedTokenData?.symbol || ''}
+                                    fallbackTokenSymbol={charge?.tokenSymbol || selectedTokenData?.symbol || ''}
                                     resolvedChainName={requestedResolvedChainName}
                                     fallbackChainName={selectedChainID || ''}
                                 />

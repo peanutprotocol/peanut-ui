@@ -317,6 +317,7 @@ export const ANALYTICS_EVENTS = {
     // card_tokenization_declined (Rain webhooks) close this funnel.
     CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
     CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_ALREADY_ADDED: 'card_add_to_wallet_already_added',
     CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
     CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.

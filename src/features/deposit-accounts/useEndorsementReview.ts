@@ -3,6 +3,7 @@
 import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { claimDepositAccount } from '@/services/deposit-accounts'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
+import { reserveDetachedTab } from '@/utils/reserved-tab'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackClaimed, trackClaimFailed, trackClaimStarted, trackEndorsementRequested } from './analytics'
@@ -68,9 +69,7 @@ export function useEndorsementReview(): EndorsementReview {
             if (startingRef.current) return
             startingRef.current = true
             const native = isNativeBridge()
-            const reservedTab = native ? null : window.open('', '_blank')
-            // a reserved tab cannot carry `noopener`, so the back-reference is cut by hand
-            if (reservedTab) reservedTab.opener = null
+            const reservedTab = native ? null : reserveDetachedTab()
             setFailedCorridor(undefined)
             setStartingCorridor(corridor)
             // The same POST the claim screen makes, so the same funnel: a start

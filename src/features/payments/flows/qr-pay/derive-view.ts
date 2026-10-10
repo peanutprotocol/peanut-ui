@@ -14,6 +14,7 @@ export type QrPayView =
     | 'INIT_ERROR'
     | 'AWAITING_MERCHANT'
     | 'ORDER_NOT_READY'
+    | 'RATE_UNAVAILABLE'
     | 'LOADING'
     | 'STATUS'
     | 'SUCCESS'
@@ -26,6 +27,7 @@ export interface QrPayViewInputs {
     waitingForMerchantAmount: boolean
     showOrderNotReadyModal: boolean
     isLoadingPaymentData: boolean
+    rateUnavailable: boolean
     loadingState: LoadingStates
     isSuccess: boolean
     isManteca: boolean
@@ -67,6 +69,12 @@ export function deriveQrPayView(inputs: QrPayViewInputs): QrPayView {
     if (inputs.waitingForMerchantAmount) return 'AWAITING_MERCHANT'
 
     if (inputs.showOrderNotReadyModal) return 'ORDER_NOT_READY'
+
+    // An open-amount QR has no currency until its live rate arrives. Surface
+    // recovery before that missing currency sends the page to its loader.
+    if (inputs.rateUnavailable && inputs.isLoadingPaymentData && inputs.loadingState !== 'Paying') {
+        return 'RATE_UNAVAILABLE'
+    }
 
     if (inputs.isLoadingPaymentData || inputs.loadingState === 'Paying') return 'LOADING'
 

@@ -50,6 +50,8 @@ export function loadCrispChatbox(): void {
     const script = document.createElement('script')
     script.src = CRISP_SCRIPT_SRC
     script.async = true
+    // CORS-enabled CDN: errors thrown in it then keep their message instead of an opaque "Script error."
+    script.crossOrigin = 'anonymous'
     document.head.appendChild(script)
 }
 

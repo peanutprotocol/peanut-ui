@@ -17,6 +17,7 @@ import {
     clearCeremonyLog,
     getCeremonyLog,
     installCeremonyTelemetry,
+    openCredentialCall,
     withCeremonyFlow,
     withCeremonyPurpose,
 } from '@/utils/webauthn-ceremony-telemetry'
@@ -81,6 +82,25 @@ describe('webauthn ceremony telemetry', () => {
             errorName: 'NotAllowedError',
             errorCode: 'LOGIN_CANCELED',
         })
+    })
+
+    it('counts every native device failure and its later successful recovery without raw error data', async () => {
+        const error = Object.assign(
+            new Error('The operation couldn’t be completed. Device must be unlocked to perform request.'),
+            { name: 'NotAllowedError' }
+        )
+        get.mockRejectedValueOnce(error)
+        await expect(withCeremonyPurpose('login', () => navigator.credentials.get({}))).rejects.toBe(error)
+        await withCeremonyPurpose('login', () => navigator.credentials.get({}))
+        const ceremonies = events('webauthn_ceremony')
+        expect(ceremonies).toHaveLength(2)
+        expect(ceremonies[0]).toMatchObject({
+            outcome: 'error',
+            native_reason: 'device_locked',
+            error_code: 'PASSKEY_DEVICE_LOCKED',
+        })
+        expect(ceremonies[0]).not.toHaveProperty('message')
+        expect(ceremonies[1]).toMatchObject({ outcome: 'ok' })
     })
 
     it('counts every ceremony a flow triggered — the 2-vs-3 prompt question', async () => {
@@ -167,6 +187,24 @@ describe('webauthn ceremony telemetry', () => {
             id: 'cred',
         })
         expect(getCeremonyLog()).toHaveLength(1)
+    })
+
+    it('reports the newest OS call still pending, and nothing once it settles', async () => {
+        let settle!: (value: unknown) => void
+        get.mockReturnValueOnce(new Promise((resolve) => (settle = resolve)))
+        const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1_000)
+        try {
+            const pending = navigator.credentials.get({})
+            expect(openCredentialCall()).toEqual({ inFlight: true, elapsedMs: 0 })
+            nowSpy.mockReturnValue(61_000)
+            expect(openCredentialCall()).toEqual({ inFlight: true, elapsedMs: 60_000 })
+
+            settle({ id: 'cred' })
+            await pending
+            expect(openCredentialCall()).toEqual({ inFlight: false })
+        } finally {
+            nowSpy.mockRestore()
+        }
     })
 
     it('patches navigator.credentials only once', async () => {

@@ -12,6 +12,7 @@
         "retry": "Reintentar",
         "close": "Cerrar",
         "loading": "Cargando...",
+        "inEnglish": "En inglés",
         "somethingWentWrong": "Algo salió mal",
         "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
         "copiedToClipboard": "Copiado al portapapeles",
@@ -118,7 +119,12 @@
         "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo.",
         "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento.",
         "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisa tu actividad antes de volver a intentarlo.",
-        "userOpReverted": "No se pudo completar el pago. Intenta de nuevo."
+        "userOpReverted": "No se pudo completar el pago. Intenta de nuevo.",
+        "passkeyAssociationUnavailable": "La verificación con passkey no está disponible por el momento. Espera unos segundos e inténtalo de nuevo.",
+        "passkeyAssociationMismatch": "Las passkeys no están disponibles en esta app por el momento. Actualiza Peanut o contacta a soporte si el problema continúa.",
+        "passkeyDeviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
+        "passkeyBiometryRequired": "Usa Face ID o Touch ID para verificar la passkey e inténtalo de nuevo.",
+        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras."
     },
     "migration": {
         "downloadPeanut": "Descargar Peanut",
