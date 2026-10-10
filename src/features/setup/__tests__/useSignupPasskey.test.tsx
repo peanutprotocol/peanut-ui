@@ -6,7 +6,9 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { useSignupPasskey } from '../useSignupPasskey'
 
-const mockHandleRegister = jest.fn()
+// A fresh mock per test: a ceremony left running by an earlier test keeps its own
+// reference, so it can never add calls to the next test's count.
+let mockHandleRegister = jest.fn()
 const mockApiFetch = jest.fn()
 const mockLogin = jest.fn()
 const mockSupport = jest.fn(async () => ({ isSupported: true }) as { isSupported: boolean; warning?: string })
@@ -62,7 +64,7 @@ beforeEach(() => {
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
     // 404 = username free, so the handler proceeds to registration
     mockApiFetch.mockResolvedValue({ status: 404 })
-    mockHandleRegister.mockImplementation(() => new Promise(() => {}))
+    mockHandleRegister = jest.fn(() => new Promise(() => {}))
 })
 
 describe('useSignupPasskey — one tap, one ceremony', () => {
