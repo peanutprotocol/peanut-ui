@@ -35,7 +35,9 @@ export default function InviteStep() {
         const valid = result.success && result.attributionResolved
         if (valueRef.current !== value) return valid
         posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid, source: 'signup_optional_inviter' })
-        if (!valid) setError(t('signupStep.inviterNotFound'))
+        // "Not found" only for a confirmed miss; a failed request says the check did not work.
+        const notFound = result.notFound || (result.success && !result.attributionResolved)
+        if (!valid) setError(t(notFound ? 'signupStep.inviterNotFound' : 'signupStep.inviterCheckFailed'))
         return valid
     }
 

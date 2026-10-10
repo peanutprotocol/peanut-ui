@@ -466,7 +466,8 @@
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo o contactá a soporte."
             },
-            "termsAgreement": "Al crear una cuenta, aceptás los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
+            "termsAgreement": "Al crear una cuenta, aceptás los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>",
+            "inviterCheckFailed": "No pudimos revisar este usuario. Intentá de nuevo."
         },
         "residenceStep": {
             "countryPlaceholder": "Seleccioná el país",

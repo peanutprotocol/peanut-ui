@@ -802,6 +802,12 @@
             min(40dvh, calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - var(--setup-content-reserve)))
         );
     }
+    /* Desktop: the full-height side hero. Explicit, because this rule sits in the same layer as md:h-dvh. */
+    @media (min-width: 768px) {
+        .setup-hero-height {
+            height: 100dvh;
+        }
+    }
     .setup-hero-background {
         background-color: var(--setup-hero-background, var(--color-background-setup-hero));
     }

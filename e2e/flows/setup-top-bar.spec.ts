@@ -97,3 +97,19 @@ for (const viewport of VIEWPORTS) {
         expect(new Set(samples.filter((s) => s.back).map((s) => JSON.stringify(s.back))).size).toBe(1)
     })
 }
+
+test('desktop keeps the full-height side hero', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 })
+    await page.addInitScript(() => {
+        const w = window as unknown as {
+            PublicKeyCredential: { isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean> }
+        }
+        w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
+        w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
+    })
+    await page.goto('/setup')
+    const hero = page.locator('[data-setup-hero]')
+    await expect(hero).toBeVisible({ timeout: 60_000 })
+    await page.waitForTimeout(1500)
+    expect(Math.round((await hero.boundingBox())!.height)).toBe(900)
+})
