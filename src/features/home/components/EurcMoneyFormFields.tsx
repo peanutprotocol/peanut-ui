@@ -121,8 +121,8 @@ export function EurcMoneyFormFields({
                                     aria-label={t('from')}
                                     value={field.value}
                                     options={[
-                                        { value: 'EURC', label: 'EUR · EURC' },
-                                        { value: 'USDC', label: 'USD · USDC' },
+                                        { value: 'EURC', label: 'EUR' },
+                                        { value: 'USDC', label: 'USD' },
                                     ]}
                                     onValueChange={(value) => edit(() => field.onChange(value))}
                                     disabled={pending}
@@ -237,7 +237,10 @@ export function EurcMoneyFormFields({
                         <p className="text-body-s">{t('rateWarning')}</p>
                     </>
                 )}
-                <EurcActionError error={error} minimumCurrency={kind === 'BANK_DEPOSIT' ? 'EUR' : source} />
+                <EurcActionError
+                    error={error}
+                    minimumCurrency={kind === 'BANK_DEPOSIT' || source === 'EURC' ? 'EUR' : 'USD'}
+                />
                 <Button type="submit" disabled={!valid || pending} loading={pending}>
                     {t('review')}
                 </Button>

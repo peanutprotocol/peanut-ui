@@ -64,8 +64,8 @@ export function CurrencyAccountsHomeSession({
                         value={isEurc ? 'EURC' : 'USDC'}
                         onValueChange={(value) => setSelected(value === 'EURC' ? 'EURC' : 'USDC')}
                         tabs={[
-                            { value: 'USDC', label: 'USD · USDC' },
-                            ...(eurcAccount ? [{ value: 'EURC', label: 'EUR · EURC' }] : []),
+                            { value: 'USDC', label: 'USD' },
+                            ...(eurcAccount ? [{ value: 'EURC', label: 'EUR' }] : []),
                         ]}
                     />
                     {canAdd && (

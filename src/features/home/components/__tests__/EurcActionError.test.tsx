@@ -25,10 +25,10 @@ it('names the minimum and its currency when the amount is below it', () => {
     render(
         <EurcActionError
             error={Object.assign(new Error('min'), { code: 'amount_below_minimum' })}
-            minimumCurrency="USDC"
+            minimumCurrency="USD"
         />
     )
-    expect(screen.getByRole('alert')).toHaveTextContent('belowMinimum:{"currency":"USDC"}')
+    expect(screen.getByRole('alert')).toHaveTextContent('belowMinimum:{"currency":"USD"}')
 })
 
 it('renders nothing without an error', () => {

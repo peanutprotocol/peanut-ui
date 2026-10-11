@@ -607,7 +607,7 @@
             "cryingPeanutAlt": "Crying peanut",
             "depositInFlight": "A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.",
             "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later.",
-            "blockedEurcDescription": "Your EURC account still has money or a payment in progress. Complete pending payments and move any remaining euros before deleting your account."
+            "blockedEurcDescription": "Your EUR account still has money or a payment in progress. Complete pending payments and move any remaining euros before deleting your account."
         }
     },
     "limits": {
@@ -4509,23 +4509,23 @@
         "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
     },
     "currencyAccounts": {
-        "accounts": "Currency accounts",
-        "addAccount": "Add currency account",
-        "addEurc": "Add EURC account",
-        "eurcAccount": "EURC account",
+        "accounts": "Accounts",
+        "addAccount": "Add account",
+        "addEurc": "Add EUR account",
+        "eurcAccount": "EUR account",
         "description": "Euro balance held in EURC on Base.",
         "availability": "Card payments still use USDC.",
         "adding": "Adding…",
         "cancel": "Cancel",
-        "addError": "Couldn’t add EURC. Try again.",
-        "balanceError": "EURC balance unavailable.",
+        "addError": "Couldn’t add the EUR account. Try again.",
+        "balanceError": "EUR balance unavailable.",
         "retry": "Retry",
         "accountsError": "Accounts unavailable.",
-        "receive": "Receive EURC",
+        "receive": "Receive EUR",
         "receiveWarning": "Send only EURC on Base to this address.",
         "back": "Back",
         "actionsError": "Actions unavailable.",
-        "send": "Send EURC",
+        "send": "Send EUR",
         "exchange": "Exchange",
         "bankDeposit": "Add euros",
         "bankWithdraw": "Withdraw euros",

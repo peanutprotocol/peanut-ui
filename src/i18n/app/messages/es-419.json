@@ -607,7 +607,7 @@
             "cryingPeanutAlt": "Peanut llorando",
             "depositInFlight": "Hay un depósito en camino. Espera a que llegue y retira tu saldo antes de eliminar tu cuenta.",
             "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Inténtalo más tarde.",
-            "blockedEurcDescription": "Tu cuenta EURC todavía tiene dinero o un pago en curso. Completa los pagos pendientes y mueve los euros restantes antes de eliminar tu cuenta."
+            "blockedEurcDescription": "Tu cuenta EUR todavía tiene dinero o un pago en curso. Completa los pagos pendientes y mueve los euros restantes antes de eliminar tu cuenta."
         }
     },
     "limits": {
@@ -4509,23 +4509,23 @@
         "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación será directamente con Third National."
     },
     "currencyAccounts": {
-        "accounts": "Cuentas por moneda",
-        "addAccount": "Agregar cuenta en otra moneda",
-        "addEurc": "Agregar cuenta EURC",
-        "eurcAccount": "Cuenta EURC",
+        "accounts": "Cuentas",
+        "addAccount": "Agregar cuenta",
+        "addEurc": "Agregar cuenta EUR",
+        "eurcAccount": "Cuenta EUR",
         "description": "Saldo en euros en EURC en Base.",
         "availability": "Los pagos con tarjeta siguen usando USDC.",
         "adding": "Agregando…",
         "cancel": "Cancelar",
-        "addError": "No se pudo agregar EURC. Inténtalo de nuevo.",
-        "balanceError": "Saldo EURC no disponible.",
+        "addError": "No se pudo agregar la cuenta EUR. Inténtalo de nuevo.",
+        "balanceError": "Saldo EUR no disponible.",
         "retry": "Reintentar",
         "accountsError": "Cuentas no disponibles.",
-        "receive": "Recibir EURC",
+        "receive": "Recibir EUR",
         "receiveWarning": "Envía solo EURC en Base a esta dirección.",
         "back": "Atrás",
         "actionsError": "Acciones no disponibles.",
-        "send": "Enviar EURC",
+        "send": "Enviar EUR",
         "exchange": "Cambiar",
         "bankDeposit": "Agregar euros",
         "bankWithdraw": "Retirar euros",

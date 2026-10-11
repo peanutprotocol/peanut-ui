@@ -34,18 +34,18 @@ test.describe('EURC accounts', () => {
         await suppressBalanceWarning(page)
         await page.goto('/home?__fixture=home-eurc', { waitUntil: 'domcontentloaded' })
 
-        const eurTab = page.getByRole('tab', { name: 'EUR · EURC' })
+        const eurTab = page.getByRole('tab', { name: 'EUR' })
         await eurTab.click({ timeout: 60_000 })
         await expect(eurTab).toHaveAttribute('aria-selected', 'true')
-        await expect(page.getByRole('heading', { name: 'EURC account' })).toBeVisible()
-        for (const action of ['Receive EURC', 'Send EURC', 'Exchange', 'Add euros', 'Withdraw euros']) {
+        await expect(page.getByRole('heading', { name: 'EUR account' })).toBeVisible()
+        for (const action of ['Receive EUR', 'Send EUR', 'Exchange', 'Add euros', 'Withdraw euros']) {
             await expect(page.getByRole('button', { name: action, exact: true })).toBeVisible()
         }
         await expect(page.getByRole('heading', { name: 'Euro activity' })).toBeVisible()
         await expect(page.getByText('No euro activity yet.')).toBeVisible()
         await expect.poll(() => searchParam(page, 'currency')).toBe('EURC')
 
-        await page.getByRole('button', { name: 'Send EURC', exact: true }).click()
+        await page.getByRole('button', { name: 'Send EUR', exact: true }).click()
         await expect.poll(() => searchParam(page, 'action')).toBe('SEND')
 
         await page.reload({ waitUntil: 'domcontentloaded' })

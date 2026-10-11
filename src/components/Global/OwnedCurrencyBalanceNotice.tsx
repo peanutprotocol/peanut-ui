@@ -62,7 +62,12 @@ export function OwnedCurrencyBalanceNotice({
     return (
         <div className="flex flex-col items-center gap-1 text-body-s text-foreground-secondary" aria-live="polite">
             {showSelectedBalance && selected !== undefined && selectedReady && (
-                <p>{t('sendCurrencyBalance', { amount: formatUnits(selected, 6), currency })}</p>
+                <p>
+                    {t('sendCurrencyBalance', {
+                        amount: formatUnits(selected, 6),
+                        currency: currency === 'EURC' ? 'EUR' : 'USD',
+                    })}
+                </p>
             )}
             {showSelectedBalance && (accounts.isError || eurc.isError) && (
                 <>

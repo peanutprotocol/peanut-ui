@@ -173,7 +173,7 @@ describe('DeleteAccountButton', () => {
             render(<DeleteAccountButton />)
             fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
             fireEvent.click(screen.getByText('Yes, delete it'))
-            await waitFor(() => expect(screen.getByText(/Your EURC account still has money/)).toBeInTheDocument())
+            await waitFor(() => expect(screen.getByText(/Your EUR account still has money/)).toBeInTheDocument())
             expect(screen.queryByText(/You still have \$0/)).not.toBeInTheDocument()
             expect(mockLogout).not.toHaveBeenCalled()
             fireEvent.click(screen.getByText('Move money'))
@@ -184,7 +184,7 @@ describe('DeleteAccountButton', () => {
             render(<DeleteAccountButton />)
             fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
             fireEvent.click(screen.getByText('Yes, delete it'))
-            await waitFor(() => expect(screen.getByText(/Your EURC account still has money/)).toBeInTheDocument())
+            await waitFor(() => expect(screen.getByText(/Your EUR account still has money/)).toBeInTheDocument())
             const refusals = mockCapture.mock.calls.filter(
                 ([event]) => event === ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE
             )

@@ -148,7 +148,7 @@ export function EurcMoneyReviewView({
                     {t('bankAccount')}: {destinationLabel ?? operation.externalAccountId}
                 </p>
             )}
-            {operation.kind === 'EXCHANGE' && <p>{operation.sourceAsset === 'EURC' ? 'EURC → USDC' : 'USDC → EURC'}</p>}
+            {operation.kind === 'EXCHANGE' && <p>{operation.sourceAsset === 'EURC' ? 'EUR → USD' : 'USD → EUR'}</p>}
             {recipient && (
                 <p className="text-body-s break-all">
                     {t('recipient')}: {recipient}
@@ -215,7 +215,7 @@ export function EurcMoneyReviewView({
                         ? new Error('Currency wallet unavailable')
                         : null)
                 }
-                minimumCurrency={operation.kind === 'BANK_DEPOSIT' ? 'EUR' : operation.sourceAsset}
+                minimumCurrency={operation.kind === 'BANK_DEPOSIT' || operation.sourceAsset === 'EURC' ? 'EUR' : 'USD'}
             />
             <LinkButton className="mt-3 mb-3" onClick={cancel} disabled={pending || hasSigned}>
                 {t('cancel')}

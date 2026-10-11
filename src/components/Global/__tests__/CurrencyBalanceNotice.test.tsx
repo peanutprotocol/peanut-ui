@@ -75,7 +75,7 @@ describe('converted totals', () => {
 
     it('uses the opposite quote for euro sends and preserves the selected token balance', async () => {
         showEuroSend('25')
-        expect(await screen.findByText('Balance: 20 EURC')).toBeInTheDocument()
+        expect(await screen.findByText('Balance: 20 EUR')).toBeInTheDocument()
         expect(await screen.findByText(totalLine('29.00', 'EUR'))).toBeInTheDocument()
         expect(pricingRequests().every((request) => request.includes('from=USDC'))).toBe(true)
     })
@@ -113,7 +113,7 @@ describe('converted totals', () => {
     it('keeps calculating, with no price request, while the dollar balance is still loading', async () => {
         io.rain.mockImplementation(never)
         showEuroSend('25')
-        await screen.findByText('Balance: 20 EURC')
+        await screen.findByText('Balance: 20 EUR')
         await settle()
         expect(screen.getByText(copy.convertedBalanceLoading)).toBeInTheDocument()
         expect(pricingRequests()).toEqual([])
@@ -151,7 +151,7 @@ describe('U1: dollars that are cached or flagged unavailable are never valued as
         writeLastKnownSpendable('alice', units(500))
         io.rain.mockImplementation(() => fail())
         showEuroSend('25')
-        await screen.findByText('Balance: 20 EURC')
+        await screen.findByText('Balance: 20 EUR')
         expect(await screen.findByText(copy.convertedBalanceUnavailable)).toBeInTheDocument()
         expect(screen.queryByText(ANY_TOTAL)).not.toBeInTheDocument()
     })
@@ -160,7 +160,7 @@ describe('U1: dollars that are cached or flagged unavailable are never valued as
         writeLastKnownSpendable('alice', units(500))
         io.rain.mockImplementation(() => ok(rainOverview({ withBalance: false, balanceUnavailable: true })))
         showEuroSend('25')
-        await screen.findByText('Balance: 20 EURC')
+        await screen.findByText('Balance: 20 EUR')
         expect(await screen.findByText(copy.convertedBalanceUnavailable)).toBeInTheDocument()
         expect(screen.queryByText(ANY_TOTAL)).not.toBeInTheDocument()
     })
@@ -168,7 +168,7 @@ describe('U1: dollars that are cached or flagged unavailable are never valued as
     it('shows the euro estimate as unavailable when Rain serves a stale $500 flagged balanceUnavailable', async () => {
         io.rain.mockImplementation(() => ok(rainOverview({ spendingPowerCents: 50_000, balanceUnavailable: true })))
         showEuroSend('25')
-        await screen.findByText('Balance: 20 EURC')
+        await screen.findByText('Balance: 20 EUR')
         expect(await screen.findByText(copy.convertedBalanceUnavailable)).toBeInTheDocument()
         expect(screen.queryByText(ANY_TOTAL)).not.toBeInTheDocument()
     })
@@ -232,7 +232,7 @@ describe('U3: failed dollar reads with nothing cached', () => {
         io.smartBalance.mockResolvedValueOnce(units(1)).mockResolvedValue(units(7))
         io.rain.mockImplementation(() => fail())
         showEuroSend('25')
-        await screen.findByText('Balance: 20 EURC')
+        await screen.findByText('Balance: 20 EUR')
         expect(await screen.findByText(copy.convertedBalanceUnavailable)).toBeInTheDocument()
         expect(screen.queryByText(copy.convertedBalanceLoading)).not.toBeInTheDocument()
 

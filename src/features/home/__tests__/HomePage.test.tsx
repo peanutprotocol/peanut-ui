@@ -232,7 +232,7 @@ describe('HomePage balance', () => {
         await act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
         expect(screen.getByText('42')).toBeInTheDocument()
         expect(screen.queryAllByRole('tab')).toEqual([])
-        expect(screen.queryByText('EUR · EURC')).not.toBeInTheDocument()
+        expect(screen.queryByText('EUR')).not.toBeInTheDocument()
         expect(screen.queryByText('eurc-account-view')).not.toBeInTheDocument()
         expect(io.baseRead).not.toHaveBeenCalled()
         expect(pricingRequests()).toEqual([])

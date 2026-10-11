@@ -322,11 +322,11 @@ export function reload(previous: RenderedHome) {
 }
 
 export async function selectEurc() {
-    fireEvent.mouseDown(await screen.findByRole('tab', { name: 'EUR · EURC' }))
+    fireEvent.mouseDown(await screen.findByRole('tab', { name: 'EUR' }))
 }
 
 export async function selectUsdc() {
-    fireEvent.mouseDown(await screen.findByRole('tab', { name: 'USD · USDC' }))
+    fireEvent.mouseDown(await screen.findByRole('tab', { name: 'USD' }))
 }
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
