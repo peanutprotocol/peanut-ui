@@ -23,6 +23,7 @@ export type CurrencyCapabilities = {
     exchange: boolean
     bankDeposit: boolean
     bankWithdraw: boolean
+    bankingBlock?: 'verification_required' | 'unavailable' | null
 }
 export type CurrencyExchangeRate = {
     midmarket_rate: string

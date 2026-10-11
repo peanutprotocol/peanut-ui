@@ -36,6 +36,10 @@ jest.mock('@/context/authContext', () => ({
         user: { accounts: [{ type: 'peanut-wallet', identifier: `0x${'12'.repeat(20)}` }] },
     }),
 }))
+jest.mock('@/features/deposit-accounts/useDepositGateRemediation', () => ({
+    useDepositGateRemediation: () => ({ resolveGate: jest.fn(), verifyCorridor: jest.fn(), modals: null }),
+}))
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ gateFor: () => ({ kind: 'ready' }) }) }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 // The shared Modal and Callout translate through next-intl directly.
 jest.mock('next-intl', () => ({ ...jest.requireActual('next-intl'), useTranslations: () => (key: string) => key }))

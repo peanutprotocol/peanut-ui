@@ -20478,6 +20478,29 @@
                                         "bankWithdraw": {
                                             "type": "boolean"
                                         },
+                                        "bankingBlock": {
+                                            "anyOf": [
+                                                {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "verification_required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "unavailable"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
                                         "exchange": {
                                             "type": "boolean"
                                         },
@@ -20493,7 +20516,8 @@
                                         "send",
                                         "exchange",
                                         "bankDeposit",
-                                        "bankWithdraw"
+                                        "bankWithdraw",
+                                        "bankingBlock"
                                     ],
                                     "type": "object"
                                 }

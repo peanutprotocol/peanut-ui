@@ -41,6 +41,10 @@ jest.mock('@/context/authContext', () => ({
         user: { accounts: [{ type: 'peanut-wallet', identifier: `0x${'12'.repeat(20)}` }] },
     }),
 }))
+jest.mock('@/features/deposit-accounts/useDepositGateRemediation', () => ({
+    useDepositGateRemediation: () => ({ resolveGate: jest.fn(), verifyCorridor: jest.fn(), modals: null }),
+}))
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ gateFor: () => ({ kind: 'ready' }) }) }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))

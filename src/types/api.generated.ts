@@ -11901,6 +11901,7 @@ export interface paths {
                         "application/json": {
                             bankDeposit: boolean;
                             bankWithdraw: boolean;
+                            bankingBlock: ("verification_required" | "unavailable") | null;
                             exchange: boolean;
                             receive: boolean;
                             send: boolean;

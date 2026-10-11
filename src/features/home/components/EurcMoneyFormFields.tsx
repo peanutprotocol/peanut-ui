@@ -8,7 +8,8 @@ import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { currencyAmount } from '@/utils/currency-amount'
 import { assertCurrencyOperationSession, currencyOperationSession } from '@/utils/currency-operation-recovery'
-import type { CurrencyMoneyForm } from './currency-account.types'
+import type { CurrencyMoneyForm, CurrencyMoneyFormProps } from './currency-account.types'
+import { wireErrorCode } from '@/services/api-error'
 import { useQuery } from '@tanstack/react-query'
 import { isAddress, zeroAddress } from 'viem'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -17,7 +18,7 @@ import { Card } from '@/components/0_Bruddle/Card'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import { BaseSelect } from '@/components/0_Bruddle/BaseSelect'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import { currencyAccountsApi, type CurrencyOperation, type CurrencyOperationKind } from '@/services/currency-accounts'
+import { currencyAccountsApi } from '@/services/currency-accounts'
 
 import { EurcBankAccountView } from './EurcBankAccountView'
 
@@ -25,13 +26,9 @@ export function EurcMoneyFormFields({
     userId,
     kind,
     onPrepared,
+    onVerificationRequired,
     onClose,
-}: {
-    userId: string
-    kind: CurrencyOperationKind
-    onPrepared: (operation: CurrencyOperation) => void
-    onClose: () => void
-}) {
+}: CurrencyMoneyFormProps) {
     const t = useAppTranslations('currencyAccounts')
     const locale = useLocale()
     const { control, watch, handleSubmit } = useForm<CurrencyMoneyForm>({
@@ -91,7 +88,9 @@ export function EurcMoneyFormFields({
             assertCurrencyOperationSession(userId, version)
             onPrepared(operation)
         } catch (reason) {
+            if (currencyOperationSession(userId) !== version) return
             setError(reason)
+            if (wireErrorCode(reason) === 'verification_required') onVerificationRequired?.()
         } finally {
             preparing.current = false
             setPending(false)
@@ -141,7 +140,7 @@ export function EurcMoneyFormFields({
                     render={({ field, fieldState }) => (
                         <Field
                             htmlFor="eurc-amount"
-                            label={`${t('amount')} · ${kind === 'BANK_DEPOSIT' ? 'EUR' : source}`}
+                            label={`${t('amount')} · ${kind === 'BANK_DEPOSIT' || source === 'EURC' ? 'EUR' : 'USD'}`}
                             error={fieldState.error?.message}
                         >
                             <BaseInput

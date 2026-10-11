@@ -61,6 +61,7 @@
         "features/deposit-accounts/components/CorridorGateDrawer.tsx": 98,
         "features/deposit-accounts/components/DepositAccountDetailsScreen.tsx": 152,
         "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 214,
+        "features/home/components/EurcAccountView.tsx": 226,
         "features/home/components/EurcBankAccountView.tsx": 142,
         "features/home/components/EurcMoneyFormView.tsx": 120,
         "features/home/components/EurcMoneyReviewView.tsx": 108,

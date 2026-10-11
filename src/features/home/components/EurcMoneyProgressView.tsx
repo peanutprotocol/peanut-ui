@@ -14,10 +14,12 @@ import { currencyAccountsApi, type CurrencyOperation } from '@/services/currency
 export function EurcMoneyProgressView({
     userId,
     operationId,
+    onVerificationRequired,
     onClose,
 }: {
     userId: string
     operationId: string
+    onVerificationRequired?: () => void
     onClose: () => void
 }) {
     const t = useAppTranslations('currencyAccounts'),
@@ -88,6 +90,7 @@ export function EurcMoneyProgressView({
                     client.setQueryData<CurrencyOperation>(['currency-operation', userId, operationId], next)
                 }
                 onClose={onClose}
+                onVerificationRequired={onVerificationRequired}
             />
         )
     return (

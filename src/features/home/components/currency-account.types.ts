@@ -12,6 +12,7 @@ export type CurrencyMoneyFormProps = {
     userId: string
     kind: import('@/services/currency-accounts').CurrencyOperationKind
     onPrepared: (operation: import('@/services/currency-accounts').CurrencyOperation) => void
+    onVerificationRequired?: () => void
     onClose: () => void
 }
 

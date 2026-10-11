@@ -489,7 +489,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/users/currency-accounts/EURC/capabilities',
-        handler: () => ({ receive: true, send: true, exchange: true, bankDeposit: true, bankWithdraw: true }),
+        handler: () => ({
+            receive: true,
+            send: true,
+            exchange: true,
+            bankDeposit: true,
+            bankWithdraw: true,
+            bankingBlock: null,
+        }),
     },
     {
         method: 'GET',

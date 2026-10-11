@@ -30,12 +30,14 @@ export function EurcMoneyReviewView({
     operation,
     destinationLabel,
     onSubmitted,
+    onVerificationRequired,
     onClose,
 }: {
     userId: string
     operation: CurrencyOperation
     destinationLabel?: string
     onSubmitted: (operation: CurrencyOperation) => void
+    onVerificationRequired?: () => void
     onClose: () => void
 }) {
     const t = useAppTranslations('currencyAccounts')
@@ -93,6 +95,7 @@ export function EurcMoneyReviewView({
             } catch (reason) {
                 if (currencyOperationSession(userId) !== version) return
                 setError(reason)
+                if (wireErrorCode(reason) === 'verification_required') onVerificationRequired?.()
                 if (wireErrorCode(reason) === 'operation_expired') {
                     try {
                         const next = await currencyAccountsApi.operation(operation.id)
