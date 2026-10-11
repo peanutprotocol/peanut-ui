@@ -9,6 +9,7 @@ import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
+import type { SumsubSubmissionSource } from '@/components/Kyc/sumsubSdk.types'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
@@ -167,6 +168,8 @@ export const useMultiPhaseKycFlow = ({
     // completed/abandoned events (LATAM successes fired as kyc_approved with
     // region_intent: None). The last initiated intent wins over the prop.
     const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
+    const submissionAttemptRef = useRef({ reported: false, intent: regionIntent })
+    const submissionAttempt = submissionAttemptRef.current
     const [requestedIntent, setRequestedIntent] = useState<KYCRegionIntent | undefined>(regionIntent)
     const [requestedCountry, setRequestedCountry] = useState<string | undefined>()
 
@@ -355,22 +358,32 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [liveKycStatus, fetchUser, regionIntent, showWrapper, isMultiLevel])
 
-    // A multi-level session never reaches handleSdkComplete on the happy path:
-    // the SDK stays open through the follow-up level and the APPROVED transition
-    // closes it without onComplete. The wrapper reports the Level-1 submit
-    // through onSubmitted instead, so the funnel still gets its KYC_SUBMITTED.
-    const handleSdkSubmitted = useCallback(() => {
-        reportedRejectionRef.current = null
-        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
-    }, [regionIntent])
+    // Retain the attempt in late SDK callbacks so they cannot consume a newer attempt's submission.
+    const captureSubmission = useCallback(
+        (source: SumsubSubmissionSource | 'sdk_complete') => {
+            if (submissionAttempt.reported) return
+            submissionAttempt.reported = true
+            posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
+                region_intent: submissionAttempt.intent,
+                submit_source: source,
+            })
+        },
+        [submissionAttempt]
+    )
+
+    const handleSdkSubmitted = useCallback(
+        (source: SumsubSubmissionSource = 'sdk_submitted') => {
+            reportedRejectionRef.current = null
+            captureSubmission(source)
+        },
+        [captureSubmission]
+    )
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         reportedRejectionRef.current = null
         if (!isResidenceChangeFlow) {
-            posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
-                region_intent: lastIntentRef.current ?? regionIntent,
-            })
+            captureSubmission('sdk_complete')
             isRealtimeFlowRef.current = true
         }
         // Deliberately does NOT consume a deferred ACTION_REQUIRED for the capture
@@ -397,7 +410,7 @@ export const useMultiPhaseKycFlow = ({
         handleSumsubApproved,
         isActionFlow,
         isResidenceChangeFlow,
-        regionIntent,
+        captureSubmission,
         verificationSession,
     ])
 
@@ -417,6 +430,7 @@ export const useMultiPhaseKycFlow = ({
             corridor?: DepositCorridor
         ) => {
             const intent = overrideIntent ?? regionIntent
+            submissionAttemptRef.current = { reported: false, intent }
             lastIntentRef.current = intent
             setRequestedIntent(intent)
             lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }

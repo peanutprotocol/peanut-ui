@@ -450,3 +450,150 @@ describe('deposit session regression contracts', () => {
         expect(deriveCapabilityPhaseSignals(capabilities as never, 'LATAM', 'AR').allSettled).toBe(false)
     })
 })
+
+describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
+    const submittedCaptures = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.KYC_SUBMITTED)
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockInitiate.mockReset()
+        mockInitiate.mockResolvedValue({ data: { token: 'tok_1', applicantId: 'app_1', status: 'PENDING' } })
+        mockFetchUser.mockResolvedValue(null)
+        mockWs.handler = undefined
+    })
+
+    it.each([
+        [undefined, 'sdk_submitted'],
+        ['sdk_submitted', 'sdk_submitted'],
+        ['sdk_teardown', 'sdk_teardown'],
+    ] as const)(
+        'preserves source %s and region while deduplicating submitted then complete',
+        async (source, expectedSource) => {
+            const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+            await act(async () => {
+                await result.current.handleInitiateKyc('EU')
+            })
+            act(() => result.current.handleSdkSubmitted(source))
+            act(() => result.current.handleSdkSubmitted(source))
+            act(() => result.current.handleSdkComplete())
+            act(() => result.current.handleSdkComplete())
+            expect(submittedCaptures()).toHaveLength(1)
+            expect(submittedCaptures()[0][1]).toEqual(
+                expect.objectContaining({
+                    region_intent: 'EU',
+                    submit_source: expectedSource,
+                })
+            )
+        }
+    )
+
+    it('deduplicates complete then both submitted callback sources', async () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkComplete())
+        act(() => result.current.handleSdkSubmitted())
+        act(() => result.current.handleSdkSubmitted('sdk_teardown'))
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({
+                region_intent: 'ROW',
+                submit_source: 'sdk_complete',
+            })
+        )
+    })
+
+    it('deduplicates callbacks occurring within the same React turn', async () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => {
+            result.current.handleSdkSubmitted('sdk_teardown')
+            result.current.handleSdkSubmitted()
+            result.current.handleSdkComplete()
+        })
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({
+                region_intent: 'ROW',
+                submit_source: 'sdk_teardown',
+            })
+        )
+    })
+
+    it('allows a new capture with the new region after another initiation', async () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkSubmitted('sdk_teardown'))
+        act(() => result.current.handleSdkComplete())
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+        act(() => result.current.handleSdkComplete())
+        act(() => result.current.handleSdkSubmitted())
+        expect(submittedCaptures()).toHaveLength(2)
+        expect(submittedCaptures().map(([, properties]) => properties)).toEqual([
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_teardown' }),
+            expect.objectContaining({ region_intent: 'EU', submit_source: 'sdk_complete' }),
+        ])
+    })
+
+    it.each([false, true])(
+        'keeps late callbacks scoped to their original attempt (previously submitted: %s)',
+        async (oldAlreadySubmitted) => {
+            const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+            await act(async () => {
+                await result.current.handleInitiateKyc('ROW')
+            })
+            const oldSubmitted = result.current.handleSdkSubmitted
+            if (oldAlreadySubmitted) act(() => oldSubmitted('sdk_teardown'))
+
+            await act(async () => {
+                await result.current.handleInitiateKyc('EU')
+            })
+            act(() => oldSubmitted('sdk_teardown'))
+            act(() => result.current.handleSdkComplete())
+            act(() => result.current.handleSdkSubmitted())
+            act(() => oldSubmitted('sdk_teardown'))
+
+            expect(submittedCaptures()).toHaveLength(2)
+            expect(submittedCaptures().map(([, properties]) => properties)).toEqual([
+                expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_teardown' }),
+                expect.objectContaining({ region_intent: 'EU', submit_source: 'sdk_complete' }),
+            ])
+        }
+    )
+
+    it('excludes residence completion and still records a subsequent identity attempt', async () => {
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'residence-token',
+                applicantId: 'applicant-1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(0)
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({
+                region_intent: 'ROW',
+                submit_source: 'sdk_complete',
+            })
+        )
+    })
+})
