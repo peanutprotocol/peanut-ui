@@ -34,6 +34,7 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
+import { AttentionProvider } from '@/features/attention/AttentionProvider'
 
 /**
  * How long the protected auth gate may show the mascot before it gives up.
@@ -207,63 +208,65 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <NavHeaderPresenceProvider>
-            <AppShell
-                variant="app"
-                banner={!isDev && <ShellBannerFallback />}
-                nav={!isDev && !isProfileMenu && isUserLoggedIn && <BottomNav />}
-                contentClassName={twMerge(
-                    'pb-[calc(6rem_+_var(--safe-bottom))]',
-                    isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
-                    // Receipt owns its 16px page inset so the same shell also
-                    // renders correctly on the public web receipt route.
-                    isReceipt && 'p-0',
-                    // the 6rem reservation exists to clear the bottom nav, so a
-                    // screen without one takes the same inset as a logged-out one
-                    isUserLoggedIn && !isProfileMenu
-                        ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
-                        : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                    isDev && 'p-0 pb-0'
-                )}
-                innerClassName={twMerge(
-                    alignStart && 'items-start',
-                    isSupport && 'h-full',
-                    // the shell inset now lives on the capped column, so a page that
-                    // owns its own inset opts out here instead of with p-0 above
-                    (isSupport || isReceipt || isDev) && 'px-0',
-                    isUserLoggedIn
-                        ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
-                        : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                    // the shell above is min-h-dvh WITH pt-safe-top, so this scroll
-                    // box is 100dvh - safe-top tall. a plain min-h-dvh here is taller
-                    // than the box that holds it, so on edge-to-edge iOS/Android the
-                    // scroller overflows by the inset and /dev/ds — which caps itself
-                    // at the same height — drifts its header out of view.
-                    isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start'
-                )}
-                modals={
-                    <>
-                        <GuestLoginModal />
-                        <ReConsentModal />
-                        <SupportDrawer />
-                        {/* Suspense is required: nuqs reads useSearchParams, which triggers
+        <AttentionProvider>
+            <NavHeaderPresenceProvider>
+                <AppShell
+                    variant="app"
+                    banner={!isDev && <ShellBannerFallback />}
+                    nav={!isDev && !isProfileMenu && isUserLoggedIn && <BottomNav />}
+                    contentClassName={twMerge(
+                        'pb-[calc(6rem_+_var(--safe-bottom))]',
+                        isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
+                        // Receipt owns its 16px page inset so the same shell also
+                        // renders correctly on the public web receipt route.
+                        isReceipt && 'p-0',
+                        // the 6rem reservation exists to clear the bottom nav, so a
+                        // screen without one takes the same inset as a logged-out one
+                        isUserLoggedIn && !isProfileMenu
+                            ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
+                            : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                        isDev && 'p-0 pb-0'
+                    )}
+                    innerClassName={twMerge(
+                        alignStart && 'items-start',
+                        isSupport && 'h-full',
+                        // the shell inset now lives on the capped column, so a page that
+                        // owns its own inset opts out here instead of with p-0 above
+                        (isSupport || isReceipt || isDev) && 'px-0',
+                        isUserLoggedIn
+                            ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
+                            : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
+                        // the shell above is min-h-dvh WITH pt-safe-top, so this scroll
+                        // box is 100dvh - safe-top tall. a plain min-h-dvh here is taller
+                        // than the box that holds it, so on edge-to-edge iOS/Android the
+                        // scroller overflows by the inset and /dev/ds — which caps itself
+                        // at the same height — drifts its header out of view.
+                        isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start'
+                    )}
+                    modals={
+                        <>
+                            <GuestLoginModal />
+                            <ReConsentModal />
+                            <SupportDrawer />
+                            {/* Suspense is required: nuqs reads useSearchParams, which triggers
                         a client-side-rendering bailout without a boundary. */}
-                        <Suspense fallback={null}>
-                            <SupportDeepLink />
-                        </Suspense>
-                        <QRScannerOverlay />
-                        <SecurityVerificationOverlay />
-                        {/* push pre-prompt for money moments off Home; on Home it
+                            <Suspense fallback={null}>
+                                <SupportDeepLink />
+                            </Suspense>
+                            <QRScannerOverlay />
+                            <SecurityVerificationOverlay />
+                            {/* push pre-prompt for money moments off Home; on Home it
                         renders inside HomeModals' priority chain instead */}
-                        {isUserLoggedIn && !isHome && <SetupNotificationsModal />}
-                        {/* dev fixture warning strip — renders null outside fixture mode */}
-                        <FixtureBanner />
-                    </>
-                }
-            >
-                {children}
-            </AppShell>
-        </NavHeaderPresenceProvider>
+                            {isUserLoggedIn && !isHome && <SetupNotificationsModal />}
+                            {/* dev fixture warning strip — renders null outside fixture mode */}
+                            <FixtureBanner />
+                        </>
+                    }
+                >
+                    {children}
+                </AppShell>
+            </NavHeaderPresenceProvider>
+        </AttentionProvider>
     )
 }
 
