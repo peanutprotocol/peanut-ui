@@ -606,9 +606,9 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     className={twMerge(
                                         'flex w-full flex-1 flex-col justify-between md:flex-1',
                                         contentClassName,
-                                        'gap-8 compact:gap-5 short:gap-4 tight:gap-3',
+                                        'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
                                         // signup matches residence: the field sits 24px under the description
-                                        screenId === 'signup' && 'gap-6 compact:gap-5 short:gap-4 tight:gap-3',
+                                        screenId === 'signup' && 'gap-6 short:gap-4 tight:gap-3',
                                         !sunsetLanding && 'md:flex-1 md:justify-between',
                                         fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                     )}
