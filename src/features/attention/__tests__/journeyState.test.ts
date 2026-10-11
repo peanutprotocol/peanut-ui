@@ -34,6 +34,15 @@ const base: JourneyInputs = {
     pushReady: false,
     pushUnanswered: false,
     pushPromptedThisSession: false,
+    pushNotEnabled: false,
+    activated: false,
+    geoCountry: null,
+    invitesSent: 0,
+    hasSupportSurvivorBadge: false,
+    cardOffer: { loaded: true, geoProhibited: false, hasCardRelationship: false, promotionDisabled: false },
+    qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
+    documentSlideKey: null,
+    userInterviewFlag: false,
     showEarlyUserModal: undefined,
 }
 

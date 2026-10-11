@@ -55,8 +55,16 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
     migration: { on: false },
-    push: { ready: true, unanswered: false, promptedThisSession: false },
+    push: { ready: true, unanswered: false, promptedThisSession: false, notEnabled: false },
     showEarlyUserModal: true,
+    activated: false,
+    geoCountry: null,
+    invitesSent: 0,
+    hasSupportSurvivorBadge: false,
+    cardOffer: { loaded: true, geoProhibited: false, hasCardRelationship: false, promotionDisabled: false },
+    qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
+    documentSlideKey: null,
+    flags: { userInterview: false },
     ...overrides,
 })
 

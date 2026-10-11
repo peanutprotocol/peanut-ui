@@ -5,14 +5,23 @@ import { useQuery } from '@tanstack/react-query'
 import { usePathname } from 'next/navigation'
 import { formatUnits } from 'viem'
 import { useAuth } from '@/context/authContext'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { QrKycState } from '@/constants/kyc.consts'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useCardInfo } from '@/hooks/useCardInfo'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { verifyRowStatus } from '@/utils/activation-step.utils'
+import { showVerifyCTA } from '@/utils/home-carousel.utils'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 import { consentApi, type ConsentStatusResponse } from '@/services/consent'
@@ -81,7 +90,16 @@ export interface JourneyInputs {
     pushReady: boolean
     pushUnanswered: boolean
     pushPromptedThisSession: boolean
+    pushNotEnabled: boolean
     showEarlyUserModal: boolean | undefined
+    activated: boolean
+    geoCountry: string | null
+    invitesSent: number
+    hasSupportSurvivorBadge: boolean
+    cardOffer: JourneyState['cardOffer']
+    qr: JourneyState['qr']
+    documentSlideKey: string | null
+    userInterviewFlag: boolean
 }
 
 /** Pure, so a test (and later the API) can build the state without React. */
@@ -124,8 +142,17 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
             ready: input.pushReady,
             unanswered: input.pushUnanswered,
             promptedThisSession: input.pushPromptedThisSession,
+            notEnabled: input.pushNotEnabled,
         },
         showEarlyUserModal: input.showEarlyUserModal,
+        activated: input.activated,
+        geoCountry: input.geoCountry,
+        invitesSent: input.invitesSent,
+        hasSupportSurvivorBadge: input.hasSupportSurvivorBadge,
+        cardOffer: input.cardOffer,
+        qr: input.qr,
+        documentSlideKey: input.documentSlideKey,
+        flags: { userInterview: input.userInterviewFlag },
     }
 }
 
@@ -139,14 +166,19 @@ export function useJourneyState(): JourneyState {
     const userId = user?.user.userId ?? null
     const pathname = usePathname()
     const { status, isVerified, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
-    const { onboarding, isLoading: onboardingLoading } = useActivationStatus()
+    const { onboarding, isActivated, isLoading: onboardingLoading } = useActivationStatus()
     const { blockedCard } = useProviderRejection(onboarding)
-    const { nextActions, rails } = useCapabilities()
+    const { nextActions, rails, canDo, railsForProvider, channelOf, isLoading: capabilitiesLoading } = useCapabilities()
     const { overview, isLoading: overviewLoading } = useRainCardOverview()
+    const { cardInfo, isEligible: isCardEligible, isLoading: cardInfoLoading, error: cardInfoError } = useCardInfo()
     const { balance } = useWallet()
     const migrationOn = useMigrationFlag()
     const { oneSignalInitialized, isPermissionGranted, isPermissionDenied, isPushOptedIn, promptShownThisSession } =
         useNotifications()
+    const { countryCode: geoCountry } = useGeoLocation()
+    const flagEnabled = useFeatureFlags()
+    // shares the React Query cache key with HomeHistory, so this read is free while Home is mounted
+    const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50, enabled: !!userId })
     const epoch = useJourneyEpoch()
 
     const consent = useQuery({
@@ -157,7 +189,55 @@ export function useJourneyState(): JourneyState {
         retry: 1,
     })
 
-    const dueTasks = useMemo(() => selectHomeTasks(nextActions, rails ?? []).largeTasks.length, [nextActions, rails])
+    const homeTasks = useMemo(() => selectHomeTasks(nextActions, rails ?? []), [nextActions, rails])
+    const dueTasks = homeTasks.largeTasks.length
+    const documentSlideKey = homeTasks.documentSlide?.key ?? null
+
+    // the same gate the QR pay page reads, so the two never disagree
+    const qr = useMemo<JourneyState['qr']>(() => {
+        const gate = selectQrKycGate({
+            isLoading: capabilitiesLoading || !user,
+            isRegionRestricted,
+            isTerminalFailure,
+            canPayManteca: canDo('pay', { provider: 'manteca' }),
+            mantecaRails: railsForProvider('manteca'),
+            nextActions,
+        })
+        const railsInFlight = rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
+        return {
+            canPayNow: gate.kycGateState === QrKycState.PROCEED_TO_PAY,
+            hasMadeQrPayment: latestHistory?.entries.some((entry) => entry.extraData?.kind === 'QR_PAY'),
+            verifyOpensQr: showVerifyCTA({
+                qrGateState: gate.kycGateState,
+                isIdentityVerified: verifyRowStatus({ status: user ? status : undefined }) === 'done',
+                isInFlight: railsInFlight,
+                isCardEligible,
+            }),
+        }
+    }, [
+        capabilitiesLoading,
+        user,
+        isRegionRestricted,
+        isTerminalFailure,
+        canDo,
+        railsForProvider,
+        nextActions,
+        rails,
+        latestHistory,
+        status,
+        isCardEligible,
+    ])
+
+    const cardOffer = useMemo<JourneyState['cardOffer']>(
+        () => ({
+            // a failed request (retries spent) settles as loaded: no card offer, instead of a placeholder that never resolves
+            loaded: !cardInfoLoading && (cardInfo !== undefined || !!cardInfoError),
+            geoProhibited: !!cardInfo?.geoProhibited,
+            hasCardRelationship: rails.some((rail) => channelOf(rail) === 'card'),
+            promotionDisabled: underMaintenanceConfig.disableCardPromotion,
+        }),
+        [cardInfoLoading, cardInfo, cardInfoError, rails, channelOf]
+    )
 
     return useMemo(
         () =>
@@ -189,7 +269,18 @@ export function useJourneyState(): JourneyState {
                 pushReady: oneSignalInitialized,
                 pushUnanswered: !isPermissionGranted && !isPermissionDenied && !isPushOptedIn,
                 pushPromptedThisSession: promptShownThisSession,
+                pushNotEnabled: !isPermissionGranted && !isPushOptedIn,
                 showEarlyUserModal: user?.showEarlyUserModal,
+                activated: isActivated,
+                geoCountry,
+                invitesSent: user?.invitesSent?.length ?? 0,
+                hasSupportSurvivorBadge:
+                    user?.user?.badges?.some((badge) => badge.code === 'SUPPORT_SURVIVOR') ?? false,
+                cardOffer,
+                qr,
+                documentSlideKey,
+                // nonProdBypass: previews and local always show the card for QA; on prod the PostHog cohort decides
+                userInterviewFlag: flagEnabled('user-interviews-invite', { nonProdBypass: true }),
             }),
         [
             userId,
@@ -216,6 +307,12 @@ export function useJourneyState(): JourneyState {
             isPermissionDenied,
             isPushOptedIn,
             promptShownThisSession,
+            isActivated,
+            geoCountry,
+            cardOffer,
+            qr,
+            documentSlideKey,
+            flagEnabled,
             epoch,
         ]
     )

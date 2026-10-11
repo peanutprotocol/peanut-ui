@@ -7,6 +7,19 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const SHOWN_HISTORY_CAP = 10
 /** blockedCardCtaId() keys (home-carousel.utils) */
 const BLOCKED_CARD_PREFIX = 'blocked-card:'
+/** the carousel slide ids a user may have closed before the zone, by the ask that replaced each */
+const LEGACY_CAROUSEL_ASK: Record<string, AskId> = {
+    'user-interview': 'user-interview',
+    'app-install': 'install-app',
+    'invite-friends': 'invite',
+    'latam-cashback-invite': 'invite',
+    'notification-prompt': 'push-home-fallback',
+    'qr-payment': 'qr-payment',
+    'bug-bounty': 'bug-bounty',
+    'card-offer': 'card-offer',
+    'kyc-prompt': 'verify-for-qr',
+}
+export const APP_INSTALL_CARD_COOLDOWN_DAYS = 7
 
 const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((listener) => listener())
@@ -79,12 +92,26 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
     }
     const hidden = prefs?.dismissedCarouselCTAs
     const hiddenIds = Array.isArray(hidden) ? hidden : Object.keys(hidden ?? {})
+    // the legacy string[] shape carries no date and reads as closed now
+    const closedAt = (id: string): string => {
+        const at = Array.isArray(hidden) ? undefined : hidden?.[id]
+        return isIso(at) ? at : new Date().toISOString()
+    }
     // one entry per ask: the newest hidden blocked card; `version` keeps an
     // older hidden reason from silencing a new one (isSilenced compares it)
     const blocked = hiddenIds.filter((id) => id.startsWith(BLOCKED_CARD_PREFIX)).at(-1)
     if (blocked) {
         const at = !Array.isArray(hidden) ? hidden?.[blocked] : undefined
         out['blocked-card'] = { dismissedAt: isIso(at) ? at : new Date(0).toISOString(), version: blocked }
+    }
+    for (const id of hiddenIds) {
+        const askId = LEGACY_CAROUSEL_ASK[id]
+        if (!askId || out[askId]) continue
+        // the app-install card came back after its cooldown; every other close was for good
+        out[askId] =
+            id === 'app-install'
+                ? { snoozedUntil: addDays(closedAt(id), APP_INSTALL_CARD_COOLDOWN_DAYS) }
+                : { dismissedAt: closedAt(id) }
     }
     return out
 }

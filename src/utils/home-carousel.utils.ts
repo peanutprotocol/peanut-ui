@@ -1,6 +1,5 @@
 import { QrKycState } from '@/constants/kyc.consts'
 import { qrPayIsAPath } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
-import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 
 /**
  * Home carousel rules (TASK-23054, Konrad's QR banner rule, 2026-09-25).
@@ -73,26 +72,6 @@ export type BlockedCardKind =
  */
 export function blockedCardCtaId(kind: BlockedCardKind, reasonCode: string | null | undefined): string {
     return `blocked-card:${kind}:${reasonCode ?? 'none'}`
-}
-
-/**
- * The Home CTAs a user closed that stay hidden now: carousel cards and
- * blocked cards share this one store (user preferences,
- * `dismissedCarouselCTAs`).
- */
-export function readHiddenHomeCtas(userId: string | undefined): Map<string, Date> {
-    return hiddenCarouselCTAs(getUserPreferences(userId)?.dismissedCarouselCTAs, new Date())
-}
-
-/** Record that the user closed a Home CTA. Merges into what is stored, so two closers never overwrite each other. */
-export function hideHomeCta(userId: string | undefined, id: string): void {
-    const now = new Date().toISOString()
-    const stored = getUserPreferences(userId)?.dismissedCarouselCTAs
-    const record: Record<string, string> = Array.isArray(stored)
-        ? Object.fromEntries(stored.map((storedId) => [storedId, now]))
-        : { ...(stored ?? {}) }
-    record[id] = now
-    updateUserPreferences(userId, { dismissedCarouselCTAs: record })
 }
 
 /**

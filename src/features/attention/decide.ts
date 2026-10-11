@@ -88,6 +88,7 @@ function interruptRefusal(
     zoneIdle: boolean
 ): string | null {
     if (!ask.surfaces.includes('interrupt')) return 'no interrupt surface'
+    if (ask.policy.surfaceWhen?.interrupt && !ask.policy.surfaceWhen.interrupt(state)) return 'surface condition'
     const routes = ask.policy.routes ?? 'home'
     if (routes === 'home' && session.route !== 'home') return 'route'
     if ((ask.policy.minSessions ?? 0) > session.count) return 'too early'
@@ -154,20 +155,32 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
         else interrupt = ask.id
     }
 
-    const zone = pickZone(live, sorted, verdicts, ledger, session, interrupt)
+    const zone = pickZone(live, sorted, verdicts, ledger, session, state, interrupt)
     return { interrupt, zone, suspended: false, trace }
 }
 
 function pickZone(
     live: readonly AttentionAsk[],
-    sorted: AttentionAsk[],
+    sorted: readonly AttentionAsk[],
     verdicts: Partial<Record<AskId, Verdict>>,
     ledger: Ledger,
     session: Session,
+    state: JourneyState,
     interrupt: AskId | null
 ): ZonePick | null {
     if (session.route !== 'home') return null
-    const candidates = live.filter((ask) => ask.id !== interrupt && ask.surfaces.includes('zone'))
+    const candidates = live.filter(
+        (ask) =>
+            ask.id !== interrupt &&
+            ask.surfaces.includes('zone') &&
+            (!ask.policy.surfaceWhen?.zone || ask.policy.surfaceWhen.zone(state))
+    )
+    // no flash of a lower card while a higher one is still loading
+    const best = candidates[0]
+    const higherUnknown = sorted.some(
+        (ask) => ask.surfaces.includes('zone') && verdicts[ask.id] === 'unknown' && (!best || ask.tier < best.tier)
+    )
+    if (higherUnknown && !session.settleDeadlinePassed) return null
     const fresh = candidates.find((ask) => !isFatigued(ask, ledger[ask.id], session))
     // every candidate is resting: better the top one again than an empty zone
     const pick = fresh ?? candidates[0]
