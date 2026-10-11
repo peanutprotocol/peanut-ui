@@ -18,6 +18,10 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { pointsApi } from '@/services/points'
+import type { HistoryEntry } from '@/utils/history.utils'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { verifyRowStatus } from '@/utils/activation-step.utils'
@@ -50,6 +54,27 @@ export function outdatedConsentDocuments(status: ConsentStatusResponse | undefin
             (d) => !!d && d.needsAcceptance === true && typeof d.slug === 'string' && d.slug in LEGAL_DOCUMENT_VERSIONS
         )
         .map((d) => ({ slug: d.slug, currentVersion: String(d.currentVersion) }))
+}
+
+/** What the latest history page says about spending and requests; undefined while it loads. */
+export function summarizeHistory(entries: HistoryEntry[] | undefined): {
+    lastSpendAt: string | null
+    hasReceivedRequestPayment: boolean | undefined
+} {
+    if (!entries) return { lastSpendAt: null, hasReceivedRequestPayment: undefined }
+    let last: number | null = null
+    for (const entry of entries) {
+        const kind = entry.extraData?.kind
+        if (kind !== 'QR_PAY' && kind !== 'CARD_SPEND') continue
+        const at = new Date(entry.timestamp).getTime()
+        if (Number.isFinite(at) && (last === null || at > last)) last = at
+    }
+    return {
+        lastSpendAt: last === null ? null : new Date(last).toISOString(),
+        hasReceivedRequestPayment: entries.some(
+            (entry) => entry.extraData?.kind === 'REQUEST_PAY' && entry.userRole === 'RECIPIENT'
+        ),
+    }
 }
 
 export const outdatedConsentVersions = (status: ConsentStatusResponse | undefined): string[] | undefined =>
@@ -100,6 +125,13 @@ export interface JourneyInputs {
     qr: JourneyState['qr']
     documentSlideKey: string | null
     userInterviewFlag: boolean
+    depositAccounts: JourneyState['depositAccounts']
+    history: HistoryEntry[] | undefined
+    firstPeerPaymentAt: string | null
+    passkeyCount: number | null
+    hasEmail: boolean
+    hasFullName: boolean
+    rewardsPendingUsd: number | undefined
 }
 
 /** Pure, so a test (and later the API) can build the state without React. */
@@ -153,6 +185,13 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         qr: input.qr,
         documentSlideKey: input.documentSlideKey,
         flags: { userInterview: input.userInterviewFlag },
+        depositAccounts: input.depositAccounts,
+        ...summarizeHistory(input.history),
+        firstPeerPaymentAt: input.firstPeerPaymentAt,
+        passkeyCount: input.passkeyCount,
+        hasEmail: input.hasEmail,
+        hasFullName: input.hasFullName,
+        rewardsPendingUsd: input.rewardsPendingUsd,
     }
 }
 
@@ -180,6 +219,26 @@ export function useJourneyState(): JourneyState {
     // shares the React Query cache key with HomeHistory, so this read is free while Home is mounted
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50, enabled: !!userId })
     const epoch = useJourneyEpoch()
+    const depositAccountsEnabled = useDepositAccountsEnabled()
+    const deposit = useDepositAccounts({ enabled: depositAccountsEnabled && !!userId })
+    // same key as useRewardsFlow, so Rewards and the card read one answer
+    const cashStatus = useQuery({
+        queryKey: ['cashStatus', userId],
+        queryFn: () => pointsApi.getCashStatus(),
+        enabled: !!userId && isActivated,
+        staleTime: 60_000,
+        retry: 1,
+    })
+    const depositAccounts = useMemo<JourneyState['depositAccounts']>(
+        () => ({
+            enabled: depositAccountsEnabled,
+            // a failed query settles as nothing to claim rather than a card that never resolves
+            loaded: !deposit.isLoading,
+            claimable: Object.values(deposit.claimable).filter(Boolean).length,
+            active: Object.values(deposit.accounts).filter((account) => account?.status === 'active').length,
+        }),
+        [depositAccountsEnabled, deposit.isLoading, deposit.claimable, deposit.accounts]
+    )
 
     const consent = useQuery({
         queryKey: [CONSENT_STATUS_QUERY_KEY, userId],
@@ -281,6 +340,14 @@ export function useJourneyState(): JourneyState {
                 documentSlideKey,
                 // nonProdBypass: previews and local always show the card for QA; on prod the PostHog cohort decides
                 userInterviewFlag: flagEnabled('user-interviews-invite', { nonProdBypass: true }),
+                depositAccounts,
+                history: latestHistory?.entries,
+                firstPeerPaymentAt: user?.user?.firstPaymentAt ?? null,
+                passkeyCount: user?.passkeyCount ?? null,
+                hasEmail: !!user?.user?.email,
+                hasFullName: !!user?.user?.fullName,
+                // a failed request is no card, not a card held forever
+                rewardsPendingUsd: cashStatus.isError ? 0 : cashStatus.data?.data?.rewards?.pendingUsd,
             }),
         [
             userId,
@@ -313,6 +380,10 @@ export function useJourneyState(): JourneyState {
             qr,
             documentSlideKey,
             flagEnabled,
+            depositAccounts,
+            latestHistory,
+            cashStatus.isError,
+            cashStatus.data,
             epoch,
         ]
     )

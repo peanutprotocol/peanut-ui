@@ -93,6 +93,42 @@
             "card": {
                 "title": "Conseguí la <b>Peanut Card</b>",
                 "description": "Gastá tu saldo <b>donde acepten Visa</b>."
+            },
+            "virtualAccount": {
+                "title": "Abrí tu cuenta bancaria",
+                "description": "Obtené datos de cuenta para recibir transferencias en tu saldo."
+            },
+            "nextPayment": {
+                "title": "Pagá con Peanut otra vez",
+                "description": "Tu saldo está listo. Escaneá un QR o usá tu tarjeta."
+            },
+            "shareBankDetails": {
+                "title": "Compartí tus datos bancarios",
+                "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar acá."
+            },
+            "requestMoney": {
+                "title": "Pedí dinero",
+                "description": "¿Esperás un pago o dividís un gasto? Mandá una solicitud."
+            },
+            "sendMoney": {
+                "title": "Mandá dinero a un amigo",
+                "description": "Pagale a quien quieras en segundos, directo desde tu saldo."
+            },
+            "backupPasskey": {
+                "title": "Agregá una passkey de respaldo",
+                "description": "Una segunda passkey mantiene tu dinero accesible si perdés este dispositivo."
+            },
+            "addEmail": {
+                "title": "Agregá tu correo",
+                "description": "Recibí comprobantes y alertas de tu cuenta por correo."
+            },
+            "rewards": {
+                "title": "Tenés recompensas esperando",
+                "description": "Abrí Recompensas para ver lo que ganaste."
+            },
+            "completeProfile": {
+                "title": "Completá tu perfil",
+                "description": "Agregá tu nombre para que tus amigos te reconozcan al pagarte."
             }
         },
         "pendingTasks": {

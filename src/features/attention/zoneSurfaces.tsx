@@ -19,4 +19,13 @@ export const ZONE_SURFACES: Partial<Record<AskId, Surface>> = {
     invite: lazy(() => import('./surfaces/zone/InviteCard')),
     'bug-bounty': lazy(() => import('./surfaces/zone/BugBountyCard')),
     'user-interview': lazy(() => import('./surfaces/zone/UserInterviewCard')),
+    'virtual-account': lazy(() => import('./surfaces/zone/VirtualAccountCard')),
+    'next-payment': lazy(() => import('./surfaces/zone/NextPaymentCard')),
+    'share-bank-details': lazy(() => import('./surfaces/zone/ShareBankDetailsCard')),
+    'request-money': lazy(() => import('./surfaces/zone/RequestMoneyCard')),
+    'send-money': lazy(() => import('./surfaces/zone/SendMoneyCard')),
+    'backup-passkey': lazy(() => import('./surfaces/zone/BackupPasskeyCard')),
+    'add-email': lazy(() => import('./surfaces/zone/AddEmailCard')),
+    rewards: lazy(() => import('./surfaces/zone/RewardsCard')),
+    'complete-profile': lazy(() => import('./surfaces/zone/CompleteProfileCard')),
 }

@@ -308,6 +308,8 @@ export interface IUserProfile {
     rails: IUserRail[]
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
+    /** passkeys backing the account; absent on an API deployed before the field */
+    passkeyCount?: number
     invitedBy: string | null // Username of the person who invited this user
     // Backend-computed capability model — TOP-LEVEL sibling of `user` on the
     // /get-user response (NOT user.capabilities). Read via useCapabilities().

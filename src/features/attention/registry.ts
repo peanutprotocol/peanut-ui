@@ -43,11 +43,16 @@ export const balanceBackup: AttentionAsk = {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.balance.loaded) return 'unknown'
+        // two credentials already back the balance up; null is an API without the field
+        if ((s.passkeyCount ?? 1) >= 2) return 'done'
         return s.balance.usd > BALANCE_WARNING_THRESHOLD_USD ? 'show' : 'ineligible'
     },
     policy: { expiryDays: BALANCE_WARNING_EXPIRY_DAYS },
     analyticsKey: MODAL_TYPES.BALANCE_WARNING,
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000
+export const NEXT_PAYMENT_AFTER_DAYS = 14
 
 export const verificationDue: AttentionAsk = {
     id: 'verification-due',
@@ -142,7 +147,7 @@ export const checklist: AttentionAsk = {
 export const pushHomeFallback: AttentionAsk = {
     id: 'push-home-fallback',
     tier: 4,
-    rank: 1, // N16
+    rank: 2, // N16, after the backup passkey (N14)
     surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -280,6 +285,91 @@ export const earlyUser: AttentionAsk = {
     analyticsKey: MODAL_TYPES.EARLY_USER,
 }
 
+const zoneAsk = (
+    id: AttentionAsk['id'],
+    tier: AttentionAsk['tier'],
+    rank: number,
+    analyticsKey: string,
+    eligible: AttentionAsk['eligible'],
+    extra: Partial<Pick<AttentionAsk, 'version' | 'policy'>> = {}
+): AttentionAsk => ({ id, tier, rank, surfaces: ['zone'], eligible, policy: {}, analyticsKey, ...extra })
+
+export const virtualAccount = zoneAsk('virtual-account', 3, 1, 'virtual_account', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    if (!s.depositAccounts.enabled) return 'ineligible'
+    if (!s.depositAccounts.loaded) return 'unknown'
+    if (s.depositAccounts.active > 0) return 'done'
+    return s.depositAccounts.claimable > 0 ? 'show' : 'ineligible'
+}) // N8
+
+export const nextPayment = zoneAsk('next-payment', 3, 5, 'next_payment', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    if (!s.activated || !s.balance.loaded || s.balance.usd <= 0) return 'ineligible'
+    if (s.qr.hasMadeQrPayment === undefined) return 'unknown'
+    const last = s.lastSpendAt ? Date.parse(s.lastSpendAt) : NaN
+    return !Number.isFinite(last) || s.now - last > NEXT_PAYMENT_AFTER_DAYS * DAY_MS ? 'show' : 'ineligible'
+}) // N10
+
+export const shareBankDetails = zoneAsk('share-bank-details', 3, 6, 'share_bank_details', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    return s.depositAccounts.active > 0 ? 'show' : 'ineligible'
+}) // N11
+
+export const requestMoney = zoneAsk('request-money', 3, 7, 'request_money', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    if (!s.activated) return 'ineligible'
+    if (s.hasReceivedRequestPayment === undefined) return 'unknown'
+    return s.hasReceivedRequestPayment ? 'done' : 'show'
+}) // N12
+
+export const sendMoney = zoneAsk('send-money', 3, 8, 'send_money', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    if (!s.activated) return 'ineligible'
+    return s.firstPeerPaymentAt ? 'done' : 'show'
+}) // N13
+
+export const backupPasskey = zoneAsk('backup-passkey', 4, 1, 'backup_passkey', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    // null: an API without the field; 0: a bad row. Neither is a reason to ask.
+    if (s.passkeyCount === null || s.passkeyCount < 1) return 'ineligible'
+    return s.passkeyCount === 1 ? 'show' : 'done'
+}) // N14
+
+export const addEmail = zoneAsk('add-email', 4, 3, 'add_email', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    return s.hasEmail ? 'done' : 'show'
+}) // N17
+
+export const rewards = zoneAsk(
+    'rewards',
+    5,
+    2,
+    'rewards',
+    (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.activated) return 'ineligible'
+        if (s.rewardsPendingUsd === undefined) return 'unknown'
+        return s.rewardsPendingUsd > 0 ? 'show' : 'ineligible'
+    },
+    // a new pending balance re-arms a card the user already acted on
+    { version: (s) => (s.rewardsPendingUsd === undefined ? undefined : String(s.rewardsPendingUsd)) }
+) // N20
+
+export const completeProfile = zoneAsk('complete-profile', 5, 4, 'complete_profile', (s) => {
+    const gate = loggedIn(s)
+    if (gate !== 'ready') return gate
+    if (!s.activated) return 'ineligible'
+    return s.hasFullName ? 'done' : 'show'
+}) // N22
+
 export const ASKS: readonly AttentionAsk[] = [
     legalReconsent,
     balanceBackup,
@@ -298,4 +388,13 @@ export const ASKS: readonly AttentionAsk[] = [
     invite,
     bugBounty,
     userInterview,
+    virtualAccount,
+    nextPayment,
+    shareBankDetails,
+    requestMoney,
+    sendMoney,
+    backupPasskey,
+    addEmail,
+    rewards,
+    completeProfile,
 ]

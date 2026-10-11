@@ -65,6 +65,14 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
     documentSlideKey: null,
     flags: { userInterview: false },
+    depositAccounts: { enabled: false, loaded: true, claimable: 0, active: 0 },
+    lastSpendAt: null,
+    hasReceivedRequestPayment: true,
+    firstPeerPaymentAt: '2026-09-01T00:00:00.000Z',
+    passkeyCount: null,
+    hasEmail: true,
+    hasFullName: true,
+    rewardsPendingUsd: 0,
     ...overrides,
 })
 

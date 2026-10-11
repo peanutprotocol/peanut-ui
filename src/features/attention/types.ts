@@ -43,6 +43,15 @@ export type AskId =
     | 'invite'
     | 'bug-bounty'
     | 'user-interview'
+    | 'virtual-account'
+    | 'next-payment'
+    | 'share-bank-details'
+    | 'request-money'
+    | 'send-money'
+    | 'backup-passkey'
+    | 'add-email'
+    | 'rewards'
+    | 'complete-profile'
 
 /**
  * Who may interrupt, by default per tier:
@@ -160,6 +169,18 @@ export interface JourneyState {
     /** an advisory (future-dated) document request before its final week */
     documentSlideKey: string | null
     flags: { userInterview: boolean }
+    depositAccounts: { enabled: boolean; loaded: boolean; claimable: number; active: number }
+    /** newest QR pay or card spend in the latest history page; null = none seen */
+    lastSpendAt: string | null
+    /** a request of the user's was paid; undefined while history loads */
+    hasReceivedRequestPayment: boolean | undefined
+    firstPeerPaymentAt: string | null
+    /** null on an API deployed before the field */
+    passkeyCount: number | null
+    hasEmail: boolean
+    hasFullName: boolean
+    /** undefined while loading; the query only runs for activated users */
+    rewardsPendingUsd: number | undefined
 }
 
 export interface LedgerEntry {
