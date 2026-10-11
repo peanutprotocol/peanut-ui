@@ -13,7 +13,7 @@ const base: JourneyInputs = {
     userLoaded: true,
     isNative: true,
     pathname: '/home/',
-    consentVersions: [],
+    consentDocuments: [],
     consentFailed: false,
     identity: {
         status: 'verified',
@@ -27,11 +27,13 @@ const base: JourneyInputs = {
     dueTasks: 0,
     cardLoaded: true,
     cardNeedsSetup: false,
+    activeCardId: null,
     redirectDestination: undefined,
     balanceUnits: undefined,
     migrationOn: false,
     pushReady: false,
     pushUnanswered: false,
+    pushPromptedThisSession: false,
     showEarlyUserModal: undefined,
 }
 
@@ -42,13 +44,16 @@ describe('buildJourneyState', () => {
     })
 
     test('consent: loading is unknown, a failed check fails open, documents mean needed', () => {
-        expect(buildJourneyState({ ...base, consentVersions: undefined }).consent.status).toBe('unknown')
-        expect(buildJourneyState({ ...base, consentVersions: undefined, consentFailed: true }).consent.status).toBe(
+        expect(buildJourneyState({ ...base, consentDocuments: undefined }).consent.status).toBe('unknown')
+        expect(buildJourneyState({ ...base, consentDocuments: undefined, consentFailed: true }).consent.status).toBe(
             'clear'
         )
-        expect(buildJourneyState({ ...base, consentVersions: ['2026-10-01'] }).consent).toEqual({
+        expect(
+            buildJourneyState({ ...base, consentDocuments: [{ slug: 'terms', currentVersion: '2026-10-01' }] }).consent
+        ).toEqual({
             status: 'needed',
             versions: ['2026-10-01'],
+            documents: [{ slug: 'terms', currentVersion: '2026-10-01' }],
         })
     })
 

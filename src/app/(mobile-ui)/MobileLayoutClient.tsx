@@ -3,7 +3,6 @@
 import { AppShell } from '@/components/Global/AppShell'
 import { BottomNav } from '@/components/Global/BottomNav'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
-import ReConsentModal from '@/components/Global/ReConsentModal'
 import Loading from '@/components/Global/Loading'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
@@ -37,6 +36,7 @@ import '@/hooks/useSafeBack'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import { useVerifyShell } from '@/utils/verify-shell'
 import { AttentionProvider } from '@/features/attention/AttentionProvider'
+import { AttentionInterrupt } from '@/features/attention/AttentionInterrupt'
 
 /**
  * How long the protected auth gate may show the mascot before it gives up.
@@ -259,7 +259,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 modals={
                     <>
                         <GuestLoginModal />
-                        <ReConsentModal />
+                        <AttentionInterrupt />
                         <SupportDrawer />
                         <BrazilPausedDrawer />
                         {/* Suspense is required: nuqs reads useSearchParams, which triggers
@@ -271,7 +271,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <SecurityVerificationOverlay />
                         {/* push pre-prompt for money moments off Home; on Home it
                         renders inside HomeModals' priority chain instead */}
-                        {isUserLoggedIn && !isHome && <SetupNotificationsModal />}
+                        {isUserLoggedIn && <SetupNotificationsModal />}
                         {/* dev fixture warning strip — renders null outside fixture mode */}
                         <FixtureBanner />
                     </>

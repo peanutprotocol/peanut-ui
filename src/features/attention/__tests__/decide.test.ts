@@ -25,7 +25,7 @@ const baseState: JourneyState = {
     userLoaded: true,
     isNative: true,
     route: 'home',
-    consent: { status: 'clear', versions: [] },
+    consent: { status: 'clear', versions: [], documents: [] },
     identity: {
         status: 'not_started',
         isVerified: false,
@@ -36,11 +36,12 @@ const baseState: JourneyState = {
     onboarding: onboarding('verify'),
     blockedCardId: null,
     dueTasks: 0,
-    card: { loaded: true, needsSetup: false },
+    card: { loaded: true, needsSetup: false, activeCardId: null },
     postAuthRedirect: false,
+    postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
     migration: { on: false },
-    push: { ready: true, unanswered: false },
+    push: { ready: true, unanswered: false, promptedThisSession: false },
     showEarlyUserModal: false,
 }
 
@@ -57,13 +58,13 @@ const baseSession: Session = {
 const run = (state: Partial<JourneyState> = {}, session: Partial<Session> = {}, ledger: Ledger = {}) =>
     decide({ ...baseState, ...state }, ASKS, ledger, { ...baseSession, ...session })
 
-const TERMS_NEEDED: Partial<JourneyState> = { consent: { status: 'needed', versions: ['2026-10-01'] } }
+const TERMS_NEEDED: Partial<JourneyState> = { consent: { status: 'needed', versions: ['2026-10-01'], documents: [] } }
 
 describe('the 7 Oct incident: updated terms and the waitlist announcement', () => {
     const bothEligible: Partial<JourneyState> = { ...TERMS_NEEDED, showEarlyUserModal: true }
 
     test('1. consent still loading: nothing interrupts, the checklist holds the zone', () => {
-        const d = run({ consent: { status: 'unknown', versions: [] }, showEarlyUserModal: true })
+        const d = run({ consent: { status: 'unknown', versions: [], documents: [] }, showEarlyUserModal: true })
         expect(d.interrupt).toBeNull()
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
         expect(d.trace.reasons['early-user']).toBe('higher tier unsettled')
@@ -116,7 +117,7 @@ describe('other pairs that collide today', () => {
     test('terms outranks the Home push ask, the balance warning and the download prompt', () => {
         const d = run({
             ...TERMS_NEEDED,
-            push: { ready: true, unanswered: true },
+            push: { ready: true, unanswered: true, promptedThisSession: false },
             balance: { loaded: true, usd: 900 },
             isNative: false,
             migration: { on: true },
@@ -127,29 +128,41 @@ describe('other pairs that collide today', () => {
     test('a T1 ask may follow another T1 in the same session; a T4 may not', () => {
         const afterTerms = { interruptsThisSession: ['legal-reconsent' as const] }
         expect(run({ balance: { loaded: true, usd: 900 } }, afterTerms).interrupt).toBe('balance-backup')
-        const push = run({ push: { ready: true, unanswered: true } }, { ...afterTerms, count: 3 })
+        const push = run(
+            { push: { ready: true, unanswered: true, promptedThisSession: false } },
+            { ...afterTerms, count: 3 }
+        )
         expect(push.interrupt).toBeNull()
         expect(push.trace.reasons['push-home-fallback']).toMatch(/T1 interrupt already fired/)
     })
 
     test('the download prompt (T2, budget session) takes one interrupt and the push ask waits', () => {
         const d = run(
-            { isNative: false, migration: { on: true }, push: { ready: true, unanswered: true } },
+            {
+                isNative: false,
+                migration: { on: true },
+                push: { ready: true, unanswered: true, promptedThisSession: false },
+            },
             { count: 3 }
         )
         expect(d.interrupt).toBe('install-app')
         expect(d.trace.reasons['push-home-fallback']).toBe('an interrupt is open')
     })
 
-    test('the Home push ask waits for the third session', () => {
-        const state = { push: { ready: true, unanswered: true } }
+    test('the Home push ask waits for the third session, and stands down after a money-moment ask', () => {
+        const state = { push: { ready: true, unanswered: true, promptedThisSession: false } }
         expect(run(state, { count: 2 }).interrupt).toBeNull()
         expect(run(state, { count: 3 }).interrupt).toBe('push-home-fallback')
+        const asked = { push: { ready: true, unanswered: true, promptedThisSession: true } }
+        expect(run(asked, { count: 3 }).trace.verdicts['push-home-fallback']).toBe('ineligible')
     })
 
     test('finish card setup needs an active card, so it never competes with verify', () => {
         // an active card implies the ID check passed: the checklist is already complete
-        const d = run({ card: { loaded: true, needsSetup: true }, onboarding: onboarding('completed') })
+        const d = run({
+            card: { loaded: true, needsSetup: true, activeCardId: null },
+            onboarding: onboarding('completed'),
+        })
         expect(d.interrupt).toBe('finish-card-setup')
         expect(d.trace.verdicts.checklist).toBe('done')
     })
@@ -159,6 +172,7 @@ describe('other pairs that collide today', () => {
         expect(unverified.interrupt).toBeNull()
         const verified = run({
             postAuthRedirect: true,
+            postAuthRedirectDestination: '/claim/abc',
             identity: { ...baseState.identity, status: 'verified', isVerified: true },
         })
         expect(verified.interrupt).toBe('post-verification-action')
@@ -235,7 +249,7 @@ describe('session mechanics', () => {
 
     test('the settle deadline releases lower tiers held by an unknown', () => {
         const state: Partial<JourneyState> = {
-            consent: { status: 'unknown', versions: [] },
+            consent: { status: 'unknown', versions: [], documents: [] },
             showEarlyUserModal: true,
             onboarding: onboarding('completed'),
         }
@@ -266,7 +280,10 @@ describe('isSilenced', () => {
     })
 
     test('a new version re-arms a snoozed ask', () => {
-        const state: JourneyState = { ...baseState, consent: { status: 'needed', versions: ['2026-11-01'] } }
+        const state: JourneyState = {
+            ...baseState,
+            consent: { status: 'needed', versions: ['2026-11-01'], documents: [] },
+        }
         const entry = { snoozedUntil: new Date(NOW + 30 * DAY_MS).toISOString(), version: '2026-10-01' }
         expect(isSilenced(legalReconsent, entry, state)).toBe(false)
     })

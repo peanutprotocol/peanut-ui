@@ -1,29 +1,34 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
-import posthog from 'posthog-js'
-import { Fragment } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import ActionModal from '../ActionModal'
 import DocsLink from '@/components/Global/DocsLink'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
-import { useAuth } from '@/context/authContext'
-import { useModalsContextOptional } from '@/context/ModalsContext'
-import { acceptedLegalDocument, consentApi, type ConsentStatusDocument } from '@/services/consent'
-import { LEGAL_DOCUMENT_VERSIONS, type LegalDocumentSlug } from '@/constants/legal-versions.generated'
-import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import { isReConsentSnoozed, snoozeReConsent } from './utils'
+import { acceptedLegalDocument, consentApi } from '@/services/consent'
+import { type LegalDocumentSlug } from '@/constants/legal-versions.generated'
+import { CONSENT_STATUS_QUERY_KEY } from '@/features/attention/journeyState'
+import type { AskSurfaceProps } from '@/features/attention/types'
+import { nextPromptAt } from './utils'
 
 /** Keep "Not now" stacked BELOW the primary CTA at every width — side-by-side
  *  would read as two equally-weighted choices. */
 const STACKED_CTAS = 'flex-col sm:flex-col'
 
+export interface ReConsentDocument {
+    slug: string
+    currentVersion: string
+}
+
 /**
  * Re-consent click-through (tos-v1 phase 2, ToS §17): when a legal document's
  * published version moves past what the user last provably accepted, this modal
  * lists the updated documents and appends fresh consent-ledger rows on
- * acceptance. Backed by GET /users/consent/status and POST /users/consent/accept.
+ * acceptance (POST /users/consent/accept). Whether it shows is the attention
+ * arbiter's call (the `legal-reconsent` ask reads GET /users/consent/status);
+ * this component only renders and answers.
  *
  * It is a PROMPT, not a gate. §17.2 gives material changes 30 days and offers
  * the click-through as a way to accept sooner; §17.3 requires that a user who
@@ -31,118 +36,23 @@ const STACKED_CTAS = 'flex-col sm:flex-col'
  * wallet, means they must be able to reach `/withdraw`. So "Not now" always
  * exists, and dismissing never writes a ledger row (declining is not consent).
  */
-const ReConsentModal = () => {
+const ReConsentModal = ({ documents, onActed, onSnoozed }: AskSurfaceProps & { documents: ReConsentDocument[] }) => {
     const t = useTranslations('global')
     const tPolicies = useTranslations('profile.about.policies')
-    const { user } = useAuth()
-    const [outdatedDocs, setOutdatedDocs] = useState<ConsentStatusDocument[]>([])
+    const queryClient = useQueryClient()
     const [checked, setChecked] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    // false while a status check may still surface documents; true on every
-    // terminal path. `resolvedFor` names the account that resolution belongs
-    // to — the gate below must never publish one account's result under
-    // another account's id.
-    const [resolved, setResolved] = useState(false)
-    const [resolvedFor, setResolvedFor] = useState<string | null>(null)
-    const lastCheckedUserId = useRef<string | null>(null)
-    const setLegalConsentGate = useModalsContextOptional()?.setLegalConsentGate
-
-    useEffect(() => {
-        // once per user per session — keyed by userId so a logout → login as a
-        // different account still gets its own check
-        const userId = user?.user.userId
-        if (!userId) {
-            // logged out: nothing can prompt — the gate must not stay closed
-            setResolved(true)
-            setResolvedFor(null)
-            setOutdatedDocs([])
-            lastCheckedUserId.current = null
-            return
-        }
-        if (lastCheckedUserId.current === userId) return
-        lastCheckedUserId.current = userId
-        // account switched: none of the previous user's consent state may leak
-        // into this session (an already-populated modal or a pre-ticked box)
-        setResolved(false)
-        setResolvedFor(userId)
-        setOutdatedDocs([])
-        setChecked(false)
-        setError(null)
-        // a recent "Not now" defers the prompt — don't even spend the request
-        if (isReConsentSnoozed(userId)) {
-            setResolved(true)
-            return
-        }
-        consentApi
-            .getStatus()
-            .then((status) => {
-                // a slow response for the previous account must not populate
-                // the modal for whoever is logged in now
-                if (lastCheckedUserId.current !== userId) return
-                setResolved(true)
-                if (!status.needsReConsent) return
-                // only prompt for documents this client can actually display
-                const docs = status.documents.filter((d) => d.needsAcceptance && d.slug in LEGAL_DOCUMENT_VERSIONS)
-                if (!docs.length) return
-                setOutdatedDocs(docs)
-                posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, {
-                    modal_type: MODAL_TYPES.RE_CONSENT,
-                    documents: docs.map((d) => d.slug),
-                })
-            })
-            .catch((e) => {
-                // a failed status check must never block the app — retry next
-                // session. Sentry (not console): a systematic failure here means
-                // re-consent silently stops rolling out, and prod must say so.
-                if (lastCheckedUserId.current === userId) setResolved(true)
-                Sentry.captureException(e, { tags: { feature: 're-consent', action: 'status' } })
-            })
-    }, [user])
-
-    // publish the priority gate, owned by the current account: in-flight
-    // counts as blocking so the download prompt can never flash before legal
-    // resolves. the first render after an account switch still carries the
-    // PREVIOUS account's resolved state — publishing that under the new id
-    // would briefly release it, so a state/account mismatch reads 'checking'.
-    const gateUserId = user?.user.userId ?? null
-    useEffect(() => {
-        const stateOwnedByCurrentAccount = resolvedFor === gateUserId
-        setLegalConsentGate?.({
-            status: !stateOwnedByCurrentAccount
-                ? 'checking'
-                : !resolved
-                  ? 'checking'
-                  : outdatedDocs.length
-                    ? 'prompting'
-                    : 'clear',
-            userId: gateUserId,
-        })
-    }, [setLegalConsentGate, resolved, resolvedFor, outdatedDocs.length, gateUserId])
-
-    // this modal unmounting (route group change, error boundary) must never
-    // leave the rest of the app gated
-    useEffect(() => {
-        if (!setLegalConsentGate) return
-        return () => setLegalConsentGate({ status: 'clear', userId: null })
-    }, [setLegalConsentGate])
 
     const handleAccept = async () => {
         if (!checked || submitting) return
         setSubmitting(true)
         setError(null)
         try {
-            await consentApi.accept(outdatedDocs.map((d) => acceptedLegalDocument(d.slug as LegalDocumentSlug)))
-            // CTA_CLICKED, not DISMISSED — acceptance and refusal must be
-            // distinguishable, since their ratio is the rollout's headline metric
-            posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
-                modal_type: MODAL_TYPES.RE_CONSENT,
-                documents: outdatedDocs.map((d) => d.slug),
-            })
-            setOutdatedDocs([])
-            // a future appearance of this modal (version bump, account switch)
-            // must start with an unticked box
-            setChecked(false)
+            await consentApi.accept(documents.map((d) => acceptedLegalDocument(d.slug as LegalDocumentSlug)))
+            // the ask's verdict turns `done` once the status query reflects the ledger
+            await queryClient.invalidateQueries({ queryKey: [CONSENT_STATUS_QUERY_KEY] })
+            onActed()
         } catch (e) {
             // Sentry (not console): if /accept fails systematically, nobody can
             // record consent at all — that must be visible in prod
@@ -156,24 +66,10 @@ const ReConsentModal = () => {
     /** "Not now", the close button, backdrop and Escape all land here. */
     const handlePostpone = () => {
         if (submitting) return
-        const userId = user?.user.userId
         // defer to the date these documents actually take effect (§17.2), not a
         // fixed interval — a doc posted today buys the user its full 30 days
-        if (userId)
-            snoozeReConsent(
-                userId,
-                outdatedDocs.map((d) => d.currentVersion)
-            )
-        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, {
-            modal_type: MODAL_TYPES.RE_CONSENT,
-            documents: outdatedDocs.map((d) => d.slug),
-        })
-        setOutdatedDocs([])
-        setChecked(false)
-        setError(null)
+        onSnoozed(nextPromptAt(documents.map((d) => d.currentVersion)))
     }
-
-    if (!outdatedDocs.length) return null
 
     return (
         <ActionModal
@@ -199,7 +95,7 @@ const ReConsentModal = () => {
                         (wraps when it must) — inline-link treatment per the Signup
                         consent line; DocsLink handles browser and native targets */}
                     <p className="text-body-s">
-                        {outdatedDocs.map((doc, index) => {
+                        {documents.map((doc, index) => {
                             const policy = legalPolicyForSlug(doc.slug)
                             return (
                                 <Fragment key={doc.slug}>

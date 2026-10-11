@@ -50,6 +50,8 @@ jest.mock('@/utils/general.utils', () => ({
 
 const mockIsPwaSunsetOn = jest.fn(() => false)
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
+let mockInterruptOpen = false
+jest.mock('@/features/attention/interruptState', () => ({ isAttentionInterruptOpen: () => mockInterruptOpen }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
@@ -84,7 +86,7 @@ const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS).toISOStri
 const expiredSnooze = () => daysAgo(NOTIF_PROMPT_SNOOZE_DAYS + 6)
 const freshSnooze = () => daysAgo(1)
 
-const { HOME_FALLBACK, DEPOSIT_INTENT, CARD_READY } = PUSH_PROMPT_TRIGGERS
+const { DEPOSIT_INTENT, CARD_READY } = PUSH_PROMPT_TRIGGERS
 const THIRD_SESSION = { sessionCount: 3 }
 
 async function offer(trigger: PushPromptTrigger) {
@@ -109,7 +111,7 @@ async function renderInitialized() {
 async function renderWithShowingBaseline() {
     const rendered = await renderInitialized()
     mockPrefs = { ...THIRD_SESSION }
-    await offer(HOME_FALLBACK)
+    await offer(DEPOSIT_INTENT)
     expect(rendered.result.current.showPermissionModal).toBe(true)
     newSession()
     return rendered
@@ -128,56 +130,6 @@ describe('useNotifications dismissal / snooze logic', () => {
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')
-    })
-
-    it('shows the Home fallback from the third session for a user who never dismissed it', async () => {
-        await renderWithShowingBaseline()
-    })
-
-    it('converts legacy notifModalClosed to a timestamp exactly once', async () => {
-        const rendered = await renderWithShowingBaseline()
-
-        mockPrefs = { ...THIRD_SESSION, notifModalClosed: true }
-        await offer(HOME_FALLBACK)
-
-        expect(mockPrefs?.notifModalClosedAt).toEqual(expect.any(String))
-        // legacy dismissal converts to a snooze that starts now → stays closed
-        expect(rendered.result.current.showPermissionModal).toBe(false)
-
-        // re-evaluate: the timestamp is already there, no second write
-        const conversionWrites = () =>
-            mockUpdateUserPreferences.mock.calls.filter(([, partial]) => 'notifModalClosedAt' in partial)
-        expect(conversionWrites()).toHaveLength(1)
-        await offer(HOME_FALLBACK)
-        expect(conversionWrites()).toHaveLength(1)
-    })
-
-    it('flag off: an expired snooze stays closed forever', async () => {
-        const rendered = await renderWithShowingBaseline()
-
-        mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: expiredSnooze() }
-        await offer(HOME_FALLBACK)
-
-        expect(rendered.result.current.showPermissionModal).toBe(false)
-    })
-
-    it('flag on: an expired snooze re-asks', async () => {
-        mockIsPwaSunsetOn.mockReturnValue(true)
-        const rendered = await renderInitialized()
-        mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: expiredSnooze() }
-        await offer(HOME_FALLBACK)
-
-        expect(rendered.result.current.showPermissionModal).toBe(true)
-    })
-
-    it('flag on: a fresh snooze stays closed', async () => {
-        mockIsPwaSunsetOn.mockReturnValue(true)
-        const rendered = await renderWithShowingBaseline()
-
-        mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: freshSnooze() }
-        await offer(HOME_FALLBACK)
-
-        expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
     it('granted permission hides an open prompt and no trigger asks again', async () => {
@@ -243,20 +195,11 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         resetPushPromptForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
+        mockInterruptOpen = false
         mockIsPwaSunsetOn.mockReturnValue(true)
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')
-    })
-
-    it('does not ask on the first Home visits', async () => {
-        const rendered = await renderWithShowingBaseline()
-
-        for (const sessionCount of [1, 2]) {
-            mockPrefs = { sessionCount }
-            await offer(HOME_FALLBACK)
-            expect(rendered.result.current.showPermissionModal).toBe(false)
-        }
     })
 
     it('counts one session per app load', async () => {
@@ -307,6 +250,18 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(true)
     })
 
+    it('never asks over an arbiter surface: the moment passes', async () => {
+        const rendered = await renderInitialized()
+        mockPrefs = { ...THIRD_SESSION }
+        mockInterruptOpen = true
+        await offer(DEPOSIT_INTENT)
+        expect(rendered.result.current.showPermissionModal).toBe(false)
+        mockInterruptOpen = false
+        await offer(CARD_READY)
+        expect(rendered.result.current.showPermissionModal).toBe(true)
+        expect(rendered.result.current.promptShownThisSession).toBe(true)
+    })
+
     it('shows at most one pre-prompt per session', async () => {
         const rendered = await renderInitialized()
         await offer(DEPOSIT_INTENT)
@@ -340,17 +295,6 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         newSession()
         await offer(DEPOSIT_INTENT)
         expect(rendered.result.current.showPermissionModal).toBe(true)
-    })
-
-    it('a money-moment dismissal also snoozes the Home fallback', async () => {
-        const rendered = await renderInitialized()
-        mockPrefs = { ...THIRD_SESSION }
-        await offer(DEPOSIT_INTENT)
-        act(() => rendered.result.current.closePermissionModal())
-
-        newSession()
-        await offer(HOME_FALLBACK)
-        expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
     it('stamps the trigger on the prompt and permission events', async () => {
