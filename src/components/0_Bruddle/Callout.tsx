@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
@@ -132,7 +132,7 @@ export const Callout = ({
     className,
     ...props
 }: CalloutProps) => {
-    const t = useTranslations('common')
+    const t = useAppTranslations('common')
     const { icon, bg, surface, bubble, bar } = PRIORITY_STYLES[priority]
     const isFloating = variant === 'floating'
     const visibleCtas = isFloating ? undefined : ctas

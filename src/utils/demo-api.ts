@@ -497,6 +497,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => ({
             entries: [],
             operations: [...demoCurrencyOperations.values()],
+            cursor: null,
+            hasMore: false,
         }),
     },
     {

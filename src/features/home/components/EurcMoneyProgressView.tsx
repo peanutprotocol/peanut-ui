@@ -4,38 +4,47 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { EurcMoneyReviewView } from './EurcMoneyReviewView'
+import { clearSignedCurrencyOperation } from '@/utils/currency-operation-recovery'
+import { isFinalCurrencyOperation } from '@/utils/currency-operation'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import { currencyAccountsApi, type CurrencyOperation } from '@/services/currency-accounts'
+import { currencyAccountsApi } from '@/services/currency-accounts'
 
 export function EurcMoneyProgressView({
     userId,
-    operation,
+    operationId,
     onClose,
 }: {
     userId: string
-    operation: CurrencyOperation
+    operationId: string
     onClose: () => void
 }) {
     const t = useAppTranslations('currencyAccounts'),
         client = useQueryClient()
     const state = useQuery({
-        queryKey: ['currency-operation', userId, operation.id],
-        queryFn: () => currencyAccountsApi.operation(operation.id),
-        initialData: operation,
+        queryKey: ['currency-operation', userId, operationId],
+        queryFn: ({ signal }) => currencyAccountsApi.operation(operationId, signal),
         refetchInterval: (query) =>
             ['COMPLETED', 'FAILED', 'CANCELLED'].includes(query.state.data?.status ?? '') ? false : 5_000,
         retry: 1,
     })
-    const status = state.data.status
+    const operation = state.data
+    const status = operation?.status
+    const banks = useQuery({
+        queryKey: ['currency-banks', userId],
+        queryFn: currencyAccountsApi.bankAccounts,
+        enabled: operation?.kind === 'BANK_WITHDRAW',
+        retry: 1,
+    })
     const [resuming, setResuming] = useState(false),
         [resumeError, setResumeError] = useState(false)
     const resume = async () => {
         setResuming(true)
         setResumeError(false)
         try {
-            const next = await currencyAccountsApi.resume(operation.id)
-            client.setQueryData(['currency-operation', userId, operation.id], next)
-            onClose()
+            const next = await currencyAccountsApi.resume(operationId)
+            client.setQueryData(['currency-operation', userId, operationId], next)
         } catch {
             setResumeError(true)
         } finally {
@@ -43,12 +52,42 @@ export function EurcMoneyProgressView({
         }
     }
     useEffect(() => {
+        if (status && isFinalCurrencyOperation(status)) {
+            try {
+                clearSignedCurrencyOperation(userId, operationId)
+            } catch {
+                setResumeError(true)
+            }
+        }
         if (status === 'COMPLETED') {
             void client.invalidateQueries({ queryKey: ['currency-account-balance', userId] })
             void client.invalidateQueries({ queryKey: ['currency-history', userId] })
             void client.invalidateQueries({ queryKey: ['balance'] })
         }
-    }, [status, client, userId])
+    }, [status, client, userId, operationId])
+    if (!operation)
+        return (
+            <Card className="gap-3 p-4">
+                {state.isError && <Callout priority="error">{t('statusError')}</Callout>}
+                <Button onClick={() => void state.refetch()} disabled={state.isFetching} loading={state.isFetching}>
+                    {t('retry')}
+                </Button>
+                <LinkButton className="mt-3 mb-3" onClick={onClose}>
+                    {t('back')}
+                </LinkButton>
+            </Card>
+        )
+    if (status === 'READY' || status === 'AWAITING_FUNDS')
+        return (
+            <EurcMoneyReviewView
+                key={operationId}
+                userId={userId}
+                operation={operation}
+                destinationLabel={banks.data?.accounts.find((bank) => bank.id === operation.externalAccountId)?.label}
+                onSubmitted={(next) => client.setQueryData(['currency-operation', userId, operationId], next)}
+                onClose={onClose}
+            />
+        )
     return (
         <Card className="gap-3 p-4" aria-live="polite">
             <h2 className="text-heading-card">
@@ -63,36 +102,36 @@ export function EurcMoneyProgressView({
                           : t('pending')}
             </h2>
             <p>
-                {state.data.amount} {state.data.sourceAsset}
+                {operation.amount} {operation.sourceAsset}
             </p>
-            {status === 'COMPLETED' && state.data.receipt?.final_amount && (
+            {status === 'COMPLETED' && operation.receipt?.final_amount && (
                 <p>
-                    {t('settled')}: {state.data.receipt.final_amount} {state.data.destinationCurrency}
+                    {t('settled')}: {operation.receipt.final_amount} {operation.destinationCurrency}
                 </p>
             )}
-            {status === 'COMPLETED' && state.data.receipt?.url?.startsWith('https://') && (
-                <LinkButton className="my-3" external href={state.data.receipt.url}>
+            {status === 'COMPLETED' && operation.receipt?.url?.startsWith('https://') && (
+                <LinkButton className="my-3" external href={operation.receipt.url}>
                     {t('viewReceipt')}
                 </LinkButton>
             )}
-            {!['COMPLETED', 'FAILED', 'CANCELLED'].includes(status) && <p>{t('pendingWarning')}</p>}
+            {!isFinalCurrencyOperation(status ?? '') && <p>{t('pendingWarning')}</p>}
             {status === 'PREPARING' && (
                 <Button onClick={resume} loading={resuming} disabled={resuming}>
                     {t('resume')}
                 </Button>
             )}
-            {resumeError && <p role="alert">{t('actionError')}</p>}
+            {resumeError && <Callout priority="error">{t('actionError')}</Callout>}
             {state.isError && (
-                <div role="alert">
+                <Callout priority="error">
                     <p>{t('statusError')}</p>
                     <Button variant="ghost" onClick={() => void state.refetch()}>
                         {t('retry')}
                     </Button>
-                </div>
+                </Callout>
             )}
-            <Button variant="ghost" onClick={onClose}>
+            <LinkButton className="mt-3 mb-3" onClick={onClose}>
                 {t('back')}
-            </Button>
+            </LinkButton>
         </Card>
     )
 }

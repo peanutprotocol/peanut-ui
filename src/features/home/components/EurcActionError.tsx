@@ -1,6 +1,7 @@
 'use client'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { wireErrorCode } from '@/services/api-error'
+import { Callout } from '@/components/0_Bruddle/Callout'
 
 export function EurcActionError({ error }: { error: unknown }) {
     const t = useAppTranslations('currencyAccounts')
@@ -20,5 +21,5 @@ export function EurcActionError({ error }: { error: unknown }) {
                     : code === 'invalid_bank_account'
                       ? t('badBank')
                       : t('actionError')
-    return <p role="alert">{message}</p>
+    return <Callout priority="error">{message}</Callout>
 }

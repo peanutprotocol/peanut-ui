@@ -1,7 +1,9 @@
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { encodeFunctionData, erc20Abi } from 'viem'
-import { EurcMoneyReviewView, checkedCurrencyCall } from '../EurcMoneyReviewView'
+import { EurcMoneyReviewView } from '../EurcMoneyReviewView'
+import { checkedCurrencyCall } from '@/utils/currency-operation'
+import { clearUserCurrencyOperations } from '@/utils/currency-operation-recovery'
 import { currencyAccountsApi, type CurrencyOperation } from '@/services/currency-accounts'
 const mockEnsure = jest.fn(),
     mockSign = jest.fn()
@@ -14,6 +16,10 @@ jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (k
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+jest.mock('@/constants/currency-accounts.consts', () => ({
+    ...jest.requireActual('@/constants/currency-accounts.consts'),
+    EURC_WALLET_CONFIGURED: true,
+}))
 jest.mock('@/dev/fixtures/active', () => ({ peekActiveFixture: () => undefined }))
 jest.mock('viem/account-abstraction', () => ({ formatUserOperationRequest: (op: unknown) => op }))
 const recipient = `0x${'22'.repeat(20)}` as `0x${string}`
@@ -36,6 +42,7 @@ const operation: CurrencyOperation = {
 }
 beforeEach(() => {
     jest.clearAllMocks()
+    clearUserCurrencyOperations('alice')
     jest.mocked(currencyAccountsApi.operation).mockResolvedValue(operation)
     mockEnsure.mockResolvedValue(undefined)
     mockSign.mockResolvedValue({ signedUserOp: { signature: '0xaaaa' } })
@@ -43,7 +50,7 @@ beforeEach(() => {
 it('signs only the canonical Base EURC transfer and submits after signing', async () => {
     const onSubmitted = jest.fn()
     jest.mocked(currencyAccountsApi.submit).mockResolvedValue({ ...operation, status: 'SUBMITTED' })
-    render(<EurcMoneyReviewView operation={operation} onSubmitted={onSubmitted} onClose={() => {}} />)
+    render(<EurcMoneyReviewView userId="alice" operation={operation} onSubmitted={onSubmitted} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'confirm' }))
     await waitFor(() => expect(onSubmitted).toHaveBeenCalled())
     expect(mockEnsure).toHaveBeenCalledWith('8453')
@@ -53,7 +60,7 @@ it('reuses signed bytes after an ambiguous response without signing a second pay
     jest.mocked(currencyAccountsApi.submit)
         .mockRejectedValueOnce(new Error('lost response'))
         .mockResolvedValueOnce({ ...operation, status: 'SUBMITTED' })
-    render(<EurcMoneyReviewView operation={operation} onSubmitted={jest.fn()} onClose={() => {}} />)
+    render(<EurcMoneyReviewView userId="alice" operation={operation} onSubmitted={jest.fn()} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'confirm' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('actionError')
     expect(screen.getByRole('button', { name: 'cancel' })).toBeDisabled()
@@ -67,7 +74,7 @@ it('reuses signed bytes after an ambiguous response without signing a second pay
 it('recovers an already submitted operation without another signature', async () => {
     jest.mocked(currencyAccountsApi.operation).mockResolvedValue({ ...operation, status: 'SUBMITTED' })
     const onSubmitted = jest.fn()
-    render(<EurcMoneyReviewView operation={operation} onSubmitted={onSubmitted} onClose={() => {}} />)
+    render(<EurcMoneyReviewView userId="alice" operation={operation} onSubmitted={onSubmitted} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'confirm' }))
     await waitFor(() => expect(onSubmitted).toHaveBeenCalled())
     expect(mockSign).not.toHaveBeenCalled()

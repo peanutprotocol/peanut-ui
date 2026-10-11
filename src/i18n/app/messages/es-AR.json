@@ -9,16 +9,18 @@
     "home": {
         "activation": {
             "addEmail": {
-                "title": "Agregar email"
+                "title": "Agregar email",
+                "description": "Agregá un email para completar la configuración."
             },
             "completeSetup": {
-                "title": "Completá la configuración"
+                "title": "Completá la configuración",
+                "description": "Subí un documento actualizado para agregar dinero."
             },
             "verificationIssue": {
-                "description": "Contactá a soporte para recibir ayuda con tu verificación."
+                "description": "Obtené ayuda con la verificación."
             },
             "spendChooser": {
-                "title": "Elegí cómo gastar",
+                "title": "Elegí un pago",
                 "payWithCard": "Pagá con tarjeta",
                 "scanQr": "Escaneá un código QR"
             }
@@ -33,8 +35,9 @@
             "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
         "autoBalance": {
-            "title": "Terminá de configurar la tarjeta",
-            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora: te lo volveremos a pedir en tu primer pago con tarjeta."
+            "title": "Completá la tarjeta",
+            "descriptionError": "No se configuró la tarjeta. Reintentá u omití.",
+            "description": "Tocá con tu passkey."
         },
         "history": {
             "networkErrorDescription": "Revisá tu conexión e intentá de nuevo.",
@@ -1120,10 +1123,7 @@
             "accountDetailsHint": "{country, select, BR {Las claves de teléfono empiezan con +55.} other {Las cuentas de Mercado Pago también sirven.}}"
         },
         "bankForm": {
-            "heading": "Ingresá los datos bancarios",
-            "accountOwnerNameFull": "Ingresá nombre y apellido",
-            "state": "Seleccioná el estado",
-            "countryPlaceholder": "Seleccioná el país",
+            "accountOwnerNameFull": "Ingresá el nombre completo.",
             "accountNumberCo": "El número de cuenta debe tener entre 5 y 20 dígitos",
             "documentType": "Tipo de documento",
             "documentTypeRequired": "El tipo de documento es obligatorio",
@@ -1145,7 +1145,9 @@
             "phoneNumber": "Número de teléfono",
             "phoneNumberRequired": "El número de teléfono es obligatorio",
             "phoneNumberInvalid": "Ingresá un número colombiano, por ejemplo +573001234567",
-            "phoneNumberHelper": "El número registrado en tu banco."
+            "phoneNumberHelper": "El número registrado en tu banco.",
+            "ibanUnsupported": "Usá un IBAN SEPA.",
+            "ownAccountFilled": "Revisá los datos."
         },
         "errors": {
             "invalidNumber": "Ingresá un número válido.",
@@ -1979,69 +1981,14 @@
         "cardRelationship": "Tenés una relación directa con Third National bajo los términos de la tarjeta."
     },
     "currencyAccounts": {
-        "accounts": "Cuentas por moneda",
-        "addAccount": "Agregar una cuenta en otra moneda",
-        "addEurc": "Agregar cuenta EURC",
-        "eurcAccount": "Cuenta EURC",
-        "description": "Saldo en euros en EURC en Base.",
-        "availability": "Los pagos con tarjeta usan USDC.",
-        "adding": "Agregando…",
-        "cancel": "Cancelar",
-        "addError": "No se pudo agregar EURC. Intentá de nuevo.",
-        "balanceError": "Saldo EURC no disponible. Intentá de nuevo.",
-        "retry": "Intentar de nuevo",
-        "accountsError": "Cuentas no disponibles.",
-        "receive": "Recibir EURC",
         "receiveWarning": "Enviá solo EURC en Base a esta dirección.",
-        "back": "Atrás",
-        "actionsError": "Acciones no disponibles.",
-        "send": "Enviar EURC",
-        "exchange": "Cambiar",
-        "bankDeposit": "Agregar euros",
-        "bankWithdraw": "Retirar euros",
-        "activity": "Actividad en euros",
-        "historyError": "Actividad no disponible.",
-        "pending": "Procesando",
-        "viewTransaction": "Ver transacción",
         "emptyActivity": "Todavía no hay actividad en euros.",
-        "newOperation": "Transferencia en euros",
-        "amount": "Monto",
-        "recipient": "Destinatario",
-        "bankAccount": "Cuenta bancaria",
-        "noBankAccounts": "Agregá una cuenta bancaria en euros para retirar.",
-        "referenceRate": "Tipo de cambio indicativo",
-        "rateWarning": "El tipo de cambio y las comisiones pueden cambiar antes de la liquidación.",
-        "actionError": "No se pudo continuar. Intentá de nuevo.",
-        "review": "Revisar",
-        "bankInstructionsWarning": "Usá estos datos y la referencia solo para esta transferencia en euros.",
-        "trackPayment": "Seguir pago",
-        "confirm": "Confirmar",
-        "completed": "Completado",
-        "failed": "Fallido",
-        "cancelled": "Cancelado",
-        "pendingWarning": "Esperando confirmación. No repitas este pago.",
-        "statusError": "Estado no disponible.",
-        "resume": "Reintentar preparación",
-        "needsReview": "Contactar soporte",
-        "addBank": "Agregar cuenta bancaria",
-        "ibanLabel": "Código IBAN",
-        "bicLabel": "Código BIC",
-        "holderLabel": "Titular de la cuenta",
-        "referenceLabel": "Referencia",
-        "bankLabel": "Banco",
-        "currencyLabel": "Moneda",
-        "from": "De",
-        "settled": "Monto liquidado",
-        "viewReceipt": "Ver recibo",
-        "insufficientBalance": "Saldo insuficiente.",
-        "amountLimit": "El monto supera el límite.",
-        "verificationRequired": "Se requiere verificación bancaria.",
+        "noBankAccounts": "Agregá una cuenta bancaria.",
+        "actionError": "Intentá de nuevo.",
+        "bankInstructionsWarning": "Usá estos datos solo para esta transferencia.",
         "expired": "La transferencia venció. Cancelá y empezá otra.",
         "badBank": "Elegí otra cuenta bancaria.",
-        "sendCurrencyBalance": "Saldo: {amount} {currency}",
-        "convertedTotalBalance": "Total entre cuentas: ≈ {amount} {currency}",
         "convertedBalanceWarning": "Convertí antes de enviar. El tipo de cambio y las comisiones pueden variar.",
-        "convertedBalanceUnavailable": "El saldo total no está disponible. Intentá de nuevo.",
-        "convertedBalanceLoading": "Calculando el saldo total…"
+        "convertedBalanceUnavailable": "El saldo total no está disponible. Intentá de nuevo."
     }
 }

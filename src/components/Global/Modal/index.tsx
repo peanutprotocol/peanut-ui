@@ -1,6 +1,6 @@
 import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { twMerge } from '@/utils/tw'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -38,7 +38,7 @@ const Modal = ({
     preventClose = false,
 }: ModalProps) => {
     let dialogRef = useRef(null)
-    const tCommon = useTranslations('common')
+    const tCommon = useAppTranslations('common')
 
     useBackHandler(() => {
         if (!preventClose) onClose()
