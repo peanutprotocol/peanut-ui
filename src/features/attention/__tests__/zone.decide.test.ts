@@ -56,6 +56,14 @@ const baseState: Loose = {
     qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
     documentSlideKey: null,
     flags: { userInterview: false },
+    depositAccounts: { enabled: false, loaded: true, claimable: 0, active: 0 },
+    lastSpendAt: null,
+    hasReceivedRequestPayment: true,
+    firstPeerPaymentAt: '2026-09-01T00:00:00.000Z',
+    passkeyCount: null,
+    hasEmail: true,
+    hasFullName: true,
+    rewardsPendingUsd: 0,
 }
 
 const baseSession: Session = {
@@ -94,7 +102,7 @@ describe('registry: the zone asks follow the approved ranked list', () => {
         ['qr-payment', 3, 2, ['zone']],
         ['verify-for-qr', 3, 3, ['zone']],
         ['card-offer', 3, 4, ['zone']],
-        ['push-home-fallback', 4, 1, ['interrupt', 'zone']],
+        ['push-home-fallback', 4, 2, ['interrupt', 'zone']],
         ['invite', 5, 1, ['zone']],
         ['bug-bounty', 5, 5, ['zone']],
         ['user-interview', 5, 0, ['zone']],

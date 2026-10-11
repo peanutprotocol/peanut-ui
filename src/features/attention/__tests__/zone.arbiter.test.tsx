@@ -78,6 +78,16 @@ const ZONE_ASKS = [
     'invite',
     'bug-bounty',
     'user-interview',
+    // phase 4
+    'virtual-account',
+    'next-payment',
+    'share-bank-details',
+    'request-money',
+    'send-money',
+    'backup-passkey',
+    'add-email',
+    'rewards',
+    'complete-profile',
 ]
 
 const mockLife = { mounts: {} as Record<string, number>, unmounts: {} as Record<string, number> }
@@ -146,6 +156,14 @@ const state = (overrides: Record<string, unknown> = {}): JourneyState =>
         qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
         documentSlideKey: null,
         flags: { userInterview: false },
+        depositAccounts: { enabled: false, loaded: true, claimable: 0, active: 0 },
+        lastSpendAt: null,
+        hasReceivedRequestPayment: true,
+        firstPeerPaymentAt: '2026-09-01T00:00:00.000Z',
+        passkeyCount: null,
+        hasEmail: true,
+        hasFullName: true,
+        rewardsPendingUsd: 0,
         ...overrides,
     }) as unknown as JourneyState
 
