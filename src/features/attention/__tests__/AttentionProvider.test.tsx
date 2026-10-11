@@ -73,6 +73,7 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     hasEmail: true,
     hasFullName: true,
     rewardsPendingUsd: 0,
+    serverLedger: undefined,
     ...overrides,
 })
 

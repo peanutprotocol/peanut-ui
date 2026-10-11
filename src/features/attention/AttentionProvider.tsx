@@ -21,7 +21,7 @@ import { getUserPreferences } from '@/utils/general.utils'
 import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { decide } from './decide'
 import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
-import { ledgerActions, readLedger, subscribeLedger } from './ledger'
+import { ledgerActions, noteServerLedger, readLedger, subscribeLedger } from './ledger'
 import { bumpJourneyEpoch } from './journeyEpoch'
 import { useJourneyState } from './journeyState'
 import { ASKS } from './registry'
@@ -58,10 +58,11 @@ const AttentionContext = createContext<AttentionContextValue | undefined>(undefi
 
 const EMPTY_LEDGER: Ledger = {}
 
-function useLedger(userId: string | null): Ledger {
+function useLedger(userId: string | null, server: unknown): Ledger {
+    noteServerLedger(server)
     return useSyncExternalStore(
         subscribeLedger,
-        () => readLedger(userId),
+        () => readLedger(userId, server),
         () => EMPTY_LEDGER
     )
 }
@@ -171,7 +172,7 @@ const ATTENTION_EVENT: Record<SettleOutcome, string> = {
 
 function AttentionProviderInner({ children }: { children: ReactNode }) {
     const state = useJourneyState()
-    const ledger = useLedger(state.userId)
+    const ledger = useLedger(state.userId, state.serverLedger)
     const [openInterrupt, setOpenInterrupt] = useState<AskId | null>(null)
 
     // an account switch or logout drops whatever was on screen and the session

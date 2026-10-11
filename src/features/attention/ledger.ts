@@ -1,6 +1,7 @@
 import { getUserPreferences, updateUserPreferences, type UserPreferences } from '@/utils/general.utils'
 import { DOWNLOAD_PROMPT_SNOOZE_DAYS, NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
+import { scheduleLedgerSync } from './ledgerSync'
 import type { AskId, Ledger, LedgerEntry } from './types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -116,8 +117,9 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
     return out
 }
 
-const fingerprintOf = (userId: string, prefs: UserPreferences | undefined): string =>
+const fingerprintOf = (userId: string, prefs: UserPreferences | undefined, server: unknown): string =>
     JSON.stringify([
+        server,
         prefs?.attention,
         prefs?.migrationPromptSnoozedAt,
         prefs?.hasSeenBalanceWarning,
@@ -142,6 +144,19 @@ export function sanitizeEntry(raw: unknown): LedgerEntry | undefined {
         out.lastSessionShown = entry.lastSessionShown
     if (typeof entry.consecutiveSessions === 'number' && Number.isFinite(entry.consecutiveSessions))
         out.consecutiveSessions = entry.consecutiveSessions
+    if (isIso(entry.updatedAt)) out.updatedAt = entry.updatedAt
+    return out
+}
+
+const stamp = (entry: LedgerEntry): number => (entry.updatedAt ? Date.parse(entry.updatedAt) : 0)
+
+/** Per ask, the newer `updatedAt` wins; no stamp counts as epoch 0; a tie keeps local. */
+export function mergeLedgers(local: Ledger, server: Ledger): Ledger {
+    const out: Ledger = { ...local }
+    for (const [id, entry] of Object.entries(server) as [AskId, LedgerEntry][]) {
+        const mine = out[id]
+        if (!mine || stamp(entry) > stamp(mine)) out[id] = entry
+    }
     return out
 }
 
@@ -155,26 +170,37 @@ function sanitizeStore(raw: unknown): Ledger {
     return out
 }
 
-export function readLedger(userId: string | null): Ledger {
+/**
+ * Legacy entries fill gaps only; where both devices wrote, the newer entry
+ * wins (`mergeLedgers`). `server` is the profile's copy, passed by the provider.
+ */
+export function readLedger(userId: string | null, server?: unknown): Ledger {
     if (!userId) return EMPTY
     const raw = getUserPreferences(userId)
-    const fingerprint = fingerprintOf(userId, raw)
+    const fingerprint = fingerprintOf(userId, raw, server)
     if (cached && cached.userId === userId && cached.fingerprint === fingerprint) return cached.ledger
     const legacy = legacyEntries(userId, raw)
-    const ledger: Ledger = { ...legacy, ...sanitizeStore(raw?.attention) }
+    const ledger: Ledger = { ...legacy, ...mergeLedgers(sanitizeStore(raw?.attention), sanitizeStore(server)) }
     cached = { userId, fingerprint, ledger }
     return ledger
 }
 
 function write(userId: string, askId: AskId, patch: (entry: LedgerEntry) => LedgerEntry): void {
-    const current = readLedger(userId)
+    const current = readLedger(userId, lastServer)
     const next: AttentionLedgerStore = {
         ...(getUserPreferences(userId)?.attention ?? {}),
-        [askId]: patch({ ...(current[askId] ?? {}) }),
+        [askId]: { ...patch({ ...(current[askId] ?? {}) }), updatedAt: new Date().toISOString() },
     }
     updateUserPreferences(userId, { attention: next })
     cached = null
     emit()
+    scheduleLedgerSync(userId, next)
+}
+
+// the server copy the provider last read with, so a write merges on top of it
+let lastServer: unknown
+export function noteServerLedger(server: unknown): void {
+    lastServer = server
 }
 
 export const ledgerActions = {
