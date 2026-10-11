@@ -6,6 +6,7 @@ import {
     getVerificationSession,
     refreshVerificationSession,
     initiateSumsubKyc,
+    restartIdentityVerification,
     startResidenceChangeVerification,
 } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
@@ -53,6 +54,7 @@ const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSum
 const mockResidenceChange = startResidenceChangeVerification as jest.MockedFunction<
     typeof startResidenceChangeVerification
 >
+const mockRestartIdentity = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
 const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
 
 const rejectedCaptures = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.KYC_REJECTED)
@@ -568,6 +570,57 @@ describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
             ])
         }
     )
+
+    it('records a new submission when restart identity reopens the SDK after a reported attempt', async () => {
+        mockRestartIdentity.mockResolvedValue({ data: { token: 'tok_restart' } } as never)
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkComplete())
+        expect(result.current.showWrapper).toBe(false)
+
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(result.current.showWrapper).toBe(true)
+        act(() => result.current.handleSdkSubmitted('sdk_teardown'))
+        act(() => result.current.handleSdkComplete())
+
+        expect(submittedCaptures().map(([, properties]) => properties)).toEqual([
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_complete' }),
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_teardown' }),
+        ])
+    })
+
+    it('never counts a residence-change teardown as an identity submission, even late', async () => {
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'residence-token',
+                applicantId: 'applicant-1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+        const residenceSubmitted = result.current.handleSdkSubmitted
+        act(() => residenceSubmitted('sdk_teardown'))
+        expect(submittedCaptures()).toHaveLength(0)
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => residenceSubmitted('sdk_teardown'))
+        expect(submittedCaptures()).toHaveLength(0)
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_complete' })
+        )
+    })
 
     it('excludes residence completion and still records a subsequent identity attempt', async () => {
         mockResidenceChange.mockResolvedValue({

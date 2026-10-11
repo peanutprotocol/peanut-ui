@@ -168,8 +168,6 @@ export const useMultiPhaseKycFlow = ({
     // completed/abandoned events (LATAM successes fired as kyc_approved with
     // region_intent: None). The last initiated intent wins over the prop.
     const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
-    const submissionAttemptRef = useRef({ reported: false, intent: regionIntent })
-    const submissionAttempt = submissionAttemptRef.current
     const [requestedIntent, setRequestedIntent] = useState<KYCRegionIntent | undefined>(regionIntent)
     const [requestedCountry, setRequestedCountry] = useState<string | undefined>()
 
@@ -320,6 +318,26 @@ export const useMultiPhaseKycFlow = ({
         dismissCorrection,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
 
+    const [submissionAttempt, setSubmissionAttempt] = useState(() => ({
+        id: 0,
+        intent: regionIntent,
+        residence: isResidenceChangeFlow,
+    }))
+    const reportedAttemptsRef = useRef(new Set<number>())
+    // Every SDK opening (initiate, restart, correction, self-heal, start-action) is a fresh attempt.
+    // Set during render so the SDK launch effect in the same commit binds to the new attempt.
+    const [attemptWrapperOpen, setAttemptWrapperOpen] = useState(showWrapper)
+    if (showWrapper !== attemptWrapperOpen) {
+        setAttemptWrapperOpen(showWrapper)
+        if (showWrapper) {
+            setSubmissionAttempt((attempt) => ({
+                id: attempt.id + 1,
+                intent: attempt.intent,
+                residence: isResidenceChangeFlow,
+            }))
+        }
+    }
+
     // keep ref in sync
     useEffect(() => {
         closeVerificationModalRef.current = closeVerificationProgressModal
@@ -359,10 +377,11 @@ export const useMultiPhaseKycFlow = ({
     }, [liveKycStatus, fetchUser, regionIntent, showWrapper, isMultiLevel])
 
     // Retain the attempt in late SDK callbacks so they cannot consume a newer attempt's submission.
+    // A residence change is an action on an approved identity, never an identity submission.
     const captureSubmission = useCallback(
         (source: SumsubSubmissionSource | 'sdk_complete') => {
-            if (submissionAttempt.reported) return
-            submissionAttempt.reported = true
+            if (submissionAttempt.residence || reportedAttemptsRef.current.has(submissionAttempt.id)) return
+            reportedAttemptsRef.current.add(submissionAttempt.id)
             posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
                 region_intent: submissionAttempt.intent,
                 submit_source: source,
@@ -430,7 +449,7 @@ export const useMultiPhaseKycFlow = ({
             corridor?: DepositCorridor
         ) => {
             const intent = overrideIntent ?? regionIntent
-            submissionAttemptRef.current = { reported: false, intent }
+            setSubmissionAttempt((attempt) => ({ id: attempt.id + 1, intent, residence: false }))
             lastIntentRef.current = intent
             setRequestedIntent(intent)
             lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }
