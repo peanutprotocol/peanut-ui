@@ -6,7 +6,7 @@ name: App Release iOS
 # Android keystore-as-secret), the build is reproducible, and the IPA lands on
 # TestFlight for manual App Store promotion. No Ruby/fastlane toolchain.
 #
-# Trigger: called only by the automatic main-push release-native.yml workflow,
+# Trigger: called only by release-native.yml, after a release-* GitHub Release,
 # which resolves the version so nobody types one.
 # Prereq: the `ios/` Capacitor platform must be committed on the branch CI builds
 #         (currently only present in the peanut-ui-ios2 worktree).
@@ -58,7 +58,7 @@ concurrency:
 
 jobs:
     release:
-        if: ${{ github.workflow == 'App Release Android & iOS' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')) || github.event_name == 'workflow_dispatch') }}
+        if: ${{ github.workflow == 'App Release Android & iOS' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'release') || github.event_name == 'workflow_dispatch') }}
         runs-on: macos-15
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production

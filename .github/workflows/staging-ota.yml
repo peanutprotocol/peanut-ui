@@ -1,12 +1,18 @@
 name: App Staging OTA
 
-# Manual staging publication for beta testers. This is deliberately separate from
-# App Release OTA: the dispatcher defaults to the `dev` source ref, uses the staging
-# version band, and never writes a production bundle or release tag. Keep this file
-# on the repository default branch too: GitHub only registers workflow_dispatch for
+# Staging publication for the team's phones: every push to `dev` publishes a
+# signed bundle to the Capgo `staging` channel, so the next release is tested on
+# devices before it ships. It is deliberately separate from App Release OTA: it
+# uses the staging version band and the Staging-OTA environment, and never
+# writes a production channel, a production bundle or a release tag. When `dev`
+# carries native changes that no shipped binary has, a push run skips the upload
+# with a notice; a manual dispatch still fails on it. Keep this file on the
+# repository default branch too: GitHub only registers workflow_dispatch for
 # workflow files present there.
 
 on:
+    push:
+        branches: [dev]
     workflow_dispatch:
         inputs:
             ref:
@@ -29,7 +35,7 @@ jobs:
         steps:
             - name: Guard staging ref
               env:
-                  SOURCE_REF: ${{ inputs.ref || 'dev' }}
+                  SOURCE_REF: ${{ github.event_name == 'push' && github.ref_name || inputs.ref || 'dev' }}
               run: |
                   if [ "$SOURCE_REF" != "dev" ]; then
                       echo "::error::staging OTAs are published from dev, not $SOURCE_REF" >&2
@@ -42,7 +48,8 @@ jobs:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   fetch-depth: 0
-                  ref: ${{ inputs.ref || 'dev' }}
+                  # A push run builds the pushed commit, not whatever dev is by now.
+                  ref: ${{ github.event_name == 'push' && github.sha || inputs.ref || 'dev' }}
 
             - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
@@ -90,13 +97,34 @@ jobs:
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
 
+            # dev often carries native changes that wait for the next store build.
+            # A bundle from such a tree cannot run on any shipped binary, so a
+            # push run skips the upload instead of failing on every dev merge.
+            - name: Check that a shipped binary can run this tree
+              id: surface
+              env:
+                  EVENT_NAME: ${{ github.event_name }}
+              run: |
+                  FLOOR="$(node scripts/release-version.mjs native-floor)"
+                  if node scripts/check-native-capabilities.mjs "v$FLOOR" &&
+                     node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android; then
+                      echo "publish=true" >> "$GITHUB_OUTPUT"
+                  elif [ "$EVENT_NAME" = push ]; then
+                      echo "::notice::dev has native changes that no shipped binary carries (newest v$FLOOR); no staging OTA for this push"
+                      echo "publish=false" >> "$GITHUB_OUTPUT"
+                  else
+                      exit 1
+                  fi
+
             - name: Build native static export
+              if: steps.surface.outputs.publish == 'true'
               env:
                   SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
                   SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
               run: node scripts/native-build.js
 
             - name: Verify build output
+              if: steps.surface.outputs.publish == 'true'
               run: |
                   test -d out && test -f out/index.html || (echo "ERROR: out/ directory missing or incomplete" && exit 1)
                   echo "Bundle ready. File count: $(find out -type f | wc -l)"
@@ -104,6 +132,7 @@ jobs:
             # Staging still needs the same native floor and surface guard as
             # production: beta testers must not receive JS that their shell cannot run.
             - name: Resolve native floor
+              if: steps.surface.outputs.publish == 'true'
               id: native_floor
               run: |
                   FLOOR="$(node scripts/release-version.mjs native-floor)"
@@ -111,6 +140,7 @@ jobs:
                   echo "Bundle requires native $FLOOR or newer"
 
             - name: Check the native surface still matches that binary
+              if: steps.surface.outputs.publish == 'true'
               env:
                   FLOOR: ${{ steps.native_floor.outputs.name }}
               run: |
@@ -122,6 +152,7 @@ jobs:
                   node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android
 
             - name: Upload bundle to Capgo staging
+              if: steps.surface.outputs.publish == 'true'
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
@@ -139,9 +170,10 @@ jobs:
                     --bundle "$VERSION" \
                     --min-update-version "$NATIVE_FLOOR" \
                     --version-exists-ok \
-                    --comment "$BUILD_SHA — manual staging deploy"
+                    --comment "$BUILD_SHA — staging deploy ($GITHUB_EVENT_NAME)"
 
             - name: Verify staging channel serves the new bundle
+              if: steps.surface.outputs.publish == 'true'
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CHANNEL: staging
@@ -156,11 +188,12 @@ jobs:
                   echo "Channel $CHANNEL now serves $EXPECTED"
 
             - name: Deployment summary
+              if: steps.surface.outputs.publish == 'true'
               run: |
                   {
                     echo "## Staging OTA"
                     echo "- **Channel:** staging"
                     echo "- **Bundle version:** ${{ steps.version.outputs.name }}"
                     echo "- **Commit:** $(git rev-parse HEAD)"
-                    echo "- **Branch:** ${{ inputs.ref || 'dev' }}"
+                    echo "- **Branch:** dev ($GITHUB_EVENT_NAME)"
                   } >> "$GITHUB_STEP_SUMMARY"

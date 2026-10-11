@@ -1,18 +1,20 @@
 name: App Release Android & iOS
 
-# After a successful main-push OTA, or one blocked specifically by native
-# incompatibility, build that same main commit for both stores. Only the first
-# completion of a push-triggered main OTA may start this workflow. The version
-# is resolved here, not typed, so iOS and Android share the same native version
-# even though existing installs remain on different versions.
+# After a successful release OTA, or one blocked specifically by native
+# incompatibility, build that same main commit for both stores. The OTA runs
+# only for a published `release-*` GitHub Release at the main tip, so a merge to
+# main alone never starts a store build. Only the first completion of that OTA
+# may start this workflow. The version is resolved here, not typed, so iOS and
+# Android share the same native version even though existing installs remain on
+# different versions.
 #
 # The platform jobs build, upload to the stores and upload the matching OTA
 # bundle to the disabled candidate channel. No production channel moves until
 # both platform jobs pass: then one `publish` job promotes both channels, and
 # the tag is written as the record of what shipped. If either platform fails,
 # both production channels stay as they were, no tag is written, the run fails,
-# and #🔥-notifs gets an alert. To retry, dispatch this workflow on main with the
-# main tip SHA; a fresh reviewed main update also starts another attempt.
+# and Discord gets an alert. To retry only the store build, dispatch this
+# workflow on main with the main tip SHA; that tip must carry a release-* tag.
 #
 # Ships to TestFlight and the Play `internal` track. Promotion to App Store review
 # and to Play production stays a manual step in the respective consoles.
@@ -24,9 +26,9 @@ on:
     workflow_run:
         workflows: ['App Release OTA']
         types: [completed]
-        branches: [main]
-    # Retry a failed store build without a new main push. The run builds the
-    # current main tip only; the SHA input makes the operator name it.
+    # Retry a failed store build without a new release OTA. The run builds the
+    # current main tip only, which must carry a release-* tag; the SHA input
+    # makes the operator name it.
     workflow_dispatch:
         inputs:
             sha:
@@ -50,7 +52,7 @@ concurrency:
 
 jobs:
     resolve:
-        if: ${{ github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
+        if: ${{ github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'release' && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
         runs-on: ubuntu-latest
         environment: Production
         permissions:
@@ -77,10 +79,17 @@ jobs:
                           echo "::error::the sha input (${INPUT_SHA:-empty}) is not the main tip this run checked out (${GITHUB_SHA:0:7})" >&2
                           exit 1
                       fi
+                      # ls-remote prints a lightweight tag's commit, and an
+                      # annotated tag's commit on its peeled ^{} line.
+                      if ! git ls-remote --tags "https://github.com/$GITHUB_REPOSITORY.git" 'refs/tags/release-*' |
+                           cut -f1 | grep -qx "$GITHUB_SHA"; then
+                          echo "::error::the main tip ${GITHUB_SHA:0:7} carries no release-* tag; store builds ship only from an approved release" >&2
+                          exit 1
+                      fi
                   elif [ "$GITHUB_EVENT_NAME" != "workflow_run" ] ||
-                     { [ "$OTA_TRIGGER_EVENT" != push ] && [ "$OTA_TRIGGER_EVENT" != workflow_dispatch ]; } ||
+                     [ "$OTA_TRIGGER_EVENT" != release ] ||
                      [ "$OTA_RUN_ATTEMPT" != 1 ]; then
-                      echo '::error::native releases require the first completion of a main OTA or a guarded manual dispatch; reruns are not releases' >&2
+                      echo '::error::native releases require the first completion of a release OTA or a guarded manual dispatch; reruns are not releases' >&2
                       exit 1
                   elif [ "$GITHUB_SHA" != "$OTA_SOURCE_SHA" ]; then
                       echo "::error::main advanced between OTA and native workflow start ($OTA_SOURCE_SHA -> $GITHUB_SHA)" >&2
@@ -88,7 +97,7 @@ jobs:
                   fi
                   MAIN_TIP="$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)"
                   if [ "$MAIN_TIP" != "$GITHUB_SHA" ]; then
-                      echo "::error::main advanced after the OTA handoff (${GITHUB_SHA:0:7} -> ${MAIN_TIP:0:7}); a later main-push OTA must start the next release" >&2
+                      echo "::error::main advanced after the OTA handoff (${GITHUB_SHA:0:7} -> ${MAIN_TIP:0:7}); publish a new Release at the main tip" >&2
                       exit 1
                   fi
 
