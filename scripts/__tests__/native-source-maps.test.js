@@ -25,14 +25,54 @@ it('injects and uploads the shipped assets with the runtime release, then remove
     expect(fs.existsSync(path.join(assets, 'app.js'))).toBe(true)
 })
 
-it('fails a release on upload failure and still removes private source', () => {
+it('retries a failed upload, then warns instead of failing the release, and still removes private source', () => {
+    const run = jest
+        .fn()
+        .mockReturnValueOnce('abc1234')
+        .mockReturnValueOnce('')
+        .mockImplementation(() => {
+            throw new Error('upload failed')
+        })
+    const warn = jest.fn()
+    const sleep = jest.fn()
+    processNativeSourceMaps({
+        root,
+        env: { SENTRY_AUTH_TOKEN: 'test', SENTRY_NATIVE_UPLOAD_REQUIRED: 'true' },
+        run,
+        warn,
+        sleep,
+    })
+    expect(run.mock.calls.filter(([, args]) => args[1] === 'upload')).toHaveLength(3)
+    expect(sleep).toHaveBeenCalledTimes(2)
+    expect(warn.mock.calls.at(-1)[0]).toContain('::warning::')
+    expect(sourceMaps(path.join(root, 'out'))).toEqual([])
+})
+
+it('stops retrying once an upload succeeds', () => {
+    const run = jest
+        .fn()
+        .mockReturnValueOnce('abc1234')
+        .mockReturnValueOnce('')
+        .mockImplementationOnce(() => {
+            throw new Error('getaddrinfo ENOTFOUND us.sentry.io')
+        })
+        .mockReturnValue('')
+    const sleep = jest.fn()
+    processNativeSourceMaps({ root, env: { SENTRY_AUTH_TOKEN: 'test' }, run, warn: jest.fn(), sleep })
+    expect(run.mock.calls.filter(([, args]) => args[1] === 'upload')).toHaveLength(2)
+    expect(sleep).toHaveBeenCalledTimes(1)
+})
+
+it('still fails when injecting debug IDs fails, because the shipped JS would not match', () => {
     const run = jest
         .fn()
         .mockReturnValueOnce('abc1234')
         .mockImplementation(() => {
-            throw new Error('upload failed')
+            throw new Error('inject failed')
         })
-    expect(() => processNativeSourceMaps({ root, env: { SENTRY_AUTH_TOKEN: 'test' }, run })).toThrow('upload failed')
+    expect(() => processNativeSourceMaps({ root, env: { SENTRY_AUTH_TOKEN: 'test' }, run, sleep: jest.fn() })).toThrow(
+        'inject failed'
+    )
     expect(sourceMaps(path.join(root, 'out'))).toEqual([])
 })
 
