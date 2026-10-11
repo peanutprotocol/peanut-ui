@@ -27,7 +27,7 @@ export interface ReConsentDocument {
  * published version moves past what the user last provably accepted, this modal
  * lists the updated documents and appends fresh consent-ledger rows on
  * acceptance (POST /users/consent/accept). Whether it shows is the attention
- * arbiter's call (the `legal-reconsent` ask reads GET /users/consent/status);
+ * manager's call (the `legal-reconsent` ask reads GET /users/consent/status);
  * this component only renders and answers.
  *
  * It is a PROMPT, not a gate. §17.2 gives material changes 30 days and offers

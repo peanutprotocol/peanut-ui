@@ -132,7 +132,7 @@ function useDecisionReport(decision: Decision, state: JourneyState, session: Ses
 /**
  * The provider wraps the whole app shell. A throw inside it (a selector,
  * a hook, decide) must never take the app down with it: the boundary
- * renders the children without the arbiter and pages Sentry.
+ * renders the children without the manager and pages Sentry.
  */
 class AttentionBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
     state = { failed: false }

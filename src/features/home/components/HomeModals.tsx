@@ -12,7 +12,7 @@ const ArrivalDrawer = lazy(() => import('./ArrivalDrawer'))
 
 /**
  * Home's user-triggered modals. Every self-opening prompt that used to be
- * chained here renders through the attention arbiter (features/attention).
+ * chained here renders through the attention manager (features/attention).
  */
 export function HomeModals() {
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()

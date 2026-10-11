@@ -157,7 +157,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
 }
 
 /**
- * Composes the hooks the app already has into one plain object the arbiter
+ * Composes the hooks the app already has into one plain object the manager
  * reads. Almost everything is `/users/me` and its two embedded read-models;
  * consent status is the one extra request, once per session per user.
  */

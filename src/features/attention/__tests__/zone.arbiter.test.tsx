@@ -1,9 +1,9 @@
 /**
  * Phase 3 orchestration contract: the Home zone renders one card, chosen by
- * the arbiter, with rotation.
+ * the manager, with rotation.
  *
  * The real cards are stubbed (`../zoneSurfaces`) so these tests pin the
- * arbiter's zone lifecycle, not any one card's UI. Every "handle" item of the
+ * manager's zone lifecycle, not any one card's UI. Every "handle" item of the
  * phase-3 failure list that lives in the orchestration has a test here.
  */
 import React, { StrictMode, useLayoutEffect } from 'react'
@@ -237,7 +237,7 @@ describe('the Home zone', () => {
         // "Renders at most one surface: the component for decision.zone.id"
         expect(screen.getByTestId('zone-checklist')).toHaveAttribute('data-mode', 'ask')
 
-        // "After activation the zone shows one card, chosen by the arbiter"
+        // "After activation the zone shows one card, chosen by the manager"
         mockState = state(INVITE_ONLY)
         await rerender(view)
         expect(zonesInDom()).toEqual(['invite'])

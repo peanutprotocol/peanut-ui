@@ -33,9 +33,9 @@ export function subscribeLedger(listener: () => void): () => void {
 
 /**
  * The stored shape (`UserPreferences.attention`), written only by this
- * module. The legacy per-prompt fields are read once below so the arbiter's
+ * module. The legacy per-prompt fields are read once below so the manager's
  * first decisions on an upgraded device match what the old code would have
- * done; they are never written by the arbiter.
+ * done; they are never written by the manager.
  */
 export type AttentionLedgerStore = Partial<Record<AskId, LedgerEntry>>
 
@@ -63,9 +63,9 @@ const addDays = (iso: string, days: number): string | undefined => {
 }
 
 /**
- * The entries the pre-arbiter prompts recorded under their own keys. Each
+ * The entries the pre-manager prompts recorded under their own keys. Each
  * mirrors that prompt's own rule, so a device that already snoozed the
- * download prompt is not asked again the day the arbiter ships.
+ * download prompt is not asked again the day the manager ships.
  */
 export function legacyEntries(userId: string, prefs: UserPreferences | undefined): Ledger {
     const out: Ledger = {}

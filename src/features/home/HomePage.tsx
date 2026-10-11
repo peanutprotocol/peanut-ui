@@ -15,7 +15,7 @@ import { useHomeViewAnalytics } from './useHomeViewAnalytics'
  * home page (figma board 17830:75689): top nav (menu / rewards), balance
  * block with add-send-request submenu, the attention zone, activity feed.
  *
- * The zone is one card, the attention arbiter's pick (features/attention):
+ * The zone is one card, the attention manager's pick (features/attention):
  * the getting-started checklist until the first payment, then the next-best
  * action with rotation. Never two calls to action at once.
  */

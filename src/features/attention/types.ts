@@ -2,10 +2,10 @@ import type { OnboardingState } from '@/utils/activation-step.utils'
 import type { IdentityVerificationStatus } from '@/types/capabilities'
 
 /**
- * The attention arbiter: every self-opening prompt (modal, drawer, Home card)
+ * The attention manager: every self-opening prompt (modal, drawer, Home card)
  * is an `AttentionAsk`, and `decide()` picks at most one interrupt and one
  * Home zone card from the ones that are eligible right now. Nothing may open
- * on its own; it asks, and the arbiter answers.
+ * on its own; it asks, and the manager answers.
  *
  * Tiers rank urgency among asks that are eligible at the same moment. Journey
  * dependencies live in `eligible()`, never in the rank: an ask that needs an
@@ -76,7 +76,7 @@ export interface AttentionAsk {
     tier: Tier
     /** order inside the tier, following the Notion journey order */
     rank: number
-    /** preferred first; the arbiter degrades to the next when the first is not allowed now */
+    /** preferred first; the manager degrades to the next when the first is not allowed now */
     surfaces: Surface[]
     eligible: (state: JourneyState) => Verdict
     /** a changed version re-arms a dismissed or snoozed ask (a new legal document, a new reason code) */
@@ -181,11 +181,11 @@ export interface Session {
     count: number
     route: 'home' | 'other'
     interruptsThisSession: AskId[]
-    /** the arbiter-owned interrupt on screen, kept while it stays eligible */
+    /** the manager-owned interrupt on screen, kept while it stays eligible */
     openInterrupt: AskId | null
     /** a user-opened overlay or a flow in progress: nothing new opens */
     busy: boolean
-    /** offline, locked, backend down: the arbiter pauses */
+    /** offline, locked, backend down: the manager pauses */
     gateUp: boolean
     /** the settle deadline passed: `unknown` no longer holds lower tiers */
     settleDeadlinePassed: boolean

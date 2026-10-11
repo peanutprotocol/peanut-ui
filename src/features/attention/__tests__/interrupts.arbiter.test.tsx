@@ -1,7 +1,7 @@
 /**
- * Phase 2 orchestration contract: interrupts render through the arbiter.
+ * Phase 2 orchestration contract: interrupts render through the manager.
  *
- * The real modals are stubbed (`../surfaces`) so these tests pin the arbiter's
+ * The real modals are stubbed (`../surfaces`) so these tests pin the manager's
  * lifecycle, not any one prompt's UI. Every "handle" item of the phase-2
  * failure list that lives in the orchestration has at least one test here.
  */
@@ -415,7 +415,7 @@ test('a user-opened overlay blocks a new surface but never suspends the open one
     await rerender(view)
     expect(surfacesInDom()).toEqual(['legal-reconsent'])
 
-    // "session.busy ... no longer suspends the arbiter's own open interrupt"
+    // "session.busy ... no longer suspends the manager's own open interrupt"
     mockOverlayOpen = true
     await rerender(view)
     expect(surfacesInDom()).toEqual(['legal-reconsent'])
@@ -437,7 +437,7 @@ test('a throwing surface is contained, settled as dismissed, reported, and not r
     mockState = state({ consent: TERMS_NEEDED })
     const view = await mount()
 
-    // "the rest of the app keeps rendering" (and the arbiter itself survives)
+    // "the rest of the app keeps rendering" (and the manager itself survives)
     expect(screen.getByText('app-shell')).toBeInTheDocument()
     expect(latest).toBeDefined()
     // "Sentry gets the error tagged feature: attention"
@@ -490,7 +490,7 @@ test.each([
 ])(
     'the Home push ask stands down after a store pre-prompt this session (prompted: $promptedThisSession)',
     async ({ promptedThisSession, expected }) => {
-        // "the arbiter's push-home-fallback ask is ineligible for the rest of a session in which the store already showed a pre-prompt"
+        // "the manager's push-home-fallback ask is ineligible for the rest of a session in which the store already showed a pre-prompt"
         mockState = state({ push: { ready: true, unanswered: true, promptedThisSession } })
         await mount()
         expect(surfacesInDom()).toEqual(expected)

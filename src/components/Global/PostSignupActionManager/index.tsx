@@ -10,7 +10,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
 /**
  * "Verification complete, finish what you came for": the stored post-auth
  * redirect (a claim link, a request link) the user was sent to sign up from.
- * Whether it shows is the attention arbiter's call (the
+ * Whether it shows is the attention manager's call (the
  * `post-verification-action` ask); this reads the redirect once on mount so
  * the modal survives the redirect being cleared mid-flow.
  */

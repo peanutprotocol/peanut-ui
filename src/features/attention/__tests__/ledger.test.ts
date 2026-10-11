@@ -1,7 +1,7 @@
 /**
- * The ledger reads the pre-arbiter prompts' own "seen" fields once, so a
+ * The ledger reads the pre-manager prompts' own "seen" fields once, so a
  * device that already snoozed a prompt is not asked again the day the
- * arbiter ships. The arbiter writes only its own `attention` field.
+ * manager ships. The manager writes only its own `attention` field.
  */
 let mockSunsetOn = false
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockSunsetOn }))
@@ -66,11 +66,11 @@ describe('readLedger and writes', () => {
         const second = readLedger(USER)
         expect(second).not.toBe(first)
         expect(second['early-user']?.dismissedAt).toBe('2026-10-11T00:00:00.000Z')
-        // legacy entries survive next to the arbiter's own
+        // legacy entries survive next to the manager's own
         expect(second['install-app']?.snoozedUntil).toBeDefined()
     })
 
-    test('the arbiter writes only its own field', () => {
+    test('the manager writes only its own field', () => {
         ledgerActions.snoozed(USER, 'install-app', Date.parse('2026-10-14T00:00:00Z'))
         const prefs = getUserPreferences(USER)
         expect(prefs?.attention?.['install-app']?.snoozedUntil).toBe('2026-10-14T00:00:00.000Z')
