@@ -20,6 +20,12 @@ export function EurcActionError({ error }: { error: unknown }) {
                     ? t('expired')
                     : code === 'invalid_bank_account'
                       ? t('badBank')
-                      : t('actionError')
+                      : code === 'operation_in_flight'
+                        ? t('inFlight')
+                        : code === 'amount_below_minimum'
+                          ? t('belowMinimum')
+                          : code === 'unsupported_precision'
+                            ? t('tooPrecise')
+                            : t('actionError')
     return <Callout priority="error">{message}</Callout>
 }

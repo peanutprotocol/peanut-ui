@@ -55,7 +55,14 @@ function setupInLocale(kind: CurrencyOperationKind, locale: AppLocale) {
 beforeEach(() => {
     jest.clearAllMocks()
     jest.mocked(currencyAccountsApi.bankAccounts).mockResolvedValue({ accounts: [{ id: 'bank', label: 'Euro bank' }] })
-    jest.mocked(currencyAccountsApi.exchangeRate).mockResolvedValue({ midmarket_rate: '1.1', indicative: true })
+    jest.mocked(currencyAccountsApi.exchangeRate).mockResolvedValue({
+        midmarket_rate: '1.1',
+        buy_rate: '1.11',
+        sell_rate: '1.09',
+        updated_at: new Date().toISOString(),
+        indicative: true,
+        developerFeePercent: '0',
+    })
     jest.mocked(currencyAccountsApi.prepare).mockRejectedValue(new Error('lost response'))
 })
 it('keeps the idempotency key for retries and replaces it when a failed request is edited', async () => {

@@ -4576,6 +4576,9 @@
         "convertedBalanceLoading": "Calculating total balance…",
         "loadMore": "Load more",
         "invalidAmount": "Invalid amount.",
-        "invalidRecipient": "Invalid address."
+        "invalidRecipient": "Invalid address.",
+        "inFlight": "Another payment is still processing.",
+        "belowMinimum": "Amount is too small.",
+        "tooPrecise": "Too many decimals."
     }
 }

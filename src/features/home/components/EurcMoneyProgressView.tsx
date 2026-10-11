@@ -9,7 +9,7 @@ import { EurcMoneyReviewView } from './EurcMoneyReviewView'
 import { clearSignedCurrencyOperation } from '@/utils/currency-operation-recovery'
 import { isFinalCurrencyOperation } from '@/utils/currency-operation'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import { currencyAccountsApi } from '@/services/currency-accounts'
+import { currencyAccountsApi, type CurrencyOperation } from '@/services/currency-accounts'
 
 export function EurcMoneyProgressView({
     userId,
@@ -84,7 +84,9 @@ export function EurcMoneyProgressView({
                 userId={userId}
                 operation={operation}
                 destinationLabel={banks.data?.accounts.find((bank) => bank.id === operation.externalAccountId)?.label}
-                onSubmitted={(next) => client.setQueryData(['currency-operation', userId, operationId], next)}
+                onSubmitted={(next) =>
+                    client.setQueryData<CurrencyOperation>(['currency-operation', userId, operationId], next)
+                }
                 onClose={onClose}
             />
         )

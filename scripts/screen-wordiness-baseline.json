@@ -62,6 +62,8 @@
         "features/deposit-accounts/components/DepositAccountDetailsScreen.tsx": 152,
         "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 214,
         "features/home/components/EurcBankAccountView.tsx": 87,
+        "features/home/components/EurcMoneyFormView.tsx": 68,
+        "features/home/components/EurcMoneyReviewView.tsx": 63,
         "features/limits/views/LimitsPageView.tsx": 91,
         "features/limits/views/MantecaLimitsView.tsx": 105,
         "features/payments/flows/contribute-pot/components/PayByBankTransferDrawer.tsx": 129,

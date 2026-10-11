@@ -4576,6 +4576,9 @@
         "convertedBalanceLoading": "Calculando o saldo total…",
         "loadMore": "Ver mais",
         "invalidAmount": "Valor inválido.",
-        "invalidRecipient": "Endereço inválido."
+        "invalidRecipient": "Endereço inválido.",
+        "inFlight": "Outro pagamento ainda está em processamento.",
+        "belowMinimum": "Valor muito baixo.",
+        "tooPrecise": "Casas decimais demais."
     }
 }

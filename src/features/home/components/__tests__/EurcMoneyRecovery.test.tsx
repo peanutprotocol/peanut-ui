@@ -134,7 +134,7 @@ it('switching to USD and back while the passkey prompt is open does not start a 
     const op = makeOperation({ amount: '34.56' })
     server.put(op)
     let finishFirstCeremony!: () => void
-    passkey.behaviour = (ceremony) =>
+    passkey.behaviour = (ceremony: number) =>
         ceremony === 1
             ? new Promise<void>((resolve) => {
                   finishFirstCeremony = resolve

@@ -62,18 +62,23 @@ export const signatureFor = (ceremony: number) => `0x${ceremony.toString(16).pad
 export const passkey = {
     /** Override to defer or fail a ceremony. Receives the 1-based ceremony number. */
     behaviour: undefined as undefined | ((ceremony: number) => Promise<void>),
-    sign: jest.fn(async (calls: Array<{ to: string; data: `0x${string}`; value: bigint }>, _chainId: string) => {
-        const ceremony = passkey.sign.mock.calls.length
-        await passkey.behaviour?.(ceremony)
-        return {
-            signedUserOp: {
-                sender: WALLET,
-                nonce: BigInt(ceremony),
-                callData: calls[0].data,
-                signature: signatureFor(ceremony) as `0x${string}`,
-            },
+    sign: jest.fn(
+        async (
+            calls: Array<{ to: string; data: `0x${string}`; value: bigint }>,
+            _chainId: string
+        ): Promise<{ signedUserOp: Record<string, unknown> }> => {
+            const ceremony: number = passkey.sign.mock.calls.length
+            await passkey.behaviour?.(ceremony)
+            return {
+                signedUserOp: {
+                    sender: WALLET,
+                    nonce: BigInt(ceremony),
+                    callData: calls[0].data,
+                    signature: signatureFor(ceremony) as `0x${string}`,
+                },
+            }
         }
-    }),
+    ),
 }
 
 export const server = {

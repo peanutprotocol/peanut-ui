@@ -63,12 +63,12 @@ export interface paths {
                         accountType: "iban" | "us" | "evm-address" | "peanut-wallet" | "bridgeBankAccount" | "manteca" | "clabe" | "cbu" | "cvu" | "pix";
                         bridgeAccountIdentifier?: string;
                         chainId?: string;
-                        telegramHandle?: string;
-                        userId: string;
                         signupPreferences?: {
                             fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
                             paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
                         };
+                        telegramHandle?: string;
+                        userId: string;
                     };
                 };
             };
@@ -5184,6 +5184,39 @@ export interface paths {
                 path: {
                     geo: string;
                 };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/mobula": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -11937,7 +11970,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    cursor?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -11951,6 +11986,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            cursor: string | null;
                             entries: {
                                 amount: string;
                                 /** @enum {string} */
@@ -11963,6 +11999,7 @@ export interface paths {
                                 kind: string;
                                 txHash: string | null;
                             }[];
+                            hasMore: boolean;
                             operations: {
                                 amount: string;
                                 bankInstructions: {
