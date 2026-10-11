@@ -2149,7 +2149,7 @@
             "streetNumberRequired": "Add the street number",
             "streetNoPoBox": "Use a street address, not a PO box",
             "streetNumberHint": "Start with the number, like 123 Main St",
-            "countryUnavailable": "Bank transfers can't go to {country}",
+            "countryUnavailable": "Owner addresses in {country} aren't supported",
             "city": "City",
             "cityRequired": "City is required",
             "state": "Select state",

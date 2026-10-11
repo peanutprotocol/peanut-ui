@@ -2149,7 +2149,7 @@
             "streetNumberRequired": "Agrega el número de calle",
             "streetNoPoBox": "Usa una dirección física, no un apartado postal",
             "streetNumberHint": "Empieza con el número, por ejemplo 123 Main St",
-            "countryUnavailable": "Las transferencias bancarias no pueden ir a {country}",
+            "countryUnavailable": "No se aceptan direcciones del titular en {country}",
             "city": "Ciudad",
             "cityRequired": "La ciudad es obligatoria",
             "state": "Selecciona el estado",
