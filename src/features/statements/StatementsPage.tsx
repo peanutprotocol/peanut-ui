@@ -40,7 +40,7 @@ export function StatementsPage() {
         fromIso: period.fromIso,
         toIso: period.toIso,
         preset: period.preset,
-        onSaved: () => toast.success(t('downloaded')),
+        onSaved: ({ byYear }) => toast.success(t(byYear ? 'downloadedByYear' : 'downloaded')),
     })
 
     const periodOptions = useMemo(

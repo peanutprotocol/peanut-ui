@@ -2551,6 +2551,7 @@
         "download": "Download",
         "save": "Save file",
         "downloaded": "Statement downloaded",
+        "downloadedByYear": "One file per year",
         "errors": {
             "tooLarge": "This period is too long. Choose a shorter one.",
             "unverified": "Unexpected issue. Contact support.",

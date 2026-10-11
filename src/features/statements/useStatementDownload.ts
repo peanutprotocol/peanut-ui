@@ -24,8 +24,8 @@ interface StatementDownloadOptions {
     fromIso?: string
     toIso?: string
     preset?: StatementPeriodPreset
-    /** runs after the file is saved */
-    onSaved: () => void
+    /** runs after the file is saved, with that file */
+    onSaved: (file: StatementFile) => void
 }
 
 /**
@@ -92,7 +92,7 @@ export function useStatementDownload({ format, from, to, fromIso, toIso, preset,
             posthog.capture(ANALYTICS_EVENTS.ACTIVITY_EXPORT_SAVED, event)
             if (!isCurrent()) return
             setPrepared(null)
-            onSaved()
+            onSaved(file)
         } catch (cause) {
             const reason = cause instanceof Error ? cause.message : 'EXPORT_FAILED'
             // `refusal` is the API's check name (e.g. reward-credit-missing): which

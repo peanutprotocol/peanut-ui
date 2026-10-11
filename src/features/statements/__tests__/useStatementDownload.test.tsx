@@ -24,7 +24,7 @@ jest.mock('../statementDownload.utils', () => ({
 const prepare = prepareStatement as jest.Mock
 const save = saveStatement as jest.Mock
 const native = isCapacitor as jest.Mock
-const FILE = { blob: new Blob(['%PDF']), fileName: 'peanut-activity_2026-08-03_2026-08-14.pdf' }
+const FILE = { blob: new Blob(['%PDF']), fileName: 'peanut-activity_2026-08-03_2026-08-14.pdf', byYear: false }
 
 const AUGUST = {
     from: '2026-08-03',
@@ -61,6 +61,7 @@ describe('useStatementDownload', () => {
         })
         expect(save).toHaveBeenCalledWith(FILE)
         expect(onSaved).toHaveBeenCalledTimes(1)
+        expect(onSaved).toHaveBeenCalledWith(FILE)
         expect(result.current.isPrepared).toBe(false)
         const event = { format: 'csv', platform: 'web', range_preset: 'custom', range_days: 12 }
         expect(mockCapture).toHaveBeenCalledWith('activity_export_started', event)
@@ -99,6 +100,25 @@ describe('useStatementDownload', () => {
         expect(save).toHaveBeenCalledWith(FILE)
         expect(onSaved).toHaveBeenCalledTimes(1)
         expect(result.current.isPrepared).toBe(false)
+    })
+
+    it('saves a statement that came as one file per year like any other, and hands it to the page', async () => {
+        const zip = { blob: new Blob(['PK']), fileName: 'peanut-activity_2025-03-01_2026-02-28.zip', byYear: true }
+        prepare.mockResolvedValue(zip)
+        const { result, onSaved } = renderDownload({ format: 'pdf' })
+        await act(() => result.current.download())
+        expect(save).toHaveBeenCalledWith(zip)
+        expect(onSaved).toHaveBeenCalledWith(zip)
+        expect(result.current.periodTooLong).toBe(false)
+        expect(result.current.error).toBeNull()
+
+        // native: prepared on the first tap, shared and reported on the second
+        native.mockReturnValue(true)
+        const second = renderDownload({ format: 'xlsx' })
+        await act(() => second.result.current.download())
+        expect(second.onSaved).not.toHaveBeenCalled()
+        await act(() => second.result.current.download())
+        expect(second.onSaved).toHaveBeenCalledWith(zip)
     })
 
     it('keeps the prepared file when the native share sheet is dismissed', async () => {

@@ -7,7 +7,12 @@ import type { AppLocale } from '@/i18n/app/config'
 
 export const STATEMENT_FORMATS = ['pdf', 'csv', 'xlsx'] as const
 export type StatementFormat = (typeof STATEMENT_FORMATS)[number]
-export type StatementFile = { blob: Blob; fileName: string }
+export type StatementFile = {
+    blob: Blob
+    fileName: string
+    /** A zip with one statement per calendar year: the period holds more records than one file takes. */
+    byYear: boolean
+}
 
 /** What the page says when a download fails. `tooLarge` is the one failure the
  *  period field can fix, so it is shown under that field; the rest are flow
@@ -51,6 +56,8 @@ const MIME: Record<StatementFormat, string> = {
     csv: 'text/csv',
     xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
+/** What the API sends in place of the format when the statement comes as one file per year. */
+const ZIP = 'application/zip'
 
 /** Fetches the statement file over the authenticated client. Nothing is saved yet. */
 export async function prepareStatement(options: {
@@ -68,6 +75,7 @@ export async function prepareStatement(options: {
     if (options.toIso) params.set('to', new Date(new Date(options.toIso).getTime() + 1).toISOString())
     const path = `/users/history/export?${params}`
     let blob: Blob
+    let byYear: boolean
     let disposition: string | null
     if (isCapacitor()) {
         await authReady()
@@ -106,7 +114,8 @@ export async function prepareStatement(options: {
             )
         }
         const bytes = Uint8Array.from(atob(response.data), (char) => char.charCodeAt(0))
-        blob = new Blob([bytes], { type: MIME[options.format] })
+        byYear = (response.headers['content-type'] ?? response.headers['Content-Type'] ?? '').startsWith(ZIP)
+        blob = new Blob([bytes], { type: byYear ? ZIP : MIME[options.format] })
         disposition = response.headers['content-disposition'] ?? response.headers['Content-Disposition']
     } else {
         const response = await serverFetch(path, {
@@ -119,13 +128,14 @@ export async function prepareStatement(options: {
             const { code, refusal } = refusalFrom(await response.json().catch(() => null))
             throw new StatementDownloadError(code ?? 'EXPORT_FAILED', refusal)
         }
-        if (!response.headers.get('content-type')?.startsWith(MIME[options.format]))
-            throw new StatementDownloadError('EXPORT_FAILED')
+        const type = response.headers.get('content-type') ?? ''
+        byYear = type.startsWith(ZIP)
+        if (!byYear && !type.startsWith(MIME[options.format])) throw new StatementDownloadError('EXPORT_FAILED')
         blob = await response.blob()
         disposition = response.headers.get('content-disposition')
     }
     const suppliedName = disposition?.match(/filename="([A-Za-z0-9._-]+)"/)?.[1]
-    return { blob, fileName: suppliedName ?? `peanut-activity.${options.format}` }
+    return { blob, fileName: suppliedName ?? `peanut-activity.${byYear ? 'zip' : options.format}`, byYear }
 }
 
 const CACHE_DIRECTORY = 'statements'

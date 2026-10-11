@@ -72,7 +72,7 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks()
-    prepare.mockResolvedValue({ blob: new Blob(['%PDF']), fileName: 'peanut-activity.pdf' })
+    prepare.mockResolvedValue({ blob: new Blob(['%PDF']), fileName: 'peanut-activity.pdf', byYear: false })
     save.mockResolvedValue('saved')
 })
 
@@ -165,6 +165,15 @@ describe('StatementsPage', () => {
         fireEvent.click(downloadButton())
         await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith('downloaded'))
         expect(prepare).toHaveBeenCalledWith(expect.objectContaining({ format: 'csv', locale: 'en' }))
+    })
+
+    it('says that a long period came as one file per year, in place of the plain confirmation', async () => {
+        prepare.mockResolvedValue({ blob: new Blob(['PK']), fileName: 'peanut-activity.zip', byYear: true })
+        renderPage()
+        fireEvent.click(downloadButton())
+        await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith('downloadedByYear'))
+        expect(mockToastSuccess).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
     it('shows a period that is too long under the period field, in place of its dates', async () => {

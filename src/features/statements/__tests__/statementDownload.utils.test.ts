@@ -106,6 +106,66 @@ describe('statement downloads', () => {
         }
     )
 
+    it('takes a zip from the web API as a statement of one file per year, whatever the format', async () => {
+        fetchMock.mockResolvedValue(
+            fileResponse('application/zip', 'attachment; filename="peanut-activity_2025-03-01_2026-02-28.zip"')
+        )
+        const file = await prepareStatement({ format: 'pdf', locale: 'en' })
+        expect(file.byYear).toBe(true)
+        expect(file.fileName).toBe('peanut-activity_2025-03-01_2026-02-28.zip')
+        expect(file.blob.type).toBe('application/zip')
+        // the zip is saved as the one file it is
+        expect(await saveStatement(file)).toBe('saved')
+        expect(downloadBlob).toHaveBeenCalledWith(file.blob, 'peanut-activity_2025-03-01_2026-02-28.zip')
+
+        // a plain file is not one
+        fetchMock.mockResolvedValue(pdfResponse())
+        expect((await prepareStatement({ format: 'pdf', locale: 'en' })).byYear).toBe(false)
+    })
+
+    it('names a zip that came without a name as a zip', async () => {
+        fetchMock.mockResolvedValue(fileResponse('application/zip'))
+        expect((await prepareStatement({ format: 'xlsx', locale: 'en' })).fileName).toBe('peanut-activity.zip')
+    })
+
+    it.each(['Content-Type', 'content-type'])(
+        'takes a native zip by its %s header and shares it as one file',
+        async (header) => {
+            native.mockReturnValue(true)
+            appShipsFilePlugins(true)
+            ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({
+                status: 200,
+                data: btoa('PK archive'),
+                headers: {
+                    [header]: 'application/zip',
+                    'Content-Disposition': 'attachment; filename="peanut-activity_2025-03-01_2026-02-28.zip"',
+                },
+            })
+            const file = await prepareStatement({ format: 'csv', locale: 'en' })
+            expect(file.byYear).toBe(true)
+            expect(file.blob.type).toBe('application/zip')
+
+            expect(await saveStatement(file)).toBe('saved')
+            expect(Filesystem.writeFile).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    path: expect.stringMatching(
+                        /^statements\/[0-9a-f]{32}\/peanut-activity_2025-03-01_2026-02-28\.zip$/
+                    ),
+                    data: btoa('PK archive'),
+                })
+            )
+            expect(Share.share).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('keeps the format of a native file that names no type', async () => {
+        native.mockReturnValue(true)
+        ;(CapacitorHttp.request as jest.Mock).mockResolvedValue({ status: 200, data: btoa('%PDF'), headers: {} })
+        const file = await prepareStatement({ format: 'pdf', locale: 'en' })
+        expect(file.byYear).toBe(false)
+        expect(file.blob.type).toBe('application/pdf')
+    })
+
     it('keeps server validation failures out of downloaded files', async () => {
         fetchMock.mockResolvedValue({
             ok: false,
@@ -184,7 +244,7 @@ describe('statement downloads', () => {
         appShipsFilePlugins(true)
         const webShare = jest.fn()
         Object.defineProperty(navigator, 'share', { configurable: true, value: webShare })
-        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).toBe('saved')
+        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv', byYear: false })).toBe('saved')
         // 'file' in base64, written under the statement's own name in a folder of its own
         expect(Filesystem.writeFile).toHaveBeenCalledWith({
             path: expect.stringMatching(/^statements\/[0-9a-f]{32}\/activity\.csv$/),
@@ -201,23 +261,25 @@ describe('statement downloads', () => {
         native.mockReturnValue(true)
         appShipsFilePlugins(true)
         ;(Share.share as jest.Mock).mockRejectedValue(new Error('Share canceled'))
-        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).toBe('cancelled')
+        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv', byYear: false })).toBe(
+            'cancelled'
+        )
     })
 
     it('reports a native share that fails as a failure, not as a save', async () => {
         native.mockReturnValue(true)
         appShipsFilePlugins(true)
         ;(Share.share as jest.Mock).mockRejectedValue(new Error('No app can open this file'))
-        await expect(saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).rejects.toThrow(
-            'No app can open this file'
-        )
+        await expect(
+            saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv', byYear: false })
+        ).rejects.toThrow('No app can open this file')
     })
 
     it('gives the same statement saved twice two cache files, so the first share keeps its bytes', async () => {
         native.mockReturnValue(true)
         appShipsFilePlugins(true)
-        await saveStatement({ blob: new Blob(['first']), fileName: 'activity.csv' })
-        await saveStatement({ blob: new Blob(['second']), fileName: 'activity.csv' })
+        await saveStatement({ blob: new Blob(['first']), fileName: 'activity.csv', byYear: false })
+        await saveStatement({ blob: new Blob(['second']), fileName: 'activity.csv', byYear: false })
         const [first, second] = (Filesystem.writeFile as jest.Mock).mock.calls.map(([options]) => options.path)
         expect(first).not.toBe(second)
         expect(first.endsWith('/activity.csv') && second.endsWith('/activity.csv')).toBe(true)
@@ -233,7 +295,7 @@ describe('statement downloads', () => {
                 { name: 'recent-save', type: 'directory', mtime: Date.now() - hour },
             ],
         })
-        await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })
+        await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv', byYear: false })
         expect(Filesystem.rmdir).toHaveBeenCalledTimes(1)
         expect(Filesystem.rmdir).toHaveBeenCalledWith({
             path: 'statements/old-save',
@@ -250,7 +312,9 @@ describe('statement downloads', () => {
             configurable: true,
             value: jest.fn().mockRejectedValue(new DOMException('Cancelled', 'AbortError')),
         })
-        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).toBe('cancelled')
+        expect(await saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv', byYear: false })).toBe(
+            'cancelled'
+        )
         expect(downloadBlob).not.toHaveBeenCalled()
         expect(Share.share).not.toHaveBeenCalled()
     })
@@ -259,9 +323,9 @@ describe('statement downloads', () => {
         native.mockReturnValue(true)
         appShipsFilePlugins(false)
         Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => false })
-        await expect(saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv' })).rejects.toThrow(
-            'EXPORT_SAVE_UNAVAILABLE'
-        )
+        await expect(
+            saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv', byYear: false })
+        ).rejects.toThrow('EXPORT_SAVE_UNAVAILABLE')
     })
 })
 

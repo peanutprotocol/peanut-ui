@@ -12034,6 +12034,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description One file in the requested format. A period with more records than one file holds returns application/zip: one file per calendar year of the time zone, in the requested format. */
         get: {
             parameters: {
                 query: {
