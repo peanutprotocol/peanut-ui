@@ -5,6 +5,7 @@ import { refreshKycState, startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
+import { reserveDetachedTab } from '@/utils/reserved-tab'
 
 /**
  * Drives the handoff to a provider's hosted verification page and the wait for
@@ -160,12 +161,7 @@ export function useHostedVerification(
             // where the native apis don't exist and we'd skip the reservation
             // in a real browser.
             const native = isNativeBridge()
-            const reservedTab = native ? null : window.open('', '_blank')
-            // The reserved tab can't carry `noopener` (that returns null and
-            // defeats the reservation), so sever the back-reference by hand —
-            // otherwise Persona, and anything it redirects to, holds a handle
-            // that can navigate the signed-in tab (reverse tabnabbing).
-            if (reservedTab) reservedTab.opener = null
+            const reservedTab = native ? null : reserveDetachedTab()
 
             setIsStarting(true)
             let url: string | undefined

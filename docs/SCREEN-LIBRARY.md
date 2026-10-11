@@ -16,6 +16,20 @@ Gallery filters are URL-backed. Source, locale, search, flow, status, and
 all/changed mode are restored from the query string, so copying the browser URL
 shares the exact visible view.
 
+Opening a page does not cover its closed selectors. The catalogue includes
+separate open checkpoints for token and network drawers, residence countries,
+exchange currencies, and BaseSelect. Each opens the real control and requires a
+selected option inside the viewport before and after stabilization; a missing
+overlay fails the capture instead of recording the underlying page. Actions that use text are
+resolved through the target revision's merged locale catalogue.
+
+Still captures finish finite overlay animations and remove `will-change` layer
+promotion before waiting for identical screenshots. This avoids timing-dependent
+drawer image resampling and text-edge noise without raising the pixel-difference
+threshold or masking the drawer. Harness changes require both revisions to be
+recaptured with the same capture code; immutable older reports retain their
+original images and comparisons.
+
 ## Curated, on-demand collections
 
 A collection is a first-class, ordered manifest over the same content-addressed
@@ -301,6 +315,42 @@ report can be browsed but cannot become `/screens/latest/`. Only full dev
 libraries advance that pointer; PR preview completion cannot move it.
 
 ## CI activation and provenance
+
+### Main release snapshots
+
+Every push to `main` captures the full catalogue in English, Español,
+Español (Argentina), and Português (Brasil), at the default 393 × 852 viewport.
+It publishes a full `main` library and a `compare-main` before/after report.
+The before revision is the push event's original `before` SHA; the after revision
+is its immutable head SHA. This includes all commits in a multi-commit push and
+does not substitute the current dev tip or a PR's merge base. Both sides use the
+same capture harness, fixtures, and renderer. Incomplete historical states retain
+their reasons; first available screenshots use the existing **New screen**
+placeholder. Failed captures remain explicit gaps.
+
+On the dashboard select **Branch → Main** to browse release snapshots and their
+**Changed screens** reports, or share `/?branch=main`. The existing
+`/screens/latest/` pointer continues to mean the latest complete dev library.
+
+To backfill an earlier release, run **Screen library** with the `main` branch
+selected. Supply immutable `before_sha` and `after_sha` values, or leave them blank
+to compare the selected main revision with its first parent. A backfill only
+accepts revisions on that immutable main revision's first-parent history, with
+before strictly earlier than after. Merged dev-side parents cannot be selected
+as main releases. For the October 7 release, use
+`d9a463c3a0a49a5916f1067d78b6837ba3eaf088` →
+`b10562637c0aee0805d4e8f63d2e663af2ad9f38`.
+
+The caller workflow must reach `main` before main pushes/manual backfills can use
+this behavior. The secret-bearing publisher remains pinned to trusted `dev`.
+The separate **Screen library baseline** still refreshes dev's PR baseline after
+main updates; it does not supply the main release comparison.
+
+Every push to `dev` likewise publishes its full library and a `compare-dev`
+before/after report, using that push event's original previous dev SHA. Select
+**Branch → Dev** (or `/?branch=dev`) to browse these updates. A merged PR may be
+identified on its cards, but its feature branch or merge base does not replace
+the dev push boundary. PR review previews remain separate `pr-<number>` reports.
 
 `Screen library` builds the changed side without write credentials on PR
 updates. The trusted publisher resolves the exact merge-base capture from a

@@ -8,6 +8,7 @@ import { recoverLoginSession } from '@/utils/login-session'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
+import type { SignupPreferences } from '@/types/signup-preferences'
 import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import {
     removeFromCookie,
@@ -36,6 +37,7 @@ import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { markFirstLaunchIntroSeen } from '@/utils/first-launch-intro'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
@@ -58,11 +60,13 @@ interface AuthContextType {
         userId,
         connector,
         telegramHandle,
+        signupPreferences,
     }: {
         accountIdentifier: string
         accountType: string
         userId: string
         telegramHandle?: string
+        signupPreferences?: SignupPreferences
         connector?: {
             iconUrl: string
             name: string
@@ -239,6 +243,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         bridgeAccountId,
         connector,
         telegramHandle,
+        signupPreferences,
     }: {
         accountIdentifier: string
         accountType: string
@@ -249,11 +254,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: string
         }
         telegramHandle?: string
+        signupPreferences?: SignupPreferences
     }) => {
         return completeAccountSetup({
             accountIdentifier,
             accountType,
             fetchProfile: legacy_fetchUser,
+            signupPreferences,
             request: () =>
                 apiFetch('/add-account', {
                     method: 'POST',
@@ -264,6 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         accountType,
                         connector,
                         telegramHandle,
+                        ...(signupPreferences ? { signupPreferences } : {}),
                     }),
                 }),
         })
@@ -388,6 +396,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (!options?.skipBackendCall && !isCapacitor()) {
                     await fetchUser()
                 }
+
+                // Logout must open setup directly, including installs that first
+                // launched into an existing session and never visited Landing.
+                await markFirstLaunchIntroSeen()
 
                 // force full page refresh to /setup to clear all state
                 window.location.href = '/setup'

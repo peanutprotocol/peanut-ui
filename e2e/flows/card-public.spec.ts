@@ -29,7 +29,7 @@ test('an ordinary account reaches the application and card terms without a queue
     await expect(apply).toBeInViewport({ ratio: 0.99 })
     await shot(page, 'application-cta')
     await apply.click()
-    await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Accept terms', exact: true })).toBeVisible()
     await shot(page, 'terms')
 })
 

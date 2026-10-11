@@ -468,6 +468,28 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
         jest.mocked(ensureNativeCameraPermission).mockClear()
     })
 
+    it('never paints web chrome during native open, close and re-entry, including the token wait', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc' })
+        mockUseCrispTokenId.mockReturnValue(undefined)
+        const view = render(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
+
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1))
+
+        modalsState.isSupportModalOpen = false
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        modalsState.isSupportModalOpen = true
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(2))
+        expect(view.container).toBeEmptyDOMElement()
+    })
+
     it('does NOT open the native messenger while a logged-in user’s token is still resolving', async () => {
         mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
         mockUseCrispTokenId.mockReturnValue(undefined)

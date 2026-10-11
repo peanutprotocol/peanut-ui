@@ -245,10 +245,15 @@ function InvitePageContent() {
         // typed claim result is consumed after registration.
         if (hasUrlBadgeCampaigns) queuePendingBadgeCampaigns(urlBadgeCampaigns)
 
-        // during the migration window guests go to the stores, not signup —
-        // cookie/queue bookkeeping above still runs so a keep-web signup or
-        // post-install link re-tap recovers the invite context.
-        if (!user?.user && interceptGuestCta()) {
+        // A desktop download QR opens on another device, so the inviter must
+        // travel in the handoff rather than relying on this browser's cookies.
+        if (
+            !user?.user &&
+            interceptGuestCta({
+                invite: hasValidInvite || hasBackendLegacyAcceptance ? inviteCode : undefined,
+                dest: safeRedirectUri || undefined,
+            })
+        ) {
             // keep the mid-flow destination (e.g. a pending claim) recoverable
             // after the store round-trip, same as handleLoginWithBadgeCampaign
             if (safeRedirectUri) saveRedirectUrl()

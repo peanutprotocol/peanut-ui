@@ -89,7 +89,7 @@ export const COLOR_TOKENS: ThemeToken[] = [
     },
     {
         "name": "background-setup-hero",
-        "value": "#d8e7ff",
+        "value": "var(--color-blue-300)",
         "section": "semantic",
         "previewClass": "bg-background-setup-hero"
     },
@@ -218,6 +218,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#885b00",
         "section": "semantic",
         "previewClass": "bg-foreground-attention"
+    },
+    {
+        "name": "foreground-brand",
+        "value": "var(--color-pink-500)",
+        "section": "semantic",
+        "previewClass": "bg-foreground-brand"
     },
     {
         "name": "foreground-over-color-primary",
@@ -392,6 +398,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#3b730c",
         "section": "semantic",
         "previewClass": "bg-avatar-green-foreground"
+    },
+    {
+        "name": "background-selection",
+        "value": "var(--color-blue-200)",
+        "section": "semantic",
+        "previewClass": "bg-background-selection"
     },
     {
         "name": "shadow-primary",

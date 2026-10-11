@@ -3,7 +3,7 @@ import { appendFileSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, r
 import { join } from 'node:path'
 import { createStorage } from './cloudflare-storage.mjs'
 import { validateCapture, verifyAsset } from './core.mjs'
-import { integrationBase } from './integration.mjs'
+import { mainRevisions, pushRevisions } from './capture-revisions.mjs'
 import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
@@ -46,8 +46,19 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? '') || !/^\
 const api = (path) => JSON.parse(execFileSync('gh', ['api', repositoryApiPath(repo, path)], { encoding: 'utf8' }))
 const run = api(`actions/runs/${runId}`)
 verifyRunIdentity(run, repo, Number(runId), Number(attempt))
+const mainRelease = run.head_branch === 'main' && ['push', 'workflow_dispatch'].includes(run.event)
 let expectedBase, pr
-if (run.event === 'pull_request') {
+let expectedHead = run.event === 'pull_request' ? reviewHeadRevision(run) : run.head_sha
+if (mainRelease) {
+    const refs = mainRevisions({
+        event: run.event,
+        head: run.head_sha,
+        before: run.event === 'push' ? process.env.PUSH_BEFORE : process.env.MAIN_BEFORE,
+        after: process.env.MAIN_AFTER,
+    })
+    expectedBase = refs.before
+    expectedHead = refs.after
+} else if (run.event === 'pull_request') {
     const reviewHead = reviewHeadRevision(run)
     const candidates = JSON.parse(
         execFileSync('gh', ['api', `repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
@@ -64,7 +75,7 @@ if (run.event === 'pull_request') {
     expectedBase = binding.before
 } else if (run.event === 'push') {
     if (run.head_branch !== 'dev') throw new Error('Only dev integration pushes may publish')
-    expectedBase = integrationBase(repo, run.head_sha)
+    expectedBase = pushRevisions({ head: run.head_sha, before: process.env.PUSH_BEFORE }).before
     pr = JSON.parse(
         execFileSync(
             'gh',
@@ -174,14 +185,16 @@ for (const capturePair of capturePairs) {
     )
     if (before.locale !== capturePair.locale || after.locale !== capturePair.locale)
         throw new Error(`Capture locale identity mismatch for ${capturePair.locale}`)
-    const expectedHead = run.event === 'pull_request' ? reviewHeadRevision(run) : run.head_sha
     if (after.commit !== expectedHead) throw new Error('Capture does not match triggering run head')
     if (before.commit !== expectedBase)
         throw new Error('Capture baseline does not match verified integration/review/history baseline')
     const slug = localeSlug(after.locale)
-    const canonicalPath =
-        run.event === 'workflow_dispatch'
-            ? `${date}/compare-main-2026-08-27/${slug}/${after.commit}`
+    const canonicalPath = mainRelease
+        ? `${date}/compare-main/${slug}/${after.commit}`
+        : run.event === 'workflow_dispatch'
+          ? `${date}/compare-main-2026-08-27/${slug}/${after.commit}`
+          : run.event === 'push'
+            ? `${date}/compare-dev/${slug}/${after.commit}`
             : pr
               ? `${date}/pr-${pr.number}/${slug}/${after.commit}`
               : `${date}/compare-dev/${slug}/${after.commit}`
@@ -196,22 +209,23 @@ for (const capturePair of capturePairs) {
         EXPECTED_BASE: before.commit,
         DEV_SEQUENCE: String(run.run_number),
         CAPTURE_ATTEMPT: String(captureAttempt),
-        SOURCE_BRANCH: pr?.head?.ref ?? run.head_branch,
+        SOURCE_BRANCH: run.event === 'pull_request' ? pr.head.ref : run.head_branch,
         PR_NUMBER: pr ? String(pr.number) : '',
         CHANGED_SCREENS: String(changedScreens),
     }
     publications.push({ inputDir: reportDir, reportPath: path, env })
     reports.push({ locale: after.locale, path, before, after })
     // Historical reports retain both full source libraries as well as their comparison.
-    const libraries =
-        run.event === 'workflow_dispatch'
-            ? [
-                  [before, dirs[0], 'main'],
-                  [after, dirs[1], 'dev'],
-              ]
-            : run.event === 'push'
-              ? [[after, dirs[1], 'dev']]
-              : []
+    const libraries = mainRelease
+        ? [[after, dirs[1], 'main']]
+        : run.event === 'workflow_dispatch'
+          ? [
+                [before, dirs[0], 'main'],
+                [after, dirs[1], 'dev'],
+            ]
+          : run.event === 'push'
+            ? [[after, dirs[1], 'dev']]
+            : []
     for (const [capture, source, branch] of libraries) {
         const destination = `library-${branch}-${slug}`
         mkdirSync(`${destination}/assets`, { recursive: true })

@@ -297,6 +297,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [paymentLock, paymentProcessor, setAmount, setCurrencyAmount])
 
+    const [rateUnavailable, setRateUnavailable] = useState(false)
+    const [rateAttempt, setRateAttempt] = useState(0)
+    const retryRate = useCallback(() => {
+        setRateUnavailable(false)
+        setRateAttempt((attempt) => attempt + 1)
+    }, [])
+
     // Get currency object from payment lock (Manteca)
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
@@ -319,13 +326,18 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 price,
             }
         }
-        getCurrencyObject().then((currencyObject) => {
-            if (!cancelled) setCurrency(currencyObject)
-        })
+        getCurrencyObject()
+            .then((currencyObject) => {
+                if (!cancelled) setCurrency(currencyObject)
+            })
+            // The FX layer already reported the failure; without a live rate the amount cannot be priced.
+            .catch(() => {
+                if (!cancelled) setRateUnavailable(true)
+            })
         return () => {
             cancelled = true
         }
-    }, [paymentLock, paymentProcessor, setCurrency])
+    }, [paymentLock, paymentProcessor, setCurrency, rateAttempt])
 
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
@@ -1176,6 +1188,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         waitingForMerchantAmount,
         showOrderNotReadyModal,
         isLoadingPaymentData,
+        rateUnavailable,
         loadingState,
         isSuccess,
         hasUnsettledPayment: !!qrPayment && qrPaymentDisplayStatus(qrPayment.status) !== 'completed',
@@ -1206,6 +1219,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         initErrorNeedsSupport,
         isBlockingError,
         balanceErrorMessage,
+        rateUnavailable,
+        retryRate,
         // controller-rotation quote handoff
         quoteUpdatedNotice,
         isQuoteRecovering,

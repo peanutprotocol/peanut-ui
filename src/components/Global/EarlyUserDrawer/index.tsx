@@ -8,6 +8,8 @@ import DocsLink from '@/components/Global/DocsLink'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
+import { useModalsContextOptional } from '@/context/ModalsContext'
+import { useOtherOpenOverlays } from '@/utils/overlay-visibility'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
@@ -16,31 +18,58 @@ const EarlyUserDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visible
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
-    const [showModal, setShowModal] = useState(false)
-    const hasTrackedShow = useRef(false)
+    const overlayOwner = useRef(Symbol('early-user'))
+    const otherOverlayOpen = useOtherOpenOverlays(overlayOwner.current)
+    const modals = useModalsContextOptional()
+    const userId = user?.user.userId
+    const [dismissedFor, setDismissedFor] = useState<string | null>(null)
+    const trackedFor = useRef<string | null>(null)
+    // Wait for consent even before its status request produces a modal. Account
+    // switches must not reuse the previous account's cleared consent check.
+    const legalGate = modals?.legalConsentGate
+    const legalPending =
+        !!legalGate && (legalGate.status !== 'clear' || (legalGate.userId !== null && legalGate.userId !== userId))
+    const contextOverlayOpen =
+        !!modals &&
+        (modals.isSignInModalOpen ||
+            modals.isGetAppModalOpen ||
+            modals.isSupportModalOpen ||
+            modals.isQRScannerOpen ||
+            modals.isSecurityVerificationOpen)
+    const showModal =
+        !!userId &&
+        !!user?.showEarlyUserModal &&
+        dismissedFor !== userId &&
+        !legalPending &&
+        !contextOverlayOpen &&
+        !otherOverlayOpen
 
     useEffect(() => {
-        if (user && user.showEarlyUserModal) {
-            setShowModal(true)
-            onVisibilityChange?.(true)
-            if (!hasTrackedShow.current) {
-                hasTrackedShow.current = true
-                posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.EARLY_USER })
-            }
+        onVisibilityChange?.(showModal)
+        if (showModal && trackedFor.current !== userId) {
+            trackedFor.current = userId ?? null
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.EARLY_USER })
         }
-    }, [user])
+    }, [showModal, userId, onVisibilityChange])
 
     const handleCloseModal = async () => {
+        // Being preempted by another surface is not a user dismissal and must
+        // never acknowledge the announcement or prevent it from resuming.
+        if (!showModal || !userId) return
         posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.EARLY_USER })
-        setShowModal(false)
-        onVisibilityChange?.(false)
-        await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
+        setDismissedFor(userId)
+        await updateUserById({ userId, hasSeenEarlyUserModal: true })
         fetchUser()
     }
+
+    // Unmount immediately when yielding: a closing Vaul portal otherwise keeps
+    // its overlay/focus lock alive during the new surface's opening animation.
+    if (legalPending || contextOverlayOpen || otherOverlayOpen) return null
 
     return (
         <Drawer
             open={showModal}
+            overlayOwner={overlayOwner.current}
             onOpenChange={(isOpen) => {
                 if (!isOpen) void handleCloseModal()
             }}
@@ -56,10 +85,7 @@ const EarlyUserDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visible
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col items-center gap-4">
-                        <p className="text-body-s text-foreground-secondary">
-                            <span className="block">{t('earlyUserModal.inviteOnly')}</span>
-                            <span>{t.rich('earlyUserModal.earnRules', { b: (chunks) => <b>{chunks}</b> })}</span>
-                        </p>
+                        <p className="text-body-s text-foreground-secondary">{t('earlyUserModal.description')}</p>
 
                         <ShareButton url={inviteLink} title={t('earlyUserModal.shareSheetTitle')}>
                             {t('earlyUserModal.shareCta')}

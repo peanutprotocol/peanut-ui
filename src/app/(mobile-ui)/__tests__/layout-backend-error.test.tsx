@@ -33,11 +33,9 @@ jest.mock('@/hooks/usePullToRefresh', () => ({
     useShouldPullToRefresh: () => () => true,
 }))
 jest.mock('@/hooks/useNativePlugins', () => ({ useNativePlugins: jest.fn() }))
-jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/hooks/useSafeBack', () => ({}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false, enableDemoMode: jest.fn() }))
-jest.mock('@/utils/migration.utils', () => ({ shouldShowSunsetBlock: () => false }))
 
 // Child screens are stubbed: this spec is about which one the layout picks.
 jest.mock('@/components/Global/BackendErrorScreen', () => ({
@@ -57,7 +55,6 @@ jest.mock('@/components/Global/SupportDrawer', () => ({ __esModule: true, defaul
 jest.mock('@/components/Global/SupportDeepLink', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/QRScannerOverlay', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/SecurityVerificationOverlay', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 
 import Layout from '../MobileLayoutClient'
 import {

@@ -28,7 +28,7 @@ jest.mock('@/utils/push-provisioning', () => ({
     clearWalletCardForWallet: jest.fn(),
     rememberCardForWallet: jest.fn(),
     syncWalletAuthorizationToken: jest.fn(),
-    PUSH_PROVISIONING_FLAG: 'push-provisioning',
+    PUSH_PROVISIONING_FLAGS: { apple: 'push-provisioning-apple', google: 'push-provisioning-google' },
 }))
 
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
@@ -69,6 +69,18 @@ describe('useWalletProvisioningLifecycle', () => {
         await waitFor(() => expect(mockedClearAuthorization).toHaveBeenCalled())
         expect(mockedClearLegacy).toHaveBeenCalledTimes(1)
         expect(mockedClearCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears Apple Wallet grants when only the Google or retired shared flag is enabled', async () => {
+        mockedFlag.mockImplementation((key: string) => key !== 'push-provisioning-apple')
+        mockedOverview.mockReturnValue(overviewWithCard('card-a'))
+        renderHook(() => useWalletProvisioningLifecycle())
+        await waitFor(() => expect(mockedClearAuthorization).toHaveBeenCalled())
+        expect(mockedClearCard).toHaveBeenCalledTimes(1)
+        expect(mockedRememberCard).not.toHaveBeenCalled()
+        expect(mockedGetAuthorization).not.toHaveBeenCalled()
+        expect(mockedFlag).toHaveBeenCalledWith('push-provisioning-apple')
+        expect(mockedFlag).not.toHaveBeenCalledWith('push-provisioning-google')
     })
 
     it('does not touch native Wallet state on web', async () => {

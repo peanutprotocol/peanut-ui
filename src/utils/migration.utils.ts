@@ -1,14 +1,9 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BASE_URL, IS_DEV } from '@/constants/general.consts'
-import {
-    MIGRATION_CUTOVER_DATE,
-    PWA_SUNSET_FLAG,
-    STORE_URL,
-    type MigrationSurface,
-    type StoreKind,
-} from '@/constants/migration.consts'
+import { PWA_SUNSET_FLAG, STORE_URL, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
 import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import {
     buildDeferredPayload,
@@ -53,40 +48,18 @@ export function isPwaSunsetOn(): boolean {
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
 }
 
-/**
- * The one sunset-block predicate, shared by every layout that can replace the
- * app with the download screen ((mobile-ui) and (setup)). Public paths are the
- * caller's concern: guest claim/request links must keep working, so the
- * mobile-ui layout passes `isPublic`.
- */
-export function shouldShowSunsetBlock({
-    migrationOn,
-    hasKeepWebBypass,
-    isPublic = false,
-    now = Date.now(),
-}: {
-    migrationOn: boolean
-    hasKeepWebBypass: boolean
-    isPublic?: boolean
-    now?: number
-}): boolean {
-    return migrationOn && !isPublic && !isCapacitor() && !hasKeepWebBypass && now >= getMigrationCutoverTime()
+/** The store this device downloads from. Desktop has none: it gets the QR code instead. */
+export function storeForDevice(deviceType: DeviceType): StoreKind | null {
+    if (deviceType === DeviceType.IOS) return 'ios'
+    if (deviceType === DeviceType.ANDROID) return 'android'
+    return null
 }
 
-/**
- * Cutover timestamp with a dev-only localStorage override
- * (`localStorage.setItem('pwa-sunset-cutover', '2020-01-01')` + reload) so the
- * post-cutover sunset block can be QA'd locally without editing the constant.
- */
-export function getMigrationCutoverTime(): number {
-    if (IS_DEV && typeof localStorage !== 'undefined') {
-        const iso = localStorage.getItem('pwa-sunset-cutover')
-        if (iso) {
-            const t = new Date(iso).getTime()
-            if (!Number.isNaN(t)) return t
-        }
-    }
-    return MIGRATION_CUTOVER_DATE.getTime()
+/** The icon on a download button: the visitor's store, or a QR code on desktop. */
+export function storeIcon(store: StoreKind | null): 'apple-logo' | 'google-play' | 'qr-code' {
+    if (store === 'ios') return 'apple-logo'
+    if (store === 'android') return 'google-play'
+    return 'qr-code'
 }
 
 /** Track a store CTA click without navigating (for anchors that navigate themselves). */

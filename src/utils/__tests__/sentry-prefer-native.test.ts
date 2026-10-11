@@ -49,6 +49,11 @@ const transportNotices = () =>
  * fetch and again in the OS-client fallback — twice the bound every call site
  * documents, and on a QR scan four React Query attempts each paid it.
  */
+// Read timeouts are sampled in production; report every one here so assertions are deterministic.
+beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0)
+})
+
 describe('fetchWithSentry — one budget across the transport legs', () => {
     const abort = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
 

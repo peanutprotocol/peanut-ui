@@ -635,11 +635,48 @@ describe('invite and badge campaign routing boundaries', () => {
 
         // invite bookkeeping still runs so post-install signup recovers context
         expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
-        expect(mockInterceptGuestCta).toHaveBeenCalledTimes(1)
+        expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: 'alice', dest: undefined })
         expect(mockPush).not.toHaveBeenCalledWith('/setup?step=signup')
         // the CTA rendered for a settled guest — the impression must be armed
         const lastOpts = mockUseGuestStoreHandoff.mock.calls.at(-1)?.[0]
         expect(lastOpts?.trackImpressionWhenGuest).toBe(true)
+    })
+
+    it('carries the inviter and safe continuation into the download QR handoff', async () => {
+        mockAuth.user = null
+        mockSearch = 'code=alice&redirect_uri=%2Fclaim%2Fpending'
+        mockQueryResult.data = {
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'alice',
+        }
+        mockInterceptGuestCta.mockReturnValue(true)
+
+        render(<InvitesPage />)
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
+
+        expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: 'alice', dest: '/claim/pending' })
+        expect(mockSaveRedirectUrl).toHaveBeenCalledTimes(1)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('does not carry an invalid inviter or external continuation into the download handoff', async () => {
+        mockAuth.user = null
+        mockSearch = 'code=nobody&badge_campaign=summer&redirect_uri=https%3A%2F%2Fexample.com'
+        mockQueryResult.data = {
+            success: false,
+            attributionResolved: false,
+            onboardingResolved: false,
+            username: '',
+        }
+        mockInterceptGuestCta.mockReturnValue(true)
+
+        render(<InvitesPage />)
+        fireEvent.click(await screen.findByRole('button', { name: 'Sign up' }))
+
+        expect(mockStashInvite).not.toHaveBeenCalled()
+        expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: undefined, dest: undefined })
     })
 
     it('never arms the guest impression on the invalid-invite error view', async () => {

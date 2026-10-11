@@ -114,9 +114,10 @@ it('explains an already registered email, links to recovery, and clears the noti
     expect(recoveryLink.closest('[data-setup-footer]')).toContainElement(
         screen.getByRole('button', { name: 'Continue' })
     )
+    // hints sit above the CTA so the CTA pins to the bottom of the panel
     expect(
         screen.getByRole('button', { name: 'Continue' }).compareDocumentPosition(recoveryLink) &
-            Node.DOCUMENT_POSITION_FOLLOWING
+            Node.DOCUMENT_POSITION_PRECEDING
     ).toBeTruthy()
     expect(mockNext).not.toHaveBeenCalled()
     expect(mockFetchUser).not.toHaveBeenCalled()
@@ -145,43 +146,75 @@ it('does not leave the email step before the authenticated user is available', a
     expect(mockUpdateUser).not.toHaveBeenCalled()
     expect(mockNext).not.toHaveBeenCalled()
 })
-it('defaults both channels on and continues after OS denial', async () => {
-    renderStep(<NotificationsStep />)
-    screen.getAllByRole('switch').forEach((toggle) => expect(toggle).toHaveAttribute('aria-checked', 'true'))
-    fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
-    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-    expect(mockSave).toHaveBeenCalledWith({ push: true, email: true })
-    expect(mockPermission).toHaveBeenCalledTimes(1)
-    expect(mockAfterPermission).toHaveBeenCalledTimes(1)
+it('shows the email field with its label and the "Email" placeholder', () => {
+    renderStep(<EmailStep />)
+    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveAttribute('placeholder', 'Email')
 })
-it('saves both off without opening the system prompt', async () => {
+const pushToggle = () => screen.getByRole('switch', { name: 'Push notifications' })
+it('offers push only, off by default, and an untouched Continue saves nothing', async () => {
     renderStep(<NotificationsStep />)
-    screen.getAllByRole('switch').forEach((toggle) => fireEvent.click(toggle))
-    fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
+    expect(screen.getAllByRole('switch')).toHaveLength(1)
+    expect(screen.queryByText(/Email notifications/)).not.toBeInTheDocument()
+    expect(pushToggle()).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-    expect(mockSave).toHaveBeenCalledWith({ push: false, email: false })
+    expect(mockSave).not.toHaveBeenCalled()
     expect(mockPermission).not.toHaveBeenCalled()
 })
-it.each(['push', 'email'])(
-    'does not advance after a failed %s opt-out, and retries the same choice',
-    async (channel) => {
-        mockSave.mockRejectedValueOnce(new Error('network'))
+it('asks the OS for permission in the same tap that turns push on, and keeps it on when granted', async () => {
+    mockPermission.mockResolvedValueOnce('granted')
+    renderStep(<NotificationsStep />)
+    fireEvent.click(pushToggle())
+    // synchronously inside the click: the browser only accepts a prompt from a user gesture
+    expect(mockPermission).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(mockAfterPermission).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(pushToggle()).not.toBeDisabled())
+    expect(pushToggle()).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockSave).toHaveBeenCalledWith({ push: true, email: true })
+})
+it.each(['denied', 'default'])(
+    'turns push back off when the OS answers %s, without an opt-out save',
+    async (answer) => {
+        mockPermission.mockResolvedValueOnce(answer)
         renderStep(<NotificationsStep />)
-        fireEvent.click(
-            screen.getByRole('switch', {
-                name: channel === 'push' ? 'App push notifications' : 'Email notifications',
-            })
-        )
-        fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
-        await screen.findByText('We couldn’t save your settings. Please try again.')
-        expect(mockNext).not.toHaveBeenCalled()
-        expect(mockSave).toHaveBeenCalledWith({ push: channel !== 'push', email: channel !== 'email' })
-        fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
+        fireEvent.click(pushToggle())
+        await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'false'))
+        await waitFor(() => expect(pushToggle()).not.toBeDisabled())
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockSave).toHaveBeenCalledTimes(2)
+        expect(mockSave).not.toHaveBeenCalled()
     }
 )
-it('requests push within the click gesture while waiting for an email opt-out acknowledgement', async () => {
+it('turns push back off when the push SDK rejects the permission request', async () => {
+    mockPermission.mockRejectedValueOnce(new Error('SDK unavailable'))
+    renderStep(<NotificationsStep />)
+    fireEvent.click(pushToggle())
+    await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'false'))
+    await waitFor(() => expect(pushToggle()).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+})
+it('saves an explicit opt-out, blocks on a failed save, and retries the same choice', async () => {
+    mockPermission.mockResolvedValueOnce('granted')
+    mockSave.mockRejectedValueOnce(new Error('network'))
+    renderStep(<NotificationsStep />)
+    fireEvent.click(pushToggle())
+    await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'true'))
+    await waitFor(() => expect(pushToggle()).not.toBeDisabled())
+    fireEvent.click(pushToggle())
+    expect(pushToggle()).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await screen.findByText('We couldn’t save your settings. Please try again.')
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockSave).toHaveBeenCalledWith({ push: false, email: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockSave).toHaveBeenCalledTimes(2)
+})
+it('waits for the push opt-in write, so a later opt-out on this step cannot be overwritten by it', async () => {
+    mockPermission.mockResolvedValueOnce('granted')
     let resolveSave!: () => void
     mockSave.mockReturnValueOnce(
         new Promise<void>((resolve) => {
@@ -189,44 +222,26 @@ it('requests push within the click gesture while waiting for an email opt-out ac
         })
     )
     renderStep(<NotificationsStep />)
-    fireEvent.click(screen.getByRole('switch', { name: 'Email notifications' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
-    expect(mockPermission).toHaveBeenCalledTimes(1)
+    fireEvent.click(pushToggle())
+    await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'true'))
+    await waitFor(() => expect(pushToggle()).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await act(async () => {})
+    expect(mockSave).toHaveBeenCalledWith({ push: true, email: true })
     expect(mockNext).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: /Sounds good$/ })).toBeDisabled()
-    await act(async () => {
-        resolveSave()
-    })
+    await act(async () => resolveSave())
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
-it('continues and requests enabled push silently after a settings save failure', async () => {
+it('advances past a failed best-effort save when push is on', async () => {
+    mockPermission.mockResolvedValueOnce('granted')
     mockSave.mockRejectedValueOnce(new Error('network'))
     renderStep(<NotificationsStep />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
+    fireEvent.click(pushToggle())
+    await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'true'))
+    await waitFor(() => expect(pushToggle()).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-    expect(mockPermission).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('We couldn’t save your settings. Please try again.')).not.toBeInTheDocument()
-})
-it('continues while the preferences backend never responds', async () => {
-    mockSave.mockReturnValueOnce(new Promise(() => {}))
-    renderStep(<NotificationsStep />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
-    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-})
-it('requests enabled push even while the SDK is initializing', async () => {
-    mockReady = false
-    renderStep(<NotificationsStep />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
-    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-    expect(mockPermission).toHaveBeenCalledTimes(1)
-    expect(screen.queryByText(/aren’t ready yet/)).not.toBeInTheDocument()
-})
-it('continues silently if the push SDK rejects its permission request', async () => {
-    mockPermission.mockRejectedValueOnce(new Error('SDK unavailable'))
-    renderStep(<NotificationsStep />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sounds good' }))
-    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
 })
 it('waits for the email save acknowledgement before advancing', async () => {
     let resolveSave!: (result: object) => void

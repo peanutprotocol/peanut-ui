@@ -24,6 +24,12 @@ it('shows a short language name and applies the selected locale', async () => {
             (option) => option.textContent
         )
     ).toEqual(['English', 'Español', 'Español (Argentina)', 'Português (Brasil)'])
+    // same flagged rows as the settings language page (one shared list)
+    expect(screen.getByRole('button', { name: 'Español (Argentina)' }).querySelector('img')).toHaveAttribute(
+        'src',
+        expect.stringContaining('ar.svg')
+    )
+    expect(screen.getByRole('button', { name: 'Português (Brasil)' }).querySelector('[lang="pt-BR"]')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Español (Argentina)' }))
     expect(setLocale).toHaveBeenCalledWith('es-AR')
     await waitFor(() => expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'closed'))

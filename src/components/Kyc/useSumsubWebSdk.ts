@@ -132,6 +132,7 @@ export function useSumsubWebSdk({
         script.id = 'sumsub-websdk'
         script.src = SUMSUB_SDK_URL
         script.async = true
+        script.crossOrigin = 'anonymous'
         script.onload = handleLoaded
         script.onerror = handleError
         document.head.appendChild(script)

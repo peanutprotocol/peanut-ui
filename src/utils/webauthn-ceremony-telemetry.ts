@@ -3,6 +3,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { classifyPasskeyError } from '@/utils/webauthn.utils'
+import { nativePasskeyFailure, type NativePasskeyFailure } from './native-passkey-errors'
 
 /**
  * Counts every WebAuthn ceremony the app actually asks for, and attributes each
@@ -51,6 +52,7 @@ export type CeremonyRecord = {
     outcome: 'ok' | 'error'
     errorName?: string
     errorCode?: string
+    nativeReason?: NativePasskeyFailure
     allowCredentials?: number
     rpId?: string
     native: boolean
@@ -70,6 +72,7 @@ let inFlight = 0
 let seq = 0
 let flowCounter = 0
 let lastEndedAt: number | null = null
+const openCallStarts = new Map<number, number>()
 const purposeStack: CeremonyPurpose[] = []
 const flowStack: FlowFrame[] = []
 let log: CeremonyRecord[] = []
@@ -149,6 +152,7 @@ function commit(record: CeremonyRecord): void {
             outcome: record.outcome,
             error_name: record.errorName,
             error_code: record.errorCode,
+            native_reason: record.nativeReason,
             allow_credentials: record.allowCredentials,
             overlapped: record.overlapped,
             open_flows: record.openFlows,
@@ -176,6 +180,14 @@ function capture(event: string, properties: Record<string, unknown>): void {
 function safeErrorCode(error: unknown): string | undefined {
     try {
         return classifyPasskeyError(error)?.code
+    } catch {
+        return undefined
+    }
+}
+
+function safeNativeReason(error: unknown): NativePasskeyFailure | undefined {
+    try {
+        return nativePasskeyFailure(error)
     } catch {
         return undefined
     }
@@ -211,6 +223,7 @@ async function trace<T>(
         openFlows: flowStack.length,
         ...describeOptions(kind, options),
     }
+    openCallStarts.set(base.seq, startedAt)
 
     try {
         const result = await run()
@@ -223,11 +236,27 @@ async function trace<T>(
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
             errorCode: safeErrorCode(error),
+            nativeReason: safeNativeReason(error),
         })
         throw error
     } finally {
         inFlight -= 1
+        openCallStarts.delete(base.seq)
     }
+}
+
+/**
+ * The newest navigator.credentials call still waiting on the OS, so a guard
+ * timeout can tell a live sheet from a call that never started or never called
+ * back. Undefined until the wrapper is installed, when nothing can be known.
+ */
+export function openCredentialCall(): { inFlight: boolean; elapsedMs?: number } | undefined {
+    if (!installed) return undefined
+    let newest: number | undefined
+    for (const startedAt of openCallStarts.values()) {
+        if (newest === undefined || startedAt > newest) newest = startedAt
+    }
+    return newest === undefined ? { inFlight: false } : { inFlight: true, elapsedMs: Date.now() - newest }
 }
 
 /**

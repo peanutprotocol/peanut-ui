@@ -2,10 +2,9 @@
 /**
  * migration.utils — the pwa-sunset primitives.
  *
- * shouldShowSunsetBlock is the single predicate that can make the whole app
- * inaccessible (three call sites: both layouts + implicitly /app's flag gate),
- * so its matrix is pinned here. The dev-only localStorage overrides are what
- * local e2e QA rides on — a silent break there blinds every future QA round.
+ * isPwaSunsetOn closes web signup, so its overrides are pinned here. The
+ * dev-only localStorage override is what local e2e QA rides on — a silent
+ * break there blinds every future QA round.
  */
 
 let mockFlagEnabled = false
@@ -19,8 +18,7 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-// the cutover override is dev-only and the flag override is off only on the
-// production domain; force the dev branch for the suite's default. Getters, so
+// the flag override is off only on the production domain; force the dev branch for the suite's default. Getters, so
 // the two cases that re-require the module under test can move them.
 let mockIsDev = true
 let mockBaseUrl = 'http://localhost:3000'
@@ -48,22 +46,19 @@ jest.mock('@/utils/deferred-link', () => ({
     trackDeferredHandoffCreated: (...args: unknown[]) => mockTrackHandoffCreated(...args),
 }))
 
-import { MIGRATION_CUTOVER_DATE, MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { openExternalUrl } from '@/utils/capacitor'
 import {
-    getMigrationCutoverTime,
     isPwaSunsetOn,
     onStoreAnchorClick,
     openStore,
-    shouldShowSunsetBlock,
     storeAnchorHref,
+    storeForDevice,
+    storeIcon,
 } from '@/utils/migration.utils'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>
-
-const CUTOVER = MIGRATION_CUTOVER_DATE.getTime()
-const AFTER = CUTOVER + 1000
-const BEFORE = CUTOVER - 1000
 
 beforeEach(() => {
     localStorage.clear()
@@ -150,53 +145,14 @@ describe('isPwaSunsetOn', () => {
     })
 })
 
-describe('getMigrationCutoverTime', () => {
-    it('returns the constant by default', () => {
-        expect(getMigrationCutoverTime()).toBe(CUTOVER)
-    })
-
-    it('dev localStorage override moves the cutover', () => {
-        localStorage.setItem('pwa-sunset-cutover', '2020-01-01')
-        expect(getMigrationCutoverTime()).toBe(new Date('2020-01-01').getTime())
-    })
-
-    it('garbage override falls back to the constant', () => {
-        localStorage.setItem('pwa-sunset-cutover', 'not-a-date')
-        expect(getMigrationCutoverTime()).toBe(CUTOVER)
-    })
-})
-
-describe('shouldShowSunsetBlock', () => {
-    const base = { migrationOn: true, hasKeepWebBypass: false, now: AFTER }
-
-    it('blocks past the cutover with the flag on', () => {
-        expect(shouldShowSunsetBlock(base)).toBe(true)
-    })
-
-    it('never blocks with the flag off', () => {
-        expect(shouldShowSunsetBlock({ ...base, migrationOn: false })).toBe(false)
-    })
-
-    it('never blocks before the cutover (notice window)', () => {
-        expect(shouldShowSunsetBlock({ ...base, now: BEFORE })).toBe(false)
-    })
-
-    it('public guest paths pass through', () => {
-        expect(shouldShowSunsetBlock({ ...base, isPublic: true })).toBe(false)
-    })
-
-    it('the native app is never blocked', () => {
-        mockIsCapacitor = true
-        expect(shouldShowSunsetBlock(base)).toBe(false)
-    })
-
-    it('the keep-web support bypass passes through', () => {
-        expect(shouldShowSunsetBlock({ ...base, hasKeepWebBypass: true })).toBe(false)
-    })
-
-    it('respects the dev cutover override', () => {
-        localStorage.setItem('pwa-sunset-cutover', '2020-01-01')
-        expect(shouldShowSunsetBlock({ ...base, now: BEFORE })).toBe(true)
+describe('storeForDevice / storeIcon', () => {
+    it.each([
+        [DeviceType.IOS, 'ios', 'apple-logo'],
+        [DeviceType.ANDROID, 'android', 'google-play'],
+        [DeviceType.WEB, null, 'qr-code'],
+    ] as const)('%s downloads from %s with the %s icon', (device, store, icon) => {
+        expect(storeForDevice(device)).toBe(store)
+        expect(storeIcon(storeForDevice(device))).toBe(icon)
     })
 })
 

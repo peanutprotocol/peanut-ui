@@ -47,6 +47,8 @@
 	<string>Peanut uses Face ID to sign in with your passkey and to unlock your session.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Peanut needs photo access to upload identity documents during verification.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Peanut saves receipts and images you choose to your photo library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Peanut may use your location to help verify your identity and prevent fraud during account setup and support.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

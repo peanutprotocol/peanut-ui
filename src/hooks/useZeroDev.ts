@@ -1,5 +1,6 @@
 'use client'
 
+import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { PASSKEY_SERVER_URL } from '@/constants/zerodev.consts'
 import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -15,6 +16,7 @@ import {
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
     withIOSPasskeyLoginRecovery,
+    type PasskeyErrorCode,
 } from '@/utils/webauthn.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import {
@@ -70,6 +72,12 @@ class PasskeyError extends Error {
         this.name = 'PasskeyError'
     }
 }
+
+const PRE_ASSERTION_PLATFORM_CODES: ReadonlySet<PasskeyErrorCode> = new Set([
+    'PASSKEY_UNSUPPORTED',
+    'PASSKEY_ORIGIN',
+    'PASSKEY_STATE',
+])
 
 let loginTransitionInFlight = false
 
@@ -285,21 +293,23 @@ export const useZeroDev = () => {
             // tells us WHERE native logins hang.
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
+            } else if (reportPasskeyFailure(err, 'login')) {
+                // Platform/device outcomes never invalidate an existing session.
             } else if (code === 'NETWORK') {
                 captureException(err, { tags: { error_type: 'passkey_server_failure' } })
-            } else if (code === 'PASSKEY_INTERRUPTED') {
-                // An exhausted platform retry still never authenticated an
-                // assertion. Preserve any valid cached session/key and report
-                // it without routing through destructive login cleanup.
-                captureException(err, { level: 'warning', tags: { error_type: 'login_interrupted' } })
+            } else if (code === 'PASSKEY_INTERRUPTED' || PRE_ASSERTION_PLATFORM_CODES.has(code)) {
+                // The authenticator refused before producing an assertion, so
+                // nothing is known about the account. Preserve any valid cached
+                // session/key and report it without destructive login cleanup.
+                captureException(err, {
+                    level: 'warning',
+                    tags: {
+                        error_type: code === 'PASSKEY_INTERRUPTED' ? 'login_interrupted' : 'login_platform_unavailable',
+                    },
+                })
             } else if (code !== 'LOGIN_CANCELED') {
-                console.error('Error logging in', err)
                 await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })
-            } else if (isCapacitor()) {
-                // the native plugin maps ceremony failures (.failed/.notHandled) to the
-                // same NotAllowedError as a user cancel — keep visibility without alerting.
-                captureException(err, { level: 'warning', tags: { error_type: 'login_canceled_native' } })
             }
             throw new PasskeyError(message, code)
         } finally {
@@ -369,7 +379,8 @@ export const useZeroDev = () => {
                     } as never)
                 })
             } catch (error) {
-                console.error('Error sending UserOp:', error)
+                const reportedPasskey = reportPasskeyFailure(error, 'send-user-op')
+                if (!reportedPasskey) console.error('Error sending UserOp:', error)
                 capturePasskeySignFailure(error, 'send-user-op')
 
                 // Detect stale webAuthnKey errors (AA24, wapk) and force a clean

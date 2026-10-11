@@ -1,8 +1,6 @@
 import { validateInviteCode } from '@/app/actions/invites'
 import { serverFetch } from '@/utils/api-fetch'
 import { toInviteCode } from '@/utils/general.utils'
-import { isCapacitor } from '@/utils/capacitor'
-import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
 import { badgeCampaignClaimsFromPayload, type BadgeCampaignClaim } from './badge-campaigns'
 import { parseLegacyInviteAcquisition, type LegacyInviteAcquisition } from './invite-acquisition'
@@ -36,6 +34,8 @@ function isRetryableInviteStatus(status: number): boolean {
 
 export type ValidateInviteResult = {
     success: boolean
+    /** The API answered that no such invite or user exists (not a failed request). */
+    notFound?: boolean
     attributionResolved: boolean
     onboardingResolved: boolean
     username: string
@@ -112,12 +112,9 @@ export const invitesApi = {
     validateInviteCode: async (inviteCode: string): Promise<ValidateInviteResult> => {
         try {
             const res = await validateInviteCode(toInviteCode(inviteCode))
-            // demo code enables demo mode.
-            if (res.data?.success && isCapacitor() && isDemoInviteCode(inviteCode)) {
-                enableDemoMode()
-            }
             return {
                 success: res.data?.success || false,
+                ...(res.status === 400 || res.status === 404 ? { notFound: true } : {}),
                 attributionResolved: res.data?.attributionResolved === true,
                 onboardingResolved: res.data?.onboardingResolved === true,
                 username: res.data?.username || '',

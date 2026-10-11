@@ -17,9 +17,9 @@ import React from 'react'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
-import { useTranslations } from 'next-intl'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
+import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
@@ -70,7 +70,6 @@ import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
-import ResidenceStep from '@/components/Setup/Views/Residence'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
@@ -90,12 +89,14 @@ function SetupScreen({
     firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
+    residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
+    residenceCountry?: string
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -104,6 +105,7 @@ function SetupScreen({
                 firstLaunchIntroPreview={firstLaunchIntroPreview}
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
+                residenceCountry={residenceCountry}
             >
                 {children}
             </SetupScreenBody>
@@ -116,21 +118,24 @@ function SetupScreenBody({
     firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
+    residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
+    residenceCountry?: string
 }) {
-    const t = useTranslations('setup')
-    const { setSteps } = useSetupFlowContext()
+    const { setSteps, setResidenceCountry } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
+    React.useLayoutEffect(() => {
+        if (residenceCountry) setResidenceCountry(residenceCountry)
+    }, [residenceCountry, setResidenceCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
+    const stepCopy = useSetupStepCopy(step)
     if (!step) return null
     const View = step.component
-    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
-    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
     return (
         <SetupWrapper
             fullScreen={forceFullScreen || step.fullScreen}
@@ -139,15 +144,13 @@ function SetupScreenBody({
             firstLaunchIntroPreview={firstLaunchIntroPreview}
             screenId={step.screenId}
             image={step.image}
-            title={!step.titleInView ? t(titleKey) : undefined}
-            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
+            {...stepCopy}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction' && showProgress}
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}
-            totalSteps={setupSteps.length}
         >
             {children ?? <View />}
         </SetupWrapper>
@@ -214,11 +217,15 @@ export const SURFACES: Record<string, Surface> = {
 
     '03-c-residence-congrats': {
         ...SURFACE_META['03-c-residence-congrats'],
-        render: () => (
-            <SetupScreen screenId="residence">
-                <ResidenceStep initialView="congrats" />
-            </SetupScreen>
-        ),
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="PT" />,
+    },
+    '03-h-funding-methods': {
+        ...SURFACE_META['03-h-funding-methods'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" />,
+    },
+    '03-i-payment-methods': {
+        ...SURFACE_META['03-i-payment-methods'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" />,
     },
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
@@ -233,35 +240,16 @@ export const SURFACES: Record<string, Surface> = {
             </SetupScreen>
         ),
     },
-    '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
-    '07-a-setuppasskey': {
-        ...SURFACE_META['07-a-setuppasskey'],
-        render: () => <SetupScreen screenId="passkey-permission" />,
+    '06-b-invite': {
+        ...SURFACE_META['06-b-invite'],
+        render: () => <SetupScreen screenId="invite" />,
     },
+    '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
     '02-b-advantage-card': {
         ...SURFACE_META['02-b-advantage-card'],
         render: () => <SetupScreen screenId="advantage-card" />,
     },
-    '03-d-funding-methods': {
-        ...SURFACE_META['03-d-funding-methods'],
-        render: () => <SetupScreen screenId="funding-methods" />,
-    },
-    '03-e-advantage-local': {
-        ...SURFACE_META['03-e-advantage-local'],
-        render: () => <SetupScreen screenId="advantage-local" />,
-    },
-    '03-f-advantage-exchange': {
-        ...SURFACE_META['03-f-advantage-exchange'],
-        render: () => <SetupScreen screenId="advantage-exchange" />,
-    },
-    '03-g-advantage-people': {
-        ...SURFACE_META['03-g-advantage-people'],
-        render: () => <SetupScreen screenId="advantage-people" />,
-    },
-    '03-b-advantage-bank': {
-        ...SURFACE_META['03-b-advantage-bank'],
-        render: () => <SetupScreen screenId="advantage-bank" />,
-    },
+
     '04-b-advantage-fees': {
         ...SURFACE_META['04-b-advantage-fees'],
         render: () => <SetupScreen screenId="advantage-fees" />,
@@ -478,9 +466,9 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <SupportedNetworksDrawer visible onClose={noop} />,
     },
     '41-c-migrationdownloadmodal': {
-        name: 'MigrationDownloadModal (early)',
+        name: 'MigrationDownloadModal',
         path: 'Migration/MigrationDownloadModal.tsx',
-        render: () => <MigrationDownloadModal forceVariant="early" />,
+        render: () => <MigrationDownloadModal forceVisible />,
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],
@@ -622,7 +610,7 @@ export const SURFACES: Record<string, Surface> = {
                     heading="Frequently asked questions"
                     questions={[
                         { id: 'q1', question: 'How long does a transfer take?', answer: 'Usually a few minutes.' },
-                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut-to-Peanut payments.' },
+                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut to Peanut.' },
                     ]}
                 />
             </div>
@@ -814,11 +802,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '83-f-choice-residence-restricted': {
         ...SURFACE_META['83-f-choice-residence-restricted'],
-        render: () => (
-            <SetupScreen screenId="residence">
-                <ResidenceStep initialView="restricted" />
-            </SetupScreen>
-        ),
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="RU" />,
     },
     '84-f-choice-public-profile-guest': {
         ...SURFACE_META['84-f-choice-public-profile-guest'],

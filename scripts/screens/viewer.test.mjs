@@ -13,6 +13,8 @@ const elementIds = [
     'view-mode-row',
     'source',
     'source-control',
+    'branch',
+    'branch-control',
     'locale',
     'profile',
     'profile-control',
@@ -198,6 +200,7 @@ async function loadLanding(
         getElementById: (id) => elements.get(id),
         querySelector: (selector) => (selector === '.brand' ? brand : null),
     }
+    elements.document = document
     const context = vm.createContext({
         console,
         document,
@@ -224,6 +227,73 @@ async function loadLanding(
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
+
+test('PR report heading and tab title retain PR and branch context across view and filter changes', async () => {
+    const path = `2026-10-09/pr-3593/en/${'a'.repeat(40)}/run-37911623740-1`
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852, capturedAt: '2026-10-09T12:00:00Z' },
+        screens: [],
+    }
+    const elements = await loadLanding(`/screens/${path}/`, {
+        report,
+        index: [{ path, date: '2026-10-09', branch: 'innolope/store-country', prNumber: 3593, locale: 'en' }],
+    })
+    for (const update of [
+        () => {},
+        () => {
+            elements.get('view-mode').checked = true
+            elements.get('view-mode').dispatch('change')
+        },
+        () => elements.get('search').dispatch('input'),
+        () => {
+            elements.get('view-mode').checked = false
+            elements.get('view-mode').dispatch('change')
+        },
+    ]) {
+        update()
+        assert.equal(elements.get('title').textContent, 'PR #3593')
+        assert.match(elementText(elements.get('description')), /innolope\/store-country.*October 9, 2026/)
+        assert.equal(elements.document.title, 'PR #3593 · Peanut Screen library')
+    }
+})
+
+test('older report URLs identify the PR or branch with missing or fallback catalogue metadata', async () => {
+    for (const [channel, expectedTitle, type, branch] of [
+        ['pr-3593', 'PR #3593', 'comparison'],
+        ['compare-main', 'Main', 'comparison'],
+        ['compare-main-2026-08-27', 'Main', 'comparison'],
+        ['compare-main-2026-08-27', 'Main', 'comparison', 'compare-main-2026-08-27'],
+        ['compare-dev', 'Dev', 'comparison'],
+        ['main', 'Main', 'capture'],
+        ['dev', 'Dev', 'capture'],
+    ]) {
+        const capture = { width: 393, height: 852, capturedAt: '2026-10-09T12:00:00Z' }
+        const report = {
+            schema: 1,
+            type,
+            locale: 'en',
+            complete: true,
+            ...capture,
+            before: capture,
+            after: capture,
+            screens: [],
+        }
+        const path = `2026-10-09/${channel}/en/${'a'.repeat(40)}`
+        const elements = await loadLanding(`/screens/${path}/`, {
+            report,
+            index: branch ? [{ path, branch, date: '2026-10-09', locale: 'en' }] : [],
+        })
+        assert.equal(elements.get('title').textContent, expectedTitle)
+        assert.equal(elements.document.title, `${expectedTitle} · Peanut Screen library`)
+        assert.match(elementText(elements.get('description')), /October 9, 2026/)
+        assert.doesNotMatch(elementText(elements.get('description')), /pr-3593/)
+    }
+})
 
 test('root shows the branded sign-in gate when Access redirects the catalogue request', async () => {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
@@ -575,72 +645,73 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
 })
 
-test('new and legacy after-only screens stay in visual changes with a New screen placeholder', async () => {
-    const image = 'a'.repeat(64) + '.png'
-    const reason = 'This revision has no compatible scenario harness for this component'
-    const row = (id, status, baselineStatus = 'unavailable') => ({
-        id,
-        name: id,
-        flow: 'Setup and login',
-        kind: 'component',
-        status,
-        before: { status: baselineStatus, reason },
-        after: { status: 'captured', image, thumbnail: image },
+for (const channel of ['pr-3392', 'compare-main'])
+    test(`${channel}: new and legacy after-only screens stay in visual changes with a New screen placeholder`, async () => {
+        const image = 'a'.repeat(64) + '.png'
+        const reason = 'This revision has no compatible scenario harness for this component'
+        const row = (id, status, baselineStatus = 'unavailable') => ({
+            id,
+            name: id,
+            flow: 'Setup and login',
+            kind: 'component',
+            status,
+            before: { status: baselineStatus, reason },
+            after: { status: 'captured', image, thumbnail: image },
+        })
+        const report = {
+            schema: 1,
+            type: 'comparison',
+            locale: 'en',
+            complete: false,
+            before: { width: 393, height: 852 },
+            after: { width: 393, height: 852 },
+            screens: [
+                row('legacy', 'unavailable'),
+                row('modern', 'new'),
+                row('added', 'added', 'absent'),
+                row('failed-baseline', 'failed', 'failed'),
+                row('excluded-baseline', 'excluded', 'excluded'),
+                {
+                    ...row('after-gap', 'unavailable'),
+                    before: { status: 'captured', image },
+                    after: { status: 'unavailable', reason },
+                },
+            ],
+        }
+        const elements = await loadLanding(`/screens/2026-10-06/${channel}/en/` + 'b'.repeat(40) + '/', {
+            report,
+            search: '?status=differences&view=changed',
+        })
+        assert.deepEqual(
+            elements.get('screens').children.map(({ id }) => id),
+            ['legacy', 'modern', 'added']
+        )
+        assert.match(elements.get('coverage').textContent, /2 new screens/)
+        assert.match(elements.get('coverage').textContent, /Incomplete capture/)
+        for (const tile of elements.get('screens').children) {
+            const before = tile.children[1].children[0]
+            assert.match(elementText(before), /New screen No before screenshot/)
+            assert.equal(imageSources(before).length, 0)
+            assert.equal(before.children[1].title, reason)
+            assert.equal(imageSources(tile).length, 1)
+            tile.children[1].children[1].children[1].onclick()
+            assert.match(elementText(elements.get('zoom-images')), /New screen No before screenshot/)
+            assert.equal(imageSources(elements.get('zoom-images')).length, 1)
+        }
+        elements.get('status').value = 'new'
+        elements.get('status').dispatch('input')
+        assert.deepEqual(
+            elements.get('screens').children.map(({ id }) => id),
+            ['legacy', 'modern']
+        )
+        assert.equal(elements.get('view-mode').checked, false)
+        elements.get('view-mode').checked = true
+        elements.get('view-mode').dispatch('change')
+        assert.equal(
+            elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
+            true
+        )
     })
-    const report = {
-        schema: 1,
-        type: 'comparison',
-        locale: 'en',
-        complete: false,
-        before: { width: 393, height: 852 },
-        after: { width: 393, height: 852 },
-        screens: [
-            row('legacy', 'unavailable'),
-            row('modern', 'new'),
-            row('added', 'added', 'absent'),
-            row('failed-baseline', 'failed', 'failed'),
-            row('excluded-baseline', 'excluded', 'excluded'),
-            {
-                ...row('after-gap', 'unavailable'),
-                before: { status: 'captured', image },
-                after: { status: 'unavailable', reason },
-            },
-        ],
-    }
-    const elements = await loadLanding('/screens/2026-10-06/pr-3392/en/' + 'b'.repeat(40) + '/', {
-        report,
-        search: '?status=differences&view=changed',
-    })
-    assert.deepEqual(
-        elements.get('screens').children.map(({ id }) => id),
-        ['legacy', 'modern', 'added']
-    )
-    assert.match(elements.get('coverage').textContent, /2 new screens/)
-    assert.match(elements.get('coverage').textContent, /Incomplete capture/)
-    for (const tile of elements.get('screens').children) {
-        const before = tile.children[1].children[0]
-        assert.match(elementText(before), /New screen No before screenshot/)
-        assert.equal(imageSources(before).length, 0)
-        assert.equal(before.children[1].title, reason)
-        assert.equal(imageSources(tile).length, 1)
-        tile.children[1].children[1].children[1].onclick()
-        assert.match(elementText(elements.get('zoom-images')), /New screen No before screenshot/)
-        assert.equal(imageSources(elements.get('zoom-images')).length, 1)
-    }
-    elements.get('status').value = 'new'
-    elements.get('status').dispatch('input')
-    assert.deepEqual(
-        elements.get('screens').children.map(({ id }) => id),
-        ['legacy', 'modern']
-    )
-    assert.equal(elements.get('view-mode').checked, false)
-    elements.get('view-mode').checked = true
-    elements.get('view-mode').dispatch('change')
-    assert.equal(
-        elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
-        true
-    )
-})
 
 test('screen preview uses the viewport device frame and supports chevrons and keyboard navigation', async () => {
     const first = 'a'.repeat(64) + '.webp'
@@ -1265,4 +1336,30 @@ test('hosted report 404 shows a report-not-found state instead of an unpublished
     assert.match(elements.get('empty-title').textContent, /report is not available/i)
     assert.doesNotMatch(elements.get('empty-title').textContent, /almost here/i)
     assert.match(elements.get('empty-message').textContent, /published report/i)
+})
+
+test('Main filter shows released full libraries and comparisons and survives a shared URL', async () => {
+    const commit = 'a'.repeat(40)
+    const entries = ['main', 'compare-main', 'dev', 'pr-1'].map((channel) => ({
+        path: `2026-10-08/${channel}/en/${commit}/run-50-1`,
+        date: '2026-10-08',
+        locale: 'en',
+        complete: true,
+    }))
+    const elements = await loadLanding('/', { index: entries, search: '?branch=main' })
+    assert.equal(elements.get('branch').value, 'main')
+    assert.equal(elements.get('branch-control').hidden, false)
+    assert.equal(versionLinks(elements).length, 2)
+    assert.ok(versionLinks(elements).every((link) => /\/(main|compare-main)\//.test(link.href)))
+    assert.match(elements.location.search, /branch=main/)
+    assert.ok(versionLinks(elements).some((link) => /Full library/.test(elementText(link))))
+    assert.ok(versionLinks(elements).some((link) => /Changed screens/.test(elementText(link))))
+    elements.get('branch').value = 'dev'
+    elements.get('branch').dispatch('change')
+    assert.equal(versionLinks(elements).length, 1)
+    assert.match(versionLinks(elements)[0].href, /\/dev\//)
+    elements.get('branch').value = ''
+    elements.get('branch').dispatch('change')
+    assert.equal(versionLinks(elements).length, 4)
+    assert.doesNotMatch(elements.location.search, /branch=/)
 })

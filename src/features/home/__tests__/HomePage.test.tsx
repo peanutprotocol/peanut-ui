@@ -20,7 +20,6 @@ let mockFlow: {
     isOnboardingComplete: boolean
     isActivated: boolean
     onboarding: OnboardingState
-    isChecklistHidden?: boolean
     hiddenHomeCtas?: ReadonlySet<string>
     showWelcome?: boolean
 }
@@ -33,9 +32,7 @@ jest.mock('../useHomeFlow', () => ({
         isSpendableBalanceStale: false,
         isBalanceHidden: false,
         toggleBalanceVisibility: jest.fn(),
-        hideChecklist: jest.fn(),
         hideCta: jest.fn(),
-        isChecklistHidden: false,
         hiddenHomeCtas: new Set<string>(),
         showWelcome: true,
         ...mockFlow,
@@ -179,27 +176,8 @@ describe('HomePage — never two CTA classes at once', () => {
         expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
     })
 
-    it('a hidden checklist with only the payment row left hands over to the carousel', () => {
-        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, isChecklistHidden: true }
-        renderHome()
-        expect(screen.getByText('home-carousel')).toBeInTheDocument()
-        expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
-    })
-
-    it('a hidden checklist comes back while it may not be hidden (money not in yet)', () => {
-        mockFlow = {
-            isOnboardingComplete: false,
-            isActivated: false,
-            onboarding: { ...FUNDED, addMoneyDone: false, step: 'add_money' },
-            isChecklistHidden: true,
-        }
-        renderHome()
-        expect(screen.getByText('activation-checklist')).toBeInTheDocument()
-    })
-
-    it('hiding never hides a rejection card', () => {
-        mockHasProviderRejection = true
-        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, isChecklistHidden: true }
+    it('with only the payment row left the checklist stays: it has no hide (TASK-23340)', () => {
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
         renderHome()
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()

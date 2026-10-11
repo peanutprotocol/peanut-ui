@@ -3,7 +3,7 @@
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type ScreenId } from '@/components/Setup/Setup.types'
-import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -11,6 +11,7 @@ import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { harnessPasskeyBypass } from '@/constants/harness.consts'
@@ -39,6 +40,17 @@ import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 
+// The steps after registration; reaching any of them arms the no-back lock.
+const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
+    'residence',
+    'advantage-fees',
+    'advantage-card',
+    'payment-plan',
+    'notification-email',
+    'notification-permission',
+    'advantage-control',
+]
+
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
     try {
@@ -58,18 +70,32 @@ function setupTargetMatchesSearchParams(target: string | null, searchParamsStrin
 }
 
 function SetupPageContent() {
-    const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, setNoBackLockScreenId, setSignupEntryFlow, setSignupCompleted, signupCompleted } =
-        useSetupFlowContext()
-    const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
+    const {
+        steps,
+        noBackLockScreenId,
+        setNoBackLockScreenId,
+        setSignupEntryFlow,
+        setSignupCompleted,
+        signupCompleted,
+    } = useSetupFlowContext()
+    const {
+        step,
+        currentIndex: currentStepIndex,
+        direction,
+        handleNext,
+        handleBack,
+        setScreenId,
+        isLoading: flowLoading,
+    } = useSetupFlow()
     useEffect(() => {
         const nextImage = steps[currentStepIndex + 1]?.image
         if (nextImage && 'pose' in nextImage) {
             void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
         }
     }, [steps, currentStepIndex])
+    const stepCopy = useSetupStepCopy(step)
     const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
     // The entry effect must run once per steps-identity, never per step change:
@@ -177,16 +203,16 @@ function SetupPageContent() {
         !showDeviceNotSupportedModal &&
         !showBrowserNotSupportedModal
 
-    // Arm the point of no return only for a step the user actually SEES —
-    // stepRendered excludes entry-resolution loading and unsupported modals.
-    // A stale terminal URL
-    // (?screen=sign-test-transaction in a fresh session) must stay unlockable
-    // so the entry resolver can replace it (Chip review round 2).
+    // Registration happens on the username step and is irreversible: every
+    // later step locks the way back at residence, while the steps after it stay
+    // revisitable. This also restores the boundary for a resumed later step.
     useEffect(() => {
-        if (stepRendered && step && step.showBackButton === false) {
-            setNoBackLockScreenId(step.screenId)
+        if (stepRendered && !signupCompleted && step && POST_REGISTRATION_SCREENS.includes(step.screenId)) {
+            setNoBackLockScreenId(SETUP_POST_REGISTRATION_SCREEN)
         }
-    }, [stepRendered, step, setNoBackLockScreenId])
+    }, [stepRendered, step, signupCompleted, setNoBackLockScreenId])
+    const showBackButton =
+        !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
 
     useSetupStepAnalytics({
         enabled: stepRendered,
@@ -194,7 +220,7 @@ function SetupPageContent() {
         steps,
         signupEntryFlow,
     })
-    useSetupBackHandler({ step, canStepBack: stepRendered, onBack: handleBack })
+    useSetupBackHandler({ step, canStepBack: stepRendered && showBackButton, onBack: handleBack })
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -495,9 +521,6 @@ function SetupPageContent() {
 
     if (!step) return null
 
-    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
-    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
-
     return (
         <SetupWrapper
             fullScreen={step.fullScreen}
@@ -505,9 +528,8 @@ function SetupPageContent() {
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={!step.titleInView ? t(titleKey) : undefined}
-            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
-            showBackButton={step.showBackButton}
+            {...stepCopy}
+            showBackButton={showBackButton}
             showSkipButton={step.showSkipButton}
             imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
@@ -519,15 +541,16 @@ function SetupPageContent() {
             onLogout={logoutUser}
             isLoggingOut={isLoggingOut}
             step={currentStepIndex}
-            totalSteps={steps.length}
             direction={direction}
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}
         >
             <step.component
+                entryDirection={direction}
                 onComplete={
                     step.screenId === 'advantage-control'
                         ? () => {
+                              setNoBackLockScreenId('advantage-control')
                               setSignupCompleted(true)
                           }
                         : undefined

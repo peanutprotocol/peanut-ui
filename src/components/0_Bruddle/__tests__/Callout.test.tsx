@@ -132,6 +132,7 @@ describe('Callout', () => {
     test('floating toast omits actions and the close button', () => {
         const ctas: [{ label: string; onClick: () => void }] = [{ label: 'Retry', onClick: jest.fn() }]
         const { rerender, container } = render(
+            // @ts-expect-error floating never takes ctas — the type blocks it, this checks the runtime guard too
             <Callout priority="error" variant="floating" ctas={ctas} onDismiss={jest.fn()}>
                 Try again later
             </Callout>
@@ -139,6 +140,7 @@ describe('Callout', () => {
         expect(screen.getByRole('alert')).toHaveTextContent('Try again later')
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
 
+        // @ts-expect-error floating never takes ctas
         rerender(<Callout priority="error" variant="floating" ctas={ctas} />)
         expect(container).toBeEmptyDOMElement()
     })

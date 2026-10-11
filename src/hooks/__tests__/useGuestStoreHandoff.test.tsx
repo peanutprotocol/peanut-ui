@@ -19,6 +19,8 @@ jest.mock('@/hooks/useGetDeviceType', () => {
 })
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor }))
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     openStore: (...args: unknown[]) => mockOpenStore(...args),
 }))
 jest.mock('@/utils/deferred-link', () => ({

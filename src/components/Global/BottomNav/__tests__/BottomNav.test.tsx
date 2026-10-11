@@ -5,6 +5,8 @@ const mockPush = jest.fn()
 let mockPathname = '/home'
 let mockSupportOpen = false
 const mockSetSupportOpen = jest.fn()
+let mockIsNative = false
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsNative }))
 
 jest.mock('next/navigation', () => ({
     usePathname: () => mockPathname,
@@ -211,6 +213,7 @@ describe('BottomNav middle slot', () => {
 
 describe('BottomNav support selection and container response', () => {
     beforeEach(() => {
+        mockIsNative = false
         mockPathname = '/home'
         mockShowCardSurface = true
         mockSupportOpen = false
@@ -226,6 +229,7 @@ describe('BottomNav support selection and container response', () => {
     })
 
     afterEach(() => {
+        mockIsNative = false
         mockSupportOpen = false
         jest.restoreAllMocks()
     })
@@ -245,6 +249,20 @@ describe('BottomNav support selection and container response', () => {
         mockSupportOpen = false
         rerender(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill').style.transform).toBe('translateX(149px)')
+    })
+
+    it('keeps the route pill in place during native Support open and re-entry', () => {
+        mockIsNative = true
+        mockPathname = '/card'
+        const { rerender } = render(<BottomNav />)
+        for (const open of [true, false, true]) {
+            mockSupportOpen = open
+            rerender(<BottomNav />)
+            expect(screen.getByTestId('bottom-nav-pill').style.transform).toBe('translateX(149px)')
+            expect(screen.getByRole('button', { name: 'support' })).toHaveAttribute('aria-expanded', 'false')
+        }
+        fireEvent.click(screen.getByRole('button', { name: 'support' }))
+        expect(mockSetSupportOpen).toHaveBeenCalledWith(true)
     })
 
     it('removes the support selection when closing above a route without a tab', () => {

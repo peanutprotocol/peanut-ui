@@ -21,7 +21,7 @@ export default function EmailStep() {
     const t = useTranslations('setup.email')
     const { user, fetchUser } = useAuth()
     const queryClient = useQueryClient()
-    const { notificationEmail, setNotificationEmail } = useSetupFlowContext()
+    const { notificationEmail, setNotificationEmail, setIsLoading: setSetupLoading } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
     const [email, setEmail] = useState(notificationEmail || user?.user.email || '')
     const [error, setError] = useState<string>()
@@ -44,6 +44,7 @@ export default function EmailStep() {
         }
         savingRef.current = true
         setSaving(true)
+        setSetupLoading(true)
         // The flow retains the draft across Next/Back remounts. Only leave
         // after the API confirms the required contact has been saved.
         setNotificationEmail(value)
@@ -70,6 +71,7 @@ export default function EmailStep() {
         } finally {
             savingRef.current = false
             setSaving(false)
+            setSetupLoading(false)
         }
     }
     return (

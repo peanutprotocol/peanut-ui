@@ -2,33 +2,20 @@ import type { ISetupStep, ScreenId } from '@/components/Setup/Setup.types'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 
-const FEATURE_SCREENS: readonly ScreenId[] = [
-    'advantage-bank',
-    'advantage-card',
-    'advantage-local',
-    'advantage-exchange',
-    'advantage-people',
-]
+/** Sell screens before the payment plan, so the card is seen before the plan asks how to spend; each shows only where its product is offered. */
+export const SETUP_FEATURE_SCREENS: readonly ScreenId[] = ['advantage-fees', 'advantage-card']
 
-/** Exactly two introductions in the order appropriate to the user’s residence. */
+/** Residence-dependent introductions between residence and the payment plan: accounts, then the card. */
 export function setupFeatureScreensForResidence(
     restrictions: ResidenceRestrictionSets,
     residence: string
-): readonly [ScreenId, ScreenId] {
+): readonly ScreenId[] {
     const country = residence.trim().toUpperCase()
+    if (!country) return []
     const restrictionsForCountry = deriveResidenceRestrictionsFrom(restrictions, country)
-    const hasBank = !!country && !restrictionsForCountry.banking
-    const hasCard = !!country && !restrictionsForCountry.card
-    const first: ScreenId = hasBank ? 'advantage-bank' : 'advantage-exchange'
-    const second: ScreenId =
-        country === 'AR' || country === 'BR'
-            ? 'advantage-local'
-            : hasCard
-              ? 'advantage-card'
-              : hasBank
-                ? 'advantage-exchange'
-                : 'advantage-people'
-    return [first, second]
+    return SETUP_FEATURE_SCREENS.filter((id) =>
+        id === 'advantage-fees' ? !restrictionsForCountry.banking : !restrictionsForCountry.card
+    )
 }
 
 export function filterSetupStepsForResidence(
@@ -37,18 +24,5 @@ export function filterSetupStepsForResidence(
     residence: string
 ) {
     const selected = setupFeatureScreensForResidence(restrictions, residence)
-    const first = steps.find((step) => step.screenId === selected[0])
-    const second = steps.find((step) => step.screenId === selected[1])
-    const result: ISetupStep[] = []
-    let inserted = false
-    for (const step of steps) {
-        if (FEATURE_SCREENS.includes(step.screenId)) {
-            if (!inserted && first) result.push(first)
-            inserted = true
-        } else {
-            result.push(step)
-            if (step.screenId === 'funding-methods' && second) result.push(second)
-        }
-    }
-    return result
+    return steps.filter((step) => !SETUP_FEATURE_SCREENS.includes(step.screenId) || selected.includes(step.screenId))
 }

@@ -66,8 +66,8 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 jest.mock('@/utils/migration.utils', () => ({
-    // far cutover: the early (non-urgent) variant, always inside the window
-    getMigrationCutoverTime: () => Date.now() + 90 * 24 * 60 * 60 * 1000,
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     openStore: jest.fn(),
 }))
 jest.mock('@/utils/general.utils', () => ({

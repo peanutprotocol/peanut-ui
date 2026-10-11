@@ -20,7 +20,8 @@
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
-import { blockExternal, FROZEN_NOW, openFixture, settle } from './fixture-page'
+import { blockExternal, FROZEN_NOW, openFixture, seenOnceModals, settle } from './fixture-page'
+import { fixtureHref } from '../../src/dev/fixtures/active'
 import { findOverflows } from './overflow-check'
 
 // Known intentional clips — CSS selectors matched against the offending
@@ -125,7 +126,9 @@ for (const [locale, routes] of Object.entries(LANDING_ROUTES)) {
 // ---- signup/setup: needs a virtual authenticator or the passkey preflight
 // bounces headless Chromium to the unsupported-browser screen ----
 
-const SETUP_ROUTES = ['/setup', '/setup?step=signup', '/setup?step=login']
+// Render the actual signup form independently of entry gates; these tests
+// check translated layout, while setup-entry tests cover navigation decisions.
+const SETUP_ROUTES = ['/setup', fixtureHref('/dev/surfaces?s=06-a-signup', 'setup-payment-plan'), '/setup?step=login']
 
 for (const route of SETUP_ROUTES) {
     test(`setup:${route}`, async ({ page }, testInfo) => {
@@ -144,15 +147,12 @@ for (const route of SETUP_ROUTES) {
 
         await blockExternal(page)
         await page.clock.setFixedTime(FROZEN_NOW)
+        await page.addInitScript(seenOnceModals)
         await page.goto(route, { waitUntil: 'domcontentloaded' })
         await settle(page)
 
-        // /setup on the mobile-web UA renders the install wall — a real
-        // localized screen, gate it as-is. ?step=signup must reach the real
-        // signup form (the original "Usuario*" overflow lived in its input):
-        // the virtual authenticator makes the passkey preflight pass, and the
-        // visible input proves we are not on the install/unsupported wall.
-        if (route.includes('step=signup')) {
+        // Prove the signup surface renders the real form before scanning its copy.
+        if (route.includes('s=06-a-signup')) {
             await expect(page.locator('input:visible').first()).toBeVisible()
         }
 

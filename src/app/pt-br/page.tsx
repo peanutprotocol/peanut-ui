@@ -7,6 +7,7 @@ import { LandingPageCapacitorGate } from '@/components/LandingPage/LandingPageCa
 import { LandingPageContent } from '@/components/LandingPage/LandingPageContent'
 import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
+import { RouteIntl } from '@/components/Marketing/RouteIntl'
 import { landingMetadata } from '@/lib/seo/landing'
 
 const LOCALE = 'pt-br' as const
@@ -15,7 +16,7 @@ export const metadata: Metadata = landingMetadata(LOCALE)
 
 export default function PtBrLandingPage() {
     return (
-        <>
+        <RouteIntl locale={LOCALE}>
             <HtmlLang locale={LOCALE} />
             <LocaleSuggestion locale={LOCALE} />
             <LandingPageCapacitorGate>
@@ -23,6 +24,6 @@ export default function PtBrLandingPage() {
                     <LandingPageContent locale={LOCALE} />
                 </LandingPageShell>
             </LandingPageCapacitorGate>
-        </>
+        </RouteIntl>
     )
 }

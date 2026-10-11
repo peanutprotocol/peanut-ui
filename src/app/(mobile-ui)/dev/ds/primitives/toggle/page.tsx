@@ -82,7 +82,7 @@ const [enabled, setEnabled] = useState(false)
                     title="Profile — show my full name"
                     path="src/components/Profile/components/ShowNameToggle.tsx"
                     description="Trailing control on a settings row. Turning it on opens a confirm modal first; turning it off saves straight away."
-                    code={`<Toggle checked={checked} onChange={handleToggleChange} aria-label={t('menu.showMyFullName')} />`}
+                    code={`<Toggle checked={checked} onChange={handleToggleChange} aria-label={t('menu.showFullName')} />`}
                 >
                     <div className="flex items-center justify-between gap-4">
                         <span className="text-body-s text-foreground-primary">Show my full name</span>

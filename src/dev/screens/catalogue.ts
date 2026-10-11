@@ -14,6 +14,7 @@ export type Screen = {
     requiresSource?: string
     entryRoute?: string
     actions?: PageCapture['actions']
+    expectSelector?: string
     routePattern?: string
     fixture: string
     clicks: string[]
@@ -122,19 +123,16 @@ const flowOrder = [
 const setupJourney: Record<string, { journey: string; step: number }> = {
     '01-b-first-launch-intro': { journey: 'Account setup', step: 5 },
     '01-a-landing': { journey: 'Account setup', step: 10 },
+    '06-b-invite': { journey: 'Account setup', step: 20 },
     '06-a-signup': { journey: 'Account setup', step: 30 },
-    '02-b-advantage-card': { journey: 'Account setup', step: 46 },
+    '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 31 },
+    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 32 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
-    '03-c-residence-congrats': { journey: 'Account setup', step: 42 },
-    '03-d-funding-methods': { journey: 'Account setup', step: 45 },
-    '03-f-advantage-exchange': { journey: 'Account setup', step: 44 },
-    '03-e-advantage-local': { journey: 'Account setup', step: 47 },
-    '03-g-advantage-people': { journey: 'Account setup', step: 48 },
-    '03-b-advantage-bank': { journey: 'Account setup', step: 43 },
-    '04-b-advantage-fees': { journey: 'Account setup', step: 35 },
-    '07-a-setuppasskey': { journey: 'Account setup', step: 50 },
-    '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 51 },
-    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 52 },
+    '04-b-advantage-fees': { journey: 'Account setup', step: 42 },
+    '02-b-advantage-card': { journey: 'Account setup', step: 44 },
+    '03-c-residence-congrats': { journey: 'Account setup', step: 46 },
+    '03-h-funding-methods': { journey: 'Account setup', step: 47 },
+    '03-i-payment-methods': { journey: 'Account setup', step: 48 },
     '07-c-notification-email': { journey: 'Account setup', step: 53 },
     '07-d-notification-settings': { journey: 'Account setup', step: 54 },
     '07-b-advantage-control': { journey: 'Account setup', step: 55 },
@@ -167,6 +165,14 @@ export const SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
     sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
+    expectSelector:
+        screen.expectSelector ??
+        // The QR drawer intentionally rests at a small peek snap. Its visible
+        // title proves it is open without requiring half its full-height box.
+        (screen.id === '54-d-qrbottomdrawer' ? '[role="dialog"][data-state="open"] h2' : undefined) ??
+        (/Drawer\b/.test(screen.name) || screen.route.includes('drawer=')
+            ? '[role="dialog"]:not([aria-modal="false"])'
+            : undefined),
     camera: screen.id === '54-d-qrbottomdrawer' ? ('synthetic' as const) : screen.camera,
     requiresSource: ['fixture-avatar-picker', '66-e-avatarpicker'].includes(screen.id)
         ? 'src/components/Avatar/AvatarPicker.tsx'
