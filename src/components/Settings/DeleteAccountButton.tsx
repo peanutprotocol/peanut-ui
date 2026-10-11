@@ -50,7 +50,8 @@ const DeleteAccountButton: FC = () => {
         setBlockedAmount(amount)
         setBlockedCurrency(currency)
         setModalState('blocked')
-        posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
+        if (currency === 'EURC') posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE, { currency })
+        else posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
     }
 
     const open = () => {
@@ -114,10 +115,9 @@ const DeleteAccountButton: FC = () => {
             mascotPose: 'pointing',
             mascotAlt: t('pointingPeanutAlt'),
             title: t('blockedTitle'),
-            description:
-                blockedCurrency === 'EURC'
-                    ? t('blockedEurcDescription')
-                    : t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
+            description: t(blockedCurrency === 'EURC' ? 'blockedEurcDescription' : 'blockedDescription', {
+                amount: blockedAmount ?? formattedSpendableBalance,
+            }),
             ctas: [{ text: t('blockedCta'), variant: 'primary', shadowSize: '4', onClick: moveMoney }],
             tertiaryCta: { text: t('blockedCancelCta'), onClick: close },
         },

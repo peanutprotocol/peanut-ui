@@ -24,6 +24,14 @@ export type CurrencyCapabilities = {
     bankDeposit: boolean
     bankWithdraw: boolean
 }
+export type CurrencyExchangeRate = {
+    midmarket_rate: string
+    buy_rate: string
+    sell_rate: string
+    updated_at: string
+    indicative: boolean
+    developerFeePercent: string
+}
 export type CurrencyOperationKind = 'SEND' | 'EXCHANGE' | 'BANK_DEPOSIT' | 'BANK_WITHDRAW'
 export type CurrencyOperationInput = {
     requestKey: string
@@ -72,8 +80,7 @@ export const currencyAccountsApi = {
     capabilities: () => currencyRequest<CurrencyCapabilities>('capabilities'),
     history: () => currencyRequest<{ entries: CurrencyHistoryEntry[]; operations: CurrencyOperation[] }>('history'),
     bankAccounts: () => currencyRequest<{ accounts: { id: string; label: string }[] }>('bank-accounts'),
-    exchangeRate: (from: 'EURC' | 'USDC') =>
-        currencyRequest<{ midmarket_rate: string; indicative: boolean }>(`exchange-rate?from=${from}`),
+    exchangeRate: (from: 'EURC' | 'USDC') => currencyRequest<CurrencyExchangeRate>(`exchange-rate?from=${from}`),
     prepare: (input: CurrencyOperationInput) => currencyRequest<CurrencyOperation>('operations', 'POST', input),
     operation: (id: string) => currencyRequest<CurrencyOperation>(`operations/${encodeURIComponent(id)}`),
     resume: (id: string) => currencyRequest<CurrencyOperation>(`operations/${encodeURIComponent(id)}/resume`, 'POST'),

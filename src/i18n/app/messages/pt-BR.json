@@ -606,7 +606,7 @@
             "cryingPeanutAlt": "Peanut chorando",
             "depositInFlight": "Há um depósito a caminho. Espere ele chegar e saque seu saldo antes de excluir sua conta.",
             "depositAccountsUnavailable": "Não conseguimos encerrar suas contas bancárias. Sua conta Peanut continua ativa. Tente novamente mais tarde.",
-            "blockedEurcDescription": "Sua conta EURC ainda tem dinheiro ou um pagamento em andamento. Conclua os pagamentos pendentes e mova os euros restantes antes de excluir sua conta."
+            "blockedEurcDescription": "Sua conta EURC ainda tem dinheiro ou pagamentos pendentes. Conclua os pagamentos e mova os euros antes de excluir."
         }
     },
     "limits": {

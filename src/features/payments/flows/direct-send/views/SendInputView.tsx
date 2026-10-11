@@ -41,6 +41,7 @@ export function SendInputView() {
         error,
         formattedBalance,
         balanceFillAmount,
+        availableBalance,
         canProceed,
         hasSufficientBalance,
         isInsufficientBalance,
@@ -87,11 +88,15 @@ export function SendInputView() {
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
                         balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
-                        hideBalance={!isLoggedIn}
+                        hideBalance={!isLoggedIn || formattedBalance === undefined}
                         hideCurrencyToggle={true}
                         balanceSupplement={
                             isInsufficientBalance ? (
-                                <CurrencyBalanceNotice currency="USDC" amount={amount} />
+                                <CurrencyBalanceNotice
+                                    currency="USDC"
+                                    amount={amount}
+                                    availableBalance={availableBalance}
+                                />
                             ) : undefined
                         }
                     />
