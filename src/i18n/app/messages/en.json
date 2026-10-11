@@ -21,6 +21,7 @@
         "skipForNow": "Skip for now",
         "gotIt": "Got it",
         "contactSupport": "Contact support",
+        "supportErrorPrefill": "I got this error in the app: {error}",
         "peanutFee": "Peanut fee",
         "sponsoredByPeanut": "Sponsored by Peanut!",
         "pending": "Pending",
