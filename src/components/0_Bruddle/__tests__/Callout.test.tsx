@@ -231,6 +231,23 @@ describe('Callout support CTA', () => {
         expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()
     })
 
+    test.each([
+        "Peanut doesn't support recurring PIX payments. Ask for a regular PIX QR code instead.",
+        'Peanut no admite este QR. Solo cuentas bancarias donde haya soporte.',
+        'Só contas bancárias onde houver suporte.',
+    ])('no CTA when support is not the next step: %s', (text) => {
+        renderInApp(<Callout priority="error">{text}</Callout>)
+        expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()
+    })
+
+    test.each(['Support can open another one for you.', 'O suporte pode verificar.', 'Fale com o suporte.'])(
+        'a CTA when the error points at support: %s',
+        (text) => {
+            renderInApp(<Callout priority="error">{text}</Callout>)
+            expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+        }
+    )
+
     test('no CTA on non-error priorities', () => {
         renderInApp(<Callout priority="info">Our support team replies within a day</Callout>)
         expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()

@@ -95,9 +95,19 @@ const PRIORITY_STYLES: Record<
     },
 }
 
-// "support" in en / es / pt. Word boundaries keep "unsupported" and
-// "soportado" out.
-const MENTIONS_SUPPORT = /\b(support|soporte|suporte)\b/i
+// Asks the user to contact support, in en / es / pt. The bare word is not
+// enough: "Peanut doesn't support recurring PIX" needs a new QR code, not support.
+const ASKS_FOR_SUPPORT = new RegExp(
+    [
+        String.raw`\b(?:contact|talk to|chat with|ask|reach|message|write to)\s+(?:our\s+)?support\b`,
+        String.raw`\bsupport\s+(?:can|team)\b`,
+        String.raw`\b(?:contact[aá]r?|habla(?:r)? con|chatear con|escr[ií]bele a|escribirle a|escribe a|ped[ií] a)\s+(?:(?:a|al|con)\s+)?(?:nuestro\s+)?soporte\b`,
+        String.raw`\bsoporte\s+puede\b|\bequipo\s+de\s+soporte\b`,
+        String.raw`\b(?:fal(?:e|ar)\s+com|contato\s+com|contat(?:e|ar)|pe[cç]a\s+ao)\s+(?:o\s+|nosso\s+)?suporte\b`,
+        String.raw`\bsuporte\s+pode\b`,
+    ].join('|'),
+    'i'
+)
 
 /**
  * Inline callout banner from the figma notification board (17802:61535):
@@ -165,7 +175,7 @@ export const Callout = ({
     // bails out of the re-render
     useLayoutEffect(() => {
         const text = offersSupport ? (contentRef.current?.textContent?.trim() ?? '') : ''
-        setSupportErrorText(MENTIONS_SUPPORT.test(text) ? text : null)
+        setSupportErrorText(ASKS_FOR_SUPPORT.test(text) ? text : null)
     })
     const supportCta: CalloutCta | undefined =
         supportErrorText && modals
