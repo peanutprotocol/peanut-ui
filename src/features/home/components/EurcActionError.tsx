@@ -3,7 +3,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { wireErrorCode } from '@/services/api-error'
 import { Callout } from '@/components/0_Bruddle/Callout'
 
-export function EurcActionError({ error }: { error: unknown }) {
+export function EurcActionError({ error, minimumCurrency }: { error: unknown; minimumCurrency: string }) {
     const t = useAppTranslations('currencyAccounts')
     if (!error) return null
     const code = wireErrorCode(error)
@@ -23,7 +23,7 @@ export function EurcActionError({ error }: { error: unknown }) {
                       : code === 'operation_in_flight'
                         ? t('inFlight')
                         : code === 'amount_below_minimum'
-                          ? t('belowMinimum')
+                          ? t('belowMinimum', { currency: minimumCurrency })
                           : code === 'unsupported_precision'
                             ? t('tooPrecise')
                             : t('actionError')

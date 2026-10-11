@@ -215,6 +215,7 @@ export function EurcMoneyReviewView({
                         ? new Error('Currency wallet unavailable')
                         : null)
                 }
+                minimumCurrency={operation.kind === 'BANK_DEPOSIT' ? 'EUR' : operation.sourceAsset}
             />
             <LinkButton className="mt-3 mb-3" onClick={cancel} disabled={pending || hasSigned}>
                 {t('cancel')}

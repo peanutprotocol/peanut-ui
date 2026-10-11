@@ -237,7 +237,7 @@ export function EurcMoneyFormFields({
                         <p className="text-body-s">{t('rateWarning')}</p>
                     </>
                 )}
-                <EurcActionError error={error} />
+                <EurcActionError error={error} minimumCurrency={kind === 'BANK_DEPOSIT' ? 'EUR' : source} />
                 <Button type="submit" disabled={!valid || pending} loading={pending}>
                     {t('review')}
                 </Button>

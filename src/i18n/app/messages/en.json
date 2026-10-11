@@ -607,7 +607,7 @@
             "cryingPeanutAlt": "Crying peanut",
             "depositInFlight": "A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.",
             "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later.",
-            "blockedEurcDescription": "Your EURC account still has money or pending payments. Complete payments and move the euros before deleting."
+            "blockedEurcDescription": "Your EURC account still has money or a payment in progress. Complete pending payments and move any remaining euros before deleting your account."
         }
     },
     "limits": {
@@ -4509,15 +4509,15 @@
         "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
     },
     "currencyAccounts": {
-        "accounts": "Accounts",
-        "addAccount": "Add account",
+        "accounts": "Currency accounts",
+        "addAccount": "Add currency account",
         "addEurc": "Add EURC account",
         "eurcAccount": "EURC account",
         "description": "Euro balance held in EURC on Base.",
-        "availability": "Cards use USDC.",
+        "availability": "Card payments still use USDC.",
         "adding": "Adding…",
         "cancel": "Cancel",
-        "addError": "Couldn’t add EURC.",
+        "addError": "Couldn’t add EURC. Try again.",
         "balanceError": "EURC balance unavailable.",
         "retry": "Retry",
         "accountsError": "Accounts unavailable.",
@@ -4538,18 +4538,18 @@
         "amount": "Amount",
         "recipient": "Recipient",
         "bankAccount": "Bank account",
-        "noBankAccounts": "Add a bank account.",
+        "noBankAccounts": "Add a euro bank account to withdraw.",
         "referenceRate": "Indicative rate",
-        "rateWarning": "Rate and fees may change.",
-        "actionError": "Try again.",
+        "rateWarning": "The final rate and fees may differ from this estimate.",
+        "actionError": "Something went wrong. Try again.",
         "review": "Review",
-        "bankInstructionsWarning": "Use these details for this transfer only.",
+        "bankInstructionsWarning": "Use these details and the reference for this euro transfer only.",
         "trackPayment": "Track payment",
         "confirm": "Confirm",
         "completed": "Completed",
         "failed": "Failed",
         "cancelled": "Cancelled",
-        "pendingWarning": "Awaiting confirmation. Don’t repeat payment.",
+        "pendingWarning": "Awaiting confirmation. Don’t repeat this payment.",
         "statusError": "Status unavailable.",
         "resume": "Retry setup",
         "needsReview": "Contact support",
@@ -4574,10 +4574,10 @@
         "convertedBalanceUnavailable": "Total balance is unavailable. Try again.",
         "convertedBalanceLoading": "Calculating total balance…",
         "loadMore": "Load more",
-        "invalidAmount": "Invalid amount.",
-        "invalidRecipient": "Invalid address.",
-        "inFlight": "Another payment is still processing.",
-        "belowMinimum": "Amount is too small.",
-        "tooPrecise": "Too many decimals."
+        "invalidAmount": "Enter a valid amount.",
+        "invalidRecipient": "Enter a valid wallet address.",
+        "inFlight": "Another payment is still in progress. Try again when it finishes.",
+        "belowMinimum": "The minimum amount is 1 {currency}.",
+        "tooPrecise": "Too many decimal places. Remove the extra digits and try again."
     }
 }

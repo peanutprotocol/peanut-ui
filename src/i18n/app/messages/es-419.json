@@ -607,7 +607,7 @@
             "cryingPeanutAlt": "Peanut llorando",
             "depositInFlight": "Hay un depósito en camino. Espera a que llegue y retira tu saldo antes de eliminar tu cuenta.",
             "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Inténtalo más tarde.",
-            "blockedEurcDescription": "Tu cuenta EURC todavía tiene dinero o pagos pendientes. Completa los pagos y mueve los euros antes de eliminarla."
+            "blockedEurcDescription": "Tu cuenta EURC todavía tiene dinero o un pago en curso. Completa los pagos pendientes y mueve los euros restantes antes de eliminar tu cuenta."
         }
     },
     "limits": {
@@ -4509,15 +4509,15 @@
         "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación será directamente con Third National."
     },
     "currencyAccounts": {
-        "accounts": "Cuentas",
-        "addAccount": "Agregar cuenta",
+        "accounts": "Cuentas por moneda",
+        "addAccount": "Agregar cuenta en otra moneda",
         "addEurc": "Agregar cuenta EURC",
         "eurcAccount": "Cuenta EURC",
         "description": "Saldo en euros en EURC en Base.",
-        "availability": "La tarjeta usa USDC.",
+        "availability": "Los pagos con tarjeta siguen usando USDC.",
         "adding": "Agregando…",
         "cancel": "Cancelar",
-        "addError": "No se agregó EURC.",
+        "addError": "No se pudo agregar EURC. Inténtalo de nuevo.",
         "balanceError": "Saldo EURC no disponible.",
         "retry": "Reintentar",
         "accountsError": "Cuentas no disponibles.",
@@ -4538,18 +4538,18 @@
         "amount": "Monto",
         "recipient": "Destinatario",
         "bankAccount": "Cuenta bancaria",
-        "noBankAccounts": "Agrega una cuenta bancaria.",
+        "noBankAccounts": "Agrega una cuenta bancaria en euros para retirar.",
         "referenceRate": "Tipo de cambio indicativo",
-        "rateWarning": "La tasa y las comisiones pueden cambiar.",
-        "actionError": "Inténtalo de nuevo.",
+        "rateWarning": "La tasa y las comisiones finales pueden ser distintas de esta estimación.",
+        "actionError": "Algo salió mal. Inténtalo de nuevo.",
         "review": "Revisar",
-        "bankInstructionsWarning": "Usa estos datos solo para esta transferencia.",
+        "bankInstructionsWarning": "Usa estos datos y la referencia solo para esta transferencia en euros.",
         "trackPayment": "Seguir pago",
         "confirm": "Confirmar",
         "completed": "Completado",
         "failed": "Fallido",
         "cancelled": "Cancelado",
-        "pendingWarning": "Esperando confirmación. No repitas el pago.",
+        "pendingWarning": "Esperando confirmación. No repitas este pago.",
         "statusError": "Estado no disponible.",
         "resume": "Reintentar preparación",
         "needsReview": "Contactar soporte",
@@ -4574,10 +4574,10 @@
         "convertedBalanceUnavailable": "El saldo total no está disponible. Intenta de nuevo.",
         "convertedBalanceLoading": "Calculando el saldo total…",
         "loadMore": "Ver más",
-        "invalidAmount": "Monto inválido.",
-        "invalidRecipient": "Dirección inválida.",
-        "inFlight": "Otro pago aún se está procesando.",
-        "belowMinimum": "El monto es muy bajo.",
-        "tooPrecise": "Demasiados decimales."
+        "invalidAmount": "Ingresa un monto válido.",
+        "invalidRecipient": "Ingresa una dirección de billetera válida.",
+        "inFlight": "Hay otro pago en curso. Inténtalo de nuevo cuando termine.",
+        "belowMinimum": "El monto mínimo es 1 {currency}.",
+        "tooPrecise": "Demasiados decimales. Quita los dígitos de más e inténtalo de nuevo."
     }
 }

@@ -370,7 +370,7 @@
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo.",
             "depositInFlight": "Hay un depósito en camino. Esperá a que llegue y retirá tu saldo antes de eliminar tu cuenta.",
             "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Probá más tarde.",
-            "blockedEurcDescription": "Tu cuenta EURC todavía tiene plata o pagos pendientes. Completá los pagos y mové los euros antes de eliminarla."
+            "blockedEurcDescription": "Tu cuenta EURC todavía tiene plata o un pago en curso. Completá los pagos pendientes y mové los euros restantes antes de eliminar tu cuenta."
         }
     },
     "limits": {
@@ -1958,12 +1958,18 @@
     "currencyAccounts": {
         "receiveWarning": "Enviá solo EURC en Base a esta dirección.",
         "emptyActivity": "Todavía no hay actividad en euros.",
-        "noBankAccounts": "Agregá una cuenta bancaria.",
-        "actionError": "Intentá de nuevo.",
-        "bankInstructionsWarning": "Usá estos datos solo para esta transferencia.",
+        "noBankAccounts": "Agregá una cuenta bancaria en euros para retirar.",
+        "actionError": "Algo salió mal. Intentá de nuevo.",
+        "bankInstructionsWarning": "Usá estos datos y la referencia solo para esta transferencia en euros.",
         "expired": "La transferencia venció. Cancelá y empezá otra.",
         "badBank": "Elegí otra cuenta bancaria.",
         "convertedBalanceWarning": "Convertí antes de enviar. El tipo de cambio y las comisiones pueden variar.",
-        "convertedBalanceUnavailable": "El saldo total no está disponible. Intentá de nuevo."
+        "convertedBalanceUnavailable": "El saldo total no está disponible. Intentá de nuevo.",
+        "addError": "No se pudo agregar EURC. Intentá de nuevo.",
+        "rateWarning": "El tipo de cambio y las comisiones finales pueden ser distintos de esta estimación.",
+        "inFlight": "Hay otro pago en curso. Intentá de nuevo cuando termine.",
+        "tooPrecise": "Demasiados decimales. Sacá los dígitos de más e intentá de nuevo.",
+        "invalidAmount": "Ingresá un monto válido.",
+        "invalidRecipient": "Ingresá una dirección de billetera válida."
     }
 }
