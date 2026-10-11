@@ -31,9 +31,13 @@ export const CONSENT_STATUS_QUERY_KEY = 'consent-status'
 export function outdatedConsentVersions(status: ConsentStatusResponse | undefined): string[] | undefined {
     if (!status) return undefined
     if (!status.needsReConsent) return []
+    // the wire shape is trusted nowhere else in render: a malformed response reads as nothing to accept
+    if (!Array.isArray(status.documents)) return []
     return status.documents
-        .filter((d) => d.needsAcceptance && d.slug in LEGAL_DOCUMENT_VERSIONS)
-        .map((d) => d.currentVersion)
+        .filter(
+            (d) => !!d && d.needsAcceptance === true && typeof d.slug === 'string' && d.slug in LEGAL_DOCUMENT_VERSIONS
+        )
+        .map((d) => String(d.currentVersion))
 }
 
 export function cardNeedsSetup(overview: RainCardOverview | undefined): boolean {

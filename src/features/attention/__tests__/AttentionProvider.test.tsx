@@ -11,7 +11,15 @@ const mockCapture = jest.fn()
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
 
 let mockState: JourneyState
-jest.mock('../journeyState', () => ({ useJourneyState: () => mockState }))
+let mockThrow: Error | null = null
+jest.mock('../journeyState', () => ({
+    useJourneyState: () => {
+        if (mockThrow) throw mockThrow
+        return mockState
+    },
+}))
+const mockSentry = jest.fn()
+jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockSentry(...args) }))
 
 let mockOverlayOpen = false
 jest.mock('@/utils/overlay-visibility', () => ({ useAnyOverlayOpen: () => mockOverlayOpen }))
@@ -69,6 +77,8 @@ beforeEach(() => {
     mockCapture.mockClear()
     resetAttentionSessionForTests()
     mockOverlayOpen = false
+    mockThrow = null
+    mockSentry.mockClear()
     mockState = state()
     renders = 0
 })
@@ -111,7 +121,7 @@ test('a ledger write re-decides: dismissing terms hands the next evaluation on',
     expect(reports[1][1]).toMatchObject({ interrupt: null, zone: 'checklist' })
 })
 
-test('a user-opened overlay suspends every pick', async () => {
+test('a user-opened overlay suspends every pick, but the shadow report still says what it would pick', async () => {
     mockOverlayOpen = true
     render(
         <AttentionProvider>
@@ -121,4 +131,21 @@ test('a user-opened overlay suspends every pick', async () => {
     await act(async () => {})
     expect(screen.getByTestId('interrupt').textContent).toBe('none')
     expect(screen.getByTestId('zone').textContent).toBe('none')
+    const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
+    expect(reports).toHaveLength(1)
+    expect(reports[0][1]).toMatchObject({ interrupt: 'legal-reconsent', zone: 'checklist', overlay_open: true })
+})
+
+test('a throw inside the arbiter never takes the app down', async () => {
+    mockThrow = new Error('selector exploded')
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    render(
+        <AttentionProvider>
+            <div>app-shell</div>
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByText('app-shell')).toBeInTheDocument()
+    expect(mockSentry).toHaveBeenCalledWith(mockThrow, expect.objectContaining({ tags: { feature: 'attention' } }))
+    spy.mockRestore()
 })

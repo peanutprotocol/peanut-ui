@@ -58,7 +58,7 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
     const out: Ledger = {}
     const reconsent = readReconsentSnooze(userId)
     if (reconsent) out['legal-reconsent'] = { snoozedUntil: reconsent }
-    if (prefs?.migrationPromptSnoozedAt) {
+    if (isIso(prefs?.migrationPromptSnoozedAt)) {
         const until = addDays(prefs.migrationPromptSnoozedAt, DOWNLOAD_PROMPT_SNOOZE_DAYS)
         if (until) out['install-app'] = { snoozedUntil: until }
     }
@@ -66,7 +66,11 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
     if (balance?.value && Number.isFinite(balance.expiry)) {
         out['balance-backup'] = { snoozedUntil: new Date(balance.expiry).toISOString() }
     }
-    const pushClosedAt = prefs?.notifModalClosedAt ?? (prefs?.notifModalClosed ? new Date(0).toISOString() : undefined)
+    const pushClosedAt = isIso(prefs?.notifModalClosedAt)
+        ? prefs.notifModalClosedAt
+        : prefs?.notifModalClosed
+          ? new Date(0).toISOString()
+          : undefined
     if (pushClosedAt) {
         // flag off: the old prompt closed forever; flag on: a snooze
         out['push-home-fallback'] = isPwaSunsetOn()
@@ -80,7 +84,7 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
     const blocked = hiddenIds.filter((id) => id.startsWith(BLOCKED_CARD_PREFIX)).at(-1)
     if (blocked) {
         const at = !Array.isArray(hidden) ? hidden?.[blocked] : undefined
-        out['blocked-card'] = { dismissedAt: at ?? new Date(0).toISOString(), version: blocked }
+        out['blocked-card'] = { dismissedAt: isIso(at) ? at : new Date(0).toISOString(), version: blocked }
     }
     return out
 }
@@ -96,14 +100,41 @@ const fingerprintOf = (userId: string, prefs: UserPreferences | undefined): stri
         readReconsentSnooze(userId),
     ])
 
+const isIso = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value))
+
+/** Storage is user-writable and survives every deploy: only well-typed fields come through. */
+export function sanitizeEntry(raw: unknown): LedgerEntry | undefined {
+    if (!raw || typeof raw !== 'object') return undefined
+    const entry = raw as Record<string, unknown>
+    const out: LedgerEntry = {}
+    if (Array.isArray(entry.shownAt)) out.shownAt = entry.shownAt.filter(isIso)
+    if (isIso(entry.dismissedAt)) out.dismissedAt = entry.dismissedAt
+    if (isIso(entry.snoozedUntil)) out.snoozedUntil = entry.snoozedUntil
+    if (typeof entry.version === 'string') out.version = entry.version
+    if (typeof entry.lastSessionShown === 'number' && Number.isFinite(entry.lastSessionShown))
+        out.lastSessionShown = entry.lastSessionShown
+    if (typeof entry.consecutiveSessions === 'number' && Number.isFinite(entry.consecutiveSessions))
+        out.consecutiveSessions = entry.consecutiveSessions
+    return out
+}
+
+function sanitizeStore(raw: unknown): Ledger {
+    if (!raw || typeof raw !== 'object') return {}
+    const out: Ledger = {}
+    for (const [id, entry] of Object.entries(raw as Record<string, unknown>)) {
+        const clean = sanitizeEntry(entry)
+        if (clean) out[id as AskId] = clean
+    }
+    return out
+}
+
 export function readLedger(userId: string | null): Ledger {
     if (!userId) return EMPTY
     const raw = getUserPreferences(userId)
     const fingerprint = fingerprintOf(userId, raw)
     if (cached && cached.userId === userId && cached.fingerprint === fingerprint) return cached.ledger
     const legacy = legacyEntries(userId, raw)
-    const stored = raw?.attention ?? {}
-    const ledger: Ledger = { ...legacy, ...stored }
+    const ledger: Ledger = { ...legacy, ...sanitizeStore(raw?.attention) }
     cached = { userId, fingerprint, ledger }
     return ledger
 }
