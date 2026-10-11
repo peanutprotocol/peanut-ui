@@ -2,8 +2,7 @@
 import { EurcActionError } from './EurcActionError'
 import { isDemoMode } from '@/utils/demo'
 import { peekActiveFixture } from '@/dev/fixtures/active'
-import { useRef, useState } from 'react'
-import { decodeFunctionData, erc20Abi, parseUnits } from 'viem'
+import { useState, useSyncExternalStore } from 'react'
 import { formatUserOperationRequest, type UserOperation } from 'viem/account-abstraction'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -12,32 +11,28 @@ import { useKernelClient } from '@/context/kernelClient.context'
 import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { currencyAccountsApi, type CurrencyOperation } from '@/services/currency-accounts'
-import { EURC_ASSET } from '@/constants/currency-accounts.consts'
+import { EURC_WALLET_CONFIGURED } from '@/constants/currency-accounts.consts'
+import { checkedCurrencyCall, isFinalCurrencyOperation } from '@/utils/currency-operation'
+import { wireErrorCode } from '@/services/api-error'
+import {
+    assertCurrencyOperationSession,
+    clearSignedCurrencyOperation,
+    currencyOperationInFlight,
+    currencyOperationSession,
+    guardCurrencyOperation,
+    readSignedCurrencyOperation,
+    storeSignedCurrencyOperation,
+    subscribeCurrencyOperation,
+} from '@/utils/currency-operation-recovery'
 
-export function checkedCurrencyCall(operation: CurrencyOperation) {
-    const call = operation.call
-    const asset =
-        operation.sourceAsset === 'EURC'
-            ? EURC_ASSET
-            : { chainId: '42161', tokenAddress: '0xaf88d065e77c8cc2239327c5edb3a432268e5831' }
-    if (
-        !call ||
-        call.chainId !== asset.chainId ||
-        call.to.toLowerCase() !== asset.tokenAddress ||
-        BigInt(call.value) !== 0n
-    )
-        throw new Error('Currency call mismatch')
-    const decoded = decodeFunctionData({ abi: erc20Abi, data: call.data })
-    if (decoded.functionName !== 'transfer' || decoded.args[1] !== parseUnits(operation.amount, 6))
-        throw new Error('Currency amount mismatch')
-    return { ...call, value: 0n, recipient: decoded.args[0] }
-}
 export function EurcMoneyReviewView({
+    userId,
     operation,
     destinationLabel,
     onSubmitted,
     onClose,
 }: {
+    userId: string
     operation: CurrencyOperation
     destinationLabel?: string
     onSubmitted: (operation: CurrencyOperation) => void
@@ -46,56 +41,101 @@ export function EurcMoneyReviewView({
     const t = useAppTranslations('currencyAccounts')
     const { ensureClientForChain } = useKernelClient()
     const { signCallsUserOp } = useSignUserOp()
-    const [pending, setPending] = useState(false),
-        [error, setError] = useState<unknown>(null)
-    // Retain the signed bytes on an ambiguous HTTP response. Retry probes the
-    // server first and reuses them; it never prompts for a second signature.
-    const signedRef = useRef<unknown>(null)
-    const submit = async () => {
-        if (pending) return
-        setPending(true)
-        setError(null)
+    const pending = useSyncExternalStore(
+        subscribeCurrencyOperation,
+        () => currencyOperationInFlight(userId, operation.id),
+        () => false
+    )
+    const [recovery] = useState(() => {
         try {
-            const existing = await currencyAccountsApi.operation(operation.id)
-            if (existing.status !== 'READY') {
-                onSubmitted(existing)
-                return
-            }
-            if (isDemoMode() || peekActiveFixture()) {
-                onSubmitted(await currencyAccountsApi.submit(operation.id, {}))
-                return
-            }
-            if (!signedRef.current) {
-                const call = checkedCurrencyCall(existing)
-                await ensureClientForChain(call.chainId)
-                const signed = await signCallsUserOp([{ to: call.to, data: call.data, value: 0n }], call.chainId)
-                signedRef.current = formatUserOperationRequest(signed.signedUserOp as UserOperation<'0.7'>)
-            }
-            onSubmitted(await currencyAccountsApi.submit(operation.id, signedRef.current))
+            return { signed: !!readSignedCurrencyOperation(userId, operation.id), error: null as unknown }
         } catch (reason) {
-            setError(reason)
-        } finally {
-            setPending(false)
+            return { signed: true, error: reason }
         }
+    })
+    const [hasSigned, setHasSigned] = useState(recovery.signed)
+    const [error, setError] = useState<unknown>(recovery.error)
+    const walletConfigured = EURC_WALLET_CONFIGURED || isDemoMode() || !!peekActiveFixture()
+    const submit = async () => {
+        if (!walletConfigured) return
+        await guardCurrencyOperation(userId, operation.id, async () => {
+            const version = currencyOperationSession(userId)
+            setError(null)
+            try {
+                const existing = await currencyAccountsApi.operation(operation.id)
+                assertCurrencyOperationSession(userId, version)
+                if (existing.status !== 'READY' || existing.userOpHash) {
+                    if (isFinalCurrencyOperation(existing.status)) clearSignedCurrencyOperation(userId, operation.id)
+                    onSubmitted(existing)
+                    return
+                }
+                if (isDemoMode() || peekActiveFixture()) {
+                    const next = await currencyAccountsApi.submit(operation.id, {})
+                    assertCurrencyOperationSession(userId, version)
+                    onSubmitted(next)
+                    return
+                }
+                let signed = readSignedCurrencyOperation(userId, operation.id)
+                if (!signed) {
+                    const call = checkedCurrencyCall(existing)
+                    await ensureClientForChain(call.chainId)
+                    assertCurrencyOperationSession(userId, version)
+                    const result = await signCallsUserOp([{ to: call.to, data: call.data, value: 0n }], call.chainId)
+                    assertCurrencyOperationSession(userId, version)
+                    signed = formatUserOperationRequest(result.signedUserOp as UserOperation<'0.7'>)
+                    setHasSigned(true)
+                }
+                storeSignedCurrencyOperation(userId, operation.id, signed)
+                const next = await currencyAccountsApi.submit(operation.id, signed)
+                assertCurrencyOperationSession(userId, version)
+                if (isFinalCurrencyOperation(next.status)) clearSignedCurrencyOperation(userId, operation.id)
+                onSubmitted(next)
+            } catch (reason) {
+                if (currencyOperationSession(userId) !== version) return
+                setError(reason)
+                if (wireErrorCode(reason) === 'operation_expired') {
+                    try {
+                        const next = await currencyAccountsApi.operation(operation.id)
+                        assertCurrencyOperationSession(userId, version)
+                        if (next.status === 'READY' && !next.userOpHash) {
+                            clearSignedCurrencyOperation(userId, operation.id)
+                            setHasSigned(false)
+                        } else {
+                            if (isFinalCurrencyOperation(next.status))
+                                clearSignedCurrencyOperation(userId, operation.id)
+                            onSubmitted(next)
+                        }
+                    } catch (probeError) {
+                        setError(probeError)
+                    }
+                }
+            }
+        })
     }
     const cancel = async () => {
-        if (pending || signedRef.current) return
-        setPending(true)
-        setError(null)
-        try {
-            await currencyAccountsApi.cancel(operation.id)
-            onClose()
-        } catch (reason) {
-            setError(reason)
-        } finally {
-            setPending(false)
-        }
+        if (hasSigned) return
+        await guardCurrencyOperation(userId, operation.id, async () => {
+            const version = currencyOperationSession(userId)
+            setError(null)
+            try {
+                if (readSignedCurrencyOperation(userId, operation.id)) return
+                await currencyAccountsApi.cancel(operation.id)
+                assertCurrencyOperationSession(userId, version)
+                clearSignedCurrencyOperation(userId, operation.id)
+                onClose()
+            } catch (reason) {
+                setError(reason)
+            }
+        })
     }
     let recipient: string | undefined
-    try {
-        recipient = checkedCurrencyCall(operation).recipient
-    } catch {
-        /* no call for bank deposits */
+    let callError: unknown
+    if (operation.call) {
+        try {
+            recipient = checkedCurrencyCall(operation).recipient
+        } catch (reason) {
+            callError = reason
+        }
     }
     return (
         <Card className="gap-3 p-4">
@@ -160,13 +200,23 @@ export function EurcMoneyReviewView({
             ) : (
                 <>
                     {operation.kind !== 'SEND' && <p className="text-body-s">{t('rateWarning')}</p>}
-                    <Button onClick={submit} disabled={pending} loading={pending}>
-                        {t('confirm')}
-                    </Button>
+                    {walletConfigured && !callError && (
+                        <Button onClick={submit} disabled={pending} loading={pending}>
+                            {t('confirm')}
+                        </Button>
+                    )}
                 </>
             )}
-            <EurcActionError error={error} />
-            <LinkButton className="my-3" onClick={cancel} disabled={pending || !!signedRef.current}>
+            <EurcActionError
+                error={
+                    error ??
+                    callError ??
+                    (!walletConfigured && operation.kind !== 'BANK_DEPOSIT'
+                        ? new Error('Currency wallet unavailable')
+                        : null)
+                }
+            />
+            <LinkButton className="mt-3 mb-3" onClick={cancel} disabled={pending || hasSigned}>
                 {t('cancel')}
             </LinkButton>
         </Card>

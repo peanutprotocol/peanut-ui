@@ -1,4 +1,6 @@
 'use client'
+
+import { clearUserCurrencyOperations } from '@/utils/currency-operation-recovery'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { USER } from '@/constants/query.consts'
@@ -272,6 +274,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      * Used by both normal logout and force logout (when backend is down)
      */
     const clearLocalAuthState = useCallback(async () => {
+        clearUserCurrencyOperations(user?.user.userId)
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 

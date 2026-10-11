@@ -1,4 +1,4 @@
-import { eurcBalanceQueryOptions } from '../useCurrencyAccounts'
+import { eurcBalanceQueryOptions } from '@/utils/currency-account-queries'
 import type { CurrencyAccount } from '@/services/currency-accounts'
 import { getPublicClient } from '@/app/actions/clients'
 

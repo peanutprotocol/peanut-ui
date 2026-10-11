@@ -66,9 +66,10 @@ export type CurrencyHistoryEntry = {
     txHash: string | null
     at: string
 }
-async function currencyRequest<T>(suffix: string, method = 'GET', body?: unknown): Promise<T> {
+async function currencyRequest<T>(suffix: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
     const response = await apiFetch(`/users/currency-accounts/EURC/${suffix}`, {
         method,
+        signal,
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
         redactTelemetry: true,
     })
@@ -76,13 +77,27 @@ async function currencyRequest<T>(suffix: string, method = 'GET', body?: unknown
     return response.json()
 }
 
+export type CurrencyHistoryResponse = {
+    entries: CurrencyHistoryEntry[]
+    operations: CurrencyOperation[]
+    cursor: string | null
+    hasMore: boolean
+}
+
 export const currencyAccountsApi = {
     capabilities: () => currencyRequest<CurrencyCapabilities>('capabilities'),
-    history: () => currencyRequest<{ entries: CurrencyHistoryEntry[]; operations: CurrencyOperation[] }>('history'),
+    history: (cursor?: string, signal?: AbortSignal) =>
+        currencyRequest<CurrencyHistoryResponse>(
+            `history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+            'GET',
+            undefined,
+            signal
+        ),
     bankAccounts: () => currencyRequest<{ accounts: { id: string; label: string }[] }>('bank-accounts'),
     exchangeRate: (from: 'EURC' | 'USDC') => currencyRequest<CurrencyExchangeRate>(`exchange-rate?from=${from}`),
     prepare: (input: CurrencyOperationInput) => currencyRequest<CurrencyOperation>('operations', 'POST', input),
-    operation: (id: string) => currencyRequest<CurrencyOperation>(`operations/${encodeURIComponent(id)}`),
+    operation: (id: string, signal?: AbortSignal) =>
+        currencyRequest<CurrencyOperation>(`operations/${encodeURIComponent(id)}`, 'GET', undefined, signal),
     resume: (id: string) => currencyRequest<CurrencyOperation>(`operations/${encodeURIComponent(id)}/resume`, 'POST'),
     submit: (id: string, operation: unknown) =>
         currencyRequest<CurrencyOperation>(`operations/${encodeURIComponent(id)}/submit`, 'POST', { operation }),

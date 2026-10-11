@@ -3,86 +3,77 @@
 import { EURC_WALLET_CONFIGURED } from '@/constants/currency-accounts.consts'
 import { isDemoMode } from '@/utils/demo'
 import { peekActiveFixture } from '@/dev/fixtures/active'
+import type { CurrencyAccountFlowState } from './currency-account.types'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import Loading from '@/components/Global/Loading'
+import { mergeCurrencyHistory } from '@/utils/currency-history'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Card } from '@/components/0_Bruddle/Card'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { currencyAccountsApi, type CurrencyAccount, type CurrencyOperation } from '@/services/currency-accounts'
 import { EurcMoneyFormView } from './EurcMoneyFormView'
-import { EurcMoneyReviewView } from './EurcMoneyReviewView'
+import { EurcReceiveView } from './EurcReceiveView'
 import { EurcMoneyProgressView } from './EurcMoneyProgressView'
-import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 
-export function EurcAccountView({ userId, account }: { userId: string; account: CurrencyAccount }) {
+export function EurcAccountView({
+    userId,
+    account,
+    state,
+    onStateChange,
+}: {
+    userId: string
+    account: CurrencyAccount
+    state: CurrencyAccountFlowState
+    onStateChange: (state: Partial<CurrencyAccountFlowState>) => Promise<URLSearchParams>
+}) {
     const t = useAppTranslations('currencyAccounts')
-    const [action, setAction] = useState<'RECEIVE' | 'SEND' | 'EXCHANGE' | 'BANK_DEPOSIT' | 'BANK_WITHDRAW' | null>(
-        null
-    )
-    const [operation, setOperation] = useState<CurrencyOperation | null>(null)
-    const [submitted, setSubmitted] = useState(false)
+    const { action, operation: operationId } = state
+    const [closing, setClosing] = useState(false)
+    const client = useQueryClient()
+    const setAction = (action: 'RECEIVE' | 'SEND' | 'EXCHANGE' | 'BANK_DEPOSIT' | 'BANK_WITHDRAW') =>
+        void onStateChange({ action })
+    const openOperation = (operation: CurrencyOperation) => {
+        client.setQueryData(['currency-operation', userId, operation.id], operation)
+        void onStateChange({ operation: operation.id, action: null })
+    }
     const capabilities = useQuery({
         queryKey: ['currency-capabilities', userId],
         queryFn: currencyAccountsApi.capabilities,
         retry: 1,
     })
-    const banks = useQuery({
-        queryKey: ['currency-banks', userId],
-        queryFn: currencyAccountsApi.bankAccounts,
-        enabled: operation?.kind === 'BANK_WITHDRAW',
-        retry: 1,
-    })
     const walletConfigured = EURC_WALLET_CONFIGURED || isDemoMode() || !!peekActiveFixture()
-    const history = useQuery({
+    const history = useInfiniteQuery({
         queryKey: ['currency-history', userId],
-        queryFn: currencyAccountsApi.history,
+        queryFn: ({ pageParam, signal }) => currencyAccountsApi.history(pageParam, signal),
+        initialPageParam: undefined as string | undefined,
+        getNextPageParam: (page) => (page.hasMore && page.cursor ? page.cursor : undefined),
         refetchInterval: 15_000,
         retry: 1,
     })
-    const close = () => {
-        setAction(null)
-        setOperation(null)
-        setSubmitted(false)
+    const activity = mergeCurrencyHistory(history.data?.pages)
+    const close = async () => {
+        setClosing(true)
+        await onStateChange({ action: null, operation: null })
+        setClosing(false)
         void history.refetch()
     }
-    if (operation) {
-        return submitted || !['READY', 'AWAITING_FUNDS'].includes(operation.status) ? (
-            <EurcMoneyProgressView userId={userId} operation={operation} onClose={close} />
-        ) : (
-            <EurcMoneyReviewView
-                operation={operation}
-                destinationLabel={banks.data?.accounts.find((bank) => bank.id === operation.externalAccountId)?.label}
-                onSubmitted={(op) => {
-                    setOperation(op)
-                    setSubmitted(true)
-                }}
-                onClose={close}
-            />
-        )
-    }
-    if (action === 'RECEIVE')
-        return (
-            <Card className="gap-3 p-4">
-                <h2 className="text-heading-card">{t('receive')}</h2>
-                <p>{t('receiveWarning')}</p>
-                <QRCodeWrapper url={`ethereum:${account.tokenAddress}@8453/transfer?address=${account.address}`} />
-                <p className="text-body-s break-all">{account.address}</p>
-                <Button variant="ghost" onClick={close}>
-                    {t('back')}
-                </Button>
-            </Card>
-        )
-    if (action) return <EurcMoneyFormView userId={userId} kind={action} onPrepared={setOperation} onClose={close} />
+    if (closing) return <Loading />
+    if (operationId)
+        return <EurcMoneyProgressView key={operationId} userId={userId} operationId={operationId} onClose={close} />
+    if (action === 'RECEIVE') return <EurcReceiveView account={account} onClose={close} />
+    if (action) return <EurcMoneyFormView userId={userId} kind={action} onPrepared={openOperation} onClose={close} />
     return (
         <div className="flex flex-col gap-4">
             {capabilities.isError || !walletConfigured ? (
-                <div role="alert">
+                <Callout priority="error">
                     <p>{t('actionsError')}</p>
                     <Button variant="ghost" onClick={() => void capabilities.refetch()}>
                         {t('retry')}
                     </Button>
-                </div>
+                </Callout>
             ) : (
                 <div className="grid grid-cols-2 gap-3">
                     {capabilities.data?.receive && (
@@ -114,15 +105,15 @@ export function EurcAccountView({ userId, account }: { userId: string; account: 
             )}
             <h2 className="text-heading-card">{t('activity')}</h2>
             {history.isError && (
-                <div role="alert">
+                <Callout priority="error">
                     <p>{t('historyError')}</p>
                     <Button variant="ghost" onClick={() => void history.refetch()}>
                         {t('retry')}
                     </Button>
-                </div>
+                </Callout>
             )}
-            {history.data?.operations.map((op) => (
-                <Button key={op.id} variant="secondary" onClick={() => setOperation(op)}>
+            {activity.operations.map((op) => (
+                <Button key={op.id} variant="secondary" onClick={() => openOperation(op)}>
                     {op.amount} {op.sourceAsset} ·{' '}
                     {t(
                         op.status === 'COMPLETED'
@@ -137,7 +128,7 @@ export function EurcAccountView({ userId, account }: { userId: string; account: 
                     )}
                 </Button>
             ))}
-            {history.data?.entries.map((entry) => (
+            {activity.entries.map((entry) => (
                 <Card key={entry.id} className="gap-1 p-3">
                     <span>{`${entry.direction === 'CREDIT' ? '+' : '−'}€${entry.amount}`}</span>
                     <time dateTime={entry.at}>{new Date(entry.at).toLocaleDateString()}</time>
@@ -148,7 +139,17 @@ export function EurcAccountView({ userId, account }: { userId: string; account: 
                     )}
                 </Card>
             ))}
-            {history.isSuccess && !history.data.entries.length && !history.data.operations.length && (
+            {history.hasNextPage && (
+                <Button
+                    variant="secondary"
+                    onClick={() => void history.fetchNextPage()}
+                    disabled={history.isFetchingNextPage}
+                    loading={history.isFetchingNextPage}
+                >
+                    {t('loadMore')}
+                </Button>
+            )}
+            {history.isSuccess && !activity.entries.length && !activity.operations.length && (
                 <p>{t('emptyActivity')}</p>
             )}
         </div>

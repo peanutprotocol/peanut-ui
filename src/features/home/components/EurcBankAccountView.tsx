@@ -1,6 +1,6 @@
 'use client'
 import { useAuth } from '@/context/authContext'
-import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { DynamicBankAccountForm } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { addBankAccount } from '@/app/actions/users'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -25,9 +25,9 @@ export function EurcBankAccountView({ onSaved, onClose }: { onSaved: () => Promi
                     void onSaved()
                 }}
             />
-            <Button variant="ghost" onClick={onClose}>
+            <LinkButton className="mt-3 mb-3" onClick={onClose}>
                 {t('back')}
-            </Button>
+            </LinkButton>
         </div>
     )
 }
