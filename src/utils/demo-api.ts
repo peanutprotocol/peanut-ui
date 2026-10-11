@@ -507,7 +507,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/users/currency-accounts/EURC/exchange-rate',
-        handler: () => ({ midmarket_rate: '1.1', indicative: true }),
+        handler: () => ({
+            midmarket_rate: '1.1',
+            buy_rate: '1.1',
+            sell_rate: '1.1',
+            updated_at: new Date().toISOString(),
+            indicative: true,
+            developerFeePercent: '0',
+        }),
     },
     {
         method: 'POST',

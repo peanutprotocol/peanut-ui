@@ -1,8 +1,9 @@
 import { parseUnits } from 'viem'
 
 /** Indicative valuation only. Truncate fractional token units; never increase spendability. */
-export function convertedAccountTotal(selected: bigint, other: bigint, rate: string): bigint | undefined {
-    if (selected < 0n || other < 0n || !/^\d{1,12}(?:\.\d{1,18})?$/.test(rate)) return undefined
+export function convertedAccountTotal(selected: bigint, other: bigint, rate: unknown): bigint | undefined {
+    if (selected < 0n || other < 0n || typeof rate !== 'string' || !/^\d{1,12}(?:\.\d{1,18})?$/.test(rate))
+        return undefined
     const scaledRate = parseUnits(rate, 18)
     if (scaledRate <= 0n) return undefined
     return selected + (other * scaledRate) / 10n ** 18n

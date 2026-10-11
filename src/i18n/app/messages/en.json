@@ -606,7 +606,7 @@
             "cryingPeanutAlt": "Crying peanut",
             "depositInFlight": "A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.",
             "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later.",
-            "blockedEurcDescription": "Your EURC account still has money or a payment in progress. Complete pending payments and move any remaining euros before deleting your account."
+            "blockedEurcDescription": "Your EURC account still has money or pending payments. Complete payments and move the euros before deleting."
         }
     },
     "limits": {
