@@ -295,9 +295,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
          * a country the user or the prefill chose.
          */
         const residenceWroteCountry = useRef(asksCountry && !!residenceDefault && !initialData?.addressCountry)
+        // A verified own address the provider refuses outranks the residence:
+        // the residence would be a second guess that hides the refusal.
+        const ownAddressRefused =
+            !!ownIdentity.address && !isOwnerAddressCountryAccepted(ownIdentity.address.countryCode)
         useEffect(() => {
             if (!asksCountry) return
-            if (!isOwnAccount) {
+            if (!isOwnAccount || ownAddressRefused) {
                 if (residenceWroteCountry.current && !dirtyFieldsRef.current.addressCountry) {
                     setValue('addressCountry', '', { shouldValidate: true })
                 }
@@ -307,7 +311,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             if (!residenceDefault || getValues('addressCountry')) return
             setValue('addressCountry', residenceDefault, { shouldValidate: true })
             residenceWroteCountry.current = true
-        }, [asksCountry, residenceDefault, isOwnAccount, getValues, setValue])
+        }, [asksCountry, residenceDefault, isOwnAccount, ownAddressRefused, getValues, setValue])
 
         // Mexico for a CLABE, the UK for a sort code; null where the form asks
         const fixedCountry = corridor ? fixedAddressCountry(corridor) : null

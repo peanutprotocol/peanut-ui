@@ -97,7 +97,7 @@ export function isValidUKAccountNumber(accountNumber: string): boolean {
  */
 const RE_ADDABLE_DEACTIVATION_REASONS: ReadonlySet<string> = new Set([
     'not_owned_by_current_bridge_customer',
-    'deleted_at_bridge_for_replacement',
+    'bridge_account_replacement_pending',
 ])
 
 /**

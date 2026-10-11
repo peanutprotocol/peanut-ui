@@ -55,7 +55,7 @@ describe('useSavedAccounts', () => {
         mockUseAuth.mockReturnValue({
             user: {
                 accounts: [
-                    { ...acct(AccountType.US, '111'), deactivationReason: 'deleted_at_bridge_for_replacement' },
+                    { ...acct(AccountType.US, '111'), deactivationReason: 'bridge_account_replacement_pending' },
                     { ...acct(AccountType.US, '222'), deactivationReason: 'some_other_reason' },
                 ],
             },

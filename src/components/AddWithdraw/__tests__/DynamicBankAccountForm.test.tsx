@@ -1092,6 +1092,24 @@ describe('DynamicBankAccountForm — the owner address of someone else’s accou
         expect(countryField()).toHaveValue('')
         expect(screen.getByText('withdraw.bankForm.countryUnavailable')).toBeInTheDocument()
     })
+
+    it('drops the residence default when the verified own address is in a refused country', async () => {
+        // a US residence, but the verified address is in Shanghai: the US
+        // default would hide the refusal and send a Chinese street as USA
+        mockResidence = { declared: 'US', declaredSecond: null, verified: 'US' }
+        mockOwnIdentity = { ...KNOWN_IDENTITY, address: { ...KNOWN_IDENTITY.address!, countryCode: 'CN', state: '' } }
+        const onSuccess = jest.fn(async () => ({}))
+        const { ref } = renderBareForm(onSuccess, 'USA')
+
+        await waitFor(() => expect(countryField()).toHaveValue(''))
+        expect(screen.getByText('withdraw.bankForm.countryUnavailable')).toBeInTheDocument()
+
+        await typeAccount('88 Century Avenue')
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
 })
 
 describe('DynamicBankAccountForm — US street rules follow the address country', () => {
