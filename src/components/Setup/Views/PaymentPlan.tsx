@@ -75,7 +75,11 @@ function ChannelPicker<C extends SetupChannel>({
                         {/* All labels share one grid cell: the longest translated label
                             sizes the picker, so choosing never changes its width. */}
                         {[placeholder, ...options.map(compactLabel)].map((text) => (
-                            <span key={text} aria-hidden="true" className="invisible whitespace-nowrap [grid-area:1/1]">
+                            <span
+                                key={text}
+                                aria-hidden="true"
+                                className="invisible whitespace-nowrap [grid-area:1/1] compact:hidden"
+                            >
                                 {text}
                             </span>
                         ))}
@@ -150,8 +154,9 @@ export default function PaymentPlanStep() {
     }
 
     return (
-        <div className="flex w-full flex-1 flex-col gap-8">
-            <h1 className="text-heading-m leading-[2.75rem]">
+        <div className="flex w-full flex-1 flex-col gap-8 compact:gap-4">
+            {/* Compact screens take the board's compact plan: one size down, pickers sized to their label. */}
+            <h1 className="text-heading-m leading-[2.75rem] compact:text-heading-s compact:leading-[2.5rem] tight:leading-[2.25rem]">
                 {t('fundingLead')}{' '}
                 <span className="inline-block max-w-full whitespace-nowrap">
                     {t('with')}{' '}
@@ -173,7 +178,7 @@ export default function PaymentPlanStep() {
                         onChange={setFundingChannel}
                     />
                 </span>
-                <span aria-hidden="true" className="block h-4" />
+                <span aria-hidden="true" className="block h-4 compact:h-2" />
                 {t('spendLead')}{' '}
                 <span className="inline-block max-w-full whitespace-nowrap">
                     {t('with')}{' '}

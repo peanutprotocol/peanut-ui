@@ -237,7 +237,7 @@ const SignupStep = () => {
                                 )}
                             </AnimatePresence>
                         </div>
-                        <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
+                        <div className="min-h-8 compact:min-h-6">{error && <FieldError>{error}</FieldError>}</div>
                     </div>
                     {passkey.usernameTaken && (
                         <div className="flex flex-col gap-3">
@@ -269,7 +269,7 @@ const SignupStep = () => {
                         </Button>
                     }
                     secondary={
-                        <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary short:pt-2">
+                        <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary compact:pt-2">
                             {t.rich('signupStep.termsAgreement', {
                                 terms: (chunks) => (
                                     <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">

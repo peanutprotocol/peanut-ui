@@ -30,7 +30,7 @@ export default function SetupTitleBlock({
         titleClassName
     )
     return (
-        <div className={twMerge('mx-auto space-y-4 w-full', className)}>
+        <div className={twMerge('mx-auto space-y-4 w-full compact:space-y-2', className)}>
             {descriptionInTitle ? (
                 <h1 className={titleClasses}>
                     {title}
@@ -42,7 +42,7 @@ export default function SetupTitleBlock({
                     {description && (
                         <p
                             className={twMerge(
-                                'text-body-m leading-[1.625rem] text-foreground-secondary',
+                                'text-body-m leading-[1.625rem] text-foreground-secondary short:text-body-s short:leading-5',
                                 descriptionClassName
                             )}
                         >
