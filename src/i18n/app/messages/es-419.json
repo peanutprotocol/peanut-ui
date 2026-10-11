@@ -4565,7 +4565,7 @@
         "viewReceipt": "Ver recibo",
         "insufficientBalance": "Saldo insuficiente.",
         "amountLimit": "El monto supera el límite.",
-        "verificationRequired": "Se requiere verificación bancaria.",
+        "verificationRequired": "Verifica tu identidad para usar transferencias bancarias en euros.",
         "expired": "La transferencia venció. Cancela y comienza otra.",
         "badBank": "Elige otra cuenta bancaria.",
         "sendCurrencyBalance": "Saldo: {amount} {currency}",
@@ -4578,6 +4578,8 @@
         "invalidRecipient": "Ingresa una dirección de billetera válida.",
         "inFlight": "Hay otro pago en curso. Inténtalo de nuevo cuando termine.",
         "belowMinimum": "El monto mínimo es 1 {currency}.",
-        "tooPrecise": "Demasiados decimales. Quita los dígitos de más e inténtalo de nuevo."
+        "tooPrecise": "Demasiados decimales. Quita los dígitos de más e inténtalo de nuevo.",
+        "bankingUnavailable": "Las transferencias bancarias en euros no están disponibles para esta cuenta.",
+        "needsReviewError": "Esta transferencia necesita revisión. Contacta a soporte."
     }
 }

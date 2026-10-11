@@ -14,6 +14,9 @@ it.each([
     ['operation_in_flight', 'inFlight'],
     ['unsupported_precision', 'tooPrecise'],
     ['insufficient_balance', 'insufficientBalance'],
+    ['verification_required', 'verificationRequired'],
+    ['banking_unavailable', 'bankingUnavailable'],
+    ['operation_needs_review', 'needsReviewError'],
     ['operation_expired', 'expired'],
     ['something_new', 'actionError'],
 ])('shows %s as %s instead of a retry prompt where retrying cannot help', (code, key) => {

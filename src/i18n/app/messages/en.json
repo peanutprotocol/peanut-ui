@@ -4563,9 +4563,9 @@
         "from": "From",
         "settled": "Settled amount",
         "viewReceipt": "View receipt",
-        "insufficientBalance": "Insufficient wallet balance.",
+        "insufficientBalance": "Insufficient balance.",
         "amountLimit": "Amount exceeds the transfer limit.",
-        "verificationRequired": "Banking verification required.",
+        "verificationRequired": "Verify your identity to use euro bank transfers.",
         "expired": "Transfer expired. Cancel and start again.",
         "badBank": "Choose another bank account.",
         "sendCurrencyBalance": "Balance: {amount} {currency}",
@@ -4578,6 +4578,8 @@
         "invalidRecipient": "Enter a valid wallet address.",
         "inFlight": "Another payment is still in progress. Try again when it finishes.",
         "belowMinimum": "The minimum amount is 1 {currency}.",
-        "tooPrecise": "Too many decimal places. Remove the extra digits and try again."
+        "tooPrecise": "Too many decimal places. Remove the extra digits and try again.",
+        "bankingUnavailable": "Euro bank transfers aren’t available for this account.",
+        "needsReviewError": "This transfer needs a review. Contact support."
     }
 }

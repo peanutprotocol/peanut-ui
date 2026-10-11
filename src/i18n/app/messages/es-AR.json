@@ -1970,6 +1970,8 @@
         "inFlight": "Hay otro pago en curso. Intentá de nuevo cuando termine.",
         "tooPrecise": "Demasiados decimales. Sacá los dígitos de más e intentá de nuevo.",
         "invalidAmount": "Ingresá un monto válido.",
-        "invalidRecipient": "Ingresá una dirección de billetera válida."
+        "invalidRecipient": "Ingresá una dirección de billetera válida.",
+        "verificationRequired": "Verificá tu identidad para usar transferencias bancarias en euros.",
+        "needsReviewError": "Esta transferencia necesita revisión. Contactá a soporte."
     }
 }
