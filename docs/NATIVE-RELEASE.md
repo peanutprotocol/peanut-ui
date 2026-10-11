@@ -92,7 +92,7 @@ npx cap run android --target <emulator-id>     # or: cd android && ./gradlew ass
 > **Debug-build passkey caveat:** passkey registration verifies the app's signing
 > cert against `peanut.me/.well-known/assetlinks.json`. A local **debug** keystore is
 > usually not among the listed fingerprints, so passkey creation may fail on the
-> emulator. The landing/ribbon and the `demo` invite work regardless; for
+> emulator. The landing/ribbon and the `demo` username work regardless; for
 > full passkey flow use a build signed with a registered key.
 
 ---
@@ -811,16 +811,16 @@ rating and the App access instructions below.
 ### Reviewer access
 
 Invite-only + passkey-only is why a reviewer's access "didn't work" (the May-18
-rejection). The reviewer enters invite code **`demo`**, and the native client opens a
-client-side demo session with no backend. The reviewer still creates a **real passkey**,
-because that is the core mechanic review needs to see. Mechanics, fixtures and the QA
+rejection). The reviewer skips the optional invite step, enters **`demo`** as the
+username and taps Claim. The native client then opens a client-side demo session with
+no backend and no passkey prompt (`Signup.tsx`, `isDemoUsername`). Mechanics, fixtures and the QA
 walk: mono [`engineering/native/demo-mode.md`](https://github.com/peanutprotocol/mono/blob/main/engineering/native/demo-mode.md).
 
 **Play Console → App content → App access:** declare restricted access with **one**
 instruction:
 
-- **Name:** "Invite code to access the app"
-- **Instructions:** "Enter invite code `demo`, tap Continue, create a passkey when prompted; you'll land on a populated demo wallet. No username/password."
+- **Name:** "Demo access"
+- **Instructions:** "Skip the invite step. Enter `demo` as the username and tap Claim. You land on a populated demo wallet. No password or passkey is needed."
 
 > Do **not** mention KYC or bank payouts in the access instructions. Keep the positioning
 > as a wallet app (see "Financial features" below).
@@ -919,10 +919,10 @@ stay with the original account).
 
 ## 8. Pre-submission verification
 
-1. Local stack up (backend + seeds); invite code `demo` opens the demo session.
+1. Local stack up (backend + seeds); username `demo` + Claim opens the demo session.
 2. `pnpm native:release` produces a signed AAB with `versionCode ≥ 2`. Only CI builds the
    AAB that goes to Play.
-3. Reviewer-mode E2E on a device: invite `demo` → passkey → Home/History show demo data
+3. Reviewer-mode E2E on a device: username `demo` → Claim → Home/History show demo data
    → KYC skipped → a send reaches a simulated success (no on-chain tx).
 4. Passkey silent-failure: no Google account / outdated Play Services → actionable error,
    never a no-op.
@@ -1123,7 +1123,7 @@ the same as in `android-release.yml` (§5).
 The pipeline stops at **TestFlight**. Submit the build for App Store review by hand in App
 Store Connect; when that happens is in mono
 [`ops/releases.md`](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md).
-Reviewer access uses the same invite code `demo` as Android (§7, "Reviewer access").
+Reviewer access uses the same `demo` username as Android (§7, "Reviewer access").
 
 ### Push notifications (OneSignal / APNs)
 
