@@ -41,8 +41,16 @@ const baseState: JourneyState = {
     postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
     migration: { on: false },
-    push: { ready: true, unanswered: false, promptedThisSession: false },
+    push: { ready: true, unanswered: false, promptedThisSession: false, notEnabled: false },
     showEarlyUserModal: false,
+    activated: false,
+    geoCountry: null,
+    invitesSent: 0,
+    hasSupportSurvivorBadge: false,
+    cardOffer: { loaded: true, geoProhibited: false, hasCardRelationship: false, promotionDisabled: false },
+    qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
+    documentSlideKey: null,
+    flags: { userInterview: false },
 }
 
 const baseSession: Session = {
@@ -117,7 +125,7 @@ describe('other pairs that collide today', () => {
     test('terms outranks the Home push ask, the balance warning and the download prompt', () => {
         const d = run({
             ...TERMS_NEEDED,
-            push: { ready: true, unanswered: true, promptedThisSession: false },
+            push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false },
             balance: { loaded: true, usd: 900 },
             isNative: false,
             migration: { on: true },
@@ -129,7 +137,7 @@ describe('other pairs that collide today', () => {
         const afterTerms = { interruptsThisSession: ['legal-reconsent' as const] }
         expect(run({ balance: { loaded: true, usd: 900 } }, afterTerms).interrupt).toBe('balance-backup')
         const push = run(
-            { push: { ready: true, unanswered: true, promptedThisSession: false } },
+            { push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false } },
             { ...afterTerms, count: 3 }
         )
         expect(push.interrupt).toBeNull()
@@ -141,7 +149,7 @@ describe('other pairs that collide today', () => {
             {
                 isNative: false,
                 migration: { on: true },
-                push: { ready: true, unanswered: true, promptedThisSession: false },
+                push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false },
             },
             { count: 3 }
         )
@@ -150,10 +158,10 @@ describe('other pairs that collide today', () => {
     })
 
     test('the Home push ask waits for the third session, and stands down after a money-moment ask', () => {
-        const state = { push: { ready: true, unanswered: true, promptedThisSession: false } }
+        const state = { push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false } }
         expect(run(state, { count: 2 }).interrupt).toBeNull()
         expect(run(state, { count: 3 }).interrupt).toBe('push-home-fallback')
-        const asked = { push: { ready: true, unanswered: true, promptedThisSession: true } }
+        const asked = { push: { ready: true, unanswered: true, promptedThisSession: true, notEnabled: false } }
         expect(run(asked, { count: 3 }).trace.verdicts['push-home-fallback']).toBe('ineligible')
     })
 

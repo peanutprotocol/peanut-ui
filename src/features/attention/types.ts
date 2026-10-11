@@ -36,6 +36,13 @@ export type AskId =
     | 'checklist'
     | 'push-home-fallback'
     | 'early-user'
+    | 'verification-advisory'
+    | 'qr-payment'
+    | 'verify-for-qr'
+    | 'card-offer'
+    | 'invite'
+    | 'bug-bounty'
+    | 'user-interview'
 
 /**
  * Who may interrupt, by default per tier:
@@ -60,6 +67,8 @@ export interface AskPolicy {
     minSessions?: number
     /** zone fatigue: sessions the card may hold the zone before yielding one session (T3+) */
     maxConsecutiveSessions?: number
+    /** a surface-specific precondition on top of `eligible` (the push ask: interrupt only while unanswered, zone only on native) */
+    surfaceWhen?: Partial<Record<Surface, (state: JourneyState) => boolean>>
 }
 
 export interface AttentionAsk {
@@ -86,6 +95,11 @@ export interface AskSurfaceProps {
     onDismissed: () => void
     /** "Not now"; `until` defaults to now + policy.snoozeDays */
     onSnoozed: (until?: number) => void
+}
+
+export interface ZoneSurfaceProps extends AskSurfaceProps {
+    /** `status` renders an in-progress state, never a CTA (reserved; no ask uses it yet) */
+    mode: 'ask' | 'status'
 }
 
 export interface JourneyState {
@@ -125,8 +139,27 @@ export interface JourneyState {
         unanswered: boolean
         /** the contextual (money-moment) pre-prompt already asked this session */
         promptedThisSession: boolean
+        /** native, answered but not on: the card opens the OS settings */
+        notEnabled: boolean
     }
     showEarlyUserModal: boolean | undefined
+    /** API activation: a card spend or QR pay */
+    activated: boolean
+    /** IP country, a hint only (AR/BR pick the LatAm invite copy) */
+    geoCountry: string | null
+    invitesSent: number
+    hasSupportSurvivorBadge: boolean
+    cardOffer: { loaded: boolean; geoProhibited: boolean; hasCardRelationship: boolean; promotionDisabled: boolean }
+    qr: {
+        canPayNow: boolean
+        /** undefined while history loads: the card must not flash in and out */
+        hasMadeQrPayment: boolean | undefined
+        /** showVerifyCTA: verifying would open QR pay for this user */
+        verifyOpensQr: boolean
+    }
+    /** an advisory (future-dated) document request before its final week */
+    documentSlideKey: string | null
+    flags: { userInterview: boolean }
 }
 
 export interface LedgerEntry {

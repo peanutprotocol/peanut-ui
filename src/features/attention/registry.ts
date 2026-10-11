@@ -98,7 +98,7 @@ export const installApp: AttentionAsk = {
     id: 'install-app',
     tier: 2,
     rank: 1, // N1
-    surfaces: ['interrupt'],
+    surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
@@ -143,17 +143,126 @@ export const pushHomeFallback: AttentionAsk = {
     id: 'push-home-fallback',
     tier: 4,
     rank: 1, // N16
-    surfaces: ['interrupt'],
+    surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.push.ready) return 'unknown'
-        if (!s.push.unanswered) return 'done'
         // a money moment already asked this session: one pre-prompt per session
-        return s.push.promptedThisSession ? 'ineligible' : 'show'
+        if (s.push.unanswered) return s.push.promptedThisSession ? 'ineligible' : 'show'
+        // answered but not on: the native card opens the OS settings
+        return s.push.notEnabled ? 'show' : 'done'
     },
-    policy: { minSessions: 3, snoozeDays: 14 },
+    policy: {
+        minSessions: 3,
+        snoozeDays: 14,
+        // the OS dialog is one-shot: the pre-prompt only while it is unanswered; the card only where settings can be opened
+        surfaceWhen: { interrupt: (s) => s.push.unanswered, zone: (s) => s.isNative },
+    },
     analyticsKey: MODAL_TYPES.NOTIFICATIONS,
+}
+
+export const verificationAdvisory: AttentionAsk = {
+    id: 'verification-advisory',
+    tier: 3,
+    rank: 0, // a document a partner asked for, due later; not dismissible
+    surfaces: ['zone'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.documentSlideKey ? 'show' : 'ineligible'
+    },
+    version: (s) => s.documentSlideKey ?? undefined,
+    policy: {},
+    analyticsKey: 'document_request',
+}
+
+export const qrPayment: AttentionAsk = {
+    id: 'qr-payment',
+    tier: 3,
+    rank: 2, // N9
+    surfaces: ['zone'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.qr.canPayNow) return 'ineligible'
+        if (s.qr.hasMadeQrPayment === undefined) return 'unknown'
+        return s.qr.hasMadeQrPayment ? 'done' : 'show'
+    },
+    policy: {},
+    analyticsKey: 'qr_payment',
+}
+
+export const verifyForQr: AttentionAsk = {
+    id: 'verify-for-qr',
+    tier: 3,
+    rank: 3, // N9, the ID check that opens it
+    surfaces: ['zone'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.qr.verifyOpensQr ? 'show' : 'ineligible'
+    },
+    policy: {},
+    analyticsKey: 'kyc_prompt',
+}
+
+export const cardOffer: AttentionAsk = {
+    id: 'card-offer',
+    tier: 3,
+    rank: 4, // N6 for an activated user
+    surfaces: ['zone'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.activated || s.cardOffer.promotionDisabled) return 'ineligible'
+        if (!s.cardOffer.loaded) return 'unknown'
+        return s.cardOffer.geoProhibited || s.cardOffer.hasCardRelationship ? 'ineligible' : 'show'
+    },
+    policy: {},
+    analyticsKey: 'card_offer',
+}
+
+export const invite: AttentionAsk = {
+    id: 'invite',
+    tier: 5,
+    rank: 1, // N19
+    surfaces: ['zone'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.activated && s.invitesSent === 0 ? 'show' : 'ineligible'
+    },
+    policy: {},
+    analyticsKey: MODAL_TYPES.INVITE,
+}
+
+export const bugBounty: AttentionAsk = {
+    id: 'bug-bounty',
+    tier: 5,
+    rank: 5, // campaign
+    surfaces: ['zone'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.activated && !s.hasSupportSurvivorBadge ? 'show' : 'ineligible'
+    },
+    policy: {},
+    analyticsKey: 'bug_bounty',
+}
+
+export const userInterview: AttentionAsk = {
+    id: 'user-interview',
+    tier: 5,
+    rank: 0, // campaign: hand-picked users, leads the growth tier while it runs
+    surfaces: ['zone'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.flags.userInterview ? 'show' : 'ineligible'
+    },
+    policy: {},
+    analyticsKey: 'user_interview',
 }
 
 export const earlyUser: AttentionAsk = {
@@ -182,4 +291,11 @@ export const ASKS: readonly AttentionAsk[] = [
     checklist,
     pushHomeFallback,
     earlyUser,
+    verificationAdvisory,
+    qrPayment,
+    verifyForQr,
+    cardOffer,
+    invite,
+    bugBounty,
+    userInterview,
 ]

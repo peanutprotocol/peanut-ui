@@ -127,8 +127,16 @@ const state = (overrides: Record<string, unknown> = {}): JourneyState =>
         postAuthRedirectDestination: null,
         balance: { loaded: true, usd: 0 },
         migration: { on: false },
-        push: { ready: true, unanswered: false, promptedThisSession: false },
+        push: { ready: true, unanswered: false, promptedThisSession: false, notEnabled: false },
         showEarlyUserModal: false,
+        activated: false,
+        geoCountry: null,
+        invitesSent: 0,
+        hasSupportSurvivorBadge: false,
+        cardOffer: { loaded: true, geoProhibited: false, hasCardRelationship: false, promotionDisabled: false },
+        qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
+        documentSlideKey: null,
+        flags: { userInterview: false },
         ...overrides,
     }) as unknown as JourneyState
 
@@ -228,7 +236,7 @@ test('one surface at a time: T1 after T1 is allowed, T4 after a T1 is not', asyn
     mockState = state({
         consent: TERMS_NEEDED,
         balance: { loaded: true, usd: 900 },
-        push: { ready: true, unanswered: true, promptedThisSession: false },
+        push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false },
         showEarlyUserModal: true,
     })
     const view = await mount()
