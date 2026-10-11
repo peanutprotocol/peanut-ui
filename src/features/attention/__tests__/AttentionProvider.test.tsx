@@ -181,7 +181,7 @@ test('a user-opened overlay suspends every pick, and the report says so', async 
     expect(reports[0][1]).toMatchObject({ interrupt: null, zone: null, suspended: true, overlay_open: true })
 })
 
-test('a throw inside the arbiter never takes the app down', async () => {
+test('a throw inside the manager never takes the app down', async () => {
     mockThrow = new Error('selector exploded')
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
     render(

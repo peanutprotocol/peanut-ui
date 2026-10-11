@@ -14,7 +14,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
 
 /**
  * "Peanut is open to everyone": the one-time announcement for accounts that
- * predate open signup. Whether it shows is the attention arbiter's call (the
+ * predate open signup. Whether it shows is the attention manager's call (the
  * `early-user` ask reads the server's `showEarlyUserModal`); closing it
  * records `hasSeenEarlyUserModal` on the server.
  */

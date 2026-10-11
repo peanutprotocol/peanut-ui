@@ -1,6 +1,6 @@
 /**
  * Phase 2 surfaces' props contract: each prompt is render-only. It shows the
- * moment the arbiter mounts it, and reports the user's answer through
+ * moment the manager mounts it, and reports the user's answer through
  * `onActed` / `onDismissed` / `onSnoozed` instead of deciding anything itself.
  */
 import React from 'react'

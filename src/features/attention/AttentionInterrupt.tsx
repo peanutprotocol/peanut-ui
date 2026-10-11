@@ -2,7 +2,7 @@
 
 import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/nextjs'
-import { ArbiterSurfaceContext } from '@/utils/overlay-visibility'
+import { AttentionSurfaceContext } from '@/utils/overlay-visibility'
 import { useAttention } from './AttentionProvider'
 import { INTERRUPT_SURFACES } from './surfaces'
 import type { AskId } from './types'
@@ -37,7 +37,7 @@ export function AttentionInterrupt() {
 
     if (!id || !Surface) return null
     return (
-        <ArbiterSurfaceContext.Provider value={true}>
+        <AttentionSurfaceContext.Provider value={true}>
             {/* keyed by user too: a surface never carries the previous account's state */}
             <SurfaceBoundary key={`${state.userId}:${id}`} askId={id} onCrash={() => crashed(id)}>
                 <Suspense fallback={null}>
@@ -49,7 +49,7 @@ export function AttentionInterrupt() {
                     />
                 </Suspense>
             </SurfaceBoundary>
-        </ArbiterSurfaceContext.Provider>
+        </AttentionSurfaceContext.Provider>
     )
 }
 

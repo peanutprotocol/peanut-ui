@@ -246,7 +246,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     modals={
                         <>
                             <GuestLoginModal />
-                            {/* every self-opening modal or drawer: one at a time, by the arbiter */}
+                            {/* every self-opening modal or drawer: one at a time, by the manager */}
                             <AttentionInterrupt />
                             <SupportDrawer />
                             {/* Suspense is required: nuqs reads useSearchParams, which triggers
@@ -257,7 +257,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             <QRScannerOverlay />
                             <SecurityVerificationOverlay />
                             {/* push pre-prompt for money moments (store-driven, in-flow);
-                            the context-free Home ask is the arbiter's */}
+                            the context-free Home ask is the manager's */}
                             {isUserLoggedIn && <SetupNotificationsModal />}
                             {/* dev fixture warning strip — renders null outside fixture mode */}
                             <FixtureBanner />

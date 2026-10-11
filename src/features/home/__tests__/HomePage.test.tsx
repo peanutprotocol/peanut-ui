@@ -1,6 +1,6 @@
 /**
  * Home's CTA slot is the attention zone (features/attention): one card, the
- * arbiter's pick. The page only hands the slot over and tells the activity
+ * manager's pick. The page only hands the slot over and tells the activity
  * feed whether to hide its empty state before activation.
  */
 import React from 'react'

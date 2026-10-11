@@ -45,7 +45,7 @@ interface NotificationsState {
     /** the moment that opened the pre-prompt; kept after it closes so the
      *  closing modal keeps its copy */
     promptTrigger: PushPromptTrigger | null
-    /** a money moment asked this session: the arbiter's Home ask stands down */
+    /** a money moment asked this session: the manager's Home ask stands down */
     promptShownThisSession: boolean
     isRequestingPermission: boolean
 }
@@ -206,7 +206,7 @@ async function evaluateVisibility() {
 
 const isWithinSnooze = (closedAt: string) => Date.now() - new Date(closedAt).getTime() < NOTIF_PROMPT_SNOOZE_MS
 
-// The context-free Home ask is the attention arbiter's (features/attention,
+// The context-free Home ask is the attention manager's (features/attention,
 // the `push-home-fallback` ask); this store only knows the money moments.
 function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
     const closedAt = getUserPreferences(userId)?.notifPromptClosedAt?.[trigger]
@@ -222,7 +222,7 @@ function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
 export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void> {
     const userId = currentExternalId
     if (promptShownThisSession) return
-    // never over an arbiter surface (the legal modal, a blocking card setup): the moment passes
+    // never over a manager surface (the legal modal, a blocking card setup): the moment passes
     if (isAttentionInterruptOpen()) return
     if (!state.oneSignalInitialized || !userId) {
         if (!pendingPromptTriggers.includes(trigger)) pendingPromptTriggers.push(trigger)
@@ -477,7 +477,7 @@ async function requestPermission(): Promise<NotificationPermissionState> {
 }
 
 // Snoozes the moment that asked. `notifModalClosedAt` is still written: the
-// arbiter's ledger reads it as the Home ask's legacy snooze, so a money-moment
+// manager's ledger reads it as the Home ask's legacy snooze, so a money-moment
 // "Not now" keeps silencing the Home ask the way it did before.
 function recordPromptClosed(trigger: PushPromptTrigger | null) {
     const userId = currentExternalId ?? undefined

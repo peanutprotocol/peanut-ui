@@ -8,7 +8,7 @@ import type { ZoneSurfaceProps } from '../../types'
 
 /**
  * The getting-started checklist, or the one blocked card that replaces it
- * when a door is shut. ActivationCTAs keeps that branch; the arbiter's
+ * when a door is shut. ActivationCTAs keeps that branch; the manager's
  * `checklist` / `blocked-card` picks read the same hooks, so they agree.
  */
 export default function ChecklistSurface({ onDismissed }: ZoneSurfaceProps) {

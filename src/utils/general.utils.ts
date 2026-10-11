@@ -459,7 +459,7 @@ export type UserPreferences = {
      *  rather than hiding it forever, and a genuinely new cap block is never
      *  suppressed by a stale local flag. */
     capNudgeSubmittedAt?: string
-    /** the attention arbiter's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
+    /** the attention manager's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
     attention?: Partial<Record<string, AttentionLedgerEntry>>
 }
 

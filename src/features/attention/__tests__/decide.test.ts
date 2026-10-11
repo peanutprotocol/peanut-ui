@@ -1,5 +1,5 @@
 /**
- * The arbiter's one rule: never two calls to action at once. Every collision
+ * The manager's one rule: never two calls to action at once. Every collision
  * the app can produce is a row here, starting with the one that happened on
  * 2026-10-07: the updated-terms modal and the "Peanut is open to everyone"
  * drawer, both eligible in the same session.
@@ -240,7 +240,7 @@ describe('session mechanics', () => {
         expect(d.interrupt).toBeNull()
     })
 
-    test('a user-opened overlay suspends the arbiter', () => {
+    test('a user-opened overlay suspends the manager', () => {
         const d = run(TERMS_NEEDED, { busy: true })
         expect(d.suspended).toBe(true)
         expect(d.interrupt).toBeNull()

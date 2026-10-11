@@ -9,7 +9,7 @@ const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDown
 
 /**
  * Home's user-triggered modals. Every self-opening prompt that used to be
- * chained here renders through the attention arbiter (features/attention).
+ * chained here renders through the attention manager (features/attention).
  */
 export function HomeModals() {
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()

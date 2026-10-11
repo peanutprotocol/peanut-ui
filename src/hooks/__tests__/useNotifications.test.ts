@@ -246,7 +246,7 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(true)
     })
 
-    it('never asks over an arbiter surface: the moment passes', async () => {
+    it('never asks over a manager surface: the moment passes', async () => {
         const rendered = await renderInitialized()
         mockPrefs = { ...THIRD_SESSION }
         mockInterruptOpen = true

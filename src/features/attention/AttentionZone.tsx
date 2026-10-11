@@ -7,7 +7,7 @@ import { ZONE_SURFACES } from './zoneSurfaces'
 import type { AskId } from './types'
 
 /**
- * The Home attention zone: one card, the arbiter's pick. The checklist until
+ * The Home attention zone: one card, the manager's pick. The checklist until
  * the first payment, then the next-best action with rotation (decide.ts).
  */
 export function AttentionZone() {

@@ -16,5 +16,5 @@ export const setSessionInterrupts = (next: typeof sessionInterrupts) => {
     sessionInterrupts = next
 }
 
-/** The push store refuses a money-moment pre-prompt while an arbiter surface is up. */
+/** The push store refuses a money-moment pre-prompt while a manager surface is up. */
 export const isAttentionInterruptOpen = (): boolean => sessionInterrupts.open !== null

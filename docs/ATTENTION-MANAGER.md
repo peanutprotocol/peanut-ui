@@ -1,8 +1,8 @@
-# Attention arbiter
+# Attention manager
 
 **Rule:** never two calls to action at once. At any moment the app shows at most one interrupt (modal or drawer) and at most one card in the Home attention zone, chosen by one function.
 
-Design proposal (figures, ranked list, open decisions): the "Attention Arbiter" page shared on 2026-10-11. Product source for the journey order: Notion, _User Journey: Prioritized activation and retention actions_.
+Design proposal (figures, ranked list, open decisions): the "Attention Manager" page shared on 2026-10-11. Product source for the journey order: Notion, _User Journey: Prioritized activation and retention actions_.
 
 ## Why
 
@@ -32,16 +32,16 @@ Tiers rank urgency among asks eligible at the same moment. Journey dependencies 
 
 ## Phases
 
-1. **Foundation, shadow mode** (ui#3658). Types, state, `decide()`, ledger, registry with the ten asks that exist today, provider. Nothing rendered through the arbiter; it captured `attention_decided { shadow: true, … }` once per distinct decision.
-2. **Interrupts** (stacked on 1). The seven self-opening overlays render through `AttentionInterrupt` in the layout, each as a render-only surface with `onActed` / `onDismissed` / `onSnoozed` (`surfaces.tsx`). `HomeModals`' chain, `legalConsentGate` and the per-drawer guards are gone. The push store refuses a money-moment pre-prompt while an arbiter surface is up, and the arbiter's Home push ask stands down after a store prompt. The arbiter emits the legacy `modal_shown` / `modal_dismissed` / `modal_cta_clicked` next to `attention_shown` / `attention_acted` / `attention_dismissed` / `attention_snoozed`; components no longer capture them. Closes the incident class.
-3. **Zone** (stacked on 2). One card, the arbiter's pick, through `AttentionZone` on Home (`zoneSurfaces.tsx`). The checklist until the first payment; after it, the next-best action with rotation: a T3+ card that held the zone three sessions in a row yields for one session (`pickWithFatigue`). The nine carousel slides became asks with one small card each (`surfaces/zone/`); the carousel and `useHomeCarouselCTAs` are gone. The zone holds (renders nothing) while a higher zone tier is still loading, so a lower card never flashes before the checklist. Legacy carousel closes are read into the ledger by slide id.
+1. **Foundation, shadow mode** (ui#3658). Types, state, `decide()`, ledger, registry with the ten asks that exist today, provider. Nothing rendered through the manager; it captured `attention_decided { shadow: true, … }` once per distinct decision.
+2. **Interrupts** (stacked on 1). The seven self-opening overlays render through `AttentionInterrupt` in the layout, each as a render-only surface with `onActed` / `onDismissed` / `onSnoozed` (`surfaces.tsx`). `HomeModals`' chain, `legalConsentGate` and the per-drawer guards are gone. The push store refuses a money-moment pre-prompt while a manager surface is up, and the manager's Home push ask stands down after a store prompt. The manager emits the legacy `modal_shown` / `modal_dismissed` / `modal_cta_clicked` next to `attention_shown` / `attention_acted` / `attention_dismissed` / `attention_snoozed`; components no longer capture them. Closes the incident class.
+3. **Zone** (stacked on 2). One card, the manager's pick, through `AttentionZone` on Home (`zoneSurfaces.tsx`). The checklist until the first payment; after it, the next-best action with rotation: a T3+ card that held the zone three sessions in a row yields for one session (`pickWithFatigue`). The nine carousel slides became asks with one small card each (`surfaces/zone/`); the carousel and `useHomeCarouselCTAs` are gone. The zone holds (renders nothing) while a higher zone tier is still loading, so a lower card never flashes before the checklist. Legacy carousel closes are read into the ledger by slide id.
 4. **New asks**, one file each: virtual account, next payment, share bank details, request, send, email, rewards, complete profile, saved recipient. Backup passkey waits for a credential count on `/users/me`.
 5. **Server ledger.** JSON column and endpoint; cross-device dismissals.
 6. **Push and email.** The same `decide()` on the API with inactivity delays; completing a step cancels its reminders everywhere.
 
 ## Reading the trace
 
-`attention_decided` carries `candidates` (eligible asks in priority order) and `reasons` (why each candidate was not the interrupt), plus `suspended` and `overlay_open` when a user-opened overlay held the arbiter back. In local builds the same payload is logged as `[attention]`.
+`attention_decided` carries `candidates` (eligible asks in priority order) and `reasons` (why each candidate was not the interrupt), plus `suspended` and `overlay_open` when a user-opened overlay held the manager back. In local builds the same payload is logged as `[attention]`.
 
 ## Adding an ask
 
