@@ -24,7 +24,10 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
+    useModalsContextOptional: () => undefined,
+}))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ logoutUser: jest.fn() }) }))
 jest.mock('../KYCStatusDrawerItem', () => ({
     KYCStatusDrawerItem: ({ status }: { status: string }) => <div data-testid={`status-${status}`} />,

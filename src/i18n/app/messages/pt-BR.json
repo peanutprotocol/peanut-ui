@@ -21,6 +21,7 @@
         "skipForNow": "Pular por enquanto",
         "gotIt": "Entendi",
         "contactSupport": "Falar com o suporte",
+        "supportErrorPrefill": "Recebi este erro no app: {error}",
         "peanutFee": "Taxa do Peanut",
         "sponsoredByPeanut": "Patrocinada pelo Peanut!",
         "pending": "Pendente",

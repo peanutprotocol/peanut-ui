@@ -43,6 +43,7 @@ jest.mock('@/hooks/useSafeBack', () => ({
 }))
 const mockSupport = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }),
 }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => ({
