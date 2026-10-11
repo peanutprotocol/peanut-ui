@@ -349,6 +349,7 @@ jest.mock('@/config/underMaintenance.config', () => ({
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({
         setIsSupportModalOpen: jest.fn(),
         openSupportWithMessage: jest.fn(),
