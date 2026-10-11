@@ -1,11 +1,16 @@
-# Native (Android) — Local Dev, Release & Play Review
+# Native app: build, sign, version
 
-How to run the app locally, build/sign/ship it, and get it through Play review.
+Commands and reference for the Peanut native app: run it locally, build it, sign it,
+version it, ship OTA bundles, and set up the stores.
+
+**This doc has no release process.** Who releases, when, and in which order is in mono
+[`ops/releases.md`](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md).
+If this doc and a workflow file disagree, the workflow file wins; fix this doc.
 
 > **Architecture:** Capacitor 8 wrapping a static export of the Next.js app — one
-> codebase, web + Android (iOS in progress, see §11). Key files:
+> codebase, web + Android + iOS. Key files:
 > `scripts/native-build.js`, `scripts/native-release.sh`, `capacitor.config.ts`,
-> `next.config.native.js`.
+> `next.config.native.js`, `.github/workflows/{release-ota,release-native,android-release,ios-release,staging-ota}.yml`.
 
 ---
 
@@ -42,26 +47,7 @@ git clone --recurse-submodules https://github.com/peanutprotocol/peanut-ui
 
 ---
 
-## 2. Branches & merge order
-
-The native work is split into focused branches. **Merge order matters** — the
-build-reliability branch is a hard prerequisite:
-
-1. **`fix/native-build-reliability`** — Java 17 force + `card-comparison.ts`
-   `'use server'` removal (a Server Action breaks `output: 'export'`) + cleartext
-   network config. **Without this the static export and Gradle build fail**, so it
-   must land first.
-2. **`fix/native-passkey-reliability`** — silent "Set it up" fix + multi-account
-   signing (PR #2189 re-applied).
-3. **`feat/native-review-readiness`** — reviewer/demo mode, build guard, versionCode
-   wiring, plugins (haptics/keyboard), `native:release`, CI release, this doc.
-4. **`peanut-api-ts` `feat/demo-reviewer-invite`** — the `demo` code + reviewer seed;
-   deploy alongside #3 so reviewer access works.
-5. **`feat/native-ios`** — iOS platform (in progress).
-
----
-
-## 3. Run it all locally (sandbox / testnet)
+## 2. Run it all locally (sandbox / testnet)
 
 ### Backend → `peanut-api-ts`
 ```bash
@@ -70,7 +56,6 @@ build-reliability branch is a hard prerequisite:
 npx prisma generate --sql           # needs the DB up (typed SQL client)
 npx prisma migrate deploy
 npx tsx scripts/seed-dev-system-users.ts
-npx tsx scripts/seed-reviewer-user.ts   # seeds the `demo` → `reviewer` inviter
 npx tsx scripts/seed-rails.ts           # rails — flows 400 without this
 PORT=5001 pnpm dev                      # see port note below
 curl localhost:5001/healthz             # {"status":"healthy","dbConnected":true}
@@ -98,7 +83,7 @@ NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
 NEXT_PUBLIC_CAPACITOR_BUILD=true
 ```
 Cleartext to `10.0.2.2`/`localhost` is already permitted (`network_security_config.xml`
-+ manifest, on `fix/native-build-reliability`; scoped so production https is untouched).
++ manifest; scoped so production https is untouched).
 ```bash
 node scripts/native-build.js
 npx cap sync android
@@ -107,45 +92,12 @@ npx cap run android --target <emulator-id>     # or: cd android && ./gradlew ass
 > **Debug-build passkey caveat:** passkey registration verifies the app's signing
 > cert against `peanut.me/.well-known/assetlinks.json`. A local **debug** keystore is
 > usually not among the listed fingerprints, so passkey creation may fail on the
-> emulator. The landing/ribbon and the `demo` invite validation work regardless; for
+> emulator. The landing/ribbon and the `demo` invite work regardless; for
 > full passkey flow use a build signed with a registered key.
 
 ---
 
-## 4. Reviewer access (the May-18 rejection fix)
-
-Invite-only + passkey-only is why the reviewer's access "didn't work". There's now a
-**reviewer/demo mode** entered with a single code.
-
-- Reviewer enters invite code **`demo`** → backend maps it to the `reviewer` inviter
-  (`PROD/STAGING_SPECIAL_INVITE_CODES_MAP` in `peanut-api-ts/src/utils/invite.ts`).
-- The native client recognizes `demo` (`src/utils/reviewer.ts`) and: overlays
-  pre-filled balance + history (no empty states), **skips KYC**, and **simulates**
-  send/pay/withdraw (no real funds / on-chain tx — safe on mainnet).
-- The reviewer still creates a **real passkey** — the core mechanic review needs to see.
-
-**Seed the inviter** per environment (idempotent; localhost self-heals):
-```bash
-npx tsx scripts/seed-reviewer-user.ts   # in peanut-api-ts, DATABASE_URL → target env
-```
-**Play Console → App content → App access:** declare restricted, instructions: "Enter
-invite code `demo`, tap Continue, create a passkey when prompted; you'll land on a
-populated demo wallet. No username/password." (Passwordless — the code is the access.)
-
----
-
-## 5. Passkey reliability fixes (`fix/native-passkey-reliability`)
-
-- **Silent "Set it up":** `passkeyPreflight.ts` now queries the native plugin's
-  `isSupported()`; `SetupPasskey.tsx` re-checks on tap and always surfaces an
-  actionable message — the button can never silently no-op.
-- **Multi-account signing:** native signing is pinned to the kernel's own credential
-  (`native-webauthn.ts` + `kernelClient.context.tsx`). **Smoke-test on a 2-account
-  device** before relying on it.
-
----
-
-## 6. Build the release
+## 3. Build the release
 
 ```bash
 pnpm native:release        # derive version → native-build → cap sync → bundleRelease
@@ -158,7 +110,9 @@ pnpm native:release        # derive version → native-build → cap sync → bu
   - `versionName` ← `ANDROID_VERSION_NAME` env, else `package.json` `version` (a
     local-build fallback only — CI resolves it, see "Version scheme" below).
   - `versionCode` ← `ANDROID_VERSION_CODE` env, else git commit count; floored at 2
-    (rejected first upload was code 1). CI passes `10000 + github.run_number`.
+    (rejected first upload was code 1). CI passes seconds since 2026-01-01 UTC from
+    `scripts/android-version-code.mjs`, so the code increases in upload order. iOS uses
+    the same value for `CURRENT_PROJECT_VERSION`.
   - **CI is the only authoritative versionCode source.** Local builds derive the code
     from git commit count, which can collide with or fall behind codes already on Play
     (Play rejects duplicates and non-increasing codes). Never upload a locally built
@@ -198,69 +152,30 @@ so CI cannot push a version-bump commit and `package.json` cannot be the auto-bu
 source of truth. Its `version` is now only the major anchor and the local-build fallback,
 and it is fine for it to lag behind what ships.
 
-### Cutting a release
+### Release workflows
 
-> **Download QRs use the shipped `/home` App Links claim.**
-> `d91ea7cee` once added `/app` + `/app/*` to the AASA file and the Android manifest.
-> `v1.6.0` predates that commit, so no shipped binary ever carried the claim, but the
-> manifest half moved the native fingerprint that `check-native-ota-surface` compares
-> against the binary an OTA targets — blocking every production bundle while delivering
-> nothing. Both platforms were reverted together, and restoring them was queued for the
-> next release.
->
-> That plan is superseded. Download QRs now enter through the already-shipped `/home`
-> association plus an `app_entry` marker, so an installed app opens them with no new
-> intent filter and no store release. `/app` stays web-only, and
-> `src/utils/__tests__/app-links.test.ts` pins its absence on both platforms with live
-> cases. See §9 "App-download QR links do not expand the native surface".
-
-Every update to `main` starts **App Release OTA** for that exact commit. It publishes
-only while that commit is still current `main`. When that main-push OTA succeeds,
-or fails at the native-compatibility preflight, **App Release Android & iOS** starts
-for the same commit. A canceled or unrelated failed OTA does not start a native
-build. It uploads one shared native version to TestFlight and Play `internal`
-before writing the attested `v<version>` tag. Production OTA and native
-workflows have no manual dispatch trigger; reruns are rejected. The native
-children also have no tag-push trigger.
-
-1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
-   its release QA is complete.
-2. Before merging to `main`, verify it contains the reviewed native changes and completed
-   KYC fixes. Updating the workflow alone does not include those fixes.
-3. Before integrating `release/android-kyc`, compare it with current production and
-   preserve later production fixes. This branch started from an older OTA commit.
-4. Complete the reviewed back-merge into `dev` and production release into `main`
-   before using `main` for those fixes. Never replace the newer tree with the older OTA tree.
-
-Use the workflow that matches the release:
+When to release and who does each step: mono
+[`ops/releases.md`](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md).
+This section says only what the workflows do.
 
 | | trigger | what it does |
 |-|---------|--------------|
-| native | **App Release Android & iOS**, after the first completed OTA from a `main` push | resolves `<major>.<build+1>.0` → builds iOS + Android from that exact current commit and one version → TestFlight + Play `internal` → tags `v<version>` |
-| OTA | **App Release OTA**, on a `main` push | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
+| OTA | **App Release OTA** (`release-ota.yml`), on every push to `main` | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
+| native | **App Release Android & iOS** (`release-native.yml`), after the first OTA run from a `main` push succeeds or stops at the native-compatibility preflight | resolves `<major>.<build+1>.0` → builds iOS + Android from that exact commit and one version → TestFlight + Play `internal` → tags `v<version>` |
+| staging OTA | **App Staging OTA** (`staging-ota.yml`), manual dispatch from `dev` | publishes a bundle to the Capgo `staging` channel (§6, "Internal testing") |
 
-Merging reviewed code to `main` starts production OTA for that exact commit. Its
-first successful or native-incompatible completion starts the native TestFlight
-and Play internal build for the same commit. There is no manual OTA or native
-retry: if a release fails, correct the cause in a reviewed `main` change so a
-fresh push runs the release sequence.
-
-The workflow pins `main` at checkout, uses that commit's release tooling and app source,
-then verifies that `main` remains at that SHA before uploading and before each
-platform promotion. Review the run's
-**Main commit** before treating it as a release of the intended code. The workflows resolve
-versions; do not create release tags by hand.
-
-The former manual Android same-version replacement and dev pre-release paths
-are closed. A native correction now goes through a reviewed `main` update and
-the coordinated iOS/Android release. Existing replacement-baseline attestations
-remain valid for OTA compatibility checks.
-
-The tag is written **after** both builds succeed, as the record of what shipped.
-CI uses `GITHUB_TOKEN` so its tag push cannot start another workflow. The iOS
-and Android build workflows accept only calls from the automatic combined native
-workflow; tag pushes and direct dispatches cannot launch them.
----
+- Production OTA and native workflows have **no manual dispatch** and reject reruns.
+  The native children (`android-release.yml`, `ios-release.yml`) accept only calls from
+  `release-native.yml`; tag pushes and direct dispatches cannot start them. To retry a
+  failed release, fix the cause in a reviewed `main` change; the new push starts the
+  sequence again.
+- The workflow pins `main` at checkout, uses that commit's release tooling and app source,
+  then verifies that `main` remains at that SHA before uploading and before each platform
+  promotion. Check the run's **Main commit** before you treat it as a release of the
+  intended code.
+- The tag is written **after** both builds succeed, as the record of what shipped. CI uses
+  `GITHUB_TOKEN`, so its tag push cannot start another workflow. **Never create a release
+  tag by hand.**
 
 ### Android release optimization
 
@@ -294,7 +209,9 @@ For the first optimized release:
 References: [R8 configuration](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization)
 and [Play technical quality requirements](https://support.google.com/googleplay/android-developer/answer/17492799?hl=en).
 
-## 7. Signing, keystore & secret management
+---
+
+## 4. Signing, keystore & passkeys
 
 **Play App Signing is enabled** → Google holds the real signing key; the local
 keystore is only the **upload** key. A loss is recoverable (upload-key reset, ~days);
@@ -305,16 +222,6 @@ a leak is bounded by Play review + account 2FA. Still treat it as a secret.
   Never in git, Slack, or a single laptop.
 - **Recovery:** Play Console → App integrity → request upload-key reset, then upload a
   new upload certificate. Document who can do this.
-- **Passkey coupling:** users get the binary re-signed with the **Play App Signing**
-  cert, so that SHA-256 must be in `public/.well-known/assetlinks.json` (3 fingerprints
-  listed — confirm the Play App Signing one is present). **Rotating keys requires
-  updating `assetlinks.json` or passkey sign-in breaks.**
-- **rpId sync set:** the passkey rpId (`peanut.me`) is hardcoded in several places that
-  must change together — a miss breaks passkey creation silently:
-  1. `capacitor.config.ts` (`CapacitorPasskey.origin` / `domains`)
-  2. `android/app/src/main/res/values/capacitor-passkey.xml` (asset-statements URL)
-  3. `.github/workflows/android-release.yml` (`NEXT_PUBLIC_NATIVE_RP_ID`)
-  4. `public/.well-known/assetlinks.json` (served from the rpId domain)
 - Local signing reads `android/keystore.properties` (gitignored):
   ```properties
   storeFile=../peanut-release.keystore
@@ -322,10 +229,43 @@ a leak is bounded by Play review + account 2FA. Still treat it as a secret.
   keyAlias=peanut
   keyPassword=…
   ```
+- Custody rules for signing material (who holds it, where): mono
+  [`engineering/native/agency-onboarding.md`](https://github.com/peanutprotocol/mono/blob/main/engineering/native/agency-onboarding.md#signing-material-custody).
+
+### Passkeys break if signing and asset links drift
+
+Users get the binary re-signed with the **Play App Signing** cert, so that SHA-256 must be
+in `public/.well-known/assetlinks.json`. **Rotating keys requires updating
+`assetlinks.json` or passkey sign-in breaks.**
+
+`assetlinks.json` lists three fingerprints: Play App Signing key, upload key and debug key.
+It must be served at `https://<rpId>/.well-known/assetlinks.json`.
+
+The backend also needs the matching origins. Make a base64url hash from each SHA-256
+fingerprint:
+
+```bash
+echo "XX:XX:XX:..." | tr -d ':' | xxd -r -p | base64 | tr '+/' '-_' | tr -d '='
+```
+
+Format: `android:apk-key-hash:<hash>`, comma-separated, one per signing key → backend
+`ANDROID_ORIGINS`. Without it, passkey registration and login fail with "registration not
+verified".
+
+**rpId sync set:** the passkey rpId (`peanut.me`) is hardcoded in several places that must
+change together. A miss breaks passkey creation silently:
+
+1. `capacitor.config.ts` (`CapacitorPasskey.origin` / `domains`)
+2. `android/app/src/main/res/values/capacitor-passkey.xml` (asset-statements URL)
+3. `.github/workflows/android-release.yml` and `ios-release.yml` (`NEXT_PUBLIC_NATIVE_RP_ID`)
+4. `public/.well-known/assetlinks.json` (served from the rpId domain)
+
+> Android caches asset links for up to 24 h. If passkeys fail right after you deploy new
+> asset links, clear the Google Play Services cache or reboot the device.
 
 ---
 
-## 8. CI release pipeline (`.github/workflows/android-release.yml`)
+## 5. Android CI build (`.github/workflows/android-release.yml`)
 
 Removes the "release only builds on one laptop" gap — keystore lives as CI secrets,
 the build is reproducible, the AAB lands on a Play track.
@@ -334,12 +274,13 @@ the build is reproducible, the AAB lands on a Play track.
   `main`-push OTA. Direct dispatches, tag pushes, and reruns are rejected.
 - **Flow:** checkout (submodules) → JDK 17 + Node 22 → install → decode keystore +
   write `keystore.properties` → write prod `NEXT_PUBLIC_*` → `pnpm native:release`
-  (`versionCode = github.run_number`) → upload AAB to Play (`internal` by default).
-- **Gate** with a `production` GitHub Environment + required reviewers — not configured
-  yet: the environment has no required reviewers today, so runs ship without a second
-  approval (see §9, "No second approver yet").
-- **Track promotion:** internal → closed/beta → production with **staged rollout**
-  (`status: inProgress` + `userFraction: 0.1`, promote after metrics look clean).
+  (`versionCode` from `scripts/android-version-code.mjs`, §3) → verify the R8 output →
+  upload the AAB to the Play `internal` track.
+- **Environment:** the job runs in the `Production` GitHub environment. It has **no
+  required reviewers**, so a `main` merge reaches TestFlight and Play `internal` with no
+  second approval.
+- **Track promotion:** CI never promotes past `internal` and sets no staged rollout. A
+  person promotes the build to `production` in the Play Console (§7).
 
 **Required GitHub Actions secrets:**
 
@@ -348,8 +289,8 @@ the build is reproducible, the AAB lands on a Play track.
 | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 peanut-release.keystore` |
 | `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` | signing creds |
 | `PLAY_SERVICE_ACCOUNT_JSON` | Google Play Developer API service account (least-priv "Release manager") |
-| `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` — **optional**; OneSignal push does not read it (see §Android push) |
 | `SUBMODULE_TOKEN` | read access to the `src/content` submodule |
+| `MEAWALLET_NEXUS_USER_ANDROID` / `MEAWALLET_NEXUS_PASSWORD_ANDROID` / `MEAWALLET_CONFIG_BASE64` | MeaWallet SDK credentials and config for card push provisioning (§10) |
 | `CAPGO_API_KEY` | Capgo API key. Store an app-authorized release key in the `Production` environment and a separate staging key in `Staging-OTA`. |
 | `CAPGO_PRIVATE_KEY` | Existing v2 bundle signing key. Store the same native-compatible value in `Production` and `Staging-OTA`; generating a new key would require a native app release. |
 | prod `NEXT_PUBLIC_*` | the values the static export bakes in (OneSignal, Sentry, chain, …) |
@@ -363,20 +304,17 @@ Capgo secrets after both environments contain working values.
 > confidentiality. If renaming to `SENTRY_DSN` for clarity, update the reference in
 > `android-release.yml` in the same change or builds bake an empty DSN.
 
-> Prereq: `fix/native-build-reliability` must be merged or `native:release` won't build.
-
 ---
 
-## 9. OTA updates (Capgo)
+## 6. OTA updates (Capgo)
 
 `App Release OTA` builds and publishes a production static export automatically after every
-update to `main`. A manual dispatch on `main` retries its current commit. The app source
-and release tooling both come from that commit.
+update to `main`. It has no manual dispatch and rejects reruns. The app source and release
+tooling both come from that commit.
 
 | trigger | channel | bundle version |
 | ------- | ------- | -------------- |
 | **App Release OTA** — automatic push to `main` | `ios-mobile-release` and `android-mobile-release` | public `ota-<major>.<build>.<ota+1>` tag; internal `1.5.1000+-ios` / `1.6.1000+-android` bridge bundles while needed |
-| **App Release OTA** — manual dispatch on `main` | same two production channels | same release and bundle scheme |
 | **App Staging OTA** — manual, `dev` source | `staging` | `<major>.<build>.<commit count>` |
 
 The compatibility bridge keeps iOS 1.5.0 and Android 1.6.0 installations eligible while
@@ -386,8 +324,7 @@ or deleted uploads.
 
 The first main-push OTA establishes the compatible old numeric lanes if needed.
 Later runs advance within those lanes. Verify a device on each old binary accepts
-its first bridge and a later main-source OTA. The dedicated iOS and Android bridge
-workflows on `main` are manual recovery paths if the automatic bootstrap fails.
+its first bridge and a later main-source OTA.
 
 While the legacy bridges are active, compatible OTA runs keep publishing iOS 1.5.x and
 Android 1.6.x bundles from the current `main` tree. If `main` changes either native
@@ -551,8 +488,9 @@ before each promotion, the guard checks both default channels, exclusive platfor
 Metadata targeting, anti-downgrade, disabled self-assignment and rollout, and metadata
 exposure. It rejects overlapping mobile defaults. Channel and artifact readback precede
 tagging. Promotions are separate API operations: if the second fails, one platform may
-advance while the other keeps its prior bundle. Fix the cause and rerun; reserved bundle
-names force a fresh version. This verifies publication, not boot behavior on real devices.
+advance while the other keeps its prior bundle (a half-release). Fix the cause in a reviewed
+`main` change; the new push runs the release again, and reserved bundle names force a fresh
+version. This verifies publication, not boot behavior on real devices.
 
 **The floors are kept next to the downloaded bundle id.** A bundle is admitted at check time,
 when the comment is in hand, but applied on a *later launch* — and `BundleInfo`
@@ -657,8 +595,8 @@ This is not hypothetical. On **2026-09-10** production bundle `1.6.1` was publis
 `dev` the day before. Every install on the 1.6.0 binary took it and ran JS older than its
 own. Two things had to line up:
 
-- **`main` lagged `dev`**, so the code was old. The routine fix is a back-merge (§ release
-  flow); the guard now names it as the remedy instead of leaving the operator to work it
+- **`main` lagged `dev`**, so the code was old. The routine fix is a back-merge (mono
+  `ops/releases.md`); the guard now names it as the remedy instead of leaving the operator to work it
   out from a fingerprint diff.
 - **The bundle shipped through a tag push at that old commit.** A `push`-triggered workflow
   runs the workflow file **as it existed at the pushed ref**, so `ota-1.6.1` ran the
@@ -815,7 +753,7 @@ reviewed commit once both bridges are inactive.
   `autoDeleteFailed` + `autoDeletePrevious`): a bundle that never calls
   `notifyAppReady()` auto-reverts. **Verify once** with a deliberately-broken bundle.
 - **Boundary:** OTA ships web assets only. New plugins, Gradle, permissions, versionCode
-  → Play release.
+  → store build.
 
 ### Internal testing (the `staging` channel on a real device)
 
@@ -862,10 +800,128 @@ can replace, and the card that offers the retry would disappear for anyone outsi
 
 ---
 
-## 10. Pre-submission verification
+## 7. Play submission
 
-1. Local stack up (backend + seeds), `demo` validates.
-2. `pnpm native:release` produces a signed AAB with `versionCode ≥ 2`.
+CI uploads every store build to the Play **`internal`** track. Promotion to
+**production** is a manual step in the Play Console; when it happens is in mono
+[`ops/releases.md`](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md).
+Before each submission, re-check Data safety, permissions (camera for QR/KYC), content
+rating and the App access instructions below.
+
+### Reviewer access
+
+Invite-only + passkey-only is why a reviewer's access "didn't work" (the May-18
+rejection). The reviewer enters invite code **`demo`**, and the native client opens a
+client-side demo session with no backend. The reviewer still creates a **real passkey**,
+because that is the core mechanic review needs to see. Mechanics, fixtures and the QA
+walk: mono [`engineering/native/demo-mode.md`](https://github.com/peanutprotocol/mono/blob/main/engineering/native/demo-mode.md).
+
+**Play Console → App content → App access:** declare restricted access with **one**
+instruction:
+
+- **Name:** "Invite code to access the app"
+- **Instructions:** "Enter invite code `demo`, tap Continue, create a passkey when prompted; you'll land on a populated demo wallet. No username/password."
+
+> Do **not** mention KYC or bank payouts in the access instructions. Keep the positioning
+> as a wallet app (see "Financial features" below).
+
+### Account & positioning
+
+The org account setup in use since 2026-04-29.
+
+- **Account type:** organization (required for finance apps — personal accounts get rejected).
+- **App id:** `me.peanut.wallet` · **Org:** Squirrel Labs Ltd.
+- **Regulatory positioning:** self-custodial wallet — not custodial, not an exchange, not
+  subject to MiCA/CASP licensing. Backed by the regulatory-analysis legal opinion from
+  Squirrel Labs' law office.
+
+### Changing the app id — files to update together
+
+| File | What |
+|------|------|
+| `capacitor.config.ts` | `appId` |
+| `android/app/build.gradle` | `namespace` + `applicationId` |
+| `android/app/src/main/res/values/strings.xml` | `package_name` + `custom_url_scheme` |
+| `public/.well-known/assetlinks.json` | `package_name` |
+| `android/app/src/main/java/me/peanut/wallet/MainActivity.java` | Java package declaration + directory path |
+
+`android/app/src/main/assets/capacitor.config.json` is regenerated by `npx cap sync android`.
+
+### Store listing
+
+| Item | Requirement |
+|------|-------------|
+| App name | max 30 chars ("Peanut") |
+| Short / full description | max 80 / 4000 chars |
+| App icon | 512×512 PNG, 32-bit, no alpha |
+| Feature graphic | 1024×500 PNG/JPG |
+| Screenshots | 2–8 per device type; phone 9:16, min 1080px; 7" and 10" tablet required |
+| Category / tags | Finance · Finance, Mobile payment |
+| Privacy policy URL | required — reachable from the listing **and** inside the app |
+| Delete account URL | https://peanut.me/support |
+
+### Content rating, audience, data safety
+
+- **IARC questionnaire:** all **no** except *online content* (yes — dynamic data from
+  backend) and *cash rewards / crypto* (yes → tick **"Cash Convertible Rewards" only**; no
+  NFTs, no wagering).
+- **Target audience:** 18+, tick "restrict minors".
+- **Data safety:** collects and shares user data = yes; encrypted in transit = yes; account
+  creation = username and other authentication (passkey); delete-account URL as above; data
+  deletion by user = no (contact support); advertising ID = no.
+  Data types: name, email, user IDs, address (ephemeral), phone (ephemeral), payment info,
+  other financial info, photos (optional/KYC), device IDs, crash logs, diagnostics, app
+  interactions. Previous answers were exported to `data_safety_export.csv` and can be
+  re-imported on a new app.
+
+### Financial features — critical
+
+**Select only:** *mobile payments and digital wallets* · *rewards, points, frequent flier
+miles and other incentives*.
+**Do NOT select:** *money transfer and wire services* (triggers extra compliance) or
+*cryptocurrency wallet* (triggers MiCA documentation requirements).
+
+### Permissions
+
+- `FOREGROUND_SERVICE_MICROPHONE` — removed via `tools:node="remove"` in
+  `AndroidManifest.xml` (the Sumsub SDK declares it, we don't use it; leaving it in triggers
+  a video-proof requirement).
+- Camera — justified by QR scanning + KYC document capture.
+- Biometric — justified by passkey authentication.
+
+### First submission of a new app
+
+1. Create the app on the org account → app, free, English (US).
+2. Fill the store listing and every configuration section above.
+3. Upload the AAB to the **internal** track; test the reviewer flow end to end.
+4. Promote to **production** → submit for review.
+5. Google generates the app signing key. Get its SHA-256 from Play Console → Setup → App
+   signing, then update `assetlinks.json` and backend `ANDROID_ORIGINS` (§4).
+
+### Review timeline & common rejections
+
+First submission 1–7 days (longer for fintech/crypto); updates 1–3 days. Google may ask
+follow-up compliance questions. Google Play sends no approval email; check the Play Console.
+
+Rejection causes seen or expected: personal (non-org) account · missing privacy policy
+(must be in listing **and** in-app) · missing terms of service link · "cryptocurrency
+wallet" selected · `FOREGROUND_SERVICE_MICROPHONE` left in · unclear financial disclosures ·
+unjustified camera/biometric permissions · reviewer can't get in (→ "Reviewer access").
+
+### App transfer (if ever needed)
+
+Play Console → All apps → app → Setup → Advanced settings → Transfer app. Both accounts
+must be verified; the transfer completes within 24 h. It moves the listing, ratings,
+reviews, install count and the signing key. It does **not** move financial data (earnings
+stay with the original account).
+
+---
+
+## 8. Pre-submission verification
+
+1. Local stack up (backend + seeds); invite code `demo` opens the demo session.
+2. `pnpm native:release` produces a signed AAB with `versionCode ≥ 2`. Only CI builds the
+   AAB that goes to Play.
 3. Reviewer-mode E2E on a device: invite `demo` → passkey → Home/History show demo data
    → KYC skipped → a send reaches a simulated success (no on-chain tx).
 4. Passkey silent-failure: no Google account / outdated Play Services → actionable error,
@@ -875,7 +931,7 @@ can replace, and the card that offers the retry would disappear for anyone outsi
 
 ---
 
-## 11. Push notifications (OneSignal / FCM)
+## 9. Android push notifications (OneSignal / FCM)
 
 Push is delivered through the same OneSignal app as web — the device links to the user
 via `OneSignal.login(userId)`, so existing `external_id`-targeted sequences reach native
@@ -916,25 +972,7 @@ subscription appears under the user's `external_id` in OneSignal, then send a te
 
 ---
 
-## 12. iOS release
-
-The iOS release pipeline (`.github/workflows/ios-release.yml`) is maintained on its own
-branch (`feat/ci-ios`), separate from this Android runbook. It mirrors the Android lane's
-no-fastlane style: an Apple Distribution cert + App Store provisioning profile stored as
-CI secrets, `xcodebuild` archive/export, and upload to TestFlight via
-`apple-actions/upload-testflight-build`.
-
-See **`docs/NATIVE-RELEASE-IOS.md`** (on `feat/ci-ios`) for the full iOS pipeline,
-one-time signing-material setup, secrets table, and manual App Store promotion.
-
----
-
-## 13. Play submission
-
-- Upload to a **closed/internal** track first; dogfood the reviewer flow end-to-end.
-- Re-check Data safety, permissions (camera for QR/KYC), content rating, and the App
-  access instructions in §4.
-- Promote to **production** review only after the internal track passes.
+## 10. Card push provisioning gates
 
 ### Compiled capability gate (TASK-22282)
 
@@ -1005,3 +1043,145 @@ to establish a compatible floor; do not add an attestation to an unverified old 
 
 The enabled archive gate proves SDK compilation and profile entitlements, not
 vendor activation or Apple launch readiness. Those remain separate launch checks.
+
+---
+
+## 11. iOS: signing, push and App Store
+
+> **Project shape:** standard Capacitor — scheme `App`, project `ios/App/App.xcodeproj`,
+> bundle `me.peanut.wallet`, SPM, deploy target 16.4. `Info.plist` reads
+> `$(CURRENT_PROJECT_VERSION)` / `$(MARKETING_VERSION)`.
+
+### The iOS build job (`.github/workflows/ios-release.yml`)
+
+- **Trigger:** called only by `release-native.yml` (§3, "Release workflows"). Runner
+  `macos-15`, `Production` GitHub environment.
+- **Flow:** checkout (submodules) → Xcode `latest-stable` + Node 22 + pnpm 10 → install →
+  write prod `NEXT_PUBLIC_*` (same block as `android-release.yml`) →
+  `node scripts/native-build.js && npx cap sync ios` → import cert → install profile →
+  `xcodebuild archive` + `-exportArchive` → verify push entitlements and Sentry DSN in the
+  IPA → upload to TestFlight.
+- **Signing:** the project default is Automatic. The archive step overrides it for that
+  build (`CODE_SIGN_STYLE=Manual`, `DEVELOPMENT_TEAM`, `CODE_SIGN_IDENTITY="Apple Distribution"`,
+  `PROVISIONING_PROFILE_SPECIFIER`).
+- **Versioning:** `MARKETING_VERSION` is the resolved `<major>.<build>.0`.
+  `CURRENT_PROJECT_VERSION` comes from `scripts/android-version-code.mjs` (seconds since
+  2026-01-01 UTC), so it increases in upload order.
+
+### One-time setup (signing material)
+
+CI uses signing material made in advance. Make it once on a machine with Apple Developer
+access. Store it in the team secret manager **and** as repo secrets — never in git, never
+in a chat. Custody rules: mono
+[`engineering/native/agency-onboarding.md`](https://github.com/peanutprotocol/mono/blob/main/engineering/native/agency-onboarding.md#signing-material-custody).
+
+1. **Distribution certificate** — create or get an **Apple Distribution** certificate in
+   Xcode or the Developer portal. Export it from Keychain Access as a `.p12` with a
+   password, then base64 it:
+   ```bash
+   base64 -i AppleDistribution.p12 | pbcopy   # → IOS_DIST_CERT_P12_BASE64
+   ```
+   The export password becomes `IOS_DIST_CERT_PASSWORD`.
+2. **Provisioning profile** — in the Developer portal, create an **App Store** profile for
+   `me.peanut.wallet` with the **Associated Domains** capability (it backs
+   `webcredentials:peanut.me`; passkeys break without it) and **Push Notifications** (the
+   workflow fails when the profile has no `aps-environment`). Download the
+   `.mobileprovision` and base64 it:
+   ```bash
+   base64 -i me_peanut_wallet_appstore.mobileprovision | pbcopy   # → IOS_PROVISIONING_PROFILE_BASE64
+   ```
+   The workflow reads the profile name from the file itself; there is no name secret.
+3. **App Store Connect API key** — create an API key (Admin / App Manager) in App Store
+   Connect. Store the issuer id, key id and the **raw `.p8` contents** as the secrets below.
+
+> **Rotation:** the distribution certificate expires about once a year. The profile expires
+> or needs a new issue when the cert or capabilities change. Regenerate → re-export →
+> re-base64 → update `IOS_DIST_CERT_*` / `IOS_PROVISIONING_PROFILE_BASE64`. This manual
+> step is the cost of not using fastlane `match`.
+
+### Required repo secrets
+
+Names only — never commit or paste values.
+
+| Secret | What |
+|--------|------|
+| `ASC_KEY_ID` | App Store Connect API key id |
+| `ASC_ISSUER_ID` | App Store Connect API issuer id |
+| `ASC_KEY_CONTENT` | the **raw `.p8` contents** of the ASC API private key — the whole PEM block including its `BEGIN`/`END` lines |
+| `APPLE_TEAM_ID` | Apple Developer team id |
+| `IOS_DIST_CERT_P12_BASE64` | Apple Distribution cert exported as `.p12`, base64-encoded |
+| `IOS_DIST_CERT_PASSWORD` | password set when exporting the `.p12` |
+| `IOS_PROVISIONING_PROFILE_BASE64` | App Store `.mobileprovision` for `me.peanut.wallet`, base64-encoded |
+| `IOS_WALLET_EXTENSION_*_PROVISIONING_PROFILE_BASE64` | Wallet extension profiles, only after Apple approval (§10) |
+| `SUBMODULE_TOKEN` | read access to the `src/content` submodule (shared with Android) |
+
+Plus the production `NEXT_PUBLIC_*` values the static export bakes in. The env step is
+the same as in `android-release.yml` (§5).
+
+### App Store submission
+
+The pipeline stops at **TestFlight**. Submit the build for App Store review by hand in App
+Store Connect; when that happens is in mono
+[`ops/releases.md`](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md).
+Reviewer access uses the same invite code `demo` as Android (§7, "Reviewer access").
+
+### Push notifications (OneSignal / APNs)
+
+Same OneSignal app as web; the device links to the user via `OneSignal.login(userId)`, so
+existing `external_id`-targeted sequences reach native with no backend or sequence
+changes. The web/native split lives behind `src/services/onesignal/` (selected by
+`isCapacitor()`); the native side is `@onesignal/capacitor-plugin`, added to the app
+target's SPM by `npx cap sync ios`.
+
+**App target (committed):**
+
+- Entitlements: `aps-environment` + App Group `group.me.peanut.wallet.onesignal`.
+- `Info.plist`: `UIBackgroundModes` → `remote-notification`.
+- `App/App.entitlements` sets `aps-environment` to `development` (local debug builds use
+  the APNs sandbox). The Release configuration signs with `App/AppRelease.entitlements`
+  (`production`). Before Apple approves Wallet provisioning, the workflow switches it to
+  `App/AppReleaseBaseline.entitlements` (also `production`, no Wallet capabilities; §10).
+  The workflow checks `aps-environment` in the profile and in the exported IPA.
+
+**Notification Service Extension (NSE) — one-time Xcode step, not done yet.** Rich media,
+badge sync and confirmed-delivery analytics need an NSE target. The **source files are
+committed** under `ios/App/OneSignalNotificationServiceExtension/` (`NotificationService.swift`,
+`Info.plist`, `*.entitlements`); the Xcode **target** is not in `project.pbxproj` (too
+error-prone to script blind). Add it once:
+
+1. **File → New → Target → Notification Service Extension**, named
+   `OneSignalNotificationServiceExtension`, deployment target **iOS 15**. Do **not**
+   activate the scheme when prompted.
+2. Delete Xcode's generated `NotificationService.swift` / `Info.plist` and add the
+   committed files to the target instead (or point `INFOPLIST_FILE` / sources at them).
+3. **Signing & Capabilities** for the extension: add **App Groups**, tick
+   `group.me.peanut.wallet.onesignal`, set `CODE_SIGN_ENTITLEMENTS` to the committed
+   `*.entitlements`.
+4. **Add the OneSignal extension SPM product to the *extension* target only:** File → Add
+   Package Dependencies → `https://github.com/OneSignal/OneSignal-iOS-SDK` → add
+   **`OneSignalExtension`**. The app target gets OneSignal through the Capacitor plugin —
+   don't add it twice.
+5. The extension bundle id is `me.peanut.wallet.OneSignalNotificationServiceExtension`;
+   create a matching **App Store provisioning profile** for it (with the App Group) and add
+   it to CI signing next to the app profile.
+
+> Commit the resulting `project.pbxproj` (and `Package.resolved`) so CI builds it.
+> `npx cap sync ios` regenerates `CapApp-SPM/Package.swift` for the app target only and
+> does **not** touch the extension target.
+
+**Provider setup (once, no code):**
+
+- Create an **APNs `.p8` auth key** in the Apple Developer portal (Keys → enable Apple Push
+  Notifications service). Note the **Key ID** and **Team ID**.
+- OneSignal dashboard → the existing app → **Apple iOS (APNs)** → upload the `.p8`, Key
+  ID, Team ID and bundle id `me.peanut.wallet`.
+- Enable **Push Notifications** on the `me.peanut.wallet` App ID and make sure the App Store
+  provisioning profile(s) include the push entitlement.
+
+**Verify (real device — APNs does not work on the simulator):**
+
+1. `node scripts/native-build.js && npx cap sync ios`, open `ios/App/App.xcodeproj`, run on
+   a physical device.
+2. Accept the permission prompt (shown by the existing `SetupNotificationsModal`); confirm
+   a subscription appears under the user's `external_id` in OneSignal.
+3. Send a test push with an image and confirm the NSE renders the rich notification.
