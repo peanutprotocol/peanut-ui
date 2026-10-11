@@ -51,6 +51,7 @@ const base: JourneyInputs = {
     hasEmail: true,
     hasFullName: true,
     rewardsPendingUsd: 0,
+    serverLedger: undefined,
     showEarlyUserModal: undefined,
 }
 

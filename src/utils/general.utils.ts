@@ -429,6 +429,7 @@ export type AttentionLedgerEntry = {
     version?: string
     lastSessionShown?: number
     consecutiveSessions?: number
+    updatedAt?: string
 }
 
 export type UserPreferences = {

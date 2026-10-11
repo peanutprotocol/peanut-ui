@@ -132,6 +132,7 @@ export interface JourneyInputs {
     hasEmail: boolean
     hasFullName: boolean
     rewardsPendingUsd: number | undefined
+    serverLedger: unknown
 }
 
 /** Pure, so a test (and later the API) can build the state without React. */
@@ -192,6 +193,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         hasEmail: input.hasEmail,
         hasFullName: input.hasFullName,
         rewardsPendingUsd: input.rewardsPendingUsd,
+        serverLedger: input.serverLedger,
     }
 }
 
@@ -348,6 +350,7 @@ export function useJourneyState(): JourneyState {
                 hasFullName: !!user?.user?.fullName,
                 // a failed request is no card, not a card held forever
                 rewardsPendingUsd: cashStatus.isError ? 0 : cashStatus.data?.data?.rewards?.pendingUsd,
+                serverLedger: user?.attention,
             }),
         [
             userId,

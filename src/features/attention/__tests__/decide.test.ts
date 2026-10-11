@@ -59,6 +59,7 @@ const baseState: JourneyState = {
     hasEmail: true,
     hasFullName: true,
     rewardsPendingUsd: 0,
+    serverLedger: undefined,
 }
 
 const baseSession: Session = {

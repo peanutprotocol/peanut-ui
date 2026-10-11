@@ -181,6 +181,8 @@ export interface JourneyState {
     hasFullName: boolean
     /** undefined while loading; the query only runs for activated users */
     rewardsPendingUsd: number | undefined
+    /** the profile's copy of the ledger (unknown shape until sanitised); undefined on an older API */
+    serverLedger: unknown
 }
 
 export interface LedgerEntry {
@@ -193,6 +195,8 @@ export interface LedgerEntry {
     /** zone fatigue bookkeeping */
     lastSessionShown?: number
     consecutiveSessions?: number
+    /** when this device last wrote the entry; the newer device wins on the server */
+    updatedAt?: string
 }
 
 export type Ledger = Partial<Record<AskId, LedgerEntry>>
