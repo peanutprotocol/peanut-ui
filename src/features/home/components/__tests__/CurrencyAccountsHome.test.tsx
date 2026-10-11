@@ -1,6 +1,7 @@
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { CurrencyAccountsHome } from '../CurrencyAccountsHome'
 import { currencyAccountsApi, type CurrencyAccount } from '@/services/currency-accounts'
 import { getPublicClient } from '@/app/actions/clients'
@@ -60,19 +61,23 @@ const balance = jest.fn()
 
 function setup() {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    // EURC home state may live in the URL (nuqs); the adapter starts from the page's own query.
+    const search = window.location.search
     const element = () => (
-        <QueryClientProvider client={client}>
-            <CurrencyAccountsHome
-                balanceProps={{
-                    balance: 10_000_000n,
-                    isFetching: false,
-                    isHidden: false,
-                    onToggleVisibility: () => {},
-                }}
-            >
-                <div>USDC history and card</div>
-            </CurrencyAccountsHome>
-        </QueryClientProvider>
+        <NuqsTestingAdapter searchParams={search} hasMemory>
+            <QueryClientProvider client={client}>
+                <CurrencyAccountsHome
+                    balanceProps={{
+                        balance: 10_000_000n,
+                        isFetching: false,
+                        isHidden: false,
+                        onToggleVisibility: () => {},
+                    }}
+                >
+                    <div>USDC history and card</div>
+                </CurrencyAccountsHome>
+            </QueryClientProvider>
+        </NuqsTestingAdapter>
     )
     return { client, element, ...render(element()) }
 }
@@ -162,7 +167,9 @@ it('loads an existing EURC account but still opens USDC by default', async () =>
     client.clear()
 })
 
-it('resets selection and scopes cached balances when the login changes', async () => {
+// Open EURC operations across a login change are covered with the real
+// EurcAccountView in EurcHomeUrlState.test.tsx.
+it('shows the next login its own USD home, never the previous login’s EURC balance', async () => {
     list.mockResolvedValue({ accounts: [usdc, eurc], available: [] })
     const { client, rerender, element } = setup()
     fireEvent.mouseDown(await screen.findByRole('tab', { name: 'EUR · EURC' }))
