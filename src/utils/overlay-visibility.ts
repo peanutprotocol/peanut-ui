@@ -38,3 +38,12 @@ export function useOtherOpenOverlays(owner: symbol): boolean {
         () => false
     )
 }
+
+/** Whether any shared modal or drawer is open: the arbiter opens nothing new while one is. */
+export function useAnyOverlayOpen(): boolean {
+    return useSyncExternalStore(
+        subscribe,
+        () => openOverlays.size > 0,
+        () => false
+    )
+}

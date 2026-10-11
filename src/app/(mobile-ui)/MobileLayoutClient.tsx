@@ -36,6 +36,7 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 import '@/hooks/useSafeBack'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import { useVerifyShell } from '@/utils/verify-shell'
+import { AttentionProvider } from '@/features/attention/AttentionProvider'
 
 /**
  * How long the protected auth gate may show the mascot before it gives up.
@@ -213,6 +214,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
+        <AttentionProvider>
         <NavHeaderPresenceProvider>
             <AppShell
                 variant="app"
@@ -278,6 +280,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {children}
             </AppShell>
         </NavHeaderPresenceProvider>
+        </AttentionProvider>
     )
 }
 

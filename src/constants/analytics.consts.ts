@@ -222,6 +222,8 @@ export const ANALYTICS_EVENTS = {
     MODAL_SHOWN: 'modal_shown',
     MODAL_DISMISSED: 'modal_dismissed',
     MODAL_CTA_CLICKED: 'modal_cta_clicked',
+    /** the attention arbiter's choice (features/attention); `shadow: true` while it owns no surface */
+    ATTENTION_DECIDED: 'attention_decided',
 
     // ── Arrival prompt (TASK-23251): props country, prompt ──
     ARRIVAL_PROMPT_SHOWN: 'arrival_prompt_shown',
