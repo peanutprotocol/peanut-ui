@@ -248,44 +248,78 @@ function runPromotion({
  * the v1.6.0 release. Merging to `main` is now the decision to ship; `dev` goes
  * to staging, which no production device sees.
  */
-describe('release-ota.yml publishes main source', () => {
-    const guard = guardOf('release-ota.yml')
-
-    it('accepts only the first main push run', () => {
-        expect(run(guard, 'main', 'push').status).toBe(0)
-        expect(run(guard, 'main', 'push', '2').status).toBe(1)
+function runOtaGuard({
+    event = 'release',
+    ref = 'release-2026-10-19',
+    refType = 'tag',
+    prerelease = 'false',
+    runAttempt = '1',
+    mainTip = 'a'.repeat(40),
+} = {}) {
+    const script = `
+        git() {
+            if [ "$1" = "ls-remote" ]; then printf '%s\\trefs/heads/main\\n' "$MAIN_TIP"; else command git "$@"; fi
+        }
+        ${guardOf('release-ota.yml')}
+    `
+    return spawnSync('bash', ['-eu', '-c', script], {
+        env: {
+            ...process.env,
+            GITHUB_EVENT_NAME: event,
+            GITHUB_REF_NAME: ref,
+            GITHUB_REF_TYPE: refType,
+            GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+            GITHUB_RUN_ATTEMPT: runAttempt,
+            GITHUB_SHA: 'a'.repeat(40),
+            RELEASE_PRERELEASE: prerelease,
+            MAIN_TIP: mainTip,
+        },
+        encoding: 'utf8',
     })
+}
 
-    // A failed OTA used to need a new main push to retry (Oct 9-11 2026). The
-    // retry publishes the main tip only, and the operator must name it.
-    it('accepts a dispatch on main only when the sha input names the checked-out main tip', () => {
-        expect(run(guard, 'main', 'workflow_dispatch', '1', 'a'.repeat(40)).status).toBe(0)
-        expect(run(guard, 'main', 'workflow_dispatch', '2', 'a'.repeat(40)).status).toBe(1)
-        const wrong = run(guard, 'main', 'workflow_dispatch', '1', 'b'.repeat(40))
-        expect(wrong.status).toBe(1)
-        expect(wrong.stderr).toContain('is not the main tip')
-        expect(run(guard, 'dev', 'workflow_dispatch', '1', 'a'.repeat(40)).status).toBe(1)
+/*
+ * Apps update only from an approved release. From 2026-09-23 to 2026-10-11, 22
+ * of 31 main merges were content publishes, and 13 of 17 OTAs shipped only
+ * content that the native app does not use. A merge to main now deploys the web
+ * only; a published release-* GitHub Release at the main tip ships to apps.
+ */
+describe('release-ota.yml publishes only an approved release of the main tip', () => {
+    it('accepts the first run of a published release-* Release at the main tip', () => {
+        expect(runOtaGuard().status).toBe(0)
+        expect(runOtaGuard({ ref: 'release-2026-10-19.2' }).status).toBe(0)
     })
 
     it.each([
-        ['main', 'workflow_dispatch'],
-        ['main', 'workflow_run'],
-        ['dev', 'workflow_dispatch'],
-        ['release/android-kyc', 'workflow_dispatch'],
-        ['feature/kyc', 'push'],
-        ['', 'workflow_dispatch'],
-    ])('refuses %s on %s', (branch, event) => {
-        const result = run(guard, branch, event)
+        ['a rerun', { runAttempt: '2' }],
+        ['a prerelease', { prerelease: 'true' }],
+        ['a tag that is not release-*', { ref: 'v1.11.0' }],
+        ['a branch push', { event: 'push', ref: 'main', refType: 'branch' }],
+        ['a manual dispatch', { event: 'workflow_dispatch', ref: 'main', refType: 'branch' }],
+        ['a branch named release-x', { ref: 'release-x', refType: 'branch' }],
+    ])('refuses %s', (_case, options) => {
+        const result = runOtaGuard(options)
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('::error::')
     })
 
-    it('runs on every main push using that exact main commit for tooling and app source', () => {
+    it('refuses a release whose tag is not the current main tip', () => {
+        const result = runOtaGuard({ mainTip: 'b'.repeat(40) })
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('Apps ship only from the current main tip')
+    })
+
+    it('runs only on a published Release, using that exact commit for tooling and app source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
-        expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
-        expect(workflow).toMatch(/workflow_dispatch:\n\s+inputs:\n\s+sha:/)
-        expect(workflow).toContain('required: true')
-        expect(workflow.match(/github.run_attempt == 1/g)).toHaveLength(3)
+        const triggers = workflow.slice(workflow.indexOf('\non:\n'), workflow.indexOf('\nenv:\n'))
+        expect(triggers).toMatch(/release:\n\s+types: \[published\]/)
+        expect(triggers).not.toContain('push:')
+        expect(triggers).not.toContain('workflow_dispatch:')
+        expect(
+            workflow.match(
+                /github.event_name == 'release' && startsWith\(github.ref, 'refs\/tags\/release-'\) && github.run_attempt == 1/g
+            )
+        ).toHaveLength(3)
         expect(workflow.match(/ref: \$\{\{ github.sha \}\}/g)).toHaveLength(4)
         expect(workflow).toContain('source_sha: ${{ steps.source.outputs.sha }}')
         expect(workflow).toContain('ref: ${{ needs.resolve.outputs.source_sha }}')
@@ -397,15 +431,19 @@ function runNative(
         otaSha = 'a'.repeat(40),
         runAttempt = '1',
         otaRunAttempt = '1',
-        otaEvent = 'push',
+        otaEvent = 'release',
         inputSha = '',
+        releaseTagSha = 'a'.repeat(40),
     } = {}
 ) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-guard-'))
     const output = path.join(dir, 'output')
     const script = `
         git() {
-            if [ "$1" = "ls-remote" ]; then
+            if [ "$1" = "ls-remote" ] && [ "$2" = "--tags" ]; then
+                printf '%s\\trefs/tags/release-2026-10-12\\n' "c$(printf 'c%.0s' {1..39})"
+                printf '%s\\trefs/tags/release-2026-10-19\\n' "$RELEASE_TAG_SHA"
+            elif [ "$1" = "ls-remote" ]; then
                 printf '%s\\trefs/heads/main\\n' "$MAIN_TIP"
             else command git "$@"; fi
         }
@@ -425,6 +463,7 @@ function runNative(
             OTA_RUN_ATTEMPT: otaRunAttempt,
             OTA_TRIGGER_EVENT: otaEvent,
             INPUT_SHA: inputSha,
+            RELEASE_TAG_SHA: releaseTagSha,
             MAIN_TIP: mainTip,
         },
         encoding: 'utf8',
@@ -475,22 +514,28 @@ function runNativeFloor(platform, bridgeStatus) {
 describe('native release source branch', () => {
     const guard = guardOf('release-native.yml')
 
-    it('accepts only the first main-push OTA completion', () => {
+    it('accepts only the first completion of a release OTA', () => {
         const result = runNative(guard, 'main', 'workflow_run')
         expect(result.status).toBe(0)
         expect(result.outputs).toBe('')
     })
 
-    it('accepts a dispatched OTA and a guarded dispatch of the current main tip', () => {
-        expect(runNative(guard, 'main', 'workflow_run', { otaEvent: 'workflow_dispatch' }).status).toBe(0)
+    it('accepts a guarded dispatch only when the main tip carries a release-* tag', () => {
         expect(runNative(guard, 'main', 'workflow_dispatch', { inputSha: 'a'.repeat(40) }).status).toBe(0)
+        const untagged = runNative(guard, 'main', 'workflow_dispatch', {
+            inputSha: 'a'.repeat(40),
+            releaseTagSha: 'b'.repeat(40),
+        })
+        expect(untagged.status).toBe(1)
+        expect(untagged.stderr).toContain('carries no release-* tag')
     })
 
     it.each([
         ['dev dispatch', 'dev', 'workflow_dispatch', { inputSha: 'a'.repeat(40) }],
         ['rerun of native workflow', 'main', 'workflow_run', { runAttempt: '2' }],
         ['rerun of OTA workflow', 'main', 'workflow_run', { otaRunAttempt: '2' }],
-        ['OTA from another event', 'main', 'workflow_run', { otaEvent: 'schedule' }],
+        ['OTA from a main push', 'main', 'workflow_run', { otaEvent: 'push' }],
+        ['OTA from a dispatch', 'main', 'workflow_run', { otaEvent: 'workflow_dispatch' }],
         ['dispatch without the sha input', 'main', 'workflow_dispatch', {}],
         ['dispatch naming another sha', 'main', 'workflow_dispatch', { inputSha: 'b'.repeat(40) }],
         [
@@ -541,7 +586,8 @@ describe('native release source branch', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
         const otaWorkflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/workflow_run:\n\s+workflows: \['App Release OTA'\]/)
-        expect(workflow).toContain("github.event.workflow_run.event == 'push'")
+        expect(workflow).toContain("github.event.workflow_run.event == 'release'")
+        expect(workflow).not.toContain("github.event.workflow_run.event == 'push'")
         expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'")
         expect(workflow).toContain("github.event.workflow_run.conclusion == 'failure'")
         expect(workflow).toContain('name: ota-native-incompatible-${{ github.event.workflow_run.id }}')

@@ -4,7 +4,7 @@ name: App Release Android
 # Removes the "release only builds on one laptop" gap: the upload keystore lives
 # as CI secrets, the build is reproducible, and the AAB lands on a Play track.
 #
-# Trigger: called only by the automatic main-push release-native.yml workflow.
+# Trigger: called only by release-native.yml, after a release-* GitHub Release.
 # Prereq: fix/native-build-reliability must be merged (card-comparison static-export
 #         fix) or `native:release` will fail to build.
 #
@@ -59,7 +59,7 @@ concurrency:
 
 jobs:
     release:
-        if: ${{ github.workflow == 'App Release Android & iOS' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')) || github.event_name == 'workflow_dispatch') }}
+        if: ${{ github.workflow == 'App Release Android & iOS' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'release') || github.event_name == 'workflow_dispatch') }}
         runs-on: ubuntu-latest
         outputs:
             version: ${{ steps.version.outputs.name }}
@@ -452,7 +452,7 @@ jobs:
     # Play upload/build completion. Its sole write is one annotated tag.
     record-replacement-baseline:
         needs: release
-        if: ${{ needs.release.outputs.rebuild == 'true' && github.workflow == 'App Release Android & iOS' && github.event_name == 'workflow_run' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'push' }}
+        if: ${{ needs.release.outputs.rebuild == 'true' && github.workflow == 'App Release Android & iOS' && github.event_name == 'workflow_run' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'release' }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
