@@ -1,6 +1,6 @@
 import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
-import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useOverlayVisibility } from '@/utils/overlay-visibility'
@@ -46,7 +46,7 @@ const Modal = ({
     preventClose = false,
 }: ModalProps) => {
     let dialogRef = useRef(null)
-    const tCommon = useAppTranslations('common')
+    const tCommon = useTranslations('common')
 
     useBackHandler(() => {
         if (!preventClose) onClose()

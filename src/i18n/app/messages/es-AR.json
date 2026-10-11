@@ -9,18 +9,16 @@
     "home": {
         "activation": {
             "addEmail": {
-                "title": "Agregar email",
-                "description": "Agregá un email para completar la configuración."
+                "title": "Agregar email"
             },
             "completeSetup": {
-                "title": "Completá la configuración",
-                "description": "Subí un documento actualizado para agregar dinero."
+                "title": "Completá la configuración"
             },
             "verificationIssue": {
-                "description": "Obtené ayuda con la verificación."
+                "description": "Contactá a soporte para recibir ayuda con tu verificación."
             },
             "spendChooser": {
-                "title": "Elegí un pago",
+                "title": "Elegí cómo gastar",
                 "payWithCard": "Pagá con tarjeta",
                 "scanQr": "Escaneá un código QR"
             }
@@ -35,9 +33,8 @@
             "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
         "autoBalance": {
-            "title": "Completá la tarjeta",
-            "descriptionError": "No se configuró la tarjeta. Reintentá u omití.",
-            "description": "Tocá con tu passkey."
+            "title": "Terminá de configurar la tarjeta",
+            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora: te lo volveremos a pedir en tu primer pago con tarjeta."
         },
         "history": {
             "networkErrorDescription": "Revisá tu conexión e intentá de nuevo.",
@@ -1095,7 +1092,7 @@
             "accountDetailsHint": "{country, select, BR {Las claves de teléfono empiezan con +55.} other {Las cuentas de Mercado Pago también sirven.}}"
         },
         "bankForm": {
-            "accountOwnerNameFull": "Ingresá el nombre completo.",
+            "accountOwnerNameFull": "Ingresá nombre y apellido",
             "accountNumberCo": "El número de cuenta debe tener entre 5 y 20 dígitos",
             "documentType": "Tipo de documento",
             "documentTypeRequired": "El tipo de documento es obligatorio",
@@ -1118,8 +1115,9 @@
             "phoneNumberRequired": "El número de teléfono es obligatorio",
             "phoneNumberInvalid": "Ingresá un número colombiano, por ejemplo +573001234567",
             "phoneNumberHelper": "El número registrado en tu banco.",
-            "ibanUnsupported": "Usá un IBAN SEPA.",
-            "ownAccountFilled": "Revisá los datos."
+            "countryPlaceholder": "Seleccioná el país",
+            "heading": "Ingresá los datos bancarios",
+            "state": "Seleccioná el estado"
         },
         "errors": {
             "invalidNumber": "Ingresá un número válido.",

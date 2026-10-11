@@ -33,6 +33,8 @@ jest.mock('@/context/authContext', () => ({
     }),
 }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
+// The shared Modal and Callout translate through next-intl directly.
+jest.mock('next-intl', () => ({ ...jest.requireActual('next-intl'), useTranslations: () => (key: string) => key }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/components/Global/QRCodeWrapper', () => ({ __esModule: true, default: () => null }))

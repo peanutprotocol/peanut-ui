@@ -13,6 +13,8 @@ jest.mock('@/services/currency-accounts', () => ({
     currencyAccountsApi: { operation: jest.fn(), submit: jest.fn(), cancel: jest.fn() },
 }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
+// The shared Modal and Callout translate through next-intl directly.
+jest.mock('next-intl', () => ({ ...jest.requireActual('next-intl'), useTranslations: () => (key: string) => key }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
