@@ -119,3 +119,12 @@ describe('hasPostSignupRedirect', () => {
         expect(hasPostSignupRedirect(undefined)).toBe(false)
     })
 })
+
+describe('malformed consent responses', () => {
+    test('read as nothing to accept rather than throwing', () => {
+        expect(outdatedConsentVersions({ needsReConsent: true } as never)).toEqual([])
+        expect(
+            outdatedConsentVersions({ needsReConsent: true, documents: [null, {}, { slug: 'terms' }] } as never)
+        ).toEqual([])
+    })
+})

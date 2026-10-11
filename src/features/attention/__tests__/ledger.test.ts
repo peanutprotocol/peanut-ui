@@ -103,3 +103,33 @@ describe('readLedger and writes', () => {
         expect(readLedger(null)).toEqual({})
     })
 })
+
+describe('hostile storage', () => {
+    test('a corrupt attention field never reaches decide()', () => {
+        updateUserPreferences(USER, {
+            attention: {
+                'early-user': { shownAt: 42, dismissedAt: 'yesterday', snoozedUntil: null, version: 7 },
+                checklist: 'nope',
+                'install-app': { snoozedUntil: '2026-10-14T00:00:00.000Z', lastSessionShown: 'x' },
+            } as never,
+        })
+        const ledger = readLedger(USER)
+        expect(ledger['early-user']).toEqual({})
+        expect(ledger.checklist).toBeUndefined()
+        expect(ledger['install-app']).toEqual({ snoozedUntil: '2026-10-14T00:00:00.000Z' })
+        // a write on top of garbage stays well-typed
+        ledgerActions.shown(USER, 'early-user', Date.parse('2026-10-11T00:00:00Z'), 'interrupt', 1)
+        expect(readLedger(USER)['early-user']?.shownAt).toEqual(['2026-10-11T00:00:00.000Z'])
+    })
+
+    test('garbage legacy dates are ignored', () => {
+        const entries = legacyEntries(USER, {
+            migrationPromptSnoozedAt: 'soon',
+            notifModalClosedAt: 'later',
+            dismissedCarouselCTAs: { 'blocked-card:add-email:none': 'whenever' },
+        })
+        expect(entries['install-app']).toBeUndefined()
+        expect(entries['push-home-fallback']).toBeUndefined()
+        expect(entries['blocked-card']?.dismissedAt).toBe(new Date(0).toISOString())
+    })
+})

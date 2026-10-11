@@ -1,6 +1,7 @@
 'use client'
 
 import {
+    Component,
     createContext,
     useContext,
     useEffect,
@@ -8,9 +9,11 @@ import {
     useRef,
     useState,
     useSyncExternalStore,
+    type ErrorInfo,
     type ReactNode,
 } from 'react'
 import posthog from 'posthog-js'
+import * as Sentry from '@sentry/nextjs'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { IS_DEV } from '@/constants/general.consts'
 import { getUserPreferences } from '@/utils/general.utils'
@@ -86,11 +89,14 @@ function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
  * next to the old prompts and reports what it would have shown, so the trace
  * can be compared against `modal_shown` before any surface moves over.
  */
-function useShadowReport(decision: Decision, state: JourneyState, session: Session): void {
+function useShadowReport(state: JourneyState, ledger: Ledger, session: Session): void {
     const reported = useRef<string | null>(null)
     useEffect(() => {
         if (!state.userId || !state.userLoaded) return
-        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}:${decision.suspended}`
+        // every open overlay is a legacy prompt in phase 1, so the report
+        // ignores `busy`: it must say what the arbiter would have picked
+        const decision = decide(state, ASKS, ledger, { ...session, busy: false })
+        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}`
         if (reported.current === key) return
         reported.current = key
         const payload = {
@@ -98,7 +104,7 @@ function useShadowReport(decision: Decision, state: JourneyState, session: Sessi
             interrupt: decision.interrupt,
             zone: decision.zone?.id ?? null,
             zone_mode: decision.zone?.mode ?? null,
-            suspended: decision.suspended,
+            overlay_open: session.busy,
             candidates: decision.trace.candidates,
             reasons: decision.trace.reasons,
             route: session.route,
@@ -106,10 +112,39 @@ function useShadowReport(decision: Decision, state: JourneyState, session: Sessi
         }
         if (IS_DEV) console.debug('[attention]', payload)
         posthog.capture(ANALYTICS_EVENTS.ATTENTION_DECIDED, payload)
-    }, [decision, state.userId, state.userLoaded, session.route, session.count])
+    }, [state, ledger, session])
+}
+
+/**
+ * The provider wraps the whole app shell. A throw inside it (a selector,
+ * a hook, decide) must never take the app down with it: the boundary
+ * renders the children without the arbiter and pages Sentry.
+ */
+class AttentionBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+    state = { failed: false }
+    static getDerivedStateFromError() {
+        return { failed: true }
+    }
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        Sentry.captureException(error, {
+            tags: { feature: 'attention' },
+            extra: { componentStack: info.componentStack },
+        })
+    }
+    render() {
+        return this.state.failed ? (
+            this.props.children
+        ) : (
+            <AttentionProviderInner>{this.props.children}</AttentionProviderInner>
+        )
+    }
 }
 
 export function AttentionProvider({ children }: { children: ReactNode }) {
+    return <AttentionBoundary>{children}</AttentionBoundary>
+}
+
+function AttentionProviderInner({ children }: { children: ReactNode }) {
     const state = useJourneyState()
     const ledger = useLedger(state.userId)
     // phase 1: the arbiter owns no surface yet, so nothing is ever open through it
@@ -117,7 +152,7 @@ export function AttentionProvider({ children }: { children: ReactNode }) {
     const session = useSession(state, openInterrupt)
 
     const decision = useMemo(() => decide(state, ASKS, ledger, session), [state, ledger, session])
-    useShadowReport(decision, state, session)
+    useShadowReport(state, ledger, session)
 
     const value = useMemo<AttentionContextValue>(() => {
         const userId = state.userId

@@ -6,7 +6,7 @@
  */
 import { ANNOUNCEMENT_COOLDOWN_DAYS, decide, isSilenced } from '../decide'
 import { ASKS, balanceBackup, legalReconsent } from '../registry'
-import type { JourneyState, Ledger, Session } from '../types'
+import type { AttentionAsk, JourneyState, Ledger, Session } from '../types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const NOW = Date.parse('2026-10-11T12:00:00Z')
@@ -188,7 +188,19 @@ describe('the zone', () => {
     })
 
     test('an interrupt never also takes the zone', () => {
-        const d = run({ ...TERMS_NEEDED, dueTasks: 1 })
+        // no registered ask has both surfaces yet (phase 3 adds them), so the
+        // rule is proved on a synthetic one that would otherwise win both
+        const both: AttentionAsk = {
+            id: 'legal-reconsent',
+            tier: 1,
+            rank: 0,
+            surfaces: ['interrupt', 'zone'],
+            eligible: () => 'show',
+            policy: { routes: 'any' },
+            analyticsKey: 'both',
+        }
+        const asks = [both, ...ASKS.filter((ask) => ask.id !== 'legal-reconsent')]
+        const d = decide({ ...baseState, dueTasks: 1 }, asks, {}, baseSession)
         expect(d.interrupt).toBe('legal-reconsent')
         expect(d.zone).toEqual({ id: 'verification-due', mode: 'ask' })
     })
