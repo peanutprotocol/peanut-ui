@@ -1002,3 +1002,183 @@ describe('DynamicBankAccountForm — the owner of a US account lives anywhere', 
         expect(screen.queryByRole('combobox', { name: 'withdraw.bankForm.countryLabel' })).toBeNull()
     })
 })
+
+// ---------- someone else's US account, and the provider's US address rules ----------
+
+/**
+ * TASK-23477: a user paid out to a third party's US account. The country
+ * started at the payer's own residence (United States), and a Shanghai street
+ * went in under it. The provider flagged the address ("missing street
+ * number"), and every transfer to the account failed.
+ */
+describe('DynamicBankAccountForm — the owner address of someone else’s account', () => {
+    const countryField = () => screen.getByRole('combobox', { name: 'withdraw.bankForm.countryLabel' })
+    // a name is known, so the own-account box shows; no address, so nothing else fills
+    const NAME_ONLY: MockOwnIdentity = { ownerName: 'Anna Rossi', address: null, isLoading: false }
+
+    const typeAccount = async (street: string) => {
+        await act(async () => {
+            fireEvent.change(input('accountNumber')!, { target: { value: '123456780' } })
+            fireEvent.change(input('routingNumber')!, { target: { value: '021000021' } })
+            fireEvent.change(input('accountOwnerName')!, { target: { value: 'Huan Li' } })
+            fireEvent.change(input('street')!, { target: { value: street } })
+            fireEvent.change(input('city')!, { target: { value: 'Lisboa' } })
+            fireEvent.change(input('postalCode')!, { target: { value: '1100-048' } })
+        })
+    }
+
+    const pickCountry = async (search: string, name: RegExp) => {
+        await act(async () => {
+            fireEvent.click(countryField())
+            fireEvent.change(countryField(), { target: { value: search } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('option', { name }))
+        })
+    }
+
+    it('starts the country empty when the account is not the person’s own, and will not submit without one', async () => {
+        mockResidence = { declared: 'PT', declaredSecond: null, verified: 'PT' }
+        mockOwnIdentity = NAME_ONLY
+        const onSuccess = jest.fn(async () => ({}))
+        const { ref } = renderBareForm(onSuccess, 'USA')
+        expect(countryField()).toHaveValue('Portugal')
+
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+        expect(countryField()).toHaveValue('')
+
+        await typeAccount('Rua Augusta 1')
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        expect(onSuccess).not.toHaveBeenCalled()
+
+        // ticking it again brings the residence back
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+        expect(countryField()).toHaveValue('Portugal')
+    })
+
+    it('keeps a country the user picked when the box is unticked', async () => {
+        mockOwnIdentity = NAME_ONLY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'USA')
+        await pickCountry('Argen', /Argentina/)
+
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+        expect(countryField()).toHaveValue('Argentina')
+    })
+
+    it('does not offer China, which the provider refuses as an owner address', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'USA')
+        await act(async () => {
+            fireEvent.click(countryField())
+            fireEvent.change(countryField(), { target: { value: 'China' } })
+        })
+        expect(screen.queryByRole('option', { name: /^China/ })).toBeNull()
+    })
+
+    it('does not default to a refused residence, and says why the country is empty', () => {
+        mockResidence = { declared: 'CN', declaredSecond: null, verified: 'CN' }
+        mockOwnIdentity = NAME_ONLY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'USA')
+        expect(countryField()).toHaveValue('')
+        expect(screen.getByText('withdraw.bankForm.countryUnavailable')).toBeInTheDocument()
+    })
+})
+
+describe('DynamicBankAccountForm — US street rules follow the address country', () => {
+    const countryField = () => screen.getByRole('combobox', { name: 'withdraw.bankForm.countryLabel' })
+
+    const fillUsAddress = async (street: string) => {
+        await act(async () => {
+            fireEvent.change(input('accountNumber')!, { target: { value: '123456780' } })
+            fireEvent.change(input('routingNumber')!, { target: { value: '021000021' } })
+            fireEvent.change(input('accountOwnerName')!, { target: { value: 'Ana Silva' } })
+            fireEvent.change(input('street')!, { target: { value: street } })
+            fireEvent.change(input('city')!, { target: { value: 'Milwaukee' } })
+            fireEvent.change(input('postalCode')!, { target: { value: '53202' } })
+        })
+        await act(async () => {
+            fireEvent.blur(input('street')!)
+        })
+    }
+
+    // the state select is mocked out, so the state arrives as initial data
+    const renderUsAddressForm = (onSuccess: jest.Mock) => {
+        const ref = React.createRef<{ handleSubmit: () => void }>()
+        render(
+            <DynamicBankAccountForm
+                ref={ref}
+                country="USA"
+                flow="withdraw"
+                error={null}
+                onSuccess={onSuccess}
+                initialData={{ addressCountry: 'US', state: 'WI' }}
+            />
+        )
+        return ref
+    }
+
+    it.each([
+        ['No Yuyao Road', 'withdraw.bankForm.streetNumberRequired'],
+        ['PO Box 123', 'withdraw.bankForm.streetNoPoBox'],
+    ])('a US address "%s" is refused under the field', async (street, message) => {
+        const onSuccess = jest.fn(async () => ({}))
+        const ref = renderUsAddressForm(onSuccess)
+        expect(countryField()).toHaveValue('United States')
+
+        await fillUsAddress(street)
+        expect(screen.getByText(message)).toBeInTheDocument()
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it.each(['N123W456 Main Rd', 'Apt 4B, 123 Main St', 'Urb Las Gladiolas 150 Calle A'])(
+        'a US address "%s" shows the hint and still submits',
+        async (street) => {
+            const onSuccess = jest.fn(async () => ({}))
+            const ref = renderUsAddressForm(onSuccess)
+
+            await fillUsAddress(street)
+            expect(screen.getByText('withdraw.bankForm.streetNumberHint')).toBeInTheDocument()
+            await act(async () => {
+                ref.current!.handleSubmit()
+            })
+            await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+            expect(payloadOf(onSuccess)).toMatchObject({ address: { street, country: 'USA', state: 'WI' } })
+        }
+    )
+
+    it('a US address that starts with its number shows no hint', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderUsAddressForm(onSuccess)
+        await fillUsAddress('123 Main St')
+        expect(screen.queryByText('withdraw.bankForm.streetNumberHint')).toBeNull()
+    })
+
+    it('a street with no number is a real address outside the US: no error, no hint', async () => {
+        mockResidence = { declared: 'EG', declaredSecond: null, verified: 'EG' }
+        const onSuccess = jest.fn(async () => ({}))
+        const { ref } = renderBareForm(onSuccess, 'USA')
+        expect(countryField()).toHaveValue('Egypt')
+
+        await fillUsAddress('Tahrir Square')
+        expect(screen.queryByText('withdraw.bankForm.streetNumberRequired')).toBeNull()
+        expect(screen.queryByText('withdraw.bankForm.streetNumberHint')).toBeNull()
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ address: { street: 'Tahrir Square', country: 'EGY' } })
+    })
+})

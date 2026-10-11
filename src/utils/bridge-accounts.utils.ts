@@ -89,10 +89,21 @@ export function isValidUKAccountNumber(accountNumber: string): boolean {
 }
 
 /**
- * False for a saved bank account the provider refused because it belongs to an
- * earlier provider customer of the user (TASK-23054). The API has switched it
- * off; hiding it lets the user add the same account again.
+ * Why the API switched a saved bank account off, when the only fix is to add
+ * the same account again:
+ *  - it belongs to an earlier provider customer of the user (TASK-23054);
+ *  - the API deleted it at the provider to replace it, and the re-create
+ *    failed (TASK-23477, peanut-api-ts#1832). The provider no longer has it.
+ */
+const RE_ADDABLE_DEACTIVATION_REASONS: ReadonlySet<string> = new Set([
+    'not_owned_by_current_bridge_customer',
+    'deleted_at_bridge_for_replacement',
+])
+
+/**
+ * False for a saved bank account the API switched off for one of the reasons
+ * above. Hiding it lets the user add the same account again.
  */
 export function isUsableSavedAccount(account: Pick<Account, 'deactivationReason'>): boolean {
-    return account.deactivationReason !== 'not_owned_by_current_bridge_customer'
+    return !account.deactivationReason || !RE_ADDABLE_DEACTIVATION_REASONS.has(account.deactivationReason)
 }

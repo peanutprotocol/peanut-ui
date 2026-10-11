@@ -49,6 +49,21 @@ describe('useSavedAccounts', () => {
         expect(result.current.map((a) => a.identifier)).toEqual(['DE11'])
     })
 
+    it('drops an account the API deleted at the provider to replace it, when the re-create failed', () => {
+        // peanut-api-ts#1832: the old account is gone at the provider, so the
+        // only fix is to add it again
+        mockUseAuth.mockReturnValue({
+            user: {
+                accounts: [
+                    { ...acct(AccountType.US, '111'), deactivationReason: 'deleted_at_bridge_for_replacement' },
+                    { ...acct(AccountType.US, '222'), deactivationReason: 'some_other_reason' },
+                ],
+            },
+        })
+        const { result } = renderHook(() => useSavedAccounts())
+        expect(result.current.map((a) => a.identifier)).toEqual(['222'])
+    })
+
     it('excludes wallets and other non-bank account types', () => {
         mockUseAuth.mockReturnValue({
             user: { accounts: [acct(AccountType.PEANUT_WALLET, '0xabc'), acct(AccountType.EVM_ADDRESS, '0xdef')] },

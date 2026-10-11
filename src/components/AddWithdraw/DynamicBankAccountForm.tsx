@@ -21,6 +21,9 @@ import {
     bankCorridorFor,
     corridorAcceptsAddressCountry,
     fixedAddressCountry,
+    isOwnerAddressCountryAccepted,
+    usStreetLacksLeadingNumber,
+    usStreetProblem,
     type BankCorridorField,
 } from '@/components/AddWithdraw/bank-corridors'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
@@ -119,6 +122,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const locale = useLocale()
         // the owner's own country is the likely answer: the residence every gate reads
         const [residenceIso2] = useResidenceIso2s()
+        // a residence the provider refuses as an owner address is no default at all
+        const residenceDefault = residenceIso2 && isOwnerAddressCountryAccepted(residenceIso2) ? residenceIso2 : null
         const t = useTranslations('withdraw.bankForm')
         /** The corridor table names its keys as plain strings. */
         const tKey = (key: string) => t(key as Parameters<typeof t>[0])
@@ -156,6 +161,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             setValue,
             getValues,
             watch,
+            trigger,
             formState: { errors, isValid, isValidating, touchedFields, dirtyFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -171,7 +177,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 city: '',
                 state: '',
                 postalCode: '',
-                addressCountry: asksCountry ? (residenceIso2 ?? '') : '',
+                addressCountry: asksCountry ? (residenceDefault ?? '') : '',
                 documentType: '',
                 documentNumber: '',
                 bankCode: '',
@@ -207,6 +213,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             // provider would take it and pay out against a beneficiary who does
             // not live there.
             if (!corridorAcceptsAddressCountry(corridor, ownIdentity.address.countryCode)) return {}
+            // The provider refuses an owner address in this country, so none of
+            // it can be used; the form asks instead.
+            if (!isOwnerAddressCountryAccepted(ownIdentity.address.countryCode)) return {}
             const { street, city, state, postalCode } = ownIdentity.address
             const fields: Partial<Record<FieldPath<IBankAccountDetails>, string>> = {
                 street: street.slice(0, STREET_ADDRESS_MAX_LENGTH),
@@ -274,12 +283,31 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             writtenByPrefill.current = []
         }, [canPrefill, isOwnAccount, prefillValues, setValue])
 
-        // The residence can arrive after the form mounts; it is only a default,
-        // so it never replaces a country the user or the prefill chose.
+        /**
+         * The residence is a guess at the owner's OWN address, so it is a default
+         * only while the account is the person's own (ui#3494: a Wise USD account
+         * held from Lisbon has a Lisbon address). For someone else's account it
+         * would be a guess about a stranger, and one that looks answered: a
+         * Shanghai address went in under the payer's own United States
+         * (TASK-23477). So the country starts empty there and must be picked.
+         *
+         * The residence can also arrive after the form mounts. It never replaces
+         * a country the user or the prefill chose.
+         */
+        const residenceWroteCountry = useRef(asksCountry && !!residenceDefault && !initialData?.addressCountry)
         useEffect(() => {
-            if (!asksCountry || !residenceIso2 || getValues('addressCountry')) return
-            setValue('addressCountry', residenceIso2, { shouldValidate: true })
-        }, [asksCountry, residenceIso2, getValues, setValue])
+            if (!asksCountry) return
+            if (!isOwnAccount) {
+                if (residenceWroteCountry.current && !dirtyFieldsRef.current.addressCountry) {
+                    setValue('addressCountry', '', { shouldValidate: true })
+                }
+                residenceWroteCountry.current = false
+                return
+            }
+            if (!residenceDefault || getValues('addressCountry')) return
+            setValue('addressCountry', residenceDefault, { shouldValidate: true })
+            residenceWroteCountry.current = true
+        }, [asksCountry, residenceDefault, isOwnAccount, getValues, setValue])
 
         // Mexico for a CLABE, the UK for a sort code; null where the form asks
         const fixedCountry = corridor ? fixedAddressCountry(corridor) : null
@@ -297,13 +325,38 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             if (state && !states.some((option) => option.code === state)) {
                 setValue('state', '', { shouldValidate: true })
             }
-        }, [addressCountry, asksCountry, fixedCountry, getValues, setValue])
+            // the street rules depend on the country, so a new country re-reads the street
+            if (getValues('street')) void trigger('street')
+        }, [addressCountry, asksCountry, fixedCountry, getValues, setValue, trigger])
 
+        const residenceCountryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
         const countryOptions = useMemo(
-            // Bridge takes the country as alpha-3, so a country without one cannot be sent
-            () => buildResidenceCountryOptions(locale).filter((option) => addressCountryAlpha3(option.value)),
-            [locale]
+            () =>
+                residenceCountryOptions.filter(
+                    // Bridge takes the country as alpha-3, so a country without one
+                    // cannot be sent; and some it refuses as an owner address
+                    (option) => addressCountryAlpha3(option.value) && isOwnerAddressCountryAccepted(option.value)
+                ),
+            [residenceCountryOptions]
         )
+
+        // The owner's own country, when the provider refuses it: the field stays
+        // empty, and says why rather than looking like a missed default.
+        const refusedOwnCountry = useMemo(() => {
+            if (!asksCountry || !isOwnAccount) return null
+            const refused = [ownIdentity.address?.countryCode, residenceIso2]
+                .map((country) => addressCountryAlpha2(country))
+                .find((country) => country && !isOwnerAddressCountryAccepted(country))
+            if (!refused) return null
+            return residenceCountryOptions.find((option) => option.value === refused)?.label ?? refused
+        }, [asksCountry, isOwnAccount, ownIdentity.address?.countryCode, residenceIso2, residenceCountryOptions])
+
+        // The provider's US street rules apply to an address IN the US, not to a
+        // US bank account: its owner may live in Lisbon, where a street with no
+        // number is a real address.
+        const isUsAddress = (asksCountry ? addressCountry : fixedCountry)?.toUpperCase() === 'US'
+        const street = watch('street') ?? ''
+        const showStreetNumberHint = isUsAddress && !usStreetProblem(street) && usStreetLacksLeadingNumber(street)
 
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
@@ -817,6 +870,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                         // the trigger is an input the combobox owns, so aria-label names it
                                         <Field
                                             label={t('countryLabel')}
+                                            helper={
+                                                refusedOwnCountry && !addressCountry
+                                                    ? t('countryUnavailable', { country: refusedOwnCountry })
+                                                    : undefined
+                                            }
                                             error={
                                                 errors.addressCountry && touchedFields.addressCountry
                                                     ? (errors.addressCountry.message ?? '')
@@ -835,6 +893,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                                         placeholder={t('countryPlaceholder')}
                                                         onValueChange={(value) => {
                                                             markUserEdit()
+                                                            residenceWroteCountry.current = false
                                                             field.onChange(value)
                                                             field.onBlur()
                                                         }}
@@ -853,12 +912,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                                 message: t('streetMax'),
                                             },
                                             minLength: { value: 4, message: t('streetMin') },
+                                            // read at validation time: the rules follow the country
+                                            validate: (value: string) => {
+                                                const country = asksCountry ? getValues('addressCountry') : fixedCountry
+                                                if (country?.toUpperCase() !== 'US') return true
+                                                const problem = usStreetProblem(value ?? '')
+                                                if (problem === 'poBox') return t('streetNoPoBox')
+                                                if (problem === 'noNumber') return t('streetNumberRequired')
+                                                return true
+                                            },
                                         },
                                         'text',
                                         undefined,
                                         undefined,
                                         true,
-                                        STREET_ADDRESS_MAX_LENGTH
+                                        STREET_ADDRESS_MAX_LENGTH,
+                                        // a hint only: "N123W456 Main Rd" is a real address
+                                        showStreetNumberHint ? t('streetNumberHint') : undefined
                                     )}
 
                                     {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
