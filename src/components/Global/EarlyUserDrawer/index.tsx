@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import * as Sentry from '@sentry/nextjs'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import ShareButton from '../ShareButton'
@@ -8,70 +9,40 @@ import DocsLink from '@/components/Global/DocsLink'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
-import { useModalsContextOptional } from '@/context/ModalsContext'
-import { useOtherOpenOverlays } from '@/utils/overlay-visibility'
 import { updateUserById } from '@/app/actions/users'
-import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import type { AskSurfaceProps } from '@/features/attention/types'
 
-const EarlyUserDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void }) => {
+/**
+ * "Peanut is open to everyone": the one-time announcement for accounts that
+ * predate open signup. Whether it shows is the attention arbiter's call (the
+ * `early-user` ask reads the server's `showEarlyUserModal`); closing it
+ * records `hasSeenEarlyUserModal` on the server.
+ */
+const EarlyUserDrawer = ({ onActed }: AskSurfaceProps) => {
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
-    const overlayOwner = useRef(Symbol('early-user'))
-    const otherOverlayOpen = useOtherOpenOverlays(overlayOwner.current)
-    const modals = useModalsContextOptional()
     const userId = user?.user.userId
-    const [dismissedFor, setDismissedFor] = useState<string | null>(null)
-    const trackedFor = useRef<string | null>(null)
-    // Wait for consent even before its status request produces a modal. Account
-    // switches must not reuse the previous account's cleared consent check.
-    const legalGate = modals?.legalConsentGate
-    const legalPending =
-        !!legalGate && (legalGate.status !== 'clear' || (legalGate.userId !== null && legalGate.userId !== userId))
-    const contextOverlayOpen =
-        !!modals &&
-        (modals.isSignInModalOpen ||
-            modals.isGetAppModalOpen ||
-            modals.isSupportModalOpen ||
-            modals.isQRScannerOpen ||
-            modals.isSecurityVerificationOpen)
-    const showModal =
-        !!userId &&
-        !!user?.showEarlyUserModal &&
-        dismissedFor !== userId &&
-        !legalPending &&
-        !contextOverlayOpen &&
-        !otherOverlayOpen
+    const [open, setOpen] = useState(true)
 
-    useEffect(() => {
-        onVisibilityChange?.(showModal)
-        if (showModal && trackedFor.current !== userId) {
-            trackedFor.current = userId ?? null
-            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.EARLY_USER })
+    const handleClose = async () => {
+        if (!open) return
+        setOpen(false)
+        try {
+            if (userId) await updateUserById({ userId, hasSeenEarlyUserModal: true })
+            fetchUser()
+        } catch (e) {
+            // the local mark keeps it closed; the server flag is retried on the next close
+            Sentry.captureException(e, { tags: { feature: 'attention', ask: 'early-user' } })
         }
-    }, [showModal, userId, onVisibilityChange])
-
-    const handleCloseModal = async () => {
-        // Being preempted by another surface is not a user dismissal and must
-        // never acknowledge the announcement or prevent it from resuming.
-        if (!showModal || !userId) return
-        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.EARLY_USER })
-        setDismissedFor(userId)
-        await updateUserById({ userId, hasSeenEarlyUserModal: true })
-        fetchUser()
+        onActed()
     }
-
-    // Unmount immediately when yielding: a closing Vaul portal otherwise keeps
-    // its overlay/focus lock alive during the new surface's opening animation.
-    if (legalPending || contextOverlayOpen || otherOverlayOpen) return null
 
     return (
         <Drawer
-            open={showModal}
-            overlayOwner={overlayOwner.current}
+            open={open}
             onOpenChange={(isOpen) => {
-                if (!isOpen) void handleCloseModal()
+                if (!isOpen) void handleClose()
             }}
         >
             <DrawerContent>

@@ -25,7 +25,7 @@ let mockOverlayOpen = false
 jest.mock('@/utils/overlay-visibility', () => ({ useAnyOverlayOpen: () => mockOverlayOpen }))
 
 import { AttentionProvider, resetAttentionSessionForTests, useAttention } from '../AttentionProvider'
-import { updateUserPreferences } from '@/utils/general.utils'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 
 const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     now: Date.parse('2026-10-11T12:00:00Z'),
@@ -33,7 +33,7 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     userLoaded: true,
     isNative: true,
     route: 'home',
-    consent: { status: 'needed', versions: ['2026-10-01'] },
+    consent: { status: 'needed', versions: ['2026-10-01'], documents: [] },
     identity: {
         status: 'not_started',
         isVerified: false,
@@ -50,11 +50,12 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     },
     blockedCardId: null,
     dueTasks: 0,
-    card: { loaded: true, needsSetup: false },
+    card: { loaded: true, needsSetup: false, activeCardId: null },
     postAuthRedirect: false,
+    postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
     migration: { on: false },
-    push: { ready: true, unanswered: false },
+    push: { ready: true, unanswered: false, promptedThisSession: false },
     showEarlyUserModal: true,
     ...overrides,
 })
@@ -62,12 +63,31 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
 let renders = 0
 function Probe() {
     renders++
-    const { decision, dismissed } = useAttention()
+    const { decision, opened, dismissed } = useAttention()
     return (
         <div>
             <span data-testid="interrupt">{decision.interrupt ?? 'none'}</span>
             <span data-testid="zone">{decision.zone?.id ?? 'none'}</span>
-            <button onClick={() => dismissed('legal-reconsent')}>dismiss-terms</button>
+            <button
+                onClick={() => {
+                    // a settle only counts for the surface on screen
+                    opened('legal-reconsent')
+                    // a settle for an ask that is not on screen writes nothing
+                    dismissed('early-user')
+                    dismissed('legal-reconsent')
+                }}
+            >
+                dismiss-terms
+            </button>
+            <button
+                onClick={() => {
+                    // StrictMode and re-renders call the report twice for one show
+                    opened('legal-reconsent')
+                    opened('legal-reconsent')
+                }}
+            >
+                open-terms-twice
+            </button>
         </div>
     )
 }
@@ -97,7 +117,7 @@ test('decides, reports once, and does not re-render in a loop', async () => {
     const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
     expect(reports).toHaveLength(1)
     expect(reports[0][1]).toMatchObject({
-        shadow: true,
+        shadow: false,
         interrupt: 'legal-reconsent',
         zone: 'checklist',
         candidates: ['legal-reconsent', 'checklist', 'early-user'],
@@ -121,7 +141,24 @@ test('a ledger write re-decides: dismissing terms hands the next evaluation on',
     expect(reports[1][1]).toMatchObject({ interrupt: null, zone: 'checklist' })
 })
 
-test('a user-opened overlay suspends every pick, but the shadow report still says what it would pick', async () => {
+test('reporting a show twice books it once', async () => {
+    updateUserPreferences('user-a', { sessionCount: 2 })
+    render(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    await act(async () => {
+        screen.getByText('open-terms-twice').click()
+    })
+    const shown = mockCapture.mock.calls.filter(([event]) => event === 'attention_shown')
+    expect(shown).toHaveLength(1)
+    expect(mockCapture.mock.calls.filter(([event]) => event === 'modal_shown')).toHaveLength(1)
+    expect(getUserPreferences('user-a')?.attention?.['legal-reconsent']?.shownAt).toHaveLength(1)
+})
+
+test('a user-opened overlay suspends every pick, and the report says so', async () => {
     mockOverlayOpen = true
     render(
         <AttentionProvider>
@@ -133,7 +170,7 @@ test('a user-opened overlay suspends every pick, but the shadow report still say
     expect(screen.getByTestId('zone').textContent).toBe('none')
     const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
     expect(reports).toHaveLength(1)
-    expect(reports[0][1]).toMatchObject({ interrupt: 'legal-reconsent', zone: 'checklist', overlay_open: true })
+    expect(reports[0][1]).toMatchObject({ interrupt: null, zone: null, suspended: true, overlay_open: true })
 })
 
 test('a throw inside the arbiter never takes the app down', async () => {

@@ -3,6 +3,7 @@
 import {
     Component,
     createContext,
+    useCallback,
     useContext,
     useEffect,
     useMemo,
@@ -19,13 +20,21 @@ import { IS_DEV } from '@/constants/general.consts'
 import { getUserPreferences } from '@/utils/general.utils'
 import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { decide } from './decide'
+import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
 import { ledgerActions, readLedger, subscribeLedger } from './ledger'
+import { bumpJourneyEpoch } from './journeyEpoch'
 import { useJourneyState } from './journeyState'
 import { ASKS } from './registry'
 import type { AskId, AttentionAsk, Decision, JourneyState, Ledger, Session } from './types'
 
+export { isAttentionInterruptOpen } from './interruptState'
+
 /** how long an `unknown` higher tier may hold lower-tier interrupts (same ceiling as useFlagsSettled) */
 export const SETTLE_DEADLINE_MS = 4_000
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+export type SettleOutcome = 'acted' | 'dismissed' | 'snoozed'
 
 interface AttentionContextValue {
     decision: Decision
@@ -33,7 +42,11 @@ interface AttentionContextValue {
     ledger: Ledger
     session: Session
     asks: readonly AttentionAsk[]
-    /** the user answered the ask; completion itself is derived from state */
+    /** a surface for this ask is on screen (AttentionInterrupt reports it; idempotent) */
+    opened: (id: AskId) => void
+    /** the surface threw: settle it as dismissed whether or not it had reported itself open */
+    crashed: (id: AskId) => void
+    /** the user did the thing; completion itself is derived from state */
     acted: (id: AskId) => void
     dismissed: (id: AskId) => void
     snoozed: (id: AskId, until?: number) => void
@@ -51,12 +64,11 @@ function useLedger(userId: string | null): Ledger {
     )
 }
 
-// per app load: the interrupts the arbiter opened, and for which account
-let sessionInterrupts: { userId: string | null; ids: AskId[] } = { userId: null, ids: [] }
-
 export function resetAttentionSessionForTests(): void {
-    sessionInterrupts = { userId: null, ids: [] }
+    setSessionInterrupts({ userId: null, ids: [], open: null })
 }
+
+const askOf = (id: AskId) => ASKS.find((ask) => ask.id === id)
 
 function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
     const busy = useAnyOverlayOpen()
@@ -69,41 +81,37 @@ function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
         return () => clearTimeout(timer)
     }, [state.userId])
 
-    if (sessionInterrupts.userId !== state.userId) sessionInterrupts = { userId: state.userId, ids: [] }
-
-    return {
-        count: getUserPreferences(state.userId ?? undefined)?.sessionCount ?? 0,
-        route: state.route,
-        interruptsThisSession: sessionInterrupts.ids,
-        openInterrupt,
-        busy,
-        // the mobile layout swaps the whole tree for its gates (offline, backend
-        // down, auth), so while this provider is mounted no gate is up
-        gateUp: false,
-        settleDeadlinePassed,
-    }
+    const current = getSessionInterrupts()
+    return useMemo(
+        () => ({
+            count: getUserPreferences(state.userId ?? undefined)?.sessionCount ?? 0,
+            route: state.route,
+            interruptsThisSession: current.userId === state.userId ? current.ids : [],
+            openInterrupt,
+            busy,
+            // the mobile layout swaps the whole tree for its gates (offline, backend
+            // down, auth), so while this provider is mounted no gate is up
+            gateUp: false,
+            settleDeadlinePassed,
+        }),
+        [state.userId, state.route, current, openInterrupt, busy, settleDeadlinePassed]
+    )
 }
 
-/**
- * Shadow mode (phase 1): nothing renders through the arbiter yet. It decides
- * next to the old prompts and reports what it would have shown, so the trace
- * can be compared against `modal_shown` before any surface moves over.
- */
-function useShadowReport(state: JourneyState, ledger: Ledger, session: Session): void {
+/** One `attention_decided` per distinct decision, so the trace can be read against `modal_shown`. */
+function useDecisionReport(decision: Decision, state: JourneyState, session: Session): void {
     const reported = useRef<string | null>(null)
     useEffect(() => {
         if (!state.userId || !state.userLoaded) return
-        // every open overlay is a legacy prompt in phase 1, so the report
-        // ignores `busy`: it must say what the arbiter would have picked
-        const decision = decide(state, ASKS, ledger, { ...session, busy: false })
-        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}`
+        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}:${decision.suspended}`
         if (reported.current === key) return
         reported.current = key
         const payload = {
-            shadow: true,
+            shadow: false,
             interrupt: decision.interrupt,
             zone: decision.zone?.id ?? null,
             zone_mode: decision.zone?.mode ?? null,
+            suspended: decision.suspended,
             overlay_open: session.busy,
             candidates: decision.trace.candidates,
             reasons: decision.trace.reasons,
@@ -112,7 +120,7 @@ function useShadowReport(state: JourneyState, ledger: Ledger, session: Session):
         }
         if (IS_DEV) console.debug('[attention]', payload)
         posthog.capture(ANALYTICS_EVENTS.ATTENTION_DECIDED, payload)
-    }, [state, ledger, session])
+    }, [decision, state.userId, state.userLoaded, session.busy, session.route, session.count])
 }
 
 /**
@@ -144,43 +152,115 @@ export function AttentionProvider({ children }: { children: ReactNode }) {
     return <AttentionBoundary>{children}</AttentionBoundary>
 }
 
+const LEGACY_EVENT: Record<SettleOutcome, string> = {
+    acted: ANALYTICS_EVENTS.MODAL_CTA_CLICKED,
+    dismissed: ANALYTICS_EVENTS.MODAL_DISMISSED,
+    snoozed: ANALYTICS_EVENTS.MODAL_DISMISSED,
+}
+const ATTENTION_EVENT: Record<SettleOutcome, string> = {
+    acted: ANALYTICS_EVENTS.ATTENTION_ACTED,
+    dismissed: ANALYTICS_EVENTS.ATTENTION_DISMISSED,
+    snoozed: ANALYTICS_EVENTS.ATTENTION_SNOOZED,
+}
+
 function AttentionProviderInner({ children }: { children: ReactNode }) {
     const state = useJourneyState()
     const ledger = useLedger(state.userId)
-    // phase 1: the arbiter owns no surface yet, so nothing is ever open through it
-    const openInterrupt: AskId | null = null
+    const [openInterrupt, setOpenInterrupt] = useState<AskId | null>(null)
+
+    // an account switch or logout drops whatever was on screen and the session
+    // counters. Not on mount: a child surface's effect runs before this one
+    // and may already have reported itself open.
+    if (getSessionInterrupts().userId !== state.userId) {
+        setSessionInterrupts({ userId: state.userId, ids: [], open: null })
+    }
+    const previousUserId = useRef(state.userId)
+    useEffect(() => {
+        if (previousUserId.current === state.userId) return
+        previousUserId.current = state.userId
+        setOpenInterrupt(null)
+    }, [state.userId])
+
     const session = useSession(state, openInterrupt)
-
     const decision = useMemo(() => decide(state, ASKS, ledger, session), [state, ledger, session])
-    useShadowReport(state, ledger, session)
+    useDecisionReport(decision, state, session)
 
-    const value = useMemo<AttentionContextValue>(() => {
-        const userId = state.userId
-        const askOf = (id: AskId) => ASKS.find((ask) => ask.id === id)
-        return {
+    // the decision closed the open surface itself (its verdict left `show`)
+    useEffect(() => {
+        if (openInterrupt && decision.interrupt !== openInterrupt) {
+            setSessionInterrupts({ ...getSessionInterrupts(), open: null })
+            setOpenInterrupt(null)
+        }
+    }, [decision.interrupt, openInterrupt])
+
+    const userId = state.userId
+    const opened = useCallback(
+        (id: AskId) => {
+            if (!userId) return
+            const current = getSessionInterrupts()
+            // the bookkeeping is once per show; the state sync is unconditional
+            if (current.open !== id) {
+                const ask = askOf(id)
+                setSessionInterrupts({
+                    ...current,
+                    open: id,
+                    ids: current.ids.includes(id) ? current.ids : [...current.ids, id],
+                })
+                ledgerActions.shown(userId, id, Date.now(), 'interrupt', session.count)
+                posthog.capture(ANALYTICS_EVENTS.ATTENTION_SHOWN, { ask: id, surface: 'interrupt', tier: ask?.tier })
+                if (ask) posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: ask.analyticsKey })
+            }
+            setOpenInterrupt(id)
+        },
+        [userId, session.count]
+    )
+
+    const settle = useCallback(
+        (id: AskId, outcome: SettleOutcome, until?: number) => {
+            // a handler for an ask that is not on screen (a double tap, a stale closure) writes nothing
+            if (!userId || getSessionInterrupts().open !== id) return
+            const ask = askOf(id)
+            const now = Date.now()
+            const version = ask?.version?.(state)
+            if (outcome === 'snoozed') {
+                const days = ask?.policy.snoozeDays ?? 7
+                ledgerActions.snoozed(userId, id, until ?? now + days * DAY_MS, version)
+            } else {
+                ledgerActions.dismissed(userId, id, now, version)
+            }
+            posthog.capture(ATTENTION_EVENT[outcome], { ask: id, surface: 'interrupt', tier: ask?.tier })
+            if (ask) posthog.capture(LEGACY_EVENT[outcome], { modal_type: ask.analyticsKey })
+            setSessionInterrupts({ ...getSessionInterrupts(), open: null })
+            setOpenInterrupt(null)
+            bumpJourneyEpoch()
+        },
+        [userId, state]
+    )
+
+    const crashed = useCallback(
+        (id: AskId) => {
+            // the throw may land before the surface reported itself open
+            setSessionInterrupts({ ...getSessionInterrupts(), open: id })
+            settle(id, 'dismissed')
+        },
+        [settle]
+    )
+
+    const value = useMemo<AttentionContextValue>(
+        () => ({
             decision,
             state,
             ledger,
             session,
             asks: ASKS,
-            acted: (id) => {
-                if (userId) ledgerActions.cleared(userId, id)
-            },
-            dismissed: (id) => {
-                if (userId) ledgerActions.dismissed(userId, id, state.now, askOf(id)?.version?.(state))
-            },
-            snoozed: (id, until) => {
-                if (!userId) return
-                const days = askOf(id)?.policy.snoozeDays ?? 7
-                ledgerActions.snoozed(
-                    userId,
-                    id,
-                    until ?? state.now + days * 24 * 60 * 60 * 1000,
-                    askOf(id)?.version?.(state)
-                )
-            },
-        }
-    }, [decision, state, ledger, session])
+            opened,
+            crashed,
+            acted: (id) => settle(id, 'acted'),
+            dismissed: (id) => settle(id, 'dismissed'),
+            snoozed: (id, until) => settle(id, 'snoozed', until),
+        }),
+        [decision, state, ledger, session, opened, crashed, settle]
+    )
 
     return <AttentionContext.Provider value={value}>{children}</AttentionContext.Provider>
 }

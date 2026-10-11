@@ -312,7 +312,7 @@ export const SURFACES: Record<string, Surface> = {
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',
         shotFixture: 'early-user',
-        render: () => <EarlyUserDrawer />,
+        render: () => <EarlyUserDrawer askId="early-user" onActed={noop} onDismissed={noop} onSnoozed={noop} />,
     },
     '12-a-eastereggmodal': {
         name: 'EasterEggDrawer',
@@ -468,7 +468,7 @@ export const SURFACES: Record<string, Surface> = {
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal',
         path: 'Migration/MigrationDownloadModal.tsx',
-        render: () => <MigrationDownloadModal forceVisible />,
+        render: () => <MigrationDownloadModal askId="install-app" onActed={noop} onDismissed={noop} onSnoozed={noop} />,
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],

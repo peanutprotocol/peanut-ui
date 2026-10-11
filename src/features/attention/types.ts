@@ -77,6 +77,17 @@ export interface AttentionAsk {
     analyticsKey: string
 }
 
+/** What a rendered surface gets: the three ways the user can answer, nothing else. */
+export interface AskSurfaceProps {
+    askId: AskId
+    /** the user did the thing (accepted, enabled, tapped the CTA) */
+    onActed: () => void
+    /** closed without doing it; permanent unless the ask's policy has expiryDays */
+    onDismissed: () => void
+    /** "Not now"; `until` defaults to now + policy.snoozeDays */
+    onSnoozed: (until?: number) => void
+}
+
 export interface JourneyState {
     now: number
     /** null while logged out */
@@ -84,7 +95,12 @@ export interface JourneyState {
     userLoaded: boolean
     isNative: boolean
     route: 'home' | 'other'
-    consent: { status: 'unknown' | 'clear' | 'needed'; versions: string[] }
+    consent: {
+        status: 'unknown' | 'clear' | 'needed'
+        versions: string[]
+        /** the outdated documents this client can display */
+        documents: { slug: string; currentVersion: string }[]
+    }
     identity: {
         status: IdentityVerificationStatus | undefined
         isVerified: boolean
@@ -98,12 +114,18 @@ export interface JourneyState {
     blockedCardId: string | null
     /** pending Bridge verification tasks due now (selectHomeTasks().largeTasks) */
     dueTasks: number
-    card: { loaded: boolean; needsSetup: boolean }
+    card: { loaded: boolean; needsSetup: boolean; activeCardId: string | null }
     /** a stored post-auth redirect that a post-signup action matches */
     postAuthRedirect: boolean
+    postAuthRedirectDestination: string | null
     balance: { loaded: boolean; usd: number }
     migration: { on: boolean }
-    push: { ready: boolean; unanswered: boolean }
+    push: {
+        ready: boolean
+        unanswered: boolean
+        /** the contextual (money-moment) pre-prompt already asked this session */
+        promptedThisSession: boolean
+    }
     showEarlyUserModal: boolean | undefined
 }
 

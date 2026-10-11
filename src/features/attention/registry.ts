@@ -73,6 +73,7 @@ export const postVerificationAction: AttentionAsk = {
         if (gate !== 'ready') return gate
         return s.identity.isVerified && s.postAuthRedirect ? 'show' : 'ineligible'
     },
+    version: (s) => s.postAuthRedirectDestination ?? undefined,
     policy: {},
     analyticsKey: MODAL_TYPES.POST_SIGNUP,
 }
@@ -88,6 +89,7 @@ export const finishCardSetup: AttentionAsk = {
         if (!s.card.loaded) return 'unknown'
         return s.card.needsSetup ? 'show' : 'ineligible'
     },
+    version: (s) => s.card.activeCardId ?? undefined,
     policy: {},
     analyticsKey: 'finish_card_setup',
 }
@@ -146,7 +148,9 @@ export const pushHomeFallback: AttentionAsk = {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.push.ready) return 'unknown'
-        return s.push.unanswered ? 'show' : 'done'
+        if (!s.push.unanswered) return 'done'
+        // a money moment already asked this session: one pre-prompt per session
+        return s.push.promptedThisSession ? 'ineligible' : 'show'
     },
     policy: { minSessions: 3, snoozeDays: 14 },
     analyticsKey: MODAL_TYPES.NOTIFICATIONS,

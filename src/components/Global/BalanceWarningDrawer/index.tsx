@@ -4,10 +4,8 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 enum Platform {
     IOS = 'ios',
@@ -82,13 +80,6 @@ export default function BalanceWarningDrawer({ visible, onCloseAction }: Balance
     }, [])
     const platformName = platformInfo.name ?? t('balanceWarningModal.yourDevice')
 
-    const hasTrackedShow = useRef(false)
-    useEffect(() => {
-        if (visible && !hasTrackedShow.current) {
-            hasTrackedShow.current = true
-            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.BALANCE_WARNING })
-        }
-    }, [visible])
     // deliberate friction: the only way out is the slide — dismissible={false}
     // makes swipe, overlay tap and hardware back no-ops.
     return (
@@ -137,13 +128,7 @@ export default function BalanceWarningDrawer({ visible, onCloseAction }: Balance
                         {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                         <div className="w-full" data-vaul-no-drag>
                             <SlideToConfirm
-                                onConfirm={() => {
-                                    posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
-                                        modal_type: MODAL_TYPES.BALANCE_WARNING,
-                                        cta: 'slide_to_continue',
-                                    })
-                                    onCloseAction()
-                                }}
+                                onConfirm={onCloseAction}
                                 label={t('balanceWarningModal.slideToContinue')}
                             />
                         </div>
