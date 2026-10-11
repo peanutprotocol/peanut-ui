@@ -8,7 +8,7 @@ name: App Release Android
 # Prereq: fix/native-build-reliability must be merged (card-comparison static-export
 #         fix) or `native:release` will fail to build.
 #
-# Required repo secrets (see docs/NATIVE-RELEASE.md §Ops):
+# Required repo secrets (see https://github.com/peanutprotocol/mono/blob/main/ops/releases.md#appendix-native-reference):
 #   ANDROID_KEYSTORE_BASE64      base64 of the upload keystore
 #   ANDROID_KEYSTORE_PASSWORD    store password
 #   ANDROID_KEY_ALIAS            key alias (e.g. peanut)
@@ -39,6 +39,10 @@ on:
                 required: false
                 default: false
                 type: boolean
+        outputs:
+            needs_ota:
+                description: 'true when the caller must promote the uploaded .0 bundle to this platform channel'
+                value: ${{ jobs.release.outputs.needs_ota }}
 
 permissions:
     contents: read
@@ -55,11 +59,12 @@ concurrency:
 
 jobs:
     release:
-        if: ${{ github.workflow == 'App Release Android & iOS' && github.event_name == 'workflow_run' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'push' }}
+        if: ${{ github.workflow == 'App Release Android & iOS' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')) || github.event_name == 'workflow_dispatch') }}
         runs-on: ubuntu-latest
         outputs:
             version: ${{ steps.version.outputs.name }}
             rebuild: ${{ steps.version.outputs.rebuild }}
+            needs_ota: ${{ steps.version.outputs.profile != 'true' && steps.ota_floor.outputs.needs_ota || 'false' }}
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
         steps:
@@ -388,7 +393,12 @@ jobs:
                   path: android/app/build/outputs/mapping/release/
                   if-no-files-found: error
 
+            # Play rejects a second upload of the same versionCode, so a retry can
+            # never publish twice: it either uploads a build that did not land, or
+            # fails on the duplicate.
             - name: Upload to Google Play
+              id: play_upload
+              continue-on-error: true
               uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
               with:
                   serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -399,13 +409,29 @@ jobs:
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 
-            # Publish a matching .0 only when this platform has no active legacy
-            # bridge. The shared record is verified before promotion.
-            - name: Publish matching production OTA bundle
+            - name: Wait before retrying the Google Play upload
+              if: steps.play_upload.outcome == 'failure'
+              run: sleep 30
+
+            - name: Retry upload to Google Play
+              if: steps.play_upload.outcome == 'failure'
+              uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
+              with:
+                  serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+                  packageName: me.peanut.wallet
+                  releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+                  tracks: ${{ inputs.track || 'internal' }}
+                  status: completed
+
+            # Upload a matching .0 only when this platform has no active legacy
+            # bridge. No channel moves here: release-native.yml promotes both
+            # platforms in one final job, only after both store uploads passed.
+            - name: Upload matching OTA bundle to the candidate channel
               if: steps.ota_floor.outputs.needs_ota == 'true' && steps.version.outputs.profile != 'true'
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: android
+                  PUBLISH_STAGE: upload
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
