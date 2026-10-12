@@ -31,6 +31,13 @@ describe('General Utilities', () => {
                     expect(formatTokenAmount('1,234,567', 2, true)).toBe('1234567')
                 })
 
+                it('rejects commas that are neither one decimal comma nor clean thousands groups', () => {
+                    expect(formatTokenAmount('1,2,3', 2, true)).toBe('')
+                    expect(formatTokenAmount('12,34,567', 2, true)).toBe('')
+                    expect(formatTokenAmount('1,5.3', 2, true)).toBe('')
+                    expect(formatTokenAmount('1,0000.5', 2, true)).toBe('')
+                })
+
                 it('reads a single comma as the decimal separator (TASK-23132)', () => {
                     // was read as thousands: "0,125" sent 125, a 1000x amount
                     expect(formatTokenAmount('0,125', 2, true)).toBe('0.12')

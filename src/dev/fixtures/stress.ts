@@ -28,9 +28,9 @@ export const STRESS_VALUES = {
         'Maximiliano Alejandro Fernández de la Vega y Santibáñez',
         'Wolfeschlegelsteinhausenbergerdorffwelchevoralternwarengewissenhaft',
         'محمد عبد الرحمن الشمري',
-        '王小明 👩🏽‍💻 Zoë Ångström',
+        '王小明 👩🏽\u200d💻 Zoë Ångström',
         '<b>hi</b> & "quotes"',
-        '  Ana​Maria‍  ',
+        '  Ana\u200bMaria\u200d  ',
     ],
     // usernames stay URL-safe: they end up in routes like /<username>
     username: ['maximilianoalejandrofernandezdelavegaysantibanez', 'x'],
