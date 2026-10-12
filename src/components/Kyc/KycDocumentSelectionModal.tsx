@@ -5,6 +5,9 @@ import { useLocale, useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { KycDocumentChoice, KycDocumentPlan, KycFeatures } from '@/app/actions/types/kyc-workflow.types'
+import { identityDocuments } from '@/utils/kyc-document-plan.utils'
+
+type KycRoute = KycDocumentPlan['routes'][number]
 
 export function KycDocumentSelectionModal({
     plan,
@@ -31,6 +34,7 @@ export function KycDocumentSelectionModal({
     const [draftFeatures, setDraftFeatures] = useState(plan.features)
     const features = preferencesOnly ? draftFeatures : plan.features
     const route = plan.routes.find((r) => r.id === routeId)
+    const documents = identityDocuments(route)
     const choicesRouteRef = useRef<string | undefined>(undefined)
     useEffect(() => {
         setRouteId((id) => (plan.routes.some((r) => r.id === id) ? id : (plan.routes[0]?.id ?? '')))
@@ -42,16 +46,15 @@ export function KycDocumentSelectionModal({
         choicesRouteRef.current = route?.id
         const keep = (value: string | undefined, allowed: string[]) =>
             value && allowed.includes(value) ? value : allowed.length === 1 ? allowed[0] : ''
-        setChoices(
-            (current) =>
-                route?.documents.map((d) => {
-                    const previous = sameRoute ? current.find((c) => c.key === d.key) : undefined
-                    return {
-                        key: d.key,
-                        type: keep(previous?.type, d.types),
-                        issuingCountry: keep(previous?.issuingCountry, d.countries),
-                    }
-                }) ?? []
+        setChoices((current) =>
+            identityDocuments(route).map((d) => {
+                const previous = sameRoute ? current.find((c) => c.key === d.key) : undefined
+                return {
+                    key: d.key,
+                    type: keep(previous?.type, d.types),
+                    issuingCountry: keep(previous?.issuingCountry, d.countries),
+                }
+            })
         )
     }, [route])
     const countryNames = new Intl.DisplayNames([locale], { type: 'region' })
@@ -65,33 +68,37 @@ export function KycDocumentSelectionModal({
             ID_CARD: 'idCard',
             DRIVERS: 'drivers',
             RESIDENCE_PERMIT: 'residencePermit',
-            BANK_STATEMENT: 'bankStatement',
-            UTILITY_BILL: 'utilityBill',
         } as const
         return t(keys[type as keyof typeof keys] ?? 'otherDocument')
     }
     const routeLabels = plan.routes.map(
         (r) =>
-            `${r.documents.map((d) => t(d.code === 'IDENTITY' ? 'identity' : 'poa')).join(' + ')} — ${r.documents
+            `${t('identity')} — ${identityDocuments(r)
                 .map((d) => d.types.map(documentName).join(' / '))
                 .join(' + ')}`
     )
-    const routeOptionLabel = (r: KycDocumentPlan['routes'][number], index: number) => {
+    const routeOptionLabel = (r: KycRoute, index: number) => {
         const label = routeLabels[index]
         if (routeLabels.filter((l) => l === label).length < 2) return label
-        const countries = byName([...new Set(r.documents.flatMap((d) => d.countries))])
+        const countries = byName([...new Set(identityDocuments(r).flatMap((d) => d.countries))])
         return `${label} (${countries.map(countryName).join(', ')})`
     }
     const update = (key: string, value: Partial<KycDocumentChoice>) =>
         setChoices((current) => current.map((c) => (c.key === key ? { ...c, ...value } : c)))
     const ready =
         (preferencesOnly ||
-            (!!route &&
-                choices.length === route.documents.length &&
+            (documents.length > 0 &&
+                choices.length === documents.length &&
                 choices.every((c) => c.type && c.issuingCountry))) &&
         Object.values(features).some(Boolean)
     return (
-        <Modal visible onClose={onClose} preventClose={busy} title={t(preferencesOnly ? 'preferencesTitle' : 'title')}>
+        <Modal
+            visible
+            onClose={onClose}
+            preventClose={busy}
+            title={t(preferencesOnly ? 'preferencesTitle' : 'title')}
+            closeTestId="kyc-documents-close"
+        >
             <form
                 className="flex flex-col gap-6 p-6"
                 onSubmit={(e) => {
@@ -107,6 +114,7 @@ export function KycDocumentSelectionModal({
                         <label className="flex min-h-11 items-center gap-3" key={feature}>
                             <input
                                 type="checkbox"
+                                data-testid={`kyc-documents-feature-${feature}`}
                                 checked={features[feature]}
                                 onChange={(e) => {
                                     if (busy) return
@@ -125,6 +133,7 @@ export function KycDocumentSelectionModal({
                         {t('documentSet')}
                         <select
                             className="min-h-11 rounded-sm border border-border-default p-3"
+                            data-testid="kyc-documents-route"
                             disabled={busy}
                             value={routeId}
                             onChange={(e) => setRouteId(e.target.value)}
@@ -138,17 +147,16 @@ export function KycDocumentSelectionModal({
                     </label>
                 )}
                 {!preferencesOnly &&
-                    route?.documents.map((d) => {
+                    documents.map((d) => {
                         const choice = choices.find((c) => c.key === d.key)
                         return (
                             <fieldset disabled={busy} className="flex flex-col gap-3" key={d.key}>
-                                <legend className="mb-2 font-semibold">
-                                    {t(d.code === 'IDENTITY' ? 'identity' : 'poa')}
-                                </legend>
+                                <legend className="mb-2 font-semibold">{t('identity')}</legend>
                                 <label className="flex flex-col gap-2">
                                     {t('documentType')}
                                     <select
                                         className="min-h-11 rounded-sm border border-border-default p-3"
+                                        data-testid="kyc-documents-type"
                                         required
                                         value={choice?.type ?? ''}
                                         onChange={(e) => update(d.key, { type: e.target.value })}
@@ -167,6 +175,7 @@ export function KycDocumentSelectionModal({
                                     {t('issuingCountry')}
                                     <select
                                         className="min-h-11 rounded-sm border border-border-default p-3"
+                                        data-testid="kyc-documents-country"
                                         required
                                         value={choice?.issuingCountry ?? ''}
                                         onChange={(e) => update(d.key, { issuingCountry: e.target.value })}
@@ -185,7 +194,7 @@ export function KycDocumentSelectionModal({
                         )
                     })}
                 {error && <p role="alert">{error}</p>}
-                <Button type="submit" disabled={busy || !ready}>
+                <Button type="submit" disabled={busy || !ready} data-testid="kyc-documents-continue">
                     {t(preferencesOnly ? 'preferencesContinue' : 'continue')}
                 </Button>
             </form>

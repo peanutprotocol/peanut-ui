@@ -19,7 +19,7 @@ const plan: KycDocumentPlan = {
     features: { qr: true, local: false, bank: true, card: false },
     routes: [
         {
-            id: 'identity-and-poa',
+            id: 'identity',
             documents: [
                 {
                     key: 'identity',
@@ -28,6 +28,18 @@ const plan: KycDocumentPlan = {
                     countries: ['PT'],
                     requiredBy: ['SUMSUB'],
                 },
+            ],
+        },
+    ],
+}
+// An API from before the proof of address moved after the identity still lists one beside it.
+const olderPlan = {
+    ...plan,
+    routes: [
+        {
+            id: 'identity-and-poa',
+            documents: [
+                ...plan.routes[0].documents,
                 {
                     key: 'address-proof',
                     code: 'PROOF_OF_ADDRESS',
@@ -38,8 +50,9 @@ const plan: KycDocumentPlan = {
             ],
         },
     ],
-}
-it('shows both required documents in Peanut and submits metadata choices only', async () => {
+} as unknown as KycDocumentPlan
+
+it('asks for the identity document only and submits metadata choices only', async () => {
     const onConfirm = jest.fn().mockResolvedValue(undefined)
     renderWithIntl(
         <KycDocumentSelectionModal
@@ -51,16 +64,58 @@ it('shows both required documents in Peanut and submits metadata choices only', 
             onConfirm={onConfirm}
         />
     )
-    expect(screen.getByText('Proof of address')).toBeInTheDocument()
+    expect(screen.getByText('Identity document')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Continue to verification' })).toBeDisabled()
-    fireEvent.change(screen.getAllByLabelText('Document type')[0], { target: { value: 'RESIDENCE_PERMIT' } })
+    fireEvent.change(screen.getByLabelText('Document type'), { target: { value: 'RESIDENCE_PERMIT' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue to verification' })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to verification' }))
+    expect(onConfirm).toHaveBeenCalledWith('identity', [
+        { key: 'identity', type: 'RESIDENCE_PERMIT', issuingCountry: 'PT' },
+    ])
+    expect(screen.queryByRole('textbox')).toBeNull()
+})
+
+it('never offers or sends a proof of address, even from an older API plan', async () => {
+    const onConfirm = jest.fn().mockResolvedValue(undefined)
+    renderWithIntl(
+        <KycDocumentSelectionModal
+            plan={olderPlan}
+            busy={false}
+            error={null}
+            onClose={jest.fn()}
+            onFeatures={jest.fn()}
+            onConfirm={onConfirm}
+        />
+    )
+    expect(screen.queryByText('Proof of address')).toBeNull()
+    expect(screen.getAllByLabelText('Document type')).toHaveLength(1)
+    fireEvent.change(screen.getByLabelText('Document type'), { target: { value: 'PASSPORT' } })
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue to verification' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Continue to verification' }))
     expect(onConfirm).toHaveBeenCalledWith('identity-and-poa', [
-        { key: 'identity', type: 'RESIDENCE_PERMIT', issuingCountry: 'PT' },
-        { key: 'address-proof', type: 'BANK_STATEMENT', issuingCountry: 'PT' },
+        { key: 'identity', type: 'PASSPORT', issuingCountry: 'PT' },
     ])
-    expect(screen.queryByRole('textbox')).toBeNull()
+})
+
+it('marks the controls a browser test drives', () => {
+    renderWithIntl(
+        <KycDocumentSelectionModal
+            plan={{ ...plan, routes: [...plan.routes, { ...plan.routes[0], id: 'second' }] }}
+            busy={false}
+            error={null}
+            onClose={jest.fn()}
+            onFeatures={jest.fn()}
+            onConfirm={jest.fn()}
+        />
+    )
+    for (const feature of ['qr', 'local', 'bank', 'card'])
+        expect(screen.getByTestId(`kyc-documents-feature-${feature}`)).toHaveAttribute('type', 'checkbox')
+    expect(screen.getByTestId('kyc-documents-route').tagName).toBe('SELECT')
+    expect(screen.getByTestId('kyc-documents-type')).toBe(screen.getByLabelText('Document type'))
+    expect(screen.getByTestId('kyc-documents-country')).toBe(screen.getByLabelText('Issuing country'))
+    expect(screen.getByTestId('kyc-documents-continue')).toBe(
+        screen.getByRole('button', { name: 'Continue to verification' })
+    )
 })
 
 it('updates verified users’ feature preferences without asking for documents again', () => {
@@ -221,7 +276,6 @@ describe('document labels', () => {
                     routes: [
                         { id: 'eu', documents: [identity(['ES', 'DE'])] },
                         { id: 'pt', documents: [identity(['PT'])] },
-                        { id: 'poa', documents: [plan.routes[0].documents[1]] },
                     ],
                 }}
                 {...props}
@@ -232,7 +286,6 @@ describe('document labels', () => {
             expect.arrayContaining([
                 'Identity document — Passport (Germany, Spain)',
                 'Identity document — Passport (Portugal)',
-                'Proof of address — Bank statement',
             ])
         )
     })

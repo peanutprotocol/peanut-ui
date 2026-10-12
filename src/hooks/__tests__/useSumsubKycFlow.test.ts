@@ -1563,6 +1563,39 @@ describe('document-first verification', () => {
         expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('attempt-1')
         expect(mockInitiate).not.toHaveBeenCalled()
     })
+    it('never sends a proof of address with the identity document', async () => {
+        const olderPlan = {
+            ...plan,
+            routes: [
+                {
+                    id: 'shared',
+                    documents: [
+                        ...plan.routes[0].documents,
+                        {
+                            key: 'address-proof',
+                            code: 'PROOF_OF_ADDRESS',
+                            types: ['BANK_STATEMENT'],
+                            countries: ['PT'],
+                            requiredBy: ['BRIDGE'],
+                        },
+                    ],
+                },
+            ],
+        } as unknown as typeof plan
+        jest.mocked(getKycDocumentPlan).mockResolvedValue(olderPlan)
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        const identity = { key: 'identity', type: 'PASSPORT', issuingCountry: 'PT' }
+        await act(async () => {
+            await result.current.confirmDocumentPlan('shared', [
+                identity,
+                { key: 'address-proof', type: 'BANK_STATEMENT', issuingCountry: 'PT' },
+            ])
+        })
+        expect(startKycDocumentAttempt).toHaveBeenCalledWith(expect.objectContaining({ documents: [identity] }))
+    })
     it('adds payment features after approval without starting another identity check', async () => {
         const onKycSuccess = jest.fn()
         jest.mocked(getKycDocumentPlan)

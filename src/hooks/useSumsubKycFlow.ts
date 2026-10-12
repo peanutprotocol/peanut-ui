@@ -38,6 +38,7 @@ import {
 } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isDemoMode } from '@/utils/demo'
+import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 
 interface UseSumsubKycFlowOptions {
@@ -511,6 +512,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (supplementAction) await startActionRef.current?.(supplementAction)
                 return
             }
+            const identityKeys = new Set(
+                identityDocuments(documentPlan.routes.find((r) => r.id === routeId)).map((d) => d.key)
+            )
             try {
                 documentRequestKeyRef.current ??= Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
                     byte.toString(16).padStart(2, '0')
@@ -520,7 +524,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         requestKey: documentRequestKeyRef.current,
                         policyVersion: documentPlan.policyVersion,
                         routeId,
-                        documents,
+                        documents: documents.filter((d) => identityKeys.has(d.key)),
                     })
                 )
             } catch {
