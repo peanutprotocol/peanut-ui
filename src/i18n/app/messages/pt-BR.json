@@ -16,6 +16,7 @@
         "somethingWentWrong": "Algo deu errado",
         "genericError": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "copiedToClipboard": "Copiado para a área de transferência",
+        "savedToDocuments": "Salvo em Documentos",
         "maybeLater": "Talvez depois",
         "tryAgain": "Tentar de novo",
         "skipForNow": "Pular por enquanto",
@@ -2535,8 +2536,9 @@
         "customPeriod": {
             "description": "Escolha o primeiro e o último dia."
         },
+        "generate": "Gerar",
+        "share": "Compartilhar",
         "download": "Baixar",
-        "save": "Salvar arquivo",
         "downloaded": "Extrato baixado",
         "downloadedByYear": "Um arquivo por ano",
         "errors": {

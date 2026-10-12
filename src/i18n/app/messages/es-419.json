@@ -16,6 +16,7 @@
         "somethingWentWrong": "Algo salió mal",
         "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
         "copiedToClipboard": "Copiado al portapapeles",
+        "savedToDocuments": "Guardado en Documentos",
         "maybeLater": "Quizás más tarde",
         "tryAgain": "Intentar de nuevo",
         "skipForNow": "Omitir por ahora",
@@ -2535,8 +2536,9 @@
         "customPeriod": {
             "description": "Elige el primer y el último día."
         },
+        "generate": "Generar",
+        "share": "Compartir",
         "download": "Descargar",
-        "save": "Guardar archivo",
         "downloaded": "Estado de cuenta descargado",
         "downloadedByYear": "Un archivo por año",
         "errors": {

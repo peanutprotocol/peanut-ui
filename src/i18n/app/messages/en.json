@@ -16,6 +16,7 @@
         "somethingWentWrong": "Something went wrong",
         "genericError": "Something went wrong. Please try again or contact support.",
         "copiedToClipboard": "Copied to clipboard",
+        "savedToDocuments": "Saved to Documents",
         "maybeLater": "Maybe later",
         "tryAgain": "Try again",
         "skipForNow": "Skip for now",
@@ -2535,8 +2536,9 @@
         "customPeriod": {
             "description": "Pick the first and the last day."
         },
+        "generate": "Generate",
+        "share": "Share",
         "download": "Download",
-        "save": "Save file",
         "downloaded": "Statement downloaded",
         "downloadedByYear": "One file per year",
         "errors": {
