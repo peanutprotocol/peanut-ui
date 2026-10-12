@@ -192,6 +192,8 @@ function shareableParams(overrides = {}) {
     const profile = overrides.profile ?? $('profile').value
     if (source) params.set('source', source)
     if (locale) params.set('locale', locale)
+    const allUpdates = report ? requestedFilter('updates') === 'all' : !$('screen-updates-only').checked
+    if (allUpdates) params.set('updates', 'all')
     if (!report && source === 'synthetic' && profile && profile !== '393x852') params.set('profile', profile)
     if (!report) {
         const branch = overrides.branch ?? $('branch').value
@@ -629,8 +631,14 @@ function renderDateStrip(availableEntries) {
     return selected
 }
 function renderLanding() {
+    $('empty-state').hidden = true
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     $('branch-control').hidden = selectedSource !== 'synthetic'
+    $('screen-updates-control').hidden = selectedSource !== 'synthetic'
+    if (!$('screen-updates-only').dataset.initialized) {
+        $('screen-updates-only').checked = requestedFilter('updates') !== 'all'
+        $('screen-updates-only').dataset.initialized = 'true'
+    }
     const branch = $('branch').dataset.initialized ? $('branch').value : requestedFilter('branch')
     $('branch').value = ['dev', 'main'].includes(branch) ? branch : ''
     $('branch').dataset.initialized = 'true'
@@ -652,7 +660,12 @@ function renderLanding() {
     const selected = populateLocale(profileEntries, current || requestedFilter('locale'))
     const localeEntries = profileEntries.filter((entry) => entry.locale === selected)
     const selectedDate = renderDateStrip(localeEntries)
-    const visible = localeEntries.filter((entry) => !selectedDate || entry.date === selectedDate)
+    const visible = localeEntries.filter((entry) => {
+        if (selectedDate && entry.date !== selectedDate) return false
+        if (selectedSource !== 'synthetic' || !$('screen-updates-only').checked) return true
+        const { prNumber, changedScreens } = versionDetails(entry)
+        return !prNumber || changedScreens !== 0
+    })
     const real = selectedSource === 'nutcracker'
     $('title').textContent = real ? 'Real backend journeys.' : 'Every screen. Every change.'
     $('description').textContent = real
@@ -700,6 +713,15 @@ function renderLanding() {
         group.append(heading, grid)
         $('versions').append(group)
     }
+    if (!visible.length)
+        $('versions').append(
+            el(
+                'p',
+                selectedSource === 'synthetic' && $('screen-updates-only').checked
+                    ? 'No screen updates match these filters. Turn off “Screen updates only” to see all PRs.'
+                    : 'No published runs match these filters.'
+            )
+        )
     syncShareableUrl()
 }
 function renderCoverage() {
@@ -729,6 +751,7 @@ function renderCoverage() {
 }
 async function configureReportLocales(reportPath) {
     $('branch-control').hidden = true
+    $('screen-updates-control').hidden = true
     if (report.type === 'collection') {
         reportLocaleEntries = (activeComparison ? [activeComparison.locale] : report.locales).map((locale) => ({
             locale,
@@ -1030,6 +1053,7 @@ $('source').addEventListener('change', () => {
 })
 $('profile').addEventListener('change', renderLanding)
 $('branch').addEventListener('change', renderLanding)
+$('screen-updates-only').addEventListener('change', renderLanding)
 $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''

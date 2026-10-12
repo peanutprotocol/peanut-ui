@@ -1,0 +1,37 @@
+{
+    "schema_version": 1,
+    "timeout_seconds": 120,
+    "checks": [
+        { "name": "tests", "argv": ["pnpm", "screens:test"], "cwd": "." },
+        {
+            "name": "lint",
+            "argv": [
+                "pnpm",
+                "exec",
+                "eslint",
+                "scripts/screens/viewer.test.mjs",
+                "scripts/screens/viewer-screen-updates.test.mjs"
+            ],
+            "cwd": "."
+        },
+        { "name": "syntax", "argv": ["node", "--check", "public/screen-library/viewer.js"], "cwd": "." },
+        {
+            "name": "format",
+            "argv": [
+                "pnpm",
+                "exec",
+                "prettier",
+                "--check",
+                "public/screen-library/index.html",
+                "public/screen-library/viewer.js",
+                "public/screen-library/viewer.css",
+                "scripts/screens/viewer.test.mjs",
+                "scripts/screens/viewer-screen-updates.test.mjs",
+                "docs/engineering/NFR.md",
+                "docs/plans/2026-10-12-screen-updates-filter.md",
+                ".codex/quality-gates.json"
+            ],
+            "cwd": "."
+        }
+    ]
+}
