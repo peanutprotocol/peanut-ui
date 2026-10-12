@@ -109,9 +109,10 @@ describe('InitiateKycModal — a requirement the approved identity never collect
     beforeEach(() => {
         mockRestrictions = { banking: false, card: false }
         mockIsRegionRestricted = false
+        onVerify.mockClear()
     })
 
-    it('reads the catalog line for the parked rail, not the backend prose', () => {
+    it('says plainly that the bank accounts need a proof of address, not the backend prose', () => {
         renderModal({
             variant: 'provider_rejection',
             reasonCode: 'requirements_missing',
@@ -119,10 +120,12 @@ describe('InitiateKycModal — a requirement the approved identity never collect
         })
         expect(
             screen.getByText(
-                "Our payment partner needs one more document that your verification didn't include. Add it and we'll finish setting this up automatically."
+                "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically."
             )
         ).toBeInTheDocument()
         expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+        screen.getByTestId('kyc-supplement-cta').click()
+        expect(onVerify).toHaveBeenCalled()
     })
 })
 
@@ -130,6 +133,7 @@ describe('InitiateKycModal — a requirement the app cannot collect', () => {
     beforeEach(() => {
         mockRestrictions = { banking: false, card: false }
         mockIsRegionRestricted = false
+        onVerify.mockClear()
     })
 
     it('reads the catalog line and offers support', () => {

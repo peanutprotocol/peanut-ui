@@ -67,6 +67,7 @@ export const REASON_CODE_KEYS = {
     // this entry the copy ships in English to every locale.
     residence_unresolved: 'reasons.residence_unresolved',
     // A rail parked for a requirement the approved identity never collected; `supplement:<provider>` collects it.
+    // The copy names the bank proof of address: the only supplement the API can collect (Bridge's).
     requirements_missing: 'reasons.requirements_missing',
     // Parked for a need the approved identity cannot meet: another document (restart-identity) or one only support can collect.
     identity_document_insufficient: 'reasons.identity_document_insufficient',

@@ -976,7 +976,12 @@ describe('MoneySettings', () => {
             mockIsKycApproved = true
             render()
             fireEvent.click(screen.getByText('EUR'))
-            fireEvent.click(screen.getByText('Upload document'))
+            expect(
+                screen.getByText(
+                    "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically."
+                )
+            ).toBeInTheDocument()
+            fireEvent.click(screen.getByTestId('kyc-supplement-cta'))
 
             expect(mockFixableRejection).toHaveBeenCalledWith(
                 expect.objectContaining({ provider: 'BRIDGE', actionKey: 'supplement:bridge' })

@@ -633,6 +633,9 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                     providerRejectionForRegion.state === 'fixable'
                         ? {
                               text: tRegions('providerRejection.uploadDocument'),
+                              'data-testid': providerRejectionForRegion.actionKey?.startsWith('supplement:')
+                                  ? 'kyc-supplement-cta'
+                                  : undefined,
                               onClick: () => {
                                   handleModalClose()
                                   // The shared router picks start-action or resubmit from the row's action.

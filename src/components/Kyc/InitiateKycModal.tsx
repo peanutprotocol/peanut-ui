@@ -184,7 +184,7 @@ export const InitiateKycModal = ({
         return t('initiate.descriptionDefault')
     }
 
-    const getCta = (): { text: string; onClick: () => void; icon?: IconName } => {
+    const getCta = (): { text: string; onClick: () => void; icon?: IconName; testId?: string } => {
         // No retry and no contact-support: nobody can lift a residence block, so
         // the only useful CTA is the part of the app that still works. Same three
         // rules as KycRegionRestrictedContent, whose CTA this reuses.
@@ -219,6 +219,7 @@ export const InitiateKycModal = ({
                 text: isLoading ? tCommon('loading') : t('initiate.ctaUploadDocument'),
                 onClick: onVerify,
                 icon: 'upload-cloud',
+                testId: reasonCode === 'requirements_missing' ? 'kyc-supplement-cta' : undefined,
             }
         }
         if (isCrossRegion) {
@@ -355,6 +356,7 @@ export const InitiateKycModal = ({
                     onClick={cta.onClick}
                     disabled={isLoading && !isBlocked}
                     className="h-11 w-full"
+                    data-testid={cta.testId}
                     {...(cta.icon ? { icon: cta.icon } : {})}
                 >
                     {cta.text}
@@ -394,6 +396,7 @@ export const InitiateKycModal = ({
                             className="w-full justify-center"
                             disabled={isLoading && !isBlocked}
                             onClick={cta.onClick}
+                            data-testid={cta.testId}
                             {...(cta.icon ? { icon: cta.icon } : {})}
                         >
                             {cta.text}
