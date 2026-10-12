@@ -1,5 +1,6 @@
 'use client'
 
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -37,13 +38,16 @@ export function ConfirmBankClaimView({
 }: ConfirmBankClaimViewProps) {
     const t = useTranslations('claim')
     const tCommon = useTranslations('common')
-    const displayedFullName = useMemo(() => {
-        if (fullName) return fullName
-        if (typeof window !== 'undefined') {
-            return sessionStorage.getItem('receiverFullName') ?? ''
-        }
-        return ''
-    }, [fullName])
+    const displayedFullName = useHydrationSnapshot(
+        () => {
+            if (fullName) return fullName
+            if (typeof window !== 'undefined') {
+                return sessionStorage.getItem('receiverFullName') ?? ''
+            }
+            return ''
+        },
+        () => fullName || ''
+    )
 
     // The same mapping the transfer uses (handleCreateOfframpAndClaim gets this
     // same object): the account type picks the currency, so a UK IBAN shows a

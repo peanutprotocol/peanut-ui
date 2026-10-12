@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * A corridor review that waits on the user is finished on the provider's own
  * page, and the link for it comes from the claim. Identity verification cannot

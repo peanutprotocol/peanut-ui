@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The marketing layout owns the launcher's visibility through this component's
  * lifetime. Unmount is the load-bearing half: leaving marketing for the app is

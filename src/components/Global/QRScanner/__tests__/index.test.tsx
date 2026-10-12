@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * QRScanner clipboard shortcut — platform split (PEANUT-UI-PYW regression pin).
  *

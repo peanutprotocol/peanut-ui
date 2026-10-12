@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 /**
  * shared success view for all payment flows
@@ -117,6 +118,7 @@ const PaymentSuccessView = ({
     providerId,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
+    const origin = useAppOrigin()
     const t = useTranslations('payment')
     const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { user: authUser } = useAuth()
@@ -167,7 +169,7 @@ const PaymentSuccessView = ({
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`)
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`, origin)
             : undefined
 
         let details: Partial<TransactionDetails> = {
@@ -237,6 +239,7 @@ const PaymentSuccessView = ({
         resolvedChainName,
         resolvedTokenSymbol,
         paymentDetails,
+        origin,
         usdAmount,
         t,
     ])

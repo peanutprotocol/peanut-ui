@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, renderHook } from '@testing-library/react'
 import { useStatementDownload } from '../useStatementDownload'
 import { StatementDownloadError, prepareStatement, saveStatement } from '../statementDownload.utils'

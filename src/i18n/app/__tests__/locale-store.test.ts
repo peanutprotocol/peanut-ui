@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Guards the analytics-emit gating in locale-store (TASK-20922): dedupe,
  * register-always vs $set-only-on-identified-change, and the fence that keeps

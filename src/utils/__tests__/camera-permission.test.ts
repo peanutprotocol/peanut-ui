@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { Camera } from '@capacitor/camera'

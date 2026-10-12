@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * legal re-consent outranks the migration download prompt (TASK-22452 item
  * 12). both modals render together under one real ModalsProvider, like the

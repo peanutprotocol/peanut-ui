@@ -1,7 +1,7 @@
 'use client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
-import { usePathname } from 'next/navigation'
+import { useHydrationPathname } from '@/hooks/useHydrationPathname'
 import { queryClient } from '@/config/queryClient'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
@@ -118,7 +118,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     // The query client is needed everywhere (auth, user profile); wagmi is not —
     // keep it off the marketing site. `isMarketingRoute` fails safe to the app tree.
-    const marketing = isMarketingRoute(usePathname())
+    const marketing = isMarketingRoute(useHydrationPathname())
 
     /*
      * The query client is needed everywhere — the landing page's exchange-rate

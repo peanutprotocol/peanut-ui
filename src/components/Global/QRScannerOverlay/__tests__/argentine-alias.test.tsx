@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * A typed Argentine payment alias reaches the scanner through paste as well as
  * through the camera. It must get the merchant-QR guidance before ENS

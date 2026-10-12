@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Confetti has broken twice with nothing covering it: once by being suppressed
  * outright under prefers-reduced-motion, once by wedging permanently after a

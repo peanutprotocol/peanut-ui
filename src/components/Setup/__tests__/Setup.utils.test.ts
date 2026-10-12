@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { isLikelyWebview } from '../Setup.utils'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))

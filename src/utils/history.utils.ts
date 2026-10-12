@@ -288,7 +288,7 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
     return FINAL_STATES.includes(transaction.status)
 }
 
-export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
+export function getReceiptUrl(transaction: TransactionDetails, origin?: string): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
     // Kinds whose receipt URL is the dedicated /receipt page (shareable,
     // OG-augmented). SEND_LINK is the deliberate extra over FIAT_RAIL_KINDS —
@@ -296,7 +296,7 @@ export function getReceiptUrl(transaction: TransactionDetails): string | undefin
     // the txHash branch in useReceiptViewModel, not hasShareableReceipt. All
     // other kinds fall back to the stamped link.
     if (kind && hasReceiptPage(transaction)) {
-        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`)
+        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`, origin)
     }
     if (transaction.extraDataForDrawer?.link) {
         return transaction.extraDataForDrawer.link

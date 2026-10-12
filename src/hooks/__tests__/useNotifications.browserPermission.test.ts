@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, renderHook, waitFor } from '@testing-library/react'
 
 let mockFinishInit: () => void

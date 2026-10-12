@@ -1,8 +1,8 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
-import { isIOSNative } from '@/utils/capacitor'
 
 type Namespace = NonNullable<Parameters<typeof useTranslations>[0]>
 
@@ -24,8 +24,10 @@ type Namespace = NonNullable<Parameters<typeof useTranslations>[0]>
  * only lands on `window` after module eval, and is absent during prerender.
  */
 export function useAppTranslations<N extends Namespace>(namespace: N): ReturnType<typeof useTranslations<N>> {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations(namespace)
-    const ios = isIOSNative()
+    const ios = nativePlatform.isIOSNative
 
     return useMemo(() => {
         if (!ios) return t

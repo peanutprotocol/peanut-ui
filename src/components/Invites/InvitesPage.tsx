@@ -1,4 +1,5 @@
 'use client'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
@@ -33,6 +34,10 @@ import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 import { stashInvite } from '@/utils/invite-stash'
 
 function InvitePageContent() {
+    const browserOrigin = useHydrationSnapshot<string | null>(
+        () => window.location.origin,
+        () => null
+    )
     const t = useTranslations('invites')
     const tSetup = useTranslations('setup')
     const toast = useToast()
@@ -40,7 +45,7 @@ function InvitePageContent() {
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
-    const safeRedirectUri = redirectUri ? getValidRedirectUrl(redirectUri, '') : ''
+    const safeRedirectUri = redirectUri ? getValidRedirectUrl(redirectUri, '', browserOrigin) : ''
     const { user, isFetchingUser, fetchUser } = useAuth()
 
     // Badge campaign identities are opaque and backend-owned. The canonical

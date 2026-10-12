@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // tests for auth-token jwt management (web vs capacitor: guarded/plain/none)
 
 import Cookies from 'js-cookie'

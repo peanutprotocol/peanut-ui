@@ -1,5 +1,6 @@
 'use client'
 
+import { useHydrationSnapshot, useNativePlatform } from '@/utils/native-platform'
 import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
@@ -11,7 +12,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import Carousel from '@/components/Global/Carousel'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
-import { isAndroidNativeBridge, isNativeBridge } from '@/utils/capacitor'
+
 import { canOpenAppSettings, openAppSettings } from '@/utils/native-settings'
 import {
     ANDROID_CHROME_1,
@@ -86,19 +87,26 @@ interface CameraPermissionDrawerProps {
 }
 
 export default function CameraPermissionDrawer({ visible, onRetry, onClose }: CameraPermissionDrawerProps) {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const { deviceType } = useDeviceType()
     const { browserType } = useGetBrowserType()
 
-    const isNative = isNativeBridge()
-    const canDeepLinkToSettings = isNative && canOpenAppSettings()
+    const isNative = nativePlatform.isNativeBridge
+    const settingsAvailable = useHydrationSnapshot(canOpenAppSettings, () => false)
+    const canDeepLinkToSettings = isNative && settingsAvailable
 
     const key = isNative ? null : getInstructionKey(deviceType, browserType)
     const steps = key ? INSTRUCTIONS[key] : null
     // the bridge names the platform outright, so native copy does not ride on
     // the user-agent sniff the browser instructions have to fall back to
-    const nativeStepKeys = isNative ? (isAndroidNativeBridge() ? NATIVE_STEPS.android : NATIVE_STEPS.ios) : null
+    const nativeStepKeys = isNative
+        ? nativePlatform.isAndroidNativeBridge
+            ? NATIVE_STEPS.android
+            : NATIVE_STEPS.ios
+        : null
 
     const onRetryRef = useRef(onRetry)
     onRetryRef.current = onRetry

@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -15,9 +16,14 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
 const EarlyUserDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void }) => {
+    const origin = useAppOrigin()
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
-    const inviteLink = generateInviteCodeLink(user?.user.username ?? '', REFERRAL_SOURCES.EARLY_USER_DRAWER).inviteLink
+    const inviteLink = generateInviteCodeLink(
+        user?.user.username ?? '',
+        REFERRAL_SOURCES.EARLY_USER_DRAWER,
+        origin
+    ).inviteLink
     const overlayOwner = useRef(Symbol('early-user'))
     const otherOverlayOpen = useOtherOpenOverlays(overlayOwner.current)
     const modals = useModalsContextOptional()

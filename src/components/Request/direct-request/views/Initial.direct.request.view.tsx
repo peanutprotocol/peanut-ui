@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 import { ChargeFulfillmentNotice } from './ChargeFulfillmentNotice'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -37,6 +38,7 @@ interface DirectRequestInitialViewProps {
 }
 
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
+    const native = useNativePlatform()
     const t = useTranslations('request')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -280,7 +282,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             <Button variant="primary" className="w-full" onClick={onJoin}>
                                 {handoffActive ? tMigration('downloadPeanut') : t('validation.createWallet')}
                             </Button>
-                            <Button variant="secondary" className="w-full" href={profileUrl(username)}>
+                            <Button
+                                variant="secondary"
+                                className="w-full"
+                                href={profileUrl(username, native.isCapacitor)}
+                            >
                                 {t('blocked.viewProfile')}
                             </Button>
                         </div>
@@ -326,7 +332,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                                         variant="primary"
                                         className="w-full"
                                         icon="arrow-up-right"
-                                        href={sendUrl(username)}
+                                        href={sendUrl(username, native.isCapacitor)}
                                     >
                                         {t('blocked.sendCta', { username })}
                                     </Button>

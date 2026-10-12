@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 import { useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
@@ -18,6 +19,8 @@ export function useGuestStoreHandoff({
     trackImpressionWhenGuest = false,
     surface = MIGRATION_SURFACES.GUEST_FLOW,
 }: { trackImpressionWhenGuest?: boolean; surface?: MigrationSurface } = {}) {
+    const nativePlatform = useNativePlatform()
+
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     // null closes the modal; an open modal without a handoff encodes bare /app.
@@ -55,7 +58,7 @@ export function useGuestStoreHandoff({
     // Whether the next interceptGuestCta call will handle the click. Call sites label
     // the button with it — "Download Peanut" must not be the copy on a button that
     // still opens web signup because the flag is off or the app is native.
-    const handoffActive = migrationOn && !isCapacitor()
+    const handoffActive = migrationOn && !nativePlatform.isCapacitor
 
     return { interceptGuestCta, storeHandoffModal, handoffActive }
 }

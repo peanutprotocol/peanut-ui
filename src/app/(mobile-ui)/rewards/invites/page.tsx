@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
@@ -24,11 +25,13 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import { isIOSNative } from '@/utils/capacitor'
+
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
 
 const InvitesPage = () => {
+    const nativePlatform = useNativePlatform()
+
     const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/rewards')
@@ -125,7 +128,7 @@ const InvitesPage = () => {
                             <span className="text-heading-m text-foreground-primary">
                                 ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
                             </span>
-                            {isIOSNative() && (
+                            {nativePlatform.isIOSNative && (
                                 <span className="text-body-s text-foreground-secondary">{t('lifetimeCaption')}</span>
                             )}
                             <span className="flex items-center gap-1 text-body-s text-foreground-secondary">

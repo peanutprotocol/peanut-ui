@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import * as Sentry from '@sentry/nextjs'
 import { beginClipboardCopy, copyTextToClipboard } from '../clipboard.utils'
 

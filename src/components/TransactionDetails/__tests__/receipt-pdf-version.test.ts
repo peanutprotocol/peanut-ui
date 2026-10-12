@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { receiptPdfVersion } from '../receipt-pdf-link.utils'
 import type { TransactionDetails } from '../transactionTransformer'
 

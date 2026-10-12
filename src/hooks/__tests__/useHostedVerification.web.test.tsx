@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Web launch leg: the tab is reserved inside the click and navigated once the
  * link lands. A tab Safari hands back already cross-origin cannot be detached,

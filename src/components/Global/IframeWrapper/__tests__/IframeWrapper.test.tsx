@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * IframeWrapper message routing — the wrapper reacts ONLY to postMessages
  * from ITS OWN iframe (source identity), never to a sibling's. The previous

@@ -19,6 +19,7 @@ import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useSplashGate } from '@/hooks/useSplashGate'
+import { useHydrationPathname } from '@/hooks/useHydrationPathname'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
@@ -88,7 +89,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // globals that depend on it are not mounted there either. `isMarketingRoute`
     // fails safe: an unrecognised path gets the full app tree.
     const pathname = usePathname()
-    const marketing = isMarketingRoute(pathname)
+    const marketing = isMarketingRoute(useHydrationPathname())
 
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 

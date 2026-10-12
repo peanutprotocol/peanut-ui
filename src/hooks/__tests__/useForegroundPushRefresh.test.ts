@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // A direct authenticated web load of /card or /history mounts the BottomNav
 // badge without ever mounting useNotifications, so this hook is the only
 // thing standing between a foreground push and a stale badge there. Pin that

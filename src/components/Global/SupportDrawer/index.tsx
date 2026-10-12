@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -30,6 +31,8 @@ const DISMISS_THRESHOLD = 100
 const TOP_RESERVE = 24
 
 const SupportDrawer = () => {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
@@ -443,7 +446,7 @@ const SupportDrawer = () => {
         return () => window.removeEventListener('keydown', handleEscape)
     }, [isSupportModalOpen, setIsSupportModalOpen])
 
-    if (isCapacitor()) return null
+    if (nativePlatform.isCapacitor) return null
 
     return (
         <>
@@ -525,7 +528,7 @@ const SupportDrawer = () => {
                                 </Button>
                             </div>
                         )}
-                        {!isCapacitor() && hasBeenOpened && !isAwaitingToken && (
+                        {!nativePlatform.isCapacitor && hasBeenOpened && !isAwaitingToken && (
                             <iframe
                                 // token/locale changes need a full session re-bind, so they
                                 // remount the proxy; everything else updates live over the

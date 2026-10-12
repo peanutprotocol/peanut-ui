@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Log-level contract for OTA update-check failures: transient failures stay at
  * info (invisible to Sentry's captureConsoleIntegration), known-fatal patterns

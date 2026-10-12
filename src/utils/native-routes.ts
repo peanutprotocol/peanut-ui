@@ -13,20 +13,20 @@ import { sanitizeRedirectURL } from './cookie-url.utils'
 // real peanut.me notification link.
 const APP_HOSTS = /^(.+\.)?peanut\.me$/
 
-export function profileUrl(username: string): string {
-    return isCapacitor() ? `/profile/view?username=${encodeURIComponent(username)}` : `/${username}`
+export function profileUrl(username: string, native = isCapacitor()): string {
+    return native ? `/profile/view?username=${encodeURIComponent(username)}` : `/${username}`
 }
 
-export function sendUrl(username: string): string {
-    return isCapacitor() ? `/send?recipient=${encodeURIComponent(username)}` : `/send/${username}`
+export function sendUrl(username: string, native = isCapacitor()): string {
+    return native ? `/send?recipient=${encodeURIComponent(username)}` : `/send/${username}`
 }
 
 // Pay/send to an arbitrary recipient PATH — covers usernames AND addresses/ENS,
 // optionally with chain + amount + token (e.g. `0xabc@1/100usdc`, `vitalik.eth`).
 // Web uses the [...recipient] catch-all; native (no dynamic routes) funnels it
 // into /send?recipient=, which SendRouterView dispatches by recipient type.
-export function recipientPayUrl(path: string): string {
-    return isCapacitor() ? `/send?recipient=${encodeURIComponent(path)}` : `/${path}`
+export function recipientPayUrl(path: string, native = isCapacitor()): string {
+    return native ? `/send?recipient=${encodeURIComponent(path)}` : `/${path}`
 }
 
 export function requestUrl(username: string): string {
@@ -52,12 +52,12 @@ export function requestPotUrl(id: string): string {
     return `/pay-request?id=${encodeURIComponent(id)}`
 }
 
-export function addMoneyCountryUrl(countryPath: string): string {
-    return isCapacitor() ? `/add-money?country=${encodeURIComponent(countryPath)}` : `/add-money/${countryPath}`
+export function addMoneyCountryUrl(countryPath: string, native = isCapacitor()): string {
+    return native ? `/add-money?country=${encodeURIComponent(countryPath)}` : `/add-money/${countryPath}`
 }
 
-export function withdrawCountryUrl(countryPath: string, queryParams?: string): string {
-    if (isCapacitor()) {
+export function withdrawCountryUrl(countryPath: string, queryParams?: string, native = isCapacitor()): string {
+    if (native) {
         const qs = queryParams ? `&${queryParams.replace('?', '')}` : ''
         return `/withdraw?country=${encodeURIComponent(countryPath)}${qs}`
     }
@@ -438,8 +438,8 @@ function appendParams(base: string, params: string): string {
  * and /withdraw/be/bank → /withdraw?country=be&view=bank
  * on web, returns the path unchanged.
  */
-export function rewriteMethodPath(path: string, extraParams?: string): string {
-    if (!isCapacitor()) return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
+export function rewriteMethodPath(path: string, extraParams?: string, native = isCapacitor()): string {
+    if (!native) return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
 
     // parse paths like /add-money/{country}/bank or /withdraw/{country}/bank
     const addMoneyMatch = path.match(/^\/add-money\/([^/?]+)(?:\/([^/?]+))?/)
