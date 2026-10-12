@@ -250,7 +250,7 @@ export interface ZonePick {
     id: AskId
     /** `status` renders the pending state of an in-progress ask, not a CTA */
     mode: 'ask' | 'status'
-    /** a more critical ask overlays the to-do list: the list stays underneath, collapsed */
+    /** the to-do list this more critical ask replaced for now; it returns once the ask is dealt with */
     underlay?: AskId
 }
 

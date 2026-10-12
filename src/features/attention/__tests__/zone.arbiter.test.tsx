@@ -46,10 +46,6 @@ interface StubProps {
 
 let mockZoneSurfaces: Partial<Record<string, React.ComponentType<StubProps>>> = {}
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
-jest.mock('../surfaces/zone/TodoSummary', () => ({
-    __esModule: true,
-    default: () => <div data-testid="todo-summary" />,
-}))
 jest.mock('../zoneSurfaces', () => ({
     get ZONE_SURFACES() {
         return mockZoneSurfaces
