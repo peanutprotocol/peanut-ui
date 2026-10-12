@@ -22,7 +22,7 @@ function guardOf(file) {
     return workflow.match(/if \[ "\$GITHUB_REF_NAME"[^\n]+; then\n[\s\S]*?\n\s+fi/)[0]
 }
 
-function run(guard, branch, event = 'push', runAttempt = '1') {
+function run(guard, branch, event = 'push', runAttempt = '1', inputSha = '') {
     return spawnSync('bash', ['-eu', '-c', guard], {
         env: {
             ...process.env,
@@ -31,6 +31,7 @@ function run(guard, branch, event = 'push', runAttempt = '1') {
             GITHUB_RUN_ATTEMPT: runAttempt,
             GITHUB_SHA: 'a'.repeat(40),
             OTA_SOURCE_SHA: 'a'.repeat(40),
+            INPUT_SHA: inputSha,
         },
         encoding: 'utf8',
     })
@@ -205,7 +206,10 @@ function runPromotion({
                 command git "$@"
             fi
         }
-        node() { printf '%s\\n' "$*" >> "$NODE_CALLS_FILE"; }
+        node() {
+            printf '%s\\n' "$*" >> "$NODE_CALLS_FILE"
+            case "$*" in *current-version*) printf 'previous-%s\\n' "$PLATFORM";; esac
+        }
         ${promotionShell()}
     `
     const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
@@ -252,6 +256,17 @@ describe('release-ota.yml publishes main source', () => {
         expect(run(guard, 'main', 'push', '2').status).toBe(1)
     })
 
+    // A failed OTA used to need a new main push to retry (Oct 9-11 2026). The
+    // retry publishes the main tip only, and the operator must name it.
+    it('accepts a dispatch on main only when the sha input names the checked-out main tip', () => {
+        expect(run(guard, 'main', 'workflow_dispatch', '1', 'a'.repeat(40)).status).toBe(0)
+        expect(run(guard, 'main', 'workflow_dispatch', '2', 'a'.repeat(40)).status).toBe(1)
+        const wrong = run(guard, 'main', 'workflow_dispatch', '1', 'b'.repeat(40))
+        expect(wrong.status).toBe(1)
+        expect(wrong.stderr).toContain('is not the main tip')
+        expect(run(guard, 'dev', 'workflow_dispatch', '1', 'a'.repeat(40)).status).toBe(1)
+    })
+
     it.each([
         ['main', 'workflow_dispatch'],
         ['main', 'workflow_run'],
@@ -268,9 +283,10 @@ describe('release-ota.yml publishes main source', () => {
     it('runs on every main push using that exact main commit for tooling and app source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
-        expect(workflow).not.toContain('workflow_dispatch:')
+        expect(workflow).toMatch(/workflow_dispatch:\n\s+inputs:\n\s+sha:/)
+        expect(workflow).toContain('required: true')
         expect(workflow.match(/github.run_attempt == 1/g)).toHaveLength(3)
-        expect(workflow.match(/ref: \$\{\{ github.sha \}\}/g)).toHaveLength(3)
+        expect(workflow.match(/ref: \$\{\{ github.sha \}\}/g)).toHaveLength(4)
         expect(workflow).toContain('source_sha: ${{ steps.source.outputs.sha }}')
         expect(workflow).toContain('ref: ${{ needs.resolve.outputs.source_sha }}')
         expect(workflow).toContain('path: app')
@@ -344,6 +360,22 @@ describe('release-ota.yml publishes main source', () => {
         expect(result.calls.filter((call) => call.includes('verify-production'))).toHaveLength(1)
     })
 
+    // Both channels must serve one release: the first platform goes back when
+    // the second cannot follow.
+    it('returns the first platform channel to its previous bundle when the second promotion stops', () => {
+        const result = runPromotion({ firstMainSha: 'a'.repeat(40), staleAfterFirst: true })
+        const restores = result.calls.filter((call) => call.includes('restore-production'))
+        expect(restores).toHaveLength(1)
+        expect(result.calls.indexOf(restores[0])).toBeGreaterThan(
+            result.calls.findIndex((call) => call.includes('promote-production'))
+        )
+        expect(result.stderr).toContain('returning the ios channel to previous-ios')
+
+        const clean = runPromotion({ firstMainSha: 'a'.repeat(40) })
+        expect(clean.status).toBe(0)
+        expect(clean.calls.filter((call) => call.includes('restore-production'))).toHaveLength(0)
+    })
+
     it('cuts over each legacy platform and resumes a partially completed cutover', () => {
         const first = runPromotion({ firstMainSha: 'a'.repeat(40), migration: true })
         expect(first.status).toBe(0)
@@ -360,7 +392,14 @@ function runNative(
     guard,
     branch,
     event,
-    { mainTip = 'a'.repeat(40), otaSha = 'a'.repeat(40), runAttempt = '1', otaRunAttempt = '1', otaEvent = 'push' } = {}
+    {
+        mainTip = 'a'.repeat(40),
+        otaSha = 'a'.repeat(40),
+        runAttempt = '1',
+        otaRunAttempt = '1',
+        otaEvent = 'push',
+        inputSha = '',
+    } = {}
 ) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-guard-'))
     const output = path.join(dir, 'output')
@@ -385,6 +424,7 @@ function runNative(
             OTA_SOURCE_SHA: otaSha,
             OTA_RUN_ATTEMPT: otaRunAttempt,
             OTA_TRIGGER_EVENT: otaEvent,
+            INPUT_SHA: inputSha,
             MAIN_TIP: mainTip,
         },
         encoding: 'utf8',
@@ -441,12 +481,25 @@ describe('native release source branch', () => {
         expect(result.outputs).toBe('')
     })
 
+    it('accepts a dispatched OTA and a guarded dispatch of the current main tip', () => {
+        expect(runNative(guard, 'main', 'workflow_run', { otaEvent: 'workflow_dispatch' }).status).toBe(0)
+        expect(runNative(guard, 'main', 'workflow_dispatch', { inputSha: 'a'.repeat(40) }).status).toBe(0)
+    })
+
     it.each([
-        ['manual main dispatch', 'main', 'workflow_dispatch', {}],
-        ['dev dispatch', 'dev', 'workflow_dispatch', {}],
+        ['dev dispatch', 'dev', 'workflow_dispatch', { inputSha: 'a'.repeat(40) }],
         ['rerun of native workflow', 'main', 'workflow_run', { runAttempt: '2' }],
         ['rerun of OTA workflow', 'main', 'workflow_run', { otaRunAttempt: '2' }],
-        ['manually dispatched OTA', 'main', 'workflow_run', { otaEvent: 'workflow_dispatch' }],
+        ['OTA from another event', 'main', 'workflow_run', { otaEvent: 'schedule' }],
+        ['dispatch without the sha input', 'main', 'workflow_dispatch', {}],
+        ['dispatch naming another sha', 'main', 'workflow_dispatch', { inputSha: 'b'.repeat(40) }],
+        [
+            'dispatch while main moved',
+            'main',
+            'workflow_dispatch',
+            { inputSha: 'a'.repeat(40), mainTip: 'b'.repeat(40) },
+        ],
+        ['rerun of a dispatch', 'main', 'workflow_dispatch', { inputSha: 'a'.repeat(40), runAttempt: '2' }],
     ])('refuses %s', (_case, branch, event, options) => {
         expect(runNative(guard, branch, event, options).status).toBe(1)
     })
@@ -464,10 +517,10 @@ describe('native release source branch', () => {
         expect(result.stderr).toContain('::error::')
     })
 
-    it('has no direct manual or tag-push path into any native build', () => {
+    it('has one guarded manual retry and no tag-push path into any native build', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
-        expect(workflow).not.toContain('workflow_dispatch:')
-        expect(workflow).toContain('github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1')
+        expect(workflow).toMatch(/workflow_dispatch:\n\s+inputs:\n\s+sha:/)
+        expect(workflow).toContain('github.run_attempt == 1')
         expect(workflow).toContain('track: internal')
         expect(workflow.match(/prerelease: false/g)).toHaveLength(2)
         for (const platform of ['ios', 'android']) {
@@ -477,8 +530,10 @@ describe('native release source branch', () => {
             expect(triggers).not.toContain('workflow_dispatch:')
             expect(triggers).not.toContain('push:')
             expect(callee).toContain("github.workflow == 'App Release Android & iOS'")
-            expect(callee).toContain("github.event_name == 'workflow_run'")
-            expect(callee).toContain('github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1')
+            expect(callee).toContain("github.ref == 'refs/heads/main' && github.run_attempt == 1")
+            expect(callee).toContain(
+                "github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1"
+            )
         }
     })
 
@@ -545,5 +600,113 @@ describe('android-release.yml release branches', () => {
         const result = run(guard, branch)
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('::error::')
+    })
+})
+
+function runNativePromotion({ iosNeedsOta = 'true', androidNeedsOta = 'true', failOn = '' } = {}) {
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-promote-'))
+    const calls = path.join(dir, 'calls')
+    const script = `
+        node() {
+            printf 'node %s %s %s\\n' "$PLATFORM" "$2" "\${PREVIOUS_VERSION:-}" >> "$CALLS_FILE"
+            if [ "$2" = restore-production ]; then return 0; fi
+            printf 'old-%s\\n' "$PLATFORM"
+        }
+        bash() {
+            printf 'publish %s %s\\n' "$PLATFORM" "$PUBLISH_STAGE" >> "$CALLS_FILE"
+            [ "$PLATFORM" != "$FAIL_ON" ]
+        }
+        source scripts/promote-native-ota.sh
+    `
+    const result = spawnSync('/bin/bash', ['-c', script], {
+        cwd: path.join(__dirname, '..', '..'),
+        encoding: 'utf8',
+        env: {
+            ...process.env,
+            VERSION: '1.11.0',
+            IOS_NEEDS_OTA: iosNeedsOta,
+            ANDROID_NEEDS_OTA: androidNeedsOta,
+            FAIL_ON: failOn,
+            CALLS_FILE: calls,
+        },
+    })
+    const lines = fs.existsSync(calls) ? fs.readFileSync(calls, 'utf8').trim().split('\n').filter(Boolean) : []
+    fs.rmSync(dir, { recursive: true, force: true })
+    return { status: result.status, calls: lines, stderr: result.stderr }
+}
+
+/*
+ * Oct 7 and Oct 9 2026: each platform job promoted its own Capgo channel before
+ * the other platform finished. One failed, no tag was written, and every later
+ * OTA stopped on a channel ahead of the newest tag.
+ */
+describe('store builds never half-release', () => {
+    const native = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+
+    it.each(['ios', 'android'])('the %s job uploads to the candidate channel and promotes nothing', (platform) => {
+        const callee = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
+        expect(callee).toContain('PUBLISH_STAGE: upload')
+        expect(callee).not.toContain('PUBLISH_STAGE: promote')
+        expect(callee).not.toContain('promote-production')
+        expect(callee).toContain('needs_ota:')
+    })
+
+    it('promotes both channels in one job after both platforms, and tags only after it', () => {
+        expect(native).toContain(
+            'needs: [resolve, ios, android]\n        if: ${{ github.run_attempt == 1 }}\n        runs-on: ubuntu-latest\n        environment: Production'
+        )
+        expect(native).toContain('run: bash scripts/promote-native-ota.sh')
+        expect(native).toContain('IOS_NEEDS_OTA: ${{ needs.ios.outputs.needs_ota }}')
+        expect(native).toContain('ANDROID_NEEDS_OTA: ${{ needs.android.outputs.needs_ota }}')
+        expect(native).toContain('needs: [resolve, ios, android, publish]')
+        expect(native.indexOf('    publish:')).toBeLessThan(native.indexOf('    tag:'))
+    })
+
+    it('numbers the store build past every version Capgo already holds', () => {
+        expect(native).toContain('RESERVED="$(node scripts/capgo-release-guard.mjs reserved-release)"')
+        expect(native).toContain('node scripts/release-version.mjs native --reserved "$RESERVED"')
+    })
+
+    it('promotes each platform that needs the bundle, in order', () => {
+        const result = runNativePromotion()
+        expect(result.status).toBe(0)
+        expect(result.calls.filter((call) => call.startsWith('publish'))).toEqual([
+            'publish ios promote',
+            'publish android promote',
+        ])
+        expect(result.calls.some((call) => call.includes('restore-production'))).toBe(false)
+    })
+
+    it('returns the first channel to its previous bundle when the second promotion fails', () => {
+        const result = runNativePromotion({ failOn: 'android' })
+        expect(result.status).toBe(1)
+        expect(result.calls.filter((call) => call.includes('restore-production'))).toEqual([
+            'node ios restore-production old-ios',
+            'node android restore-production old-android',
+        ])
+    })
+
+    it('skips platforms whose legacy bridge keeps the old channel, and does nothing when none need it', () => {
+        const iosOnly = runNativePromotion({ androidNeedsOta: 'false' })
+        expect(iosOnly.status).toBe(0)
+        expect(iosOnly.calls.filter((call) => call.startsWith('publish'))).toEqual(['publish ios promote'])
+        const none = runNativePromotion({ iosNeedsOta: 'false', androidNeedsOta: 'false' })
+        expect(none.status).toBe(0)
+        expect(none.calls).toEqual([])
+    })
+
+    it('alerts on any failed job, and the OTA workflow skips the planned native handoff', () => {
+        const ota = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+        expect(native).toContain("if: ${{ always() && contains(needs.*.result, 'failure') }}")
+        expect(native).toContain('needs: [resolve, ios, android, publish, tag]')
+        expect(ota).toContain(
+            "if: ${{ always() && contains(needs.*.result, 'failure') && needs.deploy.outputs.native_incompatible != 'true' }}"
+        )
+        for (const workflow of [native, ota]) {
+            expect(workflow).toContain(
+                'DISCORD_WEBHOOK: ${{ secrets.RELEASE_ALERT_DISCORD_WEBHOOK || secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}'
+            )
+            expect(workflow).toContain('bash scripts/post-release-alert.sh')
+        }
     })
 })
