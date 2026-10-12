@@ -191,6 +191,17 @@ describe('apiFetch', () => {
         })
     })
 
+    describe('idempotent passthrough', () => {
+        it('forwards the idempotent flag to fetchWithSentry', async () => {
+            await apiFetch('/update-user', { method: 'POST', body: '{}', idempotent: true })
+
+            expect(mockFetchWithSentry).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({ method: 'POST', idempotent: true })
+            )
+        })
+    })
+
     describe('performance telemetry', () => {
         it('captures a sampled route template with server duration', async () => {
             jest.spyOn(Math, 'random').mockReturnValueOnce(0.01)
