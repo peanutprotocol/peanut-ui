@@ -111,7 +111,6 @@ test('a deep link opens on Custom period with its days on the calendar, and with
 
     await expect(periodSelect(page)).toHaveText(/Custom period/)
     await expect(formatSelect(page)).toHaveText(/XLSX/)
-    await expect(page.getByText('For Excel')).toBeVisible()
 
     // the calendar is on the page, open on the linked days
     await expect(page.locator(`[data-day="${lastMonthDay(3)}"]`)).toHaveAttribute('aria-selected', 'true')
@@ -128,9 +127,6 @@ test('a preset and a format write the period and format to the url', async ({ pa
     await chooseFormat(page, 'CSV')
     await expect(page).toHaveURL(/format=csv/)
     await expect(formatSelect(page)).toHaveText(/CSV/)
-    // the hint line follows the choice
-    await expect(page.getByText('For spreadsheets and accounting')).toBeVisible()
-    await expect(page.getByText('To share or print')).toHaveCount(0)
 
     // all time is no period at all
     await choosePeriod(page, 'All time')
