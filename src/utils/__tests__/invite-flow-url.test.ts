@@ -11,7 +11,8 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockIsCapacitor,
 }))
 
-import { getFromCookie, inviteFlowUrl } from '@/utils/general.utils'
+import { generateInviteCodeLink, getFromCookie, inviteFlowUrl } from '@/utils/general.utils'
+import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
 beforeEach(() => {
     mockIsCapacitor = false
@@ -28,5 +29,25 @@ describe('inviteFlowUrl', () => {
         mockIsCapacitor = true
         expect(inviteFlowUrl('alice', '%2Fclaim%2FX')).toBe('/setup?step=signup&redirect_uri=%2Fclaim%2FX')
         expect(getFromCookie('inviteCode')).toBeFalsy()
+    })
+})
+
+describe('generateInviteCodeLink', () => {
+    it('stays a plain invite link when no share source is given', () => {
+        const { inviteLink, inviteCode } = generateInviteCodeLink('Alice')
+        expect(inviteCode).toBe('alice')
+        expect(inviteLink).toBe(`${window.location.origin}/invite?code=alice`)
+    })
+
+    it('keeps the code and tags the share source as utm_content (TASK-23382)', () => {
+        const { inviteLink } = generateInviteCodeLink('Alice', REFERRAL_SOURCES.BADGE_UNLOCK)
+        const url = new URL(inviteLink)
+        expect(url.origin + url.pathname).toBe(`${window.location.origin}/invite`)
+        expect(url.searchParams.get('code')).toBe('alice')
+        expect(url.searchParams.get('utm_source')).toBe('app')
+        expect(url.searchParams.get('utm_medium')).toBe('referral')
+        expect(url.searchParams.get('utm_campaign')).toBe('referral')
+        expect(url.searchParams.get('utm_content')).toBe('badge_unlock')
+        expect(inviteLink.startsWith(`${window.location.origin}/invite?code=alice&`)).toBe(true)
     })
 })
