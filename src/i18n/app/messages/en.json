@@ -3371,6 +3371,7 @@
             "address_of_residence": "We need your residential address to continue.",
             "residence_unresolved": "We still need your home address to finish setting up bank transfers. Add it and we will retry automatically.",
             "requirements_missing": "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically.",
+            "requirements_in_review": "We're checking your proof of address. Bank accounts open once it's approved.",
             "identity_document_insufficient": "The document you verified with can't be used for this account. Verify again with a different ID document.",
             "requirements_uncollectable": "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you.",
             "proof_of_address": "We need a valid proof of address document.",

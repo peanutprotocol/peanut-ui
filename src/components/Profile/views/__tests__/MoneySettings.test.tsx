@@ -181,8 +181,21 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => 
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({
-    KycProcessingModal: ({ visible, pendingSince }: { visible: boolean; pendingSince?: string | null }) =>
-        visible ? <div>processing-modal-open:{pendingSince ?? 'fresh'}</div> : null,
+    KycProcessingModal: ({
+        visible,
+        pendingSince,
+        reason,
+    }: {
+        visible: boolean
+        pendingSince?: string | null
+        reason?: { code: string; userMessage: string }
+    }) =>
+        visible ? (
+            <div>
+                processing-modal-open:{pendingSince ?? 'fresh'}
+                <span data-testid="processing-modal-reason">{reason?.code}</span>
+            </div>
+        ) : null,
 }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
@@ -986,6 +999,30 @@ describe('MoneySettings', () => {
             expect(mockFixableRejection).toHaveBeenCalledWith(
                 expect.objectContaining({ provider: 'BRIDGE', actionKey: 'supplement:bridge' })
             )
+            expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+        })
+
+        it('shows the proof of address review as waiting, with no second action', () => {
+            const message = "We're checking your proof of address. Bank accounts open once it's approved."
+            mockRails = [
+                {
+                    ...parked('requirements_in_review', {
+                        status: 'pending',
+                        blocking: { code: 'requirements_in_review', userMessage: message, selfHealable: false },
+                    }),
+                    status: 'pending',
+                    reason: { code: 'requirements_in_review', userMessage: message },
+                    blockingActions: [],
+                },
+            ]
+            mockIsKycApproved = true
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+            expect(screen.getByTestId('processing-modal-reason')).toHaveTextContent('requirements_in_review')
+            expect(screen.queryByTestId('kyc-supplement-cta')).not.toBeInTheDocument()
+            expect(mockFixableRejection).not.toHaveBeenCalled()
             expect(mockSelfHealResubmit).not.toHaveBeenCalled()
         })
 

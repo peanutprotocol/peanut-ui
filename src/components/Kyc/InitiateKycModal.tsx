@@ -131,6 +131,7 @@ export const InitiateKycModal = ({
     const { banking: isBankRestricted } = useResidenceRestrictions()
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
+    const isSupplementInReview = reasonCode === 'requirements_in_review'
     const isRegionUnavailable = variant === 'region-unavailable'
     // Resolved once so every branch below reads one variant rather than each
     // re-checking the residence — the caller's variant is what the rail gate
@@ -156,6 +157,7 @@ export const InitiateKycModal = ({
         if (error) return tCommon('somethingWentWrong')
         if (isRegionUnavailable) return t('initiate.titleRegionUnavailable')
         if (isBankUnavailable) return t('initiate.titleBankUnavailable')
+        if (isSupplementInReview) return t('processingTitle')
         if (isBlocked) return t('initiate.titleBlocked')
         if (isDocumentMissing) return t('initiate.titleIdentityDocumentMissing')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
@@ -172,6 +174,7 @@ export const InitiateKycModal = ({
         if (error) return t('initiate.descriptionError', { error })
         if (isRegionUnavailable) return t('initiate.descriptionRegionUnavailable')
         if (isBankUnavailable) return t('initiate.descriptionBankUnavailable')
+        if (isSupplementInReview) return resolvedProviderMessage
         if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
         if (isProviderRejection) return resolvedProviderMessage || t('initiate.descriptionProviderRejection')
@@ -191,6 +194,7 @@ export const InitiateKycModal = ({
         if (isBankUnavailable) {
             return { text: regionRestrictedCta.label, onClick: regionRestrictedCta.onClick }
         }
+        if (isSupplementInReview) return { text: tCommon('gotIt'), onClick: onClose }
         if (error || isBlocked) {
             return {
                 text: tCommon('contactSupport'),
@@ -293,7 +297,9 @@ export const InitiateKycModal = ({
     // vendor without it. Every other variant is an error/action state where the
     // list would be noise.
     const showPrepChecklist =
-        (resolvedVariant === 'default' || resolvedVariant === 'cross_region' || isCountryPayments) && !error
+        (resolvedVariant === 'default' || resolvedVariant === 'cross_region' || isCountryPayments) &&
+        !error &&
+        !isSupplementInReview
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
     // the account provider heads the checklist: bridge from the caller, manteca from the tax-id country
@@ -318,7 +324,7 @@ export const InitiateKycModal = ({
     // green, which the app reserves for a finished state.
     const isErrorState =
         !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable || isBankUnavailable
-    const iconName = (isErrorState ? 'alert' : 'badge') as IconName
+    const iconName = (isSupplementInReview ? 'clock' : isErrorState ? 'alert' : 'badge') as IconName
     const footer =
         isProviderRejection ||
         isBlocked ||
@@ -382,7 +388,10 @@ export const InitiateKycModal = ({
                     {/* the head owns the M/12 beneath it; everything after keeps
                         the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon={iconName} color={isErrorState ? 'red' : 'blue'} />
+                        <IconBubble
+                            icon={iconName}
+                            color={isSupplementInReview ? 'yellow' : isErrorState ? 'red' : 'blue'}
+                        />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{getTitle()}</DrawerTitle>
                         </DrawerHeader>

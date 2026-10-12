@@ -682,6 +682,23 @@ describe('useMultiPhaseKycFlow — the proof of address after the identity', () 
             restrictions: [],
         },
     }
+    const reviewing = {
+        capabilities: {
+            ...parked.capabilities,
+            rails: [
+                {
+                    ...parked.capabilities.rails[0],
+                    status: 'pending',
+                    reason: {
+                        code: 'requirements_in_review',
+                        userMessage: "We're checking your proof of address. Bank accounts open once it's approved.",
+                    },
+                    blockingActions: [],
+                },
+            ],
+            nextActions: [],
+        },
+    }
     const mockStartAction = jest.requireMock('@/app/actions/sumsub').startKycAction as jest.Mock
 
     beforeEach(() => {
@@ -707,6 +724,21 @@ describe('useMultiPhaseKycFlow — the proof of address after the identity', () 
         expect(
             deriveCapabilityPhaseSignals({ ...parked.capabilities, rails: [], nextActions: [] } as never).supplementKey
         ).toBeUndefined()
+    })
+
+    it('does not infer a supplement from a parked rail whose proof of address is in review', async () => {
+        expect(deriveCapabilityPhaseSignals(reviewing.capabilities as never).supplementKey).toBeUndefined()
+        mockFetchUser.mockResolvedValue(reviewing)
+        const onKycSuccess = jest.fn()
+        const view = await approve(onKycSuccess)
+        expect(view.result.current.modalPhase).not.toBe('supplement')
+        expect(mockStartAction).not.toHaveBeenCalled()
+
+        mockCapabilities = reviewing.capabilities
+        view.rerender()
+        expect(view.result.current.modalPhase).not.toBe('supplement')
+        expect(mockStartAction).not.toHaveBeenCalled()
+        mockCapabilities = undefined
     })
 
     it('asks for the proof of address right after approval and starts it on the supplement action', async () => {

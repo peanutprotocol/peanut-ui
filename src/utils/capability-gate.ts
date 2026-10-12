@@ -64,7 +64,7 @@ export interface GateAdvisory {
 export type GateState =
     | { kind: 'loading' }
     | { kind: 'ready'; advisory?: GateAdvisory }
-    | { kind: 'pending' }
+    | { kind: 'pending'; userMessage?: string | null; reason?: CapabilityReason }
     | { kind: 'waiting-on-provider'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null; reason?: CapabilityReason }
     /**
@@ -459,10 +459,14 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     }
 
     // 7. pending — BE is provisioning, no user action needed
-    const hasPending = candidates.some(
+    const pending = candidates.find(
         ({ verdict }) => verdict.status === 'pending' && verdict.nextAction?.kind !== 'wait'
     )
-    if (hasPending) return { kind: 'pending' }
+    if (pending) {
+        return pending.rail.reason?.code === 'requirements_in_review'
+            ? { kind: 'pending', userMessage: verdictMessage(pending), reason: pending.rail.reason }
+            : { kind: 'pending' }
+    }
 
     // 8. action-less fixable (the document-punt tier): completable via the
     // resubmit endpoint but with nothing concrete to click — ranked below

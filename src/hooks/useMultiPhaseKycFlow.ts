@@ -69,6 +69,7 @@ export function deriveCapabilityPhaseSignals(
         // mirrors old allSettled: empty rails are NOT settled (still provisioning)
         allSettled: rails.some((rail) => (rail.operations?.deposit ?? rail.status) === 'enabled'),
         railCount: rails.length,
+        supplementInReview: allRails.some((rail) => rail.reason?.code === 'requirements_in_review'),
         // A rail parked until a supplement collects what its provider needs (today Bridge's proof of address).
         supplementKey: allRails
             .flatMap((rail) => [
@@ -204,7 +205,7 @@ export const useMultiPhaseKycFlow = ({
     // The old WebSocket-driven instant rail refresh is replaced by that 4s poll
     // (the old hook already had the same 4s poll as a fallback).
     const { capabilities } = useCapabilities()
-    const { allSettled, needsTos, allBlocked, supplementKey } = useMemo(
+    const { allSettled, needsTos, allBlocked, supplementKey, supplementInReview } = useMemo(
         () => deriveCapabilityPhaseSignals(capabilities, requestedIntent, requestedCountry),
         [capabilities, requestedIntent, requestedCountry]
     )
@@ -281,6 +282,7 @@ export const useMultiPhaseKycFlow = ({
             railCount,
             allSettled,
             supplementKey: freshSupplementKey,
+            supplementInReview: freshSupplementInReview,
         } = deriveCapabilityPhaseSignals(
             updatedUser?.capabilities,
             lastIntentRef.current ?? regionIntent,
@@ -299,6 +301,12 @@ export const useMultiPhaseKycFlow = ({
             // Submitted in this flow: it is in review, and the rail stays parked until it is approved.
             if (submittedSupplementsRef.current.has(freshSupplementKey)) completeFlow()
             else askForSupplement(freshSupplementKey)
+            return
+        }
+
+        if (freshSupplementInReview) {
+            clearPreparingTimer()
+            completeFlow()
             return
         }
 
@@ -610,6 +618,11 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         if (verificationSession) return
         if (modalPhase === 'preparing') {
+            if (supplementInReview && !supplementKey) {
+                clearPreparingTimer()
+                completeFlow()
+                return
+            }
             if (supplementKey) {
                 clearPreparingTimer()
                 if (submittedSupplementsRef.current.has(supplementKey)) completeFlow()
@@ -644,6 +657,7 @@ export const useMultiPhaseKycFlow = ({
         allSettled,
         allBlocked,
         supplementKey,
+        supplementInReview,
         completeFlow,
         askForSupplement,
         clearPreparingTimer,

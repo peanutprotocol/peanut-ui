@@ -127,6 +127,28 @@ describe('InitiateKycModal — a requirement the approved identity never collect
         screen.getByTestId('kyc-supplement-cta').click()
         expect(onVerify).toHaveBeenCalled()
     })
+
+    it.each([undefined, 'page'] as const)(
+        'shows a submitted proof of address as review in %s presentation with no collection action',
+        (presentation) => {
+            renderModal({
+                variant: 'provider_rejection',
+                reasonCode: 'requirements_in_review',
+                providerMessage: 'Backend English prose',
+                ...(presentation ? { presentation } : {}),
+            })
+
+            expect(
+                screen.getByText("We're checking your proof of address. Bank accounts open once it's approved.")
+            ).toBeInTheDocument()
+            expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('kyc-supplement-cta')).not.toBeInTheDocument()
+            expect(
+                screen.queryByRole('button', { name: /verify|upload|add proof of address/i })
+            ).not.toBeInTheDocument()
+            expect(onVerify).not.toHaveBeenCalled()
+        }
+    )
 })
 
 describe('InitiateKycModal — a requirement the app cannot collect', () => {

@@ -69,6 +69,7 @@ export const REASON_CODE_KEYS = {
     // A rail parked for a requirement the approved identity never collected; `supplement:<provider>` collects it.
     // The copy names the bank proof of address: the only supplement the API can collect (Bridge's).
     requirements_missing: 'reasons.requirements_missing',
+    requirements_in_review: 'reasons.requirements_in_review',
     // Parked for a need the approved identity cannot meet: another document (restart-identity) or one only support can collect.
     identity_document_insufficient: 'reasons.identity_document_insufficient',
     requirements_uncollectable: 'reasons.requirements_uncollectable',

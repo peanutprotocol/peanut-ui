@@ -156,6 +156,28 @@ describe('what a block does to the gate view', () => {
         expect(depositGateView({ kind: 'pending' }).notice?.action).toBe('none')
     })
 
+    it('keeps a supplement review as a wait even when the corridor is offered for claim', () => {
+        const message = "We're checking your proof of address. Bank accounts open once it's approved."
+        const gate: GateState = {
+            kind: 'pending',
+            userMessage: message,
+            reason: { code: 'requirements_in_review', userMessage: message },
+        }
+        expect(depositGateView(gate).notice).toMatchObject({ action: 'none', message })
+        expect(depositGateView(gate, terms())).toMatchObject({
+            claimable: false,
+            notice: { action: 'none', message },
+        })
+
+        const props = flowProps(undefined, false, gate)
+        render(flow(props))
+        expect(screen.getByText(message)).toBeInTheDocument()
+        expect(screen.queryByTestId('corridor-gate-verify')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('corridor-gate-support')).not.toBeInTheDocument()
+        expect(props.onResolveGate).not.toHaveBeenCalled()
+        expect(props.onContactSupport).not.toHaveBeenCalled()
+    })
+
     it('never lets the terms override a rejection on the rail itself', () => {
         const rejected: GateState = { kind: 'blocked-rejection', userMessage: null } as GateState
         expect(depositGateView(rejected, terms()).notice?.action).toBe('support')

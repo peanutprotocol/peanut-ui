@@ -107,6 +107,7 @@ export interface DepositGateView {
         kind: GateState['kind'] | DepositBlock
         /** the provider's own words, when it gave any */
         message: string | null
+        reasonCode?: string
         /** what the button does, or `none` when the user can only wait */
         action: DepositGateAction
         /** the terms link, on the one kind that has one */
@@ -164,7 +165,8 @@ function blockNotice(blockedBy: DepositBlock): DepositGateView {
  */
 export function depositGateView(gate: GateState, claimable?: ClaimableCorridor): DepositGateView {
     if (gate.kind === 'loading') return { claimable: false }
-    if (gate.kind === 'ready' || (claimable && NO_RAIL_YET.has(gate.kind))) {
+    const supplementInReview = gate.kind === 'pending' && gate.reason?.code === 'requirements_in_review'
+    if (gate.kind === 'ready' || (claimable && NO_RAIL_YET.has(gate.kind) && !supplementInReview)) {
         return claimable?.blockedBy ? blockNotice(claimable.blockedBy) : { claimable: true }
     }
 
@@ -186,7 +188,8 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
         claimable: false,
         notice: {
             kind: gate.kind,
-            message: 'userMessage' in gate ? gate.userMessage : null,
+            message: 'userMessage' in gate ? (gate.userMessage ?? null) : null,
+            ...(supplementInReview ? { reasonCode: gate.reason?.code } : {}),
             action: ACTION_BY_KIND[gate.kind],
             tosUrl: gate.kind === 'accept-tos' ? gate.tosUrl : undefined,
         },

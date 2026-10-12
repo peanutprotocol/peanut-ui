@@ -8,6 +8,7 @@ import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useTranslations } from 'next-intl'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -146,11 +147,12 @@ export function CorridorGateDrawer({
      */
     const topUpLeads = !!onTopUp && notice.action === 'account-limit'
     const bodyKey = notice.action === 'residence-restricted' ? undefined : BODIES[notice.action]
+    const reasonKey = reasonCodeKey(notice.reasonCode)
     const body = residence
         ? notice.ukResidence
             ? tIdentity('reasons.uk_resident_blocked')
             : t('list.residenceRestrictedBody', { currency: rail.currency })
-        : (notice.message ??
+        : ((reasonKey ? tIdentity(reasonKey) : notice.message) ??
           (topUpLeads ? t('gate.limitBodyTopUp') : bodyKey ? t(bodyKey, { currency: rail.currency }) : undefined))
     const title =
         notice.action === 'residence-restricted'

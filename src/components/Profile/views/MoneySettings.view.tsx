@@ -583,6 +583,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 onClose={handleModalClose}
                 pendingSince={clickedRegionRail?.pendingSince}
                 waitingOnProvider={clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
+                reason={clickedRegionRail?.reason}
                 onResume={handleStartKyc}
                 onContactSupport={() => {
                     handleModalClose()

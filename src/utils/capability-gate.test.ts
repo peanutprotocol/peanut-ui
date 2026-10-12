@@ -40,6 +40,26 @@ function state(rails: RailCapability[], nextActions: NextAction[] = [], identity
 describe('deriveGate — waiting-on-provider (kind: wait)', () => {
     const waitAction: NextAction = { key: 'wait:bridge', kind: 'wait', purpose: 'bridge-review' }
 
+    test('a parked supplement in review is pending without an upload or support action', () => {
+        const message = "We're checking your proof of address. Bank accounts open once it's approved."
+        const rail = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            currency: 'EUR',
+            status: 'pending',
+            blockingActions: [],
+            reason: { code: 'requirements_in_review', userMessage: message },
+        })
+
+        const gate = deriveGate(state([rail]), 'deposit', { method: 'SEPA_EU' })
+        expect(gate).toMatchObject({
+            kind: 'pending',
+            userMessage: message,
+            reason: { code: 'requirements_in_review' },
+        })
+    })
+
     test('requires-info rail with only a `wait` action → waiting-on-provider', () => {
         const rail = bankRail({
             id: 'bridge.sepa_eu',

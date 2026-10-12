@@ -3371,6 +3371,7 @@
             "address_of_residence": "Precisamos do seu endereço residencial para continuar.",
             "residence_unresolved": "Ainda precisamos do seu endereço residencial para terminar de configurar as transferências bancárias. Adicione e tentaremos de novo automaticamente.",
             "requirements_missing": "Para abrir suas contas bancárias, nosso parceiro de pagamentos precisa de um comprovante de endereço, como um extrato bancário ou uma conta de consumo recente. Envie e terminaremos de configurá-las automaticamente.",
+            "requirements_in_review": "Estamos analisando seu comprovante de endereço. Suas contas bancárias serão abertas assim que ele for aprovado.",
             "identity_document_insufficient": "O documento que você usou na verificação não pode ser usado para esta conta. Verifique novamente com outro documento de identidade.",
             "requirements_uncollectable": "Nosso parceiro de pagamentos precisa de algo que não conseguimos coletar no app. Fale com o suporte e terminaremos a configuração com você.",
             "proof_of_address": "Precisamos de um comprovante de residência válido.",
