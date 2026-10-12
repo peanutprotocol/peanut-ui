@@ -100,6 +100,8 @@ const allStubs = () => Object.fromEntries(INTERRUPT_ASKS.map((id) => [id, stubFo
 /** Everything quiet: no ask wants a surface unless a test turns it on. */
 const state = (overrides: Record<string, unknown> = {}): JourneyState =>
     ({
+        capNudge: null,
+        maintenance: 'none',
         now: NOW,
         userId: 'user-a',
         userLoaded: true,

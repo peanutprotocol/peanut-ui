@@ -34,6 +34,9 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { isSameRoute } from '@/constants/routes'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { getStoredRedirect } from '@/utils/general.utils'
+import { selectMantecaCapNudge } from '@/utils/capability-gate'
+import { isDemoMode } from '@/utils/demo'
+import { selectMaintenance } from './maintenance'
 import { isCapacitor } from '@/utils/capacitor'
 import type { RainCardOverview } from '@/services/rain'
 import { useJourneyEpoch } from './journeyEpoch'
@@ -95,6 +98,8 @@ export function hasPostSignupRedirect(destination: string | undefined): boolean 
 }
 
 export interface JourneyInputs {
+    capNudge: JourneyState['capNudge']
+    maintenance: JourneyState['maintenance']
     now: number
     userId: string | null
     userLoaded: boolean
@@ -148,6 +153,8 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
                   documents,
               }
     return {
+        capNudge: input.capNudge,
+        maintenance: input.maintenance,
         now: input.now,
         userId: input.userId,
         userLoaded: input.userLoaded,
@@ -300,9 +307,17 @@ export function useJourneyState(): JourneyState {
         [cardInfoLoading, cardInfo, cardInfoError, rails, channelOf]
     )
 
+    const capNudge = useMemo(
+        () => (capabilitiesLoading ? undefined : (selectMantecaCapNudge(rails, nextActions) ?? null)),
+        [capabilitiesLoading, rails, nextActions]
+    )
+    const maintenance = selectMaintenance({ pathname, config: underMaintenanceConfig, demo: isDemoMode() })
+
     return useMemo(
         () =>
             buildJourneyState({
+                capNudge,
+                maintenance,
                 // the epoch stands for the localStorage reads below (stored redirect)
                 now: Date.now() + epoch * 0,
                 userId,
@@ -353,6 +368,8 @@ export function useJourneyState(): JourneyState {
                 serverLedger: user?.attention,
             }),
         [
+            capNudge,
+            maintenance,
             userId,
             user,
             isFetchingUser,

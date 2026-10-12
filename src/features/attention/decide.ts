@@ -138,8 +138,8 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
     const open = session.openInterrupt
     const openStillLive = open !== null && live.some((ask) => ask.id === open)
 
-    if (session.gateUp || session.busy) {
-        return { interrupt: openStillLive ? open : null, zone: null, suspended: true, trace }
+    if (session.gateUp) {
+        return { interrupt: null, zone: null, inline: null, banner: null, suspended: true, trace }
     }
 
     const zoneIdle = !live.some((ask) => ask.tier <= 5 && ask.surfaces.includes('zone'))
@@ -150,13 +150,32 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
             if (ask.id !== interrupt) trace.reasons[ask.id] = 'an interrupt is open'
             continue
         }
+        if (session.busy) {
+            trace.reasons[ask.id] = 'busy'
+            continue
+        }
         const refusal = interruptRefusal(ask, sorted, verdicts, ledger, session, state, zoneIdle)
         if (refusal) trace.reasons[ask.id] = refusal
         else interrupt = ask.id
     }
 
     const zone = pickZone(live, sorted, verdicts, ledger, session, state, interrupt)
-    return { interrupt, zone, suspended: false, trace }
+    let inline: Decision['inline'] = null
+    for (const ask of live) {
+        if (ask.id === interrupt || !ask.surfaces.includes('inline')) continue
+        const slot = session.slots.find((slot) => ask.slots?.includes(slot.id))
+        if (!slot) {
+            trace.reasons[ask.id] = 'no slot on screen'
+            continue
+        }
+        if (ask.policy.slotWhen && !ask.policy.slotWhen(state, slot.context)) {
+            trace.reasons[ask.id] = 'slot condition'
+            continue
+        }
+        if (!inline) inline = { id: ask.id, slot: slot.id }
+    }
+    const banner = live.find((ask) => ask.surfaces.includes('banner'))?.id ?? null
+    return { interrupt, zone, inline, banner, suspended: session.busy, trace }
 }
 
 function pickZone(

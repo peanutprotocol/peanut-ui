@@ -1,6 +1,6 @@
 # Attention manager
 
-**Rule:** never two calls to action at once. At any moment the app shows at most one interrupt (modal or drawer) and at most one card in the Home attention zone, chosen by one function.
+**Rule:** one pick per surface. At any moment the app shows at most one interrupt (modal or drawer), one card in the Home attention zone, one inline notice across mounted page slots, and one banner, chosen by one function.
 
 Design proposal (figures, ranked list, open decisions): the "Attention Manager" page shared on 2026-10-11. Product source for the journey order: Notion, _User Journey: Prioritized activation and retention actions_.
 
@@ -14,7 +14,7 @@ Every self-opening prompt used to decide for itself (`HomeModals`' boolean chain
 | ----------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AttentionAsk`          | `types.ts`              | tier (urgency), rank (order inside the tier), surfaces, `eligible(state)`, policy (budget, snooze, expiry, fatigue)                                                      |
 | `JourneyState`          | `journeyState.ts`       | one plain object built from hooks the app already has (`/users/me`, capabilities, identity, wallet, card, push, consent)                                                 |
-| `decide()`              | `decide.ts`             | pure: `(state, asks, ledger, session) → { interrupt, zone }`; sticky open interrupt, tier budgets, `unknown` holds lower tiers until the 4 s settle deadline, zone fatigue |
+| `decide()`              | `decide.ts`             | pure: `(state, asks, ledger, session) → { interrupt, zone, inline, banner }`; sticky open interrupt, tier budgets, `unknown` holds lower tiers until the 4 s settle deadline, zone fatigue |
 | Ledger                  | `ledger.ts`             | shown / dismissed / snoozed per ask in `UserPreferences.attention`; reads the old per-prompt fields once so upgraded devices are not re-asked                            |
 | Registry                | `registry.ts`           | the asks, in tier then rank order                                                                                                                                       |
 | Provider                | `AttentionProvider.tsx` | mounted in the mobile layout; re-decides on state, ledger and route changes                                                                                             |
@@ -46,3 +46,15 @@ Tiers rank urgency among asks eligible at the same moment. Journey dependencies 
 ## Adding an ask
 
 One file in `asks/` (eligibility, policy, version) registered in `registry.ts`, a surface component taking `AskSurfaceProps` registered in `surfaces.tsx` (a parity test fails otherwise), and a row in `decide.test.ts` for every ask it can collide with. The component never decides whether to show; it renders visible when mounted and answers through the three callbacks.
+
+
+## Surfaces and presentation
+
+- Interrupt: one self-opening overlay. Its registry presentation is modal or drawer; AskShell renders it. Legal consent, post-verification action, card setup, install app, and Home push use modals; balance backup and early user use drawers.
+- Zone: one Home card with its existing bespoke component and fatigue policy.
+- Inline: one notice across the mounted bank-transfer and limits slots. Tier/rank wins, then mounted-slot order; slot context supplies the deadline. No budget, rotation, or settle hold. A picked interrupt cannot also be the inline notice.
+- Banner: the first live banner ask by tier/rank, independent of the other picks. Maintenance keeps the existing feature/global copy and evaluates locally on routes without a provider.
+
+Busy means no new interrupt: an existing interrupt stays eligible, and zone, inline, and banner remain visible behind user-opened overlays. A gate still clears the non-interrupt picks. Inline and banner impressions are booked once per account, app session, ask, and surface. Missing slots and failed slot conditions appear in the decision trace.
+
+Toasts and user-opened in-flow modals stay outside the manager. Zone cards retain their bespoke components.

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { captureMessage } from '@sentry/nextjs'
-import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
+import type { ActionModalButtonProps, ActionModalTertiaryCta } from '@/components/Global/ActionModal'
+import { AskShell } from '@/features/attention/AskShell'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
@@ -47,7 +48,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * dedupe) is keyed by card id, so a later re-issued card always gets its
  * own clean setup pass.
  */
-export default function EnableAutoBalanceBanner({ onActed, onSnoozed }: AskSurfaceProps) {
+export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentation }: AskSurfaceProps) {
     const t = useTranslations('home.fundingSetup')
     const tCommon = useTranslations('common')
     const { overview } = useRainCardOverview()
@@ -151,11 +152,11 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed }: AskSurfa
     const dismissed = dismissedFor !== null && dismissedFor === (card?.id ?? null)
 
     return (
-        <ActionModal
+        <AskShell
+            presentation={presentation}
             visible={shouldShow && !dismissed}
             onClose={() => {}}
-            preventClose
-            hideModalCloseButton
+            dismissible={false}
             concept="card"
             title={t('title')}
             description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}

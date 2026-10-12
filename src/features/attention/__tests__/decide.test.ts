@@ -20,6 +20,8 @@ const onboarding = (step: 'verify' | 'add_money' | 'first_payment' | 'completed'
 })
 
 const baseState: JourneyState = {
+    capNudge: null,
+    maintenance: 'none',
     now: NOW,
     userId: 'user-a',
     userLoaded: true,
@@ -70,6 +72,7 @@ const baseSession: Session = {
     busy: false,
     gateUp: false,
     settleDeadlinePassed: false,
+    slots: [],
 }
 
 const run = (state: Partial<JourneyState> = {}, session: Partial<Session> = {}, ledger: Ledger = {}) =>
@@ -91,7 +94,7 @@ describe('the 7 Oct incident: updated terms and the waitlist announcement', () =
         const d = run(bothEligible)
         expect(d.interrupt).toBe('legal-reconsent')
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
-        expect(d.trace.candidates).toEqual(['legal-reconsent', 'checklist', 'early-user'])
+        expect(d.trace.candidates).toEqual(['legal-reconsent', 'checklist', 'verification-deadline', 'early-user'])
     })
 
     test('3. "Not now" on terms: no second interrupt this session', () => {
@@ -249,11 +252,11 @@ describe('session mechanics', () => {
         expect(d.interrupt).toBeNull()
     })
 
-    test('a user-opened overlay suspends the manager', () => {
+    test('a user-opened overlay stops new interrupts and keeps the zone', () => {
         const d = run(TERMS_NEEDED, { busy: true })
         expect(d.suspended).toBe(true)
         expect(d.interrupt).toBeNull()
-        expect(d.zone).toBeNull()
+        expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
     })
 
     test('terms may interrupt off Home; the balance warning may not', () => {

@@ -9,6 +9,8 @@ import {
 import type { RainCardOverview } from '@/services/rain'
 
 const base: JourneyInputs = {
+    capNudge: null,
+    maintenance: 'none',
     now: 0,
     userId: 'user-a',
     userLoaded: true,

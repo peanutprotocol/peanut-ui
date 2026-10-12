@@ -76,6 +76,8 @@ type ActionModalIconProps =
 export type ActionModalProps = ActionModalBaseProps & ActionModalIconProps
 
 interface ActionModalBaseProps {
+    'data-testid'?: string
+    iconColor?: IconBubbleColor
     visible: boolean
     onClose: () => void
     title: string | React.ReactNode
@@ -111,6 +113,8 @@ interface ActionModalBaseProps {
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({
+    'data-testid': testId,
+    iconColor,
     visible,
     onClose,
     title,
@@ -199,7 +203,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 its buttons instead of pulling them up under the copy.
                 Margins, not a parent gap: a gap collapses when the body is
                 absent, which silently left half these screens unchanged. */}
-            <div className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}>
+            <div
+                data-testid={testId}
+                className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}
+            >
                 <div
                     className={twMerge('flex w-full flex-col items-center gap-4', content && 'mb-3')}
                     data-testid="modal-head"
@@ -208,7 +215,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         <IconBubble
                             size="m"
                             icon={iconContent}
-                            color={bubbleStyle?.color}
+                            color={iconColor ?? bubbleStyle?.color}
                             // custom classes AUGMENT the color, never replace it —
                             // the IconBubble board forbids resizing the bubble
                             className={customIconContainerClassName}

@@ -3,7 +3,7 @@
 import { clearRedirectUrl, getStoredRedirect } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import ActionModal from '../ActionModal'
+import { AskShell } from '@/features/attention/AskShell'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
 import type { AskSurfaceProps } from '@/features/attention/types'
 
@@ -14,7 +14,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
  * `post-verification-action` ask); this reads the redirect once on mount so
  * the modal survives the redirect being cleared mid-flow.
  */
-export default function PostSignupActionManager({ onActed, onDismissed }: AskSurfaceProps) {
+export default function PostSignupActionManager({ onActed, onDismissed, presentation }: AskSurfaceProps) {
     const router = useRouter()
     const [snapshot] = useState(() => {
         const redirect = getStoredRedirect()
@@ -26,7 +26,8 @@ export default function PostSignupActionManager({ onActed, onDismissed }: AskSur
     const { redirect, config } = snapshot
 
     return (
-        <ActionModal
+        <AskShell
+            presentation={presentation}
             visible
             onClose={() => {
                 clearRedirectUrl(redirect)

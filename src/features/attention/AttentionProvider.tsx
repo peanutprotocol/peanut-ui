@@ -25,6 +25,7 @@ import { ledgerActions, noteServerLedger, readLedger, subscribeLedger } from './
 import { bumpJourneyEpoch } from './journeyEpoch'
 import { useJourneyState } from './journeyState'
 import { ASKS } from './registry'
+import { useMountedSlots } from './slotStore'
 import type { AskId, AttentionAsk, Decision, JourneyState, Ledger, Session, Surface } from './types'
 
 export { isAttentionInterruptOpen } from './interruptState'
@@ -46,6 +47,7 @@ interface AttentionContextValue {
     opened: (id: AskId) => void
     /** a zone card for this ask is on screen (AttentionZone reports it; once per session per ask) */
     openedZone: (id: AskId) => void
+    openedSurface: (id: AskId, surface: Exclude<Surface, 'interrupt'>) => void
     /** the surface threw: settle it as dismissed whether or not it had reported itself open */
     crashed: (id: AskId, surface?: Surface) => void
     /** the user did the thing; completion itself is derived from state */
@@ -69,16 +71,17 @@ function useLedger(userId: string | null, server: unknown): Ledger {
 
 export function resetAttentionSessionForTests(): void {
     setSessionInterrupts({ userId: null, ids: [], open: null })
-    zoneShownThisSession = { userId: null, ids: [] }
+    surfacesShownThisSession = { userId: null, keys: [] }
 }
 
 // the zone cards already booked this app load, for which account
-let zoneShownThisSession: { userId: string | null; ids: AskId[] } = { userId: null, ids: [] }
+let surfacesShownThisSession: { userId: string | null; keys: string[] } = { userId: null, keys: [] }
 
 const askOf = (id: AskId) => ASKS.find((ask) => ask.id === id)
 
 function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
     const busy = useAnyOverlayOpen()
+    const slots = useMountedSlots()
     const [settleDeadlinePassed, setSettleDeadlinePassed] = useState(false)
 
     useEffect(() => {
@@ -91,6 +94,7 @@ function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
     const current = getSessionInterrupts()
     return useMemo(
         () => ({
+            slots,
             count: getUserPreferences(state.userId ?? undefined)?.sessionCount ?? 0,
             route: state.route,
             interruptsThisSession: current.userId === state.userId ? current.ids : [],
@@ -101,7 +105,7 @@ function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
             gateUp: false,
             settleDeadlinePassed,
         }),
-        [state.userId, state.route, current, openInterrupt, busy, settleDeadlinePassed]
+        [state.userId, state.route, current, openInterrupt, busy, settleDeadlinePassed, slots]
     )
 }
 
@@ -110,7 +114,7 @@ function useDecisionReport(decision: Decision, state: JourneyState, session: Ses
     const reported = useRef<string | null>(null)
     useEffect(() => {
         if (!state.userId || !state.userLoaded) return
-        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}:${decision.suspended}`
+        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}:${decision.inline?.id ?? null}:${decision.inline?.slot ?? null}:${decision.banner}:${decision.suspended}`
         if (reported.current === key) return
         reported.current = key
         const payload = {
@@ -118,6 +122,9 @@ function useDecisionReport(decision: Decision, state: JourneyState, session: Ses
             interrupt: decision.interrupt,
             zone: decision.zone?.id ?? null,
             zone_mode: decision.zone?.mode ?? null,
+            inline: decision.inline?.id ?? null,
+            inline_slot: decision.inline?.slot ?? null,
+            banner: decision.banner,
             suspended: decision.suspended,
             overlay_open: session.busy,
             candidates: decision.trace.candidates,
@@ -195,9 +202,16 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
     const latestDecision = useRef(decision)
     latestDecision.current = decision
     // the zone card already settled this pick: a second tap in the same tick writes nothing
-    const settledZone = useRef<AskId | null>(null)
-    if (settledZone.current && decision.zone?.id !== settledZone.current) settledZone.current = null
-    if (zoneShownThisSession.userId !== state.userId) zoneShownThisSession = { userId: state.userId, ids: [] }
+    const settledSurfaces = useRef<Partial<Record<Surface, AskId>>>({})
+    const pickId = (surface: Exclude<Surface, 'interrupt'>) =>
+        surface === 'banner' ? decision.banner : decision[surface]?.id
+    for (const surface of ['zone', 'inline', 'banner'] as const) {
+        if (pickId(surface) !== settledSurfaces.current[surface]) delete settledSurfaces.current[surface]
+    }
+    const latestUserId = useRef(state.userId)
+    if (latestUserId.current !== state.userId) settledSurfaces.current = {}
+    latestUserId.current = state.userId
+    if (surfacesShownThisSession.userId !== state.userId) surfacesShownThisSession = { userId: state.userId, keys: [] }
 
     // the decision closed the open surface itself (its verdict left `show`)
     useEffect(() => {
@@ -229,28 +243,38 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
         [userId, session.count]
     )
 
-    const openedZone = useCallback(
-        (id: AskId) => {
-            if (!userId || zoneShownThisSession.ids.includes(id)) return
+    const openedSurface = useCallback(
+        (id: AskId, surface: Exclude<Surface, 'interrupt'>) => {
+            const key = `${surface}:${id}`
+            const pick = surface === 'banner' ? latestDecision.current.banner : latestDecision.current[surface]?.id
+            if (
+                !userId ||
+                latestUserId.current !== userId ||
+                pick !== id ||
+                surfacesShownThisSession.keys.includes(key)
+            )
+                return
             const ask = askOf(id)
-            zoneShownThisSession = { userId, ids: [...zoneShownThisSession.ids, id] }
+            surfacesShownThisSession = { userId, keys: [...surfacesShownThisSession.keys, key] }
             // what rotation counts: lastSessionShown and consecutiveSessions
-            ledgerActions.shown(userId, id, Date.now(), 'zone', session.count)
-            posthog.capture(ANALYTICS_EVENTS.ATTENTION_SHOWN, { ask: id, surface: 'zone', tier: ask?.tier })
+            ledgerActions.shown(userId, id, Date.now(), surface, session.count)
+            posthog.capture(ANALYTICS_EVENTS.ATTENTION_SHOWN, { ask: id, surface, tier: ask?.tier })
         },
         [userId, session.count]
     )
+    const openedZone = useCallback((id: AskId) => openedSurface(id, 'zone'), [openedSurface])
 
     const settle = useCallback(
         (id: AskId, outcome: SettleOutcome, until: number | undefined, surface: Surface) => {
             // a handler for an ask that is not on screen (a double tap, a stale closure) writes nothing
-            if (!userId) return
+            if (!userId || latestUserId.current !== userId) return
             const onScreen =
                 surface === 'interrupt'
                     ? getSessionInterrupts().open === id
-                    : latestDecision.current.zone?.id === id && settledZone.current !== id
+                    : (surface === 'banner' ? latestDecision.current.banner : latestDecision.current[surface]?.id) ===
+                          id && settledSurfaces.current[surface] !== id
             if (!onScreen) return
-            if (surface === 'zone') settledZone.current = id
+            if (surface !== 'interrupt') settledSurfaces.current[surface] = id
             const ask = askOf(id)
             const now = Date.now()
             const version = ask?.version?.(state)
@@ -290,12 +314,13 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             asks: ASKS,
             opened,
             openedZone,
+            openedSurface,
             crashed,
             acted: (id, surface = 'interrupt') => settle(id, 'acted', undefined, surface),
             dismissed: (id, surface = 'interrupt') => settle(id, 'dismissed', undefined, surface),
             snoozed: (id, until, surface = 'interrupt') => settle(id, 'snoozed', until, surface),
         }),
-        [decision, state, ledger, session, opened, openedZone, crashed, settle]
+        [decision, state, ledger, session, opened, openedZone, openedSurface, crashed, settle]
     )
 
     return <AttentionContext.Provider value={value}>{children}</AttentionContext.Provider>
