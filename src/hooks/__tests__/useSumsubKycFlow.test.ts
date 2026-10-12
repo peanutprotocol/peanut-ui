@@ -1875,6 +1875,81 @@ describe('document-first verification', () => {
         expect(result.current.showWrapper).toBe(false)
         expect(result.current.isLoading).toBe(false)
     })
+
+    describe('a supplement the gate no longer asks for', () => {
+        const refused = (reason: string, fallback: 'contact-support' | 'restart-identity' | 'wait') => ({
+            error: 'Failed to start verification',
+            code: 'supplement_not_required' as const,
+            reason,
+            fallback,
+        })
+        beforeEach(() => {
+            mockStartAction.mockReset()
+            mockRestart.mockReset()
+            jest.mocked(getKycDocumentPlan).mockClear()
+        })
+
+        it('asks for another document when the one on file cannot serve the provider', async () => {
+            const onKycSuccess = jest.fn()
+            mockStartAction.mockResolvedValue(refused('identity_document_insufficient', 'restart-identity'))
+            const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+            await act(async () => {
+                await result.current.handleStartAction('supplement:bridge')
+            })
+            expect(getKycDocumentPlan).toHaveBeenCalledWith(true)
+            expect(result.current.documentPlan).toEqual(plan)
+            expect(result.current.error).toBeNull()
+            expect(result.current.isLoading).toBe(false)
+            expect(mockStartAction).toHaveBeenCalledTimes(1)
+            expect(onKycSuccess).not.toHaveBeenCalled()
+        })
+
+        it('sends a need the app cannot collect to support as a terminal error', async () => {
+            const onKycSuccess = jest.fn()
+            mockStartAction.mockResolvedValue(refused('requirements_uncollectable', 'contact-support'))
+            const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+            await act(async () => {
+                await result.current.handleStartAction('supplement:bridge')
+            })
+            expect(result.current.error).toBe(
+                "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you."
+            )
+            expect(result.current.isTerminalError).toBe(true)
+            expect(result.current.showWrapper).toBe(false)
+            expect(getKycDocumentPlan).not.toHaveBeenCalledWith(true)
+            expect(onKycSuccess).not.toHaveBeenCalled()
+        })
+
+        it('closes quietly while the requirements cannot be read yet', async () => {
+            const onKycSuccess = jest.fn()
+            mockStartAction.mockResolvedValue(refused('requirements_unreadable', 'wait'))
+            const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+            await act(async () => {
+                await result.current.handleStartAction('supplement:bridge')
+            })
+            expect(result.current.error).toBeNull()
+            expect(result.current.isTerminalError).toBe(false)
+            expect(result.current.showWrapper).toBe(false)
+            expect(result.current.isLoading).toBe(false)
+            expect(result.current.documentPlan).toBeNull()
+            expect(getKycDocumentPlan).not.toHaveBeenCalledWith(true)
+            expect(mockRestart).not.toHaveBeenCalled()
+            expect(onKycSuccess).not.toHaveBeenCalled()
+        })
+
+        it('follows the step the re-ask names after Sumsub already reviewed the supplement', async () => {
+            const onKycSuccess = jest.fn()
+            mockStartAction
+                .mockResolvedValueOnce({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
+                .mockResolvedValueOnce(refused('requirements_uncollectable', 'contact-support'))
+            const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+            await act(async () => {
+                await result.current.handleStartAction('supplement:bridge')
+            })
+            expect(onKycSuccess).not.toHaveBeenCalled()
+            expect(result.current.isTerminalError).toBe(true)
+        })
+    })
 })
 
 describe('an API without a readable document plan keeps the legacy flow', () => {

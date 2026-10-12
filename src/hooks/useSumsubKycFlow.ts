@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
-import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { REASON_CODE_KEYS, reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import {
     initiateSumsubKyc,
     getVerificationSession,
@@ -1176,11 +1176,23 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // next attempt; anything else means the step is done and the backend took it from there.
                 if (response.data?.completed) {
                     response = await startKycAction(key)
-                    if (!response.data?.token && !response.data?.session) {
+                    if (!response.data?.token && !response.data?.session && !response.fallback) {
                         userInitiatedRef.current = false
                         onKycSuccess?.()
                         return
                     }
+                }
+                // The gate no longer asks for this supplement and names the step to take instead.
+                if (response.code === 'supplement_not_required' && response.fallback) {
+                    userInitiatedRef.current = false
+                    if (response.fallback === 'restart-identity') return await handleRestartIdentity()
+                    if (response.fallback === 'contact-support') {
+                        setIsTerminalError(true)
+                        setError(
+                            tIdentity(reasonCodeKey(response.reason) ?? REASON_CODE_KEYS.requirements_uncollectable)
+                        )
+                    }
+                    return
                 }
                 if (response.data?.session) {
                     userInitiatedRef.current = false
@@ -1212,7 +1224,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError, acceptSessionView, onKycSuccess]
+        [t, tIdentity, actionErrorMessage, setError, acceptSessionView, onKycSuccess, handleRestartIdentity]
     )
     startActionRef.current = handleStartAction
 
