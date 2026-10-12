@@ -79,6 +79,7 @@ export function StatementsPage() {
         <PageStack gap="6">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="flex flex-col gap-6">
+                <p className="text-body-s text-foreground-secondary">{t('intro')}</p>
                 {/* Format and Period are the same control (Aleks, 2026-10-01): one
                     select each, the chosen format's hint on the helper line. */}
                 <Field label={t('format')} helper={t(`formatHints.${format}`)}>

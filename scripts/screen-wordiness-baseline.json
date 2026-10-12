@@ -9,6 +9,7 @@
         "app/(mobile-ui)/fix-card-signature/page.tsx": 126,
         "app/(mobile-ui)/home/page.tsx": 394,
         "app/(mobile-ui)/profile/backup/page.tsx": 352,
+        "app/(mobile-ui)/profile/statements/page.tsx": 87,
         "app/(mobile-ui)/profile/view/page.tsx": 144,
         "app/(mobile-ui)/receipt/page.tsx": 570,
         "app/(mobile-ui)/recover-funds/page.tsx": 99,
