@@ -1,6 +1,5 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import SetupFooter from '../components/SetupFooter'
-import { Field } from '@/components/0_Bruddle/Field'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -146,20 +145,16 @@ const ResidenceStep = () => {
     return (
         <div className="flex h-full w-full flex-1 flex-col justify-between gap-6">
             <div className="flex w-full flex-col gap-2">
-                {/* The ID note sits under the last country field, so it moves
-                    under the second one when that field is open. */}
-                <Field helper={showSecondCountry ? undefined : t('residenceStep.idNote')}>
-                    <CountryCombobox
-                        options={countryOptions}
-                        placeholder={t('residenceStep.countryPlaceholder')}
-                        // Falls back to the suggestion for the one frame between
-                        // mount and the effect below committing it, so the field
-                        // opens already filled instead of visibly changing itself.
-                        value={residenceCountry || geoSuggestion?.country}
-                        onValueChange={onResidenceChange}
-                        onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
-                    />
-                </Field>
+                <CountryCombobox
+                    options={countryOptions}
+                    placeholder={t('residenceStep.countryPlaceholder')}
+                    // Falls back to the suggestion for the one frame between
+                    // mount and the effect below committing it, so the field
+                    // opens already filled instead of visibly changing itself.
+                    value={residenceCountry || geoSuggestion?.country}
+                    onValueChange={onResidenceChange}
+                    onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
+                />
                 <div className="py-3 text-center compact:py-1 tight:py-0">
                     <LinkButton
                         aria-expanded={showSecondCountry}
@@ -175,15 +170,13 @@ const ResidenceStep = () => {
                 </div>
                 <div id={secondCountryId}>
                     {showSecondCountry && (
-                        <Field helper={t('residenceStep.idNote')}>
-                            <CountryCombobox
-                                options={countryOptions}
-                                placeholder={t('residenceStep.secondCountryPlaceholder')}
-                                value={secondResidenceCountry || undefined}
-                                onValueChange={(value) => setSecondResidenceCountry(value)}
-                                onClear={hasPair ? () => onRemoveCountry('second') : undefined}
-                            />
-                        </Field>
+                        <CountryCombobox
+                            options={countryOptions}
+                            placeholder={t('residenceStep.secondCountryPlaceholder')}
+                            value={secondResidenceCountry || undefined}
+                            onValueChange={(value) => setSecondResidenceCountry(value)}
+                            onClear={hasPair ? () => onRemoveCountry('second') : undefined}
+                        />
                     )}
                 </div>
             </div>

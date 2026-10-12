@@ -184,21 +184,12 @@ describe('ResidenceStep', () => {
         expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
     })
 
-    it('shows the ID note under the country field', () => {
-        render(<ResidenceStep />)
-        const note = screen.getByText(en.setup.residenceStep.idNote)
-        expect(note.previousElementSibling).toContainElement(screen.getByRole('combobox'))
-    })
-
-    // The dual path shows the same single note, under the second field, and no
-    // per-country comparison: the "Select <country>" buttons are the whole choice.
-    it('moves the ID note under the second field for two countries, with no comparison', () => {
+    // The dual path shows two fields and no per-country comparison or guidance:
+    // the "Select <country>" buttons are the whole choice (Release 164 smoke test).
+    it('shows two fields and no comparison for two countries', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        const notes = screen.getAllByText(en.setup.residenceStep.idNote)
-        expect(notes).toHaveLength(1)
-        const [, second] = screen.getAllByRole('combobox')
-        expect(notes[0].previousElementSibling).toContainElement(second)
+        expect(screen.getAllByRole('combobox')).toHaveLength(2)
         expect(screen.queryByText(/Available with/)).not.toBeInTheDocument()
         expect(screen.queryByText('Peanut to Peanut')).not.toBeInTheDocument()
         expect(screen.queryByRole('status')).not.toBeInTheDocument()

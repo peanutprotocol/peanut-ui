@@ -119,8 +119,8 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockLogoutUser).toHaveBeenCalledTimes(1)
     })
 
-    // The title is the whole message on /setup/finish: no line under it says
-    // how the passkey is checked (Release 164 smoke test).
+    // The page shows the title and one line under it; the step itself adds no
+    // text about how the passkey is checked (Release 164 smoke test).
     it('shows no text on /setup/finish besides the actions and the passkey link', () => {
         const { container } = renderWithIntl(<SignTestTransaction showLogout />)
         const shown = [en.setup.testTransaction.confirmAndFinish, en.profile.logOut, en.setup.passkey.learnMore]

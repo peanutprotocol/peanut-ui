@@ -811,7 +811,6 @@
             "countryPlaceholder": "Selecciona el país",
             "secondCountryPlaceholder": "Segundo país",
             "multiDocLink": "¿Tienes residencia en otro país?",
-            "idNote": "Solo podemos confirmar la residencia legal con un documento emitido por ese país: DNI, pasaporte, permiso de residencia o licencia de conducir.",
             "errors": {
                 "invalidEmail": "Ingresa un correo electrónico válido"
             },
@@ -938,7 +937,8 @@
             }
         },
         "finish": {
-            "title": "Confirma tu cuenta"
+            "title": "Confirma tu cuenta",
+            "description": "Asegurémonos de que tu passkey funciona y de que todo está configurado correctamente."
         },
         "accountReady": {
             "worksNowTitle": "Funciona desde ya",

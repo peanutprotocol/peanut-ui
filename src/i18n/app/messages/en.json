@@ -811,7 +811,6 @@
             "countryPlaceholder": "Select country",
             "secondCountryPlaceholder": "Second country",
             "multiDocLink": "Have residence in another country?",
-            "idNote": "We can only confirm legal residence with an ID issued by that country: ID card, passport, residence permit or driver’s license.",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
             },
@@ -938,7 +937,8 @@
             }
         },
         "finish": {
-            "title": "Confirm your account"
+            "title": "Confirm your account",
+            "description": "Let's make sure your passkey is working and you have everything set up correctly."
         },
         "accountReady": {
             "worksNowTitle": "Works right now",
