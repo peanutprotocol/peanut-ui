@@ -7,7 +7,11 @@ import {
     corridorAcceptsAddressCountry,
     fixedAddressCountry,
     hasBridgeBankCorridor,
+    isOwnerAddressCountryAccepted,
+    usStreetLacksLeadingNumber,
+    usStreetProblem,
 } from '../bank-corridors'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { BridgeAccountType } from '@/app/actions/types/users.types'
 import { COUNTRY_SPECIFIC_METHODS, countryData } from '@/components/AddMoney/consts'
 import { liveRailsForCountry, soleLiveRailForCountry } from '@/features/destinations/country-rails'
@@ -275,5 +279,68 @@ describe("the owner's address on a US account", () => {
         expect(addressCountryAlpha2('NGA')).toBe('NG')
         expect(addressCountryAlpha2('pt')).toBe('PT')
         expect(addressCountryAlpha2('ZZZ')).toBeNull()
+    })
+})
+
+/**
+ * The provider refused `address.country=CHN` on an external account in a live
+ * production test (2026-10-11) and took HKG, TWN, SGP, CAN and GBR. Only the
+ * bank form's list drops it: the shared residence list must keep it, so a
+ * resident of China can answer truthfully at signup.
+ */
+describe('countries refused as a payout owner address', () => {
+    it.each(['CN', 'CHN', 'cn'])('refuses China (%s)', (code) => {
+        expect(isOwnerAddressCountryAccepted(code)).toBe(false)
+    })
+
+    it.each(['HK', 'TW', 'SG', 'CA', 'GB', 'US', 'PT', 'HKG', null, ''])('accepts %s', (code) => {
+        expect(isOwnerAddressCountryAccepted(code)).toBe(true)
+    })
+
+    it('leaves China in the shared residence list', () => {
+        expect(buildResidenceCountryOptions('en').map((option) => option.value)).toContain('CN')
+    })
+})
+
+/**
+ * The provider wants a street number on a US address and no PO box or PMB. It
+ * does not say the number comes first, so only a line with no digit is
+ * refused; a line that does not start with one only gets a hint.
+ */
+describe('US street lines', () => {
+    it.each([
+        ['No Yuyao Road', 'noNumber'],
+        ['Main Street', 'noNumber'],
+        ['PO Box 123', 'poBox'],
+        ['P.O. Box 77', 'poBox'],
+        ['p o box 9', 'poBox'],
+        ['POBox 12', 'poBox'],
+        ['Post Office Box 5', 'poBox'],
+        ['123 Main St PMB 456', 'poBox'],
+        ['Private Mailbox 3', 'poBox'],
+    ])('refuses "%s" (%s)', (street, problem) => {
+        expect(usStreetProblem(street)).toBe(problem)
+    })
+
+    it.each([
+        ['123 Main St', false],
+        ['No 566 Yuyao Road', true],
+        // a unit first, a Wisconsin/Utah grid address, a Puerto Rico urbanization
+        ['Apt 4B, 123 Main St', true],
+        ['N123W456 Main Rd', true],
+        ['W1234 County Rd', true],
+        ['Urb Las Gladiolas 150 Calle A', true],
+        // "Box" alone is not a PO box: nobody has shown the provider refuses a rural route
+        ['RR 2 Box 152', true],
+        ['10 Boxwood Ln', false],
+        ['5 Pomba St', false],
+    ])('takes "%s"; hint shown: %s', (street, hint) => {
+        expect(usStreetProblem(street)).toBeNull()
+        expect(usStreetLacksLeadingNumber(street)).toBe(hint)
+    })
+
+    it('says nothing about an empty line: the required rule owns that', () => {
+        expect(usStreetProblem('  ')).toBeNull()
+        expect(usStreetLacksLeadingNumber('')).toBe(false)
     })
 })

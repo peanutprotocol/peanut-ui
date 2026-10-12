@@ -4,7 +4,6 @@ import { Suspense } from 'react'
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
-import { useAuth } from '@/context/authContext'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { minimizeNativeApp } from '@/utils/capacitor'
 import { useTranslations } from 'next-intl'
@@ -15,7 +14,6 @@ import { useTranslations } from 'next-intl'
  */
 function FinishSetupPageContent() {
     const t = useTranslations('setup')
-    const { logoutUser, isLoggingOut } = useAuth()
     useBackHandler(() => {
         void minimizeNativeApp()
         return true
@@ -26,16 +24,14 @@ function FinishSetupPageContent() {
             layoutType="signup"
             screenId="sign-test-transaction"
             image={{ pose: 'waving-chill' }}
-            showLogoutButton={true}
-            onLogout={logoutUser}
-            isLoggingOut={isLoggingOut}
             title={t('finish.title')}
             description={t('finish.description')}
             showBackButton={false}
             showSkipButton={false}
             contentClassName="flex flex-col items-center justify-center gap-6"
         >
-            <SignTestTransaction />
+            {/* log out is a link under the primary: the top bar keeps one control (Release 164 smoke test) */}
+            <SignTestTransaction showLogout />
         </SetupWrapper>
     )
 }

@@ -324,7 +324,7 @@ function InvitePageContent() {
             <div className="flex flex-grow flex-col items-end justify-center gap-6 overflow-hidden bg-background-default px-6 pt-8 pb-8 md:h-dvh md:justify-center md:gap-4">
                 <div className="mx-auto w-full md:max-w-xs">
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
-                        <h1 className="text-heading-xs text-foreground-primary">{title}</h1>
+                        <h1 className="text-heading-xs break-words text-foreground-primary">{title}</h1>
                         <p className="text-body-m">{description}</p>
                         <Button onClick={handleClaim} shadowSize="4">
                             {ctaLabel}

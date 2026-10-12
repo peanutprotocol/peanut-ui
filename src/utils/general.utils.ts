@@ -4,6 +4,8 @@ import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
+import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
+import { type ReferralSource } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
@@ -324,11 +326,13 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         let s = amount.trim()
         if (s === '') return ''
 
-        // Handle comma: could be decimal separator (Argentina) or thousands separator (US paste)
-        // Heuristic: comma followed by exactly 3 digits = thousands separator
-        // Otherwise: decimal separator
-        s = s.replace(/,(\d{3})/g, '$1') // Remove commas before exactly 3 digits (thousands)
-        s = s.replace(/,/g, '.') // Convert remaining commas to dots (decimal separators)
+        // a lone comma is the decimal separator (es/pt): "0,125" is 0.125, never 125.
+        // commas are thousands only in a well-formed group with a second signal:
+        // a dot after them ("10,000.50") or more than one comma ("1,234,567").
+        // anything else with a comma ("1,2,3") ends up invalid and is rejected.
+        const loneComma = /^[^,.]*,[^,.]*$/.test(s)
+        const isThousands = !loneComma && /^\d{1,3}(,\d{3})+(\.\d*)?$/.test(s)
+        s = isThousands ? s.replace(/,/g, '') : s.replace(/,/g, '.')
 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
@@ -1237,9 +1241,22 @@ export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string =
     return `/setup?step=signup&redirect_uri=${redirectUri}`
 }
 
-export const generateInviteCodeLink = (username: string) => {
+/**
+ * The inviter's shareable invite link. `source` names the share button that
+ * emits it and rides as `utm_content`, so PostHog can credit the signup to
+ * that button (TASK-23382). Every share button passes a `source`. Without
+ * `source` the link stays plain: in-app navigation (guest modal) and the QR
+ * claim target are not shares.
+ */
+export const generateInviteCodeLink = (username: string, source?: ReferralSource) => {
     const inviteCode = toInviteCode(username)
-    const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
+    const inviteLink = source
+        ? withUtm(
+              shareableUrl('/invite'),
+              { source: UTM_SOURCES.APP_SHARE, medium: UTM_MEDIUMS.REFERRAL, campaign: 'referral', content: source },
+              { code: inviteCode }
+          )
+        : shareableUrl(`/invite?code=${inviteCode}`)
     return { inviteLink, inviteCode }
 }
 

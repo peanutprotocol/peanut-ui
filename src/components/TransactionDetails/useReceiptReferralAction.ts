@@ -52,7 +52,9 @@ export function useReceiptReferralAction(
         transaction.status === 'completed' &&
         hasReferralNudge(transaction) &&
         !!inviteUsername
-    const inviteLink = inviteUsername ? generateInviteCodeLink(inviteUsername).inviteLink : ''
+    const inviteLink = inviteUsername
+        ? generateInviteCodeLink(inviteUsername, REFERRAL_SOURCES.TRANSACTION_RECEIPT).inviteLink
+        : ''
 
     const share = useShareAction({
         url: inviteLink,

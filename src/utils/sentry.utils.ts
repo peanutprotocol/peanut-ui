@@ -667,7 +667,28 @@ export type FetchWithSentryOptions = RequestInit & {
      * accounting are unchanged.
      */
     callerReportsFailures?: boolean
+    /*
+     * The caller states that sending this mutation twice has the same effect as
+     * sending it once. It then gets one immediate retry when fetch rejects
+     * before any response (WebKit `Load failed`, Chromium `Failed to fetch`,
+     * Firefox `NetworkError`). WebKit can send the first POST after an idle
+     * gap on a dead pooled connection and, unlike a GET, never resends it, so
+     * the request fails without reaching the server (PEANUT-UI-T0D). A timeout
+     * or any HTTP response is never retried. Reads already retry on timeout
+     * and ignore this flag. Do not set it on a request that creates a record.
+     */
+    idempotent?: boolean
 }
+
+/**
+ * True for the error fetch rejects with when no response arrived: a
+ * TypeError whose message is one of the engines' network-failure messages.
+ * Our own timeout is an AbortError and a caller cancel is checked before this.
+ */
+export const isPreResponseNetworkError = (error: unknown): boolean =>
+    error instanceof Error &&
+    error.name === 'TypeError' &&
+    /load failed|failed to fetch|networkerror|network connection was lost/i.test(error.message)
 
 /** What a fetch cancelled by its caller rejects with: the reason the caller gave, or a standard AbortError. */
 const cancelError = (signal: AbortSignal): unknown =>
@@ -679,7 +700,7 @@ export const fetchWithSentry = async (
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
     const connectivityGeneration = getConnectivityGeneration()
-    const { preferNativeTransport, silentTimeout, redactTelemetry, callerReportsFailures, ...options } =
+    const { preferNativeTransport, silentTimeout, redactTelemetry, callerReportsFailures, idempotent, ...options } =
         optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
@@ -716,6 +737,7 @@ export const fetchWithSentry = async (
     // fresh attempt (PEANUT-UI-R44).
     const method = (options.method || 'GET').toUpperCase()
     const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
+    let networkRetryLeft = idempotent === true && isMutatingMethod(method)
 
     /*
      * One budget pool for the whole call, sized to the transport attempts this
@@ -817,6 +839,19 @@ export const fetchWithSentry = async (
                     // the retry outcome is reported explicitly below.
                     console.info(`Request to ${String(telemetryUrl).replace(/[\r\n]/g, '')} timed out — retrying`)
                     await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
+                    continue
+                }
+                // Draws on the remaining pool, so the call's worst case is unchanged.
+                if (
+                    networkRetryLeft &&
+                    isPreResponseNetworkError(error) &&
+                    !isBackgrounded() &&
+                    legTimeoutMs() >= minLegMs
+                ) {
+                    networkRetryLeft = false
+                    console.info(
+                        `Request to ${String(telemetryUrl).replace(/[\r\n]/g, '')} failed before a response — retrying once`
+                    )
                     continue
                 }
                 throw error

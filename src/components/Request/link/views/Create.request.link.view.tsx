@@ -106,11 +106,10 @@ export const CreateRequestLinkView = () => {
                     })}
                 />
 
-                {/* Before a request exists the QR already encodes the profile
-                    payment link for the entered amount, so it only stays
-                    blurred while there's neither a request nor an amount. */}
+                {/* Blurred until the request exists: a QR beside a failed
+                    create read as a link that worked (release 164 QA). */}
                 <QRCodeWrapper
-                    isBlurred={!requestId && !(parseFloat(requestAmount) > 0)}
+                    isBlurred={!requestId}
                     url={qrCodeLink}
                     isLoading={isCreatingLink || isUpdatingRequest}
                 />

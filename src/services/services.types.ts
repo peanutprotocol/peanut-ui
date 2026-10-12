@@ -29,6 +29,11 @@ export interface CreateRequestRequest {
      * body an API without the field accepts.
      */
     requestedAmount?: { amount: string; currency: string }
+    /**
+     * One key per user submission. The API answers a resend with the same key
+     * with the request it already made. An API without the field drops it.
+     */
+    idempotencyKey?: string
 }
 
 /**

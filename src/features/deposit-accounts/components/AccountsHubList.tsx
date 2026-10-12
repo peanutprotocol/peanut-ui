@@ -133,8 +133,9 @@ export function AccountsHubList({
                 )
             case 'provisioning':
                 return <Badge status="pending" />
+            // a terminal-bad state: error red, never the green "closed" style
             case 'revoked':
-                return <Badge status="closed" customText={t('list.badgeRevoked')} />
+                return <Badge status="failed" customText={t('list.badgeRevoked')} />
             default:
                 return null
         }

@@ -10,6 +10,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useSubmissionKey } from '@/hooks/useSubmissionKey'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -143,6 +144,7 @@ export const useCreateRequestLink = () => {
 
     // Refs for cleanup
     const createLinkAbortRef = useRef<AbortController | null>(null)
+    const submissionKey = useSubmissionKey()
 
     const _usdValue = useMemo(() => {
         if (!selectedTokenData?.price || !tokenValue) return ''
@@ -269,8 +271,15 @@ export const useCreateRequestLink = () => {
                     ...(isDenominated ? { requestedAmount: { amount: toApiAmount(requestAmount), currency } } : {}),
                 }
 
-                // POST new request
-                const requestDetails = await requestsApi.create(requestData)
+                // POST new request. A re-tap of the same unchanged form reuses
+                // the key, so the API answers with the request it already made.
+                // A non-USD request's dollar estimate moves with every rate
+                // refresh and the API ignores it, so it is not part of the form.
+                const { tokenAmount: _dollarEstimate, ...withoutEstimate } = requestData
+                const requestDetails = await requestsApi.create({
+                    ...requestData,
+                    idempotencyKey: submissionKey(isDenominated ? withoutEstimate : requestData),
+                })
 
                 // An API deployed before `requestedAmount` does not refuse the
                 // field: the body schema strips it, and the request is created
@@ -321,6 +330,7 @@ export const useCreateRequestLink = () => {
             selectedChainID,
             bankInstructionsShared,
             createErrorMessage,
+            submissionKey,
             toast,
             queryClient,
             setLoadingState,

@@ -21,6 +21,7 @@
         "skipForNow": "Omitir por ahora",
         "gotIt": "Entendido",
         "contactSupport": "Contactar soporte",
+        "supportErrorPrefill": "Recibí este error en la app: {error}",
         "peanutFee": "Comisión de Peanut",
         "sponsoredByPeanut": "¡Patrocinada por Peanut!",
         "pending": "Pendiente",
@@ -271,6 +272,7 @@
             "paymentLimits": "Límites de pago",
             "showFullName": "Mostrar nombre completo",
             "backup": "Respaldo",
+            "statements": "Estados de cuenta",
             "exchangeRatesAndFees": "Tipos de cambio y comisiones",
             "starAlt": "estrella",
             "help": "Centro de Ayuda",
@@ -741,8 +743,7 @@
                 "description": "Abre cuentas en las monedas en que te pagan. Gratis para abrir, sin cuotas mensuales."
             },
             "notification-email": {
-                "title": "Sin spam. Promesa de meñique.",
-                "description": "Puedes darte de baja cuando quieras."
+                "title": "Sin spam. Promesa de meñique."
             },
             "notification-permission": {
                 "title": "Activa las notificaciones",
@@ -765,8 +766,7 @@
         },
         "navigation": {
             "goBack": "Volver",
-            "skip": "Omitir",
-            "logout": "Cerrar sesión"
+            "skip": "Omitir"
         },
         "wrapper": {
             "illustrationAlt": "Ilustración de la sección",
@@ -811,7 +811,7 @@
         "residenceStep": {
             "countryPlaceholder": "Selecciona el país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tienes ciudadanía de otro país?",
+            "multiDocLink": "¿Tienes residencia en otro país?",
             "errors": {
                 "invalidEmail": "Ingresa un correo electrónico válido"
             },
@@ -976,7 +976,8 @@
             "invalid": "Ingresa un correo electrónico válido.",
             "notReady": "Tu cuenta aún se está cargando. Inténtalo en un momento.",
             "saveFailed": "No pudimos guardar tu correo. Inténtalo de nuevo.",
-            "accessHint": "Tu passkey controla el acceso a tu cuenta. Tu correo es para notificaciones."
+            "accessHint": "Tu passkey controla el acceso a tu cuenta. Tu correo es para notificaciones.",
+            "optOutNote": "Te enviaremos correos sobre tu cuenta. Puedes desactivar novedades y ofertas cuando quieras."
         },
         "notifications": {
             "pushLabel": "Notificaciones push",
@@ -2147,6 +2148,10 @@
             "streetRequired": "La dirección es obligatoria",
             "streetMax": "La dirección debe tener 35 caracteres o menos",
             "streetMin": "La dirección debe tener 4 caracteres o más",
+            "streetNumberRequired": "Agrega el número de calle",
+            "streetNoPoBox": "Usa una dirección física, no un apartado postal",
+            "streetNumberHint": "Empieza con el número, por ejemplo 123 Main St",
+            "countryUnavailable": "No se aceptan direcciones del titular en {country}",
             "city": "Ciudad",
             "cityRequired": "La ciudad es obligatoria",
             "state": "Selecciona el estado",
@@ -2508,6 +2513,35 @@
         "loadingMore": "Cargando más...",
         "today": "Hoy",
         "yesterday": "Ayer"
+    },
+    "statements": {
+        "title": "Estados de cuenta",
+        "intro": "Un estado de cuenta muestra toda la actividad de tu cuenta en un período, con fechas, montos y estado. Elige un formato y un período, y luego descarga el archivo.",
+        "format": "Formato",
+        "period": "Período",
+        "periods": {
+            "allTime": "Todo el historial",
+            "last7d": "Últimos 7 días",
+            "last30d": "Últimos 30 días",
+            "last3m": "Últimos 3 meses",
+            "last6m": "Últimos 6 meses",
+            "ytd": "Este año",
+            "custom": "Período personalizado"
+        },
+        "customPeriod": {
+            "description": "Elige el primer y el último día."
+        },
+        "download": "Descargar",
+        "save": "Guardar archivo",
+        "downloaded": "Estado de cuenta descargado",
+        "downloadedByYear": "Un archivo por año",
+        "errors": {
+            "tooLarge": "Este período es demasiado largo. Elige uno más corto.",
+            "unverified": "Problema inesperado.",
+            "busy": "Hay varias descargas en curso. Inténtalo de nuevo en un momento.",
+            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descárgalo desde la app web.",
+            "failed": "La descarga falló. Intenta de nuevo."
+        }
     },
     "rewards": {
         "title": "Puntos",

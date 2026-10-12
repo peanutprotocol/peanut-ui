@@ -109,6 +109,7 @@
             "inviteFriends": "Invitá amigos a Peanut",
             "accounts": "Cuentas",
             "payments": "Pagos",
+            "statements": "Resúmenes",
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible"
@@ -437,9 +438,6 @@
             "advantage-fees": {
                 "description": "Abrí cuentas en las monedas en que te pagan. Gratis para abrir, sin cuotas mensuales."
             },
-            "notification-email": {
-                "description": "Podés darte de baja cuando quieras."
-            },
             "notification-permission": {
                 "title": "Activá las notificaciones",
                 "description": "Enterate al instante cuando llega plata, se completa un pago o tu cuenta necesita atención."
@@ -473,7 +471,7 @@
         "residenceStep": {
             "countryPlaceholder": "Seleccioná el país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tenés ciudadanía de otro país?",
+            "multiDocLink": "¿Tenés residencia en otro país?",
             "errors": {
                 "invalidEmail": "Ingresá un correo electrónico válido"
             },
@@ -611,7 +609,8 @@
             "invalid": "Ingresá un email válido.",
             "notReady": "Tu cuenta todavía se está cargando. Probá de nuevo en un momento.",
             "saveFailed": "No pudimos guardar tu email. Probá de nuevo.",
-            "accessHint": "Tu passkey controla el acceso a tu cuenta. Tu email es para notificaciones."
+            "accessHint": "Tu passkey controla el acceso a tu cuenta. Tu email es para notificaciones.",
+            "optOutNote": "Te vamos a mandar emails sobre tu cuenta. Podés desactivar novedades y ofertas cuando quieras."
         },
         "notifications": {
             "pushDescription": "Novedades directamente en tu teléfono.",
@@ -647,6 +646,7 @@
         }
     },
     "loadingStates": {
+        "approveTransaction": "Aprobá la transacción",
         "signInWallet": "Firmá en la billetera",
         "allowNetworkSwitch": "Permití el cambio de red"
     },
@@ -813,6 +813,7 @@
         "kyc": {
             "unlockTitle": "Desbloqueá los pagos con QR",
             "unlockDescription": "Confirmá tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
+            "inProgressDescription": "Estamos confirmando tu identidad. Retomá donde quedaste y vas a estar pagando en un momento.",
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
@@ -836,6 +837,7 @@
             "merchantNotAvailableTrySmaller": "No podemos completar pagos con QR de este monto a este comercio en este momento. Probá con un monto menor, otro método de pago u otro comercio.",
             "kycRequired": "Terminá de verificar tu identidad para pagar con QR.",
             "senderRejected": "No pudimos confirmar el documento de tu cuenta para este pago. Contactá a soporte.",
+            "merchantChargeExpired": "El cobro del cajero se venció. Pedile que ingrese el monto de nuevo y escaneá otra vez.",
             "initiateUnexpected": "No se pudo iniciar el pago por un error inesperado. Contactá a soporte",
             "confirmTransaction": "Confirmá la transacción.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
@@ -843,6 +845,7 @@
             "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
             "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
             "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte",
+            "authError": "No pudimos verificar tu sesión. Intentalo de nuevo.",
             "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisá tu actividad antes de volver a intentarlo. Si el estado no está claro, contactá a soporte.",
             "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo."
         },
@@ -1178,6 +1181,21 @@
     "history": {
         "errorDescription": "Contactá a soporte.",
         "empty": "Aún no hay transacciones"
+    },
+    "statements": {
+        "title": "Resúmenes",
+        "intro": "Un resumen muestra toda la actividad de tu cuenta en un período, con fechas, montos y estado. Elegí un formato y un período, y luego descargá el archivo.",
+        "customPeriod": {
+            "description": "Elegí el primer y el último día."
+        },
+        "downloaded": "Resumen descargado",
+        "errors": {
+            "tooLarge": "Este período es demasiado largo. Elegí uno más corto.",
+            "unverified": "Problema inesperado.",
+            "busy": "Hay varias descargas en curso. Intentá de nuevo en un momento.",
+            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descargalo desde la app web.",
+            "failed": "La descarga falló. Intentá de nuevo."
+        }
     },
     "rewards": {
         "youHave": "Tenés",

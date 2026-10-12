@@ -96,7 +96,7 @@ function SetupPageContent() {
         }
     }, [steps, currentStepIndex])
     const stepCopy = useSetupStepCopy(step)
-    const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
     // The entry effect must run once per steps-identity, never per step change:
     // setScreenId's identity moves with the cursor, so it rides a ref.
@@ -538,8 +538,6 @@ function SetupPageContent() {
             // handler below it steps back when nothing consumed the press.
             onBack={dispatchBackPress}
             onSkip={() => handleNext()}
-            onLogout={logoutUser}
-            isLoggingOut={isLoggingOut}
             step={currentStepIndex}
             direction={direction}
             titleClassName={step.titleClassName}

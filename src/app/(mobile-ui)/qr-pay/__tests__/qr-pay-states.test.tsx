@@ -349,6 +349,7 @@ jest.mock('@/config/underMaintenance.config', () => ({
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({
         setIsSupportModalOpen: jest.fn(),
         openSupportWithMessage: jest.fn(),
@@ -880,16 +881,17 @@ describe('GROUP 1: Loading & KYC Gate', () => {
     // operations.pay='enabled', so `canDo('pay')` returns true and the existing
     // PROCEED_TO_PAY tests cover this path. No FE special-case to test anymore.
 
-    test('KYC passed but payment data still loading explains the details fetch', async () => {
+    test('KYC passed but payment data still loading shows the bare mascot', async () => {
         // KYC passed, but Manteca payment lock hasn't loaded yet
         mockMantecaApi.initiateQrPayment.mockReturnValue(new Promise(() => {})) // never resolves
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-        // Caption the actual scan stage while the API is pending.
+        // A first fetch keeps the spinning peanut; only the retry window is captioned.
         await waitFor(() => {
-            expect(screen.getByText(en.loadingStates.fetchingDetails)).toBeInTheDocument()
+            expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         })
+        expect(screen.queryByText(en.loadingStates.fetchingDetails)).not.toBeInTheDocument()
     })
 
     test('Invalid QR code shows error card', async () => {
@@ -1263,6 +1265,45 @@ describe('GROUP 3: Processing States', () => {
             expect(screen.getByText(en.qrPay.processingPaymentTitle)).toBeInTheDocument()
             expect(screen.getByText(en.qrPay.processingPaymentBody)).toBeInTheDocument()
         })
+    })
+
+    test('the approval step names itself once, on the button only (Release 164 smoke test)', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValue({
+            code: 'LOCK123',
+            type: 'QR3_PAYMENT',
+            companyId: 'c1',
+            userId: 'u1',
+            userNumberId: 'un1',
+            userExternalId: 'ue1',
+            paymentRecipientName: 'Test Merchant',
+            paymentRecipientLegalId: 'legal1',
+            paymentAssetAmount: '12000',
+            paymentAsset: 'ARS',
+            paymentPrice: '1200',
+            paymentAgainstAmount: '10',
+            paymentAgainst: 'USD',
+            expireAt: LIVE_QUOTE_EXPIRY,
+            expiresInMs: LIVE_QUOTE_TTL_MS,
+            creationTime: '2026-04-16T00:00:00Z',
+        })
+        // the passkey sheet is open: preparation is done and the signature never returns
+        mockSignSpend.mockImplementation((input: { onProgress?: (event: { stage: string }) => void }) => {
+            input.onProgress?.({ stage: 'signing_preparation_ready' })
+            return new Promise(() => {})
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => {
+            expect(screen.getByText('Test Merchant')).toBeInTheDocument()
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: en.loadingStates.approveTransaction })).toBeInTheDocument()
+        })
+        expect(screen.getAllByText(en.loadingStates.approveTransaction)).toHaveLength(1)
     })
 
     test('Wallet confirmation pending shows ErrorAlert', async () => {

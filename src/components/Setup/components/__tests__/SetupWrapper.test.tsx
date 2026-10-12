@@ -163,13 +163,6 @@ describe('SetupWrapper navigation', () => {
         expect(row).toHaveClass('top-[calc(var(--safe-top)_+_1rem)]', 'px-4')
     })
 
-    it('keeps the trailing logout action on the same navigation row as Back', () => {
-        renderWrapper({ showBackButton: true, showLogoutButton: true, onBack: jest.fn(), onLogout: jest.fn() })
-        const back = screen.getByRole('button', { name: 'Go back' })
-        const logout = screen.getByRole('button', { name: 'Logout' })
-        expect(back.closest('div.absolute')).toBe(logout.closest('div.absolute'))
-    })
-
     it('fires onBack from the back button', () => {
         const onBack = jest.fn()
         renderWrapper({ showBackButton: true, onBack })

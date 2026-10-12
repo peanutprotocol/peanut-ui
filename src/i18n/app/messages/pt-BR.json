@@ -21,6 +21,7 @@
         "skipForNow": "Pular por enquanto",
         "gotIt": "Entendi",
         "contactSupport": "Falar com o suporte",
+        "supportErrorPrefill": "Recebi este erro no app: {error}",
         "peanutFee": "Taxa do Peanut",
         "sponsoredByPeanut": "Patrocinada pelo Peanut!",
         "pending": "Pendente",
@@ -271,6 +272,7 @@
             "paymentLimits": "Limites de pagamento",
             "showFullName": "Mostrar nome completo",
             "backup": "Backup",
+            "statements": "Extratos",
             "exchangeRatesAndFees": "Câmbio e taxas",
             "starAlt": "estrela",
             "help": "Central de Ajuda",
@@ -741,8 +743,7 @@
                 "description": "Abra contas nas moedas em que você recebe. Abertura grátis, sem mensalidade."
             },
             "notification-email": {
-                "title": "Sem spam. Juro de dedinho.",
-                "description": "Você pode cancelar quando quiser."
+                "title": "Sem spam. Juro de dedinho."
             },
             "notification-permission": {
                 "title": "Ative as notificações",
@@ -765,8 +766,7 @@
         },
         "navigation": {
             "goBack": "Voltar",
-            "skip": "Pular",
-            "logout": "Sair"
+            "skip": "Pular"
         },
         "wrapper": {
             "illustrationAlt": "Ilustração da seção",
@@ -811,7 +811,7 @@
         "residenceStep": {
             "countryPlaceholder": "Selecione o país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "Tem cidadania de outro país?",
+            "multiDocLink": "Tem residência em outro país?",
             "errors": {
                 "invalidEmail": "Digite um e-mail válido"
             },
@@ -976,7 +976,8 @@
             "invalid": "Digite um e-mail válido.",
             "notReady": "Sua conta ainda está carregando. Tente novamente em instantes.",
             "saveFailed": "Não foi possível salvar seu e-mail. Tente novamente.",
-            "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações."
+            "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações.",
+            "optOutNote": "Vamos enviar e-mails sobre sua conta. Você pode desativar novidades e ofertas quando quiser."
         },
         "notifications": {
             "pushLabel": "Notificações push",
@@ -2147,6 +2148,10 @@
             "streetRequired": "O endereço é obrigatório",
             "streetMax": "O endereço precisa ter 35 caracteres ou menos",
             "streetMin": "O endereço precisa ter 4 caracteres ou mais",
+            "streetNumberRequired": "Inclua o número",
+            "streetNoPoBox": "Use um endereço físico, não uma caixa postal",
+            "streetNumberHint": "Comece com o número, por exemplo 123 Main St",
+            "countryUnavailable": "Endereços do titular em {country} não são aceitos",
             "city": "Cidade",
             "cityRequired": "A cidade é obrigatória",
             "state": "Selecione o estado",
@@ -2508,6 +2513,35 @@
         "loadingMore": "Carregando mais...",
         "today": "Hoje",
         "yesterday": "Ontem"
+    },
+    "statements": {
+        "title": "Extratos",
+        "intro": "Um extrato mostra toda a atividade da sua conta em um período, com datas, valores e status. Escolha um formato e um período e depois baixe o arquivo.",
+        "format": "Formato",
+        "period": "Período",
+        "periods": {
+            "allTime": "Todo o histórico",
+            "last7d": "Últimos 7 dias",
+            "last30d": "Últimos 30 dias",
+            "last3m": "Últimos 3 meses",
+            "last6m": "Últimos 6 meses",
+            "ytd": "Este ano",
+            "custom": "Período personalizado"
+        },
+        "customPeriod": {
+            "description": "Escolha o primeiro e o último dia."
+        },
+        "download": "Baixar",
+        "save": "Salvar arquivo",
+        "downloaded": "Extrato baixado",
+        "downloadedByYear": "Um arquivo por ano",
+        "errors": {
+            "tooLarge": "Este período é muito longo. Escolha um período menor.",
+            "unverified": "Problema inesperado.",
+            "busy": "Há vários downloads em andamento. Tente novamente em instantes.",
+            "saveUnavailable": "Não é possível salvar arquivos neste dispositivo. Baixe pelo app web.",
+            "failed": "Falha no download. Tente de novo."
+        }
     },
     "rewards": {
         "title": "Pontos",

@@ -127,11 +127,25 @@ test.describe('Button press physics', () => {
     // navigation row, and its circles were the last call site still drawing a
     // secondary button with the shadow stripped — a white chip on the #90a8ed
     // hero, which is the state the board does not have (kush QA 2026-09-21).
-    // /setup/finish renders that row with no backend and no login.
+    // The invite step's back circle renders that row with no backend and no
+    // login. (/setup/finish used to, through a log-out circle that moved under
+    // its primary in the Release 164 smoke-test fixes.)
     test('the setup nav circle is a ring on the hero, not a white chip', async ({ page }) => {
-        await page.goto('/setup/finish', { waitUntil: 'domcontentloaded' })
+        // Headless Chromium has no platform authenticator; the setup gate would show the unsupported modal.
+        await page.addInitScript(() => {
+            const w = window as unknown as {
+                PublicKeyCredential: { isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean> }
+            }
+            w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
+            w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
+        })
+        await page.goto('/setup', { waitUntil: 'domcontentloaded' })
+        const signUp = page.getByRole('button', { name: 'Sign up' })
+        await expect(signUp).toBeVisible({ timeout: 60_000 })
+        await signUp.click()
+        await expect(page).toHaveURL(/screen=invite/)
 
-        const circle = page.getByRole('button', { name: 'Logout' })
+        const circle = page.getByRole('button', { name: 'Go back' })
         await expect(circle).toBeVisible()
 
         expect(await background(circle), 'transparent at rest').toBe('rgba(0, 0, 0, 0)')

@@ -13,7 +13,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
-import { useState, useEffect, useRef } from 'react'
+import { type ReactNode, useState, useEffect, useRef } from 'react'
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
@@ -30,6 +30,7 @@ import {
 } from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
+import type en from '@/i18n/app/messages/en.json'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
 import { confettiPresets } from '@/utils/confetti'
 
@@ -40,6 +41,7 @@ export function SetupConfirmationView({
     buttonText,
     showTitle = true,
     merged = false,
+    secondary,
 }: {
     onConfirm: () => void
     isLoading?: boolean
@@ -47,6 +49,8 @@ export function SetupConfirmationView({
     buttonText?: string
     showTitle?: boolean
     merged?: boolean
+    /** the tertiary link under the primary (log out on the finish route) */
+    secondary?: ReactNode
 }) {
     const t = useTranslations('setup')
     const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
@@ -78,7 +82,7 @@ export function SetupConfirmationView({
                 </p>
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
-            <SetupFooter actions={button}>
+            <SetupFooter actions={button} secondary={secondary}>
                 <p className="text-center text-body-xs text-foreground-secondary">
                     <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
                         <Icon name="info" size={16} className="shrink-0" />
@@ -91,12 +95,22 @@ export function SetupConfirmationView({
     )
 }
 
-const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () => void; merged?: boolean }) => {
+const SignTestTransaction = ({
+    onComplete,
+    merged = false,
+    showLogout = false,
+}: {
+    onComplete?: () => void
+    merged?: boolean
+    /** /setup/finish: a signed-in user whose passkey fails must still be able to leave */
+    showLogout?: boolean
+}) => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
+    const tProfile = useTranslations('profile')
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
-    const { user, isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
     const {
         residenceCountry,
         secondResidenceCountry,
@@ -105,7 +119,9 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         fundingChannel,
         paymentChannel,
     } = useSetupFlowContext()
-    const [error, setError] = useState<string | null>(null)
+    // the key, not the text: translated at render, so the message follows a
+    // language change made after it appeared (Release 164 smoke test)
+    const [errorKey, setErrorKey] = useState<keyof typeof en.setup.testTransaction.errors | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
     const creatingAccountRef = useRef(false)
@@ -227,7 +243,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                     tags: { feature: 'signup-test-transaction' },
                     extra: { context: 'user-fetch-on-mount' },
                 })
-                setError(t('testTransaction.errors.loadUserFailed'))
+                setErrorKey('loadUserFailed')
             })
         } else if (user) {
             console.log('[SignTestTransaction] User loaded successfully:', {
@@ -260,13 +276,13 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         if (redirectingRef.current) return
 
         if (!address) {
-            setError(t('testTransaction.errors.noWalletAddress'))
+            setErrorKey('noWalletAddress')
             return
         }
 
         if (!user) {
             console.error('[SignTestTransaction] Cannot proceed without user data')
-            setError(t('testTransaction.errors.userNotLoaded'))
+            setErrorKey('userNotLoaded')
             return
         }
 
@@ -277,7 +293,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             testTransactionCompleted,
         })
         setIsSigning(true)
-        setError(null)
+        setErrorKey(null)
         setSetupLoading(true)
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_STARTED)
 
@@ -325,7 +341,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                     // The request layer already recorded the concrete failure;
                     // avoid another console-captured wrapper event here.
                     console.info('[SignTestTransaction] Account setup remains retryable')
-                    setError(setupError || t('testTransaction.errors.setupFailed'))
+                    setErrorKey('setupFailed')
                     setIsSigning(false)
                     setSetupLoading(false)
                     return
@@ -367,14 +383,14 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             })
 
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
-            setError(t('testTransaction.errors.supportNeeded'))
+            setErrorKey('supportNeeded')
             setIsSigning(false)
             setSetupLoading(false)
         }
     }
 
     const isLoading = isSigning || isProcessing || isFetchingUser || !user
-    const displayError = error || setupError
+    const displayError = (errorKey && t(`testTransaction.errors.${errorKey}`)) || setupError
 
     // determine button text based on state
     const getButtonText = () => {
@@ -391,6 +407,13 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             buttonText={getButtonText()}
             merged={merged}
             showTitle={!!onComplete}
+            secondary={
+                showLogout && (
+                    <LinkButton onClick={() => void logoutUser()} disabled={isLoggingOut}>
+                        {tProfile('logOut')}
+                    </LinkButton>
+                )
+            }
         />
     )
 }

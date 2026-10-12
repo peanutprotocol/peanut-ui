@@ -22,19 +22,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
 import { blockExternal, FROZEN_NOW, openFixture, seenOnceModals, settle } from './fixture-page'
 import { fixtureHref } from '../../src/dev/fixtures/active'
-import { findOverflows } from './overflow-check'
-
-// Known intentional clips — CSS selectors matched against the offending
-// element (or any ancestor). Keep every entry justified; an unexplained entry
-// is a hidden bug.
-const EXEMPT: string[] = [
-    // react-fast-marquee tickers: the text scrolls through the clip by design
-    '.rfm-marquee-container',
-    // PixelatedCardFace: decorative card art — the pixel-font "????" line box
-    // deliberately overhangs the rounded card frame's clip; no locale copy
-    // renders inside it
-    '[data-decorative-clip]',
-]
+import { EXEMPT, findOverflows } from './overflow-check'
 
 async function assertNoOverflow(page: Page, id: string, testInfo: TestInfo) {
     // the check walks the whole document, so pull below-fold content in too
