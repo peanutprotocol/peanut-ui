@@ -3306,7 +3306,7 @@
             "features": "¿Qué te gustaría usar?",
             "qr": "Pagos QR",
             "local": "Transferencias bancarias locales",
-            "bank": "Cuentas bancarias internacionales",
+            "bank": "Cuentas en USD, EUR, MXN y GBP",
             "card": "Tarjeta Peanut",
             "unavailable": "La verificación aún no está disponible para estas opciones. Prueba otra opción de pago.",
             "documentSet": "Documentos necesarios",

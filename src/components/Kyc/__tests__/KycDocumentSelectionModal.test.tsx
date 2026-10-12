@@ -197,3 +197,57 @@ describe('choosing documents while features re-plan', () => {
         expect(checkboxes[3]).not.toBeChecked()
     })
 })
+
+describe('document labels', () => {
+    const props = { busy: false, error: null, onClose: jest.fn(), onFeatures: jest.fn(), onConfirm: jest.fn() }
+    const identity = (countries: string[]) => ({
+        key: 'identity',
+        code: 'IDENTITY' as const,
+        types: ['PASSPORT'],
+        countries,
+        requiredBy: ['SUMSUB' as const],
+    })
+
+    it('names the bank feature by the account currencies it opens', () => {
+        renderWithIntl(<KycDocumentSelectionModal plan={plan} {...props} />)
+        expect(screen.getByRole('checkbox', { name: 'USD, EUR, MXN and GBP accounts' })).toBeChecked()
+    })
+
+    it('tells routes with the same documents apart by issuing country', () => {
+        renderWithIntl(
+            <KycDocumentSelectionModal
+                plan={{
+                    ...plan,
+                    routes: [
+                        { id: 'eu', documents: [identity(['ES', 'DE'])] },
+                        { id: 'pt', documents: [identity(['PT'])] },
+                        { id: 'poa', documents: [plan.routes[0].documents[1]] },
+                    ],
+                }}
+                {...props}
+            />
+        )
+        const options = screen.getAllByRole('option').map((o) => o.textContent)
+        expect(options).toEqual(
+            expect.arrayContaining([
+                'Identity document — Passport (Germany, Spain)',
+                'Identity document — Passport (Portugal)',
+                'Proof of address — Bank statement',
+            ])
+        )
+    })
+
+    it('lists issuing countries by their localized name, not manifest order', () => {
+        renderWithIntl(
+            <KycDocumentSelectionModal
+                plan={{ ...plan, routes: [{ id: 'one', documents: [identity(['GB', 'CH', 'DE'])] }] }}
+                {...props}
+            />
+        )
+        const country = screen.getByLabelText('Issuing country')
+        const names = Array.from(country.querySelectorAll('option'))
+            .slice(1)
+            .map((o) => o.textContent)
+        expect(names).toEqual(['Germany', 'Switzerland', 'United Kingdom'])
+    })
+})

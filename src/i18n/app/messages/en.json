@@ -3306,7 +3306,7 @@
             "features": "What would you like to use?",
             "qr": "QR payments",
             "local": "Local bank transfers",
-            "bank": "International bank accounts",
+            "bank": "USD, EUR, MXN and GBP accounts",
             "card": "Peanut card",
             "unavailable": "Verification is not available for these choices yet. Try a different payment option.",
             "documentSet": "Required documents",

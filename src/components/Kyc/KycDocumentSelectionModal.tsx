@@ -55,6 +55,10 @@ export function KycDocumentSelectionModal({
         )
     }, [route])
     const countryNames = new Intl.DisplayNames([locale], { type: 'region' })
+    const countryName = (country: string) => countryNames.of(country) ?? country
+    const collator = new Intl.Collator(locale)
+    const byName = (countries: string[]) =>
+        [...countries].sort((a, b) => collator.compare(countryName(a), countryName(b)))
     const documentName = (type: string) => {
         const keys = {
             PASSPORT: 'passport',
@@ -65,6 +69,18 @@ export function KycDocumentSelectionModal({
             UTILITY_BILL: 'utilityBill',
         } as const
         return t(keys[type as keyof typeof keys] ?? 'otherDocument')
+    }
+    const routeLabels = plan.routes.map(
+        (r) =>
+            `${r.documents.map((d) => t(d.code === 'IDENTITY' ? 'identity' : 'poa')).join(' + ')} — ${r.documents
+                .map((d) => d.types.map(documentName).join(' / '))
+                .join(' + ')}`
+    )
+    const routeOptionLabel = (r: KycDocumentPlan['routes'][number], index: number) => {
+        const label = routeLabels[index]
+        if (routeLabels.filter((l) => l === label).length < 2) return label
+        const countries = byName([...new Set(r.documents.flatMap((d) => d.countries))])
+        return `${label} (${countries.map(countryName).join(', ')})`
     }
     const update = (key: string, value: Partial<KycDocumentChoice>) =>
         setChoices((current) => current.map((c) => (c.key === key ? { ...c, ...value } : c)))
@@ -113,11 +129,9 @@ export function KycDocumentSelectionModal({
                             value={routeId}
                             onChange={(e) => setRouteId(e.target.value)}
                         >
-                            {plan.routes.map((r) => (
+                            {plan.routes.map((r, index) => (
                                 <option key={r.id} value={r.id}>
-                                    {r.documents.map((d) => t(d.code === 'IDENTITY' ? 'identity' : 'poa')).join(' + ')}{' '}
-                                    {'— '}
-                                    {r.documents.map((d) => d.types.map(documentName).join(' / ')).join(' + ')}
+                                    {routeOptionLabel(r, index)}
                                 </option>
                             ))}
                         </select>
@@ -160,9 +174,9 @@ export function KycDocumentSelectionModal({
                                         <option value="" disabled>
                                             {t('choose')}
                                         </option>
-                                        {d.countries.map((country) => (
+                                        {byName(d.countries).map((country) => (
                                             <option key={country} value={country}>
-                                                {countryNames.of(country) ?? country}
+                                                {countryName(country)}
                                             </option>
                                         ))}
                                     </select>
