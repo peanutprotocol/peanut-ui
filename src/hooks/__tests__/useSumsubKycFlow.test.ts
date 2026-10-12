@@ -1591,6 +1591,26 @@ describe('document-first verification', () => {
             expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' })
         )
     })
+    it('a user the backend hands back to an already-started verification continues there without an error', async () => {
+        jest.mocked(getKycDocumentPlan)
+            .mockResolvedValueOnce(plan)
+            .mockResolvedValue({ ...plan, available: false, routes: [] })
+        jest.mocked(startKycDocumentAttempt).mockRejectedValueOnce(new Error('KYC request failed'))
+        mockInitiate.mockResolvedValue({ data: { status: 'NOT_STARTED', token: 'legacy-token', applicantId: 'a-1' } })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        await act(async () => {
+            await result.current.confirmDocumentPlan('shared', [
+                { key: 'identity', type: 'PASSPORT', issuingCountry: 'PT' },
+            ])
+        })
+        expect(result.current.documentPlan).toBeNull()
+        expect(result.current.error).toBeNull()
+        expect(mockInitiate).toHaveBeenCalled()
+        expect(result.current.accessToken).toBe('legacy-token')
+    })
     it('closing the document list releases the caller like closing the SDK does', async () => {
         const onManualClose = jest.fn()
         const { result } = renderHook(() => useSumsubKycFlow({ onManualClose }))

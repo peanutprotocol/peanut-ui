@@ -151,6 +151,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const documentAttemptRef = useRef<string | null>(null)
     const documentRequestKeyRef = useRef<string | null>(null)
     const documentBusyRef = useRef(false)
+    // handleInitiateKyc is declared after confirmDocumentPlan, which needs it for the hand-off.
+    const legacyInitiateRef = useRef<(() => Promise<unknown>) | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setErrorState] = useState<string | null>(null)
@@ -443,6 +445,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             documentBusyRef.current = true
             setIsLoading(true)
             setError(null)
+            let handOffToLegacy = false
             if (documentPreferencesOnly) {
                 const changed =
                     !!features &&
@@ -481,7 +484,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     const latest = await getKycDocumentPlan(documentRestartRef.current)
                     if (latest.activeAttemptId)
                         acceptDocumentSession(await resumeKycDocumentAttempt(latest.activeAttemptId))
-                    else {
+                    else if (!latest.available && !documentRestartRef.current) {
+                        // The backend handed this user back to the flow they had already started.
+                        setDocumentPlan(null)
+                        handOffToLegacy = true
+                    } else {
                         setDocumentPlan(latest)
                         documentRequestKeyRef.current = null
                         setError(t('errorInitiateFailed'))
@@ -493,6 +500,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 documentBusyRef.current = false
                 setIsLoading(false)
             }
+            if (handOffToLegacy) await legacyInitiateRef.current?.()
         },
         [documentPlan, documentPreferencesOnly, onKycSuccess, onManualClose, acceptDocumentSession, t, setError]
     )
@@ -744,6 +752,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         },
         [regionIntent, onKycSuccess, t, actionErrorMessage, acceptSessionView, setError, acceptDocumentSession]
     )
+    legacyInitiateRef.current = () => handleInitiateKyc()
 
     const correctVerificationData = useCallback(async () => {
         const session = verificationSessionRef.current
