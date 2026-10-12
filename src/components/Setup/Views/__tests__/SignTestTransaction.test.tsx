@@ -1,4 +1,7 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
+import es from '@/i18n/app/messages/es-419.json'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
@@ -20,6 +23,7 @@ const mockSendUserOp = jest.fn()
 const mockReadSignupAttributionAsync = jest.fn()
 const mockClearSignupAttribution = jest.fn()
 const mockHasPendingSignupAttribution = jest.fn()
+const mockLogoutUser = jest.fn()
 
 let mockSignupCompleted = false
 let mockFundingChannel: string | undefined
@@ -46,6 +50,8 @@ jest.mock('@/context/authContext', () => ({
         isFetchingUser: false,
         fetchUser: jest.fn(),
         addAccount: mockAddAccount,
+        logoutUser: mockLogoutUser,
+        isLoggingOut: false,
     }),
 }))
 
@@ -101,6 +107,39 @@ describe('SignTestTransaction — setup completion', () => {
         mockAddAccount.mockImplementation(async () => {
             accounts = [{ type: AccountType.PEANUT_WALLET }]
         })
+    })
+
+    it('offers log out as a link under the primary only where asked (/setup/finish)', () => {
+        const { unmount } = renderWithIntl(<SignTestTransaction />)
+        expect(screen.queryByRole('button', { name: 'Log out' })).not.toBeInTheDocument()
+        unmount()
+
+        renderWithIntl(<SignTestTransaction showLogout />)
+        fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
+        expect(mockLogoutUser).toHaveBeenCalledTimes(1)
+    })
+
+    it('the setup error follows a language change made after it appeared', async () => {
+        mockSendUserOp.mockRejectedValueOnce(new Error('Signing failed'))
+        jest.mocked(capturePasskeyDebugInfo).mockResolvedValueOnce(undefined as never)
+        const inLocale = (locale: 'en' | 'es-419', messages: typeof en) => (
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <SignTestTransaction />
+            </NextIntlClientProvider>
+        )
+        const { rerender } = render(inLocale('en', en))
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() =>
+            expect(
+                screen.getByText(en.setup.testTransaction.errors.supportNeeded, { exact: false })
+            ).toBeInTheDocument()
+        )
+
+        rerender(inLocale('es-419', es))
+        expect(screen.getByText(es.setup.testTransaction.errors.supportNeeded, { exact: false })).toBeInTheDocument()
+        expect(
+            screen.queryByText(en.setup.testTransaction.errors.supportNeeded, { exact: false })
+        ).not.toBeInTheDocument()
     })
 
     it('releases the confirm button when signing fails even if diagnostics never finish', async () => {

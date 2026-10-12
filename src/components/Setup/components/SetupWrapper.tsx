@@ -59,11 +59,8 @@ interface SetupWrapperProps {
     titleClassName?: HTMLDivElement['className']
     showBackButton?: boolean
     showSkipButton?: boolean
-    showLogoutButton?: boolean
     onBack?: () => void
     onSkip?: () => void
-    onLogout?: () => void
-    isLoggingOut?: boolean
     step?: number
     direction?: number
     /** Isolated Screen Library presentation; never reads or writes install state. */
@@ -140,27 +137,24 @@ const TransitioningContent = ({
 }
 
 /**
- * The top bar: back on the left; skip, logout and the language switcher on the
- * right. It sits outside the sliding step content, so nothing in it moves when
+ * The top bar: back on the left; skip and the language switcher on the right.
+ * Log out is not here: one control top right (Release 164 smoke test), and the
+ * finish step that needs it shows it as a link under its primary. It sits outside the sliding step content, so nothing in it moves when
  * the user changes step, and the back slot keeps its width when a step has no
  * back button.
  */
 const Navigation = memo(function Navigation({
     showBackButton,
     showSkipButton,
-    showLogoutButton,
     showLanguageSwitcher,
     onBack,
     onSkip,
-    onLogout,
-    isLoggingOut,
-}: Pick<
-    SetupWrapperProps,
-    'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
-> & { showLanguageSwitcher: boolean }) {
+}: Pick<SetupWrapperProps, 'showBackButton' | 'showSkipButton' | 'onBack' | 'onSkip'> & {
+    showLanguageSwitcher: boolean
+}) {
     const t = useTranslations('setup.navigation')
 
-    if (!showBackButton && !showSkipButton && !showLogoutButton && !showLanguageSwitcher) return null
+    if (!showBackButton && !showSkipButton && !showLanguageSwitcher) return null
 
     // Icons inherit currentColor: the circle fills on hover/active, and a
     // hard-coded fill vanished into the fill colour.
@@ -192,18 +186,6 @@ const Navigation = memo(function Navigation({
                         className="relative h-auto w-fit p-0 after:absolute after:-inset-3"
                     >
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
-                    </Button>
-                )}
-                {showLogoutButton && (
-                    <Button
-                        onClick={onLogout}
-                        loading={isLoggingOut}
-                        variant="ghost"
-                        className={NAV_CIRCLE_BUTTON_CLASSES}
-                        aria-label={t('logout')}
-                        disabled={isLoggingOut}
-                    >
-                        <Icon name="logout" size={20} />
                     </Button>
                 )}
                 {showLanguageSwitcher && <SetupLanguageSwitcher />}
@@ -452,11 +434,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     contentClassName,
     showBackButton,
     showSkipButton,
-    showLogoutButton,
     onBack,
     onSkip,
-    onLogout,
-    isLoggingOut,
     screenId,
     imageClassName,
     titleClassName,
@@ -539,13 +518,10 @@ export const SetupWrapper = memo(function SetupWrapper({
             <Navigation
                 showBackButton={showBackButton}
                 showSkipButton={showSkipButton}
-                showLogoutButton={showLogoutButton}
                 // Hidden during the first-launch intro, and on a full-page step without progress (the celebration).
                 showLanguageSwitcher={!intro.active && (!fullScreen || showProgress)}
                 onBack={onBack}
                 onSkip={onSkip}
-                onLogout={onLogout}
-                isLoggingOut={isLoggingOut}
             />
 
             {/* The hero stays put between steps (its art crossfades); only the white

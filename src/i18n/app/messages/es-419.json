@@ -766,8 +766,7 @@
         },
         "navigation": {
             "goBack": "Volver",
-            "skip": "Omitir",
-            "logout": "Cerrar sesión"
+            "skip": "Omitir"
         },
         "wrapper": {
             "illustrationAlt": "Ilustración de la sección",
@@ -812,7 +811,7 @@
         "residenceStep": {
             "countryPlaceholder": "Selecciona el país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tienes ciudadanía de otro país?",
+            "multiDocLink": "¿Tienes residencia en otro país?",
             "errors": {
                 "invalidEmail": "Ingresa un correo electrónico válido"
             },

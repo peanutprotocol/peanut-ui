@@ -766,8 +766,7 @@
         },
         "navigation": {
             "goBack": "Voltar",
-            "skip": "Pular",
-            "logout": "Sair"
+            "skip": "Pular"
         },
         "wrapper": {
             "illustrationAlt": "Ilustração da seção",
@@ -812,7 +811,7 @@
         "residenceStep": {
             "countryPlaceholder": "Selecione o país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "Tem cidadania de outro país?",
+            "multiDocLink": "Tem residência em outro país?",
             "errors": {
                 "invalidEmail": "Digite um e-mail válido"
             },
