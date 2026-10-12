@@ -2541,7 +2541,7 @@
         "downloadedByYear": "Um arquivo por ano",
         "errors": {
             "tooLarge": "Este período é muito longo. Escolha um período menor.",
-            "unverified": "Problema inesperado. Fale com o suporte.",
+            "unverified": "Problema inesperado.",
             "busy": "Há vários downloads em andamento. Tente novamente em instantes.",
             "saveUnavailable": "Não é possível salvar arquivos neste dispositivo. Baixe pelo app web.",
             "failed": "Falha no download. Tente de novo."

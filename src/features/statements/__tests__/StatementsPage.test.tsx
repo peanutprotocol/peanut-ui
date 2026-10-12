@@ -190,7 +190,7 @@ describe('StatementsPage', () => {
         expect(calendar()).toBeInTheDocument()
     })
 
-    it('shows a refused download as a flow error above the button', async () => {
+    it('shows a refused download as a flow error under the button', async () => {
         prepare.mockRejectedValue(new StatementDownloadError('EXPORT_UNVERIFIED', 'reward-credit-missing'))
         renderPage('?from=2026-08-03&to=2026-08-14')
         fireEvent.click(downloadButton())
@@ -198,10 +198,10 @@ describe('StatementsPage', () => {
         const alert = await screen.findByRole('alert')
         expect(alert).toHaveTextContent('errors.unverified')
         expect(periodField()).not.toContainElement(alert)
-        // the CTA ends the page, so the error sits above it
-        expect(downloadButton().compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
-        // the page is long with the calendar open: the failure brings the button out from under the nav
-        expect(scrollClearOfBottomNav).toHaveBeenCalledWith(downloadButton())
+        // the CTA stays the pinned element and the error reads just under it (Aleks, 2026-10-12)
+        expect(downloadButton().compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        // the page is long with the calendar open: the failure brings itself out from under the nav
+        expect(scrollClearOfBottomNav).toHaveBeenCalledWith(alert.parentElement)
         expect(save).not.toHaveBeenCalled()
     })
 

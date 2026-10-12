@@ -32,6 +32,9 @@ interface CalloutBaseProps {
      *  its own: on its timer, or (a `persistent` toast) when its caller clears
      *  it as the condition ends. So `floating` never draws one. */
     onDismiss?: () => void
+    /** Offer the "Contact support" CTA even when the copy does not ask for it:
+     *  an error whose line is kept short, with the ask living in the link. */
+    offerSupport?: boolean
     /** ms the callout has left on screen. Draws the tone-colored countdown
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
@@ -149,6 +152,7 @@ export const Callout = ({
     children,
     items,
     onDismiss,
+    offerSupport = false,
     progressMs,
     ctas,
     className,
@@ -174,7 +178,8 @@ export const Callout = ({
     useLayoutEffect(() => {
         const content = contentRef.current
         const text = offersSupport ? (content?.textContent?.trim() ?? '') : ''
-        setNeedsSupportCta(ASKS_FOR_SUPPORT.test(text) && !content?.querySelector('[data-support-ask]'))
+        const asks = !!text && (offerSupport || ASKS_FOR_SUPPORT.test(text))
+        setNeedsSupportCta(asks && !content?.querySelector('[data-support-ask]'))
     })
     const supportCta: CalloutCta | undefined =
         needsSupportCta && openSupport ? { label: t('contactSupport'), onClick: openSupport } : undefined
