@@ -52,11 +52,7 @@ function QrPayFlowContent() {
             if (loadingState === 'Still fetching details') {
                 return <QrPayPageLoading message={tLoading(loadingStateKey(loadingState))} />
             }
-            return (
-                <QrPayPageLoading
-                    message={tLoading(loadingStateKey(loadingState === 'Idle' ? 'Fetching details' : loadingState))}
-                />
-            )
+            return <Loading variant="mascot" />
         case 'STATUS':
             return <QrPayStatusView />
         case 'SUCCESS':
