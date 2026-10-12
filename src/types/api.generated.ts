@@ -12672,19 +12672,23 @@ export interface paths {
                         "application/json": {
                             features?: {
                                 bank: {
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 card: {
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 local: {
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 qr: {
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                             };
@@ -12904,6 +12908,9 @@ export interface paths {
                                     key: string;
                                     poaPreset?: string;
                                     requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    supplement?: {
+                                        levelName: string;
+                                    };
                                     types: string[];
                                 }[];
                                 id: string;
@@ -13185,6 +13192,7 @@ export interface paths {
                                 state: string;
                                 targetCountry: string;
                             };
+                            status?: "collecting" | "completed";
                             sumsubAccessToken?: string;
                             verificationUrl?: string;
                         };

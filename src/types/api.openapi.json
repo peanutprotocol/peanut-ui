@@ -22612,6 +22612,28 @@
                                                 "bank": {
                                                     "additionalProperties": false,
                                                     "properties": {
+                                                        "action": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:bridge"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:manteca"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:rain"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
                                                         "reason": {
                                                             "anyOf": [
                                                                 {
@@ -22677,6 +22699,18 @@
                                                                 {
                                                                     "enum": [
                                                                         "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "identity_document_insufficient"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "requirements_uncollectable"
                                                                     ],
                                                                     "type": "string"
                                                                 }
@@ -22731,6 +22765,28 @@
                                                 "card": {
                                                     "additionalProperties": false,
                                                     "properties": {
+                                                        "action": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:bridge"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:manteca"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:rain"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
                                                         "reason": {
                                                             "anyOf": [
                                                                 {
@@ -22796,6 +22852,18 @@
                                                                 {
                                                                     "enum": [
                                                                         "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "identity_document_insufficient"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "requirements_uncollectable"
                                                                     ],
                                                                     "type": "string"
                                                                 }
@@ -22850,6 +22918,28 @@
                                                 "local": {
                                                     "additionalProperties": false,
                                                     "properties": {
+                                                        "action": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:bridge"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:manteca"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:rain"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
                                                         "reason": {
                                                             "anyOf": [
                                                                 {
@@ -22915,6 +23005,18 @@
                                                                 {
                                                                     "enum": [
                                                                         "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "identity_document_insufficient"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "requirements_uncollectable"
                                                                     ],
                                                                     "type": "string"
                                                                 }
@@ -22969,6 +23071,28 @@
                                                 "qr": {
                                                     "additionalProperties": false,
                                                     "properties": {
+                                                        "action": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:bridge"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:manteca"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "supplement:rain"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
                                                         "reason": {
                                                             "anyOf": [
                                                                 {
@@ -23034,6 +23158,18 @@
                                                                 {
                                                                     "enum": [
                                                                         "document_country_unsupported"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "identity_document_insufficient"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "requirements_uncollectable"
                                                                     ],
                                                                     "type": "string"
                                                                 }
@@ -23583,6 +23719,21 @@
                                                                     },
                                                                     "type": "array",
                                                                     "uniqueItems": true
+                                                                },
+                                                                "supplement": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "levelName": {
+                                                                            "maxLength": 255,
+                                                                            "minLength": 1,
+                                                                            "pattern": "^[^\r\n]+$",
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "levelName"
+                                                                    ],
+                                                                    "type": "object"
                                                                 },
                                                                 "types": {
                                                                     "items": {
@@ -24864,6 +25015,22 @@
                                                 "isMultiLevel"
                                             ],
                                             "type": "object"
+                                        },
+                                        "status": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "collecting"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "completed"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
                                         },
                                         "sumsubAccessToken": {
                                             "type": "string"
