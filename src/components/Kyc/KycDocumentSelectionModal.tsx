@@ -98,6 +98,9 @@ export function KycDocumentSelectionModal({
             preventClose={busy}
             title={t(preferencesOnly ? 'preferencesTitle' : 'title')}
             closeTestId="kyc-documents-close"
+            // Taller than a phone screen: bounded to it, the body scrolls and the title and close stay on screen.
+            classWrap="flex max-h-[calc(100dvh_-_var(--safe-top))] flex-col md:max-h-[calc(100dvh_-_3rem)]"
+            classNameWrapperDiv="min-h-0 flex-1 overflow-y-auto"
         >
             <form
                 className="flex flex-col gap-6 p-6"
