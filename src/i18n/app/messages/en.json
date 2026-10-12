@@ -790,9 +790,10 @@
             "loginUnexpectedError": "An unexpected error occurred during login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Username",
+            "usernameLabel": "Username",
+            "usernamePlaceholder": "batman",
             "inviterUsernameLabel": "Username of the person who invited you",
-            "inviterUsernamePlaceholder": "Username",
+            "inviterUsernamePlaceholder": "batman",
             "inviterNotFound": "We couldn’t find this user.",
             "inviterCheckFailed": "We couldn’t check this username. Try again.",
             "errors": {
