@@ -12,6 +12,10 @@ import { IntlWrapper } from '@/test-utils/intl'
 import type { AskId, JourneyState, LedgerEntry } from '../types'
 
 const mockCapture = jest.fn()
+jest.mock('../serverAttention', () => ({
+    ...jest.requireActual('../serverAttention'),
+    useServerAttention: () => undefined,
+}))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
 
 const mockCaptureException = jest.fn()

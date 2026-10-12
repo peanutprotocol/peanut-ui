@@ -10,6 +10,10 @@ import { act, render, screen } from '@testing-library/react'
 import type { AskId, AskSurfaceProps, JourneyState } from '../types'
 
 const mockCapture = jest.fn()
+jest.mock('../serverAttention', () => ({
+    ...jest.requireActual('../serverAttention'),
+    useServerAttention: () => undefined,
+}))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
 
 const mockCaptureException = jest.fn()
