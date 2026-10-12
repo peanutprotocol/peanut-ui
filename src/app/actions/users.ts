@@ -1,11 +1,16 @@
 import { type ApiUser } from '@/services/users'
-import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResponse } from './types/users.types'
+import {
+    type AddBankAccountPayload,
+    BridgeEndorsementType,
+    type InitiateKycResponse,
+    type UpdateUserResult,
+} from './types/users.types'
 import { type CounterpartyUser } from '@/interfaces/interfaces'
 import { type ContactsResponse } from '@/interfaces/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
 import { withStepUpHeader } from '@/services/step-up'
 
-export const updateUserById = async (payload: Record<string, unknown>): Promise<{ data?: ApiUser; error?: string }> => {
+export const updateUserById = async (payload: Record<string, unknown>): Promise<UpdateUserResult<ApiUser>> => {
     try {
         const requiresEmailStepUp = typeof payload.emailVerificationCode === 'string'
         const response = await serverFetch('/update-user', {
@@ -17,15 +22,28 @@ export const updateUserById = async (payload: Record<string, unknown>): Promise<
             ...(requiresEmailStepUp ? { headers: await withStepUpHeader({}) } : {}),
         })
 
-        const responseJson = await response.json()
+        // A gateway error page is not JSON; its status still says what failed.
+        const responseJson = await response.json().catch(() => undefined)
         if (!response.ok) {
-            return { error: responseJson.message || responseJson.error || 'Failed to update user' }
+            return {
+                error: responseJson?.message || responseJson?.error || 'Failed to update user',
+                failureKind: 'http',
+                status: response.status,
+            }
         }
+        if (responseJson === undefined) return { error: 'Invalid response from the server', failureKind: 'other' }
         return { data: responseJson }
     } catch (e) {
-        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
+        return {
+            error: e instanceof Error ? e.message : 'An unexpected error occurred',
+            failureKind: isRequestFailure(e) ? 'network' : 'other',
+        }
     }
 }
+
+/** fetchWithSentry's errors for a request that got no response: a rejected fetch or a timeout. */
+const isRequestFailure = (e: unknown): boolean =>
+    e instanceof Error && (e.name === 'ServiceUnavailableError' || e.name === 'ConnectionTimeoutError')
 
 export const requestEmailChange = async (email: string): Promise<{ error?: string }> => {
     const response = await serverFetch('/users/email-change', {

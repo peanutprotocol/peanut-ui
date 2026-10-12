@@ -16,7 +16,8 @@ import type { IUserProfile } from '@/interfaces/interfaces'
 import { SetupDocLink } from '../components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { captureException } from '@/utils/sentry-lazy'
+import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
+import { reportEmailSaveFailure } from '@/features/setup/report-email-save-failure'
 
 export default function EmailStep() {
     const t = useTranslations('setup.email')
@@ -29,6 +30,7 @@ export default function EmailStep() {
     const [emailInUse, setEmailInUse] = useState(false)
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
+    const saveAttemptsRef = useRef(0)
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         if (savingRef.current) return
@@ -52,15 +54,33 @@ export default function EmailStep() {
         try {
             // updateUserById returns every failure, including a network error
             // after its one retry, as `result.error`. The button stays enabled
-            // after an error, so Continue is the retry.
+            // after an error, so Continue retries the save; it never skips it.
             if (user.user.email !== value) {
+                saveAttemptsRef.current += 1
                 const result = await updateUserById({ userId: user.user.userId, email: value }).catch(() => ({
                     error: 'request failed',
+                    failureKind: 'other' as const,
+                    status: undefined,
                 }))
                 if (result.error) {
                     const duplicate = result.error === 'This email is already associated with another account'
+                    if (duplicate) {
+                        // A user outcome, not a fault: on the trail, not an error event.
+                        addBreadcrumb({
+                            category: 'signup',
+                            level: 'info',
+                            message: 'Sign-up email already registered',
+                        })
+                    } else {
+                        reportEmailSaveFailure({
+                            failureKind: result.failureKind,
+                            status: result.status,
+                            attempt: saveAttemptsRef.current,
+                        })
+                    }
                     setEmailInUse(duplicate)
                     setError(t(duplicate ? 'alreadyRegistered' : 'saveFailed'))
+                    // The email is required: never advance without a confirmed save.
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the

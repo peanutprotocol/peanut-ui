@@ -30,8 +30,12 @@ jest.mock('@/hooks/useNotifications', () => ({
     }),
 }))
 const mockCaptureException = jest.fn()
+const mockCaptureMessage = jest.fn()
+const mockAddBreadcrumb = jest.fn()
 jest.mock('@/utils/sentry-lazy', () => ({
     captureException: (...args: unknown[]) => mockCaptureException(...args),
+    captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
+    addBreadcrumb: (...args: unknown[]) => mockAddBreadcrumb(...args),
 }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }),
@@ -140,6 +144,68 @@ it('keeps the email step retryable after a rejected request', async () => {
     await screen.findByText('We couldn’t save your email. Please try again.')
     expect(mockNext).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+})
+it.each([
+    ['network', { error: 'Something went wrong. Please try again.', failureKind: 'network' }, undefined],
+    ['http', { error: 'Internal error', failureKind: 'http', status: 500 }, '500'],
+    ['other', undefined, undefined],
+])(
+    'never advances on a %s save failure and reports it to Sentry without the email',
+    async (kind, result, httpStatus) => {
+        if (result) mockUpdateUser.mockResolvedValueOnce(result)
+        else mockUpdateUser.mockRejectedValueOnce(new Error('boom'))
+        renderStep(<EmailStep />)
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await screen.findByText('We couldn’t save your email. Please try again.')
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(mockCaptureMessage).toHaveBeenCalledTimes(1)
+        const [message, context] = mockCaptureMessage.mock.calls[0]
+        expect(message).toBe('Sign-up email save failed')
+        expect(context).toMatchObject({
+            level: 'error',
+            fingerprint: ['signup-email-save-failed', kind],
+            tags: {
+                flow: 'signup',
+                step: 'notification-email',
+                failure_kind: kind,
+                native: 'false',
+                platform: expect.any(String),
+                attempt: '1',
+            },
+        })
+        expect(context.tags.http_status).toBe(httpStatus)
+        expect(JSON.stringify(mockCaptureMessage.mock.calls)).not.toContain('money@example.com')
+
+        // a second press retries the save and counts as attempt 2; still no advance
+        mockUpdateUser.mockResolvedValueOnce({ error: 'Internal error', failureKind: 'http', status: 503 })
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await waitFor(() => expect(mockCaptureMessage).toHaveBeenCalledTimes(2))
+        expect(mockCaptureMessage.mock.calls[1][1].tags.attempt).toBe('2')
+        expect(mockNext).not.toHaveBeenCalled()
+    }
+)
+it('does not report an already registered email as an error', async () => {
+    mockUpdateUser.mockResolvedValueOnce({
+        error: 'This email is already associated with another account',
+        failureKind: 'http',
+        status: 409,
+    })
+    renderStep(<EmailStep />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'existing@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await screen.findByText('The user with this email was already registered.')
+    expect(mockCaptureMessage).not.toHaveBeenCalled()
+    expect(mockAddBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({ category: 'signup' }))
+    expect(mockNext).not.toHaveBeenCalled()
+})
+it('advances without saving when the email is already saved and unchanged', async () => {
+    mockUser = { user: { userId: 'new-user', email: 'money@example.com' } }
+    renderStep(<EmailStep />)
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockUpdateUser).not.toHaveBeenCalled()
 })
 it('reports a navigation failure after a confirmed save instead of showing a failed save', async () => {
     const navigationError = new Error('stepper failed')
