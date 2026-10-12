@@ -116,6 +116,8 @@ export const initiateSumsubKyc = async (params?: {
     try {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
+            // The backend only asks clients that announce the document picker to choose documents first.
+            headers: { 'x-kyc-document-selection': '1' },
             body: JSON.stringify(body),
         })
 
