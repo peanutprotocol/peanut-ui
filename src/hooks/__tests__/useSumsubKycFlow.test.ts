@@ -1612,6 +1612,24 @@ describe('document-first verification', () => {
         expect(result.current.accessToken).toBe('refreshed')
         expect(result.current.documentConfig).toEqual(session.sdkConfig)
     })
+    it('a saved attempt that cannot be resumed shows translated copy, not the action’s English error', async () => {
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ ...plan, activeAttemptId: 'attempt-1' })
+        jest.mocked(resumeKycDocumentAttempt).mockRejectedValue(new Error('KYC request failed'))
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(result.current.error).toBe('Could not initiate verification. Please try again.')
+        expect(result.current.showWrapper).toBe(false)
+
+        jest.mocked(resumeKycDocumentAttempt).mockRejectedValue(new Error('Invalid KYC verification session'))
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(result.current.error).toBe('Could not restart identity verification. Please try again.')
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isLoading).toBe(false)
+    })
 })
 
 describe('an API without a readable document plan keeps the legacy flow', () => {

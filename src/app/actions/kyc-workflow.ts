@@ -25,9 +25,9 @@ export async function saveKycFeatures(features: KycFeatures, restart = false) {
     return getKycDocumentPlan(restart)
 }
 function validSession(value: KycAttemptSession): KycAttemptSession {
-    const identity = value.sdkConfig?.documentDefinitions?.IDENTITY
+    const identity = value?.sdkConfig?.documentDefinitions?.IDENTITY
     if (
-        !value.attemptId ||
+        !value?.attemptId ||
         !value.token ||
         !value.applicantId ||
         !identity?.country ||
@@ -67,7 +67,7 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
         cache: 'no-store',
         redactTelemetry: true,
     })
-    const body = await response.json()
+    const body = await response.json().catch(() => null)
     if (response.ok) return validSession(body)
     // A crash can leave the saved replacement before its remote reset. Only that explicit response resumes the authorised reset ledger.
     if (response.status === 409 && body?.error === 'replacement_reset_required')

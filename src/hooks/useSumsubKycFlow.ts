@@ -546,9 +546,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setDocumentPreferencesOnly(false)
                     const plan = await findKycDocumentPlan()
                     if (plan?.available) {
-                        if (plan.activeAttemptId)
-                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
-                        else {
+                        if (plan.activeAttemptId) {
+                            try {
+                                acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
+                            } catch {
+                                userInitiatedRef.current = false
+                                if (crossRegion) prevStatusRef.current = savedPrevStatus
+                                setError(t('errorInitiateFailed'))
+                            }
+                        } else {
                             setDocumentPlan(plan)
                             documentRequestKeyRef.current = null
                         }
@@ -927,9 +933,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (plan?.available) {
                     documentRestartRef.current = true
                     setDocumentPreferencesOnly(false)
-                    if (plan.activeAttemptId)
-                        acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
-                    else {
+                    if (plan.activeAttemptId) {
+                        try {
+                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
+                        } catch {
+                            userInitiatedRef.current = false
+                            setError(t('errorRestartFailed'))
+                        }
+                    } else {
                         setDocumentPlan(plan)
                         documentRequestKeyRef.current = null
                     }
