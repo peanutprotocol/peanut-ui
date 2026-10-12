@@ -99,7 +99,8 @@ describe('Phase 8: Home anchor selection', () => {
             { 'blocked-card': { dismissedAt: new Date(NOW).toISOString(), version: BLOCKED } }
         )
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
-        expect(d.interrupt).toBeNull()
+        // install-app is tier 1 (Slava, 2026-10-12): the most critical ask may open over the list
+        expect(d.interrupt).toBe('install-app')
     })
 
     test.each<AskId>(['checklist', 'blocked-card'])('a T1 zone pick keeps %s as its underlay', (anchor) => {
@@ -172,17 +173,19 @@ describe('Phase 8: Home anchor selection', () => {
     })
 
     test('after activation, no anchor changes the install-app zone fallback', () => {
-        const d = run(
-            { ...WEB_INSTALL, activated: true, onboarding: onboarding(true) },
-            { interruptsThisSession: ['legal-reconsent'] }
-        )
+        // a user-opened overlay blocks new interrupts, so the tier 1 install ask takes the card
+        const d = run({ ...WEB_INSTALL, activated: true, onboarding: onboarding(true) }, { busy: true })
         expect(d.zone).toEqual({ id: 'install-app', mode: 'ask' })
     })
 })
 
 describe('Phase 8: Home interrupt anchor boundary', () => {
+    test('install-app is the most critical ask: it opens over the to-do list, its card overlays it', () => {
+        expect(run(WEB_INSTALL).interrupt).toBe('install-app')
+        expect(run(WEB_INSTALL, { busy: true }).zone).toEqual({ id: 'install-app', mode: 'ask', underlay: 'checklist' })
+    })
+
     test.each<[AskId, Partial<JourneyState>]>([
-        ['install-app', WEB_INSTALL],
         [
             'push-home-fallback',
             { push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: true } },
