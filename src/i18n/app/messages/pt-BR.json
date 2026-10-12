@@ -2516,6 +2516,7 @@
     },
     "statements": {
         "title": "Extratos",
+        "intro": "Um extrato mostra toda a atividade da conta em um período, com datas, valores e status. Escolha um formato e um período e depois baixe o arquivo.",
         "format": "Formato",
         "formatHints": {
             "pdf": "Para compartilhar ou imprimir",

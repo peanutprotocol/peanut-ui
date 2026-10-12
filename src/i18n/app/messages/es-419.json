@@ -2516,6 +2516,7 @@
     },
     "statements": {
         "title": "Estados de cuenta",
+        "intro": "Un estado de cuenta muestra toda la actividad de la cuenta en un período, con fechas, montos y estado. Elige un formato y un período, y luego descarga el archivo.",
         "format": "Formato",
         "formatHints": {
             "pdf": "Para compartir o imprimir",
