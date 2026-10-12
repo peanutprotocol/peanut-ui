@@ -166,7 +166,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" tools:node="remove" />
     <!-- Android 13+ runtime push permission; OneSignal's requestPermission() drives the prompt -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Shake to pay: approximate location only, to tell nearby people from strangers.
-         Never ACCESS_FINE_LOCATION; enableHighAccuracy stays false. -->
+    <!-- Shake to pay asks for approximate location only; the Sumsub SDK merges in both location permissions anyway. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 </manifest>
