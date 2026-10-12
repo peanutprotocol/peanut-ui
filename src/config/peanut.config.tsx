@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { queryClient } from '@/config/queryClient'
 import { isMarketingRoute } from '@/utils/marketing-routes'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { useEffect } from 'react'
 
 import 'react-tooltip/dist/react-tooltip.css'
@@ -16,18 +17,12 @@ import { markPasskeyShimFailed } from '@/utils/passkeyCeremony.utils'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
 
-const AppStateProviders = dynamic(() => import('@/config/AppStateProviders').then((m) => m.AppStateProviders))
+const AppStateProviders = dynamic(() =>
+    importWithChunkRetry(() => import('@/config/AppStateProviders')).then((m) => m.AppStateProviders)
+)
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
-        if (process.env.NODE_ENV !== 'development') {
-            // Loaded on demand: the country list plus its English locale table is
-            // dead weight on the marketing site, which never renders one.
-            void Promise.all([import('i18n-iso-countries'), import('i18n-iso-countries/langs/en.json')]).then(
-                ([countries, enLocale]) => countries.default.registerLocale(enLocale.default)
-            )
-        }
-
         // in capacitor, install the passkey shim so navigator.credentials.create/get
         // routes through native APIs instead of the browser (which doesn't work in webview).
         // Session auth on native is header-based: the verify endpoints return the token

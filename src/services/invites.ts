@@ -34,6 +34,8 @@ function isRetryableInviteStatus(status: number): boolean {
 
 export type ValidateInviteResult = {
     success: boolean
+    /** The API answered that no such invite or user exists (not a failed request). */
+    notFound?: boolean
     attributionResolved: boolean
     onboardingResolved: boolean
     username: string
@@ -112,6 +114,7 @@ export const invitesApi = {
             const res = await validateInviteCode(toInviteCode(inviteCode))
             return {
                 success: res.data?.success || false,
+                ...(res.status === 400 || res.status === 404 ? { notFound: true } : {}),
                 attributionResolved: res.data?.attributionResolved === true,
                 onboardingResolved: res.data?.onboardingResolved === true,
                 username: res.data?.username || '',

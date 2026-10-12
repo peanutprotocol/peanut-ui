@@ -36,6 +36,10 @@ pnpm dev                     # listens on :3000
 # pnpm run dev:https         # HTTPS dev server (secure-context features)
 ```
 
+## Releases
+
+Production releases, hotfixes, OTA updates, store builds and native build commands: [mono `ops/releases.md`](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md). It is the only release doc. Each release's run is a row in the Notion Releases table.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for coding standards, design system reference, and development rules.

@@ -155,7 +155,7 @@ describe('native-fingerprint', () => {
     it('exits 1 naming the culprit when the surface moved', () => {
         withPatchedInput(
             'android/capacitor.settings.gradle',
-            (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
+            (content) => content.replace('capacitor-updater@8.51.23', 'capacitor-updater@9.0.0'),
             () => {
                 const result = run(fixture.dir, '--diff', 'HEAD')
 
@@ -172,7 +172,7 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'android/capacitor.settings.gradle',
-            (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
+            (content) => content.replace('capacitor-updater@8.51.23', 'capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -314,7 +314,7 @@ describe('native-fingerprint', () => {
             // The OTA workflow runs `pnpm install` but never regenerates the
             // committed Capacitor manifests, so a bump without a `cap sync`
             // ships the new JS wrapper against unchanged manifest bytes.
-            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
+            (content) => content.split('@capgo/capacitor-updater@8.51.23').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -371,7 +371,7 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'pnpm-lock.yaml',
-            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
+            (content) => content.split('@capgo/capacitor-updater@8.51.23').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })

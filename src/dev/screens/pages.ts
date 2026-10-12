@@ -217,5 +217,6 @@ PAGE_CAPTURES.push(
             { clickSelector: 'button[role="combobox"]' },
         ],
         expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
-    }
+    },
+    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' }
 )

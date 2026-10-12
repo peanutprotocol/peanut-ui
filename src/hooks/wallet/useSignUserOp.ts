@@ -1,5 +1,6 @@
 'use client'
 
+import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { useCallback } from 'react'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -236,16 +237,17 @@ export const useSignUserOp = () => {
                 // would generate a second Sentry/PostHog exception for it.
                 console.warn('[useSignUserOp] Error signing calls UserOperation:', error)
                 capturePasskeySignFailure(error, 'sign-user-op')
-                captureException(error, {
-                    tags: { feature: 'sign-user-op' },
-                    extra: {
-                        callCount: calls.length,
-                        chainId,
-                        ...(error instanceof InvalidSponsorshipResponseError
-                            ? { sponsorshipResponseShape: error.responseShape }
-                            : {}),
-                    },
-                })
+                if (!reportPasskeyFailure(error, 'sign-user-op'))
+                    captureException(error, {
+                        tags: { feature: 'sign-user-op' },
+                        extra: {
+                            callCount: calls.length,
+                            chainId,
+                            ...(error instanceof InvalidSponsorshipResponseError
+                                ? { sponsorshipResponseShape: error.responseShape }
+                                : {}),
+                        },
+                    })
                 throw error
             }
         },
@@ -268,26 +270,17 @@ export const useSignUserOp = () => {
             amountInUsd: string,
             chainId: string = PEANUT_WALLET_CHAIN.id.toString()
         ): Promise<SignedUserOpData> => {
+            let txData: Hex
             try {
                 const amount = parseUnits(amountInUsd.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
-                const txData = encodeFunctionData({
+                txData = encodeFunctionData({
                     abi: erc20Abi,
                     functionName: 'transfer',
                     args: [toAddress, amount],
                 }) as Hex
-
-                return await signCallsUserOp(
-                    [
-                        {
-                            to: PEANUT_WALLET_TOKEN as Hex,
-                            value: 0n,
-                            data: txData,
-                        },
-                    ],
-                    chainId
-                )
             } catch (error) {
-                console.error('[useSignUserOp] Error signing UserOperation:', error)
+                // console.warn: captureConsoleIntegration would make console.error a second event.
+                console.warn('[useSignUserOp] Error encoding transfer UserOperation:', error)
                 captureException(error, {
                     tags: { feature: 'sign-user-op' },
                     extra: {
@@ -298,6 +291,9 @@ export const useSignUserOp = () => {
                 })
                 throw error
             }
+
+            // signCallsUserOp captures its own failures.
+            return signCallsUserOp([{ to: PEANUT_WALLET_TOKEN as Hex, value: 0n, data: txData }], chainId)
         },
         [signCallsUserOp]
     )

@@ -25,7 +25,7 @@ interface InviteFriendsModalProps {
  */
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
     const t = useAppTranslations('global')
-    const { inviteLink } = generateInviteCodeLink(username)
+    const { inviteLink } = generateInviteCodeLink(username, REFERRAL_SOURCES.INVITE_MODAL)
 
     const hasTrackedShow = useRef(false)
 

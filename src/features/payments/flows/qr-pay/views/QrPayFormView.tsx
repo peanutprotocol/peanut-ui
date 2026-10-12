@@ -13,6 +13,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -59,6 +60,8 @@ export function QrPayFormView() {
         errorInitiatingPayment,
         isBlockingError,
         balanceErrorMessage,
+        rateUnavailable,
+        retryRate,
         shouldBlockPay,
         isLoading,
         loadingState,
@@ -275,6 +278,7 @@ export function QrPayFormView() {
                         disabled={
                             !!errorInitiatingPayment ||
                             isBlockingError ||
+                            rateUnavailable ||
                             !amount ||
                             isLoading ||
                             // A replacement quote is being obtained — paying now
@@ -292,18 +296,14 @@ export function QrPayFormView() {
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
 
-                    {isLoading && (
-                        <p role="status" className="text-center text-body-s text-foreground-secondary">
-                            {tLoading(loadingStateKey(loadingState))}
-                        </p>
-                    )}
-
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (
                         <Callout priority="info" data-testid="quote-updated-notice">
                             {quoteUpdatedNotice}
                         </Callout>
                     )}
+
+                    {rateUnavailable && <RateUnavailable onRetry={retryRate} />}
 
                     {/* Error State */}
                     {errorMessage && (

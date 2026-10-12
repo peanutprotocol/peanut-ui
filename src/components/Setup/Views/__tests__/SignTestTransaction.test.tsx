@@ -1,4 +1,7 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
+import es from '@/i18n/app/messages/es-419.json'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
@@ -20,6 +23,7 @@ const mockSendUserOp = jest.fn()
 const mockReadSignupAttributionAsync = jest.fn()
 const mockClearSignupAttribution = jest.fn()
 const mockHasPendingSignupAttribution = jest.fn()
+const mockLogoutUser = jest.fn()
 
 let mockSignupCompleted = false
 let mockFundingChannel: string | undefined
@@ -46,6 +50,8 @@ jest.mock('@/context/authContext', () => ({
         isFetchingUser: false,
         fetchUser: jest.fn(),
         addAccount: mockAddAccount,
+        logoutUser: mockLogoutUser,
+        isLoggingOut: false,
     }),
 }))
 
@@ -101,6 +107,39 @@ describe('SignTestTransaction — setup completion', () => {
         mockAddAccount.mockImplementation(async () => {
             accounts = [{ type: AccountType.PEANUT_WALLET }]
         })
+    })
+
+    it('offers log out as a link under the primary only where asked (/setup/finish)', () => {
+        const { unmount } = renderWithIntl(<SignTestTransaction />)
+        expect(screen.queryByRole('button', { name: 'Log out' })).not.toBeInTheDocument()
+        unmount()
+
+        renderWithIntl(<SignTestTransaction showLogout />)
+        fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
+        expect(mockLogoutUser).toHaveBeenCalledTimes(1)
+    })
+
+    it('the setup error follows a language change made after it appeared', async () => {
+        mockSendUserOp.mockRejectedValueOnce(new Error('Signing failed'))
+        jest.mocked(capturePasskeyDebugInfo).mockResolvedValueOnce(undefined as never)
+        const inLocale = (locale: 'en' | 'es-419', messages: typeof en) => (
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <SignTestTransaction />
+            </NextIntlClientProvider>
+        )
+        const { rerender } = render(inLocale('en', en))
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() =>
+            expect(
+                screen.getByText(en.setup.testTransaction.errors.supportNeeded, { exact: false })
+            ).toBeInTheDocument()
+        )
+
+        rerender(inLocale('es-419', es))
+        expect(screen.getByText(es.setup.testTransaction.errors.supportNeeded, { exact: false })).toBeInTheDocument()
+        expect(
+            screen.queryByText(en.setup.testTransaction.errors.supportNeeded, { exact: false })
+        ).not.toBeInTheDocument()
     })
 
     it('releases the confirm button when signing fails even if diagnostics never finish', async () => {
@@ -213,7 +252,9 @@ describe('SignTestTransaction — setup completion', () => {
 
         let finishSigning!: (result: { userOpHash: string }) => void
         mockSendUserOp.mockReturnValueOnce(new Promise((resolve) => (finishSigning = resolve)))
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        // "Only for you": the shared title block on top, the passkey confirmation on Finish
+        expect(screen.getByRole('heading', { level: 1, name: 'Only for you' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         expect(mockSendUserOp).toHaveBeenCalledTimes(1)
         expect(mockAddAccount).not.toHaveBeenCalled()
         expect(onComplete).not.toHaveBeenCalled()
@@ -284,13 +325,19 @@ describe('SignTestTransaction — setup completion', () => {
         })
         setRedirectUrl('/receipt?id=abc')
         const view = renderWithIntl(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.getByRole('heading', { name: 'Ready to get started?' })).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        expect(screen.getByRole('heading', { name: 'Only for you' })).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                'Only you can use your fingerprint or Face ID to control your account. Peanut can never move or freeze your money. Try it now.'
+            )
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
         jest.useFakeTimers()
         view.rerender(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.queryByRole('heading', { name: 'Ready to get started?' })).not.toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: 'You’re all set!' })).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'Only for you' })).not.toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'All set!' })).toBeInTheDocument()
+        expect(screen.getByText('Your Peanut account is ready.')).toBeInTheDocument()
         expect(screen.queryByText('Works right now')).not.toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(confettiPresets.celebration).not.toHaveBeenCalled()

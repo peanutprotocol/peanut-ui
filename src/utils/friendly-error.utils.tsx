@@ -1,3 +1,4 @@
+import { nativePasskeyFailure } from './native-passkey-errors'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
 import { isNativeFetchRejection } from '@/utils/native-fetch-rejection'
 
@@ -79,6 +80,11 @@ export type FriendlyErrorCode =
     | 'insufficientBalance'
     | 'operationTimedOut'
     | 'passkeyNotCompleted'
+    | 'passkeyAssociationUnavailable'
+    | 'passkeyAssociationMismatch'
+    | 'passkeyDeviceLocked'
+    | 'passkeyBiometryRequired'
+    | 'passkeyVerificationIncomplete'
     | 'claimLinkFailed'
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
@@ -332,6 +338,16 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // than error.name: NotAllowedError is also thrown by camera/clipboard
     // APIs (the QR scanner raises one), and wrapped signing errors keep the
     // text but lose the name.
+    const nativeReason = nativePasskeyFailure(message ?? text)
+    const passkeyCodes = {
+        association_unavailable: 'passkeyAssociationUnavailable',
+        association_mismatch: 'passkeyAssociationMismatch',
+        device_locked: 'passkeyDeviceLocked',
+        biometry_required: 'passkeyBiometryRequired',
+        authorization_failed: 'passkeyNotCompleted',
+        canceled: 'passkeyVerificationIncomplete',
+    } as const
+    if (nativeReason) return code(passkeyCodes[nativeReason])
     if (text.includes('not allowed by the user agent')) return code('passkeyNotCompleted')
     if (text.includes('Wrong password or invalid transaction.') || text.includes('transaction may fail'))
         return code('claimLinkFailed')

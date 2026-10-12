@@ -82,8 +82,8 @@ importers:
         specifier: ^8.0.2
         version: 8.0.2(@capacitor/core@8.2.0)
       '@capgo/capacitor-crisp':
-        specifier: ^8.0.27
-        version: 8.0.27(@capacitor/core@8.2.0)
+        specifier: 8.2.3
+        version: 8.2.3(@capacitor/core@8.2.0)
       '@capgo/capacitor-in-app-review':
         specifier: 8.2.3
         version: 8.2.3(@capacitor/core@8.2.0)
@@ -94,8 +94,8 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2(@capacitor/core@8.2.0)
       '@capgo/capacitor-updater':
-        specifier: 8.51.14
-        version: 8.51.14(@capacitor/core@8.2.0)
+        specifier: 8.51.23
+        version: 8.51.23(@capacitor/core@8.2.0)
       '@headlessui/react':
         specifier: ^2.2.9
         version: 2.2.9(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -139,8 +139,8 @@ importers:
         specifier: ^8.3.7
         version: 8.3.7
       '@sumsub/cordova-idensic-mobile-sdk-plugin':
-        specifier: ^1.42.0
-        version: 1.42.0
+        specifier: 1.46.1
+        version: 1.46.1
       '@tanstack/react-query':
         specifier: 5.8.4
         version: 5.8.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -234,6 +234,9 @@ importers:
       react:
         specifier: ^19.2.1
         version: 19.2.4
+      react-day-picker:
+        specifier: ^10.0.1
+        version: 10.0.1(@types/react@18.3.31)(react@19.2.4)
       react-dom:
         specifier: ^19.2.1
         version: 19.2.4(react@19.2.4)
@@ -689,8 +692,8 @@ packages:
   '@capacitor/synapse@1.0.4':
     resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
 
-  '@capgo/capacitor-crisp@8.0.27':
-    resolution: {integrity: sha512-Qq5gQIHuXfW7UD7uKYQuccTpMYwnsvvryiFWv5bvEYsEvtp77oRDr2o+TBh8/sdJcaOrHNUKNaOhF1c9HO/iEA==}
+  '@capgo/capacitor-crisp@8.2.3':
+    resolution: {integrity: sha512-pzqYHTCqqn4fHjD7cH4qarw4AnKj9AyAgbqfcZevhbJ1qMRKV09ALWPcYSxkQ4IewRVOfquAUJ7IR29WTFantA==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -709,8 +712,8 @@ packages:
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
-  '@capgo/capacitor-updater@8.51.14':
-    resolution: {integrity: sha512-2x4xEiS9nv3KSviSYKGS94yrZFoi12GYtn5vwv90BsEv7zc2dDh+Imk/F5eWAsSu20sHx5TBq3Hu/8BtWUA9JQ==}
+  '@capgo/capacitor-updater@8.51.23':
+    resolution: {integrity: sha512-1vC/msh6eg/Wa7nYa7u1wMUQoxuQ9ZZk+bT0pewkrfFpyvDWJFtASL1tFVewLrI4n2gQM/ctZD5QCh7XXMOWnw==}
     peerDependencies:
       '@capacitor/core': ^8.0.0
 
@@ -719,6 +722,9 @@ packages:
 
   '@coinbase/wallet-sdk@4.3.6':
     resolution: {integrity: sha512-4q8BNG1ViL4mSAAvPAtpwlOs1gpC+67eQtgIwNvT3xyeyFFd+guwkc8bcX5rTmQhXpqnhzC4f0obACbP9CqMSA==}
+
+  '@date-fns/tz@1.5.0':
+    resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
   '@discoveryjs/json-ext@0.5.7':
     resolution: {integrity: sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==}
@@ -3010,8 +3016,8 @@ packages:
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
-  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.42.0':
-    resolution: {integrity: sha512-I3CfGwpCAGg4gBceNzCidNKktg7arD3xybOAdKLmZx3A+6BDW85kWg+jW10NEXqeYEyMhBT7MAoNbEV4pdhAoQ==}
+  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1':
+    resolution: {integrity: sha512-iZIwv5C5Revlt0+8rstqExuoN/X3QHsbIhonmOjwrX3KPJdtKzBTwKdTl9ZkNQhlxZOWOgJNSyM2KqaJpHqGkw==}
 
   '@swc/core-darwin-arm64@1.15.43':
     resolution: {integrity: sha512-v1aVuvXdo/BHxJzco9V2xpHrvwWmhfS8t6gziY5wJxd+Z2h8AeJRnAwPD8itCDaGXVBwJ/CaKfxEzTkG0Va0OA==}
@@ -4528,6 +4534,9 @@ packages:
   date-fns@2.30.0:
     resolution: {integrity: sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==}
     engines: {node: '>=0.11'}
+
+  date-fns@4.4.0:
+    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
 
   dayjs@1.11.13:
     resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
@@ -7160,6 +7169,16 @@ packages:
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
+  react-day-picker@10.0.1:
+    resolution: {integrity: sha512-eNh6BlwcYInWaJtRv18mXQ06Ys/H6rdTZAnTaSdOYJuTpwP1JMCHNd1FDRadA+gbeinq+psdULN5Xnowy9mV8w==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/react': '>=16.8.0'
+      react: '>=16.8.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
   react-dom@19.2.4:
     resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
     peerDependencies:
@@ -8893,7 +8912,7 @@ snapshots:
 
   '@capacitor/synapse@1.0.4': {}
 
-  '@capgo/capacitor-crisp@8.0.27(@capacitor/core@8.2.0)':
+  '@capgo/capacitor-crisp@8.2.3(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 
@@ -8909,7 +8928,7 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
-  '@capgo/capacitor-updater@8.51.14(@capacitor/core@8.2.0)':
+  '@capgo/capacitor-updater@8.51.23(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 
@@ -8947,6 +8966,8 @@ snapshots:
       - use-sync-external-store
       - utf-8-validate
       - zod
+
+  '@date-fns/tz@1.5.0': {}
 
   '@discoveryjs/json-ext@0.5.7': {}
 
@@ -11771,7 +11792,7 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.42.0': {}
+  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1': {}
 
   '@swc/core-darwin-arm64@1.15.43':
     optional: true
@@ -13764,6 +13785,8 @@ snapshots:
   date-fns@2.30.0:
     dependencies:
       '@babel/runtime': 7.28.6
+
+  date-fns@4.4.0: {}
 
   dayjs@1.11.13: {}
 
@@ -17099,6 +17122,14 @@ snapshots:
   randombytes@2.1.0:
     dependencies:
       safe-buffer: 5.2.1
+
+  react-day-picker@10.0.1(@types/react@18.3.31)(react@19.2.4):
+    dependencies:
+      '@date-fns/tz': 1.5.0
+      date-fns: 4.4.0
+      react: 19.2.4
+    optionalDependencies:
+      '@types/react': 18.3.31
 
   react-dom@19.2.4(react@19.2.4):
     dependencies:

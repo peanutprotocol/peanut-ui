@@ -61,13 +61,15 @@ export const AppShell = ({
                     className="setup-hero-background pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top transition-colors duration-fast ease-in-out motion-reduce:transition-none"
                 />
                 {children}
-                {/* Bottom safe-area fill. Mirrors the strip above so the bottom
-                    matches on edge-to-edge Android; iOS fills white (the panel
-                    above the home indicator is white there). */}
+                {/* Reserve the inset in the document so the last action can scroll
+                    clear of the system navigation bar, including its shadow. */}
+                <div aria-hidden className={twMerge('h-safe-bottom', bottomInsetClassName)} />
+                {/* Cover scrolling content beneath the system bar, just like the
+                    top inset. A fill behind the page cannot hide button shadows. */}
                 <div
                     aria-hidden
                     className={twMerge(
-                        'pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-safe-bottom transition-colors duration-fast ease-in-out motion-reduce:transition-none',
+                        'pointer-events-none fixed inset-x-0 bottom-0 z-40 h-safe-bottom transition-colors duration-fast ease-in-out motion-reduce:transition-none',
                         bottomInsetClassName
                     )}
                 />

@@ -191,6 +191,17 @@ describe('apiFetch', () => {
         })
     })
 
+    describe('idempotent passthrough', () => {
+        it('forwards the idempotent flag to fetchWithSentry', async () => {
+            await apiFetch('/update-user', { method: 'POST', body: '{}', idempotent: true })
+
+            expect(mockFetchWithSentry).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({ method: 'POST', idempotent: true })
+            )
+        })
+    })
+
     describe('performance telemetry', () => {
         it('captures a sampled route template with server duration', async () => {
             jest.spyOn(Math, 'random').mockReturnValueOnce(0.01)
@@ -244,6 +255,22 @@ describe('apiFetch', () => {
             expect(mockCapture).toHaveBeenCalledWith(
                 'api_request_problem',
                 expect.objectContaining({ outcome: 'timeout', problem: 'timeout' })
+            )
+        })
+
+        it('separates a request interrupted by an app suspension from a timeout', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            const interrupted = Object.assign(new Error('Peanut is taking too long'), {
+                name: 'ConnectionTimeoutError',
+                interrupted: true,
+            })
+            mockFetchWithSentry.mockRejectedValueOnce(interrupted)
+
+            await expect(apiFetch('/users/me')).rejects.toBe(interrupted)
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({ outcome: 'interrupted', problem: 'interrupted' })
             )
         })
 

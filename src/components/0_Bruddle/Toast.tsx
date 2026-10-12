@@ -1,6 +1,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { clipboardWrittenWithin } from '@/utils/clipboard.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { twMerge } from '@/utils/tw'
@@ -9,7 +11,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 export type ToastType = 'success' | 'error' | 'info' | 'attention'
 type ToastId = string | number
 
-const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
+const ToastStack = dynamic(() => importWithChunkRetry(() => import('./ToastStack')), { ssr: false })
 
 /** How long after a clipboard write a toast is taken to be that copy's toast. */
 const CLIPBOARD_OVERLAY_GRACE_MS = 1500
@@ -195,7 +197,13 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                         toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM
                     )}
                 >
-                    {rendererWanted && <ToastStack toasts={toasts} onShow={handleToastShown} />}
+                    {/* The provider wraps every app route: a renderer that cannot load must
+                        cost the toasts, not the app, and must not reload the page mid-flow. */}
+                    {rendererWanted && (
+                        <LazyLoadErrorBoundary reloadOnChunkError={false}>
+                            <ToastStack toasts={toasts} onShow={handleToastShown} />
+                        </LazyLoadErrorBoundary>
+                    )}
                 </div>
                 {children}
             </ToastContext.Provider>

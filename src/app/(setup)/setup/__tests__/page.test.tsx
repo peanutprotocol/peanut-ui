@@ -65,7 +65,7 @@ jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (campaigns: readonly string[]) =>
         mockClaimAndSettlePendingBadgeCampaigns(campaigns),
 }))
-jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
+jest.mock('@/hooks/useSetupFlow', () => ({ SETUP_POST_REGISTRATION_SCREEN: 'residence', useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
@@ -577,28 +577,42 @@ it('hides Logout on the final ready-to-start confirmation screen', async () => {
     expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
 })
 
-it.each(['notification-email', 'notification-permission', 'advantage-control'] as const)(
-    'shows Back on %s after registration',
-    async (screenId) => {
-        const step = { ...landing, screenId, showBackButton: true }
-        mockStore.steps = [step]
-        mockFlow.step = step
-        mockResolve.mockReturnValue(screenId)
-        mockNoBackLock = 'passkey-permission'
-        renderWithIntl(<SetupPage />)
-        await advance(100)
-        expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
-        if (screenId === 'notification-email') expect(mockSetNoBackLock).toHaveBeenCalledWith('passkey-permission')
-    }
-)
-it('hides Back at the registered passkey boundary and during celebration', async () => {
-    const step = { ...landing, screenId: 'passkey-permission' as const, showBackButton: true }
+it.each([
+    'payment-plan',
+    'advantage-fees',
+    'advantage-card',
+    'notification-email',
+    'notification-permission',
+    'advantage-control',
+] as const)('shows Back on %s after registration and arms the lock at residence', async (screenId) => {
+    const step = { ...landing, screenId, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(screenId)
+    mockNoBackLock = 'residence'
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
+    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+})
+it.each(['landing', 'invite', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
+    const step = { ...landing, screenId, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(screenId)
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockSetNoBackLock).not.toHaveBeenCalled()
+})
+it('hides Back at the residence boundary once registered, and during celebration', async () => {
+    const step = { ...landing, screenId: 'residence' as const, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step
     mockResolve.mockReturnValue(step.screenId)
-    mockNoBackLock = 'passkey-permission'
+    mockNoBackLock = 'residence'
     const view = renderWithIntl(<SetupPage />)
     await advance(100)
+    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
     expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
     mockSignupCompleted = true
     mockFlow.step = { ...step, screenId: 'advantage-control' }

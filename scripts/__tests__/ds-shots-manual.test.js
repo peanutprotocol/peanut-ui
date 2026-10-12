@@ -53,7 +53,7 @@ function condition(job) {
     return new Function('github', 'needs', 'always', 'contains', 'fromJSON', `return ${javascript}`)
 }
 
-function automatic(event, ref, base = 'dev') {
+function automatic(event, ref, base = 'dev', job = 'ds-shots') {
     const github = {
         event_name: event,
         ref_name: ref,
@@ -62,7 +62,7 @@ function automatic(event, ref, base = 'dev') {
     }
     const helpers = [() => true, (array, value) => array.includes(value), JSON.parse]
     const render = event === 'pull_request' && condition('ds-shots-filter')(github, {}, ...helpers)
-    return condition('ds-shots')(
+    return condition(job)(
         github,
         { 'backdoor-scan': { result: 'success' }, 'ds-shots-filter': { outputs: { render: String(render) } } },
         ...helpers
@@ -81,6 +81,18 @@ describe('automatic visual capture policy', () => {
         expect(automatic('push', 'feat/design-system')).toBe(true)
         expect(automatic('pull_request', 'feature/example', 'main')).toBe(true)
         expect(automatic('push', 'tech-debt')).toBe(false)
+    })
+})
+
+describe('i18n overflow gate policy', () => {
+    it('runs on PRs into dev and main', () => {
+        expect(automatic('pull_request', 'feature/example', 'dev', 'i18n-overflow')).toBe(true)
+        expect(automatic('pull_request', 'feature/example', 'main', 'i18n-overflow')).toBe(true)
+    })
+
+    it('does not run on pushes', () => {
+        expect(automatic('push', 'dev', 'dev', 'i18n-overflow')).toBe(false)
+        expect(automatic('push', 'main', 'dev', 'i18n-overflow')).toBe(false)
     })
 })
 

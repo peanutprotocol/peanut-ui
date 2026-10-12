@@ -52,7 +52,12 @@
         "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
         "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
         "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisá tu actividad antes de volver a intentarlo.",
-        "userOpReverted": "No se pudo completar el pago. Intentá de nuevo."
+        "userOpReverted": "No se pudo completar el pago. Intentá de nuevo.",
+        "passkeyAssociationUnavailable": "La verificación con passkey no está disponible por el momento. Esperá unos segundos e intentalo de nuevo.",
+        "passkeyAssociationMismatch": "Las passkeys no están disponibles en esta app por el momento. Actualizá Peanut o contactá a soporte si el problema continúa.",
+        "passkeyDeviceLocked": "Desbloqueá el dispositivo e intentalo de nuevo.",
+        "passkeyBiometryRequired": "Usá Face ID o Touch ID para verificar la passkey e intentalo de nuevo.",
+        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Intentalo de nuevo cuando quieras."
     },
     "migration": {
         "downloadPeanut": "Descargar Peanut",

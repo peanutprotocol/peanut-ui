@@ -44,7 +44,8 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
                                 {flagCode && (
                                     <Image
                                         src={getFlagUrl(flagCode)}
-                                        alt={`${countryName} flag`}
+                                        // decorative: the country name sits next to it
+                                        alt=""
                                         width={32}
                                         height={24}
                                         className="shrink-0 rounded-sm"

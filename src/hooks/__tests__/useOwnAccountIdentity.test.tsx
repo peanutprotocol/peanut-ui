@@ -111,7 +111,9 @@ describe('useOwnAccountIdentity — the name', () => {
 describe('useOwnAccountIdentity — the address the bank already accepted', () => {
     it("reads it off the person's own earlier payout account", async () => {
         setUser('Anna Rossi')
-        savedAccountsReply = { body: [{ id: 'ext_1', address: SAVED_ACCOUNT_ADDRESS }] }
+        savedAccountsReply = {
+            body: [{ id: 'ext_1', account_owner_name: 'Anna Rossi', address: SAVED_ACCOUNT_ADDRESS }],
+        }
         const { result } = render()
         await waitFor(() =>
             expect(result.current.address).toEqual({
@@ -128,9 +130,14 @@ describe('useOwnAccountIdentity — the address the bank already accepted', () =
         setUser('Anna Rossi')
         savedAccountsReply = {
             body: [
-                { id: 'ext_1', address: { street_line_1: '1 Test Street', city: '', country: 'USA' } },
+                {
+                    id: 'ext_1',
+                    account_owner_name: 'Anna Rossi',
+                    address: { street_line_1: '1 Test Street', city: '', country: 'USA' },
+                },
                 {
                     id: 'ext_2',
+                    account_owner_name: 'Anna Rossi',
                     address: { street_line_1: '2 Test Street', city: 'Testville', postal_code: '00200' },
                 },
             ],
@@ -143,7 +150,9 @@ describe('useOwnAccountIdentity — the address the bank already accepted', () =
     /** It is the address the provider already took, so nothing else is asked. */
     it('wins over the verified address, which is never even read', async () => {
         setUser('Anna Rossi')
-        savedAccountsReply = { body: [{ id: 'ext_1', address: SAVED_ACCOUNT_ADDRESS }] }
+        savedAccountsReply = {
+            body: [{ id: 'ext_1', account_owner_name: 'Anna Rossi', address: SAVED_ACCOUNT_ADDRESS }],
+        }
         verifiedReply = { body: VERIFIED_BODY }
         const { result } = render()
         await waitFor(() => expect(result.current.address?.street).toBe('1 Test Street'))
@@ -156,6 +165,70 @@ describe('useOwnAccountIdentity — the address the bank already accepted', () =
         render()
         await settled()
         expect(mockApiFetch).not.toHaveBeenCalledWith(expect.stringContaining('/bridge/customers'), expect.anything())
+    })
+})
+
+/**
+ * The saved accounts include ones paid out to someone else, and ones the
+ * provider no longer accepts. Neither address may land in the next own-account
+ * form (TASK-23477: an address flagged "missing street number" would carry the
+ * same refusal into the next account).
+ */
+describe('useOwnAccountIdentity — only a saved address that is the person’s own and still usable', () => {
+    const OTHER_ADDRESS = { ...SAVED_ACCOUNT_ADDRESS, street_line_1: '5 Other Street' }
+
+    it.each([
+        ['deactivated by the provider', { active: false }],
+        ['with an address the provider flagged as invalid', { beneficiary_address_valid: false }],
+        ['in someone else’s name', { account_owner_name: 'Bruno Bianchi' }],
+    ])('skips an account %s and takes the next usable one', async (_, override) => {
+        setUser('Anna Rossi')
+        savedAccountsReply = {
+            body: [
+                { id: 'ext_1', account_owner_name: 'Anna Rossi', address: OTHER_ADDRESS, ...override },
+                { id: 'ext_2', account_owner_name: 'Anna Rossi', address: SAVED_ACCOUNT_ADDRESS, active: true },
+            ],
+        }
+        const { result } = render()
+        await waitFor(() => expect(result.current.address?.street).toBe('1 Test Street'))
+    })
+
+    it('falls back to the verified address when no saved account is usable', async () => {
+        setUser('Anna Rossi')
+        savedAccountsReply = {
+            body: [{ id: 'ext_1', account_owner_name: 'Bruno Bianchi', address: SAVED_ACCOUNT_ADDRESS }],
+        }
+        verifiedReply = { body: VERIFIED_BODY }
+        const { result } = render()
+        await waitFor(() => expect(result.current.address?.street).toBe('9 Sample Road'))
+    })
+
+    it('matches the name across case, accents and a middle name the bank kept', async () => {
+        setUser('José Pérez')
+        savedAccountsReply = {
+            body: [{ id: 'ext_1', account_owner_name: 'JOSE ANTONIO PEREZ', address: SAVED_ACCOUNT_ADDRESS }],
+        }
+        const { result } = render()
+        await waitFor(() => expect(result.current.address?.street).toBe('1 Test Street'))
+    })
+
+    it('reads the name from first and last name when the account has no single owner name', async () => {
+        setUser('Anna Rossi')
+        savedAccountsReply = {
+            body: [{ id: 'ext_1', first_name: 'Anna', last_name: 'Rossi', address: SAVED_ACCOUNT_ADDRESS }],
+        }
+        const { result } = render()
+        await waitFor(() => expect(result.current.address?.street).toBe('1 Test Street'))
+    })
+
+    it('reuses no saved address without a verified name to compare it to', async () => {
+        setUser(null)
+        savedAccountsReply = {
+            body: [{ id: 'ext_1', account_owner_name: 'Anna Rossi', address: SAVED_ACCOUNT_ADDRESS }],
+        }
+        const { result } = render()
+        await settled()
+        expect(result.current.address).toBeNull()
     })
 })
 

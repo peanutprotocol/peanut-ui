@@ -1,8 +1,7 @@
 import OnboardingAnimation from './OnboardingAnimation'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
-import starImage from '@/assets/icons/star.png'
+import SetupTitleBlock from './SetupTitleBlock'
 import { Button } from '@/components/0_Bruddle/Button'
-import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
@@ -40,21 +39,6 @@ export const useSetupFullScreen = (enabled: boolean) => {
     }, [enabled, setFullScreen])
 }
 
-const SetupImageContext = createContext<(illustration: SetupIllustration | null) => void>(() => {})
-
-/**
- * Lets a step's sub-view swap the wrapper's illustration for as long as it is
- * mounted. Sub-views are not steps, so they have no step config of their own
- * to carry an image.
- */
-export const useSetupImageOverride = (illustration: SetupIllustration | null) => {
-    const setImage = useContext(SetupImageContext)
-    useLayoutEffect(() => {
-        setImage(illustration)
-        return () => setImage(null)
-    }, [illustration, setImage])
-}
-
 /**
  * props interface for the SetupWrapper component
  * defines the structure and configuration options for the setup flow
@@ -65,19 +49,19 @@ interface SetupWrapperProps {
     children: ReactNode
     image?: SetupIllustration
     imageClassName?: HTMLDivElement['className']
-    title?: string
-    description?: string
+    title?: ReactNode
+    description?: ReactNode
+    /** Sell screens lead with the larger heading. */
+    titleSize?: 's' | 'm'
+    /** The description continues the heading as a second statement. */
+    descriptionInTitle?: boolean
     contentClassName?: HTMLDivElement['className']
     titleClassName?: HTMLDivElement['className']
     showBackButton?: boolean
     showSkipButton?: boolean
-    showLogoutButton?: boolean
     onBack?: () => void
     onSkip?: () => void
-    onLogout?: () => void
-    isLoggingOut?: boolean
     step?: number
-    totalSteps?: number
     direction?: number
     /** Isolated Screen Library presentation; never reads or writes install state. */
     firstLaunchIntroPreview?: 'play' | 'still'
@@ -85,11 +69,11 @@ interface SetupWrapperProps {
     showProgress?: boolean
 }
 
-// define responsive height classes for different layout types
-// short phones (under 800px tall) get a 34dvh hero so the panel below keeps room;
-// the media query stops at md so desktop keeps the full-height hero
+// One hero height per viewport, the same on every step (`.setup-hero-height` in
+// globals.css): the tallest step's copy decides how much room the hero leaves,
+// so nothing jumps when the step changes. Desktop keeps the full-height side hero.
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'h-[40dvh] shrink-0 md:h-dvh [@media(max-height:799px)_and_(max-width:767px)]:h-[34dvh]',
+    signup: 'setup-hero-height shrink-0 md:h-dvh',
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
@@ -108,11 +92,16 @@ const stepVariants = {
     exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%' }),
 }
 
-const mascotVariants = {
-    enter: (direction: number) => ({ x: direction < 0 ? '-100%' : '100%', opacity: 0 }),
+// The blue hero stays put between steps; its art moves and fades at once: the
+// old art drifts out the way the panel goes while the new art drifts in, both
+// fading, overlapping (Hugo, 2026-10-10). Short drift, so nothing reaches the
+// hero's edge before it is gone.
+const artVariants = {
+    enter: (direction: number) => ({ x: direction < 0 ? '-30%' : '30%', opacity: 0 }),
     center: { x: 0, opacity: 1 },
-    exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%', opacity: 0 }),
+    exit: (direction: number) => ({ x: direction < 0 ? '30%' : '-30%', opacity: 0 }),
 }
+const ART_TRANSITION = { duration: 0.24, ease: [0.22, 1, 0.36, 1] } as const
 
 const STEP_TRANSITION = { duration: 0.5, ease: [0.22, 1, 0.36, 1] } as const
 
@@ -138,7 +127,7 @@ const TransitioningContent = ({
             animate="center"
             exit="exit"
             transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
-            className={twMerge(className, !isPresent && 'pointer-events-none absolute inset-x-0 top-0')}
+            className={twMerge(className, !isPresent && 'pointer-events-none absolute inset-0')}
             aria-hidden={!isPresent}
             inert={!isPresent}
         >
@@ -147,36 +136,25 @@ const TransitioningContent = ({
     )
 }
 
-// define animated star decorations positions and sizes
-// each array element represents a star with specific positioning and animation
-const STAR_POSITIONS = [
-    'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
-    // mobile top-[24%], not [10%]: the nav row (Iniciar sesión / skip) owns the
-    // top band and the star sat right under the text (TASK-22366 nit)
-    'right-[10%] md:right-[15%] lg:right-[15%] top-[24%] md:top-[20%] size-10 md:size-14',
-    'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
-] as const
-
 /**
- * navigation component for back, skip and logout buttons
- * rendered at the top of the layout when any button is enabled
+ * The top bar: back on the left; skip and the language switcher on the right.
+ * Log out is not here: one control top right (Release 164 smoke test), and the
+ * finish step that needs it shows it as a link under its primary. It sits outside the sliding step content, so nothing in it moves when
+ * the user changes step, and the back slot keeps its width when a step has no
+ * back button.
  */
 const Navigation = memo(function Navigation({
     showBackButton,
     showSkipButton,
-    showLogoutButton,
+    showLanguageSwitcher,
     onBack,
     onSkip,
-    onLogout,
-    isLoggingOut,
-}: Pick<
-    SetupWrapperProps,
-    'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
->) {
+}: Pick<SetupWrapperProps, 'showBackButton' | 'showSkipButton' | 'onBack' | 'onSkip'> & {
+    showLanguageSwitcher: boolean
+}) {
     const t = useTranslations('setup.navigation')
 
-    if (!showBackButton && !showSkipButton && !showLogoutButton) return null
+    if (!showBackButton && !showSkipButton && !showLanguageSwitcher) return null
 
     // Icons inherit currentColor: the circle fills on hover/active, and a
     // hard-coded fill vanished into the fill colour.
@@ -184,8 +162,11 @@ const Navigation = memo(function Navigation({
     // Match app navigation at 16px from either horizontal edge and 16px below
     // the safe-area boundary; on web --safe-top is zero.
     return (
-        <div className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 flex w-full items-center justify-between px-4">
-            <div>
+        <div
+            data-setup-top-bar
+            className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 flex w-full items-center justify-between px-4"
+        >
+            <div className="size-10 shrink-0">
                 {showBackButton && (
                     <Button
                         variant="ghost"
@@ -207,18 +188,7 @@ const Navigation = memo(function Navigation({
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
                     </Button>
                 )}
-                {showLogoutButton && (
-                    <Button
-                        onClick={onLogout}
-                        loading={isLoggingOut}
-                        variant="ghost"
-                        className={NAV_CIRCLE_BUTTON_CLASSES}
-                        aria-label={t('logout')}
-                        disabled={isLoggingOut}
-                    >
-                        <Icon name="logout" size={20} />
-                    </Button>
-                )}
+                {showLanguageSwitcher && <SetupLanguageSwitcher />}
             </div>
         </div>
     )
@@ -232,73 +202,6 @@ function UsernameBackground() {
     )
 }
 
-// Count the residence checklist as a screen, while keeping five stable groups
-// across the two residence-dependent feature slots.
-const SETUP_PROGRESS_SCREEN_INDEX: Partial<Record<ScreenId, number>> = {
-    landing: 0,
-    signup: 1,
-    'advantage-fees': 2,
-    'advantage-card': 6,
-    residence: 3,
-    'advantage-bank': 5,
-    'advantage-exchange': 5,
-    'advantage-local': 6,
-    'advantage-people': 6,
-    'passkey-permission': 8,
-    'notification-email': 9,
-    'notification-permission': 10,
-    'advantage-control': 12,
-    'sign-test-transaction': 12,
-}
-
-function SetupProgressHeader({
-    step,
-    totalSteps,
-    screenId,
-    hidden = false,
-    compact = false,
-}: {
-    step?: number
-    totalSteps?: number
-    screenId: ScreenId
-    hidden?: boolean
-    compact?: boolean
-}) {
-    const t = useTranslations('setup.wrapper')
-    const screenIndex =
-        screenId === 'advantage-exchange' && step !== undefined
-            ? step === 4
-                ? 5
-                : 6
-            : (SETUP_PROGRESS_SCREEN_INDEX[screenId] ?? step ?? 0)
-    const progressGroup = Math.min(4, Math.floor(screenIndex / 3))
-    return (
-        <div
-            aria-hidden={hidden}
-            inert={hidden}
-            className={twMerge(
-                hidden && 'invisible',
-                'pointer-events-none z-20 flex h-11 w-full items-center gap-3 px-4 md:px-6',
-                compact ? 'relative my-4 shrink-0' : 'absolute inset-x-0 top-4 md:top-8',
-                screenId === 'sign-test-transaction' && 'pr-16 md:pr-16'
-            )}
-        >
-            <div className="w-9 shrink-0" aria-hidden="true" />
-            <div className="flex min-w-0 flex-1 justify-center">
-                {step !== undefined && totalSteps !== undefined && totalSteps > 0 && step >= 0 && step < totalSteps && (
-                    <CarouselDots
-                        count={5}
-                        activeIndex={progressGroup}
-                        className="pointer-events-none"
-                        aria-label={t('stepIndicator', { current: progressGroup + 1, total: 5 })}
-                    />
-                )}
-            </div>
-            <SetupLanguageSwitcher />
-        </div>
-    )
-}
-
 /**
  * ImageSection component handles the illustrations and animations
  * renders differently based on layout type with optional animated decorations
@@ -308,21 +211,16 @@ const ImageSection = ({
     image,
     screenId,
     imageClassName,
-    step,
-    totalSteps,
     direction = 0,
     prefersReducedMotion,
     intro,
-}: Pick<
-    SetupWrapperProps,
-    'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'step' | 'totalSteps' | 'direction'
-> & {
+}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction'> & {
     prefersReducedMotion: boolean
     intro: ReturnType<typeof useFirstLaunchIntro>
 }) => {
     const t = useTranslations('setup.wrapper')
     const introPresentation = intro.active || intro.played
-    const [introLayout, setIntroLayout] = useState<{ viewport: number; available: number; mobile: boolean } | null>(
+    const [introLayout, setIntroLayout] = useState<{ viewport: number; available: number; resting: number } | null>(
         null
     )
     useLayoutEffect(() => {
@@ -332,13 +230,20 @@ const ImageSection = ({
             const viewport = window.innerHeight
             const safeTop = parseFloat(styles.getPropertyValue('--safe-top')) || 0
             const safeBottom = parseFloat(styles.getPropertyValue('--safe-bottom')) || 0
-            setIntroLayout({ viewport, available: viewport - safeTop - safeBottom, mobile: window.innerWidth < 768 })
+            // The hero settles at the same height every step uses (the CSS class), measured once here.
+            const probe = document.createElement('div')
+            probe.className = 'setup-hero-height'
+            probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none'
+            document.body.appendChild(probe)
+            const resting = window.innerWidth < 768 ? probe.getBoundingClientRect().height : viewport
+            probe.remove()
+            setIntroLayout({ viewport, available: viewport - safeTop - safeBottom, resting })
         }
         measure()
         window.addEventListener('resize', measure)
         return () => window.removeEventListener('resize', measure)
     }, [introPresentation])
-    const restingHeight = introLayout ? (introLayout.mobile ? introLayout.viewport * 0.4 : introLayout.viewport) : 0
+    const restingHeight = introLayout?.resting ?? 0
 
     if (!image) return null
 
@@ -393,8 +298,8 @@ const ImageSection = ({
         <AnimatePresence initial={false} custom={direction}>
             <motion.div
                 key={imageKey}
+                variants={artVariants}
                 custom={direction}
-                variants={mascotVariants}
                 initial="enter"
                 exit="exit"
                 animate={
@@ -412,12 +317,15 @@ const ImageSection = ({
                         ? { duration: 0 }
                         : intro.played
                           ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-                          : STEP_TRANSITION
+                          : ART_TRANSITION
                 }
                 className={twMerge(
                     'absolute inset-x-0 flex items-center justify-center',
                     intro.active && !intro.played && 'invisible top-[calc(50%_-_22dvh)] h-[44dvh]',
-                    !introPresentation && 'top-16 bottom-2 md:top-20 md:bottom-8'
+                    !introPresentation &&
+                        ('animation' in image
+                            ? 'top-14 bottom-1 md:top-20 md:bottom-8'
+                            : 'top-16 bottom-2 md:top-20 md:bottom-8')
                 )}
             >
                 {illustration}
@@ -429,6 +337,7 @@ const ImageSection = ({
     if (isSignup) {
         return (
             <motion.div
+                data-setup-hero
                 initial={false}
                 animate={
                     intro.played && introLayout
@@ -442,23 +351,39 @@ const ImageSection = ({
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}
             >
-                {/* render animated star decorations */}
-                {screenId === 'landing' &&
-                    !intro.active &&
-                    STAR_POSITIONS.map((positions, index) => (
-                        <Image
-                            key={index}
-                            src={starImage.src}
-                            alt={t('starAlt')}
-                            width={56}
-                            height={56}
-                            className={twMerge(positions, 'absolute z-10')}
-                            priority={index === 0}
-                        />
-                    ))}
-                {/* Keep clouds on the landing screen so later illustrations stay clear. */}
-                {screenId === 'landing' && !intro.active && <CloudsBackground minimal />}
-                {screenId === 'signup' && <UsernameBackground />}
+                {/* Per-step backgrounds move with the art: clouds on the landing
+                    screen only, so later illustrations stay clear, and the "@" signs on
+                    the username step. */}
+                <AnimatePresence initial={false} custom={direction}>
+                    {screenId === 'landing' && !intro.active && (
+                        <motion.div
+                            key="landing-clouds"
+                            variants={artVariants}
+                            custom={direction}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
+                            className="pointer-events-none absolute inset-0"
+                        >
+                            <CloudsBackground minimal />
+                        </motion.div>
+                    )}
+                    {screenId === 'signup' && (
+                        <motion.div
+                            key="username-background"
+                            variants={artVariants}
+                            custom={direction}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
+                            className="pointer-events-none absolute inset-0"
+                        >
+                            <UsernameBackground />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 {animatedIllustration}
                 <AnimatePresence>
                     {intro.active && intro.greetingVisible && (
@@ -475,7 +400,6 @@ const ImageSection = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
-                <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} hidden={intro.active} />
             </motion.div>
         )
     }
@@ -505,32 +429,22 @@ export const SetupWrapper = memo(function SetupWrapper({
     image,
     title,
     description,
+    titleSize = 's',
+    descriptionInTitle = false,
     contentClassName,
     showBackButton,
     showSkipButton,
-    showLogoutButton,
     onBack,
     onSkip,
-    onLogout,
-    isLoggingOut,
     screenId,
     imageClassName,
     titleClassName,
     step,
-    totalSteps,
     direction = 0,
     firstLaunchIntroPreview,
     fullScreen: fullScreenProp = false,
     showProgress = true,
 }: SetupWrapperProps) {
-    const [imageOverride, setImageOverride] = useState<{ screenId: ScreenId; image: SetupIllustration } | null>(null)
-    const setImageForScreen = useCallback(
-        (illustration: SetupIllustration | null) =>
-            setImageOverride((current) =>
-                illustration ? { screenId, image: illustration } : current?.screenId === screenId ? null : current
-            ),
-        [screenId]
-    )
     const [fullScreenOverride, setFullScreenOverride] = useState<ScreenId | null>(null)
     const setFullScreenForScreen = useCallback(
         (enabled: boolean) =>
@@ -538,8 +452,6 @@ export const SetupWrapper = memo(function SetupWrapper({
         [screenId]
     )
     const fullScreen = fullScreenProp || fullScreenOverride === screenId
-    const featureParagraph =
-        (screenId.startsWith('advantage-') && screenId !== 'advantage-control') || screenId === 'passkey-permission'
     const prefersReducedMotion = useReducedMotion()
     const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)
@@ -606,141 +518,110 @@ export const SetupWrapper = memo(function SetupWrapper({
             <Navigation
                 showBackButton={showBackButton}
                 showSkipButton={showSkipButton}
-                showLogoutButton={showLogoutButton}
+                // Hidden during the first-launch intro, and on a full-page step without progress (the celebration).
+                showLanguageSwitcher={!intro.active && (!fullScreen || showProgress)}
                 onBack={onBack}
                 onSkip={onSkip}
-                onLogout={onLogout}
-                isLoggingOut={isLoggingOut}
             />
 
-            {/* content container */}
-            {/* Stack complete screens so the incoming slide covers the outgoing layout without a blank frame. */}
-            <div className="relative grid min-w-0 flex-1 items-start">
-                <AnimatePresence initial={false} custom={transitionDirection} mode="sync">
-                    <TransitioningContent
-                        key={screenId}
+            {/* The hero stays put between steps (its art crossfades); only the white
+                panel below slides. */}
+            <div
+                className={twMerge(
+                    'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] min-w-0 flex-1 flex-col',
+                    !fullScreen && 'max-md:h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:flex-row'
+                )}
+            >
+                {!fullScreen && (
+                    <ImageSection
+                        imageClassName={imageClassName}
+                        screenId={screenId}
+                        layoutType={layoutType}
+                        image={image}
                         direction={transitionDirection}
                         prefersReducedMotion={!!prefersReducedMotion}
-                        className={twMerge(
-                            'col-start-1 row-start-1 mx-auto flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full min-w-0 flex-grow flex-col bg-white',
-                            !fullScreen && 'md:flex-row'
-                        )}
-                    >
-                        {/* illustration section */}
-                        {fullScreen ? (
-                            showProgress && (
-                                <SetupProgressHeader step={step} totalSteps={totalSteps} screenId={screenId} compact />
-                            )
-                        ) : (
-                            <ImageSection
-                                imageClassName={imageClassName}
-                                screenId={screenId}
-                                layoutType={layoutType}
-                                image={imageOverride?.screenId === screenId ? imageOverride.image : image}
-                                step={step}
-                                totalSteps={totalSteps}
-                                direction={transitionDirection}
-                                prefersReducedMotion={!!prefersReducedMotion}
-                                intro={intro}
-                            />
-                        )}
-
-                        {/* content section */}
-                        <motion.div
-                            initial={animatePanelIn ? { y: '100%' } : false}
-                            animate={intro.active ? { y: '100%' } : { y: 0 }}
-                            transition={
-                                prefersReducedMotion
-                                    ? { duration: 0 }
-                                    : intro.played
-                                      ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-                                      : { type: 'spring', stiffness: 260, damping: 30 }
-                            }
-                            aria-hidden={intro.active}
-                            inert={intro.active}
-                            className={twMerge(
-                                // pb-10 keeps the pinned CTA clear of the home gesture area on top of the safe-area inset
-                                'flex flex-grow flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-10 md:h-dvh',
-
-                                fullScreen && 'md:h-auto md:flex-1'
-                            )}
+                        intro={intro}
+                    />
+                )}
+                {/* Stack complete panels so the incoming slide covers the outgoing one without a blank frame. */}
+                <div className="relative grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-x-hidden">
+                    <AnimatePresence initial={false} custom={transitionDirection} mode="sync">
+                        <TransitioningContent
+                            key={screenId}
+                            direction={transitionDirection}
+                            prefersReducedMotion={!!prefersReducedMotion}
+                            className="col-start-1 row-start-1 mx-auto flex w-full min-w-0 flex-col bg-white"
                         >
-                            <div
+                            {fullScreen && showProgress && (
+                                // Keeps the content clear of the fixed top bar.
+                                <div aria-hidden="true" className="my-4 h-11 shrink-0" />
+                            )}
+
+                            {/* content section */}
+                            <motion.div
+                                initial={animatePanelIn ? { y: '100%' } : false}
+                                animate={intro.active ? { y: '100%' } : { y: 0 }}
+                                transition={
+                                    prefersReducedMotion
+                                        ? { duration: 0 }
+                                        : intro.played
+                                          ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+                                          : { type: 'spring', stiffness: 260, damping: 30 }
+                                }
+                                aria-hidden={intro.active}
+                                inert={intro.active}
                                 className={twMerge(
-                                    'flex w-full flex-1 flex-col justify-between md:flex-1',
-                                    contentClassName,
-                                    'gap-8',
-                                    // signup matches residence: the field sits 24px under the description
-                                    screenId === 'signup' && 'gap-6',
-                                    screenId !== 'landing' && 'md:flex-1 md:justify-between',
-                                    fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
+                                    // The footer's reserved secondary slot keeps the primary CTA clear of the
+                                    // home gesture area, so the panel needs only pb-6 above the safe-area inset.
+                                    'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh compact:pt-6 compact:pb-4 short:pt-4 short:pb-3 tight:pt-3 tight:pb-2',
+
+                                    fullScreen && 'md:h-auto md:flex-1'
                                 )}
                             >
-                                {/* title and description container. Skipped entirely when
-                        the step renders its own heading (titleInView +
-                        descriptionInView): the wrapper is height-capped on
-                        desktop, so an empty slot would push the content down
-                        by up to 12rem. */}
-                                {(title || description) && (
-                                    <div
-                                        className={twMerge(
-                                            'mx-auto space-y-4 w-full md:max-h-48 md:max-w-xs',
-                                            (screenId === 'landing' || screenId === 'signup') && 'space-y-2',
-                                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
-                                            sunsetLanding && 'md:h-auto md:max-h-none',
-                                            featureParagraph && 'space-y-0 md:max-h-none'
-                                        )}
-                                    >
-                                        {featureParagraph ? (
-                                            <h1 className="w-full text-left text-heading-m leading-[2.75rem]">
-                                                {title && `${title}${/[.!?]$/.test(title) ? '' : '.'} `}
-                                                {description}
-                                            </h1>
-                                        ) : (
-                                            <>
-                                                {title && (
-                                                    <h1
-                                                        className={twMerge(
-                                                            'w-full text-left text-heading-s',
-                                                            sunsetLanding && 'md:text-center',
-                                                            titleClassName
-                                                        )}
-                                                    >
-                                                        {title}
-                                                    </h1>
-                                                )}
-                                                {description && (
-                                                    <p
-                                                        className={twMerge(
-                                                            'text-body-m leading-[1.625rem] text-foreground-secondary',
-                                                            sunsetLanding && 'md:text-center'
-                                                        )}
-                                                    >
-                                                        {description}
-                                                    </p>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                                {/* main content area */}
                                 <div
                                     className={twMerge(
-                                        'mx-auto w-full',
-                                        fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
-                                        screenId !== 'landing' && 'flex flex-1 flex-col'
+                                        'flex w-full flex-1 flex-col justify-between md:flex-1',
+                                        contentClassName,
+                                        'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
+                                        // signup matches residence: the field sits 24px under the description
+                                        screenId === 'signup' && 'gap-6 short:gap-4 tight:gap-3',
+                                        !sunsetLanding && 'md:flex-1 md:justify-between',
+                                        fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                     )}
                                 >
-                                    <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
-                                        <SetupImageContext.Provider value={setImageForScreen}>
+                                    {/* Renders nothing when the step owns its heading (titleInView +
+                                    descriptionInView): an empty, height-capped slot would push
+                                    the content down on desktop. */}
+                                    <SetupTitleBlock
+                                        title={title}
+                                        description={description}
+                                        size={titleSize}
+                                        descriptionInTitle={descriptionInTitle}
+                                        className={twMerge(
+                                            'md:max-h-48 md:max-w-xs',
+                                            screenId === 'join-beta' && 'md:max-h-12',
+                                            (sunsetLanding || titleSize === 'm') && 'md:h-auto md:max-h-none'
+                                        )}
+                                        titleClassName={twMerge(sunsetLanding && 'md:text-center', titleClassName)}
+                                        descriptionClassName={sunsetLanding ? 'md:text-center' : undefined}
+                                    />
+                                    {/* main content area */}
+                                    <div
+                                        className={twMerge(
+                                            'mx-auto w-full',
+                                            fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
+                                            !sunsetLanding && 'flex flex-1 flex-col'
+                                        )}
+                                    >
+                                        <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
                                             {children}
-                                        </SetupImageContext.Provider>
-                                    </SetupFullScreenContext.Provider>
+                                        </SetupFullScreenContext.Provider>
+                                    </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    </TransitioningContent>
-                </AnimatePresence>
+                            </motion.div>
+                        </TransitioningContent>
+                    </AnimatePresence>
+                </div>
             </div>
         </div>
     )

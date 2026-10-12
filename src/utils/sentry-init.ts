@@ -44,7 +44,8 @@ export function initSentry(): void {
     if (isPaymentNetworkExplorerPath(window.location.pathname)) return
     started = true
 
-    void loadSentry().then((Sentry) => {
+    void loadSentryOrRelease().then((Sentry) => {
+        if (!Sentry) return
         window.removeEventListener('error', bufferEvent)
         window.removeEventListener('unhandledrejection', bufferEvent)
 
@@ -99,6 +100,14 @@ export function initSentry(): void {
         })
 
         flushBuffered(Sentry)
+    })
+}
+
+// A failed load keeps the buffer listeners attached, so the next trigger retries.
+function loadSentryOrRelease(): Promise<Awaited<ReturnType<typeof loadSentry>> | null> {
+    return loadSentry().catch(() => {
+        started = false
+        return null
     })
 }
 

@@ -33,6 +33,7 @@
 		AA000000000000000000000A /* PushProvisioningExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010B /* PushProvisioningExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA000000000000000000000B /* PushProvisioningExtensionUI.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010C /* PushProvisioningExtensionUI.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA000000000000000000000C /* WalletExtensionCardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */; };
+		AD5510000000000000000001 /* ReceiptSharePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5510000000000000000002 /* ReceiptSharePlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +64,7 @@
 		AA000000000000000000010A /* PushProvisioningExtensionUI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PushProvisioningExtensionUI.entitlements; sourceTree = "<group>"; };
 		AA000000000000000000010B /* PushProvisioningExtension.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = PushProvisioningExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000000000000000000010C /* PushProvisioningExtensionUI.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = PushProvisioningExtensionUI.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD5510000000000000000002 /* ReceiptSharePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptSharePlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +127,7 @@
 				AA0000000000000000000103 /* WalletCardArtwork.swift */,
 				AA0000000000000000000104 /* WalletProvisioningSession.swift */,
 				7A1C0DE7C11B0A4D2E5F3904 /* ClipboardDetectPlugin.swift */,
+				AD5510000000000000000002 /* ReceiptSharePlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -383,6 +386,7 @@
 				7A1C0DE7C11B0A4D2E5F3907 /* WalletExtensionCardStore.swift in Sources */,
 				AA0000000000000000000001 /* WalletExtensionAuth.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3903 /* ClipboardDetectPlugin.swift in Sources */,
+				AD5510000000000000000001 /* ReceiptSharePlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
