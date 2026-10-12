@@ -16,6 +16,7 @@ import type { IUserProfile } from '@/interfaces/interfaces'
 import { SetupDocLink } from '../components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { captureException } from '@/utils/sentry-lazy'
 
 export default function EmailStep() {
     const t = useTranslations('setup.email')
@@ -49,6 +50,9 @@ export default function EmailStep() {
         // after the API confirms the required contact has been saved.
         setNotificationEmail(value)
         try {
+            // updateUserById returns every failure, including a network error
+            // after its one retry, as `result.error`. The button stays enabled
+            // after an error, so Continue is the retry.
             if (user.user.email !== value) {
                 const result = await updateUserById({ userId: user.user.userId, email: value })
                 if (result.error) {
@@ -65,9 +69,9 @@ export default function EmailStep() {
                 })
                 void fetchUser().catch(() => {})
             }
-            await handleNext()
-        } catch {
-            setError(t('saveFailed'))
+            // A navigation failure is not a failed save: showing saveFailed
+            // here would ask the user to retry an email the API already has.
+            await handleNext().catch((navigationError: unknown) => captureException(navigationError))
         } finally {
             savingRef.current = false
             setSaving(false)

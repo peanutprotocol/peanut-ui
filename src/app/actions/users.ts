@@ -11,6 +11,9 @@ export const updateUserById = async (payload: Record<string, unknown>): Promise<
         const response = await serverFetch('/update-user', {
             method: 'POST',
             body: JSON.stringify(payload),
+            // Setting the same fields twice is safe. A step-up proof may be
+            // single-use, so a request that carries one is not resent.
+            idempotent: !requiresEmailStepUp,
             ...(requiresEmailStepUp ? { headers: await withStepUpHeader({}) } : {}),
         })
 
