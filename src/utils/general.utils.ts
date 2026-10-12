@@ -326,11 +326,13 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         let s = amount.trim()
         if (s === '') return ''
 
-        // Handle comma: could be decimal separator (Argentina) or thousands separator (US paste)
-        // Heuristic: comma followed by exactly 3 digits = thousands separator
-        // Otherwise: decimal separator
-        s = s.replace(/,(\d{3})/g, '$1') // Remove commas before exactly 3 digits (thousands)
-        s = s.replace(/,/g, '.') // Convert remaining commas to dots (decimal separators)
+        // a lone comma is the decimal separator (es/pt): "0,125" is 0.125, never 125.
+        // commas are thousands only in a well-formed group with a second signal:
+        // a dot after them ("10,000.50") or more than one comma ("1,234,567").
+        // anything else with a comma ("1,2,3") ends up invalid and is rejected.
+        const loneComma = /^[^,.]*,[^,.]*$/.test(s)
+        const isThousands = !loneComma && /^\d{1,3}(,\d{3})+(\.\d*)?$/.test(s)
+        s = isThousands ? s.replace(/,/g, '') : s.replace(/,/g, '.')
 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty

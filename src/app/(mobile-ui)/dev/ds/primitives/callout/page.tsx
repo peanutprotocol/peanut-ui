@@ -58,6 +58,27 @@ export default function CalloutPage() {
 
             <SectionDivider />
 
+            <DocSection title="Errors that mention support">
+                <DocSection.Content>
+                    <div className="flex flex-col gap-3">
+                        <Callout priority="error">
+                            There was an issue with your request. Please try again or contact support.
+                        </Callout>
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Automatic support link"
+                        code={`// An inline error whose text mentions support (en/es/pt) gets a
+// "Contact support" link that opens the support drawer with the error
+// prefilled. Passing your own ctas turns it off.
+<Callout priority="error">{error.errorMessage}</Callout>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <DocSection title="Build: body vs title + body">
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">

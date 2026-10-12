@@ -13,7 +13,7 @@ import {
     clearLegacyWalletSessionForWallet,
     clearWalletAuthorizationToken,
     clearWalletCardForWallet,
-    PUSH_PROVISIONING_FLAG,
+    PUSH_PROVISIONING_FLAGS,
     rememberCardForWallet,
     syncWalletAuthorizationToken,
 } from '@/utils/push-provisioning'
@@ -25,7 +25,7 @@ import {
  */
 export function useWalletProvisioningLifecycle(): void {
     const isFlagEnabled = useFeatureFlags()
-    const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAG)
+    const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAGS.apple)
     const flagsLoaded = areFeatureFlagsLoaded()
     const iosNative = isIOSNative()
     const { overview } = useRainCardOverview()

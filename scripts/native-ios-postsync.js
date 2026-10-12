@@ -110,30 +110,100 @@ if (requiredSumsubVersion !== SUMSUB_VERSION) {
     throw new Error(`Sumsub framework ${SUMSUB_VERSION} does not match the installed plugin's ${requiredSumsubVersion}`)
 }
 
-// A local postsync can outlive a dependency upgrade even without another cap sync.
-if (!fs.existsSync(sumsubVersionFile) || fs.readFileSync(sumsubVersionFile, 'utf8').trim() !== SUMSUB_VERSION) {
-    fs.rmSync(xcframework, { recursive: true, force: true })
+// Publish the Frameworks container and its version marker together. Keep the
+// marker outside the SDK itself so its code signature remains intact.
+function isCompleteSumsubFramework(directory) {
+    try {
+        const info = fs.statSync(path.join(directory, 'Info.plist'))
+        if (!info.isFile() || info.size === 0) return false
+        const slices = fs
+            .readdirSync(directory, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory() && entry.name !== '_CodeSignature')
+        return (
+            slices.length > 0 &&
+            slices.every((slice) => {
+                const binary = fs.statSync(
+                    path.join(directory, slice.name, 'IdensicMobileSDK.framework/IdensicMobileSDK')
+                )
+                return binary.isFile() && binary.size > 0
+            })
+        )
+    } catch (error) {
+        if (error.code === 'ENOENT') return false
+        throw error
+    }
 }
 
-// 1. Vendor the xcframework (download once; it survives within a single CI run).
-if (!fs.existsSync(xcframework)) {
-    fs.mkdirSync(frameworksDir, { recursive: true })
-    const zipUrl = `https://raw.githubusercontent.com/SumSubstance/IdensicMobileSDK-iOS-Release/master/${SUMSUB_VERSION}/IdensicMobileSDK-${SUMSUB_VERSION}.zip`
-    const zipPath = path.join(frameworksDir, 'IdensicMobileSDK.zip')
-    console.log(`[postsync] downloading IdensicMobileSDK ${SUMSUB_VERSION}…`)
-    execSync(`curl -fsSL -o "${zipPath}" "${zipUrl}"`, { stdio: 'inherit' })
-    // Core subspec only needs IdensicMobileSDK.xcframework (top-level in the zip).
-    execSync(`unzip -oq "${zipPath}" "IdensicMobileSDK.xcframework/*" -d "${frameworksDir}"`, {
-        stdio: 'inherit',
-    })
-    fs.rmSync(zipPath, { force: true })
-    if (!fs.existsSync(xcframework)) {
-        console.error('[postsync] ERROR: IdensicMobileSDK.xcframework not found after extraction')
-        process.exit(1)
+// 1. Vendor the xcframework. Local commands can overlap even though release CI
+// uses isolated runners. Refuse a second writer rather than interleave removals.
+;(function vendorSumsub() {
+    const lockPath = path.join(pluginDir, '.sumsub-postsync.lock')
+    let lock
+    try {
+        lock = fs.openSync(lockPath, 'wx', 0o600)
+    } catch (error) {
+        if (error.code !== 'EEXIST') throw error
+        throw new Error(
+            'Another Sumsub postsync is active. Retry after it finishes. If a previous run crashed, remove ' +
+                lockPath +
+                ' only after checking that no postsync is running.'
+        )
     }
-    fs.writeFileSync(sumsubVersionFile, SUMSUB_VERSION)
-    console.log('[postsync] vendored IdensicMobileSDK.xcframework')
-}
+    let stagingDir
+    try {
+        let cachedVersion
+        try {
+            cachedVersion = fs.readFileSync(sumsubVersionFile, 'utf8').trim()
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error
+        }
+        if (cachedVersion === SUMSUB_VERSION && isCompleteSumsubFramework(xcframework)) return
+
+        stagingDir = fs.mkdtempSync(path.join(pluginDir, '.sumsub-'))
+        const stagedFrameworksDir = path.join(stagingDir, 'Frameworks')
+        fs.mkdirSync(stagedFrameworksDir)
+        const stagedFramework = path.join(stagedFrameworksDir, 'IdensicMobileSDK.xcframework')
+        const zipPath = path.join(stagingDir, 'IdensicMobileSDK.zip')
+        const zipUrl = `https://raw.githubusercontent.com/SumSubstance/IdensicMobileSDK-iOS-Release/master/${SUMSUB_VERSION}/IdensicMobileSDK-${SUMSUB_VERSION}.zip`
+        console.log(`[postsync] downloading IdensicMobileSDK ${SUMSUB_VERSION}…`)
+        execSync(`curl -fsSL -o "${zipPath}" "${zipUrl}"`, { stdio: 'inherit' })
+        execSync(`unzip -oq "${zipPath}" "IdensicMobileSDK.xcframework/*" -d "${stagedFrameworksDir}"`, {
+            stdio: 'inherit',
+        })
+        if (!isCompleteSumsubFramework(stagedFramework)) {
+            throw new Error('IdensicMobileSDK.xcframework is incomplete after extraction')
+        }
+        const marker = fs.openSync(path.join(stagedFrameworksDir, 'sumsub-version.txt'), 'wx', 0o600)
+        try {
+            fs.writeFileSync(marker, SUMSUB_VERSION)
+        } finally {
+            fs.closeSync(marker)
+        }
+
+        const previousFrameworksDir = path.join(stagingDir, 'previous-frameworks')
+        let movedPrevious = false
+        try {
+            fs.renameSync(frameworksDir, previousFrameworksDir)
+            movedPrevious = true
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error
+        }
+        try {
+            fs.renameSync(stagedFrameworksDir, frameworksDir)
+        } catch (error) {
+            if (movedPrevious) fs.renameSync(previousFrameworksDir, frameworksDir)
+            throw error
+        }
+        console.log('[postsync] vendored IdensicMobileSDK.xcframework')
+    } finally {
+        try {
+            if (stagingDir) fs.rmSync(stagingDir, { recursive: true, force: true })
+        } finally {
+            fs.closeSync(lock)
+            fs.unlinkSync(lockPath)
+        }
+    }
+})()
 
 // 2. Patch the generated Package.swift to declare + depend on the binary target.
 let pkg = fs.readFileSync(pkgSwiftPath, 'utf8')

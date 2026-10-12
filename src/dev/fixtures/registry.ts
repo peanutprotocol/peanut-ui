@@ -941,6 +941,23 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: 'p[role="alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
+    'qr-pay-rate-unavailable': {
+        route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1',
+        about: 'An open-amount QR whose live exchange rate failed: Retry remains reachable before currency is set.',
+        waitFor: 'div.my-auto button',
+        responses: {
+            'POST /manteca/qr-payment/init': {
+                code: '',
+                type: 'PIX',
+                paymentAsset: 'BRL',
+                paymentAssetAmount: '0',
+                paymentAgainst: 'USDC',
+                paymentAgainstAmount: '0',
+                paymentPrice: '0',
+            },
+        },
+        fails: ['GET /manteca/prices'],
+    },
     // A PIX-key send after the key screen resolved the owner: the owner's name is
     // the heading, and the key with the masked CPF/CNPJ sits underneath.
     'qr-pay-pix-key-owner': {

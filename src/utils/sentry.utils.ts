@@ -410,6 +410,9 @@ export const TRANSPORT_TIMEOUT_RETRY_DELAY_MS = 300
  */
 export const MIN_TRANSPORT_LEG_MS = 250
 
+// A leg timer firing this late means the JS thread was frozen (app or tab suspended), not a slow network.
+export const SUSPENDED_TIMER_SLACK_MS = 5_000
+
 /**
  * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
  * must be a positive integer of milliseconds within the 32-bit timer range:
@@ -563,9 +566,23 @@ const reportNonOkResponse = async (
     url: string,
     options: RequestInit,
     response: Response,
-    redactTelemetry = false
+    redactTelemetry = false,
+    callerReportsFailures = false
 ): Promise<void> => {
     if (response.ok) return
+    if (callerReportsFailures) {
+        Sentry.addBreadcrumb({
+            category: 'fetch',
+            level: 'warning',
+            message: 'Request failed (reported by caller)',
+            data: {
+                route: redactTelemetry ? '[redacted]' : routeTag(url),
+                method: options.method || 'GET',
+                status: response.status,
+            },
+        })
+        return
+    }
     if (redactTelemetry) {
         Sentry.captureMessage(`Request failed with status ${response.status}`, {
             level: getErrorLevelFromStatus(response.status),
@@ -643,6 +660,13 @@ export type FetchWithSentryOptions = RequestInit & {
      * it visible on any real error that follows.
      */
     silentTimeout?: boolean
+    /*
+     * The caller files the one report for this request (the FX layer does, with
+     * provider and currency context). Timeouts, network errors and non-2xx
+     * responses leave only a breadcrumb here; the throw and the connectivity
+     * accounting are unchanged.
+     */
+    callerReportsFailures?: boolean
 }
 
 /** What a fetch cancelled by its caller rejects with: the reason the caller gave, or a standard AbortError. */
@@ -655,7 +679,8 @@ export const fetchWithSentry = async (
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
     const connectivityGeneration = getConnectivityGeneration()
-    const { preferNativeTransport, silentTimeout, redactTelemetry, ...options } = optionsWithTransport
+    const { preferNativeTransport, silentTimeout, redactTelemetry, callerReportsFailures, ...options } =
+        optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
     /*
@@ -707,8 +732,21 @@ export const fetchWithSentry = async (
      * at the TLS layer rather than timing out (PEANUT-UI-R5F), so almost
      * nothing has been spent by the time the fallback runs.
      */
-    const deadline = Date.now() + timeoutMs * maxAttempts + TRANSPORT_TIMEOUT_RETRY_DELAY_MS * (maxAttempts - 1)
+    let deadline = Date.now() + timeoutMs * maxAttempts + TRANSPORT_TIMEOUT_RETRY_DELAY_MS * (maxAttempts - 1)
     const legTimeoutMs = () => Math.min(timeoutMs, deadline - Date.now())
+    /*
+     * A leg that straddled a suspension never had a foreground attempt: its
+     * timer was frozen with the app (or fired while Android had cut the
+     * backgrounded app's network), and on resume the wall-clock pool above is
+     * already spent. Detected by the lifecycle generation changing during the
+     * leg (native) or the timer firing far later than armed (web, PWA).
+     */
+    const isBackgrounded = () => getConnectivityGeneration() === null
+    let lastLegInterrupted = false
+    const legInterrupted = (legGeneration: number | null, legStartedAt: number, legMs: number) =>
+        legGeneration === null ||
+        getConnectivityGeneration() !== legGeneration ||
+        Date.now() - legStartedAt > legMs + SUSPENDED_TIMER_SLACK_MS
     /*
      * The floor can never exceed the caller's own budget: a call that asks for
      * less than MIN_TRANSPORT_LEG_MS in total wants a short attempt, not no
@@ -732,7 +770,7 @@ export const fetchWithSentry = async (
     if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
             const response = await nativeLeg(legTimeoutMs())
-            await reportNonOkResponse(url, options, response, redactTelemetry)
+            await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
             return response
         } catch {
             // OS client failed, or the caller cancelled — the WebView path below
@@ -755,6 +793,8 @@ export const fetchWithSentry = async (
             if (legMs < minLegMs) {
                 throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
             }
+            const legGeneration = getConnectivityGeneration()
+            const legStartedAt = Date.now()
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), legMs)
             const cancelLeg = () => controller.abort()
@@ -766,7 +806,13 @@ export const fetchWithSentry = async (
                 })
             } catch (error) {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)
+                lastLegInterrupted = legInterrupted(legGeneration, legStartedAt, legMs)
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
+                    if (lastLegInterrupted) {
+                        // React Query pauses its retries until focus, so a leg spent now would only stall again.
+                        if (isBackgrounded()) throw error
+                        deadline = Date.now() + timeoutMs + TRANSPORT_TIMEOUT_RETRY_DELAY_MS
+                    }
                     // console.info: a retry that succeeds is not a failure, and
                     // the retry outcome is reported explicitly below.
                     console.info(`Request to ${String(telemetryUrl).replace(/[\r\n]/g, '')} timed out — retrying`)
@@ -784,7 +830,7 @@ export const fetchWithSentry = async (
     try {
         const response = await attemptFetch()
 
-        await reportNonOkResponse(url, options, response, redactTelemetry)
+        await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
 
         return response
     } catch (error: unknown) {
@@ -793,10 +839,10 @@ export const fetchWithSentry = async (
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
-        if (canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
+        if (!(lastLegInterrupted && isBackgrounded()) && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
                 const response = await nativeLeg(legTimeoutMs())
-                await reportNonOkResponse(url, options, response, redactTelemetry)
+                await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
                 return response
             } catch {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)
@@ -856,24 +902,22 @@ export const fetchWithSentry = async (
             const timeoutError = new Error('Request timed out')
 
             const timeoutFeatureTag = getFeatureTag(url)
-            /*
-             * ~90% of timeouts are background polls (users/me, rain/cards,
-             * unread-count, history) on poor mobile connections (PEANUT-UI-T0M).
-             * A sample still shows every route and its trend; the tag says what
-             * to multiply by. Every mutation timeout is kept.
-             */
+            const reportedByCaller = silentTimeout || callerReportsFailures
+            // Interrupted reads retry on resume. Sample other read timeouts; keep every mutation.
+            const interruptedRead = lastLegInterrupted && !isMutatingMethod(method)
             const sampleRate = isMutatingMethod(method) ? 1 : READ_TIMEOUT_SAMPLE_RATE
             const sampledOut = Math.random() >= sampleRate
-            if (!repeatFailure && !silentTimeout && !sampledOut) {
+            if (!repeatFailure && !reportedByCaller && !interruptedRead && !sampledOut) {
                 Sentry.withScope((scope) => {
-                    scope.setFingerprint(['timeout'])
+                    scope.setFingerprint(lastLegInterrupted ? ['timeout', 'interrupted'] : ['timeout'])
                     scope.setTag('route', routeTag(telemetryUrl))
                     scope.setTag('http.method', method)
+                    if (lastLegInterrupted) scope.setTag('request.interrupted', 'true')
                     scope.setTag('timeout_sample_rate', String(sampleRate))
                     if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
 
                     Sentry.captureException(timeoutError, {
-                        level: 'error',
+                        level: lastLegInterrupted ? 'warning' : 'error',
                         extra: {
                             url: telemetryUrl,
                             method,
@@ -883,14 +927,18 @@ export const fetchWithSentry = async (
                         },
                     })
                 })
-            } else if (silentTimeout || sampledOut) {
+            } else if (reportedByCaller || interruptedRead || sampledOut) {
                 // Not reported, but not erased: if the caller's fallback later
                 // fails for its own reasons, the timeout that preceded it is on
                 // the trail.
                 Sentry.addBreadcrumb({
                     category: 'fetch',
                     level: 'warning',
-                    message: silentTimeout ? 'Request timed out (silent)' : 'Request timed out (not sampled)',
+                    message: lastLegInterrupted
+                        ? 'Request interrupted by app suspension'
+                        : reportedByCaller
+                          ? 'Request timed out (silent)'
+                          : 'Request timed out (not sampled)',
                     data: { route: routeTag(telemetryUrl), method, timeoutMs },
                 })
             }
@@ -903,6 +951,7 @@ export const fetchWithSentry = async (
             // wraps CORS/CSP/TypeError failures and stays fully neutral.
             userError.name = 'ConnectionTimeoutError'
             userError.cause = timeoutError
+            if (lastLegInterrupted) Object.assign(userError, { interrupted: true })
             throw userError
         }
 
@@ -920,7 +969,14 @@ export const fetchWithSentry = async (
         }
 
         const networkFeatureTag = getFeatureTag(url)
-        if (!repeatFailure) {
+        if (callerReportsFailures) {
+            Sentry.addBreadcrumb({
+                category: 'fetch',
+                level: 'warning',
+                message: 'Request failed (reported by caller)',
+                data: { route: routeTag(telemetryUrl), method, errorName },
+            })
+        } else if (!repeatFailure) {
             Sentry.withScope((scope) => {
                 // Set fingerprint for network errors
                 scope.setFingerprint(['network-error', sanitizeUrl(telemetryUrl), options.method || 'GET'])

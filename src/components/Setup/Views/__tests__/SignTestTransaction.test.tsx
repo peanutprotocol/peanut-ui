@@ -213,7 +213,9 @@ describe('SignTestTransaction — setup completion', () => {
 
         let finishSigning!: (result: { userOpHash: string }) => void
         mockSendUserOp.mockReturnValueOnce(new Promise((resolve) => (finishSigning = resolve)))
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        // "Only for you": the shared title block on top, the passkey confirmation on Finish
+        expect(screen.getByRole('heading', { level: 1, name: 'Only for you' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         expect(mockSendUserOp).toHaveBeenCalledTimes(1)
         expect(mockAddAccount).not.toHaveBeenCalled()
         expect(onComplete).not.toHaveBeenCalled()
@@ -284,13 +286,19 @@ describe('SignTestTransaction — setup completion', () => {
         })
         setRedirectUrl('/receipt?id=abc')
         const view = renderWithIntl(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.getByRole('heading', { name: 'Ready to get started?' })).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        expect(screen.getByRole('heading', { name: 'Only for you' })).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                'Only you can use your fingerprint or Face ID to control your account. Peanut can never move or freeze your money. Try it now.'
+            )
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
         jest.useFakeTimers()
         view.rerender(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.queryByRole('heading', { name: 'Ready to get started?' })).not.toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: 'You’re all set!' })).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'Only for you' })).not.toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'All set!' })).toBeInTheDocument()
+        expect(screen.getByText('Your Peanut account is ready.')).toBeInTheDocument()
         expect(screen.queryByText('Works right now')).not.toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(confettiPresets.celebration).not.toHaveBeenCalled()

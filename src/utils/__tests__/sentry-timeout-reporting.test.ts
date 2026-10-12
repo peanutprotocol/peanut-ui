@@ -186,3 +186,73 @@ describe('silentTimeout — call sites that own a fallback', () => {
         expect(Sentry.captureMessage).toHaveBeenCalled()
     })
 })
+
+describe('callerReportsFailures — the caller files the one report', () => {
+    let infoSpy: jest.SpyInstance
+    const url = 'https://api.peanut.me/bridge/exchange-rate?accountType=iban'
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        ;(Sentry.withScope as jest.Mock).mockImplementation((cb: (s: ScopeSpy) => void) => {
+            lastScope = { setFingerprint: jest.fn(), setTag: jest.fn() }
+            cb(lastScope)
+        })
+    })
+
+    afterEach(() => infoSpy.mockRestore())
+
+    const failedResponse = (status: number) =>
+        ({
+            ok: false,
+            status,
+            clone: () => ({ json: () => Promise.resolve({}), text: () => Promise.resolve('{}') }),
+        }) as unknown as Response
+
+    it('records a timeout as a breadcrumb and still throws', async () => {
+        global.fetch = jest.fn().mockRejectedValue(abort())
+
+        await expect(fetchWithSentry(url, { callerReportsFailures: true })).rejects.toThrow(/taking too long/)
+
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Request timed out (silent)' })
+        )
+    })
+
+    it('records a non-2xx response as a breadcrumb with its status', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failedResponse(503))
+
+        const response = await fetchWithSentry(url, { callerReportsFailures: true })
+
+        expect(response.status).toBe(503)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'Request failed (reported by caller)',
+                data: expect.objectContaining({ status: 503, route: '/bridge/exchange-rate?accountType={value}' }),
+            })
+        )
+    })
+
+    it('records a network failure as a breadcrumb and still throws', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+
+        await expect(fetchWithSentry(url, { callerReportsFailures: true })).rejects.toMatchObject({
+            name: 'ServiceUnavailableError',
+        })
+
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Request failed (reported by caller)' })
+        )
+    })
+
+    it('leaves every other request reporting its own non-2xx', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failedResponse(503))
+
+        await fetchWithSentry(url)
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+})

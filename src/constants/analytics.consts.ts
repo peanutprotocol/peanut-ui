@@ -317,6 +317,7 @@ export const ANALYTICS_EVENTS = {
     // card_tokenization_declined (Rain webhooks) close this funnel.
     CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
     CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_ALREADY_ADDED: 'card_add_to_wallet_already_added',
     CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
     CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
@@ -359,7 +360,6 @@ export const ANALYTICS_EVENTS = {
     // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
     // `store` ∈ 'ios' | 'android'. qr_shown fires once per QR display (the
     // smart QR serves both stores, so it has no store dimension).
-    MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
     // guest Join/Continue-with-Peanut CTA rendered to a logged-out web
     // visitor during the window — the impression leg of the guest funnel
     MIGRATION_GUEST_CTA_SHOWN: 'migration_guest_cta_shown',
@@ -375,6 +375,18 @@ export const ANALYTICS_EVENTS = {
     DEFERRED_LINK_RESTORED: 'deferred_link_restored',
     // Fired on the web side when a store bounce writes the hand-off.
     DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
+
+    // ── Statements (Profile → Statements): activity download ──
+    // `range_preset` is the named period (allTime, last30d, …) or 'custom',
+    // and `range_days` its length — never the dates themselves, which would
+    // describe when a person banks. RANGE_APPLIED fires on a preset pick or a
+    // finished custom period. STARTED and SAVED are separate because native
+    // delivery needs a second tap: the gap between them is the share sheet
+    // being dismissed. FAILED carries the server's reason code.
+    ACTIVITY_RANGE_APPLIED: 'activity_range_applied',
+    ACTIVITY_EXPORT_STARTED: 'activity_export_started',
+    ACTIVITY_EXPORT_SAVED: 'activity_export_saved',
+    ACTIVITY_EXPORT_FAILED: 'activity_export_failed',
 } as const
 
 /**

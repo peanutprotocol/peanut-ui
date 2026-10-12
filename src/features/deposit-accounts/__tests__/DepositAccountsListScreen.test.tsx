@@ -29,6 +29,7 @@ jest.mock('next/navigation', () => ({
 
 const mockOpenSupport = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({ openSupportWithMessage: mockOpenSupport }),
 }))
 

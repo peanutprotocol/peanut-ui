@@ -1,5 +1,5 @@
-import { act, renderHook } from '@testing-library/react'
-import { captureException } from '@sentry/nextjs'
+import * as React from 'react'
+import { act, cleanup, renderHook } from '@testing-library/react'
 
 let mockEnvironment = 'preview'
 const mockInit = jest.fn()
@@ -14,8 +14,9 @@ const mockAdapter = {
     onNotificationReceived: jest.fn(),
 }
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: async () => mockAdapter }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/utils/sentry-env', () => ({ inferSentryEnvironment: () => mockEnvironment }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: jest.fn(), updateUserPreferences: jest.fn() }))
@@ -26,37 +27,47 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
 }))
 
-import { useNotifications } from '../useNotifications'
+afterEach(() => {
+    cleanup()
+    jest.restoreAllMocks()
+})
 
 async function initFailingWith(message: string) {
-    mockInit.mockRejectedValueOnce(new Error(message))
+    // Each case is a fresh page. A permanent refusal intentionally settles
+    // initialization for the document, so tests must not share that singleton.
+    jest.resetModules()
+    // Keep the renderer and the reloaded hook on the same React instance.
+    jest.doMock('react', () => React)
+    mockInit.mockReset().mockRejectedValue(new Error(message))
+    const { useNotifications } = require('../useNotifications') as typeof import('../useNotifications')
+    const { captureException } = require('@sentry/nextjs') as { captureException: jest.Mock }
     const view = renderHook(() => useNotifications())
     await act(async () => {
         await view.result.current.requestPermission().catch(() => {})
     })
+    return captureException
 }
 
 describe('OneSignal origin refusal', () => {
     beforeEach(() => {
-        jest.mocked(captureException).mockClear()
         jest.spyOn(console, 'warn').mockImplementation(() => {})
     })
 
     it('is not reported from a preview deploy, which OneSignal refuses by design', async () => {
         mockEnvironment = 'preview'
-        await initFailingWith('Can only be used on: https://staging.peanut.me')
+        const captureException = await initFailingWith('Can only be used on: https://staging.peanut.me')
         expect(captureException).not.toHaveBeenCalled()
     })
 
     it('is reported on production, where it means push is misconfigured', async () => {
         mockEnvironment = 'production'
-        await initFailingWith('Can only be used on: https://peanut.me')
+        const captureException = await initFailingWith('Can only be used on: https://peanut.me')
         expect(captureException).toHaveBeenCalledTimes(1)
     })
 
     it('still reports any other init failure from a preview deploy', async () => {
         mockEnvironment = 'preview'
-        await initFailingWith('OneSignal script blocked')
+        const captureException = await initFailingWith('OneSignal script blocked')
         expect(captureException).toHaveBeenCalledTimes(1)
     })
 })

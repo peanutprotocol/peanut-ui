@@ -21,6 +21,7 @@
         "skipForNow": "Skip for now",
         "gotIt": "Got it",
         "contactSupport": "Contact support",
+        "supportErrorPrefill": "I got this error in the app: {error}",
         "peanutFee": "Peanut fee",
         "sponsoredByPeanut": "Sponsored by Peanut!",
         "pending": "Pending",
@@ -119,26 +120,27 @@
         "loginIncomplete": "Login didn’t complete. Please try again.",
         "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
         "transferTemporarilyUnavailable": "Transfers are temporarily unavailable. Please check Activity before trying again.",
-        "userOpReverted": "This payment could not be completed. Please try again."
+        "userOpReverted": "This payment could not be completed. Please try again.",
+        "passkeyAssociationUnavailable": "Passkey verification is temporarily unavailable. Wait a few seconds and try again.",
+        "passkeyAssociationMismatch": "Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.",
+        "passkeyDeviceLocked": "Unlock the device, then try again.",
+        "passkeyBiometryRequired": "Use Face ID or Touch ID to verify the passkey, then try again.",
+        "passkeyVerificationIncomplete": "Passkey verification wasn’t completed. Try again when ready."
     },
     "migration": {
         "downloadPeanut": "Download Peanut",
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
             "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
-            "maybeLater": "I'll download it later",
-            "title": "Peanut is going app-only",
-            "description": "In {days, plural, one {# day} other {# days}} Peanut moves fully to the app. Download it now and pick up right where you left off. Your account and money move with you automatically.",
-            "remindLater": "Remind me later"
+            "maybeLater": "I'll download it later"
         },
         "sunset": {
-            "heading": "Peanut is now app-only",
-            "sub": "Download the app to pick up right where you left off. Your account and money are already there waiting for you.",
             "supportLink": "Having trouble downloading the app? Chat with our support"
         },
         "qr": {
             "title": "Get the Peanut app",
-            "scanHint": "Scan with your phone camera to download."
+            "scanHint": "Scan with your phone camera to download.",
+            "logIn": "Log in on web instead"
         },
         "banner": {
             "title": "The Peanut app is here!",

@@ -61,10 +61,12 @@ h1 {
     line-height: 1.03;
     letter-spacing: -0.045em;
     margin: 16px 0 20px;
+    overflow-wrap: anywhere;
 }
 #description {
     max-width: 780px;
     color: var(--muted);
+    overflow-wrap: anywhere;
 }
 #provenance {
     display: flex;

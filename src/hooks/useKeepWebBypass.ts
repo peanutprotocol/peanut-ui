@@ -6,10 +6,9 @@ import { KEEP_WEB_COOKIE, KEEP_WEB_COOKIE_DAYS, KEEP_WEB_TOKEN } from '@/constan
 import { getFromCookie, saveToCookie } from '@/utils/general.utils'
 
 /**
- * Support escape hatch for the sunset block: `?keep-web=<token>` (DM'd by
- * support) persists a 90-day cookie that lets this browser keep using the web
- * app. Shared by every layout that renders the sunset gate so the token works
- * no matter which route the user lands on.
+ * Support escape hatch for closed web signup: `?keep-web=<token>` (DM'd by
+ * support) persists a 90-day cookie that reopens signup in this browser, for
+ * people who cannot install the app.
  */
 export function useKeepWebBypass(): boolean {
     const [hasBypass, setHasBypass] = useState(

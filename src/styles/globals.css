@@ -7,6 +7,12 @@
 
 /* v3 darkMode: ['class', '[data-theme="dark"]'] — data-theme selector strategy */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+/* Phone viewports where the browser bars take their share of the height: the sign-up panel tightens so the tallest step fits under the 40% hero. */
+@custom-variant compact (@media (max-width: 767px) and (max-height: 799px));
+/* Short phone viewports (iPhone SE, an open keyboard): the sign-up panel tightens further. */
+@custom-variant short (@media (max-width: 767px) and (max-height: 699px));
+/* The smallest phone viewports (an iPhone SE in Safari): the tightest sign-up panel. */
+@custom-variant tight (@media (max-width: 767px) and (max-height: 579px));
 
 @theme {
     /* the v3 legacy palette is GONE — every token had its consumers migrated.
@@ -57,8 +63,8 @@
     --color-background-page: #faf4f0;
     --color-background-disabled: #efeff0;
     --color-background-brand: #ff90e8;
-    /* Light blue from the onboarding animation/Figma reference. */
-    --color-background-setup-hero: #d8e7ff;
+    /* The sign-up hero: blue-300, the colour the hero art is drawn for (Hugo, 2026-10-10). */
+    --color-background-setup-hero: var(--color-blue-300);
 
     --color-background-icon-bubble-green: #29cc6a;
     --color-background-icon-bubble-red: #ea8282;
@@ -93,6 +99,8 @@
        already used (yellow-900; 5.93:1 on white, 5.44:1 on the page tint).
        no board defines a foreground tone beyond error yet: flagged for vlad. */
     --color-foreground-attention: #885b00;
+    /* Brand pink as text, for a highlighted word (sign-up card: "Oh, and it's pink."). Pairs with background-brand. */
+    --color-foreground-brand: var(--color-pink-500);
     --color-foreground-over-color-primary: #000000;
     --color-foreground-over-color-secondary: #00000099;
 
@@ -785,6 +793,28 @@
     }
 
     /* One animated setup tint shared by the hero and native safe-area fills. */
+    /*
+     * The sign-up hero: 40% of the screen on every step and at every phone size,
+     * the board's proportion (Hugo, 2026-10-10). Short screens fit the tallest
+     * steps by tightening the panel below (the `compact` and `short` variants),
+     * not by shrinking the hero. The one exception is a tiny screen (320x568,
+     * iPhone SE 1st gen): residence, with its second-country link, does not fit
+     * under a 40% hero there, so the hero is 34% (193px instead of 227px).
+     */
+    .setup-hero-height {
+        height: 40dvh;
+    }
+    @media (max-width: 359px) and (max-height: 599px) {
+        .setup-hero-height {
+            height: 34dvh;
+        }
+    }
+    /* Desktop: the full-height side hero. Explicit, because this rule sits in the same layer as md:h-dvh. */
+    @media (min-width: 768px) {
+        .setup-hero-height {
+            height: 100dvh;
+        }
+    }
     .setup-hero-background {
         background-color: var(--setup-hero-background, var(--color-background-setup-hero));
     }

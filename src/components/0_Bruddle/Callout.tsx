@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
@@ -94,6 +95,20 @@ const PRIORITY_STYLES: Record<
     },
 }
 
+// Asks the user to contact support, in en / es / pt. The bare word is not
+// enough: "Peanut doesn't support recurring PIX" needs a new QR code, not support.
+const ASKS_FOR_SUPPORT = new RegExp(
+    [
+        String.raw`\b(?:contact|talk to|chat with|ask|reach|message|write to)\s+(?:our\s+)?support\b`,
+        String.raw`\bsupport\s+(?:can|team)\b`,
+        String.raw`\b(?:contact[aá]r?|habla(?:r)? con|chatear con|escr[ií]bele a|escribirle a|escribe a|ped[ií] a)\s+(?:(?:a|al|con)\s+)?(?:nuestro\s+)?soporte\b`,
+        String.raw`\bsoporte\s+puede\b|\bequipo\s+de\s+soporte\b`,
+        String.raw`\b(?:fal(?:e|ar)\s+com|contato\s+com|contat(?:e|ar)|pe[cç]a\s+ao)\s+(?:o\s+|nosso\s+)?suporte\b`,
+        String.raw`\bsuporte\s+pode\b`,
+    ].join('|'),
+    'i'
+)
+
 /**
  * Inline callout banner from the figma notification board (17802:61535):
  * priority (info/success/attention/helper/error) sets the tone and icon;
@@ -127,6 +142,14 @@ const PRIORITY_STYLES: Record<
  * It has no close button (TASK-23054, konrad + hugo): a toast times out, or a
  * persistent one is cleared by its caller when its condition ends, and
  * the × read as a control that did nothing.
+ *
+ * An inline error whose text tells the user to contact support gets a
+ * "Contact support" CTA that opens the support drawer with the error text
+ * prefilled. Error copy reaches this component from many sources (backend
+ * messages, friendly-error codes, flow hooks), and most callers passed no
+ * CTA, so users read "contact support" with nothing to tap (2026-10-11). The
+ * check reads the rendered text, so it covers every caller and locale.
+ * Callers that pass their own `ctas` keep them.
  */
 export const Callout = ({
     priority = 'info',
@@ -144,7 +167,24 @@ export const Callout = ({
     const t = useTranslations('common')
     const { icon, bg, surface, bubble, bar } = PRIORITY_STYLES[priority]
     const isFloating = variant === 'floating'
-    const visibleCtas = isFloating ? undefined : ctas
+    const modals = useModalsContextOptional()
+    const contentRef = useRef<HTMLDivElement>(null)
+    const [supportErrorText, setSupportErrorText] = useState<string | null>(null)
+    const offersSupport = priority === 'error' && !isFloating && !ctas?.length && !!modals
+    // no deps: the text can change on any render, and an unchanged string
+    // bails out of the re-render
+    useLayoutEffect(() => {
+        const text = offersSupport ? (contentRef.current?.textContent?.trim() ?? '') : ''
+        setSupportErrorText(ASKS_FOR_SUPPORT.test(text) ? text : null)
+    })
+    const supportCta: CalloutCta | undefined =
+        supportErrorText && modals
+            ? {
+                  label: t('contactSupport'),
+                  onClick: () => modals.openSupportWithMessage(t('supportErrorPrefill', { error: supportErrorText })),
+              }
+            : undefined
+    const visibleCtas = isFloating ? undefined : (ctas ?? (supportCta ? [supportCta] : undefined))
     const handleDismiss = isFloating ? undefined : onDismiss
     // `items` wins whenever it is passed at all — an explicit [] means "no rows",
     // not "fall back to children"
@@ -216,7 +256,7 @@ export const Callout = ({
                     apart) inside the 8px stack, so the body hugs its title and
                     only the ctas sit a full step away. A flat gap-2 put 8px in
                     both places and the title read as a separate line. */}
-                <div className="flex flex-col gap-0.5">
+                <div ref={contentRef} className="flex flex-col gap-0.5">
                     {/* items-start pins the icon to the first line. The 16px
                         icon sits in the 20px Body/S line box with a 2px nudge —
                         a list or a wrapping body never centres the icon against

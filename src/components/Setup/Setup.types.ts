@@ -12,18 +12,16 @@ export type SetupIllustration =
 export type ScreenId =
     | 'landing'
     | 'welcome'
+    | 'invite'
     | 'signup'
     | 'advantage-card'
     | 'advantage-bank'
-    | 'advantage-local'
-    | 'advantage-exchange'
-    | 'advantage-people'
     | 'advantage-fees'
     | 'notification-email'
     | 'advantage-payments'
     | 'residence'
+    | 'payment-plan'
     | 'advantage-rewards'
-    | 'passkey-permission'
     | 'advantage-control'
     | 'passkey-success'
     | 'notification-permission'
@@ -45,9 +43,6 @@ export type ScreenProps = {
     'advantage-payments': undefined
     residence: undefined
     'advantage-rewards': undefined
-    'passkey-permission': {
-        handle: string
-    }
     'passkey-success': undefined
     'advantage-control': undefined
     'notification-permission': undefined
@@ -84,6 +79,10 @@ export interface ISetupStep {
      * (each view must keep exactly one top-level heading).
      */
     titleInView?: boolean
+    /** Sell screens lead with the larger heading. */
+    titleSize?: 's' | 'm'
+    /** The description continues the heading as a second statement. */
+    descriptionInTitle?: boolean
     imageClassName?: string
     titleClassName?: string
     contentClassName?: string

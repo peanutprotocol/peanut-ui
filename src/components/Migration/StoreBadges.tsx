@@ -3,8 +3,8 @@ import { useRef } from 'react'
 import { copyIOSHandoff, playStoreUrlWithReferrer, trackDeferredHandoffCreated } from '@/utils/deferred-link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, STORE_URL, type MigrationSurface } from '@/constants/migration.consts'
-import { trackStoreClick } from '@/utils/migration.utils'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 
 /** Show the device's store when known, or both stores on desktop. */
 export default function StoreBadges({
@@ -25,7 +25,7 @@ export default function StoreBadges({
         trackDeferredHandoffCreated(store)
     }
     const { deviceType } = useDeviceType()
-    const thisPlatform = deviceType === DeviceType.IOS ? 'ios' : deviceType === DeviceType.ANDROID ? 'android' : null
+    const thisPlatform = storeForDevice(deviceType)
     const stores = thisPlatform ? ([thisPlatform] as const) : (['ios', 'android'] as const)
     return (
         <div className="flex w-full flex-col gap-4">
@@ -53,7 +53,7 @@ export default function StoreBadges({
                     <Button
                         variant={i === 0 ? 'primary' : 'secondary'}
                         shadowSize="4"
-                        icon={s === 'ios' ? 'apple-logo' : 'google-play'}
+                        icon={storeIcon(s)}
                         className="w-full"
                     >
                         {STORE_NAME[s]}

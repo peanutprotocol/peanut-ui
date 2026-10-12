@@ -2,11 +2,12 @@ import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from 
 import { APP_RELEASE } from '@/constants/app-release'
 import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
-import { beforeSendHandler } from './sentry.utils'
+import { beforeSendHandler, crossOriginScriptErrorContext, isBrowserHostScriptError } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
@@ -72,7 +73,16 @@ if (
             // it here (TASK-22408).
             if (isNativeFetchRejectionExceptionEvent(event)) return null
             if (event?.event === '$exception' && Array.isArray(event.properties?.$exception_list)) {
-                if (isExpectedExceptionChain(event.properties.$exception_list)) return null
+                const exceptions = event.properties.$exception_list
+                if (isExpectedExceptionChain(exceptions)) return null
+                if (isBrowserHostScriptError(exceptions)) return null
+                const scriptErrorContext = crossOriginScriptErrorContext(
+                    exceptions,
+                    Array.from(document.scripts),
+                    window.location.origin,
+                    navigator.userAgent
+                )
+                if (scriptErrorContext) Object.assign(event.properties, scriptErrorContext)
             }
             if (event?.event) noteAppReviewFriction(event.event)
             // Once-per-session login: runs here, after capture assigned/rotated
@@ -145,7 +155,10 @@ if (
          * where it was parsed and evaluated (~1.7s of CPU on the landing page)
          * for a branch that only ever runs in the Capacitor build.
          */
-        void import('@sentry/nextjs').then((Sentry) => {
+        // unhandled, a ChunkLoadError here would trip the inline reload script
+        const loadSdk = () => importWithChunkRetry(() => import('@sentry/nextjs')).catch(() => null)
+        void loadSdk().then((Sentry) => {
+            if (!Sentry) return
             Sentry.init({
                 dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
                 environment: inferSentryEnvironment(),

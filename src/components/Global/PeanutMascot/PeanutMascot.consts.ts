@@ -69,6 +69,7 @@ export const MASCOT_JITTER_FRAMES: number = 0
  * (`./lottie/${pose}.json`) is not statically analysable, so the bundler would ship all ten.
  */
 export const MASCOT_ANIMATION_LOADERS: Record<MascotPose, () => Promise<{ default: unknown }>> = {
+    /** @deprecated Out of brand (Hugo, 2026-10-10). Experimental only; do not use in new screens. */
     juggling: () => import('@/assets/illustrations/lottie/mascot-juggle.json'),
     cheering: () => import('@/assets/mascot/lottie/cheering.json'),
     pointing: () => import('@/assets/mascot/lottie/pointing.json'),

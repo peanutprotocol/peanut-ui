@@ -41,7 +41,7 @@ async function finishTransition() {
     }
 }
 
-it('slides complete screens together with only the incoming screen accessible', async () => {
+it('slides the panels with only the incoming one accessible; the hero is not part of the slide', async () => {
     const view = renderWithIntl(
         <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ pose: 'thinking' }} title="Pink card">
             <button>Next</button>
@@ -54,37 +54,35 @@ it('slides complete screens together with only the incoming screen accessible', 
         </SetupWrapper>
     )
     expect(screen.getByText(/^Pink card/)).toBeInTheDocument()
-    expect(hero).toBeInTheDocument()
+    // A full-page step has no hero; the hero is outside the sliding panels, so it goes at once.
+    expect(hero).not.toBeInTheDocument()
     expect(screen.getByText('Fund your account')).toBeInTheDocument()
     const outgoing = screen.getByText(/^Pink card/).closest('[aria-hidden="true"]')
     expect(outgoing).toHaveAttribute('aria-hidden', 'true')
     expect(outgoing).toHaveAttribute('inert')
-    expect(outgoing).toHaveClass('absolute', 'inset-x-0', 'top-0')
+    expect(outgoing).toHaveClass('absolute', 'inset-0')
     expect(screen.getByText('Fund your account').closest('[aria-hidden="false"]')).not.toHaveClass('absolute')
     expect(screen.getAllByRole('heading')).toHaveLength(1)
     await finishTransition()
     expect(screen.queryByText(/^Pink card/)).not.toBeInTheDocument()
-    expect(hero).not.toBeInTheDocument()
     expect(screen.getAllByRole('heading')).toHaveLength(1)
 })
 
-it('keeps the next illustration override when the outgoing screen cleans up', async () => {
-    const { useSetupImageOverride } = await import('../SetupWrapper')
-    const Override = ({ pose }: { pose: 'thinking' | 'cheering' }) => {
-        useSetupImageOverride({ pose })
-        return <h1>{pose}</h1>
-    }
+it('keeps one hero mounted between steps while its art moves and fades', async () => {
     const view = renderWithIntl(
-        <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ animation: 'card' }}>
-            <Override pose="thinking" />
+        <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ pose: 'thinking' }} title="Pink card">
+            <button>Next</button>
         </SetupWrapper>
     )
+    const hero = screen.getByTestId('card-illustration').closest('.setup-hero-background')
     view.rerender(
-        <SetupWrapper layoutType="signup" screenId="advantage-bank" image={{ animation: 'topup' }}>
-            <Override pose="cheering" />
+        <SetupWrapper layoutType="signup" screenId="advantage-fees" image={{ pose: 'cheering' }} title="Accounts">
+            <button>Next</button>
         </SetupWrapper>
     )
+    expect(document.querySelectorAll('.setup-hero-background')).toHaveLength(1)
+    expect(document.querySelector('.setup-hero-background')).toBe(hero)
     await finishTransition()
-    expect(screen.queryByText('thinking')).not.toBeInTheDocument()
-    expect(screen.getByTestId('card-illustration')).toBeInTheDocument()
+    expect(document.querySelector('.setup-hero-background')).toBe(hero)
+    expect(screen.getAllByTestId('card-illustration')).toHaveLength(1)
 })

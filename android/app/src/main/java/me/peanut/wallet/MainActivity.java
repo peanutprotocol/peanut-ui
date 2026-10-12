@@ -226,6 +226,7 @@ public class MainActivity extends BridgeActivity {
          * can't crash-loop.
          */
         maybeSentryTestCrash();
+        AnrExitReporter.reportLatest(this);
 
         Bridge bridge = this.getBridge();
         if (bridge != null) {
