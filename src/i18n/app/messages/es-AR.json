@@ -505,24 +505,6 @@
                 "changeCountry": "Elegir otro país"
             },
             "compare": {
-                "cardTitle": "Disponible con {country}",
-                "items": {
-                    "p2p": "Peanut a Peanut",
-                    "pix": "Pagos y transferencias PIX",
-                    "arQr": "Pagos QR y transferencias propias",
-                    "spei": "Transferencias bancarias en pesos mexicanos",
-                    "usdAch": "Transferencias bancarias en dólares estadounidenses",
-                    "eurSepa": "Transferencias bancarias en euros",
-                    "gbpFps": "Transferencias bancarias en libras esterlinas",
-                    "bank": "Transferencias bancarias donde haya soporte",
-                    "card": "Tarjeta Peanut"
-                },
-                "missing": {
-                    "banking": "Transferencias bancarias",
-                    "card": "Tarjeta Peanut"
-                },
-                "guideTitle": "¿Qué país debés seleccionar?",
-                "guideDeclaration": "Si tenés un permiso de residencia de alguno de los dos países, elegí ese país. Si no, elegí el país que emitió tu documento de identidad, como un pasaporte o una licencia de conducir.",
                 "selectCountry": "Elegir {country}"
             }
         },

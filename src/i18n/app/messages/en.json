@@ -812,6 +812,7 @@
             "countryPlaceholder": "Select country",
             "secondCountryPlaceholder": "Second country",
             "multiDocLink": "Have residence in another country?",
+            "idNote": "We can only confirm legal residence with an ID issued by that country: ID card, passport, residence permit or driver’s license.",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
             },
@@ -855,25 +856,6 @@
                 "changeCountry": "Choose a different country"
             },
             "compare": {
-                "cardTitle": "Available with {country}",
-                "items": {
-                    "p2p": "Peanut to Peanut",
-                    "pix": "PIX payments & transfers",
-                    "arQr": "QR payments & own-account transfers",
-                    "spei": "Mexican peso bank transfers",
-                    "usdAch": "US dollar bank transfers",
-                    "eurSepa": "Euro bank transfers",
-                    "gbpFps": "British pound bank transfers",
-                    "bank": "Bank transfers where supported",
-                    "card": "Peanut card"
-                },
-                "missing": {
-                    "banking": "Bank transfers",
-                    "card": "Peanut card"
-                },
-                "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
-                "guideTitle": "Which country should be selected?",
-                "guideDeclaration": "If you have a residence permit for either country, choose that one. Otherwise, choose the country that issued your ID, like a passport or driver’s license.",
                 "selectCountry": "Select {country}"
             }
         },

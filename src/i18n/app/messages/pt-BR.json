@@ -812,6 +812,7 @@
             "countryPlaceholder": "Selecione o país",
             "secondCountryPlaceholder": "Segundo país",
             "multiDocLink": "Tem residência em outro país?",
+            "idNote": "Só podemos confirmar a residência legal com um documento emitido por esse país: RG, passaporte, autorização de residência ou CNH.",
             "errors": {
                 "invalidEmail": "Digite um e-mail válido"
             },
@@ -855,25 +856,6 @@
                 "changeCountry": "Escolher outro país"
             },
             "compare": {
-                "cardTitle": "Disponível com {country}",
-                "items": {
-                    "p2p": "Peanut para Peanut",
-                    "pix": "Pagamentos e transferências PIX",
-                    "arQr": "Pagamentos QR e transferências próprias",
-                    "spei": "Transferências bancárias em pesos mexicanos",
-                    "usdAch": "Transferências bancárias em dólares americanos",
-                    "eurSepa": "Transferências bancárias em euros",
-                    "gbpFps": "Transferências bancárias em libras esterlinas",
-                    "bank": "Transferências bancárias onde houver suporte",
-                    "card": "Cartão Peanut"
-                },
-                "missing": {
-                    "banking": "Transferências bancárias",
-                    "card": "Cartão Peanut"
-                },
-                "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
-                "guideTitle": "Qual país você deve selecionar?",
-                "guideDeclaration": "Se você tem uma autorização de residência de um dos dois países, escolha esse país. Caso contrário, escolha o país que emitiu seu documento de identidade, como um passaporte ou uma carteira de motorista.",
                 "selectCountry": "Escolher {country}"
             }
         },
