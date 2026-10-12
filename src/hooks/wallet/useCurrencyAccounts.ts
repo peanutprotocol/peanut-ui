@@ -1,6 +1,6 @@
 'use client'
 
-import { currencyAccountsKey, eurcBalanceQueryOptions } from '@/utils/currency-account-queries'
+import { currencyAccountsKey, eurcBalanceQueryOptions, eureBalanceQueryOptions } from '@/utils/currency-account-queries'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { currencyAccountsApi, type CurrencyAccount, type CurrencyAccountsResponse } from '@/services/currency-accounts'
 
@@ -30,4 +30,8 @@ export function useCurrencyAccounts(userId: string | undefined) {
 
 export function useEurcBalance(userId: string | undefined, account: CurrencyAccount | undefined) {
     return useQuery(eurcBalanceQueryOptions(userId, account))
+}
+
+export function useEureBalance(userId: string | undefined, account: CurrencyAccount | undefined) {
+    return useQuery(eureBalanceQueryOptions(userId, account))
 }

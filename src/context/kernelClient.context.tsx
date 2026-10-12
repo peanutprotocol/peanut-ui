@@ -45,6 +45,7 @@ interface KernelClientContextType {
     // eager-init for non-Arb chains (mainnet/base/linea — recovery-only).
     // Cached chains resolve immediately; concurrent calls dedupe via inFlightRef.
     ensureClientForChain: (chainId: string) => Promise<GenericSmartAccountClient>
+    assertClientOwnedByUser: (client: GenericSmartAccountClient) => GenericSmartAccountClient
     // Resolve the v0.0.3 PATCHED passkey sudo validator for the logged-in user's
     // account. Callers that serialize a permission approval (Rain card session
     // key) MUST bind their sudo plugin to THIS validator — see
@@ -809,6 +810,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 setWebAuthnKey,
                 getClientForChain,
                 ensureClientForChain,
+                assertClientOwnedByUser,
                 getPatchedSudoValidator,
                 rebuildClientForChain,
             }}

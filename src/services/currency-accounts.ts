@@ -2,7 +2,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { apiErrorFromResponse } from './api-error'
 
 export interface CurrencyAsset {
-    asset: 'USDC' | 'EURC'
+    asset: 'USDC' | 'EURC' | 'EURE'
     currency: 'USD' | 'EUR'
     chainId: string
     tokenAddress: string
