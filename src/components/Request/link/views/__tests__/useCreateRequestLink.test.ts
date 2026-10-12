@@ -302,6 +302,29 @@ describe('useCreateRequestLink', () => {
             expect(keyOfCall(1)).not.toBe(keyOfCall(0))
         })
 
+        // the API prices a non-USD request itself; a rate refresh is not an edit
+        it('keeps the key of a non-USD request when only the rate moved', async () => {
+            apiCreate.mockRejectedValueOnce(new TypeError('Load failed'))
+            mockExchangeRate = 0.8
+            const currencyAdapter = currencyWrapper('?currency=EUR')
+            const { result, rerender } = renderHook(() => useCreateRequestLink(), { wrapper: currencyAdapter })
+            act(() => {
+                result.current.handleRequestAmountChange('100')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            mockExchangeRate = 0.79
+            rerender()
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiCreate.mock.calls[0][0].tokenAmount).not.toBe(apiCreate.mock.calls[1][0].tokenAmount)
+            expect(keyOfCall(1)).toBe(keyOfCall(0))
+        })
+
         it('makes a new key when the comment changes after a failure', async () => {
             apiCreate.mockRejectedValueOnce(new TypeError('Load failed'))
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })

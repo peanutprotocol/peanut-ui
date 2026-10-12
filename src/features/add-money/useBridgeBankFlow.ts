@@ -323,7 +323,11 @@ export function useBridgeBankFlow() {
                 country: selectedCountry,
                 // the same amount and country re-confirmed after a failure
                 // reuses the key, so the API returns the transfer it made
-                idempotencyKey: submissionKey({ amount: rawTokenAmount, country: selectedCountry.id }),
+                // keyed on the amount as sent, so "100" and "100.0" are one submission
+                idempotencyKey: submissionKey({
+                    amount: Number(rawTokenAmount).toFixed(2),
+                    country: selectedCountry.id,
+                }),
             })
             setOnrampData(onrampDataResponse)
 

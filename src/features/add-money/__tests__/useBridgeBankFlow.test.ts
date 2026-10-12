@@ -341,6 +341,34 @@ describe('useBridgeBankFlow', () => {
         expect(keys[1]).toBe(keys[0])
     })
 
+    it('the same amount typed differently keeps the idempotency key; a new amount gets a new one', async () => {
+        mockCreateOnramp.mockRejectedValueOnce(new Error('Service unavailable'))
+        mockCreateOnramp.mockRejectedValueOnce(new Error('Service unavailable'))
+        mockCreateOnramp.mockResolvedValueOnce({ transferId: 'transfer-123' })
+        const { result } = renderFlow('?step=inputAmount&amount=100')
+
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+        await act(async () => {
+            await result.current.setUrlState({ amount: '100.0' })
+        })
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+        await act(async () => {
+            await result.current.setUrlState({ amount: '101' })
+        })
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+
+        const calls = mockCreateOnramp.mock.calls.map(([params]) => params)
+        expect(calls.map((c) => c.amount)).toEqual(['100', '100.0', '101'])
+        expect(calls[1].idempotencyKey).toBe(calls[0].idempotencyKey)
+        expect(calls[2].idempotencyKey).not.toBe(calls[0].idempotencyKey)
+    })
+
     it('handleVerify routes each gate to its own KYC action', async () => {
         mockGate = { kind: 'restart-identity' }
         let { result } = renderFlow('?step=verify')
