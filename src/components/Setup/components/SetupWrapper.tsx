@@ -339,14 +339,17 @@ const ImageSection = ({
             <motion.div
                 data-setup-hero
                 initial={false}
+                // Never undefined: framer-motion creates the animation state only once
+                // `animate` is set, treats that first target as the mount target, and
+                // initial={false} then drops it, so the hero never grew for the intro.
                 animate={
-                    intro.played && introLayout
-                        ? { height: intro.active ? introLayout.available : restingHeight }
-                        : undefined
+                    intro.played && introLayout ? { height: intro.active ? introLayout.available : restingHeight } : {}
                 }
                 transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className={twMerge(
-                    containerClass,
+                    // twMerge cannot drop the custom .setup-hero-height class, and it beats
+                    // the intro's full-height utility in the cascade, so leave it out.
+                    intro.active ? 'shrink-0 md:h-dvh' : containerClass,
                     'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
                     intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
                 )}
