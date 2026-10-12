@@ -753,8 +753,8 @@
                 "description": "Sua conta da Peanut está pronta."
             },
             "invite": {
-                "title": "Convite de um amigo?",
-                "description": "Digite o usuário da pessoa para que ela ganhe recompensas quando você usar o Peanut."
+                "title": "Alguém te convidou?",
+                "description": "Digite o @ de quem te convidou. Essa pessoa ganha recompensas quando você usa o Peanut."
             }
         },
         "existingSession": {
