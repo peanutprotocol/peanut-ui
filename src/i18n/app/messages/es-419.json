@@ -726,8 +726,7 @@
                 "description": "Solo tú puedes usar tu huella o Face ID para controlar tu cuenta. Peanut nunca puede mover ni congelar tu dinero. Pruébalo ahora."
             },
             "sign-test-transaction": {
-                "title": "Cuenta lista",
-                "description": "Solo confirma que eres tú: un toque y listo."
+                "title": "Cuenta lista"
             },
             "advantage-card": {
                 "title": "Una tarjeta Visa Platinum emitida en EE. UU.",
@@ -939,8 +938,7 @@
             }
         },
         "finish": {
-            "title": "Firma una transacción de prueba",
-            "description": "Asegurémonos de que tu passkey funciona y de que todo está configurado correctamente."
+            "title": "Confirma tu cuenta"
         },
         "accountReady": {
             "worksNowTitle": "Funciona desde ya",

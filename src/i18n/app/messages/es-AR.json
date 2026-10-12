@@ -427,9 +427,6 @@
                 "title": "Solo para vos",
                 "description": "Solo vos podés usar tu huella o Face ID para controlar tu cuenta. Peanut nunca puede mover ni congelar tu plata. Probalo ahora."
             },
-            "sign-test-transaction": {
-                "description": "Solo confirmá que sos vos: un toque y listo."
-            },
             "advantage-bank": {
                 "title": "Cuentas bancarias que viajan con vos.",
                 "description": "Recibí transferencias bancarias en múltiples monedas y usá tu saldo con Peanut."
@@ -573,7 +570,7 @@
             }
         },
         "finish": {
-            "title": "Firmá una transacción de prueba"
+            "title": "Confirmá tu cuenta"
         },
         "accountReady": {
             "worksNowTitle": "Funciona desde ya",

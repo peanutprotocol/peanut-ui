@@ -119,6 +119,14 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockLogoutUser).toHaveBeenCalledTimes(1)
     })
 
+    // The title is the whole message on /setup/finish: no line under it says
+    // how the passkey is checked (Release 164 smoke test).
+    it('shows no text on /setup/finish besides the actions and the passkey link', () => {
+        const { container } = renderWithIntl(<SignTestTransaction showLogout />)
+        const shown = [en.setup.testTransaction.confirmAndFinish, en.profile.logOut, en.setup.passkey.learnMore]
+        expect(shown.reduce((rest, text) => rest.replace(text, ''), container.textContent ?? '').trim()).toBe('')
+    })
+
     it('the setup error follows a language change made after it appeared', async () => {
         mockSendUserOp.mockRejectedValueOnce(new Error('Signing failed'))
         jest.mocked(capturePasskeyDebugInfo).mockResolvedValueOnce(undefined as never)

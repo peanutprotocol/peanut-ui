@@ -726,8 +726,7 @@
                 "description": "Only you can use your fingerprint or Face ID to control your account. Peanut can never move or freeze your money. Try it now."
             },
             "sign-test-transaction": {
-                "title": "Account ready",
-                "description": "Just confirm it's you — one tap and you're in."
+                "title": "Account ready"
             },
             "advantage-card": {
                 "title": "A US-issued Visa Platinum card.",
@@ -939,8 +938,7 @@
             }
         },
         "finish": {
-            "title": "Sign a test transaction",
-            "description": "Let's make sure your passkey is working and you have everything set up correctly."
+            "title": "Confirm your account"
         },
         "accountReady": {
             "worksNowTitle": "Works right now",

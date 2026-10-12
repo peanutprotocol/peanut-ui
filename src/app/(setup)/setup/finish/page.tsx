@@ -25,7 +25,6 @@ function FinishSetupPageContent() {
             screenId="sign-test-transaction"
             image={{ pose: 'waving-chill' }}
             title={t('finish.title')}
-            description={t('finish.description')}
             showBackButton={false}
             showSkipButton={false}
             contentClassName="flex flex-col items-center justify-center gap-6"
