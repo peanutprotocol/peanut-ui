@@ -3,7 +3,7 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Loading from '@/components/Global/Loading'
 import HomeHistory from '@/components/Home/HomeHistory'
-import { AttentionZone } from '@/features/attention/AttentionZone'
+import { HomeAttention } from '@/features/attention/AttentionZone'
 import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
 import { useHomeFlow } from './useHomeFlow'
@@ -49,7 +49,7 @@ export function HomePage() {
                     onToggleVisibility={toggleBalanceVisibility}
                 />
                 <div className="flex flex-col gap-2">
-                    <AttentionZone />
+                    <HomeAttention />
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}

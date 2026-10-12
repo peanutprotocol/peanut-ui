@@ -321,6 +321,9 @@
                 "cta": "View card"
             },
             "notNow": "Not now"
+        },
+        "attention": {
+            "label": "Next steps"
         }
     },
     "profile": {

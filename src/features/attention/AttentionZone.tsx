@@ -2,15 +2,20 @@
 
 import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { useAttention } from './AttentionProvider'
+import TodoSummary from './surfaces/zone/TodoSummary'
 import { ZONE_SURFACES } from './zoneSurfaces'
 import type { AskId } from './types'
 
 /**
- * The Home attention zone: one card, the manager's pick. The checklist until
- * the first payment, then the next-best action with rotation (decide.ts).
+ * Home's one attention component: the to-do list until the first payment,
+ * then the next-best action with rotation (decide.ts). While the to-do list
+ * shows, only a more critical ask may overlay it; the list then stays
+ * underneath as a progress line with no call to action of its own.
  */
-export function AttentionZone() {
+export function HomeAttention() {
+    const t = useTranslations('home.attention')
     const { decision, state, openedZone, crashed, acted, dismissed, snoozed } = useAttention()
     const pick = decision.zone
     const id = pick?.id ?? null
@@ -32,19 +37,24 @@ export function AttentionZone() {
 
     if (!id || !Surface || !pick) return null
     return (
-        <ZoneBoundary key={`${state.userId}:${id}`} askId={id} onCrash={() => crashed(id, 'zone')}>
-            <Suspense fallback={null}>
-                <Surface
-                    askId={id}
-                    mode={pick.mode}
-                    onActed={() => acted(id, 'zone')}
-                    onDismissed={() => dismissed(id, 'zone')}
-                    onSnoozed={(until) => snoozed(id, until, 'zone')}
-                />
-            </Suspense>
-        </ZoneBoundary>
+        <section aria-label={t('label')} data-testid="home-attention" className="flex flex-col gap-2">
+            <ZoneBoundary key={`${state.userId}:${id}`} askId={id} onCrash={() => crashed(id, 'zone')}>
+                <Suspense fallback={null}>
+                    <Surface
+                        askId={id}
+                        mode={pick.mode}
+                        onActed={() => acted(id, 'zone')}
+                        onDismissed={() => dismissed(id, 'zone')}
+                        onSnoozed={(until) => snoozed(id, until, 'zone')}
+                    />
+                </Suspense>
+            </ZoneBoundary>
+            {pick.underlay && <TodoSummary />}
+        </section>
     )
 }
+
+export const AttentionZone = HomeAttention
 
 /** A card that throws is settled as dismissed, so the next candidate takes the zone. */
 class ZoneBoundary extends Component<{ askId: AskId; onCrash: () => void; children: ReactNode }, { failed: boolean }> {

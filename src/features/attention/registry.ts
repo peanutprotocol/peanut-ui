@@ -130,7 +130,7 @@ export const blockedCard: AttentionAsk = {
         return s.blockedCardId ? 'show' : 'ineligible'
     },
     version: (s) => s.blockedCardId ?? undefined,
-    policy: {},
+    policy: { anchorsHome: true },
     analyticsKey: 'blocked_card',
 }
 
@@ -145,7 +145,7 @@ export const checklist: AttentionAsk = {
         if (!s.onboarding) return 'unknown'
         return s.onboarding.step === 'completed' ? 'done' : 'show'
     },
-    policy: {},
+    policy: { anchorsHome: true },
     analyticsKey: 'checklist',
 }
 

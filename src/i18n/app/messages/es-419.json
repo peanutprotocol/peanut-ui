@@ -321,6 +321,9 @@
                 "cta": "Ver tarjeta"
             },
             "notNow": "Ahora no"
+        },
+        "attention": {
+            "label": "Próximos pasos"
         }
     },
     "profile": {
