@@ -16,7 +16,7 @@
 // same-version replacement can add an annotated platform baseline only after
 // the store accepts it. The OTA lane compares the tree it is publishing
 // against the applicable baseline and refuses when they disagree, naming what
-// moved. That is the rule docs/NATIVE-RELEASE.md states ("bump the native
+// moved. That is the rule mono ops/releases.md (native appendix) states ("bump the native
 // version whenever you change plugins/native code") with the deliberate
 // replacement exception encoded rather than hand-waved.
 //
