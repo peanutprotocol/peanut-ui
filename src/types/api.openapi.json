@@ -23645,16 +23645,6 @@
                                         "attempts": {
                                             "items": {
                                                 "properties": {
-                                                    "actionId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
                                                     "context": {
                                                         "additionalProperties": false,
                                                         "properties": {
@@ -23785,16 +23775,6 @@
                                                             }
                                                         ]
                                                     },
-                                                    "providerReference": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
                                                     "reasonCode": {
                                                         "anyOf": [
                                                             {
@@ -23804,9 +23784,6 @@
                                                                 "type": "null"
                                                             }
                                                         ]
-                                                    },
-                                                    "requestKey": {
-                                                        "type": "string"
                                                     },
                                                     "requirements": {
                                                         "items": {
@@ -24015,16 +23992,6 @@
                                                         "minItems": 1,
                                                         "type": "array"
                                                     },
-                                                    "reviewEventId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
                                                     "reviewedAt": {
                                                         "anyOf": [
                                                             {
@@ -24115,9 +24082,6 @@
                                                         "format": "date-time",
                                                         "type": "string"
                                                     },
-                                                    "userId": {
-                                                        "type": "string"
-                                                    },
                                                     "verificationId": {
                                                         "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
                                                         "type": "string"
@@ -24125,20 +24089,15 @@
                                                 },
                                                 "required": [
                                                     "id",
-                                                    "userId",
                                                     "verificationId",
                                                     "provider",
                                                     "kind",
-                                                    "providerReference",
-                                                    "requestKey",
                                                     "policyVersion",
                                                     "requirements",
                                                     "context",
                                                     "sourceAttemptId",
                                                     "status",
                                                     "revision",
-                                                    "actionId",
-                                                    "reviewEventId",
                                                     "reviewedAt",
                                                     "startedAt",
                                                     "submittedAt",
@@ -24529,16 +24488,6 @@
                                                     "provider": {
                                                         "type": "string"
                                                     },
-                                                    "providerUserId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
                                                     "status": {
                                                         "type": "string"
                                                     }
@@ -24546,7 +24495,6 @@
                                                 "required": [
                                                     "id",
                                                     "provider",
-                                                    "providerUserId",
                                                     "status",
                                                     "mantecaGeo",
                                                     "bridgeGeo"

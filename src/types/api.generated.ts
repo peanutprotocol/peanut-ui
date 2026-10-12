@@ -12945,7 +12945,6 @@ export interface paths {
                     content: {
                         "application/json": {
                             attempts: {
-                                actionId: string | null;
                                 context: {
                                     features?: {
                                         bank: boolean;
@@ -12964,9 +12963,7 @@ export interface paths {
                                 kind: "IDENTITY" | "SUPPLEMENTAL" | "ONBOARDING";
                                 policyVersion: string;
                                 provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN";
-                                providerReference: string | null;
                                 reasonCode: string | null;
-                                requestKey: string;
                                 requirements: ({
                                     code: string;
                                     document: {
@@ -12991,7 +12988,6 @@ export interface paths {
                                     kind: "CHECK";
                                     requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
                                 })[];
-                                reviewEventId: string | null;
                                 reviewedAt: string | null;
                                 revision: number;
                                 sourceAttemptId: string | null;
@@ -13000,7 +12996,6 @@ export interface paths {
                                 submittedAt: string | null;
                                 /** Format: date-time */
                                 updatedAt: string;
-                                userId: string;
                                 verificationId: string;
                             }[];
                             geo: {
@@ -13068,7 +13063,6 @@ export interface paths {
                                 id: string;
                                 mantecaGeo: string | null;
                                 provider: string;
-                                providerUserId: string | null;
                                 status: string;
                             }[];
                             residence: {
