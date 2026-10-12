@@ -451,6 +451,24 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     },
 } satisfies DepositAccount
 
+const DEMO_SHAKE_SESSION_ID = '5a4e0000-0000-4000-8000-000000000001'
+
+function demoShakeSession() {
+    const shakenAt = new Date()
+    return {
+        sessionId: DEMO_SHAKE_SESSION_ID,
+        shakenAt: shakenAt.toISOString(),
+        expiresAt: new Date(shakenAt.getTime() + 90_000).toISOString(),
+        status: 'active',
+        candidates: DEMO_CONTACTS.slice(0, 3).map((contact) => ({
+            username: contact.username,
+            displayName: contact.showFullName ? contact.fullName : null,
+            avatarKey: contact.avatarKey ?? null,
+            isVerified: contact.isVerified,
+        })),
+    }
+}
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -576,6 +594,12 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
 
     // history detail
     { method: 'GET', pattern: '/history/:entryId', handler: () => DEMO_HISTORY_ENTRIES[0] },
+
+    // Shake to pay: no one can shake a second phone in a demo or review session,
+    // so the demo contacts answer every shake.
+    { method: 'POST', pattern: '/shake/sessions', handler: () => demoShakeSession() },
+    { method: 'GET', pattern: '/shake/sessions/:sessionId', handler: () => demoShakeSession() },
+    { method: 'DELETE', pattern: '/shake/sessions/:sessionId', handler: () => new Response(null, { status: 204 }) },
 
     // requests (search hits GET /requests → 404 → caller treats as "none")
     { method: 'GET', pattern: '/requests', handler: () => json({ error: 'not found' }, 404) },

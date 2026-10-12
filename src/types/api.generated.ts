@@ -13722,6 +13722,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/shake/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        location?: unknown;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            candidates: {
+                                avatarKey: string | null;
+                                displayName: string | null;
+                                isVerified: boolean;
+                                username: string;
+                            }[];
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            sessionId: string;
+                            /** Format: date-time */
+                            shakenAt: string;
+                            status: "active" | "expired" | "cancelled";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shake/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            candidates: {
+                                avatarKey: string | null;
+                                displayName: string | null;
+                                isVerified: boolean;
+                                username: string;
+                            }[];
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            sessionId: string;
+                            /** Format: date-time */
+                            shakenAt: string;
+                            status: "active" | "expired" | "cancelled";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

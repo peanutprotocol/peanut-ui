@@ -38,6 +38,7 @@ const API_ROUTE_PATTERNS: readonly ApiRoutePattern[] = [
     [/^\/send-links\/[^/]+\/status$/, '/send-links/:publicKey/status'],
     [/^\/send-links\/[^/]+$/, '/send-links/:publicKey'],
     [/^\/history\/[^/]+$/, '/history/:entryId'],
+    [/^\/shake\/sessions\/[^/]+$/, '/shake/sessions/:sessionId'],
     [/^\/rhino\/bridge\/status\/[^/]+$/, '/rhino/bridge/status/:bridgeId'],
 ]
 
@@ -103,6 +104,7 @@ const API_STATIC_ROUTES = new Set([
     '/rhino/sda-transfer',
     '/rhino/sda-transfer/preview',
     '/send-links',
+    '/shake/sessions',
     '/tokens/price',
     '/tokens/wallet-portfolio',
     '/update-user',

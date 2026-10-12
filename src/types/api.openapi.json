@@ -24031,6 +24031,351 @@
                     "notifications"
                 ]
             }
+        },
+        "/shake/sessions": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "location": {}
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "candidates": {
+                                            "items": {
+                                                "properties": {
+                                                    "avatarKey": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "displayName": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "isVerified": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "username": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "username",
+                                                    "displayName",
+                                                    "avatarKey",
+                                                    "isVerified"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "expiresAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        },
+                                        "sessionId": {
+                                            "format": "uuid",
+                                            "type": "string"
+                                        },
+                                        "shakenAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "active"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "expired"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "cancelled"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "sessionId",
+                                        "shakenAt",
+                                        "expiresAt",
+                                        "status",
+                                        "candidates"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAfterSeconds": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAfterSeconds": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "shake"
+                ]
+            }
+        },
+        "/shake/sessions/{sessionId}": {
+            "delete": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "sessionId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAfterSeconds": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "shake"
+                ]
+            },
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "sessionId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "candidates": {
+                                            "items": {
+                                                "properties": {
+                                                    "avatarKey": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "displayName": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "isVerified": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "username": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "username",
+                                                    "displayName",
+                                                    "avatarKey",
+                                                    "isVerified"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "expiresAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        },
+                                        "sessionId": {
+                                            "format": "uuid",
+                                            "type": "string"
+                                        },
+                                        "shakenAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "active"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "expired"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "cancelled"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "sessionId",
+                                        "shakenAt",
+                                        "expiresAt",
+                                        "status",
+                                        "candidates"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAfterSeconds": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "shake"
+                ]
+            }
         }
     },
     "servers": [

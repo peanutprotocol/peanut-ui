@@ -1104,7 +1104,9 @@
             "sendBankDescription": "EUR, USD, MXN, BRL e mais",
             "pixKeyDescription": "Qualquer chave Pix",
             "exchangeOrWalletTitle": "Cripto",
-            "exchangeOrWalletDescription": "Binance, MetaMask e mais"
+            "exchangeOrWalletDescription": "Binance, MetaMask e mais",
+            "shakeTitle": "Agite para pagar",
+            "shakeDescription": "Pague quem está ao seu lado"
         },
         "contacts": {
             "searchPlaceholder": "Destinatário",
@@ -1136,6 +1138,24 @@
             "cancelSuccessRefresh": "Link cancelado! Atualize para ver o saldo atualizado.",
             "cancelFailed": "Não foi possível cancelar o link. Tente de novo.",
             "minFiatClaimWarning": "Valores abaixo de ${amount} não podem ser resgatados em banco, Pix ou Mercado Pago — o destinatário ainda pode resgatar em uma conta Peanut ou carteira cripto."
+        },
+        "shake": {
+            "title": "Agite para pagar",
+            "instructions": "Agitem os celulares ao mesmo tempo",
+            "startShaking": "Começar a agitar",
+            "tapToFind": "Toque para encontrar pessoas",
+            "searching": "Procurando por perto…",
+            "peopleNearby": "Pessoas por perto",
+            "empty": "Ninguém ainda. Peça para a outra pessoa agitar também.",
+            "expired": "A busca terminou. Agite de novo para procurar pessoas.",
+            "error": "Não foi possível conectar ao Peanut. Verifique sua conexão e tente novamente.",
+            "rateLimited": "Muitas tentativas. Tente novamente em {seconds} s.",
+            "motionDenied": "O acesso ao movimento está desativado. Toque no botão.",
+            "locationHint": "Ative a localização para ver só pessoas perto de você.",
+            "contact": "Contato",
+            "verified": "Verificado",
+            "payAria": "Pagar {name}",
+            "illustrationAlt": "Celular enviando ondas para encontrar pessoas por perto"
         }
     },
     "request": {

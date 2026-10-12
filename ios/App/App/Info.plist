@@ -50,7 +50,11 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Peanut saves receipts and images you choose to your photo library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Peanut may use your location to help verify your identity and prevent fraud during account setup and support.</string>
+	<string>Peanut uses your approximate location to find the person you want to pay when you use Shake to pay, and to help verify your identity and prevent fraud.</string>
+	<!-- Required at upload because the geolocation plugin links background-location APIs;
+	     Peanut never asks for Always access, so the prompt never shows this text. -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Peanut uses your approximate location to find the person you want to pay when you use Shake to pay, and to help verify your identity and prevent fraud.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<!-- Stop OneSignal calling openURL for a notification's launch URL. iOS won't

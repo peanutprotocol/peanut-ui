@@ -61,6 +61,7 @@ import {
     Shield,
     ShieldCheck,
     Smartphone,
+    Vibrate,
     Smile,
     Star,
     SwitchCamera,
@@ -144,6 +145,7 @@ export type IconName =
     | 'plus'
     | 'switch'
     | 'mobile-install'
+    | 'vibrate'
     | 'retry'
     | 'badge'
     | 'user-id'
@@ -310,6 +312,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     switch: (props) => <LucideWrapper Icon={Power} {...props} />,
     'check-circle': (props) => <LucideWrapper Icon={CircleCheck} {...props} />,
     'mobile-install': (props) => <LucideWrapper Icon={Smartphone} {...props} />,
+    vibrate: (props) => <LucideWrapper Icon={Vibrate} {...props} />,
     retry: (props) => <LucideWrapper Icon={RefreshCw} {...props} />,
     'user-id': (props) => <LucideWrapper Icon={ContactRound} {...props} />,
     clock: (props) => <LucideWrapper Icon={Clock} {...props} />,

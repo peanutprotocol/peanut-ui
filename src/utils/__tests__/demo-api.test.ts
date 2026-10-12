@@ -118,6 +118,20 @@ describe('demoRespond — routing', () => {
         expect(data.hasMore).toBe(false)
     })
 
+    it('answers every shake with the first demo contacts, which the send flow can resolve', async () => {
+        const created = await body('/shake/sessions', { method: 'POST', body: '{}' })
+        expect(created.res.status).toBe(200)
+        expect(created.data.status).toBe('active')
+        const usernames = created.data.candidates.map((c: { username: string }) => c.username)
+        expect(usernames).toEqual(DEMO_CONTACTS.slice(0, 3).map((c) => c.username))
+
+        const polled = await body(`/shake/sessions/${created.data.sessionId}`)
+        expect(polled.data.candidates).toHaveLength(3)
+
+        const cancelled = await demoRespond(`/shake/sessions/${created.data.sessionId}`, { method: 'DELETE' })
+        expect(cancelled.status).toBe(204)
+    })
+
     it('ignores the query string when matching', async () => {
         const { data } = await body('/users/history?cursor=abc&limit=50')
         expect(data.entries).toHaveLength(DEMO_HISTORY_ENTRIES.length)

@@ -101,6 +101,7 @@ export const NATIVE_DEPENDENCIES = [
     '@capacitor/core',
     '@capacitor/device',
     '@capacitor/filesystem',
+    '@capacitor/geolocation',
     '@capacitor/haptics',
     '@capacitor/ios',
     '@capacitor/keyboard',

@@ -110,6 +110,7 @@ const ALL_ICONS: IconName[] = [
     'user-id',
     'user-plus',
     'users',
+    'vibrate',
     'wallet',
     'wallet-cancel',
     'wallet-outline',

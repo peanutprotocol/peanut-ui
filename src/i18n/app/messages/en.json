@@ -1104,7 +1104,9 @@
             "sendBankDescription": "EUR, USD, MXN, BRL & more",
             "pixKeyDescription": "Any Pix key",
             "exchangeOrWalletTitle": "Crypto",
-            "exchangeOrWalletDescription": "Binance, MetaMask and more"
+            "exchangeOrWalletDescription": "Binance, MetaMask and more",
+            "shakeTitle": "Shake to pay",
+            "shakeDescription": "Pay someone next to you"
         },
         "contacts": {
             "searchPlaceholder": "Recipient",
@@ -1136,6 +1138,24 @@
             "cancelSuccessRefresh": "Link cancelled! Refresh to see updated balance.",
             "cancelFailed": "Failed to cancel link. Please try again.",
             "minFiatClaimWarning": "Amounts under ${amount} can't be claimed to a bank, Pix or Mercado Pago — the recipient can still claim to a Peanut account or crypto wallet."
+        },
+        "shake": {
+            "title": "Shake to pay",
+            "instructions": "Shake your phones at the same time",
+            "startShaking": "Start shaking",
+            "tapToFind": "Tap to find people",
+            "searching": "Looking nearby…",
+            "peopleNearby": "People nearby",
+            "empty": "No one yet. Ask them to shake too.",
+            "expired": "Search ended. Shake again to look for people.",
+            "error": "Couldn't reach Peanut. Check your connection and try again.",
+            "rateLimited": "Too many shakes. Try again in {seconds}s.",
+            "motionDenied": "Motion access is off. Tap the button instead.",
+            "locationHint": "Turn on location to see only people near you.",
+            "contact": "Contact",
+            "verified": "Verified",
+            "payAria": "Pay {name}",
+            "illustrationAlt": "Phone sending waves to find people nearby"
         }
     },
     "request": {
