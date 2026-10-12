@@ -417,7 +417,7 @@
             },
             "residence": {
                 "title": "País de residencia legal",
-                "description": "Donde tenés residencia legal. No donde naciste ni adonde viajás."
+                "description": "Donde tenés residencia legal. No necesariamente donde naciste ni adonde viajás."
             },
             "advantage-rewards": {
                 "title": "Lo bueno se disfruta en compañía.",

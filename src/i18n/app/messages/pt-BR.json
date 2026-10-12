@@ -715,7 +715,7 @@
             },
             "residence": {
                 "title": "País de residência legal",
-                "description": "Onde você tem residência legal. Não onde nasceu nem para onde está viajando."
+                "description": "Onde você tem residência legal. Não necessariamente onde nasceu nem para onde está viajando."
             },
             "advantage-rewards": {
                 "title": "Coisas boas são melhores em companhia.",

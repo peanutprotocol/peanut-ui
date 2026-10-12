@@ -715,7 +715,7 @@
             },
             "residence": {
                 "title": "Country of legal residence",
-                "description": "Where you are a legal resident. Not where you were born or where you’re travelling to."
+                "description": "Where you are a legal resident. Not necessarily where you were born or where you’re travelling to."
             },
             "advantage-rewards": {
                 "title": "Good things are better together.",
