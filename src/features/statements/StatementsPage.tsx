@@ -62,9 +62,11 @@ export function StatementsPage() {
 
     // the calendar makes the page longer than the screen, and the fixed bottom
     // nav then covers Download. When a tap gives the custom period a last day,
-    // or a failure appears, the page moves just far enough to show the button.
+    // the page moves just far enough to show the button; when a failure
+    // appears under the button, just far enough to show the failure.
     // A deep link that opens on a period does not scroll: nothing changed.
     const downloadRef = useRef<HTMLButtonElement>(null)
+    const errorRef = useRef<HTMLDivElement>(null)
     const lastDay = period.isCustom ? days?.to?.getTime() : undefined
     const shownLastDay = useRef(lastDay)
     useEffect(() => {
@@ -72,7 +74,7 @@ export function StatementsPage() {
         shownLastDay.current = lastDay
     }, [lastDay])
     useEffect(() => {
-        if (error) scrollClearOfBottomNav(downloadRef.current)
+        if (error) scrollClearOfBottomNav(errorRef.current)
     }, [error])
 
     return (
@@ -109,10 +111,11 @@ export function StatementsPage() {
                 </div>
             </div>
             <PageStack.Footer>
-                {/* the CTA ends the page: the button stays the last child so the
-                    page's bottom-nav clearance lands on it (design.md "pinned
-                    footer CTA"), and the error reads just above it */}
-                {error && <Callout priority="error">{t(`errors.${error}`)}</Callout>}
+                {/* the CTA ends the page (design.md "pinned footer CTA") and a
+                    failure reads just under it (Aleks, 2026-10-12), so the
+                    bottom-nav clearance lands on the failure when there is one.
+                    The refused-file error keeps its line short and asks for
+                    support through the link alone. */}
                 <Button
                     ref={downloadRef}
                     variant="primary"
@@ -123,6 +126,13 @@ export function StatementsPage() {
                 >
                     {t(isPrepared ? 'save' : 'download')}
                 </Button>
+                {error && (
+                    <div ref={errorRef}>
+                        <Callout priority="error" offerSupport={error === 'unverified'}>
+                            {t(`errors.${error}`)}
+                        </Callout>
+                    </div>
+                )}
             </PageStack.Footer>
         </PageStack>
     )

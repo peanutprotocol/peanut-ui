@@ -2542,7 +2542,7 @@
         "downloadedByYear": "One file per year",
         "errors": {
             "tooLarge": "This period is too long. Choose a shorter one.",
-            "unverified": "Unexpected issue. Contact support.",
+            "unverified": "Unexpected issue.",
             "busy": "Downloads are busy. Please try again shortly.",
             "saveUnavailable": "File saving is unavailable on this device. Please download from the web app.",
             "failed": "Download failed. Try again."
