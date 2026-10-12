@@ -75,13 +75,19 @@ export class ApiError extends Error {
     readonly code: string | undefined
     /** Seconds until a rate-limited or cooled-down action can be retried, when the backend sent one. */
     readonly retryAfterSec: number | undefined
+    /** The backend's machine `reason` beside `code`, when it sent one (e.g. a send-gate refusal). */
+    readonly reason: string | undefined
 
-    constructor(message: string, opts: { status: number; code?: string; retryAfterSec?: number; cause?: unknown }) {
+    constructor(
+        message: string,
+        opts: { status: number; code?: string; retryAfterSec?: number; reason?: string; cause?: unknown }
+    ) {
         super(message, { cause: opts.cause })
         this.name = 'ApiError'
         this.status = opts.status
         this.code = opts.code
         this.retryAfterSec = opts.retryAfterSec
+        this.reason = opts.reason
     }
 }
 

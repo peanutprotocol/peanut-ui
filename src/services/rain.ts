@@ -412,6 +412,13 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
+          // The send gate refused Rain for this user's plan; `reason` is the
+          // plan's refusal code (e.g. identity_document_insufficient).
+          status: 'provider-not-in-plan'
+          reason?: string
+          message: string
+      }
+    | {
           status: string
           rainUserId?: string
           message: string
@@ -539,6 +546,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
         throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
             status: response.status,
             code: err.code,
+            reason: typeof err.reason === 'string' ? err.reason : undefined,
         })
     }
 
@@ -760,6 +768,9 @@ export const rainApi = {
             // recoverable residence-management screen.
             if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
                 return { status: e.code, message: e.message }
+            }
+            if (e instanceof ApiError && e.code === 'provider-not-in-plan') {
+                return { status: e.code, ...(e.reason ? { reason: e.reason } : {}), message: e.message }
             }
             throw e
         }
