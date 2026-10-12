@@ -293,6 +293,7 @@ describe('useBridgeBankFlow', () => {
         expect(mockCreateOnramp).toHaveBeenCalledWith({
             amount: '100',
             country: expect.objectContaining({ id: 'DE' }),
+            idempotencyKey: expect.any(String),
         })
         expect(mockOnrampFlow.setOnrampData).toHaveBeenCalledWith({ transferId: 'transfer-123' })
         expect(mockCapture).toHaveBeenCalledWith('deposit_confirmed', {
@@ -321,6 +322,23 @@ describe('useBridgeBankFlow', () => {
             errorMessage: 'Service unavailable',
         })
         expect(events.every((e) => e.searchParams.get('step') !== 'showDetails')).toBe(true)
+    })
+
+    it('confirming the same amount again after a failure reuses the idempotency key', async () => {
+        mockCreateOnramp.mockRejectedValueOnce(new Error('Service unavailable'))
+        mockCreateOnramp.mockResolvedValueOnce({ transferId: 'transfer-123' })
+        const { result } = renderFlow('?step=inputAmount&amount=100')
+
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+
+        const keys = mockCreateOnramp.mock.calls.map(([params]) => params.idempotencyKey)
+        expect(keys).toHaveLength(2)
+        expect(keys[1]).toBe(keys[0])
     })
 
     it('handleVerify routes each gate to its own KYC action', async () => {
