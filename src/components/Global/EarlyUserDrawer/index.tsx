@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
@@ -9,6 +10,7 @@ import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
+import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import type { AskSurfaceProps } from '@/features/attention/types'
 
 /**
@@ -18,9 +20,14 @@ import type { AskSurfaceProps } from '@/features/attention/types'
  * records `hasSeenEarlyUserModal` on the server.
  */
 const EarlyUserDrawer = ({ onActed, presentation }: AskSurfaceProps) => {
+    const origin = useAppOrigin()
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
-    const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
+    const inviteLink = generateInviteCodeLink(
+        user?.user.username ?? '',
+        REFERRAL_SOURCES.EARLY_USER_DRAWER,
+        origin
+    ).inviteLink
     const userId = user?.user.userId
     const [open, setOpen] = useState(true)
 

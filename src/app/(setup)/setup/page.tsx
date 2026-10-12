@@ -1,5 +1,6 @@
 'use client'
 
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type ScreenId } from '@/components/Setup/Setup.types'
@@ -96,7 +97,7 @@ function SetupPageContent() {
         }
     }, [steps, currentStepIndex])
     const stepCopy = useSetupStepCopy(step)
-    const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
     // The entry effect must run once per steps-identity, never per step change:
     // setScreenId's identity moves with the cursor, so it rides a ref.
@@ -122,10 +123,13 @@ function SetupPageContent() {
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
     const searchParamsString = searchParams.toString()
-    const signupEntryFlow = useMemo(() => {
-        const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
-        return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
-    }, [searchParamsString])
+    const signupEntryFlow = useHydrationSnapshot(
+        () => {
+            const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
+            return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
+        },
+        () => resolveSignupEntryFlow(new URLSearchParams(searchParamsString).get('redirect_uri'), null)
+    )
     useEffect(() => setSignupEntryFlow(signupEntryFlow), [setSignupEntryFlow, signupEntryFlow])
     const urlBadgeCampaigns = useMemo(
         () => badgeCampaignsFromSearchParams(new URLSearchParams(searchParamsString)),
@@ -538,8 +542,6 @@ function SetupPageContent() {
             // handler below it steps back when nothing consumed the press.
             onBack={dispatchBackPress}
             onSkip={() => handleNext()}
-            onLogout={logoutUser}
-            isLoggingOut={isLoggingOut}
             step={currentStepIndex}
             direction={direction}
             titleClassName={step.titleClassName}

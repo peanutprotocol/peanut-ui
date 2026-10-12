@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import * as React from 'react'
 import { act, cleanup, renderHook } from '@testing-library/react'
 

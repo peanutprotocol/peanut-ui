@@ -565,24 +565,13 @@ describe('GROUP 1: Initial Form States', () => {
         expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
     })
 
-    test('QR code unblurs as soon as a positive amount is entered', () => {
-        renderCreateRequest()
-
-        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '10' } })
-
-        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'false')
-    })
-
-    test('QR code stays blurred for a zero amount and re-blurs when the amount is cleared', () => {
+    // release 164 QA: a sharp QR beside a failed create read as a link that worked
+    test('QR code stays blurred while only an amount is entered', () => {
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
-
-        fireEvent.change(field, { target: { value: '0' } })
-        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
-
         fireEvent.change(field, { target: { value: '10' } })
-        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'false')
+        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
 
         fireEvent.change(field, { target: { value: '' } })
         expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
@@ -797,6 +786,8 @@ describe('GROUP 3: Error States', () => {
             expect(screen.getByText('Failed to create link')).toBeInTheDocument()
         })
         expect(mockToastError).toHaveBeenCalledWith('Failed to create link')
+        // no usable QR next to a create that failed
+        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
         // a link that never existed must release the reserved clipboard write
         expect(mockCancelClipboardCopy).toHaveBeenCalled()
         expect(mockCopyTextToClipboard).not.toHaveBeenCalled()

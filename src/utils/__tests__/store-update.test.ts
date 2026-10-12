@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { isStoreUpdateAvailable, STORE_UPDATE_TIMEOUT_MS } from '../store-update'
 
 const mockGetInfo = jest.fn()

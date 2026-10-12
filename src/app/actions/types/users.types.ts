@@ -66,3 +66,14 @@ export interface AddBankAccountPayload {
     accountCategory?: string
     phoneNumber?: string
 }
+
+/** Why an update failed: no response (`network`), a non-2xx (`http`), or anything else (`other`). */
+export type UpdateUserFailureKind = 'network' | 'http' | 'other'
+
+export interface UpdateUserResult<T> {
+    data?: T
+    error?: string
+    failureKind?: UpdateUserFailureKind
+    /** The HTTP status, when the API answered. */
+    status?: number
+}

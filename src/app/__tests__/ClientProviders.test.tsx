@@ -31,7 +31,10 @@ jest.mock('@/config/peanut.config', () => ({
 // router hook has no context. An app route is what keeps the full
 // provider tree in the chain being asserted.
 let pathname = '/home'
-jest.mock('next/navigation', () => ({ usePathname: () => pathname }))
+jest.mock('next/navigation', () => ({
+    usePathname: () => pathname,
+    useSelectedLayoutSegments: () => pathname.split('/').filter(Boolean),
+}))
 jest.mock('nuqs/adapters/next/app', () => ({
     NuqsAdapter: function NuqsAdapter({ children }: { children: React.ReactNode }) {
         return children

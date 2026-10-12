@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // Regression tests for the AppLockGate decision flow. The critical invariant
 // (D7): in guarded mode the gate locks from the storage mode ALONE — it must
 // never wait for the user query, which cannot settle while its request is

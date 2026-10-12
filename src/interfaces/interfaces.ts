@@ -135,6 +135,8 @@ export interface IBridgeAccount {
         postal_code?: string
     }
     beneficiary_address_valid: boolean
+    /** False once the provider has deactivated the account. */
+    active?: boolean
 }
 
 export type LinkStatus = 'loading' | 'unclaimed' | 'claimed' | 'expired' | 'cancelled'

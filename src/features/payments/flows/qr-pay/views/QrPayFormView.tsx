@@ -296,12 +296,6 @@ export function QrPayFormView() {
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
 
-                    {isLoading && (
-                        <p role="status" className="text-center text-body-s text-foreground-secondary">
-                            {tLoading(loadingStateKey(loadingState))}
-                        </p>
-                    )}
-
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (
                         <Callout priority="info" data-testid="quote-updated-notice">

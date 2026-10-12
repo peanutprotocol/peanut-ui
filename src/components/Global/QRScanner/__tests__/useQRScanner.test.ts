@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The camera path's onScan failure is reported to Sentry under its own tag,
  * with the full scanned payload (accepted trade-off, PR #2757).

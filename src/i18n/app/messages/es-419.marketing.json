@@ -21,6 +21,7 @@
         "skipForNow": "Omitir por ahora",
         "gotIt": "Entendido",
         "contactSupport": "Contactar soporte",
+        "supportErrorPrefill": "Recibí este error en la app: {error}",
         "peanutFee": "Comisión de Peanut",
         "sponsoredByPeanut": "¡Patrocinada por Peanut!",
         "pending": "Pendiente",

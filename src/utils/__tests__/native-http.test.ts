@@ -1,6 +1,8 @@
 /**
  * @jest-environment node
  */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // node env: native-http builds real Response/Headers objects, which are
 // natively present in Node but stripped by jsdom.
 import { canUseNativeHttp, nativeHttpRequest } from '@/utils/native-http'

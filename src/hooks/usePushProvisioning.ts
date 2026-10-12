@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -6,7 +7,7 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { rainApi } from '@/services/rain'
 import { getClearEpoch } from '@/utils/auth-token'
 import { getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
-import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
+import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
     clearWalletStateIfCardMatches,
@@ -24,8 +25,10 @@ import {
  * instructions or an added status, so old binaries degrade cleanly.
  */
 export function usePushProvisioning(card: { id: string; last4: string }) {
+    const nativePlatform = useNativePlatform()
+
     const isFlagEnabled = useFeatureFlags()
-    const wallet = isIOSNative() ? 'apple' : isAndroidNative() ? 'google' : null
+    const wallet = nativePlatform.isIOSNative ? 'apple' : nativePlatform.isAndroidNative ? 'google' : null
     // Platform approvals and the API gate apply in every environment.
     const flagOn = wallet !== null && isFlagEnabled(PUSH_PROVISIONING_FLAGS[wallet])
     const [nativeAvailable, setNativeAvailable] = useState(false)

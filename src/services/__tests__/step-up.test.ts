@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The cache is the risky part: too eager and one Face ID prompt unlocks
  * sensitive routes indefinitely, too shy and a withdrawal prompts twice.

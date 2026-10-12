@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Chrome's UA reduction leaves PostHog resolving every Android to the literal
  * `$device` "Android" with no `$os_version` (4 of 19,151 events carried one in

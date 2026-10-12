@@ -140,6 +140,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({
         setIsSupportModalOpen: jest.fn(),
         setIsQRScannerOpen: jest.fn(),

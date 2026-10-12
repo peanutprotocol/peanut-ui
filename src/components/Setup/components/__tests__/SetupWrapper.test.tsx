@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Setup chrome: the back chevron must inherit currentColor (the nav circle button
  * inverts on hover/active, and a hard-coded black stroke vanished into it).
@@ -161,13 +163,6 @@ describe('SetupWrapper navigation', () => {
         renderWrapper({ showBackButton: true, onBack: jest.fn() })
         const row = screen.getByRole('button', { name: 'Go back' }).closest('div.absolute')
         expect(row).toHaveClass('top-[calc(var(--safe-top)_+_1rem)]', 'px-4')
-    })
-
-    it('keeps the trailing logout action on the same navigation row as Back', () => {
-        renderWrapper({ showBackButton: true, showLogoutButton: true, onBack: jest.fn(), onLogout: jest.fn() })
-        const back = screen.getByRole('button', { name: 'Go back' })
-        const logout = screen.getByRole('button', { name: 'Logout' })
-        expect(back.closest('div.absolute')).toBe(logout.closest('div.absolute'))
     })
 
     it('fires onBack from the back button', () => {

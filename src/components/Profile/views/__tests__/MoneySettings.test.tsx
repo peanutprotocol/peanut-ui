@@ -149,6 +149,7 @@ jest.mock('@/hooks/useLimits', () => ({
 }))
 const mockSetIsSupportModalOpen = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({ setIsSupportModalOpen: mockSetIsSupportModalOpen }),
 }))
 

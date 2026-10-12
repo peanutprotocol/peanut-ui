@@ -381,6 +381,18 @@ export const ANALYTICS_EVENTS = {
     DEFERRED_LINK_RESTORED: 'deferred_link_restored',
     // Fired on the web side when a store bounce writes the hand-off.
     DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
+
+    // ── Statements (Profile → Statements): activity download ──
+    // `range_preset` is the named period (allTime, last30d, …) or 'custom',
+    // and `range_days` its length — never the dates themselves, which would
+    // describe when a person banks. RANGE_APPLIED fires on a preset pick or a
+    // finished custom period. STARTED and SAVED are separate because native
+    // delivery needs a second tap: the gap between them is the share sheet
+    // being dismissed. FAILED carries the server's reason code.
+    ACTIVITY_RANGE_APPLIED: 'activity_range_applied',
+    ACTIVITY_EXPORT_STARTED: 'activity_export_started',
+    ACTIVITY_EXPORT_SAVED: 'activity_export_saved',
+    ACTIVITY_EXPORT_FAILED: 'activity_export_failed',
 } as const
 
 /**
@@ -432,9 +444,13 @@ export const REFERRAL_SOURCES = {
     BADGE_DETAIL: 'badge_detail',
     BADGE_UNLOCK: 'badge_unlock',
     QR_PAY_SUCCESS: 'qr_pay_success',
+    // Early-user announcement drawer's share button (utm_content only, no
+    // referral CTA event).
+    EARLY_USER_DRAWER: 'early_user_drawer',
     // Pre-existing wire value — the receipt used this as an inline literal
     // before it was registered here. Do not rename.
     TRANSACTION_RECEIPT: 'transaction_receipt',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]
+export type ReferralSource = (typeof REFERRAL_SOURCES)[keyof typeof REFERRAL_SOURCES]

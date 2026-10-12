@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { type ReactNode } from 'react'
 import Link from 'next/link'
 import { useLocale } from 'next-intl'
@@ -45,6 +46,8 @@ export function localizeDocsHref(href: string, appLocale: string): string {
  * keep writing the canonical English path.
  */
 export default function DocsLink({ href, className, children, openInDrawer = false, ...rest }: DocsLinkProps) {
+    const nativePlatform = useNativePlatform()
+
     const locale = useLocale()
     const isStandalone = usePWAStatus()
     const openHelp = useAppHelpDrawer()
@@ -75,7 +78,7 @@ export default function DocsLink({ href, className, children, openInDrawer = fal
         )
     }
 
-    if (isStandalone && !isCapacitor()) {
+    if (isStandalone && !nativePlatform.isCapacitor) {
         return (
             <Link href={localizedHref} className={className} {...rest}>
                 {children}

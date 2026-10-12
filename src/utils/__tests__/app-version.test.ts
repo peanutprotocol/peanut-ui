@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { formatRunningVersion, getRunningVersion } from '@/utils/app-version'
 
 const mockGetInfo = jest.fn()

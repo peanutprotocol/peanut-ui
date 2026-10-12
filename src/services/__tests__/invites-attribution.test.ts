@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
 import { isCapacitor } from '@/utils/capacitor'
 import { invitesApi } from '../invites'

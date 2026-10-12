@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { usePathname } from 'next/navigation'
+import { useHydrationPathname } from '@/hooks/useHydrationPathname'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 
@@ -17,7 +17,7 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
     // ZeroDev SDK and the transfer-flow contexts out of the landing page's
     // JavaScript. `isMarketingRoute` fails safe: anything it doesn't recognise
     // gets the full tree.
-    const marketing = isMarketingRoute(usePathname())
+    const marketing = isMarketingRoute(useHydrationPathname())
 
     // Auth, toast and react-query all live in AppFlowProviders now: the
     // marketing site has no signed-in state to read, and AuthProvider was the

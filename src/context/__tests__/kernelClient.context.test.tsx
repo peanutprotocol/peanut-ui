@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * KernelClientProvider — a failed primary-chain client build must not cost
  * the user their session unless the stored passkey is genuinely stale.

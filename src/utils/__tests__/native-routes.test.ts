@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // tests for native-routes url helpers
 
 import { isCapacitor } from '@/utils/capacitor'

@@ -4,7 +4,7 @@ import { AskShell } from '@/features/attention/AskShell'
 import type { InterruptPresentation } from '@/features/attention/types'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { useMemo } from 'react'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useTranslations } from 'next-intl'
 
 enum Platform {
@@ -79,10 +79,8 @@ export default function BalanceWarningDrawer({
     presentation = 'drawer',
 }: BalanceWarningDrawerProps) {
     const t = useTranslations('global')
-    const platformInfo = useMemo(() => {
-        const platform = detectPlatform()
-        return PLATFORM_INFO[platform]
-    }, [])
+    const platform = useHydrationSnapshot(detectPlatform, () => Platform.UNKNOWN)
+    const platformInfo = PLATFORM_INFO[platform]
     const platformName = platformInfo.name ?? t('balanceWarningModal.yourDevice')
 
     // deliberate friction: the only way out is the slide — dismissible={false}

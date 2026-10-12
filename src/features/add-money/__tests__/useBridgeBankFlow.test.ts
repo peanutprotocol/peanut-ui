@@ -293,6 +293,7 @@ describe('useBridgeBankFlow', () => {
         expect(mockCreateOnramp).toHaveBeenCalledWith({
             amount: '100',
             country: expect.objectContaining({ id: 'DE' }),
+            idempotencyKey: expect.any(String),
         })
         expect(mockOnrampFlow.setOnrampData).toHaveBeenCalledWith({ transferId: 'transfer-123' })
         expect(mockCapture).toHaveBeenCalledWith('deposit_confirmed', {
@@ -321,6 +322,51 @@ describe('useBridgeBankFlow', () => {
             errorMessage: 'Service unavailable',
         })
         expect(events.every((e) => e.searchParams.get('step') !== 'showDetails')).toBe(true)
+    })
+
+    it('confirming the same amount again after a failure reuses the idempotency key', async () => {
+        mockCreateOnramp.mockRejectedValueOnce(new Error('Service unavailable'))
+        mockCreateOnramp.mockResolvedValueOnce({ transferId: 'transfer-123' })
+        const { result } = renderFlow('?step=inputAmount&amount=100')
+
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+
+        const keys = mockCreateOnramp.mock.calls.map(([params]) => params.idempotencyKey)
+        expect(keys).toHaveLength(2)
+        expect(keys[1]).toBe(keys[0])
+    })
+
+    it('the same amount typed differently keeps the idempotency key; a new amount gets a new one', async () => {
+        mockCreateOnramp.mockRejectedValueOnce(new Error('Service unavailable'))
+        mockCreateOnramp.mockRejectedValueOnce(new Error('Service unavailable'))
+        mockCreateOnramp.mockResolvedValueOnce({ transferId: 'transfer-123' })
+        const { result } = renderFlow('?step=inputAmount&amount=100')
+
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+        await act(async () => {
+            await result.current.setUrlState({ amount: '100.0' })
+        })
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+        await act(async () => {
+            await result.current.setUrlState({ amount: '101' })
+        })
+        await act(async () => {
+            await result.current.handleWarningConfirm()
+        })
+
+        const calls = mockCreateOnramp.mock.calls.map(([params]) => params)
+        expect(calls.map((c) => c.amount)).toEqual(['100', '100.0', '101'])
+        expect(calls[1].idempotencyKey).toBe(calls[0].idempotencyKey)
+        expect(calls[2].idempotencyKey).not.toBe(calls[0].idempotencyKey)
     })
 
     it('handleVerify routes each gate to its own KYC action', async () => {

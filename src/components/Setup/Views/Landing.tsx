@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { getPasskeyErrorSetupKey, isAlreadyReported } from '@/utils/webauthn.utils'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -23,6 +24,8 @@ import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
 
 const LandingStep = () => {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('setup')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
@@ -32,7 +35,7 @@ const LandingStep = () => {
     // pwa-sunset on web (any device): NEW signups are app-only, so the app
     // download leads and Log In drops to a text link for existing accounts.
     // Native app and keep-web bypass users see the normal card.
-    const blockSignup = migrationOn && !isCapacitor() && !hasKeepWebBypass
+    const blockSignup = migrationOn && !nativePlatform.isCapacitor && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
@@ -103,7 +106,7 @@ const LandingStep = () => {
                         // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
                         // pend minutes — Sign Up must stay an escape hatch there, and a
                         // mid-ceremony register fails cleanly as CeremonyConflictError.
-                        disabled={isLoggingIn && isCapacitor()}
+                        disabled={isLoggingIn && nativePlatform.isCapacitor}
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
                             handleNext()

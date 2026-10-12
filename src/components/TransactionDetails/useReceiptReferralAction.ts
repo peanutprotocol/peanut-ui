@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 import { useEffect, useRef } from 'react'
 import posthog from 'posthog-js'
@@ -41,6 +42,7 @@ export function useReceiptReferralAction(
     transaction: TransactionDetails,
     { isPublic, drawerOpen, onSelect }: { isPublic: boolean; drawerOpen: boolean; onSelect?: () => void }
 ): ReceiptMoreAction | null {
+    const origin = useAppOrigin()
     const t = useAppTranslations('transaction')
     const { user } = useAuth()
     const { isActivated } = useActivationStatus()
@@ -52,7 +54,9 @@ export function useReceiptReferralAction(
         transaction.status === 'completed' &&
         hasReferralNudge(transaction) &&
         !!inviteUsername
-    const inviteLink = inviteUsername ? generateInviteCodeLink(inviteUsername).inviteLink : ''
+    const inviteLink = inviteUsername
+        ? generateInviteCodeLink(inviteUsername, REFERRAL_SOURCES.TRANSACTION_RECEIPT, origin).inviteLink
+        : ''
 
     const share = useShareAction({
         url: inviteLink,
