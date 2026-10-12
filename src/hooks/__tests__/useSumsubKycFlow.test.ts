@@ -1331,6 +1331,15 @@ describe('useSumsubKycFlow — capability action sessions', () => {
         expect(result.current.accessToken).toBe('tok-gen-2')
         expect(result.current.showWrapper).toBe(true)
     })
+    it('a refused supplement with no step to take keeps the translated start-action error', async () => {
+        mockStartAction.mockResolvedValue({ error: 'Failed to start verification', code: 'supplement_not_required' })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(result.current.error).toBe('Could not start verification. Please try again.')
+        expect(result.current.isTerminalError).toBe(false)
+    })
     it('refreshes the exact generation without re-entering start-action', async () => {
         mockStartAction.mockResolvedValue({ data: { token: 'tok', levelName: 'manteca-kyc', session } })
         jest.mocked(refreshVerificationSession).mockResolvedValue('fresh-token')

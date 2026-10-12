@@ -30,6 +30,8 @@ export type SumsubActionErrorCode =
     | 'residence_change_failed'
     | 'resubmit_failed'
     | 'start_action_failed'
+    // start-action refused a supplement the gate no longer asks for; `fallback` names the step instead
+    | 'supplement_not_required'
     | 'invalid_response'
     | 'unexpected'
 
@@ -381,6 +383,10 @@ export const refreshKycState = async (): Promise<KycRefreshResponse> => {
     }
 }
 
+/** The step start-action names when it refuses a supplement the gate no longer asks for. */
+export type SupplementFallback = 'contact-support' | 'restart-identity' | 'wait'
+const SUPPLEMENT_FALLBACKS = new Set<string>(['contact-support', 'restart-identity', 'wait'])
+
 export interface StartKycActionResponse {
     token?: string
     session?: VerificationActionSession
@@ -401,7 +407,13 @@ export interface StartKycActionResponse {
  */
 export const startKycAction = async (
     key: string
-): Promise<{ data?: StartKycActionResponse; error?: string; code?: SumsubActionErrorCode }> => {
+): Promise<{
+    data?: StartKycActionResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    reason?: string
+    fallback?: SupplementFallback
+}> => {
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
@@ -409,12 +421,20 @@ export const startKycAction = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(
+            const failure = backendOrFallback(
                 responseJson,
                 'Failed to start verification',
                 'start_action_failed',
                 response.status
             )
+            if (response.status !== 409 || responseJson.error !== 'supplement_not_required') return failure
+            const { reason, fallback } = responseJson
+            return {
+                ...failure,
+                code: 'supplement_not_required',
+                ...(typeof reason === 'string' ? { reason } : {}),
+                ...(SUPPLEMENT_FALLBACKS.has(fallback) ? { fallback: fallback as SupplementFallback } : {}),
+            }
         }
         if (!responseJson.sumsubAccessToken && !responseJson.session && responseJson.status === 'completed') {
             return {

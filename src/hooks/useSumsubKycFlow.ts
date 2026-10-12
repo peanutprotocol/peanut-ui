@@ -81,6 +81,7 @@ const ACTION_ERROR_KEYS = {
     residence_change_failed: 'errorResidenceChangeFailed',
     resubmit_failed: 'errorResubmitFailed',
     start_action_failed: 'errorStartActionFailed',
+    supplement_not_required: 'errorStartActionFailed',
     invalid_response: 'errorInvalidResponse',
     unexpected: 'unexpectedError',
 } as const satisfies Partial<Record<SumsubActionErrorCode, string>>
