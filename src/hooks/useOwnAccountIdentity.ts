@@ -31,6 +31,45 @@ function usableName(fullName: string | null | undefined): string | null {
     return trimmed.split(/\s+/).filter(Boolean).length >= 2 ? trimmed : null
 }
 
+/** Lowercase words without accents, so "José  Pérez" and "JOSE PEREZ" compare equal. */
+function nameWords(name: string): Set<string> {
+    const plain = name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+    return new Set(plain.split(/[^\p{L}\p{N}]+/u).filter(Boolean))
+}
+
+/**
+ * Is this saved account in the person's own name?
+ *
+ * The provider list holds every account the person saved, including ones they
+ * pay out to for someone else, and that someone else's address is not theirs.
+ * A bank often drops or adds a middle name, so the words of one name only have
+ * to all appear in the other.
+ */
+function isOwnName(account: IBridgeAccount, verifiedName: string): boolean {
+    const accountName =
+        account.account_owner_name?.trim() || [account.first_name, account.last_name].filter(Boolean).join(' ')
+    const ours = nameWords(verifiedName)
+    const theirs = nameWords(accountName)
+    if (ours.size < 2 || theirs.size < 2) return false
+    const [smaller, larger] = ours.size <= theirs.size ? [ours, theirs] : [theirs, ours]
+    return [...smaller].every((word) => larger.has(word))
+}
+
+/**
+ * An earlier account's address, when it is safe to reuse: the account is in
+ * the person's own name and the provider still accepts it. A deactivated
+ * account, or one whose address the provider flagged as invalid ("missing
+ * street number"), would carry the same refusal into the next account.
+ */
+function reusableAddressOf(account: IBridgeAccount, verifiedName: string): OwnAccountAddress | null {
+    if (account.active === false || account.beneficiary_address_valid === false) return null
+    if (!isOwnName(account, verifiedName)) return null
+    return addressOf(account)
+}
+
 function addressOf(account: IBridgeAccount): OwnAccountAddress | null {
     const address = account.address
     // Street, city and postal code are all required by the form, so a partial
@@ -54,7 +93,8 @@ function addressOf(account: IBridgeAccount): OwnAccountAddress | null {
  *
  * The address has two sources, and they are asked in that order:
  *
- *  1. an address the person gave with an EARLIER payout account of their own.
+ *  1. an address the person gave with an EARLIER payout account in their own
+ *     verified name, still active and with an address the provider accepts.
  *     It wins, because the bank already accepted it;
  *  2. failing that, the address on their verified identity, read through
  *     `GET /users/me/verified-address`. That call is made only when the person
@@ -73,6 +113,7 @@ function addressOf(account: IBridgeAccount): OwnAccountAddress | null {
 export function useOwnAccountIdentity(enabled: boolean = true, isOwnAccount: boolean = true): OwnAccountIdentity {
     const { user } = useAuth()
     const bridgeCustomerId = user?.user.bridgeCustomerId ?? null
+    const ownerName = usableName(user?.user.fullName)
 
     const savedAccountsQuery = useQuery({
         queryKey: [OWN_ACCOUNT_IDENTITY, bridgeCustomerId],
@@ -81,24 +122,27 @@ export function useOwnAccountIdentity(enabled: boolean = true, isOwnAccount: boo
         // is open, and re-reading it on every focus would spend a provider call.
         staleTime: 5 * 60 * 1000,
         retry: false,
-        queryFn: async ({ signal }): Promise<OwnAccountAddress | null> => {
+        queryFn: async ({ signal }): Promise<IBridgeAccount[]> => {
             const response = await apiFetch(`/bridge/customers/${bridgeCustomerId}/external-accounts`, {
                 method: 'GET',
                 signal,
             })
-            if (!response.ok) return null
+            if (!response.ok) return []
             const accounts: IBridgeAccount[] = await response.json()
-            if (!Array.isArray(accounts)) return null
-            // Any of the user's own accounts answers; the first complete one wins.
-            for (const account of accounts) {
-                const address = addressOf(account)
-                if (address) return address
-            }
-            return null
+            return Array.isArray(accounts) ? accounts : []
         },
     })
 
-    const savedAddress = savedAccountsQuery.data ?? null
+    const savedAddress = useMemo((): OwnAccountAddress | null => {
+        // Without a verified name no saved account can be shown to be the person's own.
+        if (!ownerName) return null
+        // The first reusable one wins.
+        for (const account of savedAccountsQuery.data ?? []) {
+            const address = reusableAddressOf(account, ownerName)
+            if (address) return address
+        }
+        return null
+    }, [savedAccountsQuery.data, ownerName])
     // Asked only when the earlier accounts gave nothing AND the person says the
     // account is theirs. The key carries no value of its own, so a second mount
     // (React strict mode, a remount of the form) joins the same request instead
@@ -133,9 +177,9 @@ export function useOwnAccountIdentity(enabled: boolean = true, isOwnAccount: boo
 
     return useMemo(
         () => ({
-            ownerName: usableName(user?.user.fullName),
+            ownerName,
             address: savedAddress ?? verifiedAddress,
         }),
-        [user?.user.fullName, savedAddress, verifiedAddress]
+        [ownerName, savedAddress, verifiedAddress]
     )
 }
