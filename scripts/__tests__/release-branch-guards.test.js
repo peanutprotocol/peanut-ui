@@ -703,7 +703,9 @@ describe('store builds never half-release', () => {
             "if: ${{ always() && contains(needs.*.result, 'failure') && needs.deploy.outputs.native_incompatible != 'true' }}"
         )
         for (const workflow of [native, ota]) {
-            expect(workflow).toContain('DISCORD_WEBHOOK: ${{ secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}')
+            expect(workflow).toContain(
+                'DISCORD_WEBHOOK: ${{ secrets.RELEASE_ALERT_DISCORD_WEBHOOK || secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}'
+            )
             expect(workflow).toContain('bash scripts/post-release-alert.sh')
         }
     })
