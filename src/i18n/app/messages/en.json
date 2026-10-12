@@ -3325,6 +3325,10 @@
             "preferencesContinue": "Continue"
         },
         "supplement": {
+            "proofOfAddressTitle": "Add a proof of address",
+            "proofOfAddressDescription": "Your ID is verified. To open your bank accounts, our payment partner also needs a proof of address, such as a recent bank statement or utility bill.",
+            "proofOfAddressCta": "Add proof of address",
+            "later": "Do this later",
             "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
             "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with. Contact support and we'll help you verify with another one."
         }

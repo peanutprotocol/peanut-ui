@@ -1276,6 +1276,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     )
 
     const dismissErrorCooldown = useCallback(() => setError(null), [setError])
+    // The capability action the open SDK serves; read before completion clears it.
+    const getActionKey = useCallback(() => actionKeyRef.current, [])
 
     return {
         documentPlan,
@@ -1299,6 +1301,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
+        getActionKey,
         handleFixableRejection,
         handleFixableGate,
         handleSdkComplete,

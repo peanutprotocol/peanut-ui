@@ -3325,6 +3325,10 @@
             "preferencesContinue": "Continuar"
         },
         "supplement": {
+            "proofOfAddressTitle": "Adicione um comprovante de endereço",
+            "proofOfAddressDescription": "Sua identidade está verificada. Para abrir suas contas bancárias, nosso parceiro de pagamentos também precisa de um comprovante de endereço, como um extrato bancário ou uma conta de consumo recente.",
+            "proofOfAddressCta": "Adicionar comprovante de endereço",
+            "later": "Fazer isso depois",
             "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
             "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação. Fale com o suporte e ajudamos você a se verificar com outro."
         }

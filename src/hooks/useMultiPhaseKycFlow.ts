@@ -37,6 +37,7 @@ export function deriveCapabilityPhaseSignals(
     targetCountry?: string
 ) {
     const { rails: allRails, nextActions } = capabilities ?? EMPTY_CAPABILITIES
+    const actionKeys = new Set(nextActions.map((action) => action.key))
     const jurisdiction = railJurisdictionForBank(targetCountry)
     const rails = allRails.filter(
         (rail) =>
@@ -68,6 +69,13 @@ export function deriveCapabilityPhaseSignals(
         // mirrors old allSettled: empty rails are NOT settled (still provisioning)
         allSettled: rails.some((rail) => (rail.operations?.deposit ?? rail.status) === 'enabled'),
         railCount: rails.length,
+        // A rail parked until a supplement collects what its provider needs (today Bridge's proof of address).
+        supplementKey: allRails
+            .flatMap((rail) => [
+                rail.resolved?.nextAction?.key,
+                ...(rail.blockingActions ?? []).filter((key) => actionKeys.has(key)),
+            ])
+            .find((key): key is string => !!key?.startsWith('supplement:')),
     }
 }
 
@@ -196,7 +204,7 @@ export const useMultiPhaseKycFlow = ({
     // The old WebSocket-driven instant rail refresh is replaced by that 4s poll
     // (the old hook already had the same 4s poll as a fallback).
     const { capabilities } = useCapabilities()
-    const { allSettled, needsTos, allBlocked } = useMemo(
+    const { allSettled, needsTos, allBlocked, supplementKey } = useMemo(
         () => deriveCapabilityPhaseSignals(capabilities, requestedIntent, requestedCountry),
         [capabilities, requestedIntent, requestedCountry]
     )
@@ -234,6 +242,14 @@ export const useMultiPhaseKycFlow = ({
         onKycSuccess?.()
     }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
 
+    const submittedSupplementsRef = useRef(new Set<string>())
+    const [pendingSupplement, setPendingSupplement] = useState<string | null>(null)
+    const askForSupplement = useCallback((key: string) => {
+        setPendingSupplement(key)
+        setModalPhase('supplement')
+        setForceShowModal(true)
+    }, [])
+
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
         // Open the post-submission window BEFORE the first fetchUser() so the
@@ -259,7 +275,13 @@ export const useMultiPhaseKycFlow = ({
         // post-approval branching reads the FRESH capability block from this
         // fetchUser() result (not the reactive useCapabilities() snapshot,
         // which would be stale within this synchronous call).
-        const { needsTos, anyPending, railCount, allSettled } = deriveCapabilityPhaseSignals(
+        const {
+            needsTos,
+            anyPending,
+            railCount,
+            allSettled,
+            supplementKey: freshSupplementKey,
+        } = deriveCapabilityPhaseSignals(
             updatedUser?.capabilities,
             lastIntentRef.current ?? regionIntent,
             requestedCountry
@@ -269,6 +291,14 @@ export const useMultiPhaseKycFlow = ({
             setModalPhase('bridge_tos')
             setForceShowModal(true)
             clearPreparingTimer()
+            return
+        }
+
+        if (freshSupplementKey) {
+            clearPreparingTimer()
+            // Submitted in this flow: it is in review, and the rail stays parked until it is approved.
+            if (submittedSupplementsRef.current.has(freshSupplementKey)) completeFlow()
+            else askForSupplement(freshSupplementKey)
             return
         }
 
@@ -286,7 +316,16 @@ export const useMultiPhaseKycFlow = ({
             setForceShowModal(true)
             startTracking()
         }
-    }, [fetchUser, startTracking, clearPreparingTimer, completeFlow, onKycApproved, regionIntent, requestedCountry])
+    }, [
+        fetchUser,
+        startTracking,
+        clearPreparingTimer,
+        completeFlow,
+        askForSupplement,
+        onKycApproved,
+        regionIntent,
+        requestedCountry,
+    ])
 
     const {
         isLoading,
@@ -302,6 +341,7 @@ export const useMultiPhaseKycFlow = ({
         handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
+        getActionKey,
         handleFixableRejection,
         handleFixableGate,
         handleSdkComplete: originalHandleSdkComplete,
@@ -420,6 +460,8 @@ export const useMultiPhaseKycFlow = ({
         // strand the applicant on a stale progress modal. (originalHandleSdkComplete
         // still consumes for the sibling transition effect — pre-existing, and the
         // same ambiguity applies to it.)
+        const completedAction = getActionKey()
+        if (completedAction?.startsWith('supplement:')) submittedSupplementsRef.current.add(completedAction)
         originalHandleSdkComplete()
         // Residence submission only puts the dedicated action into provider
         // review. The approved identity and its rails remain authoritative
@@ -433,6 +475,7 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [
         originalHandleSdkComplete,
+        getActionKey,
         handleSumsubApproved,
         isActionFlow,
         isResidenceChangeFlow,
@@ -567,6 +610,12 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         if (verificationSession) return
         if (modalPhase === 'preparing') {
+            if (supplementKey) {
+                clearPreparingTimer()
+                if (submittedSupplementsRef.current.has(supplementKey)) completeFlow()
+                else askForSupplement(supplementKey)
+                return
+            }
             if (allBlocked) {
                 clearPreparingTimer()
                 stopTracking()
@@ -594,6 +643,9 @@ export const useMultiPhaseKycFlow = ({
         needsTos,
         allSettled,
         allBlocked,
+        supplementKey,
+        completeFlow,
+        askForSupplement,
         clearPreparingTimer,
         stopTracking,
         verificationSession,
@@ -695,6 +747,21 @@ export const useMultiPhaseKycFlow = ({
     // Deferring terms is a dismissal, never successful deposit readiness.
     const handleSkipTerms = handleModalClose
 
+    // The proof of address opens on the supplement action the parked rail names.
+    const handleStartSupplement = useCallback(async () => {
+        if (!pendingSupplement) return
+        setForceShowModal(false)
+        setModalPhase('verifying')
+        clearPreparingTimer()
+        await handleStartAction(pendingSupplement)
+    }, [pendingSupplement, clearPreparingTimer, handleStartAction])
+
+    // Deferring it is a dismissal too: the rail keeps asking wherever it shows.
+    const handleSkipSupplement = useCallback(() => {
+        handleModalClose()
+        setModalPhase('verifying')
+    }, [handleModalClose])
+
     // cleanup on unmount
     useEffect(() => {
         return () => {
@@ -712,7 +779,8 @@ export const useMultiPhaseKycFlow = ({
         return 'slow'
     }, [preparingElapsed])
 
-    const depositBlocked = !verificationSession && !showWrapper && allBlocked && modalPhase === 'preparing'
+    const depositBlocked =
+        !verificationSession && !showWrapper && allBlocked && !supplementKey && modalPhase === 'preparing'
 
     return {
         // initiation
@@ -758,6 +826,8 @@ export const useMultiPhaseKycFlow = ({
         handleModalClose,
         handleAcceptTerms,
         handleSkipTerms,
+        handleStartSupplement,
+        handleSkipSupplement,
         completeFlow,
         tosError,
         isLoadingTos,

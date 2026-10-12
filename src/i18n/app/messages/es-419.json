@@ -3325,6 +3325,10 @@
             "preferencesContinue": "Continuar"
         },
         "supplement": {
+            "proofOfAddressTitle": "Agrega un comprobante de domicilio",
+            "proofOfAddressDescription": "Tu identidad está verificada. Para abrir tus cuentas bancarias, nuestro socio de pagos también necesita un comprobante de domicilio, como un estado de cuenta bancario o una factura de servicios reciente.",
+            "proofOfAddressCta": "Agregar comprobante de domicilio",
+            "later": "Hacerlo más tarde",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contacta a soporte y lo completamos por ti.",
             "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte. Contacta a soporte y te ayudamos a verificarte con otro."
         }
