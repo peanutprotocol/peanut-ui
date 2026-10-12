@@ -26,11 +26,18 @@ describe('General Utilities', () => {
                 // Note: These tests run with the test environment's locale
                 // The actual behavior adapts to user's browser locale at runtime
 
-                it('should handle US format (comma as thousands, dot as decimal)', () => {
-                    // Assuming test env is en-US or similar
-                    expect(formatTokenAmount('1,000', 2, true)).toBe('1000')
+                it('reads commas as thousands only when nothing else is possible', () => {
                     expect(formatTokenAmount('10,000.50', 2, true)).toBe('10000.50')
                     expect(formatTokenAmount('1,234,567', 2, true)).toBe('1234567')
+                })
+
+                it('reads a single comma as the decimal separator (TASK-23132)', () => {
+                    // was read as thousands: "0,125" sent 125, a 1000x amount
+                    expect(formatTokenAmount('0,125', 2, true)).toBe('0.12')
+                    expect(formatTokenAmount('12,5000', 2, true)).toBe('12.50')
+                    expect(formatTokenAmount('0,5', 2, true)).toBe('0.5')
+                    expect(formatTokenAmount('1,000', 2, true)).toBe('1.00')
+                    expect(formatTokenAmount('12,', 2, true)).toBe('12.')
                 })
 
                 it('should preserve progressive typing with decimal', () => {

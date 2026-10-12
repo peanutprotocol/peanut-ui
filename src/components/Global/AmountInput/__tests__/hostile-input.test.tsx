@@ -54,25 +54,22 @@ describe('AmountInput with hostile values', () => {
         expect(parseUsdAmountToUnits(sent()!)).toBe(1_123_456n)
     })
 
-    // ---- bugs: recorded with it.failing so the suite stays green. when one
-    // starts passing, jest fails it — flip it to `it` then. ----
-
-    // bug: a 3-digit fraction after a comma is read as a thousands group, so a
-    // pasted "0,125" (es/pt for 0.125) sends 125 — a 1000x amount. no locale
-    // writes a thousands group after a leading 0, so this one is unambiguous.
-    it.failing('pasted "0,125" sends 0.12, not 125', () => {
+    // a single comma is a decimal comma. this used to read "0,125" as a
+    // thousands group and send 125, a 1000x amount.
+    it('pasted "0,125" sends 0.12, not 125', () => {
         const { type, sent } = renderField()
         type('0,125')
         expect(sent()).toBe('0.12')
     })
 
-    // bug: same heuristic — ",500" inside "12,5000" is stripped as a thousands
-    // group, so 12.5 becomes 125000. no locale uses 4-digit groups.
-    it.failing('pasted "12,5000" sends 12.50, not 125000', () => {
+    it('pasted "12,5000" sends 12.50, not 125000', () => {
         const { type, sent } = renderField()
         type('12,5000')
         expect(sent()).toBe('12.50')
     })
+
+    // ---- bugs: recorded with it.failing so the suite stays green. when one
+    // starts passing, jest fails it — flip it to `it` then. ----
 
     // bug: es/pt thousands dots plus a decimal comma are rejected and the field
     // is wiped, so a value copied from a pt-BR/es-AR bank app never pastes
