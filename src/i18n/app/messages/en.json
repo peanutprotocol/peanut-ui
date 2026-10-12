@@ -977,7 +977,7 @@
             "notReady": "Your account is still loading. Try again in a moment.",
             "saveFailed": "We couldn’t save your email. Please try again.",
             "accessHint": "Your passkey controls account access. Your email is for notifications.",
-            "optOutNote": "We’ll email you about your account. You can opt out anytime."
+            "optOutNote": "We’ll email you about your account. You can turn off news and offers anytime."
         },
         "notifications": {
             "pushLabel": "Push notifications",

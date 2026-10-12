@@ -217,14 +217,15 @@ it('reports a navigation failure after a confirmed save instead of showing a fai
     expect(screen.queryByText('We couldn’t save your email. Please try again.')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
 })
-it('says once, below Continue, that we email about the account and the user can opt out', () => {
+it('says below Continue that account emails come always and news and offers can be turned off', () => {
     renderStep(<EmailStep />)
-    const note = screen.getByText('We’ll email you about your account. You can opt out anytime.')
+    const note = screen.getByText('We’ll email you about your account. You can turn off news and offers anytime.')
     expect(
         screen.getByRole('button', { name: 'Continue' }).compareDocumentPosition(note) &
             Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
-    expect(screen.getAllByText(/opt out/i)).toHaveLength(1)
+    // the old subtitle promised an opt-out from all email, which account email does not allow
+    expect(screen.queryByText(/opt out/i)).not.toBeInTheDocument()
 })
 it('does not leave the email step before the authenticated user is available', async () => {
     mockUser = null

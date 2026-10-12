@@ -977,7 +977,7 @@
             "notReady": "Sua conta ainda está carregando. Tente novamente em instantes.",
             "saveFailed": "Não foi possível salvar seu e-mail. Tente novamente.",
             "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações.",
-            "optOutNote": "Vamos enviar e-mails sobre sua conta. Você pode cancelar quando quiser."
+            "optOutNote": "Vamos enviar e-mails sobre sua conta. Você pode desativar novidades e ofertas quando quiser."
         },
         "notifications": {
             "pushLabel": "Notificações push",
