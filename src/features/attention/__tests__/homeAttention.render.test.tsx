@@ -1,4 +1,4 @@
-/** Phase 8 §2: one Home frame with a non-interactive to-do progress underlay. */
+/** Phase 8 §2: one Home frame; a more critical card replaces the to-do list (Slava, 2026-10-12). */
 import React from 'react'
 import { act, cleanup, screen, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -139,52 +139,19 @@ describe('Phase 8: HomeAttention frame and summary', () => {
     test.each([
         ['checklist', null],
         ['blocked-card', 'blocked-card:verification-issue:provider_rejected'],
-    ])('a T1 pick overlays %s with progress underneath and one CTA', async (_anchor, blockedCardId) => {
-        mockState = state({ dueTasks: 1, blockedCardId })
-        await mount()
-        const frame = screen.getByTestId('home-attention')
-        const critical = within(frame).getByTestId('zone-verification-due')
-        const summary = within(frame).getByTestId('todo-summary')
-        expect(within(summary).getByText('3 of 4 done')).toBeInTheDocument()
-        expect(critical.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(within(frame).getAllByRole('button')).toHaveLength(1)
-        expect(
-            summary.querySelector(
-                'button, a, input, select, textarea, [role="button"], [role="link"], [tabindex], [contenteditable="true"]'
-            )
-        ).toBeNull()
-        expect(summary).not.toHaveAttribute('onclick')
-        expect(summary.querySelector('[onclick]')).toBeNull()
-        expect(within(frame).queryByTestId('zone-checklist')).not.toBeInTheDocument()
-        expect(within(frame).queryByTestId('zone-blocked-card')).not.toBeInTheDocument()
-        const fill = summary.querySelector('.bg-background-icon-bubble-green')
-        expect(fill).toBeInTheDocument()
-        expect(fill).toHaveStyle({ width: '75%' })
-    })
-
-    test('the summary follows activation status, including a pending payment row', async () => {
-        mockOnboarding = onboarding({
-            verify: 'in_review',
-            addMoneyDone: false,
-            firstPaymentRoute: 'pending',
-            step: 'verify',
-        })
-        mockState = state({ dueTasks: 1 })
-        const view = await mount()
-        expect(within(screen.getByTestId('todo-summary')).getByText('1 of 4 done')).toBeInTheDocument()
-
-        mockOnboarding = onboarding({ firstPaymentRoute: 'none', step: 'completed' })
-        // Keep a live anchor in the manager snapshot to isolate the summary's hook contract.
-        view.rerender(
-            <AttentionProvider>
-                <HomeAttention />
-            </AttentionProvider>
-        )
-        await act(async () => {})
-        const summary = screen.getByTestId('todo-summary')
-        expect(within(summary).getByText('3 of 3 done')).toBeInTheDocument()
-        expect(summary.querySelector('.bg-background-icon-bubble-green')).toHaveStyle({ width: '100%' })
-    })
+    ])(
+        'a T1 pick replaces %s: only the critical card, one CTA, no list or progress',
+        async (_anchor, blockedCardId) => {
+            mockState = state({ dueTasks: 1, blockedCardId })
+            await mount()
+            const frame = screen.getByTestId('home-attention')
+            expect(within(frame).getByTestId('zone-verification-due')).toBeInTheDocument()
+            expect(within(frame).getAllByRole('button')).toHaveLength(1)
+            expect(within(frame).queryByTestId('zone-checklist')).not.toBeInTheDocument()
+            expect(within(frame).queryByTestId('zone-blocked-card')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('todo-summary')).not.toBeInTheDocument()
+        }
+    )
 
     test('a critical card without an underlay renders no summary', async () => {
         mockOnboarding = onboarding({ firstPaymentDone: true, step: 'completed' })

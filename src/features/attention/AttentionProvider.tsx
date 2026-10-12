@@ -122,6 +122,7 @@ function useDecisionReport(decision: Decision, state: JourneyState, session: Ses
             interrupt: decision.interrupt,
             zone: decision.zone?.id ?? null,
             zone_mode: decision.zone?.mode ?? null,
+            zone_replaced: decision.zone?.underlay ?? null,
             inline: decision.inline?.id ?? null,
             inline_slot: decision.inline?.slot ?? null,
             banner: decision.banner,

@@ -67,7 +67,7 @@ While the to-do list is live it anchors Home (`policy.anchorsHome` on `checklist
 
 - Only a strictly higher tier (tier 1) may take the card or open an interrupt on Home. Same-tier and lower-tier asks are held, with trace reason `held by the to-do list`. The Home push ask and announcements wait until the list is done.
 - Installing the app is the most critical ask (tier 1, rank 0, Slava 2026-10-12): on the web it opens over the to-do list, ahead of updated terms.
-- A tier 1 card overlays the list rather than replacing it. The critical card sits on top and the list stays underneath as a progress line (`TodoSummary`) with nothing to tap, so there is still one call to action.
+- A tier 1 card replaces the list for as long as it is live (Slava, 2026-10-12); the list returns once the card is dealt with. `ZonePick.underlay` names the list it replaced, reported as `zone_replaced` on `attention_decided`.
 - Off Home the anchor does not apply.
 
-The progress count comes from `checklistProgress()` in `activation-step.utils.ts`, which the to-do list itself also uses, so the two never disagree.
+The to-do list's count comes from `checklistProgress()` in `activation-step.utils.ts`.

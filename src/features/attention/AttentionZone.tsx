@@ -4,15 +4,14 @@ import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode 
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useAttention } from './AttentionProvider'
-import TodoSummary from './surfaces/zone/TodoSummary'
 import { ZONE_SURFACES } from './zoneSurfaces'
 import type { AskId } from './types'
 
 /**
  * Home's one attention component: the to-do list until the first payment,
  * then the next-best action with rotation (decide.ts). While the to-do list
- * shows, only a more critical ask may overlay it; the list then stays
- * underneath as a progress line with no call to action of its own.
+ * shows, only a more critical ask may replace it; the list comes back once
+ * that ask is dealt with.
  */
 export function HomeAttention() {
     const t = useTranslations('home.attention')
@@ -49,7 +48,6 @@ export function HomeAttention() {
                     />
                 </Suspense>
             </ZoneBoundary>
-            {pick.underlay && <TodoSummary />}
         </section>
     )
 }
