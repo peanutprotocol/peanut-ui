@@ -27,6 +27,8 @@ const DEPOSIT_QUIET = { enabled: false, loaded: true, claimable: 0, active: 0 }
 
 /** An activated user with nothing to show: each row turns one card on. */
 const baseState: Loose = {
+    capNudge: null,
+    maintenance: 'none',
     now: NOW,
     userId: 'user-a',
     userLoaded: true,
@@ -78,6 +80,7 @@ const baseSession: Session = {
     busy: false,
     gateUp: false,
     settleDeadlinePassed: false,
+    slots: [],
 }
 
 const stateOf = (patch: Loose = {}) => ({ ...baseState, ...patch }) as unknown as JourneyState
@@ -142,8 +145,8 @@ describe('registry: the new asks follow the approved ranked list', () => {
         expect(new Set(keys).size).toBe(keys.length)
     })
 
-    test('the base fixture is quiet: no candidate at all', () => {
-        expect(run().trace.candidates).toEqual([])
+    test('the base fixture has only the deadline candidate without a mounted slot', () => {
+        expect(run().trace.candidates).toEqual(['verification-deadline'])
         expect(run().zone).toBeNull()
     })
 })
@@ -246,6 +249,7 @@ describe('the ranked order with every card eligible', () => {
     // spec tester brief: "expected order by tier then rank, with the phase-3 cards interleaved"
     const FULL_ORDER = [
         'verification-advisory',
+        'verification-deadline',
         'virtual-account',
         'qr-payment',
         'verify-for-qr',

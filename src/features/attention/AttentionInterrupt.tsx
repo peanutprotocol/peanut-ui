@@ -17,7 +17,7 @@ import type { AskId } from './types'
  * focus lock over B while B opens.
  */
 export function AttentionInterrupt() {
-    const { decision, state, opened, crashed, acted, dismissed, snoozed } = useAttention()
+    const { decision, state, asks, opened, crashed, acted, dismissed, snoozed } = useAttention()
     const id = decision.interrupt
     const Surface = id ? INTERRUPT_SURFACES[id] : undefined
 
@@ -42,6 +42,7 @@ export function AttentionInterrupt() {
             <SurfaceBoundary key={`${state.userId}:${id}`} askId={id} onCrash={() => crashed(id)}>
                 <Suspense fallback={null}>
                     <Surface
+                        presentation={asks.find((ask) => ask.id === id)?.presentation ?? 'modal'}
                         askId={id}
                         onActed={() => acted(id)}
                         onDismissed={() => dismissed(id)}
@@ -54,7 +55,7 @@ export function AttentionInterrupt() {
 }
 
 /** A surface that throws is settled as dismissed, so it cannot re-mount in a loop. */
-class SurfaceBoundary extends Component<
+export class SurfaceBoundary extends Component<
     { askId: AskId; onCrash: () => void; children: ReactNode },
     { failed: boolean }
 > {

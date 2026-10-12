@@ -1,5 +1,6 @@
 import type { OnboardingState } from '@/utils/activation-step.utils'
 import type { IdentityVerificationStatus } from '@/types/capabilities'
+import type { selectMantecaCapNudge } from '@/utils/capability-gate'
 
 /**
  * The attention manager: every self-opening prompt (modal, drawer, Home card)
@@ -13,7 +14,14 @@ import type { IdentityVerificationStatus } from '@/types/capabilities'
  */
 export type Tier = 1 | 2 | 3 | 4 | 5 | 6
 
-export type Surface = 'interrupt' | 'zone'
+export type Surface = 'interrupt' | 'zone' | 'inline' | 'banner'
+export type InterruptPresentation = 'modal' | 'drawer'
+export type SlotId = 'bank-transfer' | 'limits'
+export type SlotContext = Record<string, string | number | boolean | null | undefined>
+export interface MountedSlot {
+    id: SlotId
+    context?: SlotContext
+}
 
 /**
  * - `show`: eligible, wants a surface now
@@ -26,6 +34,9 @@ export type Surface = 'interrupt' | 'zone'
 export type Verdict = 'show' | 'pending' | 'done' | 'ineligible' | 'unknown'
 
 export type AskId =
+    | 'verification-deadline'
+    | 'cap-nudge'
+    | 'maintenance'
     | 'legal-reconsent'
     | 'balance-backup'
     | 'verification-due'
@@ -64,6 +75,7 @@ export type AskId =
 export type InterruptBudget = 'always' | 'session' | 'quiet' | 'never'
 
 export interface AskPolicy {
+    slotWhen?: (state: JourneyState, context: SlotContext | undefined) => boolean
     /** where an interrupt may open; the zone is Home by definition */
     routes?: 'home' | 'any'
     /** overrides the tier's default budget (the migration prompt: T2 but may interrupt) */
@@ -87,6 +99,8 @@ export interface AttentionAsk {
     rank: number
     /** preferred first; the manager degrades to the next when the first is not allowed now */
     surfaces: Surface[]
+    presentation?: InterruptPresentation
+    slots?: SlotId[]
     eligible: (state: JourneyState) => Verdict
     /** a changed version re-arms a dismissed or snoozed ask (a new legal document, a new reason code) */
     version?: (state: JourneyState) => string | undefined
@@ -97,6 +111,7 @@ export interface AttentionAsk {
 
 /** What a rendered surface gets: the three ways the user can answer, nothing else. */
 export interface AskSurfaceProps {
+    presentation: InterruptPresentation
     askId: AskId
     /** the user did the thing (accepted, enabled, tapped the CTA) */
     onActed: () => void
@@ -106,12 +121,24 @@ export interface AskSurfaceProps {
     onSnoozed: (until?: number) => void
 }
 
-export interface ZoneSurfaceProps extends AskSurfaceProps {
+export interface InlineSurfaceProps extends Omit<AskSurfaceProps, 'presentation'> {
+    slot: SlotId
+    context?: SlotContext
+}
+
+export interface BannerSurfaceProps extends Omit<AskSurfaceProps, 'presentation'> {
+    variant: 'feature' | 'global'
+    className?: string
+}
+
+export interface ZoneSurfaceProps extends Omit<AskSurfaceProps, 'presentation'> {
     /** `status` renders an in-progress state, never a CTA (reserved; no ask uses it yet) */
     mode: 'ask' | 'status'
 }
 
 export interface JourneyState {
+    capNudge: ReturnType<typeof selectMantecaCapNudge> | null
+    maintenance: 'none' | 'scoped' | 'full'
     now: number
     /** null while logged out */
     userId: string | null
@@ -202,6 +229,7 @@ export interface LedgerEntry {
 export type Ledger = Partial<Record<AskId, LedgerEntry>>
 
 export interface Session {
+    slots: MountedSlot[]
     /** app loads by this user on this device (prefs.sessionCount) */
     count: number
     route: 'home' | 'other'
@@ -225,6 +253,8 @@ export interface ZonePick {
 export interface Decision {
     interrupt: AskId | null
     zone: ZonePick | null
+    inline: { id: AskId; slot: SlotId } | null
+    banner: AskId | null
     suspended: boolean
     trace: DecisionTrace
 }

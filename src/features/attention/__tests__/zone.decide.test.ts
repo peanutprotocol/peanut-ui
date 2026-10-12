@@ -24,6 +24,8 @@ const CARD_OFFER_QUIET = { loaded: true, geoProhibited: false, hasCardRelationsh
 
 /** An activated user with nothing to show: each row turns one card on. */
 const baseState: Loose = {
+    capNudge: null,
+    maintenance: 'none',
     now: NOW,
     userId: 'user-a',
     userLoaded: true,
@@ -74,6 +76,7 @@ const baseSession: Session = {
     busy: false,
     gateUp: false,
     settleDeadlinePassed: false,
+    slots: [],
 }
 
 const stateOf = (patch: Loose = {}) => ({ ...baseState, ...patch }) as unknown as JourneyState
@@ -130,6 +133,7 @@ describe('the ranked order among activated-user cards', () => {
         const d = run({ ...everyCard, qr: QR_PAY_NOW })
         expect(d.trace.candidates).toEqual([
             'verification-advisory',
+            'verification-deadline',
             'qr-payment',
             'card-offer',
             'push-home-fallback',
@@ -145,6 +149,7 @@ describe('the ranked order among activated-user cards', () => {
         const d = run({ ...everyCard, qr: QR_LOCKED })
         expect(d.trace.candidates).toEqual([
             'verification-advisory',
+            'verification-deadline',
             'verify-for-qr',
             'card-offer',
             'push-home-fallback',

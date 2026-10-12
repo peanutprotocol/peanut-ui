@@ -6,7 +6,7 @@ import type enMessages from '@/i18n/app/messages/en.json'
 import { Button } from '@/components/0_Bruddle/Button'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
-import { Banner } from '@/components/Global/Banner'
+import { AttentionBanner } from '@/features/attention/AttentionBanner'
 import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 import { NAV_CIRCLE_BUTTON_CLASSES } from './navHeader.consts'
 import { hasInAppHistory } from '@/hooks/useSafeBack'
@@ -127,7 +127,7 @@ const NavHeader = ({
                 own px-4 already insets it. Gap: section gap XL/24 (`mt-6`,
                 spacing board 17291:2772) — the banner is a block in the page
                 stack, same rhythm as PageStack's gap-6. */}
-            {!hideMaintenanceBanner && <Banner variant="feature" className="mt-6" />}
+            {!hideMaintenanceBanner && <AttentionBanner variant="feature" className="mt-6" />}
         </div>
     )
 }

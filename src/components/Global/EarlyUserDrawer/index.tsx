@@ -2,8 +2,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { AskShell } from '@/features/attention/AskShell'
 import ShareButton from '../ShareButton'
 import DocsLink from '@/components/Global/DocsLink'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
@@ -18,7 +17,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
  * `early-user` ask reads the server's `showEarlyUserModal`); closing it
  * records `hasSeenEarlyUserModal` on the server.
  */
-const EarlyUserDrawer = ({ onActed }: AskSurfaceProps) => {
+const EarlyUserDrawer = ({ onActed, presentation }: AskSurfaceProps) => {
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
@@ -39,36 +38,28 @@ const EarlyUserDrawer = ({ onActed }: AskSurfaceProps) => {
     }
 
     return (
-        <Drawer
-            open={open}
-            onOpenChange={(isOpen) => {
-                if (!isOpen) void handleClose()
-            }}
-        >
-            <DrawerContent>
-                <div className="flex flex-col items-center pt-1 pb-6 text-center">
-                    {/* the head owns the M/12 beneath it; everything after it
-                        keeps the drawer's L/16 rhythm */}
-                    <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="user-plus" className="bg-action-primary" />
-                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                            <DrawerTitle>{t('earlyUserModal.title')}</DrawerTitle>
-                        </DrawerHeader>
-                    </div>
-                    <div className="flex w-full flex-col items-center gap-4">
-                        <p className="text-body-s text-foreground-secondary">{t('earlyUserModal.description')}</p>
+        <AskShell
+            presentation={presentation}
+            visible={open}
+            onClose={() => void handleClose()}
+            icon="user-plus"
+            iconColor="brand"
+            tone="peanut"
+            title={t('earlyUserModal.title')}
+            body={
+                <div className="flex w-full flex-col items-center gap-4">
+                    <p className="text-body-s text-foreground-secondary">{t('earlyUserModal.description')}</p>
 
-                        <ShareButton url={inviteLink} title={t('earlyUserModal.shareSheetTitle')}>
-                            {t('earlyUserModal.shareCta')}
-                        </ShareButton>
-                        {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
-                        <DocsLink href="/en/help" className={LINK_BUTTON_CLASSES}>
-                            {t('earlyUserModal.learnMore')}
-                        </DocsLink>
-                    </div>
+                    <ShareButton url={inviteLink} title={t('earlyUserModal.shareSheetTitle')}>
+                        {t('earlyUserModal.shareCta')}
+                    </ShareButton>
+                    {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
+                    <DocsLink href="/en/help" className={LINK_BUTTON_CLASSES}>
+                        {t('earlyUserModal.learnMore')}
+                    </DocsLink>
                 </div>
-            </DrawerContent>
-        </Drawer>
+            }
+        />
     )
 }
 

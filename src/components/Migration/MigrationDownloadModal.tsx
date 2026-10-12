@@ -1,6 +1,6 @@
 'use client'
 import { useTranslations } from 'next-intl'
-import ActionModal from '@/components/Global/ActionModal'
+import { AskShell } from '@/features/attention/AskShell'
 import DownloadQR from '@/components/Migration/DownloadQR'
 import { MIGRATION_SURFACES, STORE_NAME } from '@/constants/migration.consts'
 import { openStore, storeForDevice, storeIcon } from '@/utils/migration.utils'
@@ -13,7 +13,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
  * manager's call (the `install-app` ask); the web app stays available, so the
  * prompt has no deadline and "Maybe later" snoozes it through the manager.
  */
-export default function MigrationDownloadModal({ onSnoozed }: AskSurfaceProps) {
+export default function MigrationDownloadModal({ onSnoozed, presentation }: AskSurfaceProps) {
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const store = storeForDevice(deviceType)
@@ -26,14 +26,15 @@ export default function MigrationDownloadModal({ onSnoozed }: AskSurfaceProps) {
     }
 
     return (
-        <ActionModal
+        <AskShell
+            presentation={presentation}
             visible
             onClose={() => onSnoozed()}
             tone="peanut"
             icon="mobile-install"
             title={t('downloadPrompt.earlyTitle')}
             description={t('downloadPrompt.earlyDescription')}
-            content={!store ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
+            body={!store ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
             ctaClassName="md:flex-col gap-4"
             tertiaryCta={remindLaterCta}
             ctas={

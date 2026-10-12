@@ -3,7 +3,7 @@ import { Fragment, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
-import ActionModal from '../ActionModal'
+import { AskShell } from '@/features/attention/AskShell'
 import DocsLink from '@/components/Global/DocsLink'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
@@ -36,7 +36,12 @@ export interface ReConsentDocument {
  * wallet, means they must be able to reach `/withdraw`. So "Not now" always
  * exists, and dismissing never writes a ledger row (declining is not consent).
  */
-const ReConsentModal = ({ documents, onActed, onSnoozed }: AskSurfaceProps & { documents: ReConsentDocument[] }) => {
+const ReConsentModal = ({
+    documents,
+    onActed,
+    onSnoozed,
+    presentation,
+}: AskSurfaceProps & { documents: ReConsentDocument[] }) => {
     const t = useTranslations('global')
     const tPolicies = useTranslations('profile.about.policies')
     const queryClient = useQueryClient()
@@ -72,7 +77,8 @@ const ReConsentModal = ({ documents, onActed, onSnoozed }: AskSurfaceProps & { d
     }
 
     return (
-        <ActionModal
+        <AskShell
+            presentation={presentation}
             visible
             onClose={handlePostpone}
             tone="info"
@@ -89,7 +95,7 @@ const ReConsentModal = ({ documents, onActed, onSnoozed }: AskSurfaceProps & { d
                     <p>{t('reConsent.whatChanged')}</p>
                 </div>
             }
-            content={
+            body={
                 <div className="space-y-3 w-full">
                     {/* the updated documents on one centered line, separator-joined
                         (wraps when it must) — inline-link treatment per the Signup

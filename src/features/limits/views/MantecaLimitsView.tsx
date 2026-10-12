@@ -17,7 +17,7 @@ import {
     getFlagUrlForCurrency,
     type LimitsPeriod,
 } from '../utils'
-import CapNudgeCard from '../components/CapNudgeCard'
+import { AttentionSlot } from '@/features/attention/AttentionSlot'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
 import LimitsError from '../components/LimitsError'
 import LimitsDocsLink from '../components/LimitsDocsLink'
@@ -108,7 +108,7 @@ const MantecaLimitsView = () => {
                         </div>
                     </div>
 
-                    <CapNudgeCard />
+                    <AttentionSlot id="limits" />
 
                     <IncreaseLimitsButton />
 

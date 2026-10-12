@@ -7,7 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import type { AskSurfaceProps } from '../types'
 
 /** The context-free Home push ask, for users no money moment has reached. */
-export default function HomePushPrompt({ onActed, onSnoozed }: AskSurfaceProps) {
+export default function HomePushPrompt({ onActed, onSnoozed, presentation }: AskSurfaceProps) {
     const migrationOn = useMigrationFlag()
     const { requestPermission, afterPermissionAttempt, isRequestingPermission } = useNotifications()
 
@@ -25,6 +25,7 @@ export default function HomePushPrompt({ onActed, onSnoozed }: AskSurfaceProps) 
 
     return (
         <SetupNotificationsPrompt
+            presentation={presentation}
             visible
             trigger={PUSH_PROMPT_TRIGGERS.HOME_FALLBACK}
             onAllow={allow}

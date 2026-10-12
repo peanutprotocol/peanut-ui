@@ -21,6 +21,7 @@ export const legalReconsent: AttentionAsk = {
     id: 'legal-reconsent',
     tier: 1,
     rank: 1, // N15
+    presentation: 'modal',
     surfaces: ['interrupt'],
     eligible: (s) => {
         if (!s.userId) return 'ineligible'
@@ -38,6 +39,7 @@ export const balanceBackup: AttentionAsk = {
     id: 'balance-backup',
     tier: 1,
     rank: 2, // N14, urgent variant
+    presentation: 'drawer',
     surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -72,6 +74,7 @@ export const postVerificationAction: AttentionAsk = {
     id: 'post-verification-action',
     tier: 1,
     rank: 4, // not on the page
+    presentation: 'modal',
     surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -87,6 +90,7 @@ export const finishCardSetup: AttentionAsk = {
     id: 'finish-card-setup',
     tier: 1,
     rank: 5, // not on the page; needs an active card, so never live before verify
+    presentation: 'modal',
     surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -103,6 +107,7 @@ export const installApp: AttentionAsk = {
     id: 'install-app',
     tier: 2,
     rank: 1, // N1
+    presentation: 'modal',
     surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -148,6 +153,7 @@ export const pushHomeFallback: AttentionAsk = {
     id: 'push-home-fallback',
     tier: 4,
     rank: 2, // N16, after the backup passkey (N14)
+    presentation: 'modal',
     surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -274,6 +280,7 @@ export const earlyUser: AttentionAsk = {
     id: 'early-user',
     tier: 6,
     rank: 1, // not on the page
+    presentation: 'drawer',
     surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -370,7 +377,52 @@ export const completeProfile = zoneAsk('complete-profile', 5, 4, 'complete_profi
     return s.hasFullName ? 'done' : 'show'
 }) // N22
 
+export const verificationDeadline: AttentionAsk = {
+    id: 'verification-deadline',
+    tier: 3,
+    rank: 1,
+    surfaces: ['inline'],
+    slots: ['bank-transfer'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        return gate === 'ready' ? 'show' : gate
+    },
+    policy: {
+        slotWhen: (_, context) =>
+            typeof context?.advisoryDeadline === 'string' && !Number.isNaN(Date.parse(context.advisoryDeadline)),
+    },
+    analyticsKey: 'verification-deadline',
+}
+
+export const capNudge: AttentionAsk = {
+    id: 'cap-nudge',
+    tier: 3,
+    rank: 2,
+    surfaces: ['inline'],
+    slots: ['limits'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.capNudge === undefined ? 'unknown' : s.capNudge !== null ? 'show' : 'ineligible'
+    },
+    policy: {},
+    analyticsKey: 'cap-nudge',
+}
+
+export const maintenance: AttentionAsk = {
+    id: 'maintenance',
+    tier: 1,
+    rank: 0,
+    surfaces: ['banner'],
+    eligible: (s) => (s.maintenance === 'none' ? 'ineligible' : 'show'),
+    policy: {},
+    analyticsKey: 'maintenance',
+}
+
 export const ASKS: readonly AttentionAsk[] = [
+    maintenance,
+    verificationDeadline,
+    capNudge,
     legalReconsent,
     balanceBackup,
     verificationDue,

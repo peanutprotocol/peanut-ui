@@ -2,7 +2,7 @@ import { getUserPreferences, updateUserPreferences, type UserPreferences } from 
 import { DOWNLOAD_PROMPT_SNOOZE_DAYS, NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { scheduleLedgerSync } from './ledgerSync'
-import type { AskId, Ledger, LedgerEntry } from './types'
+import type { AskId, Ledger, LedgerEntry, Surface } from './types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const SHOWN_HISTORY_CAP = 10
@@ -204,10 +204,9 @@ export function noteServerLedger(server: unknown): void {
 }
 
 export const ledgerActions = {
-    shown(userId: string, askId: AskId, now: number, surface: 'interrupt' | 'zone', sessionCount: number) {
+    shown(userId: string, askId: AskId, now: number, surface: Surface, sessionCount: number) {
         write(userId, askId, (entry) => {
-            const shownAt =
-                surface === 'interrupt' ? [...(entry.shownAt ?? []), new Date(now).toISOString()] : entry.shownAt
+            const shownAt = surface !== 'zone' ? [...(entry.shownAt ?? []), new Date(now).toISOString()] : entry.shownAt
             const consecutive =
                 surface === 'zone'
                     ? entry.lastSessionShown === sessionCount

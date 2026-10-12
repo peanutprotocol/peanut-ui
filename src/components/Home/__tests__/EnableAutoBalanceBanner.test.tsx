@@ -87,6 +87,7 @@ describe('EnableAutoBalanceBanner', () => {
     it('shows only Continue (no escape) before any error', () => {
         render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -101,6 +102,7 @@ describe('EnableAutoBalanceBanner', () => {
         mockLastError = { kind: 'user-cancelled' }
         render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -117,6 +119,7 @@ describe('EnableAutoBalanceBanner', () => {
         mockLastError = { kind: 'unexpected', message: 'boom' }
         render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -135,6 +138,7 @@ describe('EnableAutoBalanceBanner', () => {
         ]
         render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -151,6 +155,7 @@ describe('EnableAutoBalanceBanner', () => {
         ]
         render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -166,6 +171,7 @@ describe('EnableAutoBalanceBanner', () => {
         // Overview never flips hasWithdrawApproval — the lockout shape.
         render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -198,6 +204,7 @@ describe('EnableAutoBalanceBanner', () => {
         mockGrant.mockResolvedValue({ ok: true, overviewFresh: false })
         render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -220,6 +227,7 @@ describe('EnableAutoBalanceBanner', () => {
         mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
         const { rerender } = render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -241,6 +249,7 @@ describe('EnableAutoBalanceBanner', () => {
         ]
         rerender(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -262,6 +271,7 @@ describe('EnableAutoBalanceBanner', () => {
         mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
         const { rerender } = render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -275,6 +285,7 @@ describe('EnableAutoBalanceBanner', () => {
         })
         rerender(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -291,6 +302,7 @@ describe('EnableAutoBalanceBanner', () => {
         ]
         rerender(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -309,6 +321,7 @@ describe('EnableAutoBalanceBanner', () => {
         mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
         const { rerender } = render(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -321,6 +334,7 @@ describe('EnableAutoBalanceBanner', () => {
         mockLastError = { kind: 'unexpected', message: 'boom' }
         rerender(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -338,6 +352,7 @@ describe('EnableAutoBalanceBanner', () => {
         ]
         rerender(
             <EnableAutoBalanceBanner
+                presentation="modal"
                 askId="finish-card-setup"
                 onActed={onActed}
                 onDismissed={jest.fn()}
@@ -359,6 +374,7 @@ it('allows wallet initialization to retry and exposes Skip if it fails', async (
     })
     render(
         <EnableAutoBalanceBanner
+            presentation="modal"
             askId="finish-card-setup"
             onActed={onActed}
             onDismissed={jest.fn()}

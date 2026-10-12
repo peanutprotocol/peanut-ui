@@ -125,6 +125,8 @@ const onboarding = (step: 'verify' | 'first_payment' | 'completed') => ({
 /** An activated user with nothing to show: each test turns its cards on. */
 const state = (overrides: Record<string, unknown> = {}): JourneyState =>
     ({
+        capNudge: null,
+        maintenance: 'none',
         now: NOW,
         userId: 'user-a',
         userLoaded: true,

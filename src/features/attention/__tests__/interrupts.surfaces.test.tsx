@@ -171,6 +171,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 let queryClient: QueryClient
 const props = (askId: string) => ({
     askId,
+    presentation: askId === 'early-user' || askId === 'balance-backup' ? 'drawer' : 'modal',
     onActed: jest.fn(),
     onDismissed: jest.fn(),
     onSnoozed: jest.fn(),

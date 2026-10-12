@@ -28,6 +28,8 @@ import { AttentionProvider, resetAttentionSessionForTests, useAttention } from '
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 
 const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
+    capNudge: null,
+    maintenance: 'none',
     now: Date.parse('2026-10-11T12:00:00Z'),
     userId: 'user-a',
     userLoaded: true,
@@ -137,7 +139,7 @@ test('decides, reports once, and does not re-render in a loop', async () => {
         shadow: false,
         interrupt: 'legal-reconsent',
         zone: 'checklist',
-        candidates: ['legal-reconsent', 'checklist', 'early-user'],
+        candidates: ['legal-reconsent', 'checklist', 'verification-deadline', 'early-user'],
     })
 })
 
@@ -175,7 +177,7 @@ test('reporting a show twice books it once', async () => {
     expect(getUserPreferences('user-a')?.attention?.['legal-reconsent']?.shownAt).toHaveLength(1)
 })
 
-test('a user-opened overlay suspends every pick, and the report says so', async () => {
+test('a user-opened overlay stops new interrupts, keeps the zone, and reports suspension', async () => {
     mockOverlayOpen = true
     render(
         <AttentionProvider>
@@ -184,10 +186,10 @@ test('a user-opened overlay suspends every pick, and the report says so', async 
     )
     await act(async () => {})
     expect(screen.getByTestId('interrupt').textContent).toBe('none')
-    expect(screen.getByTestId('zone').textContent).toBe('none')
+    expect(screen.getByTestId('zone').textContent).toBe('checklist')
     const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
     expect(reports).toHaveLength(1)
-    expect(reports[0][1]).toMatchObject({ interrupt: null, zone: null, suspended: true, overlay_open: true })
+    expect(reports[0][1]).toMatchObject({ interrupt: null, zone: 'checklist', suspended: true, overlay_open: true })
 })
 
 test('a throw inside the manager never takes the app down', async () => {
