@@ -1972,6 +1972,85 @@
         "invalidAmount": "Ingresá un monto válido.",
         "invalidRecipient": "Ingresá una dirección de billetera válida.",
         "verificationRequired": "Verificá tu identidad para usar transferencias bancarias en euros.",
-        "needsReviewError": "Esta transferencia necesita revisión. Contactá a soporte."
+        "needsReviewError": "Esta transferencia necesita revisión. Contactá a soporte.",
+        "monerium": {
+            "depositInstructions": "Enviá euros por transferencia SEPA a este IBAN desde una cuenta a tu nombre.",
+            "form": {
+                "choose": "Elegí una opción",
+                "field": {
+                    "activityOther": "Describí el otro uso",
+                    "publicFunction": "¿Ejercés una función pública destacada?",
+                    "fundOwner": "¿Sos titular de estos fondos?",
+                    "usCitizen": "¿Tenés ciudadanía estadounidense?",
+                    "usTaxPerson": "¿Sos contribuyente en Estados Unidos?"
+                }
+            },
+            "withdraw": {
+                "chooseBank": "Elegí tu IBAN guardado",
+                "invalidAmount": "Usá un monto positivo con hasta dos decimales.",
+                "pendingWarning": "Tu retiro todavía no terminó. Revisá acá antes de iniciar otro.",
+                "status": {
+                    "needsReview": "El retiro requiere revisión. Contactá a soporte."
+                },
+                "error": {
+                    "generic": "No pudimos completar este paso. Intentá de nuevo.",
+                    "verificationRequired": "Verificá tu identidad para continuar.",
+                    "kycSharingUnavailable": "Compartir tu verificación todavía no está disponible. Volvé más tarde.",
+                    "moneriumUnavailable": "Las operaciones bancarias en euros no están disponibles por ahora. Volvé más tarde.",
+                    "moneriumRefused": "El proveedor bancario rechazó esta solicitud. Contactá a soporte.",
+                    "invalidForm": "Revisá los campos del formulario e intentá de nuevo.",
+                    "invalidState": "Tu solicitud cambió. Volvé a abrirla para continuar.",
+                    "invalidSignature": "No se pudo verificar la firma. Intentá de nuevo.",
+                    "walletMissing": "Tu billetera todavía no está lista. Volvé a abrir la app.",
+                    "walletNotDeployed": "Tu billetera se está preparando. Intentá de nuevo en un minuto.",
+                    "addressLinkedElsewhere": "Esta billetera está vinculada a otro perfil. Contactá a soporte.",
+                    "linkRequired": "Vinculá tu billetera antes de solicitar un IBAN.",
+                    "onboardingIncomplete": "Primero terminá de configurar tu cuenta en EUR.",
+                    "invalidAmount": "Ingresá un monto positivo en euros con hasta dos decimales.",
+                    "amountBelowMinimum": "Este monto es menor que el mínimo de retiro. Aumentalo.",
+                    "supportingDocumentRequired": "Los retiros de €15.000 o más requieren documentación. Contactá a soporte.",
+                    "idempotencyConflict": "Este intento tiene datos distintos. Revisá el retiro pendiente antes de empezar de nuevo.",
+                    "invalidBankAccount": "Elegí un IBAN guardado válido a tu nombre.",
+                    "operationInFlight": "Ya tenés un retiro pendiente. Revisá su estado.",
+                    "insufficientBalance": "No tenés suficientes euros para este retiro.",
+                    "operationNotFound": "No pudimos encontrar este retiro. Contactá a soporte.",
+                    "operationExpired": "Este retiro venció. Revisá su estado antes de empezar de nuevo.",
+                    "operationAlreadySubmitted": "Este retiro ya fue enviado. Revisá su estado.",
+                    "notAvailable": "Esta cuenta en EUR todavía no está disponible para vos.",
+                    "providerUnavailable": "El proveedor bancario no está disponible. Volvé más tarde.",
+                    "eurcEnrolled": "Ya tenés una cuenta en EUR. Usá tu cuenta actual.",
+                    "eurcUnknown": "No pudimos comprobar tu cuenta en EUR. Volvé más tarde."
+                }
+            },
+            "error": {
+                "generic": "No pudimos completar este paso. Intentá de nuevo.",
+                "verificationRequired": "Verificá tu identidad para continuar.",
+                "kycSharingUnavailable": "Compartir tu verificación todavía no está disponible. Volvé más tarde.",
+                "moneriumUnavailable": "Las operaciones bancarias en euros no están disponibles por ahora. Volvé más tarde.",
+                "moneriumRefused": "El proveedor bancario rechazó esta solicitud. Contactá a soporte.",
+                "invalidForm": "Revisá los campos del formulario e intentá de nuevo.",
+                "invalidState": "Tu solicitud cambió. Volvé a abrirla para continuar.",
+                "invalidSignature": "No se pudo verificar la firma. Intentá de nuevo.",
+                "walletMissing": "Tu billetera todavía no está lista. Volvé a abrir la app.",
+                "walletNotDeployed": "Tu billetera se está preparando. Intentá de nuevo en un minuto.",
+                "addressLinkedElsewhere": "Esta billetera está vinculada a otro perfil. Contactá a soporte.",
+                "linkRequired": "Vinculá tu billetera antes de solicitar un IBAN.",
+                "onboardingIncomplete": "Primero terminá de configurar tu cuenta en EUR.",
+                "invalidAmount": "Ingresá un monto positivo en euros con hasta dos decimales.",
+                "amountBelowMinimum": "Este monto es menor que el mínimo de retiro. Aumentalo.",
+                "supportingDocumentRequired": "Los retiros de €15.000 o más requieren documentación. Contactá a soporte.",
+                "idempotencyConflict": "Este intento tiene datos distintos. Revisá el retiro pendiente antes de empezar de nuevo.",
+                "invalidBankAccount": "Elegí un IBAN guardado válido a tu nombre.",
+                "operationInFlight": "Ya tenés un retiro pendiente. Revisá su estado.",
+                "insufficientBalance": "No tenés suficientes euros para este retiro.",
+                "operationNotFound": "No pudimos encontrar este retiro. Contactá a soporte.",
+                "operationExpired": "Este retiro venció. Revisá su estado antes de empezar de nuevo.",
+                "operationAlreadySubmitted": "Este retiro ya fue enviado. Revisá su estado.",
+                "notAvailable": "Esta cuenta en EUR todavía no está disponible para vos.",
+                "providerUnavailable": "El proveedor bancario no está disponible. Volvé más tarde.",
+                "eurcEnrolled": "Ya tenés una cuenta en EUR. Usá tu cuenta actual.",
+                "eurcUnknown": "No pudimos comprobar tu cuenta en EUR. Volvé más tarde."
+            }
+        }
     }
 }

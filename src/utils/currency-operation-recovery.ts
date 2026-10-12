@@ -1,3 +1,5 @@
+import { clearMoneriumWithdrawal } from './monerium-withdrawal'
+
 const prefix = 'eurc-signed-operation:'
 const signedOperations = new Map<string, unknown>()
 const inFlight = new Set<string>()
@@ -63,6 +65,7 @@ export function clearSignedCurrencyOperation(userId: string, operationId: string
 export function clearUserCurrencyOperations(userId: string | undefined) {
     if (!userId) return
     invalidateCurrencyOperationSession(userId)
+    clearMoneriumWithdrawal(userId)
     const userPrefix = `${prefix}${userId}:`
     for (const key of signedOperations.keys()) if (key.startsWith(userPrefix)) signedOperations.delete(key)
     try {

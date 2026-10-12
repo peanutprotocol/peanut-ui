@@ -79,6 +79,9 @@
         "features/withdraw/views/ConfirmWithdrawView.tsx": 137,
         "features/withdraw/views/WithdrawAmountView.tsx": 98,
         "features/withdraw/views/WithdrawBankReviewView.tsx": 215,
-        "features/withdraw/views/WithdrawMethodView.tsx": 105
+        "features/withdraw/views/WithdrawMethodView.tsx": 105,
+        "features/home/components/MoneriumWithdrawView.tsx": 268,
+        "features/home/components/MoneriumOnboardingView.tsx": 249,
+        "features/home/components/MoneriumAccountView.tsx": 90
     }
 }
