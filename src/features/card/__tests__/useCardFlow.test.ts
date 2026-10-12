@@ -10,13 +10,18 @@ const mockCapture = jest.fn()
 let mockFunded = true
 let mockState = 'add-card'
 let mockOverview: Record<string, unknown> | undefined
+let mockOverviewLoading = false
+let mockUser: { user: { userId: string } } | null = { user: { userId: 'user-1' } }
+let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
+const mockInvalidateQueries = jest.fn()
+const mockQueryClient = { invalidateQueries: mockInvalidateQueries }
 
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
 }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: undefined, isLoading: false, error: null, refetch: jest.fn() }),
-    useQueryClient: () => ({ invalidateQueries: jest.fn() }),
+    useQueryClient: () => mockQueryClient,
 }))
 jest.mock('next-intl', () => ({
     useTranslations: () => (key: string) => key,
@@ -35,14 +40,14 @@ jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
-    useRainCardOverview: () => ({ overview: mockOverview, isLoading: false, error: null }),
+    useRainCardOverview: () => ({ overview: mockOverview, isLoading: mockOverviewLoading, error: null }),
 }))
 jest.mock('@/components/Card/cardState.utils', () => ({
-    computeCardState: () => mockState,
+    computeCardState: () => (mockOverviewLoading ? 'loading' : mockState),
 }))
 jest.mock('@/components/Card/cardApply.utils', () => ({
     pollUntilApplyAdvances: jest.fn(),
@@ -60,7 +65,7 @@ jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
-        railsForProvider: () => [],
+        railsForProvider: (provider: string) => (provider === 'rain' ? mockRainRails : []),
         nextActionsForRail: () => [],
         isLoading: false,
     }),
@@ -86,6 +91,9 @@ describe('useCardFlow', () => {
         mockFunded = true
         mockState = 'add-card'
         mockOverview = undefined
+        mockOverviewLoading = false
+        mockUser = { user: { userId: 'user-1' } }
+        mockRainRails = []
         window.localStorage.clear()
     })
 
@@ -261,5 +269,143 @@ describe('useCardFlow', () => {
         })
         expect(result.current.sumsubToken).toBeNull()
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_CLOSED)
+    })
+})
+
+describe('useCardFlow — overview status reconciliation', () => {
+    const overview = (railStatus: string, applicationStatus: string) => ({
+        cards: [],
+        status: { hasApplication: true, railStatus, applicationStatus },
+    })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUser = { user: { userId: 'user-1' } }
+        mockState = 'pending'
+        mockOverviewLoading = false
+        mockOverview = undefined
+        mockRainRails = []
+    })
+
+    it('does not invalidate on the first successful overview or unchanged polls', () => {
+        const { rerender } = renderHook(() => useCardFlow())
+        mockOverview = overview('PENDING', 'pending')
+        rerender()
+        mockOverview = overview('PENDING', 'pending')
+        rerender()
+        expect(mockInvalidateQueries).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['raw application only', 'PENDING', 'needsInformation'],
+        ['rail only', 'REQUIRES_INFORMATION', 'pending'],
+        ['both fields', 'REQUIRES_INFORMATION', 'needsInformation'],
+    ])('invalidates the current user once when %s changes', (_label, railStatus, applicationStatus) => {
+        mockOverview = overview('PENDING', 'pending')
+        const { rerender } = renderHook(() => useCardFlow())
+        mockOverview = overview(railStatus, applicationStatus)
+        rerender()
+        expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['user'] })
+        mockOverview = overview(railStatus, applicationStatus)
+        mockRainRails = [{ id: 'rain.card', reason: { code: 'card_needs_review', userMessage: 'Review' } }]
+        rerender()
+        rerender()
+        expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not treat a missing overview and recovery of the same data as transitions', () => {
+        mockOverview = overview('PENDING', 'pending')
+        const { rerender } = renderHook(() => useCardFlow())
+        mockOverview = undefined
+        rerender()
+        mockOverview = overview('PENDING', 'pending')
+        rerender()
+        expect(mockInvalidateQueries).not.toHaveBeenCalled()
+        mockOverview = overview('PENDING', 'needsInformation')
+        rerender()
+        expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
+    })
+
+    it('starts a fresh status baseline for another authenticated user', () => {
+        mockOverview = overview('PENDING', 'pending')
+        const { rerender } = renderHook(() => useCardFlow())
+        mockUser = { user: { userId: 'user-2' } }
+        mockOverview = overview('REQUIRES_INFORMATION', 'needsInformation')
+        rerender()
+        expect(mockInvalidateQueries).not.toHaveBeenCalled()
+        mockOverview = overview('ENABLED', 'approved')
+        rerender()
+        expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['user'] })
+    })
+})
+
+describe('useCardFlow — state viewed analytics', () => {
+    const stateEvents = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CARD_STATE_VIEWED)
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUser = { user: { userId: 'user-1' } }
+        mockState = 'requires-info'
+        mockOverviewLoading = false
+        mockOverview = {
+            cards: [],
+            status: { applicationStatus: 'needsInformation', railStatus: 'REQUIRES_INFORMATION' },
+        }
+        mockRainRails = [{ id: 'rain.card', reason: { code: 'card_needs_review', userMessage: 'Backend prose' } }]
+    })
+
+    it('includes the raw application status and Rain card reason code', () => {
+        renderHook(() => useCardFlow())
+        expect(stateEvents()).toEqual([
+            [
+                ANALYTICS_EVENTS.CARD_STATE_VIEWED,
+                {
+                    state: 'requires-info',
+                    previous_state: null,
+                    application_status: 'needsInformation',
+                    reason_code: 'card_needs_review',
+                },
+            ],
+        ])
+    })
+
+    it('uses explicit nulls when overview status and Rain card reason are absent', () => {
+        mockOverview = undefined
+        mockRainRails = []
+        renderHook(() => useCardFlow())
+        expect(stateEvents()).toEqual([
+            [
+                ANALYTICS_EVENTS.CARD_STATE_VIEWED,
+                {
+                    state: 'requires-info',
+                    previous_state: null,
+                    application_status: null,
+                    reason_code: null,
+                },
+            ],
+        ])
+    })
+
+    it('skips loading and deduplicates the state even when capabilities refresh', () => {
+        mockOverviewLoading = true
+        const { rerender } = renderHook(() => useCardFlow())
+        expect(stateEvents()).toHaveLength(0)
+        mockOverviewLoading = false
+        rerender()
+        expect(stateEvents()).toHaveLength(1)
+        mockRainRails = [{ id: 'rain.card', reason: { code: 'card_needs_review', userMessage: 'New prose' } }]
+        rerender()
+        expect(stateEvents()).toHaveLength(1)
+        mockState = 'pending'
+        rerender()
+        expect(stateEvents()).toHaveLength(2)
+        expect(stateEvents()[1][1]).toEqual({
+            state: 'pending',
+            previous_state: 'requires-info',
+            application_status: 'needsInformation',
+            reason_code: 'card_needs_review',
+        })
     })
 })

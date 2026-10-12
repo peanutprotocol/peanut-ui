@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { USER } from '@/constants/query.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
@@ -55,6 +56,31 @@ export function useCardFlow() {
         !overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded
     const { serializeGrant } = useGrantSessionKey()
     const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
+    const cardRail = railsForProvider('rain')[0]
+    const reasonCode = cardRail?.reason?.code ?? null
+    const applicationStatus = overview?.status.applicationStatus ?? null
+    const railStatus = overview?.status.railStatus ?? null
+    const hasOverviewStatus = !!overview?.status
+    const lastOverviewStatusRef = useRef<{
+        userId: string
+        railStatus: string | null
+        applicationStatus: string | null
+    } | null>(null)
+    useEffect(() => {
+        if (!userId) {
+            lastOverviewStatusRef.current = null
+            return
+        }
+        if (!hasOverviewStatus) return
+        const previous = lastOverviewStatusRef.current
+        lastOverviewStatusRef.current = { userId, railStatus, applicationStatus }
+        if (
+            previous?.userId === userId &&
+            (previous.railStatus !== railStatus || previous.applicationStatus !== applicationStatus)
+        ) {
+            void queryClient.invalidateQueries({ queryKey: [USER] })
+        }
+    }, [userId, hasOverviewStatus, railStatus, applicationStatus, queryClient])
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -100,9 +126,11 @@ export function useCardFlow() {
         posthog.capture(ANALYTICS_EVENTS.CARD_STATE_VIEWED, {
             state,
             previous_state: lastReportedStateRef.current,
+            application_status: applicationStatus,
+            reason_code: reasonCode,
         })
         lastReportedStateRef.current = state
-    }, [state])
+    }, [state, applicationStatus, reasonCode])
 
     // Write-only URL mirror for the computed state. Lets you see at a glance
     // which screen the user is on (?card_state=add-card, etc.) without
@@ -140,7 +168,6 @@ export function useCardFlow() {
     // classified the application as PoA-fixable (kind 'sumsub' + levelKey
     // 'proof_of_address' — emitted for WRONG_ADDRESS-class denials). Absent →
     // the status screens keep their contact-support-only shape.
-    const cardRail = railsForProvider('rain')[0]
     const poaAction = cardRail
         ? nextActionsForRail(cardRail.id).find(
               (action) => action.kind === 'sumsub' && action.levelKey === 'proof_of_address'
