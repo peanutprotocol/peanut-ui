@@ -473,7 +473,7 @@
         "residenceStep": {
             "countryPlaceholder": "Seleccioná el país",
             "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tenés ciudadanía de otro país?",
+            "multiDocLink": "¿Tenés residencia en otro país?",
             "errors": {
                 "invalidEmail": "Ingresá un correo electrónico válido"
             },
@@ -647,6 +647,7 @@
         }
     },
     "loadingStates": {
+        "approveTransaction": "Aprobá la transacción",
         "signInWallet": "Firmá en la billetera",
         "allowNetworkSwitch": "Permití el cambio de red"
     },
@@ -813,6 +814,7 @@
         "kyc": {
             "unlockTitle": "Desbloqueá los pagos con QR",
             "unlockDescription": "Confirmá tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
+            "inProgressDescription": "Estamos confirmando tu identidad. Retomá donde quedaste y vas a estar pagando en un momento.",
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
@@ -836,6 +838,7 @@
             "merchantNotAvailableTrySmaller": "No podemos completar pagos con QR de este monto a este comercio en este momento. Probá con un monto menor, otro método de pago u otro comercio.",
             "kycRequired": "Terminá de verificar tu identidad para pagar con QR.",
             "senderRejected": "No pudimos confirmar el documento de tu cuenta para este pago. Contactá a soporte.",
+            "merchantChargeExpired": "El cobro del cajero se venció. Pedile que ingrese el monto de nuevo y escaneá otra vez.",
             "initiateUnexpected": "No se pudo iniciar el pago por un error inesperado. Contactá a soporte",
             "confirmTransaction": "Confirmá la transacción.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
@@ -843,6 +846,7 @@
             "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
             "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
             "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte",
+            "authError": "No pudimos verificar tu sesión. Intentalo de nuevo.",
             "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisá tu actividad antes de volver a intentarlo. Si el estado no está claro, contactá a soporte.",
             "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo."
         },
