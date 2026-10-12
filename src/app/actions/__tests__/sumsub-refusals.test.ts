@@ -311,3 +311,29 @@ describe('residence refusals (code field)', () => {
         }
     )
 })
+
+describe('startKycAction — an action Sumsub already reviewed', () => {
+    it('reports it as completed instead of an invalid response', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                levelName: 'provider-rfi-proof-of-address',
+                externalActionId: 'supplement-1',
+                status: 'completed',
+            }),
+        } as unknown as Response)
+        expect(await startKycAction('supplement:bridge')).toEqual({
+            data: { levelName: 'provider-rfi-proof-of-address', externalActionId: 'supplement-1', completed: true },
+        })
+    })
+
+    it('still refuses a body with neither a token, a session nor a completed status', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ levelName: 'provider-rfi-proof-of-address' }),
+        } as unknown as Response)
+        expect(await startKycAction('supplement:bridge')).toMatchObject({ code: 'invalid_response' })
+    })
+})

@@ -1306,6 +1306,31 @@ describe('useSumsubKycFlow — capability action sessions', () => {
         mockInitiate.mockReset()
         jest.mocked(refreshVerificationSession).mockReset()
     })
+    it('a supplement Sumsub already reviewed reports success instead of an invalid-response error', async () => {
+        const onKycSuccess = jest.fn()
+        mockStartAction.mockResolvedValue({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(mockStartAction).toHaveBeenCalledTimes(2)
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(result.current.error).toBeNull()
+        expect(result.current.showWrapper).toBe(false)
+    })
+    it('a supplement whose earlier attempt was finally rejected opens the next attempt', async () => {
+        const onKycSuccess = jest.fn()
+        mockStartAction
+            .mockResolvedValueOnce({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
+            .mockResolvedValueOnce({ data: { token: 'tok-gen-2', levelName: 'provider-rfi-proof-of-address' } })
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(result.current.accessToken).toBe('tok-gen-2')
+        expect(result.current.showWrapper).toBe(true)
+    })
     it('refreshes the exact generation without re-entering start-action', async () => {
         mockStartAction.mockResolvedValue({ data: { token: 'tok', levelName: 'manteca-kyc', session } })
         jest.mocked(refreshVerificationSession).mockResolvedValue('fresh-token')

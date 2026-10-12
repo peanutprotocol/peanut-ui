@@ -386,6 +386,8 @@ export interface StartKycActionResponse {
     session?: VerificationActionSession
     levelName: string
     externalActionId?: string
+    /** Sumsub had already reviewed this action: nothing to open, the backend recorded the review. */
+    completed?: boolean
 }
 
 /**
@@ -413,6 +415,15 @@ export const startKycAction = async (
                 'start_action_failed',
                 response.status
             )
+        }
+        if (!responseJson.sumsubAccessToken && !responseJson.session && responseJson.status === 'completed') {
+            return {
+                data: {
+                    levelName: responseJson.levelName,
+                    externalActionId: responseJson.externalActionId,
+                    completed: true,
+                },
+            }
         }
         if (!responseJson.sumsubAccessToken && !responseJson.session) {
             return { error: 'Invalid response from server', code: 'invalid_response' }

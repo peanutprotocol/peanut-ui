@@ -1170,7 +1170,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             residenceChangeRef.current = false
 
             try {
-                const response = await startKycAction(key)
+                let response = await startKycAction(key)
+                // Sumsub had already reviewed the action. Ask once more: a final rejection opens the
+                // next attempt; anything else means the step is done and the backend took it from there.
+                if (response.data?.completed) {
+                    response = await startKycAction(key)
+                    if (!response.data?.token && !response.data?.session) {
+                        userInitiatedRef.current = false
+                        onKycSuccess?.()
+                        return
+                    }
+                }
                 if (response.data?.session) {
                     userInitiatedRef.current = false
                     targetCountryRef.current = response.data.session.targetCountry
@@ -1201,7 +1211,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError, acceptSessionView]
+        [t, actionErrorMessage, setError, acceptSessionView, onKycSuccess]
     )
     startActionRef.current = handleStartAction
 
