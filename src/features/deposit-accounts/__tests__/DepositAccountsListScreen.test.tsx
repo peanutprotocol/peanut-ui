@@ -241,7 +241,8 @@ describe('the virtual accounts, held and to open', () => {
         const revoked = { ...heldAccount('ACH_US'), status: 'revoked' as const }
         const { container } = list(false, { accounts: { ...NONE, ACH_US: revoked }, onOpen })
 
-        expect(inRow(container, 'ACH_US').getByText(LIST.badgeRevoked)).toBeInTheDocument()
+        // revoked is a terminal-bad state: error red, like failed (design.md, badges)
+        expect(inRow(container, 'ACH_US').getByText(LIST.badgeRevoked)).toHaveClass('bg-background-badge-error')
         fireEvent.click(rowOf(container, 'ACH_US') as HTMLElement)
         expect(onOpen).toHaveBeenCalledWith('ACH_US')
     })
