@@ -20,7 +20,7 @@ jest.mock('../useHomeFlow', () => ({
     }),
 }))
 jest.mock('../useHomeViewAnalytics', () => ({ useHomeViewAnalytics: () => {} }))
-jest.mock('@/features/attention/AttentionZone', () => ({ AttentionZone: () => <div>attention-zone</div> }))
+jest.mock('@/features/attention/AttentionZone', () => ({ HomeAttention: () => <div>attention-zone</div> }))
 const mockHistory = jest.fn()
 jest.mock('@/components/Home/HomeHistory', () => ({
     __esModule: true,

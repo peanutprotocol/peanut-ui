@@ -87,7 +87,8 @@ describe('the 7 Oct incident: updated terms and the waitlist announcement', () =
         const d = run({ consent: { status: 'unknown', versions: [], documents: [] }, showEarlyUserModal: true })
         expect(d.interrupt).toBeNull()
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
-        expect(d.trace.reasons['early-user']).toBe('higher tier unsettled')
+        // before activation the to-do list holds Home: only a tier 1 ask may overlay it
+        expect(d.trace.reasons['early-user']).toBe('held by the to-do list')
     })
 
     test('2. consent resolves: terms interrupts, the announcement waits', () => {
@@ -101,7 +102,7 @@ describe('the 7 Oct incident: updated terms and the waitlist announcement', () =
         const snoozed: Ledger = { 'legal-reconsent': { snoozedUntil: new Date(NOW + 7 * DAY_MS).toISOString() } }
         const d = run(bothEligible, { interruptsThisSession: ['legal-reconsent'] }, snoozed)
         expect(d.interrupt).toBeNull()
-        expect(d.trace.reasons['early-user']).toMatch(/one interrupt per session/)
+        expect(d.trace.reasons['early-user']).toBe('held by the to-do list')
     })
 
     test('4. a quiet later session: the announcement may open', () => {
@@ -116,7 +117,7 @@ describe('the 7 Oct incident: updated terms and the waitlist announcement', () =
         ).toBeNull()
         const busyZone = run({ showEarlyUserModal: true }, { count: 3 })
         expect(busyZone.interrupt).toBeNull()
-        expect(busyZone.trace.reasons['early-user']).toBe('budget: zone not idle')
+        expect(busyZone.trace.reasons['early-user']).toBe('held by the to-do list')
     })
 
     test('4c. announcements keep a cooldown between them', () => {
@@ -149,7 +150,10 @@ describe('other pairs that collide today', () => {
         const afterTerms = { interruptsThisSession: ['legal-reconsent' as const] }
         expect(run({ balance: { loaded: true, usd: 900 } }, afterTerms).interrupt).toBe('balance-backup')
         const push = run(
-            { push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false } },
+            {
+                push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false },
+                onboarding: onboarding('completed'),
+            },
             { ...afterTerms, count: 3 }
         )
         expect(push.interrupt).toBeNull()
@@ -162,6 +166,7 @@ describe('other pairs that collide today', () => {
                 isNative: false,
                 migration: { on: true },
                 push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false },
+                onboarding: onboarding('completed'),
             },
             { count: 3 }
         )
@@ -170,10 +175,16 @@ describe('other pairs that collide today', () => {
     })
 
     test('the Home push ask waits for the third session, and stands down after a money-moment ask', () => {
-        const state = { push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false } }
+        const state = {
+            push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false },
+            onboarding: onboarding('completed'),
+        }
         expect(run(state, { count: 2 }).interrupt).toBeNull()
         expect(run(state, { count: 3 }).interrupt).toBe('push-home-fallback')
-        const asked = { push: { ready: true, unanswered: true, promptedThisSession: true, notEnabled: false } }
+        const asked = {
+            push: { ready: true, unanswered: true, promptedThisSession: true, notEnabled: false },
+            onboarding: onboarding('completed'),
+        }
         expect(run(asked, { count: 3 }).trace.verdicts['push-home-fallback']).toBe('ineligible')
     })
 
@@ -201,7 +212,7 @@ describe('other pairs that collide today', () => {
 
 describe('the zone', () => {
     test('a due verification task outranks the checklist', () => {
-        expect(run({ dueTasks: 1 }).zone).toEqual({ id: 'verification-due', mode: 'ask' })
+        expect(run({ dueTasks: 1 }).zone).toEqual({ id: 'verification-due', mode: 'ask', underlay: 'checklist' })
     })
 
     test('a blocked card replaces the checklist until hidden, and a new reason re-shows it', () => {
@@ -236,7 +247,7 @@ describe('the zone', () => {
         const asks = [both, ...ASKS.filter((ask) => ask.id !== 'legal-reconsent')]
         const d = decide({ ...baseState, dueTasks: 1 }, asks, {}, baseSession)
         expect(d.interrupt).toBe('legal-reconsent')
-        expect(d.zone).toEqual({ id: 'verification-due', mode: 'ask' })
+        expect(d.zone).toEqual({ id: 'verification-due', mode: 'ask', underlay: 'checklist' })
     })
 })
 

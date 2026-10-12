@@ -144,6 +144,9 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
 
     const zoneIdle = !live.some((ask) => ask.tier <= 5 && ask.surfaces.includes('zone'))
 
+    // the to-do list holds Home: only a strictly higher tier may overlay it, as a card or an interrupt
+    const anchor = live.find((ask) => ask.policy.anchorsHome) ?? null
+
     let interrupt: AskId | null = openStillLive ? open : null
     for (const ask of live) {
         if (interrupt) {
@@ -154,12 +157,16 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
             trace.reasons[ask.id] = 'busy'
             continue
         }
-        const refusal = interruptRefusal(ask, sorted, verdicts, ledger, session, state, zoneIdle)
+        const heldByAnchor =
+            !!anchor && session.route === 'home' && ask.surfaces.includes('interrupt') && ask.tier >= anchor.tier
+        const refusal = heldByAnchor
+            ? 'held by the to-do list'
+            : interruptRefusal(ask, sorted, verdicts, ledger, session, state, zoneIdle)
         if (refusal) trace.reasons[ask.id] = refusal
         else interrupt = ask.id
     }
 
-    const zone = pickZone(live, sorted, verdicts, ledger, session, state, interrupt)
+    const zone = pickZone(live, sorted, verdicts, ledger, session, state, interrupt, anchor)
     let inline: Decision['inline'] = null
     for (const ask of live) {
         if (ask.id === interrupt || !ask.surfaces.includes('inline')) continue
@@ -185,14 +192,16 @@ function pickZone(
     ledger: Ledger,
     session: Session,
     state: JourneyState,
-    interrupt: AskId | null
+    interrupt: AskId | null,
+    anchor: AttentionAsk | null
 ): ZonePick | null {
     if (session.route !== 'home') return null
     const candidates = live.filter(
         (ask) =>
             ask.id !== interrupt &&
             ask.surfaces.includes('zone') &&
-            (!ask.policy.surfaceWhen?.zone || ask.policy.surfaceWhen.zone(state))
+            (!ask.policy.surfaceWhen?.zone || ask.policy.surfaceWhen.zone(state)) &&
+            (!anchor || ask.id === anchor.id || ask.tier < anchor.tier)
     )
     // no flash of a lower card while a higher one is still loading
     const best = candidates[0]
@@ -203,6 +212,7 @@ function pickZone(
     const fresh = candidates.find((ask) => !isFatigued(ask, ledger[ask.id], session))
     // every candidate is resting: better the top one again than an empty zone
     const pick = fresh ?? candidates[0]
+    if (pick && anchor && pick.id !== anchor.id) return { id: pick.id, mode: 'ask', underlay: anchor.id }
     if (pick) return { id: pick.id, mode: 'ask' }
     const pending = sorted.find((ask) => verdicts[ask.id] === 'pending' && ask.surfaces.includes('zone'))
     return pending ? { id: pending.id, mode: 'status' } : null

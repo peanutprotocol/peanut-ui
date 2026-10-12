@@ -90,6 +90,8 @@ export interface AskPolicy {
     maxConsecutiveSessions?: number
     /** a surface-specific precondition on top of `eligible` (the push ask: interrupt only while unanswered, zone only on native) */
     surfaceWhen?: Partial<Record<Surface, (state: JourneyState) => boolean>>
+    /** the to-do list: while live it holds Home, and only a strictly higher tier may overlay it */
+    anchorsHome?: boolean
 }
 
 export interface AttentionAsk {
@@ -248,6 +250,8 @@ export interface ZonePick {
     id: AskId
     /** `status` renders the pending state of an in-progress ask, not a CTA */
     mode: 'ask' | 'status'
+    /** a more critical ask overlays the to-do list: the list stays underneath, collapsed */
+    underlay?: AskId
 }
 
 export interface Decision {

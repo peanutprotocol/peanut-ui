@@ -285,6 +285,9 @@
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
             "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
+        },
+        "attention": {
+            "label": "Próximos pasos"
         }
     },
     "profile": {

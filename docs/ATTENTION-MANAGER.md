@@ -58,3 +58,15 @@ One file in `asks/` (eligibility, policy, version) registered in `registry.ts`, 
 Busy means no new interrupt: an existing interrupt stays eligible, and zone, inline, and banner remain visible behind user-opened overlays. A gate still clears the non-interrupt picks. Inline and banner impressions are booked once per account, app session, ask, and surface. Missing slots and failed slot conditions appear in the decision trace.
 
 Toasts and user-opened in-flow modals stay outside the manager. Zone cards retain their bespoke components.
+
+## Home: one component, anchored by the to-do list
+
+Home renders one attention component, `HomeAttention` (`AttentionZone.tsx`). It shows the to-do list until the first payment, then the next-best action with rotation.
+
+While the to-do list is live it anchors Home (`policy.anchorsHome` on `checklist` and `blocked-card`):
+
+- Only a strictly higher tier (tier 1) may take the card or open an interrupt on Home. Same-tier and lower-tier asks are held, with trace reason `held by the to-do list`. The download prompt, the Home push ask and announcements wait until the list is done.
+- A tier 1 card overlays the list rather than replacing it. The critical card sits on top and the list stays underneath as a progress line (`TodoSummary`) with nothing to tap, so there is still one call to action.
+- Off Home the anchor does not apply.
+
+The progress count comes from `checklistProgress()` in `activation-step.utils.ts`, which the to-do list itself also uses, so the two never disagree.

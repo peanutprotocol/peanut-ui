@@ -285,6 +285,9 @@
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
             "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
+        },
+        "attention": {
+            "label": "Next steps"
         }
     },
     "profile": {

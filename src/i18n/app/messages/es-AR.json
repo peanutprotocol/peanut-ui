@@ -138,6 +138,9 @@
         },
         "drawers": {
             "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios a tu nombre."
+        },
+        "attention": {
+            "label": "Próximos pasos"
         }
     },
     "profile": {

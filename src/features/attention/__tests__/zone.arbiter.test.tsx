@@ -7,7 +7,8 @@
  * phase-3 failure list that lives in the orchestration has a test here.
  */
 import React, { StrictMode, useLayoutEffect } from 'react'
-import { act, render, screen } from '@testing-library/react'
+import { act, render as rtlRender, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import type { AskId, JourneyState, LedgerEntry } from '../types'
 
 const mockCapture = jest.fn()
@@ -43,6 +44,11 @@ interface StubProps {
 }
 
 let mockZoneSurfaces: Partial<Record<string, React.ComponentType<StubProps>>> = {}
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
+jest.mock('../surfaces/zone/TodoSummary', () => ({
+    __esModule: true,
+    default: () => <div data-testid="todo-summary" />,
+}))
 jest.mock('../zoneSurfaces', () => ({
     get ZONE_SURFACES() {
         return mockZoneSurfaces
@@ -418,12 +424,12 @@ describe('the Home zone', () => {
     })
 
     test('interrupt and zone never show the same ask', async () => {
-        // install-app is eligible for both (web, migration on) and the session allows the interrupt
-        mockState = state({ ...INSTALL_APP_WEB, ...BEFORE_ACTIVATION })
+        // install-app is eligible for both (web, migration on); after activation no to-do list holds Home
+        mockState = state({ ...INSTALL_APP_WEB, ...INVITE_ONLY })
         await mount()
         expect(latest?.decision.interrupt).toBe('install-app')
-        expect(latest?.decision.zone?.id).toBe('checklist')
-        expect(zonesInDom()).toEqual(['checklist'])
+        expect(latest?.decision.zone?.id).toBe('invite')
+        expect(zonesInDom()).toEqual(['invite'])
     })
 
     test('a throwing zone surface is contained, settled as dismissed, and the next card renders', async () => {

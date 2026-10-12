@@ -334,10 +334,11 @@ describe('the push ask in the zone', () => {
         expect(d.zone?.id).not.toBe('push-home-fallback')
     })
 
-    test('install-app interrupts and the checklist keeps the zone', () => {
-        // "interrupt and zone never show the same ask" (install-app is T2 · 1 on both surfaces)
+    test('the to-do list holds Home: install-app neither interrupts nor takes the zone', () => {
+        // phase 8: while the to-do list shows, only a strictly higher tier may overlay it (install-app is T2 · 1)
         const d = run({ isNative: false, migration: { on: true }, activated: false, onboarding: onboarding('verify') })
-        expect(d.interrupt).toBe('install-app')
+        expect(d.interrupt).toBeNull()
+        expect(d.trace.reasons['install-app']).toBe('held by the to-do list')
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
     })
 })
