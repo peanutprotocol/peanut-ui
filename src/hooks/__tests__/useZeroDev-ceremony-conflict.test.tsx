@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, renderHook } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { removeFromCookie } from '@/utils/general.utils'

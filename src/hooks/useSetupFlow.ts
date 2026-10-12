@@ -1,10 +1,11 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import type { FlowStepGuard } from '@/hooks/useFlowStepper.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { isNativeBridge } from '@/utils/capacitor'
+
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 
 /** ?screen=, not ?step=: at /setup entry, ?step=signup is an existing contract
@@ -43,6 +44,8 @@ export const SETUP_POST_REGISTRATION_SCREEN: ScreenId = 'residence'
  * preferences, while history pops cannot re-enter the registration forms.
  */
 export const useSetupFlow = () => {
+    const nativePlatform = useNativePlatform()
+
     const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } =
         useSetupFlowContext()
 
@@ -76,7 +79,7 @@ export const useSetupFlow = () => {
         steps: screenIds,
         defaultStep: SETUP_DEFAULT_SCREEN,
         urlKey: SETUP_SCREEN_PARAM,
-        history: isNativeBridge() ? 'replace' : 'push',
+        history: nativePlatform.isNativeBridge ? 'replace' : 'push',
         guards,
     })
 

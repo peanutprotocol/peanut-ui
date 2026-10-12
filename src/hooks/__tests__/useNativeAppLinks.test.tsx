@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // deferred-deep-link wiring in useNativeAppLinks: the restored dest must land
 // unless a real deep link actually navigated — this is the only place that
 // happens, so it needs its own coverage (the pure payload logic is tested in

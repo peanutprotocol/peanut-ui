@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -18,6 +19,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useMemo } from 'react'
 
 export default function ExchangeRatePage() {
+    const native = useNativePlatform()
     const t = useTranslations('exchangeRate')
     const tCommon = useTranslations('common')
     const router = useRouter()
@@ -57,7 +59,8 @@ export default function ExchangeRatePage() {
         routableFrom,
         routableTo,
         formattedBalance,
-        unlockedRegionPaths
+        unlockedRegionPaths,
+        native.isCapacitor
     )
     const goesToAddMoney = destination.startsWith('/add-money')
 

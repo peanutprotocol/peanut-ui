@@ -1,5 +1,6 @@
 'use client'
 
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { WithdrawCurrencyList } from '@/features/withdraw/components/WithdrawCurrencyList'
@@ -113,7 +114,10 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
     const hasSavedDestinations = savedAccounts.length > 0 || (!isBankFromSend && savedAddresses.length > 0)
 
     // check if we're coming from request fulfillment or similar flow
-    const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
+    const fromRequestFulfillment = useHydrationSnapshot(
+        () => Boolean(getFromLocalStorage('fromRequestFulfillment')),
+        () => false
+    )
 
     const openCryptoDestination = () => {
         setSelectedBankAccount(null)

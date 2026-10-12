@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
@@ -16,7 +17,7 @@ import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { type PointsInvite } from '@/services/services.types'
-import { isIOSNative } from '@/utils/capacitor'
+
 import { shortenPoints } from '@/utils/format.utils'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { profileUrl } from '@/utils/native-routes'
@@ -31,6 +32,8 @@ const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), {
 const InviteFriendsModal = dynamic(() => import('@/components/Global/InviteFriendsModal'), { ssr: false })
 
 export function RewardsPage() {
+    const nativePlatform = useNativePlatform()
+
     const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/home')
@@ -183,7 +186,7 @@ export function RewardsPage() {
 
                 {/* iOS presents the programme in points (see useAppTranslations);
                     the explainer is part of that framing, so web and Android skip it */}
-                {isIOSNative() && (
+                {nativePlatform.isIOSNative && (
                     <Card className="flex flex-col gap-3 p-6">
                         <h2 className="text-body-m-semibold">{t('howItWorks.title')}</h2>
                         <ol className="flex flex-col gap-2">

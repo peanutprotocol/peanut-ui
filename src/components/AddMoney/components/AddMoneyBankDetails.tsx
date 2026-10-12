@@ -96,11 +96,6 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
             )
         }
 
-        // check if we're on the static us route by examining the current pathname
-        if (typeof window !== 'undefined' && window.location.pathname.includes('/add-money/us/bank')) {
-            return countryData.find((c) => c.id === 'US')
-        }
-
         // default to us if no country is detected
         return countryData.find((c) => c.id === 'US')
     }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])

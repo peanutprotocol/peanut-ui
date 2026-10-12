@@ -4,6 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
 import { useMemo } from 'react'
 import { gatingResidenceIso2s } from './residenceGate'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 /**
  * Every country this user counts as a resident of, upper-cased.
@@ -19,11 +20,19 @@ export function useResidenceIso2s(): string[] {
     const { user } = useAuth()
     const userId = user?.user?.userId
     const residence = user?.residence
+    const localDeclared = useHydrationSnapshot(
+        () => readDeclaredResidence(userId),
+        () => null
+    )
+    const localSecond = useHydrationSnapshot(
+        () => readSecondResidence(userId),
+        () => null
+    )
 
     return useMemo(() => {
         // the server's answer wins whenever it sends the field, `null` included
-        const second = residence?.declaredSecond === undefined ? readSecondResidence(userId) : residence.declaredSecond
-        const declared = residence?.declared ?? readDeclaredResidence(userId)
+        const second = residence?.declaredSecond === undefined ? localSecond : residence.declaredSecond
+        const declared = residence?.declared ?? localDeclared
         return gatingResidenceIso2s({ verified: residence?.verified, declared, second })
-    }, [residence?.verified, residence?.declared, residence?.declaredSecond, userId])
+    }, [residence?.verified, residence?.declared, residence?.declaredSecond, localDeclared, localSecond])
 }

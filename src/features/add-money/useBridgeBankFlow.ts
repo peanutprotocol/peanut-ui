@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 
 import { countryData } from '@/components/AddMoney/consts'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
@@ -41,6 +42,7 @@ import type { BridgeBankStep } from './types'
  * deep link.
  */
 export function useBridgeBankFlow() {
+    const native = useNativePlatform()
     const params = useParams()
     // country comes from the path on web, from ?country= on native (nuqs per
     // the URL-as-State rule; read-only here)
@@ -110,7 +112,9 @@ export function useBridgeBankFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
 
-    const onBack = useSafeBack(selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath) : '/add-money')
+    const onBack = useSafeBack(
+        selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath, native.isCapacitor) : '/add-money'
+    )
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>

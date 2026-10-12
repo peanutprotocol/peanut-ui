@@ -2,8 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { animate } from 'framer-motion'
+import { useHydrationSnapshot } from '@/utils/native-platform'
+import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 const STORAGE_PREFIX = 'peanut_points_'
+const clientHydrated = () => true
+const serverHydrated = () => false
+
+function previousPoints(storageKey: string | undefined, target: number): number {
+    if (!storageKey) return target
+    const stored = readStoredValue(STORAGE_PREFIX + storageKey)
+    if (!stored?.trim()) return target
+    const value = Number(stored)
+    return Number.isSafeInteger(value) && value >= 0 ? value : target
+}
 
 interface UseCountUpOptions {
     /** localStorage key suffix for remembering last-seen value across visits */
@@ -25,12 +37,12 @@ interface UseCountUpOptions {
 export function useCountUp(target: number, options: UseCountUpOptions = {}): number {
     const { storageKey, duration = 1.5, enabled = true } = options
 
-    const [display, setDisplay] = useState(() => {
-        if (!storageKey) return target
-        if (typeof window === 'undefined') return target
-        const stored = localStorage.getItem(STORAGE_PREFIX + storageKey)
-        return stored ? parseInt(stored, 10) : target
-    })
+    const hydrated = useHydrationSnapshot(clientHydrated, serverHydrated)
+    const initialDisplay = useHydrationSnapshot(
+        () => previousPoints(storageKey, target),
+        () => target
+    )
+    const [display, setDisplay] = useState<number | null>(null)
 
     const hasAnimated = useRef(false)
     const isAnimating = useRef(false)
@@ -38,22 +50,23 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
     const prevTargetRef = useRef(target)
 
     useEffect(() => {
-        if (!enabled || hasAnimated.current) return
+        if (!hydrated || !enabled || hasAnimated.current) return
 
-        const from = display
+        const from = display ?? initialDisplay
         const to = target
 
         // nothing to animate
         if (from === to) {
             hasAnimated.current = true
             if (storageKey) {
-                localStorage.setItem(STORAGE_PREFIX + storageKey, String(to))
+                writeStoredValue(STORAGE_PREFIX + storageKey, String(to))
             }
             return
         }
 
         hasAnimated.current = true
         isAnimating.current = true
+        setDisplay(from)
 
         controlsRef.current = animate(from, to, {
             duration,
@@ -65,7 +78,7 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
                 isAnimating.current = false
                 setDisplay(to)
                 if (storageKey) {
-                    localStorage.setItem(STORAGE_PREFIX + storageKey, String(to))
+                    writeStoredValue(STORAGE_PREFIX + storageKey, String(to))
                 }
             },
         })
@@ -75,18 +88,18 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
             isAnimating.current = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- display intentionally excluded to avoid re-triggering
-    }, [enabled, target, duration, storageKey])
+    }, [enabled, target, duration, storageKey, hydrated, initialDisplay])
 
     // if target changes after animation completed (e.g. refetch), snap to new value
     useEffect(() => {
         if (prevTargetRef.current !== target && hasAnimated.current && !isAnimating.current) {
             setDisplay(target)
             if (storageKey) {
-                localStorage.setItem(STORAGE_PREFIX + storageKey, String(target))
+                writeStoredValue(STORAGE_PREFIX + storageKey, String(target))
             }
         }
         prevTargetRef.current = target
     }, [target, storageKey])
 
-    return display
+    return display ?? initialDisplay
 }

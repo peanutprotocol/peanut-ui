@@ -1248,15 +1248,15 @@ export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string =
  * `source` the link stays plain: in-app navigation (guest modal) and the QR
  * claim target are not shares.
  */
-export const generateInviteCodeLink = (username: string, source?: ReferralSource) => {
+export const generateInviteCodeLink = (username: string, source?: ReferralSource, origin?: string) => {
     const inviteCode = toInviteCode(username)
     const inviteLink = source
         ? withUtm(
-              shareableUrl('/invite'),
+              shareableUrl('/invite', origin),
               { source: UTM_SOURCES.APP_SHARE, medium: UTM_MEDIUMS.REFERRAL, campaign: 'referral', content: source },
               { code: inviteCode }
           )
-        : shareableUrl(`/invite?code=${inviteCode}`)
+        : shareableUrl(`/invite?code=${inviteCode}`, origin)
     return { inviteLink, inviteCode }
 }
 
@@ -1279,7 +1279,7 @@ export const extractInviteeName = (reason: string | undefined | null, fallback =
     return fallback
 }
 
-export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {
+export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string, origin?: string | null) => {
     let decodedRedirect = redirectUrl
     try {
         decodedRedirect = decodeURIComponent(redirectUrl)
@@ -1287,7 +1287,7 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
         // if decoding URI fails, push to /login as fallback
         return fallbackRoute
     }
-    const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
+    const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect, origin)
     // Only redirect if the URL is safe (same-origin)
     if (sanitizedRedirectUrl) {
         return sanitizedRedirectUrl

@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -16,7 +17,6 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PILL_THUMB, PILL_TRACK } from '@/components/0_Bruddle/PillSurface'
 import { TAB_ORDER, type TabId } from './tab-order'
-import { isCapacitor } from '@/utils/capacitor'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -82,11 +82,13 @@ type TabBox = { left: number; width: number }
 const restingX = (box: TabBox) => box.left - 1
 
 export const BottomNav = () => {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('navigation')
     const pathname = usePathname()
     const router = useRouter()
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
-    const isWebSupportOpen = isSupportModalOpen && !isCapacitor()
+    const isWebSupportOpen = isSupportModalOpen && !nativePlatform.isCapacitor
     const { triggerHaptic } = useAppHaptic()
     const { user } = useAuth()
     const hasUnreadSupport = useSupportUnread(!!user?.user.userId, user?.user.userId)

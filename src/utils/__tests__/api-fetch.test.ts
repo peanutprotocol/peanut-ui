@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // tests for apiFetch and serverFetch — both now call PEANUT_API_URL directly
 // on every platform. The historical web→proxy fork is gone (the proxy was
 // retired once peanut-api-ts/dev dropped the api-key requirement and CORS

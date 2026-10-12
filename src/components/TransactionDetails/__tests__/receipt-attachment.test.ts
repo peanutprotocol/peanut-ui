@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { Capacitor, CapacitorHttp } from '@capacitor/core'
 import { Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'

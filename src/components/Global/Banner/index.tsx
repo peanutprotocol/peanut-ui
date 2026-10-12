@@ -8,6 +8,7 @@ import maintenanceConfig from '@/config/underMaintenance.config'
 import { IS_PRODUCTION } from '@/constants/general.consts'
 import { logRunMode } from '@/utils/mode'
 import { isDemoMode } from '@/utils/demo'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 /**
  * App-wide announcement surface. The old marquee banners (feedback,
@@ -36,6 +37,7 @@ interface BannerProps {
 }
 
 export function Banner({ className = 'mx-4 mt-2', variant = 'global' }: BannerProps) {
+    const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const pathname = usePathname()
     const t = useTranslations('global')
 
@@ -50,7 +52,7 @@ export function Banner({ className = 'mx-4 mt-2', variant = 'global' }: BannerPr
 
     // demo mode is the app-store review sandbox: synthetic data, no real
     // backend — no announcement applies there
-    if (isDemoMode()) return null
+    if (demoMode) return null
 
     // home never shows a maintenance banner, whatever the config says
     // (designer ruling, 2026-09-03)

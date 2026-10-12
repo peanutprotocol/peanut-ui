@@ -5,6 +5,7 @@ import type { AppLocale } from './config'
 import { onIntlError } from './intl-error'
 import type { AppMessages } from './messages'
 import { marketingBase } from './messages.marketing'
+import { useClientTimeZone } from './useClientTimeZone'
 
 /**
  * Pins next-intl to a localized marketing page's URL locale.
@@ -29,11 +30,12 @@ export function RouteIntlProvider({
     messages?: AppMessages
     children: React.ReactNode
 }) {
+    const timeZone = useClientTimeZone()
     return (
         <NextIntlClientProvider
             locale={locale}
             messages={messages ?? marketingBase}
-            timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+            timeZone={timeZone}
             onError={onIntlError}
         >
             {children}

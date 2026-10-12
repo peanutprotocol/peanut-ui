@@ -1,3 +1,4 @@
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
@@ -26,6 +27,7 @@ export type BadgeStatusDrawerProps = {
 
 // shows a drawer for a newly unlocked badge
 export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerProps) => {
+    const origin = useAppOrigin()
     const t = useTranslations('badges')
     const locale = useLocale()
     const format = useFormatter()
@@ -49,7 +51,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
     // the sharer's own invite link, so a guest signup credits them
-    const shareLink = getBadgeShareLink(username, REFERRAL_SOURCES.BADGE_UNLOCK)
+    const shareLink = getBadgeShareLink(username, REFERRAL_SOURCES.BADGE_UNLOCK, origin)
     useBadgeShareImpression(isOpen, REFERRAL_SOURCES.BADGE_UNLOCK, username)
 
     return (

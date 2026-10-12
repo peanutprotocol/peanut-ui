@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
@@ -39,6 +40,7 @@ import { requestAmountFromInput, toApiAmount, usdEquivalent, type AmountInputSid
  * autosave, and the QR/share link derivation. The view only renders.
  */
 export const useCreateRequestLink = () => {
+    const origin = useAppOrigin()
     const t = useTranslations('request')
     const toast = useToast()
     const { address, isConnected } = useWallet()
@@ -179,9 +181,9 @@ export const useCreateRequestLink = () => {
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
 
-        if (tokenValue) return payLinkUrl(`/${user?.user.username}/${tokenValue}USDC`)
-        return shareableUrl(`/send/${user?.user.username}`)
-    }, [user?.user.username, tokenValue, generatedLink])
+        if (tokenValue) return payLinkUrl(`/${user?.user.username}/${tokenValue}USDC`, origin)
+        return shareableUrl(`/send/${user?.user.username}`, origin)
+    }, [user?.user.username, tokenValue, generatedLink, origin])
 
     // What a failed create says. A request asked in a fiat currency fails in
     // ways a dollar request cannot, and "failed to create link" tells the

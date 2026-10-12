@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // The Download-PDF affordance: the anchor's platform behaviour (web anchor vs
 // Capacitor external-open) and the visibility gate in useReceiptViewModel.
 import React from 'react'

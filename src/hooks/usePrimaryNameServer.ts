@@ -5,6 +5,7 @@ import { useEffect, useMemo } from 'react'
 import { isAddress } from 'viem'
 import { serverFetch } from '@/utils/api-fetch'
 import { lookupPrimaryNameOnChain } from '@/utils/ens-onchain.utils'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 const PRIMARY_NAME_TTL_MS = 24 * 60 * 60 * 1000 // 1 day
 
@@ -106,7 +107,18 @@ export function usePrimaryNameServer(address?: string): { primaryName: string | 
     }, [enabled, address, resolved, settledNoName])
 
     // read once per address, not on every render — history feeds mount many rows
-    const cachedName = useMemo(() => (enabled ? getCachedName(address) : undefined), [enabled, address])
+    const readCachedName = useMemo(() => {
+        let read = false
+        let value: string | undefined
+        return () => {
+            if (!read) {
+                value = enabled ? getCachedName(address) : undefined
+                read = true
+            }
+            return value
+        }
+    }, [enabled, address])
+    const cachedName = useHydrationSnapshot(readCachedName, () => undefined)
 
     return { primaryName: resolved ?? (settledNoName ? undefined : cachedName) }
 }

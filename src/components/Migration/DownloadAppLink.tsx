@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -24,13 +25,17 @@ export default function DownloadAppLink({
     className?: string
     buttonClassName?: string
 }) {
+    const native = useNativePlatform()
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const interceptAppCta = useAppModal()
     const store = storeForDevice(deviceType)
     // memoized: the sticky bar re-renders on scroll, and the android href
     // builds the hand-off payload from cookies
-    const href = useMemo(() => (store ? storeAnchorHref(store) : '/app'), [store])
+    const href = useMemo(
+        () => (store ? storeAnchorHref(store, native.isCapacitor, native.isHydrated) : '/app'),
+        [store, native.isCapacitor, native.isHydrated]
+    )
     return (
         <a
             href={href}

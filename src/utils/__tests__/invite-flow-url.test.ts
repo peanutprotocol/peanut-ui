@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // inviteFlowUrl — the one route into the invite flow for guest CTAs. web goes
 // to the /invite landing page; native (page pruned from the export) goes
 // straight to signup. Pure URL builder: the invite itself is stashed by the

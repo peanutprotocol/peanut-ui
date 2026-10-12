@@ -1,8 +1,9 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import ActionModal from '@/components/Global/ActionModal'
 import { STORE_NAME, MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { isIOSNative } from '@/utils/capacitor'
+
 import { openStore } from '@/utils/migration.utils'
 import { useTranslations } from 'next-intl'
 
@@ -13,9 +14,11 @@ import { useTranslations } from 'next-intl'
  * an update that silently did nothing.
  */
 const StoreUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('profile.storeUpdate')
     const tUpdate = useTranslations('profile.update')
-    const store = isIOSNative() ? 'ios' : 'android'
+    const store = nativePlatform.isIOSNative ? 'ios' : 'android'
 
     return (
         <ActionModal
