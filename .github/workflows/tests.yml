@@ -802,8 +802,9 @@ jobs:
             always() && needs.backdoor-scan.result == 'success' &&
             needs.ds-shots-filter.outputs.render == 'true'
         runs-on: ubuntu-latest
-        # Build ~5m + gate ~9m. A hang past this is a bug, not a slow day.
-        timeout-minutes: 30
+        # Build ~5m + gate ~9m + stress gate. A hang past this is a bug, not a
+        # slow day.
+        timeout-minutes: 45
         permissions:
             contents: read
         steps:
@@ -861,6 +862,7 @@ jobs:
             # Same build env as ds-shots: preview enables ?__fixture=, and the
             # base URL matches the server in playwright.shots.config.ts.
             - name: Build
+              id: build
               env:
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
@@ -876,6 +878,23 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: i18n-overflow-results-${{ github.run_number }}
+                  path: e2e/__results__/
+                  retention-days: 7
+
+            # Stress gate (TASK-23132): every fixture with worst-case data and
+            # with large system text. Reuses the build above. ADVISORY until it
+            # has one clean week: a failure shows as a warning, not a red job.
+            - name: Stress gate (advisory)
+              id: stress
+              if: always() && steps.build.outcome == 'success'
+              continue-on-error: true
+              run: pnpm test:stress:run
+
+            - name: Upload stress results on failure
+              if: always() && steps.stress.outcome == 'failure'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: stress-results-${{ github.run_number }}
                   path: e2e/__results__/
                   retention-days: 7
 

@@ -4,6 +4,18 @@
  * must stay self-contained: no imports used inside findOverflows, no closures.
  */
 
+// Known intentional clips — CSS selectors matched against the offending
+// element (or any ancestor). Keep every entry justified; an unexplained entry
+// is a hidden bug.
+export const EXEMPT: string[] = [
+    // react-fast-marquee tickers: the text scrolls through the clip by design
+    '.rfm-marquee-container',
+    // PixelatedCardFace: decorative card art — the pixel-font "????" line box
+    // deliberately overhangs the rounded card frame's clip; no locale copy
+    // renders inside it
+    '[data-decorative-clip]',
+]
+
 export type Overflow = {
     selector: string
     text: string
