@@ -16,6 +16,7 @@
         "somethingWentWrong": "Something went wrong",
         "genericError": "Something went wrong. Please try again or contact support.",
         "copiedToClipboard": "Copied to clipboard",
+        "savedToDocuments": "Saved to Documents",
         "maybeLater": "Maybe later",
         "tryAgain": "Try again",
         "skipForNow": "Skip for now",
@@ -715,7 +716,7 @@
             },
             "residence": {
                 "title": "Country of legal residence",
-                "description": "Where you are a legal resident. Not where you were born or where you’re travelling to."
+                "description": "Where you are a legal resident. Not necessarily where you were born or where you’re travelling to."
             },
             "advantage-rewards": {
                 "title": "Good things are better together.",
@@ -726,8 +727,7 @@
                 "description": "Only you can use your fingerprint or Face ID to control your account. Peanut can never move or freeze your money. Try it now."
             },
             "sign-test-transaction": {
-                "title": "Account ready",
-                "description": "Just confirm it's you — one tap and you're in."
+                "title": "Account ready"
             },
             "advantage-card": {
                 "title": "A US-issued Visa Platinum card.",
@@ -789,9 +789,10 @@
             "loginUnexpectedError": "An unexpected error occurred during login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Username",
+            "usernameLabel": "Username",
+            "usernamePlaceholder": "batman",
             "inviterUsernameLabel": "Username of the person who invited you",
-            "inviterUsernamePlaceholder": "Username",
+            "inviterUsernamePlaceholder": "batman",
             "inviterNotFound": "We couldn’t find this user.",
             "inviterCheckFailed": "We couldn’t check this username. Try again.",
             "errors": {
@@ -853,25 +854,6 @@
                 "changeCountry": "Choose a different country"
             },
             "compare": {
-                "cardTitle": "Available with {country}",
-                "items": {
-                    "p2p": "Peanut to Peanut",
-                    "pix": "PIX payments & transfers",
-                    "arQr": "QR payments & own-account transfers",
-                    "spei": "Mexican peso bank transfers",
-                    "usdAch": "US dollar bank transfers",
-                    "eurSepa": "Euro bank transfers",
-                    "gbpFps": "British pound bank transfers",
-                    "bank": "Bank transfers where supported",
-                    "card": "Peanut card"
-                },
-                "missing": {
-                    "banking": "Bank transfers",
-                    "card": "Peanut card"
-                },
-                "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
-                "guideTitle": "Which country should be selected?",
-                "guideDeclaration": "If you have a residence permit for either country, choose that one. Otherwise, choose the country that issued your ID, like a passport or driver’s license.",
                 "selectCountry": "Select {country}"
             }
         },
@@ -955,7 +937,7 @@
             }
         },
         "finish": {
-            "title": "Sign a test transaction",
+            "title": "Confirm your account",
             "description": "Let's make sure your passkey is working and you have everything set up correctly."
         },
         "accountReady": {
@@ -2514,13 +2496,8 @@
     },
     "statements": {
         "title": "Statements",
-        "intro": "A statement lists all the activity on the account for a period, with dates, amounts and status. Pick a format and a period, then download the file.",
+        "intro": "A statement lists all the activity on your account for a period, with dates, amounts and status. Pick a format and a period, then download the file.",
         "format": "Format",
-        "formatHints": {
-            "pdf": "To share or print",
-            "csv": "For spreadsheets and accounting",
-            "xlsx": "For Excel"
-        },
         "period": "Period",
         "periods": {
             "allTime": "All time",
@@ -2534,8 +2511,9 @@
         "customPeriod": {
             "description": "Pick the first and the last day."
         },
+        "generate": "Generate",
+        "share": "Share",
         "download": "Download",
-        "save": "Save file",
         "downloaded": "Statement downloaded",
         "downloadedByYear": "One file per year",
         "errors": {

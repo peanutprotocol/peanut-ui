@@ -5,18 +5,22 @@ import { useReceiptPdfFile } from '../useReceiptPdfFile'
 import { isCapacitor } from '@/utils/capacitor'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import { NativeReceiptShareUnavailable, shareNativeReceipt } from '@/utils/native-receipt-share'
+import { saveToDocuments } from '@/utils/native-file.utils'
 import { CapacitorHttp } from '@capacitor/core'
 
 jest.mock('@/utils/native-receipt-share', () => ({
     NativeReceiptShareUnavailable: class extends Error {},
     shareNativeReceipt: jest.fn().mockResolvedValue(undefined),
 }))
+// the Documents write itself is covered in native-file.utils.test.ts
+jest.mock('@/utils/native-file.utils', () => ({ saveToDocuments: jest.fn().mockResolvedValue('unavailable') }))
 
 const mockToastError = jest.fn()
 const mockToastInfo = jest.fn()
+const mockToastSuccess = jest.fn()
 
 jest.mock('@/components/0_Bruddle/Toast', () => ({
-    useToast: () => ({ error: mockToastError, info: mockToastInfo }),
+    useToast: () => ({ error: mockToastError, info: mockToastInfo, success: mockToastSuccess }),
 }))
 jest.mock('@/utils/auth-token', () => ({
     authReady: jest.fn().mockResolvedValue(undefined),
@@ -318,6 +322,8 @@ describe('native receipt delivery', () => {
         mockIsCapacitor.mockReturnValue(true)
         mockNativeRequest.mockResolvedValue({ status: 200, data: btoa('%PDF-native'), headers: {} })
         ;(shareNativeReceipt as jest.Mock).mockResolvedValue(undefined)
+        // iOS, or an Android write that failed
+        ;(saveToDocuments as jest.Mock).mockResolvedValue('unavailable')
         Object.assign(navigator, { share: jest.fn(), canShare: () => false })
     })
     afterEach(() => Object.assign(navigator, { share: undefined, canShare: undefined }))
@@ -342,6 +348,28 @@ describe('native receipt delivery', () => {
             expect(mockToastInfo).not.toHaveBeenCalled()
         }
     )
+
+    test('download on Android puts the receipt in Documents, says so, and opens no share sheet', async () => {
+        ;(saveToDocuments as jest.Mock).mockResolvedValue('saved')
+        renderHarness({ entryId: 'native', kind: 'DIRECT_TRANSFER' })
+        const button = screen.getByRole('button', { name: 'download' })
+        await waitFor(() => expect(button).toBeEnabled())
+        fireEvent.click(button)
+        await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith('Saved to Documents'))
+        expect(saveToDocuments).toHaveBeenCalledWith({ blob: expect.any(Blob), fileName: 'peanut-receipt-native.pdf' })
+        expect(shareNativeReceipt).not.toHaveBeenCalled()
+    })
+
+    test('share keeps the share sheet on Android', async () => {
+        ;(saveToDocuments as jest.Mock).mockResolvedValue('saved')
+        renderHarness({ entryId: 'native', kind: 'DIRECT_TRANSFER' })
+        const button = screen.getByRole('button', { name: 'share' })
+        await waitFor(() => expect(button).toBeEnabled())
+        fireEvent.click(button)
+        await waitFor(() => expect(shareNativeReceipt).toHaveBeenCalledTimes(1))
+        expect(saveToDocuments).not.toHaveBeenCalled()
+        expect(mockToastSuccess).not.toHaveBeenCalled()
+    })
 
     test('an old binary tells the user to update and never claims a file was downloaded', async () => {
         ;(shareNativeReceipt as jest.Mock).mockRejectedValue(new NativeReceiptShareUnavailable())
