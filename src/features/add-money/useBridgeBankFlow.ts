@@ -11,6 +11,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
+import { useSubmissionKey } from '@/hooks/useSubmissionKey'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -74,6 +75,7 @@ export function useBridgeBankFlow() {
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp } = useCreateOnramp()
+    const submissionKey = useSubmissionKey()
 
     // inline sumsub kyc flow for bridge bank onramp
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -319,6 +321,9 @@ export function useBridgeBankFlow() {
             const onrampDataResponse = await createOnramp({
                 amount: rawTokenAmount,
                 country: selectedCountry,
+                // the same amount and country re-confirmed after a failure
+                // reuses the key, so the API returns the transfer it made
+                idempotencyKey: submissionKey({ amount: rawTokenAmount, country: selectedCountry.id }),
             })
             setOnrampData(onrampDataResponse)
 

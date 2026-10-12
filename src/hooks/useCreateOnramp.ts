@@ -9,6 +9,12 @@ export type CreateOnrampParams = {
     country: CountryData
     /** The typed amount in the rail's currency. */
     amount: string
+    /**
+     * One key per user submission (see useSubmissionKey). The API answers a
+     * resend with the same key with the transfer it already made, which is
+     * what makes the one automatic resend below safe.
+     */
+    idempotencyKey?: string
 }
 
 // shared so the hook, the page catch, and their tests can't drift apart.
@@ -30,7 +36,7 @@ export interface UseCreateOnrampReturn {
 export const useCreateOnramp = (): UseCreateOnrampReturn => {
     const [isLoading, setIsLoading] = useState(false)
 
-    const createOnramp = useCallback(async ({ amount, country }: CreateOnrampParams) => {
+    const createOnramp = useCallback(async ({ amount, country, idempotencyKey }: CreateOnrampParams) => {
         setIsLoading(true)
 
         try {
@@ -46,7 +52,11 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                         currency,
                         paymentRail,
                     },
+                    idempotencyKey,
                 }),
+                // A create that failed before any response is sent once more
+                // only when the key makes the resend safe (PEANUT-UI-TE2).
+                idempotent: !!idempotencyKey,
             })
 
             if (!response.ok) {

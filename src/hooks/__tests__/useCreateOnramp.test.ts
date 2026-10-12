@@ -100,4 +100,39 @@ describe('useCreateOnramp', () => {
         const body = JSON.parse(apiFetchMock.mock.calls[0][1].body)
         expect(body.amount).toBe(sent)
     })
+
+    describe('the idempotency key', () => {
+        const okResponse = { ok: true, status: 200, json: async () => ({ transferId: 'xfer-1' }) }
+
+        it('sends the key and opts the call into the one resend', async () => {
+            apiFetchMock.mockResolvedValue(okResponse)
+            const { result } = renderHook(() => useCreateOnramp())
+
+            await act(async () => {
+                await result.current.createOnramp({ amount: '58', country, idempotencyKey: 'key-1' })
+            })
+
+            const [path, init] = apiFetchMock.mock.calls[0]
+            expect(path).toBe('/bridge/onramp/create')
+            expect(init.idempotent).toBe(true)
+            expect(JSON.parse(init.body)).toEqual({
+                amount: '58.00',
+                source: { currency: 'eur', paymentRail: 'sepa' },
+                idempotencyKey: 'key-1',
+            })
+        })
+
+        it('without a key the call is never resent', async () => {
+            apiFetchMock.mockResolvedValue(okResponse)
+            const { result } = renderHook(() => useCreateOnramp())
+
+            await act(async () => {
+                await result.current.createOnramp({ amount: '58', country })
+            })
+
+            const [, init] = apiFetchMock.mock.calls[0]
+            expect(init.idempotent).toBe(false)
+            expect(JSON.parse(init.body)).not.toHaveProperty('idempotencyKey')
+        })
+    })
 })
