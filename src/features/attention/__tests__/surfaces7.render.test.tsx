@@ -5,6 +5,10 @@ import en from '@/i18n/app/messages/en.json'
 import type { JourneyState } from '../types'
 
 const mockCapture = jest.fn()
+jest.mock('../serverAttention', () => ({
+    ...jest.requireActual('../serverAttention'),
+    useServerAttention: () => undefined,
+}))
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: { capture: (...args: unknown[]) => mockCapture(...args) },

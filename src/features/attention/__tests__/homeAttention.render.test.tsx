@@ -7,6 +7,10 @@ import type { JourneyState, ZoneSurfaceProps } from '../types'
 
 let mockState: JourneyState
 let mockOnboarding: OnboardingState
+jest.mock('../serverAttention', () => ({
+    ...jest.requireActual('../serverAttention'),
+    useServerAttention: () => undefined,
+}))
 jest.mock('../journeyState', () => ({ useJourneyState: () => mockState }))
 jest.mock('@/hooks/useActivationStatus', () => ({
     useActivationStatus: () => ({ onboarding: mockOnboarding, isLoading: false, isActivated: false }),

@@ -22,6 +22,11 @@ const mockSentry = jest.fn()
 jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockSentry(...args) }))
 
 let mockOverlayOpen = false
+let mockServer: unknown = undefined
+jest.mock('../serverAttention', () => ({
+    ...jest.requireActual('../serverAttention'),
+    useServerAttention: () => mockServer,
+}))
 jest.mock('@/utils/overlay-visibility', () => ({ useAnyOverlayOpen: () => mockOverlayOpen }))
 
 import { AttentionProvider, resetAttentionSessionForTests, useAttention } from '../AttentionProvider'
@@ -116,6 +121,7 @@ beforeEach(() => {
     mockCapture.mockClear()
     resetAttentionSessionForTests()
     mockOverlayOpen = false
+    mockServer = undefined
     mockThrow = null
     mockSentry.mockClear()
     mockState = state()
@@ -204,4 +210,29 @@ test('a throw inside the manager never takes the app down', async () => {
     expect(screen.getByText('app-shell')).toBeInTheDocument()
     expect(mockSentry).toHaveBeenCalledWith(mockThrow, expect.objectContaining({ tags: { feature: 'attention' } }))
     spy.mockRestore()
+})
+
+test('a server verdict overrides the local one and the report names its source', async () => {
+    updateUserPreferences('user-a', { sessionCount: 3 })
+    mockServer = { version: 1, ranking: [], verdicts: { 'legal-reconsent': 'done' }, nextAsk: 'early-user' }
+    render(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByTestId('interrupt').textContent).not.toBe('legal-reconsent')
+    const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
+    expect(reports.at(-1)?.[1]).toMatchObject({ ranking_source: 'server', server_next_ask: 'early-user' })
+})
+
+test('without a server answer the report says the ranking is local', async () => {
+    render(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
+    expect(reports.at(-1)?.[1]).toMatchObject({ ranking_source: 'local', server_next_ask: null })
 })

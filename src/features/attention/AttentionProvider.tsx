@@ -25,6 +25,7 @@ import { ledgerActions, noteServerLedger, readLedger, subscribeLedger } from './
 import { bumpJourneyEpoch } from './journeyEpoch'
 import { useJourneyState } from './journeyState'
 import { ASKS } from './registry'
+import { applyServerRanking, useServerAttention, type ServerAttention } from './serverAttention'
 import { useMountedSlots } from './slotStore'
 import type { AskId, AttentionAsk, Decision, JourneyState, Ledger, Session, Surface } from './types'
 
@@ -77,8 +78,6 @@ export function resetAttentionSessionForTests(): void {
 // the zone cards already booked this app load, for which account
 let surfacesShownThisSession: { userId: string | null; keys: string[] } = { userId: null, keys: [] }
 
-const askOf = (id: AskId) => ASKS.find((ask) => ask.id === id)
-
 function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
     const busy = useAnyOverlayOpen()
     const slots = useMountedSlots()
@@ -110,7 +109,12 @@ function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
 }
 
 /** One `attention_decided` per distinct decision, so the trace can be read against `modal_shown`. */
-function useDecisionReport(decision: Decision, state: JourneyState, session: Session): void {
+function useDecisionReport(
+    decision: Decision,
+    state: JourneyState,
+    session: Session,
+    server: ServerAttention | undefined
+): void {
     const reported = useRef<string | null>(null)
     useEffect(() => {
         if (!state.userId || !state.userLoaded) return
@@ -128,6 +132,8 @@ function useDecisionReport(decision: Decision, state: JourneyState, session: Ses
             banner: decision.banner,
             suspended: decision.suspended,
             overlay_open: session.busy,
+            ranking_source: server ? 'server' : 'local',
+            server_next_ask: server?.nextAsk ?? null,
             candidates: decision.trace.candidates,
             reasons: decision.trace.reasons,
             route: session.route,
@@ -135,7 +141,7 @@ function useDecisionReport(decision: Decision, state: JourneyState, session: Ses
         }
         if (IS_DEV) console.debug('[attention]', payload)
         posthog.capture(ANALYTICS_EVENTS.ATTENTION_DECIDED, payload)
-    }, [decision, state.userId, state.userLoaded, session.busy, session.route, session.count])
+    }, [decision, state.userId, state.userLoaded, session.busy, session.route, session.count, server])
 }
 
 /**
@@ -197,8 +203,11 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
     }, [state.userId])
 
     const session = useSession(state, openInterrupt)
-    const decision = useMemo(() => decide(state, ASKS, ledger, session), [state, ledger, session])
-    useDecisionReport(decision, state, session)
+    const server = useServerAttention()
+    const asks = useMemo(() => applyServerRanking(ASKS, server), [server])
+    const askOf = useCallback((id: AskId) => asks.find((ask) => ask.id === id), [asks])
+    const decision = useMemo(() => decide(state, asks, ledger, session), [state, asks, ledger, session])
+    useDecisionReport(decision, state, session, server)
     // a settle checks against the latest pick, not the closure it was created in
     const latestDecision = useRef(decision)
     latestDecision.current = decision
@@ -241,7 +250,7 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             }
             setOpenInterrupt(id)
         },
-        [userId, session.count]
+        [userId, session.count, askOf]
     )
 
     const openedSurface = useCallback(
@@ -261,7 +270,7 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             ledgerActions.shown(userId, id, Date.now(), surface, session.count)
             posthog.capture(ANALYTICS_EVENTS.ATTENTION_SHOWN, { ask: id, surface, tier: ask?.tier })
         },
-        [userId, session.count]
+        [userId, session.count, askOf]
     )
     const openedZone = useCallback((id: AskId) => openedSurface(id, 'zone'), [openedSurface])
 
@@ -294,7 +303,7 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             }
             bumpJourneyEpoch()
         },
-        [userId, state]
+        [userId, state, askOf]
     )
 
     const crashed = useCallback(
@@ -312,7 +321,7 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             state,
             ledger,
             session,
-            asks: ASKS,
+            asks,
             opened,
             openedZone,
             openedSurface,
@@ -321,7 +330,7 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             dismissed: (id, surface = 'interrupt') => settle(id, 'dismissed', undefined, surface),
             snoozed: (id, until, surface = 'interrupt') => settle(id, 'snoozed', until, surface),
         }),
-        [decision, state, ledger, session, opened, openedZone, openedSurface, crashed, settle]
+        [decision, state, ledger, session, asks, opened, openedZone, openedSurface, crashed, settle]
     )
 
     return <AttentionContext.Provider value={value}>{children}</AttentionContext.Provider>
