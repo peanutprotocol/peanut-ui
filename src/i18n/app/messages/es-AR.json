@@ -417,7 +417,7 @@
             },
             "residence": {
                 "title": "País de residencia legal",
-                "description": "Donde tenés residencia legal. No donde naciste ni adonde viajás."
+                "description": "Donde tenés residencia legal. No necesariamente donde naciste ni adonde viajás."
             },
             "advantage-rewards": {
                 "title": "Lo bueno se disfruta en compañía.",
@@ -426,9 +426,6 @@
             "advantage-control": {
                 "title": "Solo para vos",
                 "description": "Solo vos podés usar tu huella o Face ID para controlar tu cuenta. Peanut nunca puede mover ni congelar tu plata. Probalo ahora."
-            },
-            "sign-test-transaction": {
-                "description": "Solo confirmá que sos vos: un toque y listo."
             },
             "advantage-bank": {
                 "title": "Cuentas bancarias que viajan con vos.",
@@ -505,24 +502,6 @@
                 "changeCountry": "Elegir otro país"
             },
             "compare": {
-                "cardTitle": "Disponible con {country}",
-                "items": {
-                    "p2p": "Peanut a Peanut",
-                    "pix": "Pagos y transferencias PIX",
-                    "arQr": "Pagos QR y transferencias propias",
-                    "spei": "Transferencias bancarias en pesos mexicanos",
-                    "usdAch": "Transferencias bancarias en dólares estadounidenses",
-                    "eurSepa": "Transferencias bancarias en euros",
-                    "gbpFps": "Transferencias bancarias en libras esterlinas",
-                    "bank": "Transferencias bancarias donde haya soporte",
-                    "card": "Tarjeta Peanut"
-                },
-                "missing": {
-                    "banking": "Transferencias bancarias",
-                    "card": "Tarjeta Peanut"
-                },
-                "guideTitle": "¿Qué país debés seleccionar?",
-                "guideDeclaration": "Si tenés un permiso de residencia de alguno de los dos países, elegí ese país. Si no, elegí el país que emitió tu documento de identidad, como un pasaporte o una licencia de conducir.",
                 "selectCountry": "Elegir {country}"
             }
         },
@@ -591,7 +570,7 @@
             }
         },
         "finish": {
-            "title": "Firmá una transacción de prueba"
+            "title": "Confirmá tu cuenta"
         },
         "accountReady": {
             "worksNowTitle": "Funciona desde ya",
@@ -1183,10 +1162,7 @@
     },
     "statements": {
         "title": "Resúmenes",
-        "intro": "Un resumen muestra toda la actividad de la cuenta en un período, con fechas, montos y estado. Elegí un formato y un período, y luego descargá el archivo.",
-        "formatHints": {
-            "csv": "Para planillas y contabilidad"
-        },
+        "intro": "Un resumen muestra toda la actividad de tu cuenta en un período, con fechas, montos y estado. Elegí un formato y un período, y luego descargá el archivo.",
         "customPeriod": {
             "description": "Elegí el primer y el último día."
         },
