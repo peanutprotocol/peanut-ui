@@ -66,6 +66,8 @@ export const REASON_CODE_KEYS = {
     // for the user. Self-serve: the paired action opens the address RFI. Without
     // this entry the copy ships in English to every locale.
     residence_unresolved: 'reasons.residence_unresolved',
+    // A rail parked for a requirement the approved identity never collected; `supplement:<provider>` collects it.
+    requirements_missing: 'reasons.requirements_missing',
     uk_resident_blocked: 'reasons.uk_resident_blocked',
     // Any other residence the bank rails are closed to (api#1738). Country-
     // neutral on purpose: the UK line names UK regulation, which is false for

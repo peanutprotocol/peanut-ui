@@ -3369,6 +3369,7 @@
             "tax_identification_number": "We need your tax identification number to continue.",
             "address_of_residence": "We need your residential address to continue.",
             "residence_unresolved": "We still need your home address to finish setting up bank transfers. Add it and we will retry automatically.",
+            "requirements_missing": "Our payment partner needs one more document that your verification didn't include. Add it and we'll finish setting this up automatically.",
             "proof_of_address": "We need a valid proof of address document.",
             "source_of_funds": "We need information about your source of funds.",
             "proof_of_source_of_funds": "We need a document proving your source of funds.",

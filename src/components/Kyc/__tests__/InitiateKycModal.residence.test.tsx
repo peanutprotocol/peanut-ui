@@ -104,3 +104,24 @@ describe('InitiateKycModal — residence check', () => {
         expect(screen.getByText("We can't verify IDs from this country")).toBeInTheDocument()
     })
 })
+
+describe('InitiateKycModal — a requirement the approved identity never collected', () => {
+    beforeEach(() => {
+        mockRestrictions = { banking: false, card: false }
+        mockIsRegionRestricted = false
+    })
+
+    it('reads the catalog line for the parked rail, not the backend prose', () => {
+        renderModal({
+            variant: 'provider_rejection',
+            reasonCode: 'requirements_missing',
+            providerMessage: 'Backend English prose',
+        })
+        expect(
+            screen.getByText(
+                "Our payment partner needs one more document that your verification didn't include. Add it and we'll finish setting this up automatically."
+            )
+        ).toBeInTheDocument()
+        expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+    })
+})

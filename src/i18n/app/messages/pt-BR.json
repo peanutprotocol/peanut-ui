@@ -3369,6 +3369,7 @@
             "tax_identification_number": "Precisamos do seu número de identificação fiscal para continuar.",
             "address_of_residence": "Precisamos do seu endereço residencial para continuar.",
             "residence_unresolved": "Ainda precisamos do seu endereço residencial para terminar de configurar as transferências bancárias. Adicione e tentaremos de novo automaticamente.",
+            "requirements_missing": "Nosso parceiro de pagamentos precisa de mais um documento que não estava na sua verificação. Envie e terminaremos a configuração automaticamente.",
             "proof_of_address": "Precisamos de um comprovante de residência válido.",
             "source_of_funds": "Precisamos de informações sobre a origem dos seus fundos.",
             "proof_of_source_of_funds": "Precisamos de um documento que comprove a origem dos seus fundos.",
