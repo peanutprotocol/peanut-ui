@@ -16,6 +16,8 @@ const elementIds = [
     'source-control',
     'branch',
     'branch-control',
+    'screen-updates-only',
+    'screen-updates-control',
     'locale',
     'profile',
     'profile-control',

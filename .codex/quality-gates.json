@@ -11,6 +11,7 @@
                 "scripts/screens/catalogue.test.mjs",
                 "scripts/screens/state-coverage.test.mjs",
                 "scripts/screens/viewer.test.mjs",
+                "scripts/screens/viewer-screen-updates.test.mjs",
                 "scripts/screens/screen-history-acceptance.test.mjs",
                 "scripts/screens/screen-history-regressions.test.mjs",
                 "scripts/screens/zero-difference-gate-properties.test.mjs",
@@ -79,7 +80,9 @@
                 "src/context/__tests__/authContext-cross-tab-hook-race.test.tsx",
                 "src/context/__tests__/authContext-cross-tab-lifecycle-race.test.tsx",
                 "scripts/screens/screen-history-regressions.test.mjs",
-                "docs/engineering/preflight.md"
+                "docs/engineering/preflight.md",
+                "scripts/screens/viewer-screen-updates.test.mjs",
+                "docs/plans/2026-10-12-screen-updates-filter.md"
             ],
             "cwd": "."
         }

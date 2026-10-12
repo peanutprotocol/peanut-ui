@@ -429,6 +429,9 @@ label {
     outline: 3px solid rgb(255 144 232 / 65%);
     outline-offset: 2px;
 }
+#screen-updates-control {
+    min-height: 40px;
+}
 input,
 select,
 button {
