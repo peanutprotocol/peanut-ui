@@ -1,5 +1,7 @@
 'use client'
 
+import { pendingResidenceCountry } from '@/utils/residence-profile'
+
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -376,7 +378,8 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
               })
             : null
     const residenceCountryName = countryDisplayName(residenceIso2)
-    const pendingCountryName = countryDisplayName(residence?.pending ?? null)
+    const pendingCountry = pendingResidenceCountry(residence)
+    const pendingCountryName = countryDisplayName(pendingCountry)
 
     // In-review line: submittedAt drives both the date and the 7-day
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
@@ -399,7 +402,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // the list's drawer.
     const showBankRestrictionNote = restrictions.banking
 
-    const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
+    const residenceTrailing = !residenceIso2 ? undefined : residence?.verified?.country ? (
         <Badge status="completed" customText={t('residence.verified')} />
     ) : (
         <Badge status="neutral" customText={t('residence.unverified')} />
@@ -438,9 +441,9 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                     onClick={() => setIsChangeModalOpen(true)}
                     aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
                 />
-                {residence?.verified && residence?.pending && (
+                {residence?.verified?.country && pendingCountry && (
                     <p className="text-center text-body-xs text-foreground-secondary">
-                        {t('residence.pendingReverify', { country: pendingCountryName ?? residence.pending })}
+                        {t('residence.pendingReverify', { country: pendingCountryName ?? pendingCountry })}
                     </p>
                 )}
             </div>
@@ -557,10 +560,10 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 visible={isResidenceChangeVisible}
                 onClose={closeResidenceChange}
                 userId={user?.user?.userId}
-                declared={residence?.declared ?? null}
+                declared={residence?.declared?.country ?? null}
                 declaredSecond={secondResidenceIso2}
-                verified={residence?.verified ?? null}
-                pending={residence?.pending ?? null}
+                verified={residence?.verified?.country ?? null}
+                pending={pendingCountry}
                 onSaved={async () => {
                     // A residence change shifts everything derived from it:
                     // card eligibility (server recomputes from the declared

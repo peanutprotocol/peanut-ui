@@ -101,6 +101,12 @@ describe('initiateSumsubKyc — backend refusals', () => {
 
         expect(result.data?.token).toBe('tok')
         expect(result.error).toBeUndefined()
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/identity',
+            expect.objectContaining({
+                headers: { 'x-residence-format': 'compact' },
+            })
+        )
     })
 })
 
@@ -118,7 +124,7 @@ describe('restartIdentityVerification — wire shape', () => {
             '/users/identity/restart',
             expect.objectContaining({
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact' },
                 body: JSON.stringify({ regionIntent: 'LATAM' }),
             })
         )

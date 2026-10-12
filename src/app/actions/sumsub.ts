@@ -116,6 +116,7 @@ export const initiateSumsubKyc = async (params?: {
     try {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
+            headers: { 'x-residence-format': 'compact' },
             body: JSON.stringify(body),
         })
 
@@ -194,7 +195,7 @@ export const restartIdentityVerification = async (
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact' },
             body: JSON.stringify(intent ? { regionIntent: intent } : {}),
         })
         const responseJson = await response.json()

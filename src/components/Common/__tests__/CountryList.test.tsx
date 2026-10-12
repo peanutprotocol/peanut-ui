@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * CountryList — the send->bank supported-country gate (enforceSupportedCountries).
  *
@@ -37,8 +38,11 @@ jest.mock('@/hooks/useGeoLocation', () => ({
 }))
 
 let mockResidence: string | null = null
+let mockDeclaredResidence: string | null = null
 jest.mock('@/context/authContext', () => ({
-    useOptionalAuth: () => ({ user: { residence: { declared: null, verified: mockResidence } } }),
+    useOptionalAuth: () => ({
+        user: { residence: normalizeResidence({ declared: mockDeclaredResidence, verified: mockResidence }) },
+    }),
 }))
 
 jest.mock('@/components/Global/EasterEggDrawer', () => ({
@@ -127,6 +131,7 @@ describe('CountryList — which country comes first', () => {
         mockGeoCountry = null
         mockGeoLoading = false
         mockResidence = null
+        mockDeclaredResidence = null
     })
 
     /*
@@ -160,8 +165,16 @@ describe('CountryList — which country comes first', () => {
         expect(firstCountry()).toContain('Brazil')
     })
 
+    it('the declaration wins over IP when there is no verified residence', () => {
+        mockDeclaredResidence = 'BR'
+        mockGeoCountry = 'DE'
+        renderList()
+        expect(firstCountry()).toContain('Brazil')
+    })
+
     it('falls back to the IP country when no residence is verified', () => {
         mockResidence = null
+        mockDeclaredResidence = null
         mockGeoCountry = 'DE'
         renderList()
         expect(firstCountry()).toContain('Germany')

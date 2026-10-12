@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { normalizeResidence } from '@/utils/residence-profile'
+
 // Wiring-only route test (the exchange-rate route precedent): data layer,
 // transformer, and PDF renderer are mocked — the real render pipeline is
 // covered by receipt-pdf-render.test.ts, the model by receipt-pdf-model.test.ts.
@@ -337,7 +339,7 @@ describe('GET /receipt/[entryId]/pdf — bridge entity from the owner residence'
     })
     const me = (userId: string) => ({
         ok: true,
-        json: async () => ({ user: { userId }, residence: { verified: 'DE' } }),
+        json: async () => ({ user: { userId }, residence: normalizeResidence({ verified: 'DE' }) }),
     })
     const residencePassed = () => mockBuildModel.mock.calls[0][3]
 
@@ -352,7 +354,9 @@ describe('GET /receipt/[entryId]/pdf — bridge entity from the owner residence'
         mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
         mockServerFetch.mockResolvedValue(me('owner-1'))
         const response = await get('entry-own', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
-        expect(mockServerFetch).toHaveBeenCalledWith('/users/me', { headers: { Authorization: 'Bearer tok' } })
+        expect(mockServerFetch).toHaveBeenCalledWith('/users/me', {
+            headers: { Authorization: 'Bearer tok', 'x-residence-format': 'compact' },
+        })
         expect(residencePassed()).toBe('DE')
         expect(response.headers.get('Cache-Control')).toBe('no-store')
     })

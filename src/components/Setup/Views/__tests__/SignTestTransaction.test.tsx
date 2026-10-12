@@ -1,3 +1,4 @@
+jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
