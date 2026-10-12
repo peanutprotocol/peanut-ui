@@ -1268,6 +1268,7 @@ export interface paths {
                     "application/json": {
                         amount: string;
                         chargeId?: string;
+                        idempotencyKey?: string;
                         recipientAddress?: string;
                         source: {
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
@@ -1325,6 +1326,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -9659,6 +9672,7 @@ export interface paths {
                     "application/json": {
                         bankInstructionsShared?: boolean;
                         chainId?: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -9674,6 +9688,7 @@ export interface paths {
                     } | {
                         bankInstructionsShared?: boolean;
                         chainId: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -9709,6 +9724,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -12810,6 +12837,8 @@ export interface paths {
                     cursor?: string;
                     limit?: number;
                     targetUsername?: string;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path?: never;

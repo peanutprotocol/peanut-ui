@@ -2603,6 +2603,10 @@
                                     "chargeId": {
                                         "type": "string"
                                     },
+                                    "idempotencyKey": {
+                                        "maxLength": 200,
+                                        "type": "string"
+                                    },
                                     "recipientAddress": {
                                         "type": "string"
                                     },
@@ -2823,6 +2827,27 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
@@ -16186,6 +16211,10 @@
                                             "chainId": {
                                                 "type": "string"
                                             },
+                                            "idempotencyKey": {
+                                                "maxLength": 200,
+                                                "type": "string"
+                                            },
                                             "recipientAddress": {
                                                 "type": "string"
                                             },
@@ -16241,6 +16270,10 @@
                                                 "type": "boolean"
                                             },
                                             "chainId": {
+                                                "type": "string"
+                                            },
+                                            "idempotencyKey": {
+                                                "maxLength": 200,
                                                 "type": "string"
                                             },
                                             "recipientAddress": {
@@ -16329,6 +16362,27 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
@@ -23668,6 +23722,22 @@
                     {
                         "in": "query",
                         "name": "targetUsername",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
                         "required": false,
                         "schema": {
                             "type": "string"
