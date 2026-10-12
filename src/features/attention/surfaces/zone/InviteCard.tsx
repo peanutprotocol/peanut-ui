@@ -19,7 +19,7 @@ export default function InviteCard({ onDismissed }: ZoneSurfaceProps) {
             title={latam ? <span>{t.rich('latamInvite.title', { b })}</span> : t('invite.title')}
             description={latam ? <span>{t.rich('latamInvite.description', { b })}</span> : t('invite.description')}
             concept="rewards"
-            iconSize={latam ? 16 : undefined}
+            {...(latam ? { iconSize: 16 } : {})}
             onClose={onDismissed}
             onClick={() => router.push('/rewards')}
         />
