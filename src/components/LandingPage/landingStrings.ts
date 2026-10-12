@@ -12,6 +12,9 @@ export interface LandingStrings {
     sendMoney: string
     heroTapScan: string
     heroNoLocalId: string
+    heroCityNewYork: string
+    heroCityMadrid: string
+    heroCityMexicoCity: string
     zeroFees: string
     reallyZero: string
     noHiddenFees: string
@@ -43,6 +46,7 @@ export interface LandingStrings {
         free: string
         arrivesHours: string
         arrivesMinutes: string
+        selectCurrency: string
     }
 }
 
@@ -55,6 +59,9 @@ export function landingStrings(i18n: Translations): LandingStrings {
         sendMoney: i18n.sendMoney,
         heroTapScan: i18n.landingHeroTapScan,
         heroNoLocalId: i18n.landingHeroNoLocalId,
+        heroCityNewYork: i18n.landingHeroCityNewYork,
+        heroCityMadrid: i18n.landingHeroCityMadrid,
+        heroCityMexicoCity: i18n.landingHeroCityMexicoCity,
         zeroFees: i18n.landingZeroFees,
         reallyZero: i18n.landingReallyZero,
         noHiddenFees: i18n.landingNoHiddenFees,
@@ -99,6 +106,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
             free: i18n.exchangeFree,
             arrivesHours: i18n.exchangeArrivesHours,
             arrivesMinutes: i18n.exchangeArrivesMinutes,
+            selectCurrency: i18n.exchangeSelectCurrency,
         },
     }
 }

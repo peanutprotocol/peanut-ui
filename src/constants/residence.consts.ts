@@ -7,33 +7,64 @@
  */
 
 /**
- * Full restriction: neither bank transfers nor card issuing are available.
- * Sanctions-comprehensive jurisdictions (CN, IR, RU, BY, KP, SY, CU, MM), the
- * Sumsub document-rejection set (RU, CN, HK are configured as unacceptable in
- * the Sumsub dashboard, so no KYC can ever pass), plus Peanut's own UK block
- * (TASK-20729).
- */
-export const RESTRICTED_RESIDENCE_ISO2 = new Set(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK', 'MM'])
-
-/**
- * Card-only restriction: Rain's published prohibited-issuance list minus the
- * fully-restricted set above (mirrored in peanut-api-ts card/geo-eligibility).
- * Banking rails still work. UA is listed country-wide per Rain's issuance
- * list; Crimea/Donetsk/Luhansk are additionally sanctions-blocked outright,
- * but a country picker cannot distinguish regions.
- */
-export const CARD_RESTRICTED_RESIDENCE_ISO2 = new Set(['IN', 'TR', 'UA', 'VE', 'VN', 'IL', 'IQ', 'NP', 'NI'])
-
-/**
- * Banking-only restriction: Bridge onboards these residents but no rail is
- * ever `Yes`, so the account is unusable. The card and everything else still
- * work.
+ * Full restriction: neither bank transfers nor card issuing. Mirrors
+ * peanut-api-ts `src/kyc/residence-restrictions.ts` exactly; each country is
+ * here because both halves are closed to it, each for its own reason:
  *
- * GW is in Bridge's table and absent from Bridge's prose note on the same
- * page; this list mirrored the prose and lost it. The table is the authority
- * (product/providers/fiat/eligibility.md).
+ *   - IR, RU, BY, KP, SY, CU, MM: sanctioned (product/countries.md), on
+ *     Bridge's Prohibited list and on Rain's prohibited-issuance list.
+ *   - VE, IQ: on Bridge's Prohibited list and on Rain's list (TASK-23054 R2).
+ *   - CN: Bridge onboards it but serves no rail, and it is on Rain's list.
+ *   - GB: Peanut's own UK rule for both (TASK-20729).
+ *
+ * The Sumsub dashboard also rejects CN- and RU-issued documents. That is a
+ * document rule, not a residence one, and decides nothing here.
  */
-export const BANKING_RESTRICTED_RESIDENCE_ISO2 = new Set(['DZ', 'BI', 'GW', 'JP', 'TN'])
+export const RESTRICTED_RESIDENCE_ISO2 = new Set(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ'])
+
+/**
+ * Card only: Rain's published prohibited-issuance list minus the full set
+ * above (mirrored in peanut-api-ts card/geo-eligibility). Banking rails still
+ * work. UA is country-wide per Rain's issuance list; the Crimea, Donetsk and
+ * Luhansk regions are additionally sanctions-blocked outright, but residence
+ * is declared per country.
+ */
+export const CARD_RESTRICTED_RESIDENCE_ISO2 = new Set(['IN', 'TR', 'UA', 'VN', 'IL', 'NP', 'NI'])
+
+/**
+ * Banking only. The card still works. Two sources:
+ *
+ *   - Bridge onboards these residences but no rail is ever `Yes`, so the
+ *     account is unusable: DZ, BI, GW, JP, TN. GW is in Bridge's table and
+ *     absent from Bridge's prose note on the same page; the table is the
+ *     authority (mono product/providers/fiat/eligibility.md).
+ *   - Bridge's Prohibited list: AF, SD, LY, PS (Gaza and West Bank), LB, YE,
+ *     SO, SS, CD. A Bridge check for these residents can only end in
+ *     rejection, so the app must not send them into one (TASK-23054 R2).
+ *     The other Prohibited residences are in the full set above.
+ *
+ * HK is in no tier. It was in the full set only because the Sumsub dashboard
+ * rejects HK-issued documents — a document rule, and the document's issuing
+ * country never decides eligibility (product/card.md). HK is on neither
+ * Bridge's Prohibited list nor any card issuer's list, so Bridge's own
+ * onboarding and Rain's application stay the checks (TASK-23054 R1).
+ */
+export const BANKING_RESTRICTED_RESIDENCE_ISO2 = new Set([
+    'DZ',
+    'BI',
+    'GW',
+    'JP',
+    'TN',
+    'AF',
+    'SD',
+    'LY',
+    'PS',
+    'LB',
+    'YE',
+    'SO',
+    'SS',
+    'CD',
+])
 
 /**
  * countryData is the add-money DESTINATION list and deliberately omits

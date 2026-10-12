@@ -16,12 +16,21 @@ export const DEV_TOOLS_ENABLED =
 export const DEV_ROUTES_ENABLED =
     DEV_TOOLS_ENABLED || (process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me') !== 'https://peanut.me'
 
+// TASK-21683's signed device builds opt this one profiler into the otherwise
+// production-closed /dev surface. The branch workflows set it only for the
+// dedicated same-version TestFlight / Play-internal build mode.
+export const LOTTIE_PROFILE_ENABLED = process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED === 'true'
+
 // The /dev routes that stay reachable on peanut.me. payment-graph is the
 // activity visualisation shown at events. full-graph is deliberately absent:
 // the legacy page loads the same team-gated dataset without the explorer's
 // telemetry suppression. safe-area reads device insets and must run on the
 // production native build, where the bad insets are.
-const PROD_ALLOWED_DEV_ROUTES = ['/dev/payment-graph', '/dev/safe-area']
+const PROD_ALLOWED_DEV_ROUTES = [
+    '/dev/payment-graph',
+    '/dev/safe-area',
+    ...(LOTTIE_PROFILE_ENABLED ? ['/dev/lottie-profile'] : []),
+]
 
 // True for any /dev path that must not answer on peanut.me. One check for both
 // route groups — `src/app/dev/*` and `src/app/(mobile-ui)/dev/*`.

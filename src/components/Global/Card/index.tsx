@@ -19,7 +19,7 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({
     children,
-    position = 'single',
+    position = 'solo',
     className = '',
     onClick,
     border = true,
@@ -33,11 +33,11 @@ const Card: React.FC<CardProps> = ({
 }) => {
     const getBorderRadius = () => {
         switch (position) {
-            case 'single':
+            case 'solo':
                 return 'rounded-sm'
-            case 'first':
+            case 'top':
                 return 'rounded-t-sm'
-            case 'last':
+            case 'bottom':
                 return 'rounded-b-sm'
             case 'middle':
                 return ''
@@ -50,13 +50,13 @@ const Card: React.FC<CardProps> = ({
         if (!border) return ''
 
         switch (position) {
-            case 'single':
+            case 'solo':
                 return 'border border-border-default'
-            case 'first':
+            case 'top':
                 return 'border border-border-default'
             case 'middle':
                 return 'border border-border-default border-t-0'
-            case 'last':
+            case 'bottom':
                 return 'border border-border-default border-t-0'
             default:
                 return 'border border-border-default'
@@ -68,6 +68,9 @@ const Card: React.FC<CardProps> = ({
     const interactive = !!onClick
     const defaultKeyDown: React.KeyboardEventHandler<HTMLDivElement> | undefined = interactive
         ? (e) => {
+              // only act on keys pressed on the card itself — nested interactive
+              // children (buttons, links) keep their own enter/space behavior
+              if (e.target !== e.currentTarget) return
               if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
                   onClick()
@@ -78,7 +81,7 @@ const Card: React.FC<CardProps> = ({
     return (
         <div
             ref={ref}
-            className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
+            className={twMerge('w-full bg-background-default px-4 py-2', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
             data-testid={dataTestId}
             role={role ?? (interactive ? 'button' : undefined)}

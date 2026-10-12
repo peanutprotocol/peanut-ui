@@ -10,8 +10,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import { MIGRATION_SURFACES, STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { isNativeBridge } from '@/utils/capacitor'
+import { twMerge } from '@/utils/tw'
 import {
     applyDeferredPayload,
     copyIOSHandoff,
@@ -19,7 +20,7 @@ import {
     playStoreUrlWithReferrer,
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
-import { isPwaSunsetOn, trackStoreClick } from '@/utils/migration.utils'
+import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
 
 const FLAG_WAIT_MS = 4000
 
@@ -63,13 +64,7 @@ export default function SmartStoreRedirect() {
     const migrationOn = mounted && isPwaSunsetOn()
     const settled = mounted && flagsSettled
 
-    const targetStore: StoreKind | null = !mounted
-        ? null
-        : deviceType === DeviceType.IOS
-          ? 'ios'
-          : deviceType === DeviceType.ANDROID
-            ? 'android'
-            : null
+    const targetStore: StoreKind | null = mounted ? storeForDevice(deviceType) : null
 
     const storeHref = useCallback(
         (store: StoreKind) => (payload && store === 'android' ? playStoreUrlWithReferrer(payload) : STORE_URL[store]),
@@ -133,23 +128,21 @@ export default function SmartStoreRedirect() {
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
                     {settled && migrationOn ? (
                         stores.map((s, i) => (
-                            <a
+                            <Button
                                 key={s}
-                                href={storeHref(s)}
-                                onClick={() => onStoreTap(s)}
-                                className={redirecting && i > 0 ? 'hidden' : 'block'}
+                                variant={i === 0 ? 'primary' : 'secondary'}
+                                shadowSize="4"
+                                icon={redirecting ? undefined : storeIcon(s)}
+                                className={twMerge('w-full', redirecting && i > 0 && 'hidden')}
+                                loading={redirecting && i === 0}
+                                disabled={redirecting && i === 0}
+                                onClick={() => {
+                                    onStoreTap(s)
+                                    window.location.assign(storeHref(s))
+                                }}
                             >
-                                <Button
-                                    variant={i === 0 ? 'purple' : 'stroke'}
-                                    shadowSize="4"
-                                    icon={redirecting ? undefined : s === 'ios' ? 'apple-logo' : 'google-play'}
-                                    className="w-full"
-                                    loading={redirecting && i === 0}
-                                    disabled={redirecting && i === 0}
-                                >
-                                    {STORE_NAME[s]}
-                                </Button>
-                            </a>
+                                {STORE_NAME[s]}
+                            </Button>
                         ))
                     ) : (
                         <div className="flex justify-center py-2">

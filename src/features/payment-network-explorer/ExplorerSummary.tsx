@@ -13,7 +13,7 @@ export default function ExplorerSummary({ data, visibleRelationshipCount, topNod
     const { stats } = data
     return (
         <section
-            className="flex min-h-12 items-center gap-5 border-b border-n-1 bg-[#fcfaf7] px-4 text-xs"
+            className="flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 border-b border-border-default bg-background-default px-4 py-2 text-body-xs"
             aria-label="Data summary"
         >
             <span>
@@ -31,7 +31,7 @@ export default function ExplorerSummary({ data, visibleRelationshipCount, topNod
                 truncation: a network of exactly topNodes users looks identical here, and
                 includeNewDays can push the count past topNodes without truncation either. */}
             {topNodes > 0 && data.nodes.length >= topNodes && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-n-1 bg-primary-3 px-2 py-0.5 font-bold">
+                <span className="inline-flex items-center gap-1 text-label-m">
                     top {formatCompactCount(topNodes)} requested
                     <InfoTooltip label="sampling">
                         The server was asked for the top users by points, plus signups from the last 30 days. The
@@ -40,7 +40,7 @@ export default function ExplorerSummary({ data, visibleRelationshipCount, topNod
                     </InfoTooltip>
                 </span>
             )}
-            <span className="ml-auto inline-flex items-center gap-1.5 text-grey-1">
+            <span className="ml-auto inline-flex items-center gap-1 text-foreground-secondary">
                 {FIXED_WINDOW_LABEL}
                 <InfoTooltip label="data window">
                     Payment edges are aggregated by the backend over a fixed 120-day window. There is no time filter.

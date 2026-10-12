@@ -6,6 +6,7 @@ import { recoverLoginSession } from '@/utils/login-session'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
+import type { SignupPreferences } from '@/types/signup-preferences'
 import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import {
     removeFromCookie,
@@ -34,12 +35,22 @@ import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { markFirstLaunchIntroSeen } from '@/utils/first-launch-intro'
+import { attachSignupAttribution } from '@/services/signup-attribution'
+import { clearSignupAttribution } from '@/utils/signup-attribution'
+import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
+import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 
 interface AuthContextType {
     user: IUserProfile | null
     userId: string | undefined
     username: string | undefined
-    fetchUser: () => Promise<IUserProfile | null>
+    /**
+     * Re-fetch the profile. A failed refresh (5xx, 429, network) keeps the cached
+     * profile and resolves with it; `throwOnError` rejects instead, for a caller
+     * that must not act on a profile the refresh could not confirm.
+     */
+    fetchUser: (options?: { throwOnError?: boolean }) => Promise<IUserProfile | null>
     hydrateLoginSession: () => Promise<IUserProfile>
     addAccount: ({
         accountIdentifier,
@@ -47,16 +58,18 @@ interface AuthContextType {
         userId,
         connector,
         telegramHandle,
+        signupPreferences,
     }: {
         accountIdentifier: string
         accountType: string
         userId: string
         telegramHandle?: string
+        signupPreferences?: SignupPreferences
         connector?: {
             iconUrl: string
             name: string
         }
-    }) => Promise<void>
+    }) => Promise<AccountSetupOutcome>
     isFetchingUser: boolean
     userFetchError: Error | null
     logoutUser: (options?: { skipBackendCall?: boolean }) => Promise<void>
@@ -145,6 +158,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 username: user.user.username ?? undefined,
                 email: user.user.email ?? undefined,
             })
+            // Covers a native restart or a transient API outage after signup.
+            // The service is idempotent and clears local evidence only after
+            // the authenticated endpoint acknowledges it.
+            void attachSignupAttribution(user.user.userId).catch((error) =>
+                captureException(error, { level: 'warning', tags: { error_type: 'signup_attribution_retry_failed' } })
+            )
         } else {
             // Logout / unauthenticated: clear Sentry user so subsequent
             // anonymous-session errors don't get misattributed.
@@ -152,44 +171,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user])
 
-    // Returning-user and app-restart recovery. Invite attribution is handled
-    // elsewhere; this only resumes opaque campaign identities after auth. The
-    // claim service de-dupes concurrent registration/page attempts and retains
-    // only retryable tags.
+    // Returning-user and app-restart recovery. Referral attribution and opaque
+    // campaigns are independent durable hand-offs; neither blocks app access.
+    // Both services de-dupe concurrent registration/page attempts.
     useEffect(() => {
         const userId = user?.user.userId
         if (!userId) return
 
-        const badgeCampaigns = getPendingBadgeCampaigns()
-        if (badgeCampaigns.length === 0) return
-
         let cancelled = false
-        void claimAndSettlePendingBadgeCampaigns(badgeCampaigns).then(async (batch) => {
-            if (cancelled) return
-            if (batch.claims.some(isConfirmedBadgeCampaignClaim)) {
-                try {
-                    await fetchUser()
-                } catch (error) {
-                    captureException(error, { tags: { error_type: 'campaign_profile_refresh_failed' } })
-                }
-            }
-            if (batch.pending.length > 0) {
-                captureException(new Error('authenticated campaign claim retained for retry'), {
-                    tags: { error_type: 'campaign_claim_retryable' },
-                    extra: { userId, pendingCampaigns: batch.pending, claims: batch.claims },
-                })
+        void settlePendingInviteAttribution(userId).then(async (outcome) => {
+            if (cancelled || outcome.status !== 'attributed') return
+            try {
+                await fetchUser()
+            } catch (error) {
+                captureException(error, { tags: { error_type: 'invite_profile_refresh_failed' } })
             }
         })
+
+        const badgeCampaigns = getPendingBadgeCampaigns()
+        if (badgeCampaigns.length > 0) {
+            void claimAndSettlePendingBadgeCampaigns(badgeCampaigns).then(async (batch) => {
+                if (cancelled) return
+                if (batch.claims.some(isConfirmedBadgeCampaignClaim)) {
+                    try {
+                        await fetchUser()
+                    } catch (error) {
+                        captureException(error, { tags: { error_type: 'campaign_profile_refresh_failed' } })
+                    }
+                }
+                if (batch.pending.length > 0) {
+                    captureException(new Error('authenticated campaign claim retained for retry'), {
+                        tags: { error_type: 'campaign_claim_retryable' },
+                        extra: { userId, pendingCampaigns: batch.pending, claims: batch.claims },
+                    })
+                }
+            })
+        }
 
         return () => {
             cancelled = true
         }
     }, [user?.user.userId, fetchUser])
 
-    const legacy_fetchUser = useCallback(async () => {
-        const { data: fetchedUser } = await fetchUser()
-        return fetchedUser ?? null
-    }, [fetchUser])
+    const legacy_fetchUser = useCallback(
+        async (options?: { throwOnError?: boolean }) => {
+            const { data: fetchedUser, error } = await fetchUser()
+            if (options?.throwOnError && error) throw error
+            return fetchedUser ?? null
+        },
+        [fetchUser]
+    )
 
     const hydrateLoginSession = useCallback(async () => {
         const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
@@ -210,6 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         bridgeAccountId,
         connector,
         telegramHandle,
+        signupPreferences,
     }: {
         accountIdentifier: string
         accountType: string
@@ -220,48 +252,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: string
         }
         telegramHandle?: string
+        signupPreferences?: SignupPreferences
     }) => {
-        console.log('[addAccount] Starting account addition', { userId, accountType })
-
-        const response = await apiFetch('/add-account', {
-            method: 'POST',
-            body: JSON.stringify({
-                userId,
-                accountIdentifier,
-                bridgeAccountId,
-                accountType,
-                connector,
-                telegramHandle,
-            }),
-        })
-
-        if (!response.ok) {
-            console.error('[addAccount] Failed to add account', {
-                status: response.status,
-                statusText: response.statusText,
-            })
-
-            if (response.status === 409) {
-                throw new Error('Account already exists')
-            }
-            console.error('Unexpected error adding account', response)
-            throw new Error('Unexpected error adding account')
-        }
-
-        console.log('[addAccount] Account added successfully, fetching user data')
-
-        // CRITICAL FIX: Wait for user data to be fetched before continuing
-        // This ensures JWT cookie is set and user data is available before redirect
-        const { data: updatedUser } = await fetchUser()
-
-        if (!updatedUser) {
-            console.error('[addAccount] Failed to fetch user after account creation')
-            throw new Error('Failed to load user data after account creation')
-        }
-
-        console.log('[addAccount] User data fetched successfully', {
-            userId: updatedUser.user.userId,
-            accountCount: updatedUser.accounts.length,
+        return completeAccountSetup({
+            accountIdentifier,
+            accountType,
+            fetchProfile: legacy_fetchUser,
+            signupPreferences,
+            request: () =>
+                apiFetch('/add-account', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        userId,
+                        accountIdentifier,
+                        bridgeAccountId,
+                        accountType,
+                        connector,
+                        telegramHandle,
+                        ...(signupPreferences ? { signupPreferences } : {}),
+                    }),
+                }),
         })
     }
 
@@ -304,6 +314,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // unable to log back in until the process dies (session cookie).
         clearInvite()
 
+        // Source context is account-linkable; an explicit account switch must
+        // never let the next user inherit the previous user's journey.
+        await clearSignupAttribution()
+
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
@@ -320,11 +334,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // clear service worker caches (non-fatal if it fails)
         await purgeCaches(USER_DATA_CACHE_PATTERNS)
-
-        // clear session flags
-        try {
-            sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
-        } catch {}
 
         // This tab is a logged-out tab again, so a deep link opened in it later
         // is that person's own intent rather than a dead session's residue.
@@ -385,6 +394,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     await fetchUser()
                 }
 
+                // Logout must open setup directly, including installs that first
+                // launched into an existing session and never visited Landing.
+                await markFirstLaunchIntroSeen()
+
                 // force full page refresh to /setup to clear all state
                 window.location.href = '/setup'
             } catch (error) {
@@ -430,3 +443,10 @@ export const useAuth = (): AuthContextType => {
     }
     return context
 }
+
+/**
+ * For components that also render on signed-out surfaces — the claim pages
+ * mount the country list with no provider above them. Returns null there, so
+ * the caller has to say what it does without a user.
+ */
+export const useOptionalAuth = (): AuthContextType | null => useContext(AuthContext) ?? null

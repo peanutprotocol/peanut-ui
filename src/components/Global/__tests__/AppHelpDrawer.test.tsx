@@ -1,0 +1,274 @@
+/** @jest-environment jsdom */
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import DocsLink from '../DocsLink'
+import { getCachedAppHelpArticle, loadAppHelpArticle } from '../appHelpArticle'
+import { AppHelpProvider } from '../AppHelpProvider'
+import { APP_HELP_SLUGS, appHelpPagePath, type AppHelpArticle, type AppHelpNode } from '../appHelpTypes'
+import en from '@/i18n/app/messages/en.json'
+
+jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false }))
+const mockSetSupportOpen = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: mockSetSupportOpen }),
+}))
+const mockCaptureException = jest.fn()
+jest.mock('@/utils/sentry-lazy', () => ({
+    captureException: (...args: unknown[]) => mockCaptureException(...args),
+}))
+
+/** Article files the fetch mock serves, keyed by path; anything else is a 404. */
+let served: Record<string, AppHelpArticle> = {}
+const fetchMock = jest.fn(async (url: string) => {
+    const article = served[url]
+    return { ok: Boolean(article), json: async () => article } as Response
+})
+
+const article = (slug: string, locale: string, body?: AppHelpNode[]): AppHelpArticle => ({
+    title: `${slug} ${locale}`,
+    body: body ?? [{ t: 'p', c: [`${slug} article ${locale}`] }],
+})
+const serve = (slug: string, locale: string, body?: AppHelpNode[]) => {
+    served[`/app-help/${locale}/${slug}.json`] = article(slug, locale, body)
+}
+
+function renderLink(locale: 'en' | 'es-419' | 'es-AR' | 'pt-BR', href: string) {
+    render(
+        <NextIntlClientProvider locale={locale} messages={en} timeZone="UTC">
+            <AppHelpProvider>
+                <DocsLink href={href} openInDrawer>
+                    Read help
+                </DocsLink>
+            </AppHelpProvider>
+        </NextIntlClientProvider>
+    )
+}
+
+const openHelp = () => fireEvent.click(screen.getByRole('button', { name: 'Read help' }))
+
+beforeEach(() => {
+    served = {}
+    fetchMock.mockClear()
+    mockCaptureException.mockClear()
+    global.fetch = fetchMock as unknown as typeof fetch
+})
+
+// Articles loaded in one test stay cached for the session, so each test uses
+// its own slug and locale pair where the fetch calls matter.
+describe('app help drawers', () => {
+    it('reuses background work on click and renders the prefetched article without another request', async () => {
+        serve('privacy', 'pt-br')
+        const background = loadAppHelpArticle('privacy', 'pt-br', 'low')
+        expect(loadAppHelpArticle('privacy', 'pt-br')).toBe(background)
+        await background
+        await import('../AppHelpDrawer') // the idle preloader also warms the drawer chunk
+        expect(getCachedAppHelpArticle('privacy', 'pt-br')?.title).toBe('privacy pt-br')
+        expect(fetchMock).toHaveBeenCalledWith('/app-help/pt-br/privacy.json', { priority: 'low' })
+        renderLink('pt-BR', '/privacy')
+        openHelp()
+        expect(await screen.findByText('privacy article pt-br')).toBeInTheDocument()
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('fetches nothing until a help link is opened', () => {
+        renderLink('en', '/en/help/verification')
+        expect(screen.getByRole('button', { name: 'Read help' })).toBeInTheDocument()
+        expect(fetchMock).not.toHaveBeenCalled()
+    })
+
+    it('uses the legal public route when a policy cannot load', async () => {
+        const openSpy = jest.spyOn(window, 'open').mockReturnValue({ opener: null } as unknown as Window)
+        renderLink('es-AR', '/card-privacy')
+        openHelp()
+        await waitFor(() => expect(openSpy).toHaveBeenCalledWith('/es-ar/card-privacy', '_blank'))
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+            '/app-help/es-ar/card-privacy.json',
+            '/app-help/en/card-privacy.json',
+        ])
+        openSpy.mockRestore()
+    })
+
+    it.each(APP_HELP_SLUGS)('opens the %s article on its own, without navigation', async (slug) => {
+        APP_HELP_SLUGS.forEach((each) => {
+            served[`/app-help/en/${each}.json`] = { ...article(each, 'en'), lang: 'en' }
+        })
+        const pathname = window.location.pathname
+        renderLink('en', appHelpPagePath(slug, 'en'))
+        openHelp()
+        expect(await screen.findByText(`${slug} article en`)).toBeInTheDocument()
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/en/${slug}.json`])
+        expect(window.location.pathname).toBe(pathname)
+        // An en reader of English text gets lang="en" but no "In English" note.
+        expect(screen.getByRole('article', { name: `${slug} en` })).toHaveAttribute('lang', 'en')
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['es-419', 'es-419'],
+        ['es-AR', 'es-ar'],
+        ['pt-BR', 'pt-br'],
+    ] as const)('loads the %s article', async (locale, expected) => {
+        serve('transaction-limits', expected)
+        renderLink(locale, '/en/help/transaction-limits')
+        openHelp()
+        expect(await screen.findByText(`transaction-limits article ${expected}`)).toBeInTheDocument()
+    })
+
+    it('falls back to the English article when the locale has none', async () => {
+        serve('request-money', 'en')
+        renderLink('pt-BR', '/en/help/request-money')
+        openHelp()
+        expect(await screen.findByText('request-money article en')).toBeInTheDocument()
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+            '/app-help/pt-br/request-money.json',
+            '/app-help/en/request-money.json',
+        ])
+    })
+
+    it('opens the public help page and reports to Sentry when the article is missing', async () => {
+        const opened = { opener: {} }
+        const openSpy = jest.spyOn(window, 'open').mockReturnValue(opened as unknown as Window)
+        renderLink('es-AR', '/en/help/card-collateral')
+        openHelp()
+        await waitFor(() => expect(openSpy).toHaveBeenCalledWith('/es-ar/help/card-collateral', '_blank'))
+        expect(opened.opener).toBeNull()
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'App help article unavailable: card-collateral/es-ar' }),
+            expect.objectContaining({ tags: { feature: 'app-help' } })
+        )
+        expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-state', 'closed')
+        openSpy.mockRestore()
+    })
+
+    it('ignores a load that fails after the drawer closes, and retries on reopen', async () => {
+        const openSpy = jest.spyOn(window, 'open')
+        let finishFirstLoad: (response: Response) => void = () => undefined
+        fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => (finishFirstLoad = resolve)))
+        renderLink('es-AR', '/en/help/request-money')
+        openHelp()
+        fireEvent.click(await screen.findByRole('button', { name: 'Close' }))
+        finishFirstLoad({ ok: false } as Response)
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+        await act(async () => undefined)
+        expect(openSpy).not.toHaveBeenCalled()
+        expect(mockCaptureException).not.toHaveBeenCalled()
+
+        serve('request-money', 'es-ar')
+        // The page stays aria-hidden while the closed drawer finishes its exit in jsdom.
+        fireEvent.click(screen.getByRole('button', { name: 'Read help', hidden: true }))
+        expect(await screen.findByText('request-money article es-ar')).toBeInTheDocument()
+        openSpy.mockRestore()
+    })
+
+    it.each(['es-419', 'es-AR', 'pt-BR'] as const)('loads legal documents in %s', async (locale) => {
+        const contentLocale = locale.toLowerCase()
+        serve('terms', contentLocale)
+        renderLink(locale, '/terms')
+        openHelp()
+        expect(await screen.findByText(`terms article ${contentLocale}`)).toBeInTheDocument()
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/app-help/${contentLocale}/terms.json`])
+    })
+
+    it('tags English legal text served to a pt-BR reader and says it is English', async () => {
+        // pt-br has no legal translation, so the build writes the English document under pt-br.
+        served['/app-help/pt-br/card-esign.json'] = { ...article('card-esign', 'pt-br'), lang: 'en' }
+        renderLink('pt-BR', '/card-esign')
+        openHelp()
+        await screen.findByText('card-esign article pt-br')
+        expect(screen.getByRole('article', { name: 'card-esign pt-br' })).toHaveAttribute('lang', 'en')
+        expect(screen.getByText(en.common.inEnglish)).toBeInTheDocument()
+    })
+
+    it('adds no English notice when es-AR is served the es-419 text', async () => {
+        served['/app-help/es-ar/card-prohibited-activities.json'] = {
+            ...article('card-prohibited-activities', 'es-ar'),
+            lang: 'es-419',
+        }
+        renderLink('es-AR', '/card-prohibited-activities')
+        openHelp()
+        await screen.findByText('card-prohibited-activities article es-ar')
+        expect(screen.getByRole('article', { name: 'card-prohibited-activities es-ar' })).toHaveAttribute(
+            'lang',
+            'es-419'
+        )
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
+    })
+
+    it('renders a payload from before lang was recorded with no notice and no lang', async () => {
+        serve('card-terms-us', 'pt-br')
+        renderLink('pt-BR', '/card-terms-us')
+        openHelp()
+        await screen.findByText('card-terms-us article pt-br')
+        expect(screen.getByRole('article', { name: 'card-terms-us pt-br' })).not.toHaveAttribute('lang')
+        expect(screen.getByRole('heading', { name: 'card-terms-us pt-br' })).not.toHaveAttribute('lang')
+        expect(screen.queryByText(en.common.inEnglish)).not.toBeInTheDocument()
+    })
+
+    it('leaves the full help center link available', () => {
+        renderLink('en', '/en/help')
+        expect(screen.getByRole('link', { name: 'Read help' })).toHaveAttribute('href', '/en/help')
+    })
+
+    it('uses a prominent h2 and an accessible icon to close the article', async () => {
+        serve('verification', 'en')
+        renderLink('en', '/en/help/verification')
+        openHelp()
+        expect(await screen.findByRole('heading', { level: 2, name: 'verification en' })).toHaveClass('text-heading-s')
+        const close = screen.getByRole('button', { name: 'Close' })
+        expect(close).not.toHaveTextContent('Close')
+        fireEvent.click(close)
+        expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-state', 'closed')
+    })
+
+    it('follows links inside an article to other pages and other help articles', async () => {
+        serve('passkeys', 'es-419', [
+            { t: 'a', p: { href: '/es-419/help/refunds' }, c: ['Refunds'] },
+            { t: 'a', p: { href: '/es-419/help/account-recovery' }, c: ['Recovery'] },
+            { t: 'a', p: { href: 'https://peanut.me/en/card-esign' }, c: ['Electronic consent'] },
+            { t: 'a', p: { href: 'https://example.com/en/terms' }, c: ['External terms'] },
+        ])
+        serve('account-recovery', 'es-419')
+        serve('card-esign', 'es-419')
+        renderLink('es-419', '/en/help/passkeys')
+        openHelp()
+        expect(await screen.findByRole('link', { name: 'Refunds' })).toHaveAttribute('href', '/es-419/help/refunds')
+        expect(screen.getByRole('link', { name: 'External terms' })).toHaveAttribute(
+            'href',
+            'https://example.com/en/terms'
+        )
+        expect(screen.getByRole('button', { name: 'Electronic consent' })).not.toHaveAttribute('href')
+        fireEvent.click(screen.getByRole('button', { name: 'Electronic consent' }))
+        expect(await screen.findByText('card-esign article es-419')).toBeInTheDocument()
+        // Return to the cached source article and follow its relative help link.
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Read help', hidden: true }))
+        await screen.findByRole('button', { name: 'Recovery' })
+        fireEvent.click(screen.getByRole('button', { name: 'Recovery' }))
+        expect(await screen.findByText('account-recovery article es-419')).toBeInTheDocument()
+    })
+
+    it('closes the article and opens in-app support from its localized CTA', async () => {
+        mockSetSupportOpen.mockClear()
+        serve('security-disclosure', 'pt-br', [{ t: 'CTA', p: { href: '#chat', text: 'Chat with Support' } }])
+        renderLink('pt-BR', '/en/help/security-disclosure')
+        openHelp()
+        fireEvent.click(await screen.findByRole('button', { name: 'Chat with Support' }))
+        expect(mockSetSupportOpen).toHaveBeenCalledWith(true)
+        expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-state', 'closed')
+    })
+
+    it('renders only the text of tags and components the drawer does not know', async () => {
+        serve('verification', 'es-419', [
+            { t: 'script', c: ['kept as text'] },
+            { t: 'ExchangeWidget', p: { from: 'USD' }, c: ['widget text'] },
+            { t: 'Hero', p: { title: 'Hidden hero' } },
+        ])
+        renderLink('es-419', '/en/help/verification')
+        openHelp()
+        const dialog = await screen.findByRole('dialog')
+        expect(await screen.findByText(/kept as text/)).toBeInTheDocument()
+        expect(dialog.querySelector('script')).toBeNull()
+        expect(dialog).toHaveTextContent('widget text')
+        expect(dialog).not.toHaveTextContent('Hidden hero')
+    })
+})

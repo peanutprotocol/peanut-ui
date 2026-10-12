@@ -1,12 +1,13 @@
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal from '@/components/Global/ActionModal'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
+import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 
 const GuestLoginModal = () => {
     const t = useTranslations('global')
+    const tSetup = useTranslations('setup')
     const { isSignInModalOpen, setIsSignInModalOpen } = useModalsContext()
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
@@ -19,6 +20,7 @@ const GuestLoginModal = () => {
         <ActionModal
             visible={isSignInModalOpen}
             onClose={closeModal}
+            tone="peanut"
             icon="wallet"
             title={t('guestLoginModal.title')}
             ctas={[
@@ -29,19 +31,16 @@ const GuestLoginModal = () => {
                     onClick: () => {
                         handleLogin()
                             .then(closeModal)
-                            .catch(() => {
+                            .catch((error: unknown) => {
                                 // useZeroDev already reported the underlying failure;
                                 // console.error here would capture the wrapper again.
-                                toast.error(t('guestLoginModal.loginError'))
+                                const recoveryKey = getPasskeyErrorSetupKey(error)
+                                toast.error(recoveryKey ? tSetup(recoveryKey) : t('guestLoginModal.loginError'))
                             })
                     },
                 },
             ]}
-            footer={
-                <LinkButton href="/setup" onClick={closeModal}>
-                    {t('guestLoginModal.noWallet')}
-                </LinkButton>
-            }
+            tertiaryCta={{ text: t('guestLoginModal.noWallet'), href: '/setup', onClick: closeModal }}
         />
     )
 }

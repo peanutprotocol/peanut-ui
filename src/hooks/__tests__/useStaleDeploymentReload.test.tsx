@@ -136,7 +136,7 @@ describe('useStaleDeploymentReload', () => {
         )
     })
 
-    it('uses location.replace in a standalone PWA', async () => {
+    it('uses location.replace in an installed PWA', async () => {
         mockIsStandalonePwa.mockReturnValue(true)
         serveCommit(NEW_COMMIT)
         renderWithLoading()

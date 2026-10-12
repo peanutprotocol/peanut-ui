@@ -62,6 +62,53 @@ describe('demoRespond — routing', () => {
         expect(res.status).toBe(200)
         expect(res.headers.get('content-type')).toBe('application/json')
         expect(data.user.username).toBe(DEMO_USER.user.username)
+        expect(data.residence).toMatchObject({ declared: 'BR', declaredSecond: null })
+    })
+
+    it('answers the verified-address read the bank form makes on open, even in strict capture mode', async () => {
+        // The form asks for it the moment it opens with "this account is mine"
+        // ticked. Unmapped, strict mode throws and the screen-capture harness
+        // fails the screen ("Missing synthetic responses").
+        const res = await demoRespond('/users/me/verified-address', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        // Nothing to prefill, so the form asks — no synthetic address is served.
+        expect(await res.json()).toEqual({})
+    })
+
+    // Both are called by /qr-pay for a PIX key, and the screen-capture harness
+    // runs strict: an unmapped route fails the qr-pay-pix-key-owner fixture.
+    it('answers the PIX key owner lookup in strict capture mode', async () => {
+        const res = await demoRespond(
+            '/manteca/pix-key/owner',
+            { method: 'POST', body: JSON.stringify({ pixKey: 'maria@silva.com.br' }) },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({ name: 'DEMO RECIPIENT', legalIdMasked: null })
+    })
+
+    it('answers the card markup read with "nothing to compare" in strict capture mode', async () => {
+        const res = await demoRespond(
+            '/fx/card-markup?currency=BRL',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(404)
+    })
+
+    it('only advertises badges with live unlock paths in the demo catalog', async () => {
+        const { data } = await body('/badge/catalog')
+        const codes = data.badges.map(({ code }: { code: string }) => code)
+
+        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'TRON']))
+        // campaign links still award these, but they are not earnable (Hugo, 2026-09-25)
+        expect(codes).not.toContain('SURF_UP')
+        expect(codes).not.toEqual(
+            expect.arrayContaining(['FIRST_INVITE', 'SECOND_INVITE', 'VERIFIED', 'OG_2025_10_12'])
+        )
+        // every account holds BETA_TESTER from sign-up, so the API does not list it as earnable
+        expect(codes).not.toContain('BETA_TESTER')
+        expect(data.badges.every(({ earnable }: { earnable: boolean }) => earnable)).toBe(true)
     })
 
     it('returns populated contacts for GET /users/contacts', async () => {
@@ -267,17 +314,52 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
     })
 })
 
-describe('demo mode is web-safe', () => {
+describe('demo mode is server-inert', () => {
     afterEach(() => {
         jest.resetModules()
         jest.dontMock('@/utils/capacitor')
     })
 
-    it('isDemoMode() is false when not running under Capacitor', () => {
+    it('isDemoMode() is false without a browser, even when enabled', () => {
         jest.resetModules()
         jest.doMock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
-        enableDemoMode() // even with the flag set...
-        expect(isDemoMode()).toBe(false) // ...web stays inert
+        enableDemoMode()
+        expect(isDemoMode()).toBe(false)
+    })
+})
+
+describe('demoRespond — card application', () => {
+    it('walks apply → terms → pending like the real contract', async () => {
+        const before = await body('/rain/cards')
+        expect(before.data.status.hasApplication).toBe(false)
+
+        const ask = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: false }) })
+        expect(ask.data.status).toBe('terms-required')
+
+        const accept = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: true }) })
+        expect(accept.data.status).toBe('pending')
+
+        const after = await body('/rain/cards')
+        expect(after.data.status).toEqual({ hasApplication: true, railStatus: 'PENDING' })
+    })
+})
+
+describe('demoRespond — withdraw quote (TASK-23054)', () => {
+    it('answers the typed bank amount at a synthetic 1:1 rate, offline included', async () => {
+        const res = await demoRespond(
+            '/bridge/offramp/quote?destinationCurrency=eur&destinationAmount=50',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ destinationCurrency: 'eur', rate: '1', sourceAmount: '50' })
+    })
+
+    it('answers only the rate before an amount is typed', async () => {
+        const res = await demoRespond('/bridge/offramp/quote?destinationCurrency=gbp', { method: 'GET' })
+        const body = await res.json()
+        expect(body.rate).toBe('1')
+        expect(body.sourceAmount).toBeUndefined()
     })
 })

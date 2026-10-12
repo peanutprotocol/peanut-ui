@@ -65,6 +65,17 @@ export function debitDemoBalance(units: bigint): void {
 }
 
 /**
+ * Set the balance a dev fixture declares, for this tab only: not persisted, so
+ * leaving the fixture does not leave its balance behind in demo mode.
+ */
+export function setFixtureBalanceUnits(units: bigint): void {
+    getDemoBalanceUnits()
+    if (cache === units) return
+    cache = units
+    listeners.forEach((l) => l())
+}
+
+/**
  * Refill this device's demo wallet to the full starting balance and restart the
  * 7-day TTL window. Called automatically by getDemoBalanceUnits() when the
  * persisted balance is older than DEMO_BALANCE_TTL_MS.

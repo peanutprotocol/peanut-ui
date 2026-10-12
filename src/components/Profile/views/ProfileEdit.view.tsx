@@ -1,6 +1,6 @@
 'use client'
 import { updateUserById, requestEmailChange } from '@/app/actions/users'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import isEmail from 'validator/lib/isEmail'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from '../components/ShowNameToggle'
 import ProfileEditField from '../components/ProfileEditField'
@@ -59,19 +59,24 @@ export const ProfileEditView = () => {
         setShowFullName(user?.user.showFullName ?? false)
         // Keep the fields and their baseline together. Background auth refreshes
         // must not overwrite edits or make untouched values dirty.
-        if (!user || (hydrated.current && !nameLocked)) return
+        if (!user) return
         const parts = (user.user.fullName || '').trim().split(/\s+/)
         const surname = parts.length > 1 ? parts.pop()! : ''
         if (hydrated.current) {
             // Once verified, show the provider-owned name even if verification
             // finished during an edit. Keep the user's email draft untouched.
-            resetField('name', { defaultValue: parts.join(' ') })
-            resetField('surname', { defaultValue: surname })
+            if (nameLocked) {
+                resetField('name', { defaultValue: parts.join(' ') })
+                resetField('surname', { defaultValue: surname })
+            }
+            // Signup can save after this form first hydrates. Adopt the saved
+            // email as a clean default while preserving an edited replacement.
+            if (!dirtyFields.email) resetField('email', { defaultValue: user.user.email || '' })
             return
         }
         hydrated.current = true
         reset({ name: parts.join(' '), surname, email: user.user.email || '', code: '' })
-    }, [user, nameLocked, reset, resetField])
+    }, [user, nameLocked, reset, resetField, dirtyFields.email])
 
     const nameChanged = canEditName && !!(dirtyFields.name || dirtyFields.surname)
     const isDirty = nameChanged || !!dirtyFields.email
@@ -215,7 +220,7 @@ export const ProfileEditView = () => {
                         />
                         <Button
                             type="button"
-                            variant="transparent"
+                            variant="ghost"
                             disabled={disabled}
                             onClick={async () => {
                                 setIsSendingCode(true)
@@ -237,14 +242,14 @@ export const ProfileEditView = () => {
                 )}
                 {!!user?.user.fullName?.trim() && (
                     <ListItem
-                        position="single"
-                        leading={<Icon name="eye" size={24} />}
-                        title={tMenu('showMyFullName')}
+                        position="solo"
+                        leading={<IconBubble icon="eye" size="s" color="blue" />}
+                        title={tMenu('showFullName')}
                         trailing={<ShowNameToggle checked={showFullName} onChange={setShowFullName} />}
                     />
                 )}
                 <div className="flex flex-col gap-4">
-                    {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                    {errorMessage && <Callout priority="error">{errorMessage}</Callout>}
                     <Button
                         type="submit"
                         disabled={disabled || !isDirty}

@@ -2,7 +2,9 @@
 
 import { useAuth } from '@/context/authContext'
 import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
+import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import { type IdentityVerification, type IdentityVerificationStatus } from '@/types/capabilities'
+import { identityDocumentRestartAction } from '@/utils/provider-rejection.utils'
 import { useMemo } from 'react'
 
 /**
@@ -19,6 +21,8 @@ import { useMemo } from 'react'
  */
 
 const NOT_STARTED: IdentityVerification = { status: 'not_started' }
+
+const DUPLICATE_EMAIL_LABEL = 'DUPLICATE_EMAIL'
 
 export interface UseIdentityVerificationResult {
     /** The raw identity block (not_started while loading / for logged-out users). */
@@ -46,14 +50,33 @@ export interface UseIdentityVerificationResult {
      * the right route, because a human can review a misclassification.
      *
      * Both are terminal, so neither may offer a retry.
+     *
+     * Also true for an action_required check whose rejection is FINAL (the
+     * API's `rejectType`, or a terminal label on an API that does not send it):
+     * "Resubmit" cannot pass a decision that was already made.
      */
     isTerminalFailure: boolean
+    /**
+     * The check is held because the email belongs to another Peanut account.
+     * New documents cannot clear it: the user signs in to that account or asks
+     * support.
+     */
+    isEmailCollision: boolean
+    /**
+     * The approval has no identity document on file: the identity reads
+     * action_required and the API offers the identity restart for it (a
+     * top-level `restart-identity` action). The verify button must restart the
+     * check: the start route answers "already approved" for these users and
+     * opens nothing.
+     */
+    needsDocumentRestart: boolean
     isLoading: boolean
 }
 
 export function useIdentityVerification(): UseIdentityVerificationResult {
     const { user, isFetchingUser } = useAuth()
     const identity = user?.identityVerification ?? NOT_STARTED
+    const nextActions = user?.capabilities?.nextActions
 
     return useMemo(() => {
         const status = identity.status
@@ -73,10 +96,17 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
             // safe direction — a retry that cannot pass is worse than a support
             // link that wasn't strictly needed.
             isTerminalFailure:
-                status === 'failed' &&
-                identity.canRetry !== true &&
-                identity.reason?.code !== IDENTITY_REGION_RESTRICTED_CODE,
+                (status === 'failed' &&
+                    identity.canRetry !== true &&
+                    identity.reason?.code !== IDENTITY_REGION_RESTRICTED_CODE) ||
+                (status === 'action_required' &&
+                    isTerminalRejection({ rejectType: identity.rejectType, rejectLabels: identity.rejectLabels })),
+            isEmailCollision:
+                status === 'action_required' && (identity.rejectLabels?.includes(DUPLICATE_EMAIL_LABEL) ?? false),
+            // the API pairs the action with action_required; any other status
+            // keeps its own button (resume a review, retry a failed check)
+            needsDocumentRestart: status === 'action_required' && !!identityDocumentRestartAction(nextActions ?? []),
             isLoading: isFetchingUser,
         }
-    }, [identity, isFetchingUser])
+    }, [identity, nextActions, isFetchingUser])
 }

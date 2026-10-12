@@ -24,6 +24,7 @@ import type {
     RailChannel,
     ResolvedRail,
 } from '@/types/capabilities'
+import type { IUserProfile } from '@/interfaces/interfaces'
 
 /**
  * A non-blocking advisory pre-empt riding on a `ready` gate. An ENABLED rail can
@@ -66,7 +67,13 @@ export type GateState =
     | { kind: 'pending' }
     | { kind: 'waiting-on-provider'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null; reason?: CapabilityReason }
-    | { kind: 'fixable-rejection'; userMessage: string | null; reason?: CapabilityReason }
+    /**
+     * `actionKey` is the Sumsub level the backend named for this fix. Call sites
+     * hand it to `handleFixableRejection` together with `reason.code`, which is
+     * what lets a residence park open the address step instead of the generic
+     * resubmit route that 404s for it (TASK-22286).
+     */
+    | { kind: 'fixable-rejection'; userMessage: string | null; reason?: CapabilityReason; actionKey?: string }
     | { kind: 'blocked-rejection'; userMessage: string | null; reason?: CapabilityReason }
     /**
      * Blocked rail with a self-fix path: re-verify Sumsub IDENTITY with a
@@ -201,6 +208,24 @@ export function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>
     return { status: 'fixable', blocking: blocking(true, 'document-resubmit') }
 }
 
+/**
+ * Whether a blocked rail is terminal: nothing the user does can unblock it,
+ * and support is the only door.
+ *
+ * `blocked` with a restart-identity action is not terminal — the user can
+ * verify again with another document. Everything else that reaches `blocked`
+ * carries `selfHealKind: 'contact-support'` and `selfHealable: false`.
+ *
+ * Screens that offer a retry must ask this first. The unlock-payments surface
+ * offered "Try again" to a user whose retry could never succeed, while Add
+ * money told the same user "Not available" and Withdraw sent them to support.
+ */
+export function isTerminalRailRejection(rail: RailCapability, byKey: Map<string, NextAction>): boolean {
+    if (rail.status !== 'blocked') return false
+    const verdict = railVerdict(rail, byKey)
+    return verdict.status === 'blocked' && verdict.blocking?.selfHealKind !== 'restart-identity'
+}
+
 /** verdict-carrying candidate — computed once per derive, shared across branches */
 interface RailWithVerdict {
     rail: RailCapability
@@ -332,6 +357,20 @@ export interface CapabilityState {
 }
 
 /**
+ * The gate's input, read off a user profile. The hook reads the rendered
+ * profile through it; a caller holding a profile it just fetched reads that
+ * one through it, so both resolve the same way.
+ */
+export function capabilityStateForProfile(user: IUserProfile | null | undefined, isLoading: boolean): CapabilityState {
+    return {
+        rails: user?.capabilities?.rails ?? [],
+        nextActions: user?.capabilities?.nextActions ?? [],
+        identityVerified: user?.identityVerification?.status === 'verified',
+        isLoading,
+    }
+}
+
+/**
  * Pure gate derivation over the per-rail VERDICT (`rail.resolved`, BE-derived;
  * legacy fallback in {@link railVerdict}). The gate no longer re-derives
  * fixable-vs-terminal from reason codes + action kinds — it renders the
@@ -415,6 +454,7 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
             kind: 'fixable-rejection',
             userMessage: verdictMessage(actionableFixable),
             reason: actionableFixable.rail.reason,
+            actionKey: actionableFixable.verdict.nextAction?.key,
         }
     }
 
@@ -464,12 +504,21 @@ export function getKycModalVariant(
 }
 
 /**
- * Resolve the InitiateKycModal variant for a gate. Adds the UK-resident
- * 'region-unavailable' case (TASK-20729) on top of the base kind->variant map,
- * so the three add/withdraw entry points don't each re-implement the check.
+ * Resolve the InitiateKycModal variant for a gate. Adds the residence refusals
+ * on top of the base kind->variant map, so the add/withdraw entry points don't
+ * each re-implement the check:
+ *   - `uk_resident_blocked` → 'region-unavailable', whose copy names UK
+ *     regulation (TASK-20729). UK only.
+ *   - `residence_bank_restricted` → 'bank-unavailable', the country-neutral
+ *     "not available in this country" ending (api#1738). The rail is blocked,
+ *     but support cannot lift a residence rule, so it is not the contact-
+ *     support 'blocked' ending, and never the UK copy.
  */
-export function resolveKycModalVariant(gate: GateState): ReturnType<typeof getKycModalVariant> | 'region-unavailable' {
+export function resolveKycModalVariant(
+    gate: GateState
+): ReturnType<typeof getKycModalVariant> | 'region-unavailable' | 'bank-unavailable' {
     if ('reason' in gate && gate.reason?.code === 'uk_resident_blocked') return 'region-unavailable'
+    if ('reason' in gate && gate.reason?.code === 'residence_bank_restricted') return 'bank-unavailable'
     return getKycModalVariant(gate.kind)
 }
 

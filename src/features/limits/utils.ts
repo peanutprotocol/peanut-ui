@@ -1,7 +1,7 @@
 'use client'
 
 import type { MantecaLimit } from '@/interfaces/interfaces'
-import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
+import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 import { formatExtendedNumber } from '@/utils/general.utils'
 import type { IconName } from '@/components/Global/Icons/Icon'
@@ -41,9 +41,9 @@ export type BridgeRegion = 'us' | 'mexico' | 'europe' | 'argentina' | 'brazil'
 
 // ux copy constants
 export const LIMITS_COPY = {
-    BLOCKING_TITLE: 'This amount exceeds your limit.',
-    WARNING_TITLE: "You're close to your limit.",
-    CHECK_LIMITS: 'Check my limits.',
+    BLOCKING_TITLE: 'This amount exceeds the limit',
+    WARNING_TITLE: 'Close to the limit',
+    CHECK_LIMITS: 'Check limits',
     SUPPORT_MESSAGE: 'Hi, I would like to increase my payment limits.',
 } as const
 
@@ -85,7 +85,7 @@ export function mapToLimitCurrency(currency?: string): LimitCurrency {
 
 /**
  * get currency symbol from currency code
- * uses centralized SYMBOLS_BY_CURRENCY_CODE from useCurrency
+ * uses centralized SYMBOLS_BY_CURRENCY_CODE
  */
 export function getCurrencySymbol(currency: string): string {
     return SYMBOLS_BY_CURRENCY_CODE[currency.toUpperCase()] || currency.toUpperCase()
@@ -135,12 +135,13 @@ const LIMIT_WARNING_THRESHOLD = 20 // 20-70% remaining = yellow, <20% = red
  */
 export function getLimitColorClass(remainingPercent: number, type: 'bg' | 'text'): string {
     if (remainingPercent > LIMIT_HEALTHY_THRESHOLD) {
-        return type === 'bg' ? 'bg-success-3' : 'text-success-1'
+        // green-800 borrowed as green-on-white text — no foreground-success token exists (flagged)
+        return type === 'bg' ? 'bg-background-icon-bubble-green' : 'text-green-800'
     }
     if (remainingPercent > LIMIT_WARNING_THRESHOLD) {
         return type === 'bg' ? 'bg-action-secondary' : 'text-action-secondary'
     }
-    return type === 'bg' ? 'bg-error-4' : 'text-error-4'
+    return type === 'bg' ? 'bg-red-200' : 'text-foreground-error'
 }
 
 // limits warning card helper - eliminates DRY violations
@@ -161,9 +162,9 @@ export interface LimitsWarningItem {
 }
 
 export interface LimitsWarningCardPropsResult {
-    type: 'warning' | 'error'
+    type: 'attention' | 'error'
     title: string
-    titleKind: 'blocking' | 'warning'
+    titleKind: 'blocking' | 'attention'
     items: LimitsWarningItem[]
     showSupportLink: boolean
 }
@@ -243,9 +244,9 @@ export function getLimitsWarningCardProps({
     })
 
     return {
-        type: validation.isBlocking ? 'error' : 'warning',
+        type: validation.isBlocking ? 'error' : 'attention',
         title: validation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE,
-        titleKind: validation.isBlocking ? 'blocking' : 'warning',
+        titleKind: validation.isBlocking ? 'blocking' : 'attention',
         items,
         showSupportLink: validation.isMantecaUser ?? false,
     }

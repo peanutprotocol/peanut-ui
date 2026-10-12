@@ -68,7 +68,7 @@ it('treats a probe that succeeds as transient contention, and releases it', asyn
     expect(videoTrack.stop).toHaveBeenCalled()
 })
 
-it('gives up on a probe that hangs, as an iOS PWA getUserMedia does after denial', async () => {
+it('gives up on a WebKit camera probe that hangs after denial', async () => {
     jest.useFakeTimers()
     mediaDevices.getUserMedia.mockReturnValue(new Promise(() => {}))
 

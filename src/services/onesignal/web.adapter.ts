@@ -6,6 +6,7 @@ import type {
     PushSubscriptionChange,
 } from './types'
 import { isOneSignalDebug } from './debug'
+import { OneSignalConfigError } from './errors'
 
 function browserPermission(): NotificationPermissionState {
     if (typeof Notification === 'undefined') return 'default'
@@ -63,6 +64,9 @@ function attachUnderlyingListeners() {
 
 export const webOneSignalAdapter: OneSignalAdapter = {
     init() {
+        // Cached even when it fails: the v16 SDK sets its "already initialized"
+        // latch before fetching its config, so a second init in this document
+        // can only fail.
         if (initPromise) return initPromise
         initPromise = (async () => {
             const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
@@ -70,7 +74,7 @@ export const webOneSignalAdapter: OneSignalAdapter = {
             const webhookUrl = process.env.NEXT_PUBLIC_ONESIGNAL_WEBHOOK
 
             if (!appId || !safariWebId || !webhookUrl) {
-                throw new Error(
+                throw new OneSignalConfigError(
                     'OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID, NEXT_PUBLIC_SAFARI_WEB_ID and NEXT_PUBLIC_ONESIGNAL_WEBHOOK are required'
                 )
             }
@@ -118,6 +122,11 @@ export const webOneSignalAdapter: OneSignalAdapter = {
         // always use the native browser permission dialog, avoid onesignal slidedown ui
         if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
             await OneSignal.Notifications.requestPermission()
+        }
+        // The browser may already have granted permission directly from a
+        // user gesture before this SDK became ready. Finish push registration.
+        if (browserPermission() === 'granted' && !OneSignal.User.PushSubscription.optedIn) {
+            await OneSignal.User.PushSubscription.optIn()
         }
         return browserPermission()
     },

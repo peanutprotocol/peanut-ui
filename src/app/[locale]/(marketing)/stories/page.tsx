@@ -5,8 +5,11 @@ import { getTranslations } from '@/i18n'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
+import { ContentLinkRow } from '@/components/Marketing/ContentLinkRow'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { isEnglishFallback } from '@/i18n/englishFallback'
 import { readPageContentLocalizedResolved, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
-import Link from 'next/link'
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -53,9 +56,10 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                 href: `/${resolved.lang}/stories/${encodeURIComponent(slug)}`,
                 title: resolved.content.frontmatter.title,
                 description: resolved.content.frontmatter.description,
+                lang: resolved.lang,
             }
         })
-        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string }>
+        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string; lang: string }>
 
     return (
         <ContentPage
@@ -65,22 +69,27 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                 { name: i18n.stories, href: `/${locale}/stories` },
             ]}
         >
-            <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} />
-            <div className="mx-auto mt-10 mb-8 max-w-[640px] px-6 md:mt-12 md:px-4">
+            <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} locale={locale} />
+            <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
                 {stories.length === 0 ? (
-                    <p className="text-center text-grey-1">{i18n.noStoriesPublished}</p>
+                    <EmptyState icon="docs" title={i18n.noStoriesPublished} />
                 ) : (
-                    <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
-                        {stories.map((story) => (
-                            <Link
-                                key={story.slug}
-                                href={story.href}
-                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-100"
-                            >
-                                <span className="text-sm font-medium text-n-1">{story.title}</span>
-                                <span className="line-clamp-2 text-xs text-grey-1">{story.description}</span>
-                            </Link>
-                        ))}
+                    <div className="flex flex-col">
+                        {stories.map((story, index) => {
+                            const english = isEnglishFallback(story.lang, locale)
+                            return (
+                                <ContentLinkRow
+                                    key={story.slug}
+                                    href={story.href}
+                                    title={story.title}
+                                    description={story.description}
+                                    index={index}
+                                    total={stories.length}
+                                    lang={english ? story.lang : undefined}
+                                    languageLabel={english ? i18n.inEnglish : undefined}
+                                />
+                            )
+                        })}
                     </div>
                 )}
             </div>

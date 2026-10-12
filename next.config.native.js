@@ -25,6 +25,10 @@ let nextConfig = {
     // STATIC EXPORT FOR CAPACITOR
     output: 'export',
 
+    // Native exports bypass withSentryConfig. Generate maps for private CLI
+    // upload; native-build removes them before Capacitor/Capgo packages out/.
+    productionBrowserSourceMaps: true,
+
     // Disable image optimization (requires server)
     images: {
         unoptimized: true,
@@ -91,6 +95,7 @@ let nextConfig = {
             )
         }
         if (!dev) {
+            if (!isServer) config.devtool = 'hidden-source-map'
             if (isServer) {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
             }

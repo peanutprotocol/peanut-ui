@@ -7,16 +7,19 @@ import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import type { ProviderId } from '@/types/provider.types'
 
 type InitiateKycVariant =
     | 'default'
@@ -24,7 +27,9 @@ type InitiateKycVariant =
     | 'blocked'
     | 'restart_identity'
     | 'cross_region'
+    | 'country_payments'
     | 'region-unavailable'
+    | 'bank-unavailable'
 
 interface InitiateKycModalProps {
     cooldownActive?: boolean
@@ -46,6 +51,10 @@ interface InitiateKycModalProps {
     /** Which prep checklist the SDK-bound variants show: extended for the
      *  Manteca (BR/AR) flows, standard elsewhere. */
     prepPath?: 'standard' | 'extended'
+    /** ISO code of the single country the extended prep is for, so the tax-ID
+     *  row names that country's document (CUIT/CUIL for AR, CPF for BR) rather
+     *  than the both-countries string. Pass the ISO code, not `regionName`. */
+    taxIdCountry?: 'AR' | 'BR'
     /**
      * 'modal' overlays the caller; 'page' renders the same decision as a flow
      * step. The prep content is a screen's worth — two requirement cards, a
@@ -58,14 +67,21 @@ interface InitiateKycModalProps {
     /** page form only — the step's back affordance and header title */
     onBack?: () => void
     navTitle?: string
+    /** Bridge callers name the entity here; the Manteca flows get theirs from `taxIdCountry` */
+    providerId?: ProviderId
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
 // default            → "Unlock your account" — verb is "unlock", ID check is the means
 // provider_rejection → "We need extra documents"
 // blocked            → "We couldn't unlock this — contact support"
-// restart_identity   → "Verify with a different document" (self-fix for country mismatch)
-// cross_region       → "Unlock {region}"
+// restart_identity   → "Verify with a different document" (self-fix for country mismatch);
+//                      with the identity_document_missing reason code it is
+//                      "Complete your verification" (the approval has no document)
+// cross_region       → "Unlock {region}" (identity already cleared)
+// country_payments   → "Unlock {region}" for a user who has not verified yet and
+//                      arrived from one country's flow: what they unlock is that
+//                      country's bank transfers and payments, not an account
 // Three states are decided HERE and outrank whatever variant the caller asked
 // for: the verification outage, a region-restricted rejection, and a residence
 // no bank provider onboards.
@@ -82,9 +98,11 @@ export const InitiateKycModal = ({
     reasonCode,
     regionName,
     prepPath = 'standard',
+    taxIdCountry,
     presentation = 'modal',
     onBack,
     navTitle,
+    providerId,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -117,13 +135,20 @@ export const InitiateKycModal = ({
     // Resolved once so every branch below reads one variant rather than each
     // re-checking the residence — the caller's variant is what the rail gate
     // could see, this is what the user's residence makes of it.
-    const resolvedVariant: InitiateKycVariant | 'bank-unavailable' =
-        isBankRestricted && !isRegionUnavailable ? 'bank-unavailable' : variant
+    // A caller may also pass 'bank-unavailable' itself: the rail's own
+    // `residence_bank_restricted` refusal (resolveKycModalVariant), which covers
+    // a pending residence this device's restriction read cannot see.
+    const resolvedVariant: InitiateKycVariant = isBankRestricted && !isRegionUnavailable ? 'bank-unavailable' : variant
     const isBankUnavailable = resolvedVariant === 'bank-unavailable'
     const isProviderRejection = resolvedVariant === 'provider_rejection'
     const isBlocked = resolvedVariant === 'blocked'
     const isRestartIdentity = resolvedVariant === 'restart_identity'
+    // The restart serves two causes. Only the missing document asks for a
+    // first document rather than a different one, so the reason code picks
+    // the title and the button; the description already follows the code.
+    const isDocumentMissing = isRestartIdentity && reasonCode === IDENTITY_DOCUMENT_MISSING_CODE
     const isCrossRegion = resolvedVariant === 'cross_region'
+    const isCountryPayments = resolvedVariant === 'country_payments'
     const router = useRouter()
     const regionRestrictedCta = useRegionRestrictedCta(onClose)
 
@@ -132,12 +157,14 @@ export const InitiateKycModal = ({
         if (isRegionUnavailable) return t('initiate.titleRegionUnavailable')
         if (isBankUnavailable) return t('initiate.titleBankUnavailable')
         if (isBlocked) return t('initiate.titleBlocked')
+        if (isDocumentMissing) return t('initiate.titleIdentityDocumentMissing')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isProviderRejection) return t('initiate.titleProviderRejection')
         if (isCrossRegion)
             return regionName
                 ? t('initiate.titleCrossRegion', { region: regionName })
                 : t('initiate.titleCrossRegionGeneric')
+        if (isCountryPayments && regionName) return t('initiate.titleCrossRegion', { region: regionName })
         return t('initiate.titleDefault')
     }
 
@@ -153,6 +180,7 @@ export const InitiateKycModal = ({
                 ? t('initiate.descriptionCrossRegion', { region: regionName })
                 : t('initiate.descriptionCrossRegionGeneric')
         }
+        if (isCountryPayments && regionName) return t('initiate.descriptionCountryPayments', { region: regionName })
         return t('initiate.descriptionDefault')
     }
 
@@ -179,8 +207,9 @@ export const InitiateKycModal = ({
             }
         }
         if (isRestartIdentity) {
+            const label = isDocumentMissing ? t('initiate.ctaUnlockNow') : t('initiate.titleRestartIdentity')
             return {
-                text: isLoading ? tCommon('loading') : t('initiate.titleRestartIdentity'),
+                text: isLoading ? tCommon('loading') : label,
                 onClick: onVerify,
                 icon: 'upload-cloud',
             }
@@ -229,7 +258,7 @@ export const InitiateKycModal = ({
                             <DrawerDescription>{t('degraded.description')}</DrawerDescription>
                         </DrawerHeader>
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             className="mt-2 w-full justify-center"
                             onClick={() => {
@@ -242,9 +271,9 @@ export const InitiateKycModal = ({
                         >
                             {t('degraded.notifyMe')}
                         </Button>
-                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
-                            {tCommon('gotIt')}
-                        </Button>
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={onClose}>{tCommon('gotIt')}</LinkButton>
+                        </div>
                     </div>
                 </DrawerContent>
             </Drawer>
@@ -262,17 +291,27 @@ export const InitiateKycModal = ({
     // the cross-region unlock) carry the prep checklist, so no path reaches the
     // vendor without it. Every other variant is an error/action state where the
     // list would be noise.
-    const showPrepChecklist = (resolvedVariant === 'default' || resolvedVariant === 'cross_region') && !error
+    const showPrepChecklist =
+        (resolvedVariant === 'default' || resolvedVariant === 'cross_region' || isCountryPayments) && !error
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
-    const description = showPrepChecklist ? (
-        <div className="flex flex-col gap-3 text-left">
-            <p>{getDescription()}</p>
-            <KycPrepChecklist path={prepPath} />
-        </div>
-    ) : (
-        getDescription()
-    )
+    // the account provider heads the checklist: bridge from the caller, manteca from the tax-id country
+    const prepProviderId =
+        prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
+    const description = (nested: boolean) =>
+        showPrepChecklist ? (
+            <div className="flex flex-col gap-3 text-left">
+                <p>{getDescription()}</p>
+                <KycPrepChecklist
+                    path={prepPath}
+                    taxIdCountry={taxIdCountry}
+                    providerId={prepProviderId}
+                    nested={nested}
+                />
+            </div>
+        ) : (
+            getDescription()
+        )
     // Red for anything the user has to recover from (a rejection, a block, an
     // unavailable region), blue for the plain "start verification" offer — never
     // green, which the app reserves for a finished state.
@@ -308,10 +347,10 @@ export const InitiateKycModal = ({
                 <div className="flex flex-col items-center gap-4 text-center">
                     <IconBubble icon={iconName} size="l" color={isErrorState ? 'red' : 'blue'} />
                     {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
-                    <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                    <div className="w-full text-body-s text-foreground-secondary">{description(false)}</div>
                 </div>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     onClick={cta.onClick}
                     disabled={isLoading && !isBlocked}
@@ -348,9 +387,9 @@ export const InitiateKycModal = ({
                     </div>
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
-                        <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                        <div className="w-full text-body-s text-foreground-secondary">{description(true)}</div>
                         <Button
-                            variant="purple"
+                            variant="primary"
                             shadowSize="4"
                             className="w-full justify-center"
                             disabled={isLoading && !isBlocked}

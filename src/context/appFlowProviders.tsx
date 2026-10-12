@@ -12,6 +12,7 @@ import { PasskeySupportProvider } from './passkeySupportContext'
 import { ModalsProvider } from './ModalsContext'
 import { RainCooldownProvider } from './RainCooldownContext'
 import { ConnectivityToast } from '@/components/Global/Banner/ConnectivityToast'
+import { SocketQueryRefresh } from '@/components/Global/SocketQueryRefresh'
 
 // TODO(provider-cake): every new context provider adds another layer of JSX
 // nesting here, which is non-DRY and noisy in diffs. Proposed cleanup in its
@@ -47,6 +48,7 @@ export const AppFlowProviders = ({ children }: { children: React.ReactNode }) =>
                                                 <RainCooldownProvider>
                                                     {/* connectivity state rides the toast surface (ruled 2026-09-03) */}
                                                     <ConnectivityToast />
+                                                    <SocketQueryRefresh />
                                                     {children}
                                                 </RainCooldownProvider>
                                             </ModalsProvider>

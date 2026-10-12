@@ -1,8 +1,14 @@
 package me.peanut.wallet;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
+import android.view.ViewGroup;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -11,11 +17,140 @@ import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 
+import androidx.core.view.WindowCompat;
+
+import io.sentry.Sentry;
+import io.sentry.SentryLevel;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class MainActivity extends BridgeActivity {
+    private static final String RENDERER_RECOVERY_AT = "peanut.rendererRecoveryAt";
+    private static final String RENDERER_RECOVERY_INTENT = "peanut.rendererRecoveryIntent";
+    private RendererRecovery rendererRecovery;
+    private WebViewRepaint webViewRepaint;
+
+    private void useDarkStatusBarIcons() {
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(true);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Native SDK screens can change system-bar appearance. Restore dark
+        // icons when our light WebView window returns to the foreground.
+        useDarkStatusBarIcons();
+        rendererRecovery.onResume();
+        webViewRepaint.onResume(hasWindowFocus());
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (webViewRepaint != null) webViewRepaint.onWindowFocusChanged(hasFocus);
+    }
+
+    private void repaintWebView() {
+        // RendererRecovery owns dead bridges. A live page needs a new draw,
+        // not a reload: preserve its route, form state and in-flight flows.
+        if (bridge == null || rendererRecovery.isPending() || !webViewRepaint.isActive()) return;
+        WebView view = bridge.getWebView();
+        Sentry.addBreadcrumb("Live WebView repaint requested after window focus", "webview.lifecycle");
+        view.onResume();
+        view.requestLayout();
+        view.postInvalidateOnAnimation();
+        // The first visible frame may be Android's saved task surface. Ask
+        // for another draw once Chromium has made the current DOM drawable.
+        view.postVisualStateCallback(0, new WebView.VisualStateCallback() {
+            @Override
+            public void onComplete(long requestId) {
+                if (bridge == null || bridge.getWebView() != view || rendererRecovery.isPending()
+                        || !webViewRepaint.isActive()) return;
+                Sentry.addBreadcrumb("Live WebView visual state ready", "webview.lifecycle");
+                view.postInvalidateOnAnimation();
+            }
+        });
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // uiMode is handled in-place by this Activity. Android can replace the
+        // status-bar appearance when the device theme changes, so restore it
+        // after Capacitor has handled the new configuration.
+        useDarkStatusBarIcons();
+    }
+
+    @Override
+    public void onPause() {
+        webViewRepaint.onPause();
+        rendererRecovery.onPause();
+        super.onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        webViewRepaint.onDestroy();
+        rendererRecovery.onDestroy();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong(RENDERER_RECOVERY_AT, rendererRecovery.getLastRecoveryAt());
+        // Activity recreation can restore the framework's original launch
+        // Intent rather than the one assigned with setIntent(). Carry ours
+        // explicitly so a consumed link stays consumed across the rebuild.
+        if (rendererRecovery.isPending()) outState.putParcelable(RENDERER_RECOVERY_INTENT, getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        // A new deep link received while waiting to rebuild must reach the new
+        // bridge. Ordinary resumes must not replay the original launch link.
+        if (rendererRecovery.isPending()) setIntent(intent);
+        super.onNewIntent(intent);
+    }
+
+    private boolean recoverRenderer(WebView view, RenderProcessGoneDetail detail) {
+        final boolean foreground = rendererRecovery.isForeground();
+        final boolean didCrash = detail.didCrash();
+        final boolean recoverable = rendererRecovery.onRendererGone(SystemClock.elapsedRealtime());
+        if (bridge == null) return recoverable;
+        final boolean backgroundReclamation = RendererLoss.isBackgroundReclamation(didCrash, foreground);
+        // Android routinely reclaims a background WebView under memory
+        // pressure. Recovery waits for resume; keep the diagnostic, but report
+        // genuine crashes and foreground losses at error severity.
+        Sentry.captureMessage(
+                backgroundReclamation ? "Android WebView renderer reclaimed in background"
+                        : "Android WebView renderer " + (didCrash ? "crashed" : "was killed"),
+                backgroundReclamation && recoverable ? SentryLevel.INFO : SentryLevel.ERROR,
+                scope -> {
+                    scope.setTag("renderer.did_crash", Boolean.toString(didCrash));
+                    scope.setTag("renderer.foreground", Boolean.toString(foreground));
+                    scope.setTag("renderer.recovery_scheduled", Boolean.toString(recoverable));
+                    scope.setExtra("renderer.priority_at_exit", Integer.toString(detail.rendererPriorityAtExit()));
+                });
+        if (!recoverable) return false;
+
+        // The dead WebView cannot be reloaded. Tear down its plugins and detach
+        // it, then let a fresh Activity build a fresh Capacitor bridge. Clearing
+        // bridge first prevents resume/detach callbacks from using it again.
+        Bridge deadBridge = bridge;
+        bridge = null;
+        setIntent(new Intent(this, MainActivity.class).setAction(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER));
+        if (view.getParent() instanceof ViewGroup) ((ViewGroup) view.getParent()).removeView(view);
+        try {
+            deadBridge.onDestroy();
+        } finally {
+            view.destroy();
+        }
+        return true;
+    }
 
     /*
      * PushProvisioningPlugin compiles only when the MeaWallet Nexus credentials
@@ -55,8 +190,23 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            Intent recoveryIntent = savedInstanceState.getParcelable(RENDERER_RECOVERY_INTENT);
+            if (recoveryIntent != null) setIntent(recoveryIntent);
+        }
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        webViewRepaint = new WebViewRepaint(
+                task -> getWindow().getDecorView().postOnAnimation(task),
+                this::repaintWebView);
+        rendererRecovery = new RendererRecovery(
+                savedInstanceState == null ? -1 : savedInstanceState.getLong(RENDERER_RECOVERY_AT, -1),
+                task -> mainHandler.post(task),
+                () -> {
+                    if (!isFinishing() && !isDestroyed()) recreate();
+                });
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
+        registerPlugin(ReceiptSharePlugin.class);
         registerPushProvisioningPlugin();
         super.onCreate(savedInstanceState);
 
@@ -76,6 +226,7 @@ public class MainActivity extends BridgeActivity {
          * can't crash-loop.
          */
         maybeSentryTestCrash();
+        AnrExitReporter.reportLatest(this);
 
         Bridge bridge = this.getBridge();
         if (bridge != null) {
@@ -85,11 +236,19 @@ public class MainActivity extends BridgeActivity {
              * Extends BridgeWebViewClient instead of wrapping it in a plain
              * WebViewClient: the wrapper forwarded only shouldInterceptRequest and
              * shouldOverrideUrlLoading, silently dropping the other six callbacks —
-             * most critically onRenderProcessGone (a WebView renderer crash killed
-             * the app instead of recovering) and the onPageStarted/Finished
-             * notifications Capacitor plugins rely on.
+             * including the onPageStarted/Finished notifications Capacitor
+             * plugins rely on. Renderer loss needs explicit recovery below:
+             * Capacitor forwards it to listeners but does not rebuild the view.
              */
             webView.setWebViewClient(new BridgeWebViewClient(bridge) {
+                @Override
+                public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                    // Preserve plugin diagnostics, but do not mistake a listener
+                    // return value for rebuilding our Activity and dead bridge.
+                    super.onRenderProcessGone(view, detail);
+                    return recoverRenderer(view, detail);
+                }
+
                 @Override
                 public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                     WebResourceResponse response = super.shouldInterceptRequest(view, request);

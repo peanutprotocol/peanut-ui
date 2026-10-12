@@ -6,8 +6,7 @@
  * served on web by the `[...recipient]` catch-all. That route is stripped from the
  * native static export (scripts/native-build.js), so pushing the raw web path made
  * the router fall back to a full page load and the WebView landed on a localhost
- * error page — the reported "couldn't pay an IRL request from the app, but the PWA
- * worked".
+ * error page instead of opening the payment in the native app.
  */
 import React from 'react'
 import { render, act } from '@testing-library/react'
@@ -29,8 +28,7 @@ jest.mock('@/utils/api-fetch', () => ({ serverFetch: (...args: unknown[]) => moc
 jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn().mockResolvedValue(null) }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    // onFeatureFlags: the chain-rollout gate subscribes to flag loads.
-    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => jest.fn()) },
+    default: { capture: jest.fn() },
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))

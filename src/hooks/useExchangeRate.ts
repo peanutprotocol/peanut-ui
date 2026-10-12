@@ -80,7 +80,9 @@ export function useExchangeRate({
     // Client-side cached exchange rate (5 minutes)
     const {
         data: rateData,
-        isFetching,
+        // v5 isLoading = pending && fetching — pair changes still show the
+        // skeleton, background refetches don't flash it over live data
+        isLoading,
         isError,
     } = useQuery<{ rate: number }>({
         queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
@@ -105,7 +107,6 @@ export function useExchangeRate({
     // repeatedly failing refresh can leave an arbitrarily old conversion on
     // screen even though the query is in its terminal error state.
     const exchangeRate = isError ? 0 : (rateData?.rate ?? 0)
-    const isLoading = isFetching
 
     // Recalculate amounts when debounced inputs or rate changes (no extra loading toggles)
     useEffect(() => {

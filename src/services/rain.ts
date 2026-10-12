@@ -27,7 +27,13 @@ export interface RainCardApplicationStatus {
     rainUserId?: string
     /** Collateral proxy address. */
     contractAddress?: string
-    /** Rain Coordinator contract — target of `withdrawAsset`. */
+    /** Rain Coordinator (controller) contract — target of `withdrawAsset`.
+     *  Served from the backend's validated cache (repaired by
+     *  `refreshControllerAddress` after a failed Rain operation), not a live
+     *  Rain read per request. Rain rotates it on a controller upgrade, so never
+     *  pin a grant to a client-side copy — the grant hook refetches the overview
+     *  first. Absent when the backend has none (UI gates on presence; the grant
+     *  then reports `no-contracts`). */
     coordinatorAddress?: string
 }
 
@@ -56,8 +62,21 @@ export interface RainCardSummary {
     network: string
     issuedAt: string
     /** Whether the user has granted the one-time session-key permission
-     *  used to submit collateral withdrawals with a single passkey tap. */
+     *  used to submit collateral withdrawals with a single passkey tap — AND
+     *  it still targets the coordinator the backend has on record. After a Rain
+     *  controller upgrade the backend reports `false` for grants pinned to the
+     *  old controller, so the existing prompts (EnableAutoBalanceBanner, the
+     *  collateral-only spend preflight) drive a re-grant without any new UI —
+     *  a fresh address can NOT retarget an already-signed CallPolicy grant. */
     hasWithdrawApproval: boolean
+    /** Whether ANY session-key approval is stored for this card, whatever
+     *  controller it targets. `true` with `hasWithdrawApproval: false` means the
+     *  grant is OUTDATED (pinned to a rotated controller) — the pre-prepare
+     *  spend gate renews it — while `false` means never granted, which a spend
+     *  that does not need the approval must not turn into a prompt. Optional:
+     *  an older backend omits it, and the gate then falls back to the cached
+     *  snapshot's own evidence. Never carries the approval itself. */
+    hasStoredWithdrawApproval?: boolean
 }
 
 export interface RainCardOverview {
@@ -78,9 +97,9 @@ export interface RainCardOverview {
 
 /**
  * FE-internal spend-flow vocabulary — analytics events and the collateral
- * preflight key on it. Since TASK-21815 the backend chooses the intent kind
- * itself (from the verified destination), so this NEVER goes on the wire;
- * `/rain/cards/withdraw/prepare` ignores a client-sent kind. Named
+ * preflight key on it. The backend chooses the intent kind from the verified
+ * destination. Only FIAT_OFFRAMP goes on the wire to distinguish bank
+ * withdrawals from QR payments at their shared provider address. Named
  * distinctly from the history renderer's `IntentKind` union in
  * strategies/registry.ts (the inbound wire shape).
  */
@@ -111,6 +130,12 @@ export interface PrepareRainWithdrawalInput {
      *  completes it on confirm; a follow-up `recordPayment` re-enters the
      *  same trusted-completion path (idempotent). */
     chargeId?: string
+    /** The Bridge offramp intent a collateral-only withdrawal funds. The backend
+     *  links its collateral record to it, so Activity shows one row. */
+    fundsIntentId?: string
+    /** Distinguishes bank withdrawals from QR payments at the shared provider
+     *  address. Other destinations keep their server-chosen kind. */
+    kind?: 'FIAT_OFFRAMP'
 }
 
 export interface PrepareRainWithdrawalResponse {
@@ -138,6 +163,12 @@ export interface PrepareRainWithdrawalResponse {
 }
 
 export interface SubmitRainWithdrawalInput {
+    /** Coordinator the prep was built against. A classification HINT only: the
+     *  server always takes its target, domain and cache from its own record /
+     *  Rain, never from this value. It lets an otherwise-rejected older
+     *  artifact be recognised as rotation-stale once another request has
+     *  already updated the record. */
+    preparedCoordinatorAddress?: string
     preparationId: string
     amount: string
     recipientAddress: string
@@ -152,6 +183,12 @@ export interface SubmitRainWithdrawalInput {
 
 export interface SubmitRainWithdrawalResponse {
     txHash: string
+}
+
+/** `changed` is true only when the stored controller actually moved. */
+export interface RefreshRainControllerResponse {
+    coordinatorAddress: string
+    changed: boolean
 }
 
 // ─── Funds-recovery types ────────────────────────────────────────────────────
@@ -206,6 +243,9 @@ export interface RainProvisioningDataResponse {
     last4: string
     network: string
     cardholderName?: string
+    /** Revocable, wallet-scoped credential for Apple Wallet's direct launch. */
+    walletAuthorizationToken?: string
+    walletAuthorizationExpiresIn?: number
     billingAddress: {
         line1: string
         line2?: string
@@ -214,6 +254,11 @@ export interface RainProvisioningDataResponse {
         postalCode: string
         countryCode: string
     }
+}
+
+export interface RainProvisioningAuthorizationResponse {
+    walletAuthorizationToken: string
+    walletAuthorizationExpiresIn: number
 }
 
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
@@ -295,6 +340,12 @@ export class StaleCardApprovalError extends Error {
 /** The only path that returns a 409 STALE_CARD_APPROVAL — the withdraw submit.
  *  Gate the branch on it so an unrelated 409 elsewhere stays a generic error. */
 const RAIN_WITHDRAW_SUBMIT_PATH = '/rain/cards/withdraw/submit'
+/** The grant store refuses (400 STALE_CARD_APPROVAL) an approval that does not
+ *  target the coordinator the backend has on record. Typed so the grant
+ *  surfaces "try again" copy,
+ *  but NO re-enable event: the caller IS the re-enable flow, and re-dispatching
+ *  from inside it would reopen the modal on top of itself. */
+const RAIN_SESSION_APPROVE_PATH = '/rain/cards/withdraw/session-approve'
 /** Window event the global re-enable modal listens for. */
 export const RAIN_STALE_APPROVAL_EVENT = 'rain:stale-card-approval'
 
@@ -355,6 +406,12 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
+          // Approved residence is eligible, but a restricted residence change
+          // is still pending. Recoverable by reviewing/cancelling that request.
+          status: 'pending-residence-blocked'
+          message: string
+      }
+    | {
           status: string
           rainUserId?: string
           message: string
@@ -377,6 +434,16 @@ interface RequestOpts {
      * ID unless a proof from the last few minutes is still good.
      */
     stepUp?: boolean
+    /** Use an already-cached proof without opening a new ceremony. */
+    stepUpToken?: string
+    /**
+     * Suppress the GLOBAL cooldown explainer for a 425 (the typed
+     * `RainCooldownError` and its telemetry are unchanged). Only the internal
+     * controller-recovery re-prepare sets this: it owns the wait itself, and a
+     * modal about an attempt the user never made would be the visible failure
+     * the recovery exists to avoid.
+     */
+    suppressCooldownEvent?: boolean
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -387,7 +454,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 
     const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
-    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
+    if (opts.stepUp) headers[STEP_UP_HEADER] = opts.stepUpToken ?? (await getStepUpToken())
 
     const response = await apiFetch(opts.path, {
         method: opts.method,
@@ -419,8 +486,11 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
             // retryAfterSec-less shape that shows no cooldown UI at all
             // (the PEANUT-UI-QJ1 blind spot). Flow context comes from
             // PostHog's auto-captured $pathname.
-            posthog.capture(ANALYTICS_EVENTS.RAIN_COOLDOWN_HIT, { retry_after_sec: retryAfterSec })
-            if (retryAfterSec !== null) {
+            posthog.capture(ANALYTICS_EVENTS.RAIN_COOLDOWN_HIT, {
+                retry_after_sec: retryAfterSec,
+                ...(opts.suppressCooldownEvent ? { recovery: true } : {}),
+            })
+            if (retryAfterSec !== null && !opts.suppressCooldownEvent) {
                 window.dispatchEvent(
                     new CustomEvent<RainCooldownEventDetail>('rain:cooldown', {
                         detail: { retryAfterSec, message },
@@ -444,6 +514,19 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
                 window.dispatchEvent(new CustomEvent(RAIN_STALE_APPROVAL_EVENT))
             }
             throw new StaleCardApprovalError(message)
+        }
+        throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
+            status: response.status,
+            code: err.code,
+        })
+    }
+
+    if (response.status === 400 && opts.path === RAIN_SESSION_APPROVE_PATH) {
+        const err = await response.json().catch(() => ({}))
+        if (err.code === 'STALE_CARD_APPROVAL') {
+            throw new StaleCardApprovalError(
+                err.error || 'This approval targets an outdated card contract — please re-enable your card.'
+            )
         }
         throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
             status: response.status,
@@ -505,11 +588,15 @@ export const rainApi = {
      * its own. Step-up here made every collateral-funded send cost three
      * fingerprint prompts instead of two (the 2026-07 triple-prompt reports).
      */
-    prepareWithdrawal: async (input: PrepareRainWithdrawalInput): Promise<PrepareRainWithdrawalResponse> => {
+    prepareWithdrawal: async (
+        input: PrepareRainWithdrawalInput,
+        opts?: { suppressCooldownEvent?: boolean }
+    ): Promise<PrepareRainWithdrawalResponse> => {
         return rainRequest<PrepareRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/prepare',
             body: input,
+            suppressCooldownEvent: opts?.suppressCooldownEvent,
         })
     },
 
@@ -534,6 +621,20 @@ export const rainApi = {
             path: '/rain/cards/withdraw/submit',
             body: input,
             timeoutMs: 120_000,
+        })
+    },
+
+    /**
+     * Ask the backend to re-read Rain's contracts and re-persist the cached
+     * controller. Cache-only (no signing, no money, no grant), rate-limited to
+     * 10/min — so call it on a FAILED Rain leg only, never on success.
+     */
+    refreshControllerAddress: async (): Promise<RefreshRainControllerResponse> => {
+        return rainRequest<RefreshRainControllerResponse>({
+            method: 'POST',
+            path: '/rain/cards/controller/refresh',
+            // Always send an object — see cancelCard on the empty-body rule.
+            body: {},
         })
     },
 
@@ -639,18 +740,29 @@ export const rainApi = {
         if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
             body.acceptedDocuments = opts.acceptedDocuments
         }
-        return rainRequest<ApplyForCardResponse>({
-            method: 'POST',
-            path: '/rain/cards',
-            body,
-            // The first-time-application path runs 7 sequential Sumsub calls, a
-            // deliberate 2.5s readiness sleep, the Rain createApplication call,
-            // and an optional inline issueCard — routinely 7-13s. The default
-            // 10s fetch timeout clips that tail, aborting client-side while the
-            // backend completes (user sees a false failure on a card that was
-            // actually submitted). Give this one call generous headroom.
-            timeoutMs: 60_000,
-        })
+        try {
+            return await rainRequest<ApplyForCardResponse>({
+                method: 'POST',
+                path: '/rain/cards',
+                body,
+                // The first-time-application path runs 7 sequential Sumsub calls, a
+                // deliberate 2.5s readiness sleep, the Rain createApplication call,
+                // and an optional inline issueCard — routinely 7-13s. The default
+                // 10s fetch timeout clips that tail, aborting client-side while the
+                // backend completes (user sees a false failure on a card that was
+                // actually submitted). Give this one call generous headroom.
+                timeoutMs: 60_000,
+            })
+        } catch (e) {
+            // Residence denials are HTTP 403s, so normalize both stable codes
+            // into the success union. Keep a prohibited ACTIVE residence
+            // terminal while routing a prohibited PENDING change to its
+            // recoverable residence-management screen.
+            if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
+                return { status: e.code, message: e.message }
+            }
+            throw e
+        }
     },
 
     /**
@@ -764,6 +876,23 @@ export const rainApi = {
             path: `/rain/cards/${cardId}/provisioning-data`,
             body: { wallet },
             stepUp: true,
+            rateLimitSensitive: true,
+            noStore: true,
+        })
+    },
+
+    /** Mint the card-scoped Wallet credential without returning card secrets. */
+    getProvisioningAuthorization: async (
+        cardId: string,
+        wallet: 'apple' | 'google',
+        options?: { stepUpToken?: string }
+    ): Promise<RainProvisioningAuthorizationResponse> => {
+        return rainRequest<RainProvisioningAuthorizationResponse>({
+            method: 'POST',
+            path: `/rain/cards/${cardId}/provisioning-authorization`,
+            body: { wallet },
+            stepUp: true,
+            stepUpToken: options?.stepUpToken,
             rateLimitSensitive: true,
             noStore: true,
         })

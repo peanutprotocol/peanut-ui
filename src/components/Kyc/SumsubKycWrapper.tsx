@@ -4,6 +4,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { SumsubNativeSdk } from './SumsubNativeSdk'
 import { SumsubWebSdkModal } from './SumsubWebSdkModal'
 import type { SumsubSdkProps } from './sumsubSdk.types'
+import { useAuth } from '@/context/authContext'
 
 /**
  * Every KYC entry point funnels through here, so this is the one place that
@@ -13,6 +14,8 @@ import type { SumsubSdkProps } from './sumsubSdk.types'
  * every handler and every reporter we have.
  */
 export const SumsubKycWrapper = (props: SumsubSdkProps) => {
-    if (isCapacitor()) return <SumsubNativeSdk {...props} />
-    return <SumsubWebSdkModal {...props} />
+    const { user } = useAuth()
+    const email = (props.email ?? user?.user.email)?.trim() || undefined
+    if (isCapacitor()) return <SumsubNativeSdk {...props} email={email} />
+    return <SumsubWebSdkModal {...props} email={email} />
 }

@@ -1,3 +1,4 @@
+import type { SignupPreferences } from '@/types/signup-preferences'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
 
@@ -83,6 +84,10 @@ export interface IToken {
 export type ITokenPriceData = {
     chainId: string
     price: number
+    /** When the API fetched the price (ISO 8601); absent for client-side $1 stablecoins. */
+    updatedAt?: string
+    /** The API's provider failed and this is an older cached price — display only. */
+    stale?: boolean
 } & IToken
 
 export interface IToken {
@@ -218,6 +223,8 @@ export type CounterpartyUser = User & {
     canReceiveBankOfframp: boolean
     /** Provider-agnostic identity-verified signal (BE-computed). The "verified" badge. */
     isVerified: boolean
+    /** Server switch for the guest send-link claim to a bank. The same for every user. */
+    guestBankClaimEnabled?: boolean
 }
 
 // based on the API's AccountType
@@ -227,6 +234,7 @@ export enum AccountType {
     US = 'us',
     CLABE = 'clabe',
     GB = 'gb', // uk bank accounts (sort code + account number)
+    CO_BANK_TRANSFER = 'co_bank_transfer', // colombian bank accounts
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     MANTECA = 'manteca',
@@ -238,6 +246,10 @@ export interface Account {
     bridgeAccountId: string
     type: AccountType
     identifier: string
+    /** The name the user gave this account, or null — see destinationLabel. */
+    label?: string | null
+    /** ISO 8601 of the newest withdrawal to this account; null means never used. */
+    lastUsedAt?: string | null
     details: {
         bankName: string | null
         accountOwnerName: string
@@ -250,6 +262,13 @@ export interface Account {
     bic?: string
     routingNumber?: string
     sortCode?: string // uk bank accounts
+    /** Why the API switched the account off, when it did — see isUsableSavedAccount. */
+    deactivationReason?: string | null
+    /**
+     * Someone else's PIX key, saved from a payment. It can be paid again from
+     * Send, but the PIX withdrawal pays out only to the user's own account.
+     */
+    isPixRecipient?: boolean
 }
 
 interface userInvites {
@@ -299,11 +318,16 @@ export interface IUserProfile {
     // `capabilities` on /get-user. Read via useIdentityVerification(). The status
     // surfaces render this; no provider names. Optional during the migration.
     identityVerification?: IdentityVerification
+    signupPreferences?: SignupPreferences | null
     profileNameLocked?: boolean
     // Residence-based availability derived server-side from the residence the
     // user declared at signup. Read via useResidenceRestrictions(). Advisory
     // offer-shaping only: hides bank/card surfaces the user could never use.
     residenceRestrictions?: { banking: boolean; card: boolean }
+    // The deposit-accounts rollout as the claim route decides it, from
+    // `app.configurations`. Read via useDepositAccountsEnabled(). Optional for
+    // the window before that API lands; absent reads as off.
+    depositAccounts?: { enabled: boolean }
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
     // nextChangeAllowedAt: legacy field, ignored for self-declaration.
@@ -316,6 +340,11 @@ export interface IUserProfile {
         declared: string | null
         declaredSecond?: string | null
         verified: string | null
+        kycReported?: string | null
+        pending?: string | null
+        pendingSecond?: string | null
+        pendingStatus?: 'REQUESTED' | 'COLLECTING' | 'REVIEW_PENDING' | string | null
+        pendingRequestedAt?: string | null
         nextChangeAllowedAt?: string | null
     }
 }
@@ -330,6 +359,9 @@ export interface Contact {
     userId: string
     username: string
     fullName: string | null
+    /** Picked profile avatar; null (or absent, on an older API) means the
+     *  username-letter fallback. Same shape as `User.avatarKey`. */
+    avatarKey?: string | null
     /** Provider-agnostic verified badge (BE-computed `computeIsVerified`). */
     isVerified: boolean
     showFullName: boolean

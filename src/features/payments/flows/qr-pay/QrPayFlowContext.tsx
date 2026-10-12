@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
+import type { ReceivedLock } from '@/utils/price-lock.utils'
 import { useQrPayFlowController, type QrPayFlowSurface } from './useQrPayFlow'
 import type { QrPayCurrency, QrPayScanParams } from './qr-pay-flow.types'
 
@@ -19,7 +20,7 @@ export function QrPayFlowProvider({ qrCode, timestamp, qrType, pixKey, children 
         setErrorMessageRaw(message)
         setErrorCode(code)
     }, [])
-    const [paymentLock, setPaymentLock] = useState<QrPaymentLock | null>(null)
+    const [paymentLock, setPaymentLock] = useState<ReceivedLock<QrPaymentLock> | null>(null)
     const [qrPayment, setQrPayment] = useState<QrPayment | null>(null)
     const [amount, setAmount] = useState<string | undefined>(undefined)
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)

@@ -25,8 +25,8 @@ export const MANTECA_QR_DEPOSIT_ADDRESS_NON_AR = '0x49200bF84dC26349C86ce0400190
  */
 export const MANTECA_QR_INIT_SCAN_TIMEOUT_MS = 10_000
 
-export const MANTECA_ARG_DEPOSIT_NAME = 'Sixalime Sas'
-export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678845-3'
+export const MANTECA_ARG_DEPOSIT_NAME = 'SIXALIME S.A.U.'
+export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678854-3'
 
 // ui mirror of peanut-api-ts/src/manteca/consts.ts MANTECA_SUPPORTED_COUNTRIES.
 // first-party manteca bank/kyc rails are currently active only in argentina and brazil.
@@ -66,7 +66,6 @@ export type MantecaBankCode = {
 }
 
 type MantecaCountryConfig = {
-    accountNumberLabel: string
     depositAddressLabel: string
 } & (
     | {
@@ -90,20 +89,17 @@ type MantecaCountryConfig = {
  */
 export const MANTECA_COUNTRIES_CONFIG: Record<string, MantecaCountryConfig> = {
     AR: {
-        accountNumberLabel: 'CBU, CVU or Alias',
         depositAddressLabel: 'CBU',
         needsBankCode: false,
         needsAccountType: false,
     },
     BR: {
-        accountNumberLabel: 'PIX Key (Include +55 in case of phone number)',
-        depositAddressLabel: 'PIX Key',
+        depositAddressLabel: 'Pix key',
         needsBankCode: false,
         needsAccountType: false,
     },
     BO: {
-        accountNumberLabel: 'Account Number',
-        depositAddressLabel: 'Deposit Address',
+        depositAddressLabel: 'Deposit address',
         needsBankCode: true,
         needsAccountType: true,
         validAccountTypes: [MantecaAccountType.CHECKING, MantecaAccountType.SAVINGS],

@@ -1,10 +1,11 @@
 'use client'
 
 import { useLocale } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
-import { shareableUrl } from '@/utils/url.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { openReceiptPdfUrl, receiptPdfPath } from './receipt-pdf-link.utils'
 
 /**
  * Download affordance for the server-rendered PDF receipt
@@ -14,31 +15,33 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
  * so the click is intercepted and the production URL opens in the system
  * browser sheet via the existing external-open pattern.
  *
- * The locale rides the URL, not a cookie: the PDF bytes vary by locale and
- * final receipts are CDN-cached by URL, and the native path opens an external
+ * The locale and receipt state ride the URL, not a cookie: the PDF bytes vary
+ * by both and final receipts are CDN-cached by URL, and the native path opens an external
  * browser that has no app cookies at all.
  */
-export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kind: string }) {
+export function DownloadReceiptPdfLink({ entryId, kind, version }: { entryId: string; kind: string; version: string }) {
     const t = useAppTranslations('transaction')
     const locale = useLocale()
-    const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
+    const pdfPath = receiptPdfPath(entryId, kind, locale, version)
 
     return (
-        <a
+        // primary: download is the public receipt's one primary
+        <Button
+            variant="primary"
             href={pdfPath}
             download
-            target="_blank"
-            rel="noopener noreferrer"
+            external
+            shadowSize="4"
             onClick={(e) => {
                 if (isCapacitor()) {
                     e.preventDefault()
-                    void openExternalUrl(shareableUrl(pdfPath))
+                    openReceiptPdfUrl(pdfPath)
                 }
             }}
-            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors duration-fast hover:text-foreground-primary print:hidden"
+            className="justify-center print:hidden"
         >
-            <Icon name="download" size={16} className="text-foreground-secondary" />
+            <Icon name="download" size={20} />
             {t('actions.downloadPdf')}
-        </a>
+        </Button>
     )
 }

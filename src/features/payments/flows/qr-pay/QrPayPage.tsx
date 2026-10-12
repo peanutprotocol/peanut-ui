@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { QrPayFlowProvider, useQrPayFlow } from './QrPayFlowContext'
@@ -14,13 +15,16 @@ import { QrPayKycGateView } from './views/QrPayKycGateView'
 import { QrPayProviderRejectionView } from './views/QrPayProviderRejectionView'
 import { QrPayBlockedView } from './views/QrPayBlockedView'
 import { QrPayPageLoading } from './views/QrPayPageLoading'
+import { QrPayProcessingView } from './views/QrPayProcessingView'
 
 // internal component that switches views — the precedence itself lives in
 // deriveQrPayView, so this stays a flat map from view to component
 function QrPayFlowContent() {
-    const { view, loadingState } = useQrPayFlow()
+    const { view, loadingState, retryRate } = useQrPayFlow()
     const t = useAppTranslations('qrPay')
+    const tNav = useTranslations('navigation')
     const tLoading = useTranslations('loadingStates')
+    const onBack = useSafeBack('/home')
 
     switch (view) {
         case 'KYC_LOADING':
@@ -35,8 +39,10 @@ function QrPayFlowContent() {
             return <QrPayBlockedView />
         case 'AWAITING_MERCHANT':
             return <QrPayPageLoading message={t('waitingForMerchant')} />
+        case 'RATE_UNAVAILABLE':
+            return <RateGateScreen title={tNav('pay')} onBack={onBack} isLoading={false} onRetry={retryRate} />
         case 'LOADING':
-            if (loadingState === 'Paying') return <CyclingLoading />
+            if (loadingState === 'Paying') return <QrPayProcessingView />
             /*
              * Captioned only for the retry window. A scan being retried after a
              * stalled request is otherwise pixel-identical to a slow first attempt,
@@ -46,7 +52,11 @@ function QrPayFlowContent() {
             if (loadingState === 'Still fetching details') {
                 return <QrPayPageLoading message={tLoading(loadingStateKey(loadingState))} />
             }
-            return <Loading variant="mascot" />
+            return (
+                <QrPayPageLoading
+                    message={tLoading(loadingStateKey(loadingState === 'Idle' ? 'Fetching details' : loadingState))}
+                />
+            )
         case 'STATUS':
             return <QrPayStatusView />
         case 'SUCCESS':

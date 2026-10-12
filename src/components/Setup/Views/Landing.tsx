@@ -1,18 +1,19 @@
 'use client'
 
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { isAlreadyReported } from '@/utils/webauthn.utils'
+import { getPasskeyErrorSetupKey, isAlreadyReported } from '@/utils/webauthn.utils'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Card } from '@/components/0_Bruddle/Card'
-import Divider from '@/components/0_Bruddle/Divider'
+import { Icon } from '@/components/Global/Icons/Icon'
+import SetupFooter from '../components/SetupFooter'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
+import { LINK_BUTTON_CLASSES, LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -23,16 +24,14 @@ import { isCapacitor } from '@/utils/capacitor'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
-    const tCommon = useTranslations('common')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
     const { deviceType } = useDeviceType()
 
-    // migration notice window on web (any device): NEW signups are closed —
-    // don't onboard users into a product that shuts in weeks; the app is the
-    // path. Existing users keep Log In until the cutover. Native app and
-    // keep-web bypass users see the normal card.
+    // pwa-sunset on web (any device): NEW signups are app-only, so the app
+    // download leads and Log In drops to a text link for existing accounts.
+    // Native app and keep-web bypass users see the normal card.
     const blockSignup = migrationOn && !isCapacitor() && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
@@ -47,7 +46,8 @@ const LandingStep = () => {
 
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
-        toast.error((error instanceof Error && error.message) || t('loginFailed'))
+        const i18nKey = getPasskeyErrorSetupKey(error)
+        toast.error(i18nKey ? t(i18nKey) : (error instanceof Error && error.message) || t('loginFailed'))
         if (!isAlreadyReported(error)) {
             Sentry.captureException(error, { extra: { errorCode } })
         }
@@ -62,25 +62,44 @@ const LandingStep = () => {
         }
     }
 
+    const recoveryLink = (
+        <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
+            <Icon name="info" size={16} className="shrink-0" />
+            {t('landing.recoverWallet')}
+        </SetupDocLink>
+    )
+
+    if (blockSignup) {
+        return (
+            <div className="flex flex-col gap-6">
+                <div className="space-y-2 pb-2">
+                    {/* heading only above the desktop QR — a lone store button
+                        explains itself */}
+                    {deviceType === DeviceType.WEB && (
+                        <p className="text-center text-label-l text-foreground-primary">{tMigration('banner.title')}</p>
+                    )}
+                    <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                </div>
+                <div className="text-center">
+                    <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
+                        {tMigration('qr.logIn')}
+                    </LinkButton>
+                </div>
+                {/* pt-1: two stacked text links need ~28px between their hit areas */}
+                <div className="pt-1 text-center">{recoveryLink}</div>
+            </div>
+        )
+    }
+
+    // Sign up sits at the primary height every step shares; Log in takes the slot below it.
     return (
-        <Card className="border-0">
-            <Card.Content className="space-y-4 p-0 pt-4">
-                {blockSignup ? (
-                    <div className="space-y-2 pb-2">
-                        {/* heading only above the desktop QR — a lone store button
-                            explains itself */}
-                        {deviceType === DeviceType.WEB && (
-                            <p className="text-center text-label-l text-foreground-primary">
-                                {tMigration('banner.title')}
-                            </p>
-                        )}
-                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
-                    </div>
-                ) : (
+        <div className="flex flex-1 flex-col">
+            <div className="text-left">{recoveryLink}</div>
+            <SetupFooter
+                actions={
                     <Button
                         shadowSize="4"
-                        className="h-11"
-                        // native only: mid-ceremony Sign Up taps flashed the waitlist
+                        // native only: mid-ceremony Sign Up taps flashed the next setup
                         // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
                         // pend minutes — Sign Up must stay an escape hatch there, and a
                         // mid-ceremony register fails cleanly as CeremonyConflictError.
@@ -92,28 +111,21 @@ const LandingStep = () => {
                     >
                         {t('landing.signUp')}
                     </Button>
-                )}
-                <Divider text={tCommon('or')} />
-                <Button
-                    loading={isLoggingIn}
-                    shadowSize="4"
-                    disabled={isLoggingIn}
-                    className="h-11"
-                    variant="primary-soft"
-                    onClick={onLoginClick}
-                >
-                    {t('logIn')}
-                </Button>
-                <div className="pt-2 text-center">
-                    <DocsLink
-                        href="/en/help/account-recovery"
-                        className="text-body-xs text-foreground-secondary underline underline-offset-2"
+                }
+                secondary={
+                    <Button
+                        loading={isLoggingIn}
+                        shadowSize="4"
+                        className="w-full"
+                        disabled={isLoggingIn}
+                        variant="secondary"
+                        onClick={onLoginClick}
                     >
-                        {t('landing.recoverWallet')}
-                    </DocsLink>
-                </div>
-            </Card.Content>
-        </Card>
+                        {t('logIn')}
+                    </Button>
+                }
+            />
+        </div>
     )
 }
 

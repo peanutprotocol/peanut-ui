@@ -3,7 +3,9 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { UpliftStartTrigger } from '@/utils/eea-uplift.utils'
 
-type UpliftChannel = 'deposit' | 'withdraw'
+// `verification-tasks`: the Home and Accounts task cards, where a future-dated
+// request starts now that bank screens no longer interrupt for it.
+type UpliftChannel = 'deposit' | 'withdraw' | 'verification-tasks'
 
 function upliftEventProps(channel: UpliftChannel, trigger: UpliftStartTrigger) {
     return {
@@ -24,7 +26,8 @@ function sameTrigger(a: UpliftStartTrigger | null, b: UpliftStartTrigger): boole
 /**
  * Fires the EEA-uplift funnel events for PostHog so the flow can be filtered
  * directly (and session recordings tagged): `eea_uplift_started` when the uplift
- * modal OPENS, and `eea_uplift_completed` on KYC success.
+ * starts (the blocking modal opens, or the task card is tapped), and
+ * `eea_uplift_completed` on KYC success.
  *
  * Firing on modal-open (not on the modal's CTA) means abandoners are captured
  * too — the whole point is to watch who attempts the uplift and whether they

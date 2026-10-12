@@ -99,7 +99,7 @@ export function GraphTopBar({
                                 value={searchQuery}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 placeholder={t('invitesGraph.searchPlaceholder')}
-                                className="/20 w-full rounded-lg border py-1.5 pr-9 pl-9 text-body-s transition-colors focus:ring-2 focus:outline-none"
+                                className="w-full rounded-lg border py-1.5 pr-9 pl-9 text-body-s transition-colors focus:ring-2 focus:outline-none"
                             />
                             <Icon
                                 name="search"

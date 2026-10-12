@@ -20,13 +20,14 @@ concurrency:
 
 jobs:
     update:
-        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
-        # deployment branch policy allows `main` only. The token is an org admin
-        # (it needs the bypass to merge), and a dozen workflows in this repo carry
-        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
-        # plain repo secret it was therefore readable by anyone with write access:
-        # push a branch with a workflow that echoes it, dispatch that branch, done.
-        # Scoped to the environment it is unreachable from any ref but `main`.
+        # Read CONTENT_BOT_APP_PRIVATE_KEY from the `content-publish` environment,
+        # whose deployment branch policy allows `main` only. The key mints tokens
+        # for the chip-peanut-bot app (which carries the "Protect Prod" bypass),
+        # and a dozen workflows in this repo carry `workflow_dispatch`, which runs
+        # a workflow FROM THE DISPATCHED REF. As a plain repo secret it was
+        # therefore readable by anyone with write access: push a branch with a
+        # workflow that echoes it, dispatch that branch, done. Scoped to the
+        # environment it is unreachable from any ref but `main`.
         environment: content-publish
         runs-on: ubuntu-latest
         steps:
@@ -43,6 +44,21 @@ jobs:
             - uses: actions/checkout@v4
               with:
                   ref: main
+                  # Without this, the persisted GITHUB_TOKEN header overrides the
+                  # explicit push credential below, so the push raises no workflow
+                  # events and CI never runs on the branch.
+                  persist-credentials: false
+
+            # The bot credential is a short-lived installation token minted from
+            # the chip-peanut-bot app key each run. The fine-grained PAT it
+            # replaces expired after 30 days and took the pipeline down silently
+            # (2026-09-18); an app key does not expire.
+            - name: Mint bot token
+              id: bot
+              uses: actions/create-github-app-token@v2
+              with:
+                  app-id: 2915219
+                  private-key: ${{ secrets.CONTENT_BOT_APP_PRIVATE_KEY }}
 
             - name: Init and update submodule
               env:
@@ -65,16 +81,16 @@ jobs:
 
             - name: Create PR (content-only)
               if: steps.check.outputs.changed == 'true'
-              # Prefer a PAT (CONTENT_BOT_TOKEN) so the PR triggers CI. Falls back to
-              # GITHUB_TOKEN — the PR still opens, but GITHUB_TOKEN-created PRs don't
-              # trigger CI, so nothing would ever gate or merge it.
+              # Use the app token so the push and the PR trigger CI —
+              # GITHUB_TOKEN-created refs and PRs don't, so nothing would ever
+              # gate or merge the publish.
               #
               # Approve + merge are deliberately NOT done here: that belongs to
               # content-publish-automerge.yml, which runs from `main` (tamper-proof)
               # and re-verifies the content-only diff AND green `ci-success` before
               # merging. One guard, in one place, on the base branch.
               env:
-                  GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ steps.bot.outputs.token }}
                   SIGNING_KEY: ${{ secrets.CONTENT_BOT_SIGNING_KEY }}
               run: |
                   set -euo pipefail
@@ -117,8 +133,9 @@ jobs:
                   git add src/content
                   git commit -S -m "Update content submodule to latest main"
 
-                  # Push over CONTENT_BOT_TOKEN rather than the GITHUB_TOKEN that
-                  # actions/checkout persisted as the origin credential. Two reasons:
+                  # Push over the app token, never GITHUB_TOKEN (checkout runs with
+                  # persist-credentials: false so no persisted header can override
+                  # this credential). Two reasons:
                   #   - A GITHUB_TOKEN push raises no workflow events, so `Tests` would
                   #     run for the `pull_request` event only. content-publish-
                   #     automerge.yml expects a commit to carry two `ci-success` runs

@@ -5,6 +5,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { CapacitorCookies } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 import * as secureStore from '@/utils/secure-token-store'
+import { clearWalletSession } from '../push-provisioning'
 
 // Exercise the guarded-mode paths: with OPEN_GATED on, guarded use defers to the
 // isGuardedStoreSupported mock below (default false → plain), so the flag is a
@@ -50,6 +51,10 @@ jest.mock('@capacitor/preferences', () => ({
     },
 }))
 
+jest.mock('../push-provisioning', () => ({
+    clearWalletSession: jest.fn(),
+}))
+
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
 // Cookies.get has overloaded signatures (one-arg returns string|undefined, no-arg
 // returns { [key: string]: string }). jest.Mocked<typeof Cookies> picks the no-arg
@@ -77,6 +82,7 @@ const mockSecureStore = secureStore as unknown as {
     guardedDelete: jest.Mock
     canWriteSilently: jest.Mock
 }
+const mockClearWalletSession = clearWalletSession as jest.MockedFunction<typeof clearWalletSession>
 
 // setAuthToken persistence and mode detection run through several awaited
 // dynamic imports and Preferences reads — a timer turn flushes the whole chain
@@ -110,6 +116,7 @@ describe('auth-token', () => {
         mockPreferences.get.mockResolvedValue({ value: null })
         mockPreferences.set.mockResolvedValue(undefined)
         mockPreferences.remove.mockResolvedValue(undefined)
+        mockClearWalletSession.mockResolvedValue(undefined)
         // reset document.cookie
         document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
         loadModule()
@@ -310,6 +317,11 @@ describe('auth-token', () => {
                 expect(mockCookies.remove).toHaveBeenCalledWith('jwt-token', { path: '/' })
             })
 
+            it('awaits clearing the Wallet session mirror', async () => {
+                await auth.clearAuthToken()
+                expect(mockClearWalletSession).toHaveBeenCalledTimes(1)
+            })
+
             it('resolves even when the native clears fail', async () => {
                 mockPreferences.remove.mockRejectedValue(new Error('bridge down'))
                 mockCapCookies.clearCookies.mockRejectedValue(new Error('bridge down'))
@@ -331,6 +343,7 @@ describe('auth-token', () => {
                 await auth.clearAuthToken()
                 expect(mockPreferences.remove).not.toHaveBeenCalled()
                 expect(mockCapCookies.clearCookies).not.toHaveBeenCalled()
+                expect(mockClearWalletSession).not.toHaveBeenCalled()
             })
         })
     })

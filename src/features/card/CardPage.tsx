@@ -1,32 +1,31 @@
 'use client'
-import { type FC } from 'react'
+import { type FC, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
+import { CardAcquisitionScreen, CardMilestoneScreen } from './components/CardAcquisitionScreen'
+import { readStoredValue, removeStoredValue } from '@/utils/safe-storage'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardCountryConfirmScreen from '@/components/Card/CardCountryConfirmScreen'
-import CardRejectionScreen from '@/components/Card/CardRejectionScreen'
-import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
-import CardEligibilityCheckScreen from '@/components/Card/CardEligibilityCheckScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
-import { displayableBadges } from '@/constants/badges.consts'
 import { useCardFlow } from './useCardFlow'
-import { markSkipCelebrationSeen } from './utils'
 
 export const CardPage: FC = () => {
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
     const {
         user,
-        fetchUser,
         cardInfo,
-        pioneerError,
+        isCardFunded,
+        needsFundingBeforeApply,
+        fundingRequired,
+        fetchUser,
+        cardInfoError,
         refetchCardInfo,
         overview,
         overviewError,
@@ -41,11 +40,10 @@ export const CardPage: FC = () => {
         setPendingCountryConfirmation,
         isIssuing,
         geoBlocked,
+        pendingResidenceBlocked,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
-        setEligibilityCheckDone,
-        setSkipCelebrationSeen,
         invalidateOverview,
         poaToken,
         setPoaToken,
@@ -63,12 +61,11 @@ export const CardPage: FC = () => {
         onBack,
     } = useCardFlow()
 
-    // Outer-gate fail — the useEffect in the flow hook fires notFound() to
-    // render the 404 boundary; render nothing here so the page doesn't flash
-    // for the one frame before that lands.
-    if (state === 'no-flow-access') {
-        return null
-    }
+    const celebrationKey = `card_issuance_celebration_pending_v1:${user?.user.userId}`
+    const [showIssuedCelebration, setShowIssuedCelebration] = useState(false)
+    useEffect(() => {
+        setShowIssuedCelebration(state === 'active' && readStoredValue(celebrationKey) === '1')
+    }, [state, celebrationKey])
 
     if (state === 'loading') {
         return (
@@ -80,12 +77,12 @@ export const CardPage: FC = () => {
         )
     }
 
-    if (pioneerError || overviewError) {
+    if (cardInfoError || overviewError) {
         return (
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
                     <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
-                    <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
+                    <Button onClick={() => refetchCardInfo()} variant="primary" shadowSize="4">
                         {tCommon('retry')}
                     </Button>
                 </div>
@@ -109,6 +106,9 @@ export const CardPage: FC = () => {
         if (geoBlocked) {
             return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
         }
+        if (pendingResidenceBlocked) {
+            return <ApplicationStatusScreen variant="pending-residence-blocked" onPrev={onBack} />
+        }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.
         if (pendingCountryConfirmation) {
@@ -130,6 +130,19 @@ export const CardPage: FC = () => {
         // Terms screen takes precedence over the state-machine target — the
         // user already clicked "Get your card" or completed Sumsub; we need
         // to collect consent before letting them back out to Add Card.
+        if (fundingRequired) {
+            return (
+                <CardAcquisitionScreen
+                    userId={user?.user.userId ?? ''}
+                    eligible={true}
+                    funded={isCardFunded}
+                    needsFundingBeforeApply={needsFundingBeforeApply}
+                    fundingRequired
+                    onApply={() => handleApply(false)}
+                    onPrev={onBack}
+                />
+            )
+        }
         if (pendingTerms) {
             return (
                 <CardTermsScreen
@@ -141,71 +154,24 @@ export const CardPage: FC = () => {
             )
         }
         switch (state) {
-            case 'eligibility-check':
-                return (
-                    <CardEligibilityCheckScreen
-                        username={user?.user?.username ?? undefined}
-                        onPrev={onBack}
-                        onComplete={() => {
-                            setEligibilityCheckDone(true)
-                            // The state machine re-evaluates on the next render
-                            // and either lands on 'waitlist-skip-celebration' or
-                            // 'waitlist' based on skipBadges. No nav, just a
-                            // state flip — keeps the share-asset reveal feeling
-                            // continuous.
-                        }}
-                    />
-                )
-            case 'waitlist': {
-                // The Berghain-style "not tonight" rejection is the TERMINAL
-                // waitlist screen — a shareable door let-down (tags @joinpeanut)
-                // that doubles as the waitlist-join CTA. Once they join we keep
-                // them here (`alreadyJoined`) so the asset + "Tweet to appeal"
-                // stay grabbable — no separate cooldown screen to dead-end on.
-                return (
-                    <CardRejectionScreen
-                        username={user?.user?.username ?? undefined}
-                        waitlistTotal={cardInfo!.waitlistTotal}
-                        admittedTotal={cardInfo!.admittedTotal}
-                        alreadyJoined={!!cardInfo!.waitlistJoinedAt}
-                        onPrev={onBack}
-                        onJoined={refetchCardInfo}
-                    />
-                )
-            }
-            case 'waitlist-skip-celebration': {
-                // Pick the freshest skip badge for the celebration headline.
-                const skipCode = cardInfo!.skipBadges[0]
-                // Share asset shows ALL earned badges, not just skip-badges.
-                // `user.user.badges` is the full collection from /get-user
-                // (with earnedAt) — fall back to cardInfo.skipBadges if it
-                // hasn't loaded yet so we still render something. Filtered:
-                // this builds a shareable image, and permission records must
-                // never be stamped onto one.
-                const shareableBadges = user?.user?.badges && displayableBadges(user.user.badges)
-                const allBadges =
-                    shareableBadges?.map((b) => ({
-                        code: b.code,
-                        iconUrl: b.iconUrl,
-                        earnedAt: b.earnedAt,
-                        isVisible: b.isVisible,
-                    })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
-                return (
-                    <BadgeSkipCelebration
-                        badgeCode={skipCode}
-                        username={user?.user?.username ?? undefined}
-                        badges={allBadges}
-                        onContinue={() => {
-                            markSkipCelebrationSeen()
-                            setSkipCelebrationSeen(true)
-                            invalidateOverview()
-                            void refetchCardInfo()
-                        }}
-                    />
-                )
-            }
             case 'add-card':
-                return <AddCardEntryScreen onApply={() => handleApply(false)} onPrev={onBack} applyError={applyError} />
+                return (
+                    <CardAcquisitionScreen
+                        key={user?.user.userId}
+                        userId={user?.user.userId ?? ''}
+                        eligible={
+                            !!cardInfo?.isEligible &&
+                            !overview?.status.hasApplication &&
+                            overview?.status.railStatus !== 'ENABLED'
+                        }
+                        funded={isCardFunded}
+                        needsFundingBeforeApply={needsFundingBeforeApply}
+                        fundingRequired={fundingRequired}
+                        onApply={() => handleApply(false)}
+                        onPrev={onBack}
+                        applyError={applyError}
+                    />
+                )
             case 'pending':
                 return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
             case 'manual-review':
@@ -284,6 +250,17 @@ export const CardPage: FC = () => {
                 )
             }
             case 'active': {
+                if (showIssuedCelebration) {
+                    return (
+                        <CardMilestoneScreen
+                            issued
+                            onContinue={() => {
+                                removeStoredValue(celebrationKey)
+                                setShowIssuedCelebration(false)
+                            }}
+                        />
+                    )
+                }
                 const card = findActiveCard(overview)!
                 return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
             }

@@ -2,7 +2,13 @@
 // Android splash teardown against a window that is released by the time the app
 // resumes and draws, crashing the process. The hide must park until active.
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { useSplashGate, resetSplashGateForTests } from '../useSplashGate'
+import {
+    completeOtaLaunchDecision,
+    isSplashVisible,
+    useSplashGate,
+    resetSplashGateForTests,
+    whenNativeSplashHidden,
+} from '../useSplashGate'
 
 jest.mock('next/navigation', () => ({ usePathname: () => '/home' }))
 
@@ -30,6 +36,7 @@ let warn: jest.SpyInstance
 
 beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
     resetSplashGateForTests()
     isActive = true
     emitState = undefined
@@ -46,6 +53,19 @@ describe('useSplashGate', () => {
 
         await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
         expect(warn).not.toHaveBeenCalled()
+    })
+
+    it('keeps the splash over a previously downloaded OTA until the launch decision finishes', async () => {
+        window.localStorage.setItem('capgoDownloadedBundleId', 'bundle-1')
+        renderHook(() => useSplashGate())
+        await act(async () => {
+            await Promise.resolve()
+        })
+        expect(hide).not.toHaveBeenCalled()
+        expect(isSplashVisible()).toBe(true)
+
+        await act(async () => completeOtaLaunchDecision())
+        await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
     })
 
     it('defers the hide while the app is backgrounded and fires it on resume', async () => {
@@ -111,4 +131,16 @@ describe('useSplashGate', () => {
 
         await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
     })
+})
+
+it('signals the animated intro only after the native hide promise settles', async () => {
+    let finishHide!: () => void
+    hide.mockImplementationOnce(() => new Promise<void>((resolve) => (finishHide = resolve)))
+    const introReady = jest.fn()
+    void whenNativeSplashHidden().then(introReady)
+    renderHook(() => useSplashGate())
+    await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
+    expect(introReady).not.toHaveBeenCalled()
+    await act(async () => finishHide())
+    expect(introReady).toHaveBeenCalledTimes(1)
 })

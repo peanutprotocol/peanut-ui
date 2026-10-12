@@ -27,7 +27,7 @@ export type DeviceIdentity = {
  * flagship. WebKit exposes neither it nor a usable substitute — an iPhone's
  * `hardwareConcurrency` is small on fast hardware — so iOS deliberately stays
  * `unknown` instead of being ranked by a signal that would read every iPhone as
- * slow. Segment iOS by `device_model` (native) or `device_screen` (PWA).
+ * slow. Segment iOS by `device_model` in the native app or `device_screen` on web.
  */
 export function classifyDevice(memoryGb: number | undefined): DeviceClass {
     if (memoryGb === undefined) return 'unknown'

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import NavHeader from '@/components/Global/NavHeader'
 import ActionModal from '@/components/Global/ActionModal'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useModalsContext } from '@/context/ModalsContext'
 import { QrKycState } from '@/constants/kyc.consts'
@@ -30,7 +31,7 @@ export function QrPayProviderRejectionView() {
     const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
 
     return (
-        <div className="flex min-h-inherit flex-col gap-8">
+        <PageStack>
             <NavHeader title={tNav('pay')} />
             <ActionModal
                 visible={!kycPromptDismissed && !sumsubFlow.errorCooldown}
@@ -49,6 +50,7 @@ export function QrPayProviderRejectionView() {
                           ? (qrKycUserMessage ?? t('kyc.restartDescription'))
                           : (qrKycUserMessage ?? t('kyc.blockedDescription'))
                 }
+                tone="error"
                 icon={
                     methodIcon ? (
                         <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
@@ -63,7 +65,7 @@ export function QrPayProviderRejectionView() {
                                       provider: 'MANTECA',
                                       actionKey: qrKycActionKey,
                                   }),
-                              variant: 'purple' as const,
+                              variant: 'primary' as const,
                               shadowSize: '4' as const,
                               icon: 'upload-cloud' satisfies IconName,
                           }
@@ -71,14 +73,14 @@ export function QrPayProviderRejectionView() {
                           ? {
                                 text: t('kyc.restartTitle'),
                                 onClick: () => sumsubFlow.handleRestartIdentity(),
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                                 icon: 'upload-cloud' satisfies IconName,
                             }
                           : {
                                 text: tCommon('contactSupport'),
                                 onClick: () => setIsSupportModalOpen(true),
-                                variant: 'stroke' as const,
+                                variant: 'secondary' as const,
                             },
                 ]}
             />
@@ -89,6 +91,6 @@ export function QrPayProviderRejectionView() {
                     onBack()
                 }}
             />
-        </div>
+        </PageStack>
     )
 }

@@ -5,6 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, {
     type ActionModalButtonProps,
     type ActionModalCheckboxProps,
+    type ActionModalTertiaryCta,
     type ActionModalTone,
 } from '@/components/Global/ActionModal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
@@ -13,6 +14,8 @@ import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { BASE_URL } from '@/constants/general.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
@@ -21,7 +24,6 @@ import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
 import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
-import { useChainRollout } from '@/hooks/useChainRollout'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -35,6 +37,7 @@ enum EModalType {
     EXTERNAL_URL = 'EXTERNAL_URL',
     UNRECOGNIZED = 'UNRECOGNIZED',
     PIX_RECURRING = 'PIX_RECURRING',
+    ARGENTINA_ALIAS = 'ARGENTINA_ALIAS',
 }
 
 interface QrResultModalProps {
@@ -51,6 +54,7 @@ interface QrResultModalContent {
     title: string
     description: React.ReactNode
     ctas: ActionModalButtonProps[]
+    tertiaryCta?: ActionModalTertiaryCta
     checkbox?: ActionModalCheckboxProps
 }
 
@@ -125,7 +129,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
             tone: 'success',
             title: t('qrScannerOverlay.titleWillBeNotified'),
             description: t('qrScannerOverlay.willBeNotified', { qrName }),
-            ctas: [{ text: tCommon('close'), variant: 'stroke', onClick: onClose }],
+            ctas: [{ text: tCommon('close'), shadowSize: '4', onClick: onClose }],
         },
         [EModalType.DIRECT_SEND]: {
             tone: 'info',
@@ -151,17 +155,17 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                         closeAfterNavigation()
                     },
                 },
-                // The only way out: preventClose covers Escape, the backdrop and
-                // the back handler, and the X is hidden, so without this the user
-                // has to accept the warning to leave the modal.
-                { text: tCommon('close'), variant: 'stroke', onClick: onClose },
             ],
+            // The only way out: preventClose covers Escape, the backdrop and
+            // the back handler, and the X is hidden, so without this the user
+            // has to accept the warning to leave the modal.
+            tertiaryCta: { text: tCommon('close'), onClick: onClose },
         },
         // A payload that is not an http(s) link is not one the user can be asked
         // to trust, so it is reported as unrecognised instead of offered.
         [EModalType.EXTERNAL_URL]: externalUrl
             ? {
-                  tone: 'warning',
+                  tone: 'attention',
                   title: t('qrScannerOverlay.titleExternalUrl'),
                   description: (
                       <>
@@ -170,10 +174,8 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                           <p>{t('qrScannerOverlay.externalUrlTrust')}</p>
                       </>
                   ),
-                  ctas: [
-                      { text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() },
-                      { text: tCommon('close'), variant: 'stroke', onClick: onClose },
-                  ],
+                  ctas: [{ text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() }],
+                  tertiaryCta: { text: tCommon('close'), onClick: onClose },
               }
             : unrecognizedContent,
         [EModalType.UNRECOGNIZED]: unrecognizedContent,
@@ -184,6 +186,17 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                 <>
                     <p>{t('qrScannerOverlay.pixRecurringIntro')}</p>
                     <p>{t('qrScannerOverlay.pixRecurringBody')}</p>
+                </>
+            ),
+            ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
+        },
+        [EModalType.ARGENTINA_ALIAS]: {
+            tone: 'info',
+            title: t('qrScannerOverlay.titleArgentinaAlias'),
+            description: (
+                <>
+                    <p>{t('qrScannerOverlay.argentinaAliasIntro')}</p>
+                    <p>{t('qrScannerOverlay.argentinaAliasBody')}</p>
                 </>
             ),
             ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
@@ -218,7 +231,6 @@ export default function QRScannerOverlay() {
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
-    const isChainRolledOut = useChainRollout()
 
     // Remounts the result modal per scan so its acknowledgement starts unticked
     // on the first paint, not after an effect.
@@ -351,6 +363,13 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
+            // Before ENS and before the generic URL branch: a typed Argentine
+            // alias is not a name to look up, it is a "scan the merchant QR"
+            // answer. No resolver call is made for one.
+            case EQrType.ARGENTINA_ALIAS: {
+                showModal(EModalType.ARGENTINA_ALIAS)
+                return { success: true }
+            }
             case EQrType.ENS_NAME: {
                 const resolvedAddress = await resolveEns(normalized)
                 if (resolvedAddress) {
@@ -367,6 +386,7 @@ export default function QRScannerOverlay() {
                 {
                     const timestamp = Date.now()
                     redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(data)}&t=${timestamp}&type=${recognized}`
+                    void offerPushPrompt(PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN)
                 }
                 break
             case EQrType.PIX_KEY:
@@ -374,6 +394,7 @@ export default function QRScannerOverlay() {
                     const url = pixKeyToQrPayUrl(data)
                     if (url) {
                         redirectUrl = url
+                        void offerPushPrompt(PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN)
                     } else {
                         showModal(EModalType.UNRECOGNIZED)
                         return { success: true }
@@ -389,13 +410,13 @@ export default function QRScannerOverlay() {
                 // Both are supported withdrawal destinations, so the scan goes
                 // into the crypto withdrawal flow with the address verbatim —
                 // case is the address in base58. The address is handed over in
-                // process, never in the URL: see stashScannedDestination. Each
-                // is still behind its own rollout flag and behind the ops
-                // kill-switch; while either is off, the notify-me path is the
-                // truth. The chain ids are CHAIN_REGISTRY selector ids — non-EVM
+                // process, never in the URL: see stashScannedDestination. It
+                // refuses the hand-off while the ops kill-switch is on, and the
+                // notify-me path is the truth then. The chain ids are
+                // CHAIN_REGISTRY selector ids — non-EVM
                 // chains have a slug where EVM chains have a numeric chain id.
                 const chainId = recognized === EQrType.SOLANA_ADDRESS ? 'solana' : 'tron'
-                const scanId = isChainRolledOut(chainId) ? stashScannedDestination(scanned, chainId) : null
+                const scanId = stashScannedDestination(scanned, chainId)
                 if (!scanId) {
                     showModal(EModalType.QR_NOT_SUPPORTED)
                     return { success: true }

@@ -1,0 +1,659 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import worker from './collection-worker/index.mjs'
+
+const sha = 'a'.repeat(40)
+const beforeSha = 'c'.repeat(40)
+const comparisonPath = `2026-09-16/pr-42/en/${sha}/run-3-1`
+const image = 'b'.repeat(64) + '.webp'
+function bucket() {
+    const objects = new Map([
+        [
+            'index.json',
+            JSON.stringify([
+                {
+                    path: `2026-09-16/dev/en/${sha}/run-1-1`,
+                    locale: 'en',
+                    source: 'synthetic',
+                    reportType: 'capture',
+                    branch: 'dev',
+                    complete: true,
+                    sequence: 1,
+                },
+                {
+                    path: `2026-09-16/main/en/${sha}/run-2-1`,
+                    locale: 'en',
+                    source: 'synthetic',
+                    reportType: 'capture',
+                    branch: 'main',
+                    complete: true,
+                    sequence: 2,
+                },
+                {
+                    path: comparisonPath,
+                    locale: 'en',
+                    source: 'synthetic',
+                    reportType: 'comparison',
+                    prNumber: 42,
+                    complete: true,
+                    sequence: 3,
+                },
+            ]),
+        ],
+        [
+            `reports/2026-09-16/dev/en/${sha}/run-1-1/manifest.json`,
+            JSON.stringify({
+                schema: 1,
+                type: 'capture',
+                locale: 'en',
+                commit: sha,
+                screens: [
+                    {
+                        id: 'profile',
+                        name: 'Profile',
+                        flow: 'Profile',
+                        kind: 'route',
+                        status: 'captured',
+                        image,
+                    },
+                ],
+            }),
+        ],
+        [
+            `reports/2026-09-16/main/en/${sha}/run-2-1/manifest.json`,
+            JSON.stringify({
+                schema: 1,
+                type: 'capture',
+                locale: 'en',
+                commit: sha,
+                screens: [
+                    {
+                        id: 'profile',
+                        name: 'Historical main profile',
+                        flow: 'Profile',
+                        kind: 'route',
+                        status: 'captured',
+                        image,
+                    },
+                ],
+            }),
+        ],
+        [
+            `reports/${comparisonPath}/manifest.json`,
+            JSON.stringify({
+                schema: 1,
+                type: 'comparison',
+                locale: 'en',
+                before: { commit: beforeSha },
+                after: { commit: sha },
+                screens: [{ id: 'profile', status: 'changed', before: { image }, after: { image } }],
+            }),
+        ],
+    ])
+    const etag = (value) => createHash('sha256').update(String(value)).digest('hex')
+    const httpEtag = (value) => `"${etag(value)}"`
+    const storage = {
+        objects,
+        beforeConditionalPut: null,
+        async get(key) {
+            const value = objects.get(key)
+            return value === undefined
+                ? null
+                : { json: async () => JSON.parse(value), etag: etag(value), httpEtag: httpEtag(value) }
+        },
+        async head(key) {
+            return objects.has(key) ? {} : null
+        },
+        async put(key, value, options = {}) {
+            if (options.onlyIf?.etagMatches) {
+                if (options.onlyIf.etagMatches.startsWith('"'))
+                    throw new Error('Conditional ETag should not be wrapped in quotes')
+                await storage.beforeConditionalPut?.({ key, options })
+                if (etag(objects.get(key)) !== options.onlyIf.etagMatches) return null
+            }
+            objects.set(key, String(value))
+            return { etag: etag(value), httpEtag: httpEtag(value) }
+        },
+    }
+    return storage
+}
+
+test('collection sources keep the canonical default viewport when newer extra-size sets exist', async () => {
+    const storage = bucket()
+    const entries = JSON.parse(storage.objects.get('index.json'))
+    entries.push({
+        path: `2026-09-16/dev/en/320x712/${sha}/run-3-1`,
+        locale: 'en',
+        source: 'synthetic',
+        reportType: 'capture',
+        branch: 'dev',
+        profile: '320x712',
+        complete: true,
+        sequence: 3,
+    })
+    storage.objects.set('index.json', JSON.stringify(entries))
+    const response = await worker.fetch(
+        new Request('https://api.example/v1/screens', {
+            headers: { Authorization: 'Bearer secret' },
+        }),
+        { REPORTS: storage, COLLECTION_SERVICE_TOKEN: 'secret' }
+    )
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).source, `2026-09-16/dev/en/${sha}/run-1-1`)
+})
+const accessContext = {
+    access: {
+        aud: 'screen-library-access',
+        async getIdentity() {
+            return { email: 'reviewer@peanut.me' }
+        },
+    },
+}
+
+test('collection API requires Access identity or the private service token', async () => {
+    const env = { REPORTS: bucket(), COLLECTION_SERVICE_TOKEN: 'secret' }
+    assert.equal((await worker.fetch(new Request('https://api.example/v1/screens'), env)).status, 401)
+    assert.equal(
+        (
+            await worker.fetch(
+                new Request('https://api.example/v1/screens', {
+                    headers: { Authorization: 'Bearer secret' },
+                }),
+                env
+            )
+        ).status,
+        200
+    )
+})
+
+test('collection API searches screens and creates an ordered reusable collection', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+    }
+    const search = await worker.fetch(new Request('https://api.example/v1/screens?q=prof'), env, accessContext)
+    const searchBody = await search.json()
+    assert.equal(searchBody.screens[0].id, 'profile')
+    assert.match(searchBody.source, /\/dev\//)
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Choice overload',
+                items: [{ id: 'profile', note: 'Flat menu' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(created.status, 201)
+    const body = await created.json()
+    assert.equal(body.collection.complete, true)
+    assert.equal(body.collection.createdBy, undefined)
+    assert.equal(body.collection.items[0].note, 'Flat menu')
+    assert.match(body.url, /^https:\/\/screens\.peanut\.me\/collections\//)
+    assert.ok(REPORTS.objects.has(`collections/${body.collection.id}/manifest.json`))
+    assert.deepEqual(JSON.parse(REPORTS.objects.get(`collection-audit/${body.collection.id}.json`)), {
+        id: body.collection.id,
+        createdAt: body.collection.createdAt,
+        createdBy: 'reviewer@peanut.me',
+    })
+})
+
+test('published comparison lookup creates a before/after link for an existing ordered collection', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+    }
+    const listing = await worker.fetch(
+        new Request(`https://api.example/v1/comparisons?locale=en&beforeCommit=${beforeSha}`),
+        env,
+        accessContext
+    )
+    assert.equal(listing.status, 200)
+    assert.deepEqual((await listing.json()).comparisons, [
+        {
+            path: comparisonPath,
+            locale: 'en',
+            beforeCommit: beforeSha,
+            afterCommit: sha,
+            prNumber: 42,
+            changedScreens: 1,
+        },
+    ])
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            body: JSON.stringify({
+                title: 'Profile review',
+                items: [{ id: 'profile', note: 'Check action hierarchy' }, { id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const compare = (path) =>
+        worker.fetch(
+            new Request(`https://api.example/v1/collections/${collection.id}/compare`, {
+                method: 'POST',
+                body: JSON.stringify({ comparisonPath: path }),
+            }),
+            env,
+            accessContext
+        )
+    const response = await compare(comparisonPath)
+    assert.equal(response.status, 200)
+    const result = await response.json()
+    assert.equal(
+        result.url,
+        `https://screens.peanut.me/collections/${collection.id}/?locale=en&compare=${encodeURIComponent(comparisonPath)}`
+    )
+    assert.deepEqual(result.selectedScreens, [
+        { id: 'profile', status: 'changed' },
+        { id: 'send', status: 'unavailable' },
+    ])
+    assert.equal((await compare(`2026-09-16/pr-99/en/${sha}/run-3-1`)).status, 400)
+    assert.equal((await compare('../index.json')).status, 400)
+})
+
+test('comparison lookup filters the full index before bounding its response', async () => {
+    const REPORTS = bucket()
+    const index = JSON.parse(REPORTS.objects.get('index.json')).filter((entry) => entry.reportType !== 'comparison')
+    for (let i = 0; i < 101; i++) {
+        const afterCommit = i.toString(16).padStart(40, '0')
+        const path = `2026-09-16/pr-${1000 + i}/en/${afterCommit}/run-3-1`
+        index.push({ path, locale: 'en', source: 'synthetic', reportType: 'comparison', complete: true })
+        REPORTS.objects.set(
+            `reports/${path}/manifest.json`,
+            JSON.stringify({
+                schema: 1,
+                type: 'comparison',
+                locale: 'en',
+                before: { commit: i === 100 ? beforeSha : 'd'.repeat(40) },
+                after: { commit: afterCommit },
+                screens: [],
+            })
+        )
+    }
+    REPORTS.objects.set('index.json', JSON.stringify(index))
+    const env = { REPORTS, SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access' }
+    const filtered = await worker.fetch(
+        new Request(`https://api.example/v1/comparisons?locale=en&beforeCommit=${beforeSha}`),
+        env,
+        accessContext
+    )
+    const filteredBody = await filtered.json()
+    assert.equal(filteredBody.comparisons.length, 1)
+    assert.equal(filteredBody.comparisons[0].afterCommit, (100).toString(16).padStart(40, '0'))
+    assert.equal(filteredBody.truncated, false)
+
+    const unfiltered = await worker.fetch(
+        new Request('https://api.example/v1/comparisons?locale=en'),
+        env,
+        accessContext
+    )
+    const unfilteredBody = await unfiltered.json()
+    assert.equal(unfilteredBody.comparisons.length, 100)
+    assert.equal(unfilteredBody.truncated, true)
+})
+
+test('captureMissing queues the exact missing matrix against the current dev revision', async () => {
+    const REPORTS = bucket()
+    const calls = []
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url, options = {}) => {
+            calls.push({ url, options })
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const response = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Missing state',
+                items: [{ id: 'send' }],
+                captureMissing: true,
+            }),
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(response.status, 201)
+    const { collection } = await response.json()
+    assert.equal(collection.capture.status, 'queued')
+    const request = JSON.parse(REPORTS.objects.get(`collection-requests/${collection.id}.json`))
+    assert.equal(request.targetCommit, sha)
+    assert.deepEqual(request.screens, { en: ['send'] })
+    const stored = JSON.parse(REPORTS.objects.get(`collections/${collection.id}/manifest.json`))
+    assert.equal(stored.capture.status, 'queued')
+    assert.equal(calls.length, 2)
+    assert.match(calls[1].url, /screen-library-collection\.yml\/dispatches$/)
+    assert.deepEqual(JSON.parse(calls[1].options.body), {
+        ref: 'dev',
+        inputs: { collection_id: collection.id },
+    })
+})
+
+test('capture endpoint accepts the unquoted R2 ETag after collection creation', async () => {
+    const REPORTS = bucket()
+    const calls = []
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            calls.push(url)
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            body: JSON.stringify({ title: 'Focused capture', items: [{ id: 'send' }], captureMissing: false }),
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(created.status, 201)
+    const { collection } = await created.json()
+    assert.deepEqual(collection.missing, [{ id: 'send', locale: 'en' }])
+
+    const response = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, { method: 'POST' }),
+        env,
+        accessContext
+    )
+    assert.equal(response.status, 202)
+    assert.equal((await response.json()).collection.capture.status, 'queued')
+    assert.equal(calls.length, 2)
+    assert.match(calls[1], /screen-library-collection\.yml\/dispatches$/)
+})
+
+test('a failed workflow dispatch leaves the collection retriable', async () => {
+    const REPORTS = bucket()
+    let failDispatch = true
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            if (failDispatch) return new Response(null, { status: 500 })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Retry dispatch',
+                items: [{ id: 'send' }],
+                captureMissing: true,
+            }),
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(created.status, 503)
+    const failedResponse = await created.json()
+    assert.match(failedResponse.url, /^https:\/\/screens\.peanut\.me\/collections\//)
+    assert.equal(failedResponse.collection.capture.status, 'failed')
+    const manifestKey = [...REPORTS.objects.keys()].find((key) => /^collections\/.+\/manifest\.json$/.test(key))
+    const failed = JSON.parse(REPORTS.objects.get(manifestKey))
+    assert.equal(failed.capture.status, 'failed')
+
+    failDispatch = false
+    const retried = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${failed.id}/capture`, {
+            method: 'POST',
+            headers: {},
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(retried.status, 202)
+    assert.equal((await retried.json()).queued, true)
+    assert.equal(JSON.parse(REPORTS.objects.get(manifestKey)).capture.status, 'queued')
+})
+
+test('an abandoned running capture gets a new retry attempt', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Abandoned capture',
+                items: [{ id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const key = `collections/${collection.id}/manifest.json`
+    const stale = JSON.parse(REPORTS.objects.get(key))
+    stale.capture = {
+        status: 'running',
+        targetCommit: sha,
+        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        attempt: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    }
+    REPORTS.objects.set(key, JSON.stringify(stale))
+
+    const retried = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, {
+            method: 'POST',
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(retried.status, 202)
+    const body = await retried.json()
+    assert.equal(body.queued, true)
+    assert.equal(body.collection.capture.status, 'queued')
+    assert.notEqual(body.collection.capture.attempt, stale.capture.attempt)
+    const request = JSON.parse(REPORTS.objects.get(`collection-requests/${collection.id}.json`))
+    assert.equal(request.attempt, body.collection.capture.attempt)
+})
+
+test('an abandoned queued capture gets a new retry attempt', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Abandoned queued capture',
+                items: [{ id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const key = `collections/${collection.id}/manifest.json`
+    const stale = JSON.parse(REPORTS.objects.get(key))
+    stale.capture = {
+        status: 'queued',
+        targetCommit: sha,
+        requestedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        attempt: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    }
+    REPORTS.objects.set(key, JSON.stringify(stale))
+
+    const retried = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, {
+            method: 'POST',
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(retried.status, 202)
+    const body = await retried.json()
+    assert.equal(body.queued, true)
+    assert.equal(body.collection.capture.status, 'queued')
+    assert.notEqual(body.collection.capture.attempt, stale.capture.attempt)
+    const request = JSON.parse(REPORTS.objects.get(`collection-requests/${collection.id}.json`))
+    assert.equal(request.attempt, body.collection.capture.attempt)
+})
+
+test('a stale retry loses an R2 conditional-write race without dispatching a duplicate workflow', async () => {
+    const REPORTS = bucket()
+    const calls = []
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            calls.push(url)
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Conditional retry',
+                items: [{ id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const key = `collections/${collection.id}/manifest.json`
+    const stale = JSON.parse(REPORTS.objects.get(key))
+    stale.capture = {
+        status: 'queued',
+        requestedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        attempt: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    }
+    REPORTS.objects.set(key, JSON.stringify(stale))
+    REPORTS.beforeConditionalPut = ({ key: attemptedKey }) => {
+        if (attemptedKey !== key) return
+        const winner = JSON.parse(REPORTS.objects.get(key))
+        winner.capture = {
+            status: 'queued',
+            requestedAt: new Date().toISOString(),
+            attempt: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        }
+        REPORTS.objects.set(key, JSON.stringify(winner))
+    }
+
+    const response = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, {
+            method: 'POST',
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(response.status, 200)
+    const body = await response.json()
+    assert.equal(body.queued, false)
+    assert.equal(body.collection.capture.attempt, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+    assert.deepEqual(calls, [])
+})
+
+test('a queue race never rolls the winning capture attempt back to failed', async () => {
+    const REPORTS = bucket()
+    const calls = []
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            calls.push(url)
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Queue race',
+                items: [{ id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const key = `collections/${collection.id}/manifest.json`
+    const winnerAttempt = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    REPORTS.beforeConditionalPut = ({ key: attemptedKey }) => {
+        if (attemptedKey !== key) return
+        const winner = JSON.parse(REPORTS.objects.get(key))
+        winner.capture = {
+            status: 'queued',
+            targetCommit: sha,
+            requestedAt: new Date().toISOString(),
+            attempt: winnerAttempt,
+        }
+        REPORTS.objects.set(key, JSON.stringify(winner))
+    }
+
+    const response = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, {
+            method: 'POST',
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(response.status, 200)
+    const body = await response.json()
+    assert.equal(body.queued, false)
+    assert.equal(body.collection.capture.attempt, winnerAttempt)
+    assert.equal(JSON.parse(REPORTS.objects.get(key)).capture.attempt, winnerAttempt)
+    assert.deepEqual(calls, [`https://api.github.com/repos/peanutprotocol/peanut-ui/git/ref/heads/dev`])
+})

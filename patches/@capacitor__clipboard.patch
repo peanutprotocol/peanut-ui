@@ -1,0 +1,26 @@
+diff --git a/android/src/main/java/com/capacitorjs/plugins/clipboard/Clipboard.java b/android/src/main/java/com/capacitorjs/plugins/clipboard/Clipboard.java
+--- a/android/src/main/java/com/capacitorjs/plugins/clipboard/Clipboard.java
++++ b/android/src/main/java/com/capacitorjs/plugins/clipboard/Clipboard.java
+@@ -52,14 +52,17 @@ public class Clipboard {
+         if (clipboard != null) {
+             CharSequence value = null;
+ 
+-            if (clipboard.hasPrimaryClip()) {
+-                if (clipboard.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
++            // Clipboard access can disappear between calls when the app loses focus.
++            // Read one clip snapshot and let ClipboardPlugin reject an empty result.
++            ClipData clip = clipboard.getPrimaryClip();
++            if (clip != null && clip.getItemCount() > 0) {
++                ClipData.Item item = clip.getItemAt(0);
++                ClipDescription description = clip.getDescription();
++                if (description != null && description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+                     Logger.debug(TAG, "Got plaintxt");
+-                    ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+                     value = item.getText();
+                 } else {
+                     Logger.debug(TAG, "Not plaintext!");
+-                    ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+-                    value = item.coerceToText(context).toString();
++                    value = item.coerceToText(context);
+                 }
+             }

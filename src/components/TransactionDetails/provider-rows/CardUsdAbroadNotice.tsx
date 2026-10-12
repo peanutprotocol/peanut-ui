@@ -1,6 +1,6 @@
 'use client'
 
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
 import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
@@ -47,8 +47,8 @@ export function CardUsdAbroadNotice({ transaction }: { transaction: TransactionD
     if (LOCAL_RAIL_BY_COUNTRY[iso2]) return null
 
     return (
-        <Notification priority="info" title={t('nudge.usdAbroadTitle')}>
+        <Callout priority="info" title={t('nudge.usdAbroadTitle')}>
             {t('nudge.usdAbroadDescription')}
-        </Notification>
+        </Callout>
     )
 }

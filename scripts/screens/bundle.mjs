@@ -18,7 +18,7 @@ export function bundle(directory) {
             }
     if (report.type === 'comparison') for (const s of report.screens) if (s.diff) refs.add(s.diff)
     for (const name of refs) {
-        verifyAsset(assets, name)
+        verifyAsset(assets, name, report.type === 'capture' ? report : report.after)
         copyFileSync(join(assets, name), join(out, 'assets', name))
     }
     const json = JSON.stringify(report)

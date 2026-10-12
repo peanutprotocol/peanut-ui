@@ -1,5 +1,7 @@
 'use client'
 
+import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
  * each mounted open so the visual-shot harness can photograph it.
@@ -12,13 +14,12 @@
  */
 
 import React from 'react'
-import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
-import { AuthContext, useAuth } from '@/context/authContext'
-import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
+import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
-import { useTranslations } from 'next-intl'
-import { setupSteps } from '@/components/Setup/Setup.consts'
+import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
+import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
@@ -27,9 +28,8 @@ import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
 import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
-import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
@@ -42,7 +42,6 @@ import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodMod
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
-import { CardUnlockDrawer } from '@/components/Card/CardUnlockDrawer'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
 import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
@@ -51,9 +50,7 @@ import SupportedNetworksDrawer from '@/components/AddMoney/components/SupportedN
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import OtaUpdateModal from '@/components/Profile/components/OtaUpdateModal'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
-import WelcomeUnlockDrawer from '@/components/Home/WelcomeUnlockDrawer'
 import BalanceWarningDrawer from '@/components/Global/BalanceWarningDrawer'
-import TokenAndNetworkConfirmationDrawer from '@/components/Global/TokenAndNetworkConfirmationDrawer'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import CameraPermissionDrawer from '@/components/Global/QRScanner/CameraPermissionDrawer'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
@@ -67,11 +64,18 @@ import { BackupFaqDrawers } from '@/components/Profile/BackupFaqDrawers'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
-import PerkClaimDrawer from '@/components/Home/PerkClaimDrawer'
-import { PerkClaimSuccessDrawer } from '@/components/Home/PerkClaimSuccessDrawer'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
-import IosPwaInstallDrawer from '@/components/Global/IosPwaInstallDrawer'
+import type { OnboardingState } from '@/utils/activation-step.utils'
 import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
+import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
+import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
+import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
+import PublicProfile from '@/components/Profile/components/PublicProfile'
+import NotFoundScreen from '@/components/Global/NotFoundScreen'
+import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
+import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
+import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
+import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -79,36 +83,71 @@ import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
  * are the app's, not the harness's. Mounting the view bare (which this harness
  * did first) drops all of that and photographs a naked form.
  */
-function SetupScreen({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
+function SetupScreen({
+    screenId,
+    children,
+    firstLaunchIntroPreview,
+    showProgress = true,
+    forceFullScreen = false,
+    residenceCountry,
+}: {
+    screenId: ScreenId
+    children?: React.ReactNode
+    firstLaunchIntroPreview?: 'play' | 'still'
+    showProgress?: boolean
+    forceFullScreen?: boolean
+    residenceCountry?: string
+}) {
     return (
-        <SetupFlowProvider>
-            <SetupScreenBody screenId={screenId}>{children}</SetupScreenBody>
+        <SetupFlowProvider masterScreenIds={setupScreenIds}>
+            <SetupScreenBody
+                screenId={screenId}
+                firstLaunchIntroPreview={firstLaunchIntroPreview}
+                showProgress={showProgress}
+                forceFullScreen={forceFullScreen}
+                residenceCountry={residenceCountry}
+            >
+                {children}
+            </SetupScreenBody>
         </SetupFlowProvider>
     )
 }
-function GuestCapture({ children }: { children: React.ReactNode }) {
-    const auth = useAuth()
-    return (
-        <AuthContext.Provider value={{ ...auth, user: null, isFetchingUser: false }}>{children}</AuthContext.Provider>
-    )
-}
-function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
-    const t = useTranslations('setup')
+function SetupScreenBody({
+    screenId,
+    children,
+    firstLaunchIntroPreview,
+    showProgress = true,
+    forceFullScreen = false,
+    residenceCountry,
+}: {
+    screenId: ScreenId
+    children?: React.ReactNode
+    firstLaunchIntroPreview?: 'play' | 'still'
+    showProgress?: boolean
+    forceFullScreen?: boolean
+    residenceCountry?: string
+}) {
+    const { setSteps, setResidenceCountry } = useSetupFlowContext()
+    React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
+    React.useLayoutEffect(() => {
+        if (residenceCountry) setResidenceCountry(residenceCountry)
+    }, [residenceCountry, setResidenceCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
+    const stepCopy = useSetupStepCopy(step)
     if (!step) return null
     const View = step.component
-    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
-    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
     return (
         <SetupWrapper
+            fullScreen={forceFullScreen || step.fullScreen}
+            showProgress={showProgress}
             layoutType={step.layoutType}
+            firstLaunchIntroPreview={firstLaunchIntroPreview}
             screenId={step.screenId}
             image={step.image}
-            title={!step.titleInView ? t(titleKey) : undefined}
-            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
+            {...stepCopy}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
-            showLogoutButton={step.screenId === 'sign-test-transaction'}
+            showLogoutButton={step.screenId === 'sign-test-transaction' && showProgress}
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}
@@ -118,8 +157,32 @@ function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?
     )
 }
 
+/** verified, funded, card and QR open: the first-payment row opens the chooser */
+const FUNDED_CARD_ONBOARDING: OnboardingState = {
+    verify: 'done',
+    addMoneyDone: true,
+    firstPaymentDone: false,
+    firstPaymentRoute: 'card_qr',
+    step: 'first_payment',
+}
 const noop = () => {}
 const asyncNoop = async () => {}
+
+/**
+ * `/dev/*` deliberately removes AppShell's page padding so the gallery can
+ * stage drawers and overlays edge-to-edge. Full app-page surfaces still need
+ * the production horizontal frame, otherwise their `w-full` content is
+ * captured against the viewport instead of the app's content column.
+ */
+function AppPageSurface({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="min-h-inherit w-full px-4">
+            <div data-testid="app-page-surface-content" className="mx-auto min-h-inherit w-full max-w-md">
+                {children}
+            </div>
+        </div>
+    )
+}
 
 import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -139,42 +202,81 @@ export type Surface = SurfaceMeta & {
     /** Mounted open. Absent when `blocked` explains why it cannot be. */
     render?: () => React.ReactNode
     /** Opened by flipping a ModalsContext flag rather than a prop. */
-    modalsContextFlag?: 'signIn' | 'support' | 'iosPwaInstall' | 'qrScanner'
+    modalsContextFlag?: 'signIn' | 'support' | 'qrScanner'
 }
 
 export const SURFACES: Record<string, Surface> = {
+    '01-b-first-launch-intro': {
+        ...SURFACE_META['01-b-first-launch-intro'],
+        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="still" />,
+    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
     },
-    '02-a-joinwaitlist': {
-        ...SURFACE_META['02-a-joinwaitlist'],
-        render: () => <SetupScreen screenId="welcome" />,
+
+    '03-c-residence-congrats': {
+        ...SURFACE_META['03-c-residence-congrats'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="PT" />,
+    },
+    '03-h-funding-methods': {
+        ...SURFACE_META['03-h-funding-methods'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" />,
+    },
+    '03-i-payment-methods': {
+        ...SURFACE_META['03-i-payment-methods'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" />,
     },
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
     },
-    '04-a-installpwa': {
-        ...SURFACE_META['04-a-installpwa'],
-        render: () => (
-            <GuestCapture>
-                <SetupScreen screenId="pwa-install" />
-            </GuestCapture>
-        ),
-    },
+
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
         render: () => (
-            <SetupScreen screenId="sign-test-transaction">
-                <AccountReadyView onContinue={noop} />
+            <SetupScreen screenId="advantage-control">
+                <SetupConfirmationView merged onConfirm={noop} />
             </SetupScreen>
         ),
     },
+    '06-b-invite': {
+        ...SURFACE_META['06-b-invite'],
+        render: () => <SetupScreen screenId="invite" />,
+    },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
-    '07-a-setuppasskey': {
-        ...SURFACE_META['07-a-setuppasskey'],
-        render: () => <SetupScreen screenId="passkey-permission" />,
+    '02-b-advantage-card': {
+        ...SURFACE_META['02-b-advantage-card'],
+        render: () => <SetupScreen screenId="advantage-card" />,
+    },
+
+    '04-b-advantage-fees': {
+        ...SURFACE_META['04-b-advantage-fees'],
+        render: () => <SetupScreen screenId="advantage-fees" />,
+    },
+    '07-c-notification-email': {
+        ...SURFACE_META['07-c-notification-email'],
+        render: () => <SetupScreen screenId="notification-email" />,
+    },
+    '07-d-notification-settings': {
+        ...SURFACE_META['07-d-notification-settings'],
+        render: () => <SetupScreen screenId="notification-permission" />,
+    },
+    '07-e-setup-celebration': {
+        ...SURFACE_META['07-e-setup-celebration'],
+        render: () => (
+            <SetupScreen screenId="advantage-control" showProgress={false} forceFullScreen>
+                <SetupCelebrationView />
+            </SetupScreen>
+        ),
+    },
+    '07-b-advantage-control': {
+        ...SURFACE_META['07-b-advantage-control'],
+        render: () => (
+            <SetupScreen screenId="advantage-control">
+                <SetupConfirmationView merged onConfirm={noop} />
+            </SetupScreen>
+        ),
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],
@@ -233,17 +335,9 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '15-a-invitefriendsmodal': {
-        name: 'InviteFriendsDrawer',
-        path: 'Global/InviteFriendsDrawer/index.tsx',
-        render: () => <InviteFriendsDrawer visible onClose={noop} username="demo" />,
-    },
-    '16-a-iospwainstallmodal': {
-        name: 'IosPwaInstallDrawer',
-        path: 'Global/IosPwaInstallDrawer/index.tsx',
-        // mounted by the home screen's modal stack, not the app layout, so the
-        // harness renders it itself and flips the context flag that opens it
-        render: () => <IosPwaInstallDrawer />,
-        modalsContextFlag: 'iosPwaInstall',
+        name: 'InviteFriendsModal',
+        path: 'Global/InviteFriendsModal/index.tsx',
+        render: () => <InviteFriendsModal visible onClose={noop} username="demo" />,
     },
     '17-a-nomorejailmodal': {
         ...SURFACE_META['17-a-nomorejailmodal'],
@@ -260,18 +354,6 @@ export const SURFACES: Record<string, Surface> = {
     '20-a-setupnotificationsmodal': {
         ...SURFACE_META['20-a-setupnotificationsmodal'],
         render: () => <SetupNotificationsPrompt visible onAllow={noop} onClose={noop} />,
-    },
-    '21-b-advisorypreemptmodal': {
-        ...SURFACE_META['21-b-advisorypreemptmodal'],
-        render: () => (
-            <AdvisoryPreemptModal
-                visible
-                effectiveDate="2026-10-01"
-                onCompleteNow={noop}
-                onDoLater={noop}
-                onClose={noop}
-            />
-        ),
     },
     '22-b-initiatekycmodal': {
         ...SURFACE_META['22-b-initiatekycmodal'],
@@ -323,10 +405,11 @@ export const SURFACES: Record<string, Surface> = {
     '33-c-cardlimiteditmodal': {
         ...SURFACE_META['33-c-cardlimiteditmodal'],
         render: () => (
+            // perauthorization is the only frequency the product surfaces
             <CardLimitEditDrawer
                 cardId="demo-card"
-                frequency="per24HourPeriod"
-                label="Daily limit"
+                frequency="perAuthorization"
+                label="Per transaction"
                 initialAmountCents={50000}
                 isOpen
                 onClose={noop}
@@ -337,27 +420,18 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['34-c-lockcardmodal'],
         render: () => <LockCardModal cardId="demo-card" mode="lock" isOpen onClose={noop} />,
     },
-    '35-c-cardunlockdrawer': {
-        ...SURFACE_META['35-c-cardunlockdrawer'],
-        render: () => (
-            <CardUnlockDrawer
-                isOpen
-                onClose={noop}
-                username="demo"
-                entry={{ unlockedAt: '2026-08-01T10:00:00.000Z', position: 42 } as never}
-            />
-        ),
-    },
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],
         render: () => (
+            // a real badge with avatar art, so the gallery shows the
+            // "What you get" box
             <BadgeDetailDrawer
                 isOpen
                 onClose={noop}
-                code="first-invite"
-                title="First Invite"
-                description="You invited your first friend to Peanut."
-                logo="/badges/first-invite.webp"
+                code="BETA_TESTER"
+                title="Beta Tester"
+                description="You broke things so others don't have to."
+                logo="/badges/beta_tester.svg"
             />
         ),
     },
@@ -384,7 +458,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '39-c-onrampconfirmationmodal': {
         ...SURFACE_META['39-c-onrampconfirmationmodal'],
-        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} amount="250.00" currency="€" />,
+        render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} />,
     },
     '40-c-supportednetworksmodal': {
         name: 'SupportedNetworksDrawer',
@@ -392,9 +466,9 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <SupportedNetworksDrawer visible onClose={noop} />,
     },
     '41-c-migrationdownloadmodal': {
-        name: 'MigrationDownloadModal (early)',
+        name: 'MigrationDownloadModal',
         path: 'Migration/MigrationDownloadModal.tsx',
-        render: () => <MigrationDownloadModal forceVariant="early" />,
+        render: () => <MigrationDownloadModal forceVisible />,
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],
@@ -418,37 +492,10 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
-    '46-c-perkclaimmodal': {
-        ...SURFACE_META['46-c-perkclaimmodal'],
-        render: () => (
-            <PerkClaimDrawer
-                visible
-                onClose={noop}
-                onClaimed={noop}
-                perk={{
-                    id: 'perk-1',
-                    name: 'Invite bonus',
-                    amountUsd: 5,
-                    createdAt: '2026-08-01T10:00:00.000Z',
-                    inviteeName: 'Ana',
-                }}
-            />
-        ),
-    },
-    '47-c-welcomeunlockmodal': {
-        name: 'WelcomeUnlockDrawer',
-        path: 'Home/WelcomeUnlockDrawer/index.tsx',
-        render: () => <WelcomeUnlockDrawer isOpen onClose={noop} />,
-    },
     '48-c-balancewarningmodal': {
         name: 'BalanceWarningDrawer',
         path: 'Global/BalanceWarningDrawer/index.tsx',
         render: () => <BalanceWarningDrawer visible onCloseAction={noop} />,
-    },
-    '49-c-tokenandnetworkconfirmationmodal': {
-        name: 'TokenAndNetworkConfirmationDrawer',
-        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
-        render: () => <TokenAndNetworkConfirmationDrawer isVisible onClose={noop} onAccept={noop} />,
     },
     '50-d-transactiondetailsdrawer': {
         ...SURFACE_META['50-d-transactiondetailsdrawer'],
@@ -481,7 +528,14 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <ContributorsDrawer
                 contributors={[
-                    { uuid: 'c1', username: 'ana', amount: '25.00', createdAt: '2026-08-01T10:00:00.000Z' },
+                    {
+                        uuid: 'c1',
+                        username: 'ana',
+                        avatarKey: 'basic.star',
+                        amount: '25.00',
+                        createdAt: '2026-08-01T10:00:00.000Z',
+                    },
+                    // no pick — the username letter beside someone who has one
                     { uuid: 'c2', username: 'bruno', amount: '10.00', createdAt: '2026-08-01T11:00:00.000Z' },
                 ]}
             />
@@ -556,7 +610,7 @@ export const SURFACES: Record<string, Surface> = {
                     heading="Frequently asked questions"
                     questions={[
                         { id: 'q1', question: 'How long does a transfer take?', answer: 'Usually a few minutes.' },
-                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut-to-Peanut payments.' },
+                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut to Peanut.' },
                     ]}
                 />
             </div>
@@ -647,8 +701,8 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <div className="p-4">
                 <LimitsWarningCard
-                    type="warning"
-                    titleKind="warning"
+                    type="attention"
+                    titleKind="attention"
                     title="Transaction limit"
                     items={[{ text: 'You can pay up to $500 today.' }]}
                 />
@@ -668,30 +722,164 @@ export const SURFACES: Record<string, Surface> = {
             </div>
         ),
     },
-    '69-d-perkclaimsuccess': {
-        name: 'PerkClaimSuccessDrawer',
-        path: 'Home/PerkClaimSuccessDrawer.tsx',
+    '78-f-choice-guest-claim': {
+        ...SURFACE_META['78-f-choice-guest-claim'],
         render: () => (
-            <PerkClaimSuccessDrawer
-                perk={{
-                    id: 'perk-1',
-                    name: 'Invite bonus',
-                    amountUsd: 5,
-                    createdAt: '2026-08-01T10:00:00.000Z',
-                    inviteeName: 'Ana',
-                }}
-                claimPhase="revealed"
-                onClose={noop}
-                onDismiss={noop}
-            />
+            <div className="flex min-h-dvh w-full flex-col justify-center gap-4 p-4">
+                <SendLinkActionList
+                    claimLinkData={
+                        {
+                            pubKey: 'demo-pubkey',
+                            depositIdx: 0,
+                            chainId: '42161',
+                            contractVersion: 'v4.3',
+                            status: 'CREATED',
+                            createdAt: '2026-09-01T12:00:00.000Z',
+                            senderAddress: '0x1111111111111111111111111111111111111111',
+                            amount: BigInt(25_000_000),
+                            tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                            tokenDecimals: 6,
+                            tokenSymbol: 'USDC',
+                            sender: {
+                                userId: 'demo-ana',
+                                username: 'ana',
+                                fullName: 'Ana Ruiz',
+                                bridgeKycStatus: 'approved',
+                                accounts: [],
+                            },
+                            link: 'https://peanut.me/claim?c=42161&v=v4.3&i=0#p=demo',
+                            password: 'demo',
+                        } as never
+                    }
+                    isLoggedIn={false}
+                />
+            </div>
+        ),
+    },
+    '79-f-choice-direct-send': {
+        ...SURFACE_META['79-f-choice-direct-send'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <PaymentMethodActionList isAmountEntered />
+            </div>
+        ),
+    },
+    '80-f-choice-semantic-request': {
+        ...SURFACE_META['80-f-choice-semantic-request'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <PaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
+            </div>
+        ),
+    },
+    '81-f-choice-request-pot': {
+        ...SURFACE_META['81-f-choice-request-pot'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <RequestPotActionList
+                    isAmountEntered
+                    usdAmount="25"
+                    recipientUserId="demo-ana"
+                    recipientUsername="ana"
+                    onPayWithPeanut={noop}
+                    onPayWithExternalWallet={noop}
+                />
+            </div>
+        ),
+    },
+    '82-f-choice-card-requires-info': {
+        ...SURFACE_META['82-f-choice-card-requires-info'],
+        render: () => (
+            <AppPageSurface>
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    onUploadProofOfAddress={noop}
+                    onUploadIdentity={noop}
+                    onContactSupport={noop}
+                />
+            </AppPageSurface>
+        ),
+    },
+    '83-f-choice-residence-restricted': {
+        ...SURFACE_META['83-f-choice-residence-restricted'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="RU" />,
+    },
+    '84-f-choice-public-profile-guest': {
+        ...SURFACE_META['84-f-choice-public-profile-guest'],
+        render: () => (
+            <AppPageSurface>
+                <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />
+            </AppPageSurface>
+        ),
+    },
+    '85-f-choice-claim-error': {
+        ...SURFACE_META['85-f-choice-claim-error'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <ClaimErrorView
+                    title="We couldn't complete the claim"
+                    message="The transfer is still safe. Try again or ask support for help."
+                    primaryButtonText="Try again"
+                    onPrimaryClick={noop}
+                />
+            </div>
+        ),
+    },
+    '86-f-choice-not-found': {
+        ...SURFACE_META['86-f-choice-not-found'],
+        render: () => <NotFoundScreen />,
+    },
+    '87-f-request-created': {
+        ...SURFACE_META['87-f-request-created'],
+        render: () => (
+            <AppPageSurface>
+                <RequestCreatedView
+                    requestId="fixture-request"
+                    generatedLink="https://peanut.me/request/pay?id=fixture-request"
+                    requestAmount="25"
+                    currency="EUR"
+                    bankPayable={false}
+                    onDone={noop}
+                />
+            </AppPageSurface>
+        ),
+    },
+    '88-f-request-bank-currency': {
+        ...SURFACE_META['88-f-request-bank-currency'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <BankTransferChooserDrawer
+                    requestId="fixture-request"
+                    rails={[
+                        {
+                            kind: 'bank',
+                            railId: 'bridge.sepa_eu',
+                            reference: 'PEANUT-1234',
+                            payerAmount: { amount: '25.00', currency: 'EUR', isEstimate: false },
+                        },
+                        {
+                            kind: 'bank',
+                            railId: 'bridge.faster_payments_gb',
+                            reference: 'PEANUT-1234',
+                            payerAmount: { amount: '21.50', currency: 'GBP', isEstimate: true },
+                        },
+                    ]}
+                    recipientUsername="ana"
+                    recipientAvatarKey="basic.frog"
+                    requestMessage="Dinner in Berlin"
+                    requestAmount="25.00 EUR"
+                    bankRowProps={{ bankPayable: true, remainingUsd: 27 }}
+                    onUnavailable={noop}
+                />
+            </div>
         ),
     },
     '70-d-activationctas-outbound': {
-        // the spend chooser opens on the card's CTA tap — the shot spec (or a
-        // human) clicks "Start Spending"; needs a fixture granting card access
-        name: 'ActivationCTAs (outbound)',
-        path: 'Home/ActivationCTAs.tsx',
-        render: () => <ActivationCTAs activationStep="outbound" />,
+        // the first-payment chooser opens on the row tap — the shot spec (or a
+        // human) clicks the row; needs a fixture granting card access
+        name: 'First-payment chooser',
+        path: 'Home/FirstPaymentChooser.tsx',
+        render: () => <ActivationCTAs onboarding={FUNDED_CARD_ONBOARDING} />,
     },
     '66-d-backupfaqlosephone': {
         name: 'Backup FAQ — lose phone',
@@ -712,6 +900,10 @@ export const SURFACES: Record<string, Surface> = {
 
 /** The open reworks, one render per option, so a choice can be made by eye. */
 export const OPTION_SURFACES: Record<string, { name: string; render: () => React.ReactNode }> = {
+    'opt-first-launch-play': {
+        name: 'First launch — play five-second handoff',
+        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="play" />,
+    },
     'opt-passkey-a': { name: 'PasskeySetupHelpDrawer — A', render: () => <PasskeyHelpA /> },
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },

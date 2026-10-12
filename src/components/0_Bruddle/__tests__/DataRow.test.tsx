@@ -2,6 +2,13 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { DataRow } from '../DataRow'
 
+jest.mock('@/components/Global/CopyToClipboard', () => ({
+    __esModule: true,
+    default: ({ textToCopy }: { textToCopy: string }) => (
+        <button data-testid="copy-value" data-copy-value={textToCopy} />
+    ),
+}))
+
 describe('DataRow', () => {
     test('renders label and value', () => {
         render(<DataRow label="Fee" value="$0.10" />)
@@ -32,5 +39,17 @@ describe('DataRow', () => {
     test('trailing slot renders next to the value', () => {
         render(<DataRow label="Limit" value="$500" trailing={<button>Edit</button>} />)
         expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    })
+
+    test('keeps the full copy value when an identifier has an abbreviated display', () => {
+        render(
+            <DataRow label="Reference" value="FIXTURE…D" allowCopy copyValue="FIXTURE-RECEIPT-IDENTIFIER-FULL-VALUE" />
+        )
+
+        expect(screen.getByText('FIXTURE…D')).toBeInTheDocument()
+        expect(screen.getByTestId('copy-value')).toHaveAttribute(
+            'data-copy-value',
+            'FIXTURE-RECEIPT-IDENTIFIER-FULL-VALUE'
+        )
     })
 })

@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import Marquee from 'react-fast-marquee'
+import { twMerge } from '@/utils/tw'
 import type { MarqueeItem } from './marquee.types'
 
 type directionType = 'left' | 'right' | 'up' | 'down' | undefined
@@ -22,8 +23,7 @@ export function MarqueeWrapper({
     direction = 'left',
     className = 'border-b-1 border-black border',
 }: MarqueeWrapperProps) {
-    const baseClass = `${className} ${backgroundColor}`
-    const _className = onClick ? `${baseClass} cursor-pointer` : baseClass
+    const _className = twMerge(className, backgroundColor, onClick && 'cursor-pointer')
 
     return (
         <div className={_className} onClick={onClick}>
@@ -52,39 +52,26 @@ export function MarqueeComp({
     message,
     imageSrc,
     imageAnimationClass = 'animation-thumbsUp',
-    backgroundColor = 'bg-primary',
+    // required, not defaulted: the old `bg-primary` default named a token that
+    // globals.css does not declare, so it painted nothing at all
+    backgroundColor,
 }: {
     message?: string | MarqueeItem[]
     imageSrc: string
     imageAnimationClass?: string
-    backgroundColor?: string
+    backgroundColor: string
 }) {
     return (
-        <div className="border-white shadow">
-            <MarqueeWrapper
-                backgroundColor={backgroundColor}
-                direction="left"
-                className="border-y-2 border-border-default"
-            >
-                {Array.isArray(message)
-                    ? message.map((msg, index) => (
-                          <div key={index} className="mx-3 inline-flex min-h-12 items-center gap-3 py-2">
-                              <MarqueeWord item={msg} />
-                              {index < message.length && (
-                                  <Image
-                                      src={imageSrc}
-                                      alt=""
-                                      width={32}
-                                      height={32}
-                                      unoptimized
-                                      className={`${imageAnimationClass || ''} ml-2 h-auto w-8`}
-                                  />
-                              )}
-                          </div>
-                      ))
-                    : message && (
-                          <div className="mx-3 inline-flex min-h-12 items-center py-2">
-                              <div className={wordClass}>{message}</div>
+        // no wrapper: it carried `border-white shadow`, where border-white set a
+        // colour with no width and `shadow` is the v3-parity soft drop shadow.
+        // The DS shadow language is a hard 4px offset, and the marquee's own
+        // 2px rules already separate it from the page.
+        <MarqueeWrapper backgroundColor={backgroundColor} direction="left" className="border-y-2 border-border-default">
+            {Array.isArray(message)
+                ? message.map((msg, index) => (
+                      <div key={index} className="mx-3 inline-flex min-h-12 items-center gap-3 py-2">
+                          <MarqueeWord item={msg} />
+                          {index < message.length && (
                               <Image
                                   src={imageSrc}
                                   alt=""
@@ -93,9 +80,22 @@ export function MarqueeComp({
                                   unoptimized
                                   className={`${imageAnimationClass || ''} ml-2 h-auto w-8`}
                               />
-                          </div>
-                      )}
-            </MarqueeWrapper>
-        </div>
+                          )}
+                      </div>
+                  ))
+                : message && (
+                      <div className="mx-3 inline-flex min-h-12 items-center py-2">
+                          <div className={wordClass}>{message}</div>
+                          <Image
+                              src={imageSrc}
+                              alt=""
+                              width={32}
+                              height={32}
+                              unoptimized
+                              className={`${imageAnimationClass || ''} ml-2 h-auto w-8`}
+                          />
+                      </div>
+                  )}
+        </MarqueeWrapper>
     )
 }

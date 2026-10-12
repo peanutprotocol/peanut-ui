@@ -22,8 +22,7 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    // onFeatureFlags: the chain-rollout gate subscribes to flag loads.
-    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => jest.fn()) },
+    default: { capture: jest.fn() },
 }))
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))

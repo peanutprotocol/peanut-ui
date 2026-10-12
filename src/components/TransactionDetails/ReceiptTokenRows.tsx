@@ -5,13 +5,14 @@ import DisplayIcon from '@/components/Global/DisplayIcon'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTokenDisplay } from '@/components/TransactionDetails/useTokenDisplay'
-import { isStableCoin } from '@/utils/general.utils'
 
 /**
- * Token amount + token-and-network rows for the details card. Owns the token
- * icon lookup (wire data first, CoinGecko fallback) via useTokenDisplay and
- * renders nothing until icon + symbol resolve — same gate as the legacy
- * receipt.
+ * Token-and-network row for the details card. Owns the token icon lookup
+ * (wire data first, CoinGecko fallback) via useTokenDisplay. A known symbol
+ * renders at once with the fallback icon, so a slow or failed lookup never
+ * hides it; with no symbol yet, nothing renders.
+ * There is no token-amount row: it printed the USD amount with no unit, and
+ * the conversion row states the token amount.
  */
 export function ReceiptTokenRows({
     transaction,
@@ -21,18 +22,12 @@ export function ReceiptTokenRows({
     isPeanutWalletToken: boolean
 }) {
     const t = useAppTranslations('transaction')
-    const { tokenData, isLoading } = useTokenDisplay(transaction)
+    const tokenData = useTokenDisplay(transaction)
 
-    // legacy gate: render nothing until icon + symbol RESOLVE — including while
-    // the fallback lookup is in flight. rendering a skeleton during the fetch
-    // meant legacy receipts (404 from CoinGecko) flashed a row and then jumped.
-    if (!transaction.tokenDisplayDetails || isLoading || !tokenData?.icon || !tokenData?.symbol) return null
+    if (!transaction.tokenDisplayDetails || !tokenData) return null
 
     return (
         <>
-            {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
-                <DataRow label={t('rows.tokenAmount')} value={transaction.amount} />
-            )}
             {!isPeanutWalletToken && (
                 <DataRow
                     label={t('rows.tokenAndNetwork')}
@@ -54,7 +49,7 @@ export function ReceiptTokenRows({
                                             altText={transaction.tokenDisplayDetails.chainName || 'chain'}
                                             fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
                                             sizeClass="h-3.5 w-3.5 text-[7px]"
-                                            className="rounded-round border-2 border-background-default"
+                                            className="rounded-full border-2 border-background-default"
                                         />
                                     </div>
                                 )}

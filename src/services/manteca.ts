@@ -10,6 +10,7 @@ import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
+import type { paths } from '@/types/api.generated'
 
 export interface QrPaymentRequest {
     qrCode: string
@@ -47,11 +48,23 @@ export type QrPayment = {
     perk?: {
         eligible: boolean
         discountPercentage: number
+        /** Local reveal flag (hold-to-claim done). NOT payout settlement —
+         *  see `payoutStatus` for that. */
         claimed?: boolean
         amountSponsored?: number
         txHash?: string
+        /** perk_usage row the reward was issued under. Present once the API
+         *  returns after durable issuance (TASK-22692); absent from older APIs. */
+        usageId?: string
+        /** Settlement of the reward transfer itself, which now completes after
+         *  the response. `pending` is still an earned reward. */
+        payoutStatus?: 'pending' | 'completed' | 'failed'
     }
 }
+
+/** Client-minted UUID naming one signed payment attempt in `qr_payment_stage`
+ *  telemetry. Telemetry only — never an idempotency, auth or funding key. */
+export type ClientPaymentAttemptBody = { clientPaymentAttemptId?: string }
 
 export type QrPaymentCharge = {
     uuid: string
@@ -80,6 +93,9 @@ export type QrPaymentLock = {
     paymentAgainstAmount: string
     paymentAgainst: string
     expireAt: string
+    /** Milliseconds the lock had left when the API answered. Read this, not
+     *  `expireAt`, against the device clock (see receiveLock). */
+    expiresInMs?: number
     creationTime: string
     /** Entity-aware Manteca deposit address served by the API (per-entity
      *  balances from 2026-09-14). Optional only while an older API without
@@ -118,11 +134,17 @@ export type MantecaPrice = {
     effectiveSell?: string
 }
 
+/** Owner of a PIX key. `legalIdMasked` keeps the first 2 and last 2 digits. Read from the API schema, so a contract change fails typecheck. */
+export type PixKeyOwner = paths['/manteca/pix-key/owner']['post']['responses'][200]['content']['application/json']
+
 // withdraw init response - contains locked price for withdraw flow
 export type WithdrawPriceLock = {
     priceLockCode: string
     price: string
     expiresAt: string
+    /** Milliseconds the lock had left when the API answered. Read this, not
+     *  `expiresAt`, against the device clock (see receiveLock). */
+    expiresInMs?: number
     usdAmount: string
     fiatAmount: string
     currency: string
@@ -170,59 +192,64 @@ export const mantecaApi = {
      *   withdrawal via the user's session-key UserOp with `directTransfer=true`
      *   straight to MANTECA's deposit address. One passkey tap (admin EIP-712).
      *
-     * In all cases, backend creates the Manteca order FIRST so funds don't
-     * leave the user's side if Manteca fails.
+     * Funding is reserved and claimed before the provider order is created
+     * (with `qr_broadcast_first_always` on); a pending or failed claim is held,
+     * so the client never re-signs an uncertain direct submission.
      */
     completeQrPaymentWithSignedTx: async (
-        body:
-            | {
-                  kind: 'userOp'
-                  paymentLockCode: string
-                  qrType?: string
-                  signedUserOp: Pick<
-                      SignUserOperationReturnType,
-                      | 'sender'
-                      | 'nonce'
-                      | 'callData'
-                      | 'signature'
-                      | 'callGasLimit'
-                      | 'verificationGasLimit'
-                      | 'preVerificationGas'
-                      | 'maxFeePerGas'
-                      | 'maxPriorityFeePerGas'
-                      | 'paymaster'
-                      | 'paymasterData'
-                      | 'paymasterVerificationGasLimit'
-                      | 'paymasterPostOpGasLimit'
-                      | 'factory'
-                      | 'factoryData'
-                  >
-                  chainId: string
-                  entryPointAddress: Address
-                  /** Set when the UserOp embeds a Rain `withdrawAsset` call (mixed
-                   *  strategy). Lets backend stamp the prepared intent with the
-                   *  on-chain tx hash so the collateral webhook reconciles to the
-                   *  right kind in history (vs. an unmatched generic charge). */
-                  rainPreparationId?: string
-              }
-            | {
-                  kind: 'rainWithdrawal'
-                  paymentLockCode: string
-                  qrType?: string
-                  signedRainWithdrawal: {
-                      preparationId: string
-                      amount: string
-                      recipientAddress: Address
-                      directTransfer: boolean
-                      adminSalt: string
-                      adminNonce: string
-                      adminSignature: string
-                      executorSignature: string
-                      executorSalt: string
-                      expiresAt: number
+        body: ClientPaymentAttemptBody &
+            (
+                | {
+                      kind: 'userOp'
+                      paymentLockCode: string
+                      qrType?: string
+                      signedUserOp: Pick<
+                          SignUserOperationReturnType,
+                          | 'sender'
+                          | 'nonce'
+                          | 'callData'
+                          | 'signature'
+                          | 'callGasLimit'
+                          | 'verificationGasLimit'
+                          | 'preVerificationGas'
+                          | 'maxFeePerGas'
+                          | 'maxPriorityFeePerGas'
+                          | 'paymaster'
+                          | 'paymasterData'
+                          | 'paymasterVerificationGasLimit'
+                          | 'paymasterPostOpGasLimit'
+                          | 'factory'
+                          | 'factoryData'
+                      >
+                      chainId: string
+                      entryPointAddress: Address
+                      /** Set when the UserOp embeds a Rain `withdrawAsset` call (mixed
+                       *  strategy). Lets backend stamp the prepared intent with the
+                       *  on-chain tx hash so the collateral webhook reconciles to the
+                       *  right kind in history (vs. an unmatched generic charge). */
+                      rainPreparationId?: string
                   }
-                  chainId: string
-              }
+                | {
+                      kind: 'rainWithdrawal'
+                      paymentLockCode: string
+                      qrType?: string
+                      signedRainWithdrawal: {
+                          /** Classification hint only — never a target address. */
+                          preparedCoordinatorAddress?: string
+                          preparationId: string
+                          amount: string
+                          recipientAddress: Address
+                          directTransfer: boolean
+                          adminSalt: string
+                          adminNonce: string
+                          adminSignature: string
+                          executorSignature: string
+                          executorSalt: string
+                          expiresAt: number
+                      }
+                      chainId: string
+                  }
+            )
     ): Promise<QrPayment> => {
         const response = await serverFetch('/manteca/qr-payment/complete-with-signed-tx', {
             method: 'POST',
@@ -236,14 +263,20 @@ export const mantecaApi = {
 
         return response.json()
     },
-    getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
+    getPrices: async (
+        { asset, against }: { asset: string; against: string },
+        options: { callerReportsFailures?: boolean } = {}
+    ): Promise<MantecaPrice> => {
         const response = await serverFetch(`/manteca/prices?asset=${asset}&against=${against}`, {
             method: 'GET',
+            ...options,
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Get prices failed: ${response.statusText}`)
+            throw Object.assign(new Error(errorData.message || `Get prices failed: ${response.statusText}`), {
+                status: response.status,
+            })
         }
 
         return response.json()
@@ -399,10 +432,12 @@ export const mantecaApi = {
      *  - 'rainWithdrawal' (collateral-only): backend submits the signed
      *    Rain withdrawal via the user's session-key UserOp with
      *    `directTransfer=true` straight to MANTECA's deposit address.
-     *    One passkey tap (admin EIP-712).
+     *    One passkey tap (admin EIP-712) for an approved account when
+     *    routing selects collateral-only.
      *
-     * In all cases, backend creates the Manteca order FIRST so funds
-     * don't leave the user's side if Manteca fails.
+     * With `qr_broadcast_first_always` on, either branch reserves and claims
+     * the funding before the provider order is created. The client never
+     * re-signs an uncertain direct submission.
      */
     withdrawWithSignedTx: async (
         body:
@@ -445,6 +480,8 @@ export const mantecaApi = {
                   bankCode?: string
                   accountType?: string
                   signedRainWithdrawal: {
+                      /** Classification hint only — never a target address. */
+                      preparedCoordinatorAddress?: string
                       preparationId: string
                       amount: string
                       recipientAddress: Address
@@ -486,6 +523,33 @@ export const mantecaApi = {
                 return { error: error.message }
             }
             return { error: 'An unexpected error occurred.' }
+        }
+    },
+    /**
+     * Resolves a PIX key to its owner. A 404 ApiError with
+     * PAYMENT_DESTINATION_NOT_FOUND means the key does not exist; any other
+     * failure only means no name is available.
+     */
+    getPixKeyOwner: async (pixKey: string): Promise<PixKeyOwner> => {
+        const response = await serverFetch('/manteca/pix-key/owner', {
+            method: 'POST',
+            body: jsonStringify({ pixKey }),
+            // The API gives Manteca 5s; past this the user continues without a name.
+            timeoutMs: 8_000,
+        })
+        if (!response.ok) {
+            throw await apiErrorFromResponse(response, `PIX key lookup failed: ${response.statusText}`)
+        }
+        return response.json()
+    },
+    /** Saves a PIX key to the user's address book under `label`; saving a saved key renames it. */
+    savePixKey: async (pixKey: string, label: string): Promise<void> => {
+        const response = await serverFetch('/manteca/pix-key/saved', {
+            method: 'POST',
+            body: jsonStringify({ pixKey, label }),
+        })
+        if (!response.ok) {
+            throw await apiErrorFromResponse(response, `Saving the PIX key failed: ${response.statusText}`)
         }
     },
 }

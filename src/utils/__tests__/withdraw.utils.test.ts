@@ -394,6 +394,22 @@ describe('Withdraw Utilities', () => {
                 expect(result.valid).toBe(true)
             })
 
+            // The PIX directory stores a CPF/CNPJ as digits, so the owner lookup
+            // and the BR Code must carry that form, not the one the user typed.
+            it.each([
+                { raw: '123.456.789-09', expected: '12345678909', desc: 'punctuated CPF' },
+                { raw: '12.345.678/0001-95', expected: '12345678000195', desc: 'punctuated CNPJ' },
+                { raw: 'maria.silva-1@example.com', expected: 'maria.silva-1@example.com', desc: 'email with dots' },
+                {
+                    raw: '123e4567-e89b-12d3-a456-426614174000',
+                    expected: '123e4567-e89b-12d3-a456-426614174000',
+                    desc: 'random key',
+                },
+            ])('should reduce a $desc to its canonical form', ({ raw, expected }) => {
+                expect(normalizePixInput(raw)).toBe(expected)
+                expect(validatePixKey(normalizePixInput(raw)).valid).toBe(true)
+            })
+
             it('should preserve internal whitespace in EMVCo QR codes', () => {
                 const qrWithSpaces =
                     '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'

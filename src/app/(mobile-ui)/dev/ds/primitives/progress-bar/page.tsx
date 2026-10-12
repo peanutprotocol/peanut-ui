@@ -5,6 +5,8 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function ProgressBarPage() {
     return (
@@ -13,6 +15,20 @@ export default function ProgressBarPage() {
                 title="ProgressBar"
                 description="Track + fill + optional tick markers. Consumers own their colors via token classes (no figma board — code-only primitive)."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Show how far a known quantity has run — checklist completion, pot goal, remaining limit',
+                    'Mark a threshold on the track with markers — the goal tick on a pot',
+                    'Pass the tone through trackClassName and fillClassName token classes; the bar owns no color',
+                    'Pair the bar with the percentage or the count spelled out above it',
+                ]}
+                dontUse={[
+                    'Waiting with no known end — use Loading (CyclingLoading stays inline)',
+                    'Page or step position — use CarouselDots',
+                    'Hold-to-confirm feedback — Button longPress draws its own bar',
+                ]}
             />
 
             <DocSection title="Values">
@@ -38,6 +54,60 @@ export default function ProgressBarPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Home — getting started checklist"
+                    path="src/components/Home/GettingStartedChecklist.tsx"
+                    description="Completion of the onboarding checklist, with the percentage spelled out above the bar."
+                    code={`<div className="flex items-center justify-between text-body-s text-foreground-secondary">
+    <span>{progressLabel}</span>
+    <span>{completionPercent}%</span>
+</div>
+<ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />`}
+                >
+                    {/* the real file pairs the two with a 6px gap; the showcase
+                        uses the on-scale step so the recreation does not add a
+                        second off-scale spacing site to the ds-lint ratchet */}
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between text-body-s text-foreground-secondary">
+                            <span>2 of 3 done</span>
+                            <span>67%</span>
+                        </div>
+                        <ProgressBar value={67} fillClassName="bg-background-icon-bubble-green" />
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Pots — goal progress"
+                    path="src/components/User/PotProgress.tsx"
+                    description="The only marker consumer: a tick at the goal and a second one at the end when a closed pot went over it."
+                    code={`<ProgressBar
+    value={isOverGoal ? goalPercentage : progressPercentage}
+    trackClassName={getTrackColor()}
+    fillClassName="bg-green-500"
+    markers={getMarkers()}
+/>`}
+                >
+                    <ProgressBar
+                        value={80}
+                        fillClassName="bg-green-500"
+                        markers={[
+                            { position: 80, className: 'bg-green-500' },
+                            { position: 'end', className: 'bg-action-secondary' },
+                        ]}
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Limits — remaining allowance"
+                    path="src/features/limits/views/MantecaLimitsView.tsx"
+                    description="The fill color is derived from the remaining percent, so the bar turns red as the limit runs out."
+                    code={`<ProgressBar value={remainingPercent} fillClassName={getLimitColorClass(remainingPercent, 'bg')} />`}
+                >
+                    <ProgressBar value={18} fillClassName="bg-red-200" />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

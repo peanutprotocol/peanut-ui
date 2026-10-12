@@ -4,7 +4,9 @@ import {
     CLIENT_FETCH_TIMEOUT_MS,
     SERVER_FETCH_TIMEOUT_MS,
     TRANSPORT_TIMEOUT_RETRY_DELAY_MS,
+    NON_OK_REPORT_WINDOW_MS,
     fetchWithSentry,
+    resetNonOkReportThrottle,
     resolveDefaultTimeoutMs,
     sanitizeRequestBody,
     sanitizeResponseBody,
@@ -23,9 +25,16 @@ jest.mock('@sentry/nextjs', () => ({
 jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
 jest.mock('../connectivity', () => ({
+    getConnectivityGeneration: jest.fn(() => 0),
     reportNetworkError: jest.fn(),
     hasRecentFailure: jest.fn(() => false),
 }))
+
+// Read timeouts are sampled in production; report every one here so assertions are deterministic.
+beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0)
+    resetNonOkReportThrottle()
+})
 
 describe('fetchWithSentry — expected-response suppression', () => {
     const mockResponse = (status: number, body: unknown): Response =>
@@ -74,6 +83,74 @@ describe('fetchWithSentry — expected-response suppression', () => {
             'POST to https://api.peanut.me/invites/validate failed with status 500',
             expect.objectContaining({ level: 'error' })
         )
+    })
+
+    // A 409 means the code resolves to a campaign only — validateInviteCode
+    // treats it as a success (`typedCampaignOnly`), so it is never a failure.
+    it('does NOT report /invites/validate 409 (campaign-only code is a success here)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'CAMPAIGN_ONLY' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/invites/validate', { method: 'POST', body: '{}' })
+
+        expect(res.status).toBe(409)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    // Deliberately NOT skipped: useGetExchangeRate swallows the failure into a
+    // rate of '1', which bankWithdrawMinUsd turns into a wrong withdrawal
+    // minimum. This 429 is the alert for that, and for the FX stampede behind
+    // it. Do not add a skip rule without fixing the fallback first.
+    it.each([429, 500])('still reports /bridge/exchange-rate %i', async (status) => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(status, { error: 'RATE_LIMITED' }))
+
+        await fetchWithSentry('https://api.peanut.me/bridge/exchange-rate?accountType=iban')
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
+    // A stale session is the normal way this endpoint 401s — the UI just shows
+    // no perks. Pins the "Expected stale-session 401 on /perks/pending" row.
+    it('does NOT report /perks/pending 401 (stale session)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(401, { error: 'Unauthorized' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/perks/pending')
+
+        expect(res.status).toBe(401)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports /manteca/qr-payment/init 500 (a real payment failure)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'POST to https://api.peanut.me/manteca/qr-payment/init failed with status 500',
+            expect.objectContaining({ level: 'error' })
+        )
+    })
+
+    it('does not report an expected exact-username quota response', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValue(mockResponse(429, { error: 'Too many username checks', retryAfterSeconds: 60 }))
+
+        const response = await fetchWithSentry('https://api.peanut.me/users/username/check', {
+            method: 'POST',
+            body: JSON.stringify({ username: 'alice' }),
+        })
+
+        expect(response.status).toBe(429)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('still reports unrelated /users rate limits', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(429, { error: 'RATE_LIMITED' }))
+
+        await fetchWithSentry('https://api.peanut.me/users/interaction-status', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
     })
 
     it('does not report an unknown public FX pair, but still returns the 404', async () => {
@@ -186,6 +263,38 @@ describe('fetchWithSentry — expected-response suppression', () => {
         infoSpy.mockRestore()
     })
 
+    // A name with no address record 404s, `resolveEns` handles it and the UI
+    // says so inline. The name is a path segment, so reporting it opened one
+    // issue per typed value, each carrying the raw input.
+    it('does NOT report /ens/{name} 404 (unresolved name is expected)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, {}))
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth', { method: 'GET' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('does NOT report /ens/{name} 404 when a chainId is forwarded', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, {}))
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth?chainId=42161', { method: 'GET' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports an /ens 500 and fingerprints it without the name', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'upstream down' }))
+        const setFingerprint = jest.fn()
+        ;(Sentry.withScope as jest.Mock).mockImplementationOnce((cb: (scope: unknown) => void) =>
+            cb({ setFingerprint, setTag: jest.fn() })
+        )
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth', { method: 'GET' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalled()
+        expect(setFingerprint).toHaveBeenCalledWith(['GET', 'https://api.peanut.me/ens/{value}', '500'])
+    })
+
     it('still reports 400s from endpoints without a skip rule', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'bad request' }))
 
@@ -195,6 +304,78 @@ describe('fetchWithSentry — expected-response suppression', () => {
             'POST to https://api.peanut.me/some/endpoint failed with status 400',
             expect.objectContaining({ level: 'warning' })
         )
+    })
+})
+
+describe('fetchWithSentry — a failing read reports once per window', () => {
+    const failing = (status: number, body: unknown = {}): Response =>
+        ({
+            ok: false,
+            status,
+            clone: () => ({
+                json: () => Promise.resolve(body),
+                text: () => Promise.resolve(JSON.stringify(body)),
+            }),
+        }) as unknown as Response
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.spyOn(console, 'info').mockImplementation(() => {})
+    })
+
+    afterEach(() => jest.useRealTimers())
+
+    it('reports a repeating read failure once, then again with the count after the window', async () => {
+        jest.useFakeTimers({ now: 1_000_000 })
+        global.fetch = jest.fn().mockResolvedValue(failing(429))
+        const url = 'https://api.peanut.me/users/history?limit=50'
+
+        for (let i = 0; i < 5; i++) await fetchWithSentry(url)
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+
+        jest.setSystemTime(1_000_000 + NON_OK_REPORT_WINDOW_MS)
+        await fetchWithSentry(url)
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(2)
+        expect((Sentry.captureMessage as jest.Mock).mock.calls[1][1].extra.suppressedSinceLast).toBe(4)
+    })
+
+    it('keeps a different status or endpoint separate', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValueOnce(failing(429))
+            .mockResolvedValueOnce(failing(500))
+            .mockResolvedValueOnce(failing(429))
+        await fetchWithSentry('https://api.peanut.me/users/history?limit=50')
+        await fetchWithSentry('https://api.peanut.me/users/history?limit=50')
+        await fetchWithSentry('https://api.peanut.me/rain/cards')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(3)
+    })
+
+    it('reports a failure for each distinct resource on one route', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(500))
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x1111111111111111111111111111111111111111')
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x2222222222222222222222222222222222222222')
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0x2222222222222222222222222222222222222222')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(2)
+    })
+
+    it('never throttles a mutation', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(500))
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST' })
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST' })
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not report a currency with no published card comparison', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(404, { error: 'FX_CARD_MARKUP_UNAVAILABLE' }))
+        await fetchWithSentry('https://api.peanut.me/fx/card-markup?currency=ARS')
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports any other card-markup 404', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failing(404, { error: 'NOT_FOUND' }))
+        await fetchWithSentry('https://api.peanut.me/fx/card-markup?currency=ARS')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -575,7 +756,7 @@ describe('fetchWithSentry — one report per endpoint per outage window', () => 
     it('still records the failure for the connectivity banner either way', async () => {
         hasRecentFailure.mockReturnValue(true)
         await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow()
-        expect(reportNetworkError).toHaveBeenCalledWith('https://api.peanut.me/users/me')
+        expect(reportNetworkError).toHaveBeenCalledWith('https://api.peanut.me/users/me', 0)
     })
 })
 
@@ -640,5 +821,15 @@ describe('sensitive QR lookup telemetry', () => {
         expect(global.fetch).toHaveBeenCalledTimes(2)
         expect(Sentry.captureException).toHaveBeenCalled()
         assertPrivate()
+    })
+})
+
+describe('the verified address never reaches Sentry', () => {
+    it('is redacted wholesale, request and response alike', () => {
+        const body = JSON.stringify({ streetLine1: '9 Sample Road', city: 'Sampleton', postalCode: '99999' })
+        expect(sanitizeRequestBody('/users/me/verified-address', body)).toBe('[REDACTED: sensitive endpoint]')
+        expect(sanitizeResponseBody('/users/me/verified-address', JSON.parse(body))).toBe(
+            '[REDACTED: sensitive endpoint]'
+        )
     })
 })

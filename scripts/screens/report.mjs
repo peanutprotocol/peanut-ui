@@ -14,7 +14,7 @@ for (const [i, dir] of [beforeDir, afterDir].entries())
     for (const screen of captures[i].screens)
         if (screen.status === 'captured')
             for (const name of [screen.image, screen.thumbnail]) {
-                verifyAsset(join(dir, 'assets'), name)
+                verifyAsset(join(dir, 'assets'), name, captures[i])
                 copyFileSync(join(dir, 'assets', name), join(assets, name))
             }
 const report = compare(captures[0], captures[1], assets)

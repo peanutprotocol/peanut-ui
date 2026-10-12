@@ -1,13 +1,58 @@
 'use client'
 
 import Card from '@/components/Global/Card'
+import { Card as BruddleCard } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { Icon } from '@/components/Global/Icons/Icon'
+import Badge from '@/components/Global/Badges/Badge'
+import NavigationArrow from '@/components/Global/NavigationArrow'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+
+// which shadow / which bubble size, from real product usage (TASK-23082)
+const CARD_RULES: { title: string; head: [string, string]; rows: [string, string][] }[] = [
+    {
+        title: 'Which shadow',
+        head: ['shadowSize', 'Use for'],
+        rows: [
+            ['(none)', 'Every in-app card. App screens are flat.'],
+            ['4', 'Cards on marketing and public pages (landing, press, status, careers)'],
+            ['6, 8', 'Not for cards. No Card passes them.'],
+        ],
+    },
+    {
+        title: 'Which IconBubble size',
+        head: ['size', 'Use for'],
+        rows: [
+            ['xs (24)', 'A status next to text: a checklist step, a callout icon'],
+            ['s (32)', 'ListItem leading'],
+            ['m (48)', 'The head above a card, modal or drawer title; a result card beside the amount'],
+            ['l (72)', 'The empty or error hero only'],
+        ],
+    },
+    {
+        title: 'Which spacing',
+        head: ['Between', 'Gap'],
+        rows: [
+            ['Section title → card stack', 'S/8 — use Section (gap-2)'],
+            ['Card header → card content', 'M/12 — gap-3 on the card'],
+            ['Title → description in a header', 'XS/4 — TitleBlock (gap-1)'],
+            ['Icon bubble → title (centered head)', 'S/8 (gap-2, card board 17802:61536)'],
+        ],
+    },
+]
 
 export default function CardsGlobalPage() {
     return (
@@ -18,6 +63,20 @@ export default function CardsGlobalPage() {
                 status="production"
             />
 
+            <WhenToUse
+                use={[
+                    'Stacked list rows: set position (solo, top, middle, bottom) so a group rounds and borders once.',
+                    'Positions computed per group, not per page — each date group or section rounds on its own.',
+                    'A row that navigates: pass onClick, or wrap the Card in a Link.',
+                    'Receipt and detail cards: one Card with px-4 py-0 and dashed dividers around DataRows.',
+                ]}
+                dontUse={[
+                    'A standalone content card with a shadow. → use the Bruddle Card (named export from 0_Bruddle/Card).',
+                    'A ListItem inside a Card — the borders nest, and ListItem already renders this Card.',
+                    'The default py-2 under receipt rows — DataRow owns its padding, so pass py-0 or the first and last rows double-pad.',
+                ]}
+            />
+
             {/* Import */}
             <DocSection title="Import">
                 <DesignNote type="warning">
@@ -26,13 +85,85 @@ export default function CardsGlobalPage() {
                 </DesignNote>
             </DocSection>
 
+            <DocSection
+                title="Building a card"
+                description="Start here. Stacked rows use this Global Card (or ListItem in a ListGroup); a standalone block uses the Bruddle Card. Icon sizes inside cards: foundations → icons."
+            >
+                <DocSection.Content>
+                    {CARD_RULES.map((table) => (
+                        <div
+                            key={table.title}
+                            className="overflow-x-auto rounded-sm border border-border-default text-body-xs"
+                        >
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-border-default">
+                                        <th colSpan={2} className="px-3 py-2 text-left text-label-m">
+                                            {table.title}
+                                        </th>
+                                    </tr>
+                                    <tr className="border-b border-border-default text-foreground-secondary">
+                                        <th className="px-3 py-2 text-left">{table.head[0]}</th>
+                                        <th className="px-3 py-2 text-left">{table.head[1]}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {table.rows.map(([key, use]) => (
+                                        <tr key={key} className="border-b border-border-default last:border-0">
+                                            <td className="px-3 py-2 font-mono">{key}</td>
+                                            <td className="px-3 py-2">{use}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ))}
+                    <Section title="Accounts">
+                        <ListGroup>
+                            <ListItem
+                                leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                                title="Bank account"
+                                chevron
+                            />
+                            <ListItem
+                                leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
+                                title="Crypto wallet"
+                                chevron
+                            />
+                        </ListGroup>
+                    </Section>
+                    <BruddleCard className="flex flex-col gap-3 p-4">
+                        <TitleBlock title="Recover card funds" description="We send them to your Peanut wallet" />
+                        <p className="text-body-s">Body content starts 12px below the header.</p>
+                    </BruddleCard>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Section title → stack (8)"
+                        code={`<Section title="Accounts">
+  <ListGroup>
+    <ListItem leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />} title="Bank account" />
+    ...
+  </ListGroup>
+</Section>`}
+                    />
+                    <CodeBlock
+                        label="Card header → content (12)"
+                        code={`<Card className="flex flex-col gap-3 p-4">
+  <TitleBlock title="Recover card funds" description="…" />
+  {content}
+</Card>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
             {/* Single Card */}
             <DocSection title="Single Card">
                 <DocSection.Content>
-                    <Card position="single">
+                    <Card position="solo">
                         <div className="flex items-center justify-between py-1">
                             <span className="text-label-l">Single Card</span>
-                            <span className="text-body-xs text-foreground-secondary">position=&quot;single&quot;</span>
+                            <span className="text-body-xs text-foreground-secondary">position=&quot;solo&quot;</span>
                         </div>
                     </Card>
                 </DocSection.Content>
@@ -41,7 +172,7 @@ export default function CardsGlobalPage() {
 
                     <CodeBlock
                         label="Usage"
-                        code={`<Card position="single">
+                        code={`<Card position="solo">
   <div>Content</div>
 </Card>`}
                     />
@@ -58,7 +189,7 @@ export default function CardsGlobalPage() {
                     </p>
 
                     <div>
-                        {(['first', 'middle', 'middle', 'middle', 'last'] as const).map((pos, i) => (
+                        {(['top', 'middle', 'middle', 'middle', 'bottom'] as const).map((pos, i) => (
                             <Card key={i} position={pos}>
                                 <div className="flex items-center justify-between py-1">
                                     <span className="text-body-s">Item {i + 1}</span>
@@ -75,9 +206,9 @@ export default function CardsGlobalPage() {
                         label="Usage"
                         code={`{items.map((item, index) => {
   const position =
-    items.length === 1 ? 'single' :
-    index === 0 ? 'first' :
-    index === items.length - 1 ? 'last' :
+    items.length === 1 ? 'solo' :
+    index === 0 ? 'top' :
+    index === items.length - 1 ? 'bottom' :
     'middle'
 
   return (
@@ -94,13 +225,13 @@ export default function CardsGlobalPage() {
             <DocSection title="Clickable Cards">
                 <DocSection.Content>
                     <div>
-                        <Card position="first" onClick={() => {}}>
+                        <Card position="top" onClick={() => {}}>
                             <div className="flex items-center justify-between py-1">
                                 <span className="text-body-s">Clickable item 1</span>
                                 <span className="text-body-xs text-foreground-secondary">&rarr;</span>
                             </div>
                         </Card>
-                        <Card position="last" onClick={() => {}}>
+                        <Card position="bottom" onClick={() => {}}>
                             <div className="flex items-center justify-between py-1">
                                 <span className="text-body-s">Clickable item 2</span>
                                 <span className="text-body-xs text-foreground-secondary">&rarr;</span>
@@ -111,7 +242,7 @@ export default function CardsGlobalPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="Usage"
-                        code={`<Card position="single" onClick={() => router.push('/detail')}>
+                        code={`<Card position="solo" onClick={() => router.push('/detail')}>
   <div>Clickable card content</div>
 </Card>`}
                     />
@@ -121,7 +252,7 @@ export default function CardsGlobalPage() {
             {/* No Border */}
             <DocSection title="Without Border">
                 <DocSection.Content>
-                    <Card position="single" border={false}>
+                    <Card position="solo" border={false}>
                         <div className="py-1">
                             <span className="text-body-s">No border card</span>
                         </div>
@@ -140,8 +271,8 @@ export default function CardsGlobalPage() {
                     rows={[
                         {
                             name: 'position',
-                            type: "'single' | 'first' | 'middle' | 'last'",
-                            default: "'single'",
+                            type: "'solo' | 'top' | 'middle' | 'bottom'",
+                            default: "'solo'",
                             description: 'Controls border-radius for stacking',
                         },
                         { name: 'border', type: 'boolean', default: 'true', description: 'Show/hide border' },
@@ -150,7 +281,7 @@ export default function CardsGlobalPage() {
                             name: 'className',
                             type: 'string',
                             default: "''",
-                            description: 'Override styles (base: w-full bg-white px-4 py-2)',
+                            description: 'Override styles (base: w-full bg-background-default px-4 py-2)',
                         },
                         { name: 'children', type: 'ReactNode', default: '-', required: true },
                         { name: 'ref', type: 'Ref<HTMLDivElement>', default: '(none)' },
@@ -164,22 +295,22 @@ export default function CardsGlobalPage() {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-border-default bg-background-badge-accent/20">
-                                <th className="px-3 py-1.5 text-left font-bold">Position</th>
-                                <th className="px-3 py-1.5 text-left font-bold">Border Radius</th>
-                                <th className="px-3 py-1.5 text-left font-bold">Border</th>
+                                <th className="px-3 py-2 text-left text-label-m">Position</th>
+                                <th className="px-3 py-2 text-left text-label-m">Border Radius</th>
+                                <th className="px-3 py-2 text-left text-label-m">Border</th>
                             </tr>
                         </thead>
                         <tbody>
                             {[
-                                ['single', 'rounded-sm (all)', 'border border-black'],
-                                ['first', 'rounded-t-sm (top only)', 'border border-black'],
-                                ['middle', 'none', 'border border-black border-t-0'],
-                                ['last', 'rounded-b-sm (bottom only)', 'border border-black border-t-0'],
+                                ['solo', 'rounded-sm (all)', 'border border-border-default'],
+                                ['top', 'rounded-t-sm (top only)', 'border border-border-default'],
+                                ['middle', 'none', 'border border-border-default border-t-0'],
+                                ['bottom', 'rounded-b-sm (bottom only)', 'border border-border-default border-t-0'],
                             ].map(([pos, radius, border]) => (
                                 <tr key={pos} className="border-b border-border-default last:border-0">
-                                    <td className="px-3 py-1.5 font-mono font-bold">{pos}</td>
-                                    <td className="px-3 py-1.5 font-mono">{radius}</td>
-                                    <td className="px-3 py-1.5 font-mono">{border}</td>
+                                    <td className="px-3 py-2 font-mono text-label-m">{pos}</td>
+                                    <td className="px-3 py-2 font-mono">{radius}</td>
+                                    <td className="px-3 py-2 font-mono">{border}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -198,6 +329,81 @@ export default function CardsGlobalPage() {
                     padding or background.
                 </DesignNote>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="History — rows grouped by date"
+                    path="src/app/(mobile-ui)/history/page.tsx"
+                    description="position is computed per DATE GROUP, not per page: the list peeks at the next entry to see whether a new day starts, so every group rounds on its own."
+                    code={`const isFirstInGroup = showHeader
+const isLastInGroup = !nextItem || nextGroupKey !== currentGroupHeaderKey
+
+let position: CardPosition = 'middle'
+if (isFirstInGroup && isLastInGroup) position = 'solo'
+else if (isFirstInGroup) position = 'top'
+else if (isLastInGroup) position = 'bottom'`}
+                >
+                    <div>
+                        <div className="mb-2 text-label-m text-foreground-primary">Today</div>
+                        <Card position="top" className="p-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-body-s">Sent to hugo</span>
+                                <span className="text-body-s">-$12.00</span>
+                            </div>
+                        </Card>
+                        <Card position="bottom" className="p-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-body-s">Card payment</span>
+                                <span className="text-body-s">-$4.50</span>
+                            </div>
+                        </Card>
+                        <div className="mt-2 mb-2 text-label-m text-foreground-primary">Yesterday</div>
+                        <Card position="solo" className="p-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-body-s">Added money</span>
+                                <span className="text-body-s">+$100.00</span>
+                            </div>
+                        </Card>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Profile — menu rows"
+                    path="src/components/Profile/components/ProfileMenuItem.tsx"
+                    description="Each row is a Card with p-4 (min-h-6 + p-4 = the 56px DS row). A row that navigates wraps the Card in a Link; a coming-soon row drops the link and takes the disabled background instead."
+                    code={`<Link href={href} className="block">
+  <Card position={position} onClick={onClick} className="p-4 active:bg-background-disabled">
+    {content}
+  </Card>
+</Link>
+
+{/* coming soon: no link, disabled fill */}
+<Card position={position} className="bg-background-disabled p-4">
+  {content}
+</Card>`}
+                >
+                    <div>
+                        <Card position="top" onClick={() => {}} className="cursor-pointer p-4">
+                            <div className="flex min-h-6 items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="edit" size={20} fill="black" />
+                                    <span className="text-body-m text-foreground-primary">Personal details</span>
+                                </div>
+                                <NavigationArrow size={24} className="fill-black" />
+                            </div>
+                        </Card>
+                        <Card position="bottom" className="bg-background-disabled p-4">
+                            <div className="flex min-h-6 items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="trophy" size={20} fill="black" />
+                                    <span className="text-body-m text-foreground-primary">Referrals</span>
+                                </div>
+                                <Badge status="soon" size="medium" />
+                            </div>
+                        </Card>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

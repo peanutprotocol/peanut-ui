@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { defaultExplorerFilters } from '../query'
-import { useDesktopViewport } from '../useDesktopViewport'
 import { useExplorerUrlState } from '../useExplorerUrlState'
 import { usePaymentNetworkExplorer } from '../usePaymentNetworkExplorer'
 import PaymentNetworkExplorer from '../PaymentNetworkExplorer'
@@ -10,10 +9,10 @@ import type { ExplorerGraphResponse, ExplorerNode } from '../types'
 let mockGraphProps: Record<string, unknown> | null = null
 let mockInspectorProps: Record<string, unknown> | null = null
 
-jest.mock('../useDesktopViewport', () => ({ useDesktopViewport: jest.fn() }))
 jest.mock('../useExplorerUrlState', () => ({ useExplorerUrlState: jest.fn() }))
 jest.mock('../usePaymentNetworkExplorer', () => ({ usePaymentNetworkExplorer: jest.fn() }))
 jest.mock('../privacy', () => ({ suppressPaymentNetworkTelemetry: jest.fn() }))
+jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock(
     '../NetworkCanvas',
     () =>
@@ -80,7 +79,7 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         mockGraphProps = null
         mockInspectorProps = null
         jest.clearAllMocks()
-        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
+        Element.prototype.scrollIntoView = jest.fn()
         jest.mocked(useExplorerUrlState).mockReturnValue({ filters: defaultExplorerFilters(), setFilters: jest.fn() })
         jest.mocked(usePaymentNetworkExplorer).mockReturnValue(
             explorerState() as ReturnType<typeof usePaymentNetworkExplorer>
@@ -103,12 +102,12 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         expect(relationships.map((item) => item.id)).toEqual(['n1:n2:SEND_LINK', 'n2:n1:DIRECT_TRANSFER'])
     })
 
-    it('does not create a live graph request on an unsupported viewport', () => {
-        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: false })
+    it('keeps the explorer available in a stacked narrow-screen layout', async () => {
         render(<PaymentNetworkExplorer />)
-        expect(screen.getByText('Open on a desktop')).toBeInTheDocument()
-        expect(usePaymentNetworkExplorer).toHaveBeenCalledWith(null)
-        expect(mockGraphProps).toBeNull()
+        const layout = screen.getByTestId('payment-network-layout')
+        expect(layout).toHaveClass('grid-cols-1', 'lg:grid-cols-[250px_minmax(0,1fr)_320px]')
+        await waitFor(() => expect(usePaymentNetworkExplorer).toHaveBeenLastCalledWith({ topNodes: 5000 }))
+        expect(mockGraphProps).not.toBeNull()
     })
 
     it('requests the graph with the URL topNodes once the legacy scrub ran', async () => {
@@ -166,7 +165,7 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         })
         render(<PaymentNetworkExplorer />)
         expect(screen.getByText('Focused: carol')).toBeInTheDocument()
-        expect(screen.getByText('not in loaded graph')).toBeInTheDocument()
+        expect(screen.getByText('This user is not in the loaded graph.')).toBeInTheDocument()
         expect(mockGraphProps?.focusNodeId).toBeNull()
     })
 
@@ -189,13 +188,14 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         await waitFor(() => expect(setFilters).toHaveBeenCalledWith({ focus: 'alice' }))
     })
 
-    it('wires the client-side filters into URL state', () => {
+    it('wires the client-side filters into URL state', async () => {
         const setFilters = jest.fn().mockResolvedValue(undefined)
         jest.mocked(useExplorerUrlState).mockReturnValue({ filters: defaultExplorerFilters(), setFilters })
         render(<PaymentNetworkExplorer />)
         fireEvent.change(screen.getByLabelText('Min transactions'), { target: { value: '4' } })
         expect(setFilters).toHaveBeenCalledWith({ minCount: 4 })
-        fireEvent.change(screen.getByLabelText('Top users'), { target: { value: '1000' } })
+        fireEvent.click(screen.getByRole('combobox', { name: 'Top users' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Top 1,000' }))
         expect(setFilters).toHaveBeenCalledWith({ topNodes: 1000 })
     })
 

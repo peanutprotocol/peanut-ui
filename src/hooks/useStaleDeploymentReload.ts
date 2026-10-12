@@ -14,9 +14,8 @@ import { isStandalonePwa, purgeCaches } from '@/utils/cache.utils'
  * Reloads a document left running on a superseded deployment.
  *
  * Nothing else in the app does this. The service worker's `controllerchange`
- * reload is skipped in standalone PWA (an Android standalone session can bounce
- * out to Chrome — see the sw-registration script in layout.tsx), App Router
- * navigations fetch RSC payloads rather than documents, and chunk-error
+ * reload is skipped for installed PWAs because Android can leave the app
+ * window. App Router navigations fetch RSC payloads rather than documents, and chunk-error
  * recovery only fires once an asset actually 404s. So a loaded document can
  * outlive arbitrarily many deploys, keeping its original JS, its API
  * assumptions, and its response headers. That is how weeks-old
@@ -109,9 +108,6 @@ export function useStaleDeploymentReload() {
     const isSafeRef = useRef(true)
     isSafeRef.current = !hasPendingTransactions && !isSendingUserOp && !isLoading && !hasUnsafeSegment(pathname)
 
-    // replace() rather than reload() in standalone: it leaves no history entry,
-    // which is the form least likely to bounce an Android PWA session out to
-    // the browser.
     const reloadDocument = useCallback(() => {
         if (isStandalonePwa()) window.location.replace(window.location.href)
         else window.location.reload()

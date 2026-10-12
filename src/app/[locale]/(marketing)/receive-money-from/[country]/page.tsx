@@ -31,12 +31,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
+    // use_content_metadata only holds back 6 legacy content files with bad title/description;
+    // fix those, then read the frontmatter unconditionally like the sibling marketing routes.
+    const { title, description, use_content_metadata: useContentMetadata } = mdxContent.frontmatter
 
     return {
         ...metadataHelper({
-            locale,
-            title: `${t(i18n.receiveMoneyFrom, { country: countryName })} | Peanut`,
-            description: t(i18n.receiveMoneyFromDesc, { country: countryName }),
+            // og:locale follows the title: authored metadata is in the content
+            // locale, the i18n fallback is in the route locale
+            locale: useContentMetadata === true ? contentLocale : (locale as Locale),
+            title:
+                useContentMetadata === true && typeof title === 'string' && title.trim()
+                    ? title
+                    : `${t(i18n.receiveMoneyFrom, { country: countryName })} | Peanut`,
+            description:
+                useContentMetadata === true && typeof description === 'string' && description.trim()
+                    ? description
+                    : t(i18n.receiveMoneyFromDesc, { country: countryName }),
             canonical: `/${contentLocale}/receive-money-from/${country}`,
         }),
         alternates: {
@@ -57,6 +68,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized('receive-from', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('receive-from', country, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -65,6 +77,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: `/${locale}/receive-money-from/${country}` },

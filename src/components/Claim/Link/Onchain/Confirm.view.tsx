@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -219,6 +219,7 @@ export const ConfirmClaimLinkView = ({
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}
+                    avatarKey={claimLinkData.sender?.avatarKey}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
@@ -260,7 +261,7 @@ export const ConfirmClaimLinkView = ({
                                                         altText={resolvedChainName || t('confirm.chainAlt')}
                                                         fallbackName={resolvedChainName || 'C'}
                                                         sizeClass="h-3.5 w-3.5"
-                                                        className="rounded-full border-2 border-white dark:border-gray-100"
+                                                        className="rounded-full border-2 border-background-default"
                                                     />
                                                 </div>
                                             )}
@@ -285,7 +286,7 @@ export const ConfirmClaimLinkView = ({
                         />
 
                         {/* Peanut fee row */}
-                        <PaymentInfoRow label={tCommon('peanutFee')} value={'$ 0.00'} hideBottomBorder />
+                        <PaymentInfoRow label={tCommon('peanutFee')} value={'$0'} hideBottomBorder />
                     </Card>
                 )}
 
@@ -299,7 +300,7 @@ export const ConfirmClaimLinkView = ({
                     {t('receiveNow')}
                 </Button>
 
-                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
+                {errorState.showError && <Callout priority="error">{errorState.errorMessage}</Callout>}
             </PageStack.Center>
         </PageStack>
     )

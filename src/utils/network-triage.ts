@@ -7,7 +7,7 @@ import { isNativeFetchRejection } from '@/utils/native-fetch-rejection'
  * `TypeError: Failed to fetch` proves nothing about the user's connection: a
  * WAF challenge on the API hostname, a CORS-less edge error page (Cloudflare
  * 5xx), a blocked preflight and a dead radio all surface identically, with no
- * status to look at (TASK-21956 — the reported device was online and the PWA
+ * status to look at (TASK-21956 — the reported device was online and the web app
  * worked). A no-cors probe separates them: it resolves with an opaque response
  * whenever the network transaction completes — ANY status, no ACAO header
  * required, no preflight — so it answers "did the edge answer at all" where a

@@ -575,6 +575,20 @@ describe('General Utilities', () => {
             expect(contributors).toHaveLength(1)
             expect(contributors[0].username).toBe('alice')
         })
+
+        // TASK-22625 — the contributor rows render this avatar.
+        it('carries the payer picked avatar', () => {
+            const payment = makePayment('SUCCESSFUL', 'alice')
+            payment.payerAccount!.user!.avatarKey = 'basic.frog'
+            const contributors = getContributorsFromCharge([makeCharge('c1', [payment])])
+            expect(contributors[0].avatarKey).toBe('basic.frog')
+        })
+
+        it('reports null for an anonymous on-chain contributor', () => {
+            const contributors = getContributorsFromCharge([makeCharge('c1', [makePayment('SUCCESSFUL', null)])])
+            expect(contributors[0].isPeanutUser).toBe(false)
+            expect(contributors[0].avatarKey).toBeNull()
+        })
     })
 
     /*

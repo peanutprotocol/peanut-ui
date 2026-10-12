@@ -5,8 +5,8 @@ import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import { useTranslations } from 'next-intl'
 
 /**
- * "Update ready — restart to apply" for a staged OTA bundle. The restart is a
- * plugin `set()`, which reloads the page on the spot; if the page is somehow
+ * "Update available" for a staged OTA bundle. The bundle is already downloaded;
+ * the CTA is a plugin `set()`, which reloads the page on the spot; if the page is somehow
  * still alive afterwards the provider exits the app on Android and, on iOS
  * (no programmatic exit), swaps the copy for the app-switcher instruction.
  * An apply that never reached the plugin (offline re-stage, rejected reload)
@@ -16,7 +16,7 @@ import { useTranslations } from 'next-intl'
 const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
     const t = useTranslations('profile.update')
     const tCommon = useTranslations('common')
-    const { pendingBundle, applyState, applyNow } = useOtaUpdate()
+    const { applyState, applyNow } = useOtaUpdate()
     const manualRestart = applyState === 'manual-restart'
     const failed = applyState === 'failed'
     const applying = applyState === 'applying'
@@ -28,36 +28,25 @@ const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () =>
             tone={failed ? 'error' : 'info'}
             icon="download"
             title={t('title')}
-            description={
-                manualRestart
-                    ? t('manualRestart')
-                    : failed
-                      ? t('applyFailed')
-                      : t('description', { version: pendingBundle?.version ?? '' })
-            }
+            description={manualRestart ? t('manualRestart') : failed ? t('applyFailed') : t('description')}
             // Both props: preventClose covers Escape and the backdrop, hideModalCloseButton the X.
             // Dismissing mid-apply would hide the failure state the user still has to act on.
             preventClose={applying}
             hideModalCloseButton={applying}
             ctas={
                 manualRestart
-                    ? [{ text: tCommon('gotIt'), variant: 'stroke', onClick: onClose }]
+                    ? [{ text: tCommon('gotIt'), shadowSize: '4', onClick: onClose }]
                     : [
                           {
-                              text: failed ? tCommon('tryAgain') : t('restartNow'),
+                              text: failed ? tCommon('tryAgain') : t('update'),
                               shadowSize: '4',
                               loading: applying,
                               disabled: applying,
                               onClick: () => void applyNow(),
                           },
-                          {
-                              text: t('notNow'),
-                              variant: 'stroke',
-                              disabled: applying,
-                              onClick: onClose,
-                          },
                       ]
             }
+            tertiaryCta={manualRestart ? undefined : { text: t('notNow'), disabled: applying, onClick: onClose }}
         />
     )
 }

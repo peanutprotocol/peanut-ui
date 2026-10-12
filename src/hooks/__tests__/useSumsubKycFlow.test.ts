@@ -5,7 +5,9 @@ import {
     initiateSumsubKyc,
     initiateSelfHealResubmission,
     restartIdentityVerification,
+    startResidenceChangeVerification,
     startKycAction,
+    refreshVerificationSession,
 } from '@/app/actions/sumsub'
 
 // useSumsubKycFlow wires a websocket, redux, the router and three server actions.
@@ -24,7 +26,10 @@ jest.mock('@/app/actions/sumsub', () => ({
     initiateSumsubKyc: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
+    startResidenceChangeVerification: jest.fn(),
     startKycAction: jest.fn(),
+    refreshVerificationSession: jest.fn(),
+    getVerificationSession: jest.fn(async () => null),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({
     useWebSocket: (opts: { onSumsubKycStatusUpdate?: (status: string, labels?: string[]) => void }) => {
@@ -39,10 +44,14 @@ const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSum
 const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
 const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
 const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
+const mockResidenceChange = startResidenceChangeVerification as jest.MockedFunction<
+    typeof startResidenceChangeVerification
+>
 
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
         mockInitiate.mockReset()
+        mockResidenceChange.mockReset()
         mockWs.handler = undefined
     })
 
@@ -119,6 +128,40 @@ describe('useSumsubKycFlow — cross-region routing', () => {
     // and the regions screen offers LATAM as one bucket, so it has none to send
     // and the backend has already tried the user's residence. Retrying repeats
     // the identical request, so it must not look retriable.
+    // api#1738: a residence refusal is localized from the capability reason
+    // catalog, never the UK copy for anyone else, and never retried
+    it('residence_bank_restricted is terminal and reads the country-neutral line', async () => {
+        mockInitiate.mockResolvedValue({
+            error: 'Bank transfers are not available for your current or pending residence.',
+            code: 'residence_bank_restricted',
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess: jest.fn() }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true)
+        })
+
+        expect(result.current.isTerminalError).toBe(true)
+        expect(result.current.error).toBe(
+            "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime."
+        )
+        expect(result.current.error).not.toMatch(/UK/)
+    })
+
+    it('a resubmit refused for residence reads the localized line, not the backend prose', async () => {
+        mockResubmit.mockResolvedValue({
+            error: 'Bank transfers are not available for your current or pending residence.',
+            code: 'residence_bank_restricted',
+        } as never)
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess: jest.fn() }))
+
+        await act(async () => {
+            await result.current.handleSelfHealResubmit('BRIDGE')
+        })
+
+        expect(result.current.error).toMatch(/^Bank transfers aren't available for residents of your country/)
+    })
+
     it('target_country_required is terminal, not a retry loop', async () => {
         mockInitiate.mockResolvedValue({
             error: 'Bank transfers are not available for your country yet.',
@@ -255,6 +298,31 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
     })
 })
 
+describe('useSumsubKycFlow — corridor', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockWs.handler = undefined
+    })
+
+    // The backend reads the level from the corridor, so every call that can
+    // mint or refresh a token for that run has to name it — a poll without it
+    // would resolve the level from whatever intent was stored before.
+    it('names the corridor on the initiate request', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc(undefined, undefined, true, undefined, false, 'BANK_TRANSFER_CO')
+        })
+
+        expect(mockInitiate).toHaveBeenCalledWith(
+            expect.objectContaining({ corridor: 'BANK_TRANSFER_CO', crossRegion: true })
+        )
+    })
+})
+
 describe('useSumsubKycFlow — terminal-error exits clear the user-initiated guard', () => {
     beforeEach(() => {
         mockInitiate.mockReset()
@@ -382,10 +450,9 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.isMultiLevel).toBe(true)
     })
 
-    // A residence change re-opens identity through restart-identity with the
-    // NEW residence's intent; the hook prop only catches up on the next render,
-    // so the intent travels with the call and the second level must still run.
-    it('a residence re-verification carries its intent into the restart and stays multi-level', async () => {
+    // Call-time overrides are still required for the destructive document
+    // replacement flow; residence changes now have a separate action below.
+    it('a document restart carries its intent and stays multi-level', async () => {
         mockRestart.mockResolvedValue({ data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general' } })
         const { result } = renderHook(() => useSumsubKycFlow({}))
 
@@ -396,6 +463,97 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(mockRestart).toHaveBeenCalledWith('LATAM')
         expect(result.current.showWrapper).toBe(true)
         expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('opens a residence Applicant Action as single-level and never calls restart-identity', async () => {
+        mockRestart.mockClear()
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'tok_residence',
+                applicantId: 'app_1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+        const onManualClose = jest.fn()
+        const { result } = renderHook(() => useSumsubKycFlow({ onManualClose }))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(mockResidenceChange).toHaveBeenCalledWith('PT')
+        expect(mockRestart).not.toHaveBeenCalled()
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isActionFlow).toBe(true)
+        expect(result.current.isMultiLevel).toBe(false)
+
+        act(() => result.current.handleSdkComplete())
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+        expect(onManualClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('binds residence token refreshes to the country used to open the action', async () => {
+        mockResidenceChange
+            .mockResolvedValueOnce({
+                data: {
+                    token: 'tok_residence',
+                    applicantId: 'app_1',
+                    levelName: 'peanut-residence-change',
+                    targetCountry: 'PT',
+                },
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    token: 'tok_refreshed',
+                    applicantId: 'app_1',
+                    levelName: 'peanut-residence-change',
+                    targetCountry: 'PT',
+                },
+            })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('pt')
+        })
+        await act(async () => {
+            expect(await result.current.refreshToken()).toBe('tok_refreshed')
+        })
+
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(1, 'PT')
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(2, 'PT')
+    })
+
+    it('uses residence-specific fallback copy when its action cannot start', async () => {
+        mockResidenceChange.mockResolvedValue({
+            error: 'Failed to start residence change verification',
+            code: 'residence_change_failed',
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(result.current.error).toBe('Could not start residence verification. Please try again.')
+        expect(result.current.error).not.toMatch(/identity/i)
+    })
+
+    it('routes residence action budgets to the shared cooldown dialog', async () => {
+        mockResidenceChange.mockResolvedValue({
+            error: 'Wait a few minutes before starting another residence verification.',
+            cooldown: { retryAt: '2026-09-14T20:05:00.000Z' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(result.current.error).toBeNull()
+        expect(result.current.errorCooldown).toEqual({ retryAt: '2026-09-14T20:05:00.000Z' })
+        expect(result.current.showWrapper).toBe(false)
     })
 
     // The backend derives the intent from the declared residence when the caller
@@ -864,6 +1022,79 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
         expect(mockStartAction).not.toHaveBeenCalled()
     })
 
+    it('BRIDGE residence_unresolved goes to start-action — resubmit would 404 for it', async () => {
+        // The residence gate parks the rail before Bridge ever sees the user, so
+        // there is no rejectType and no remediation for /kyc/resubmit to find. It
+        // answers 404 and the CTA errors under copy that just asked for an
+        // address. This is the one Bridge code that must not take resubmit.
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-address' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({
+                provider: 'BRIDGE',
+                actionKey: 'sumsub:address_of_residence',
+                reasonCode: 'residence_unresolved',
+            })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('the same BRIDGE action key WITHOUT that reason code still takes resubmit', async () => {
+        // A genuine Bridge rejection asking for an address goes on using the route
+        // that resolves the level and stamps the externalActionId its webhook keys
+        // on. The narrow reason code is the discriminator, not the action key.
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge-addr' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({
+                provider: 'BRIDGE',
+                actionKey: 'sumsub:address_of_residence',
+                reasonCode: 'address_of_residence',
+            })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+
+    it('handleFixableGate pulls BOTH values off the gate — a dropped code means a 404', async () => {
+        // The four bank surfaces used to build this argument by hand. A site that
+        // passed `gate.reason` instead of `gate.reason.code`, or omitted it, would
+        // fall back to resubmit and 404 for a residence park with every test still
+        // green, because the mistake lives in the argument rather than the router.
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-address' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'sumsub:address_of_residence',
+                reason: { code: 'residence_unresolved' },
+            })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('handleFixableGate on any other Bridge gate still takes resubmit', async () => {
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'sumsub:proof_of_address',
+                reason: { code: 'proof_of_address' },
+            })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+
     it('start-action failure surfaces an error and does not open the SDK', async () => {
         mockStartAction.mockResolvedValue({ error: 'Action not allowed for this user' })
         const { result } = renderHook(() => useSumsubKycFlow())
@@ -998,4 +1229,176 @@ it('routes restart throttles to the shared cooldown dialog and clears them on di
     act(() => result.current.dismissErrorCooldown())
     expect(result.current.errorCooldown).toBeNull()
     expect(result.current.error).toBeNull()
+})
+
+describe('useSumsubKycFlow — capability action sessions', () => {
+    const session = {
+        id: 'session-1',
+        generation: 2,
+        targetCountry: 'BR',
+        externalActionId: 'manteca-user-attempt-2-BR',
+        state: 'COLLECTING' as const,
+        reasonCode: null,
+        isMultiLevel: false,
+    }
+    beforeEach(() => {
+        mockStartAction.mockReset()
+        mockInitiate.mockReset()
+        jest.mocked(refreshVerificationSession).mockReset()
+    })
+    it('refreshes the exact generation without re-entering start-action', async () => {
+        mockStartAction.mockResolvedValue({ data: { token: 'tok', levelName: 'manteca-kyc', session } })
+        jest.mocked(refreshVerificationSession).mockResolvedValue('fresh-token')
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.verificationSession).toEqual(session)
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isMultiLevel).toBe(false)
+        await act(async () => {
+            expect(await result.current.refreshToken()).toBe('fresh-token')
+        })
+        expect(refreshVerificationSession).toHaveBeenCalledWith(session)
+        expect(mockStartAction).toHaveBeenCalledTimes(1)
+        expect(mockInitiate).not.toHaveBeenCalled()
+    })
+    it.each(['REVIEW_PENDING', 'SUBMISSION_PENDING', 'PROVIDER_PENDING', 'READY'] as const)(
+        'shows %s progress without opening collection',
+        async (state) => {
+            mockStartAction.mockResolvedValue({ data: { levelName: 'manteca-kyc', session: { ...session, state } } })
+            const success = jest.fn()
+            const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess: success }))
+            await act(async () => {
+                await result.current.handleStartAction('manteca-kyc-action:BR')
+            })
+            expect(result.current.isVerificationProgressModalOpen).toBe(true)
+            expect(result.current.showWrapper).toBe(false)
+            expect(result.current.error).toBeNull()
+            await act(async () => {
+                mockWs.handler?.('APPROVED')
+            })
+            expect(success).not.toHaveBeenCalled()
+        }
+    )
+    it('requires an explicit correction and keeps its country', async () => {
+        mockStartAction.mockResolvedValue({
+            data: {
+                levelName: 'manteca-kyc',
+                session: { ...session, state: 'CORRECTION_REQUIRED', reasonCode: 'INVALID_TAX_ID' },
+            },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.showCorrection).toBe(true)
+        expect(result.current.showWrapper).toBe(false)
+        expect(mockInitiate).not.toHaveBeenCalled()
+        mockInitiate.mockResolvedValue({
+            data: {
+                token: 'correction-token',
+                applicantId: 'app-1',
+                status: 'APPROVED',
+                session: { ...session, generation: 3 },
+            },
+        })
+        await act(async () => {
+            await result.current.correctVerificationData()
+        })
+        expect(mockInitiate).toHaveBeenCalledWith(
+            expect.objectContaining({ targetCountry: 'BR', correctSession: true })
+        )
+        expect(result.current.verificationSession?.generation).toBe(3)
+    })
+    it('shows a blocked session as terminal instead of opening the SDK', async () => {
+        mockStartAction.mockResolvedValue({
+            data: {
+                levelName: 'manteca-kyc',
+                session: { ...session, state: 'BLOCKED', reasonCode: 'PROVIDER_REJECTED' },
+            },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.isTerminalError).toBe(true)
+        expect(result.current.error).toBeTruthy()
+        expect(result.current.showWrapper).toBe(false)
+    })
+    it.each([
+        ['SUBMISSION_EXHAUSTED', /on our side/i],
+        ['IDENTITY_REJECTED', /think this is a mistake/i],
+        ['ACTION_REJECTED', /think this is a mistake/i],
+        ['PROVIDER_REJECTED', /think this is a mistake/i],
+    ] as const)('a blocked session (%s) says whose move it is, not "your ID is verified"', async (reasonCode, key) => {
+        mockStartAction.mockResolvedValue({
+            data: { levelName: 'manteca-kyc', session: { ...session, state: 'BLOCKED', reasonCode } },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.error).toMatch(key)
+        expect(result.current.error).not.toMatch(/your ID is verified/i)
+    })
+    it.each(['BLOCKED', 'SUBMISSION_PENDING', 'READY'] as const)(
+        'clears stale %s state when re-entry resumes collection',
+        async (state) => {
+            mockStartAction.mockResolvedValueOnce({
+                data: { levelName: 'manteca-kyc', session: { ...session, state } },
+            })
+            const { result } = renderHook(() => useSumsubKycFlow())
+            await act(async () => {
+                await result.current.handleStartAction('manteca-kyc-action:BR')
+            })
+            if (state === 'BLOCKED') {
+                expect(result.current.isTerminalError).toBe(true)
+                expect(result.current.error).toBeTruthy()
+            } else {
+                expect(result.current.isVerificationProgressModalOpen).toBe(true)
+            }
+
+            mockStartAction.mockResolvedValueOnce({
+                data: { token: 'resumed-token', levelName: 'manteca-kyc', session },
+            })
+            await act(async () => {
+                await result.current.handleStartAction('manteca-kyc-action:BR')
+            })
+            expect(result.current.isTerminalError).toBe(false)
+            expect(result.current.error).toBeNull()
+            expect(result.current.isVerificationProgressModalOpen).toBe(false)
+            expect(result.current.showWrapper).toBe(true)
+            expect(result.current.accessToken).toBe('resumed-token')
+        }
+    )
+    it('hides the previous SDK while re-entry is pending and when it fails', async () => {
+        mockStartAction.mockResolvedValueOnce({ data: { token: 'old-token', levelName: 'manteca-kyc', session } })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.showWrapper).toBe(true)
+
+        let complete!: (response: Awaited<ReturnType<typeof startKycAction>>) => void
+        mockStartAction.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    complete = resolve
+                })
+        )
+        let pending!: Promise<void>
+        act(() => {
+            pending = result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.isLoading).toBe(true)
+        expect(result.current.showWrapper).toBe(false)
+        await act(async () => {
+            complete({ error: 'Temporary failure' })
+            await pending
+        })
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+        expect(result.current.error).toBeTruthy()
+    })
 })

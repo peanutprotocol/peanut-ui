@@ -3,14 +3,19 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 import { useQrPayFlow } from './QrPayFlowContext'
+import { formatBrTaxId } from '@/utils/br-tax-id.utils'
+import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export function useQrReceipt() {
-    const { qrPayment, currency, usdAmount, methodIcon } = useQrPayFlow()
+    const { qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel } = useQrPayFlow()
     // receipt transaction for the success drawer — built up-front (not in the
     // cta's onClick) because the drawer opens off the url's `?tx=` match.
     const receiptTransaction: TransactionDetails | null = useMemo(() => {
         if (!qrPayment || !currency) return null
         const now = new Date()
+        // A PIX key the payer looked up: the owner, with the key beside the name,
+        // as activity shows it.
+        const counterparty = pixKeyOwner ? normalizeMerchantName(pixKeyOwner.name) : qrPayment.details.merchant.name
         return {
             // Manteca synthetic id — the only key /receipt/<id>
             // resolves, and what Activity rows already carry.
@@ -18,8 +23,9 @@ export function useQrReceipt() {
             // id-shape gate and 404s silently instead of erroring.
             id: qrPayment.id,
             direction: 'qr_payment',
-            userName: qrPayment.details.merchant.name,
-            fullName: qrPayment.details.merchant.name,
+            userName: counterparty,
+            fullName: counterparty,
+            nameDetail: pixKeyOwner && pixKeyLabel ? formatBrTaxId(pixKeyLabel) : undefined,
             amount: Number(usdAmount),
             currency: {
                 amount: qrPayment.details.paymentAssetAmount,
@@ -42,7 +48,7 @@ export function useQrReceipt() {
             },
             totalAmountCollected: Number(usdAmount),
         }
-    }, [qrPayment, currency, usdAmount, methodIcon])
+    }, [qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel])
 
     return receiptTransaction
 }

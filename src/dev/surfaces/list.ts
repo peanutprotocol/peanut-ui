@@ -18,22 +18,47 @@ export type SurfaceMeta = {
      *  surfaces that mount closed and open on an in-surface action. The spec
      *  asserts a dialog is open before capturing. */
     shotClick?: string
+    /** Stable test id for a translated trigger that opens a dialog. The capture
+     *  runner proves that the dialog opened before it records the surface. */
+    shotClickTestId?: string
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
-    '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
-    '02-a-joinwaitlist': { name: 'JoinWaitlist', path: 'Setup/Views/JoinWaitlist.tsx' },
-    '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
-    '04-a-installpwa': {
-        name: 'InstallPWA',
-        path: 'Setup/Views/InstallPWA.tsx',
+    '01-b-first-launch-intro': {
+        name: 'First launch — animated Peanut intro',
+        path: 'Setup/components/SetupWrapper.tsx',
     },
+    '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
+    '03-c-residence-congrats': {
+        name: 'Payment plan',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-h-funding-methods': {
+        name: 'Setup — funding methods',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-funding-channel',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-i-payment-methods': {
+        name: 'Setup — payment methods',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-payment-channel',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '05-a-signtesttransaction': {
-        name: 'SignTestTransaction — account ready',
+        name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
-    '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
+    '06-b-invite': { name: 'Invited by a friend', path: 'Setup/Views/Invite.tsx' },
+    '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },
+    '04-b-advantage-fees': { name: 'Setup benefit — accounts', path: 'Setup/Views/Advantage.tsx' },
+    '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
+    '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },
+    '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
+    '07-b-advantage-control': { name: 'Setup benefit — control', path: 'Setup/Views/Advantage.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
@@ -45,8 +70,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '12-a-eastereggmodal': { name: 'EasterEggDrawer', path: 'Global/EasterEggDrawer/index.tsx' },
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
-    '15-a-invitefriendsmodal': { name: 'InviteFriendsDrawer', path: 'Global/InviteFriendsDrawer/index.tsx' },
-    '16-a-iospwainstallmodal': { name: 'IosPwaInstallDrawer', path: 'Global/IosPwaInstallDrawer/index.tsx' },
+    '15-a-invitefriendsmodal': { name: 'InviteFriendsModal', path: 'Global/InviteFriendsModal/index.tsx' },
     '17-a-nomorejailmodal': { name: 'NoMoreJailDrawer', path: 'Global/NoMoreJailDrawer/index.tsx' },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',
@@ -62,7 +86,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'SetupNotificationsModal',
         path: 'Notifications/SetupNotificationsModal.tsx',
     },
-    '21-b-advisorypreemptmodal': { name: 'AdvisoryPreemptModal', path: 'Kyc/AdvisoryPreemptModal.tsx' },
     '22-b-initiatekycmodal': { name: 'InitiateKycModal (default)', path: 'Kyc/InitiateKycModal.tsx' },
     '23-b-kycreverificationpendingmodal': {
         name: 'KycReverificationPendingModal',
@@ -84,7 +107,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
-    '35-c-cardunlockdrawer': { name: 'CardUnlockDrawer', path: 'Card/CardUnlockDrawer.tsx' },
     '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
     '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },
@@ -104,13 +126,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
     '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
-    '46-c-perkclaimmodal': { name: 'PerkClaimDrawer', path: 'Home/PerkClaimDrawer.tsx' },
-    '47-c-welcomeunlockmodal': { name: 'WelcomeUnlockDrawer', path: 'Home/WelcomeUnlockDrawer/index.tsx' },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
-    '49-c-tokenandnetworkconfirmationmodal': {
-        name: 'TokenAndNetworkConfirmationDrawer',
-        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
-    },
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
         path: 'TransactionDetails/TransactionDetailsDrawer.tsx',
@@ -123,6 +139,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '52-d-contributorsdrawer': {
         name: 'ContributorsDrawer',
         path: 'features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx',
+        shotClick: 'See all contributors',
     },
     '53-d-cancelsendlinkdrawer': { name: 'CancelSendLinkDrawer', path: 'Global/CancelSendLinkDrawer/index.tsx' },
     '54-d-qrbottomdrawer': {
@@ -178,12 +195,53 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Transaction limits — error',
         path: 'features/limits/components/LimitsWarningCard.tsx',
     },
-    '69-d-perkclaimsuccess': { name: 'PerkClaimSuccessDrawer', path: 'Home/PerkClaimSuccessDrawer.tsx' },
+    '78-f-choice-guest-claim': {
+        name: 'Guest claim — payment choices',
+        path: 'Claim/Link/SendLinkActionList.tsx',
+    },
+    '79-f-choice-direct-send': {
+        name: 'Direct send — payment choices',
+        path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+    },
+    '80-f-choice-semantic-request': {
+        name: 'Semantic request — payment choices',
+        path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+    },
+    '81-f-choice-request-pot': {
+        name: 'Request pot — payment choices',
+        path: 'features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
+    },
+    '82-f-choice-card-requires-info': {
+        name: 'Card application — more information required',
+        path: 'Card/ApplicationStatusScreen.tsx',
+    },
+    '83-f-choice-residence-restricted': {
+        name: 'Setup payment plan — restricted residence',
+        path: 'Setup/Views/PaymentPlan.tsx',
+    },
+    '84-f-choice-public-profile-guest': {
+        name: 'Public profile — guest actions',
+        path: 'Profile/components/PublicProfile.tsx',
+    },
+    '85-f-choice-claim-error': {
+        name: 'Claim error — recovery actions',
+        path: 'Claim/Generic/ClaimError.view.tsx',
+    },
+    '86-f-choice-not-found': { name: 'Not found — recovery actions', path: 'app/not-found.tsx' },
+    '87-f-request-created': {
+        name: 'Request link — created',
+        path: 'Request/link/views/RequestCreatedView.tsx',
+    },
+    '88-f-request-bank-currency': {
+        name: 'Request link — bank currency chooser',
+        path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
+        shotClickTestId: 'bank-transfer-chooser',
+    },
     '70-d-activationctas-outbound': {
-        name: 'ActivationCTAs (outbound)',
-        path: 'Home/ActivationCTAs.tsx',
+        name: 'First-payment chooser',
+        path: 'Home/FirstPaymentChooser.tsx',
         shotFixture: 'card-access',
-        shotClick: 'Start Spending',
+        shotClickTestId: 'checklist-first-payment',
     },
     '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqDrawers.tsx' },
     '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqDrawers.tsx' },

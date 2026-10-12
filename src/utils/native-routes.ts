@@ -3,6 +3,7 @@
 // on web, use the normal path-based urls.
 
 import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
+import { LOTTIE_PROFILE_ENABLED } from '@/constants/dev-tools.consts'
 import { isCapacitor } from './capacitor'
 import { sanitizeRedirectURL } from './cookie-url.utils'
 
@@ -129,8 +130,16 @@ function mapDeepLinkPath(parsed: URL): string | null {
         return isCapacitor() ? null : appendParams(path, extraParams)
     }
 
-    // OS associations also claim /app/*, but only /app exists in the native export.
-    // Preserve the query so /app can apply the deferred payload and open its destination.
+    // TASK-21683 profile binaries deliberately keep this single /dev route in
+    // the static export. Let a tester tap https://peanut.me/dev/lottie-profile
+    // to enter it; every other /dev link stays outside the native app.
+    if (isCapacitor() && LOTTIE_PROFILE_ENABLED && path === '/dev/lottie-profile') {
+        return appendParams(path, extraParams)
+    }
+
+    // /app is deliberately not OS-associated: download QRs use the already-
+    // shipped /home claim. Keep mapping direct/app-authored and legacy /app
+    // URLs for compatibility, collapsing the nonexistent wildcard pages.
     if (segments[0] === 'app') {
         return appendParams('/app', extraParams)
     }
@@ -261,7 +270,7 @@ function mapDeepLinkPath(parsed: URL): string | null {
  */
 export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'add-money',
-    // QR scans can open this page inside the app, where it applies any deferred payload.
+    // Kept for direct/app-authored and legacy links; new QR scans enter via /home.
     'app',
     'badges',
     'card',
@@ -299,7 +308,9 @@ export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
  * fallback.
  */
 export function isNativeExportPath(path: string): boolean {
-    const root = path.split(/[?#]/)[0].split('/').filter(Boolean)[0]
+    const pathname = path.split(/[?#]/)[0]
+    if (LOTTIE_PROFILE_ENABLED && pathname === '/dev/lottie-profile') return true
+    const root = pathname.split('/').filter(Boolean)[0]
     if (!root) return true // '/' exists in the export (RootRedirect)
     return NATIVE_EXPORT_ROOTS.has(root.toLowerCase())
 }

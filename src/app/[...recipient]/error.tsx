@@ -27,7 +27,7 @@ export default function PaymentError({ error, reset }: { error: Error & { digest
                 <Card.Description>{error.message || t('errorPage.description')}</Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-3">
-                <Button onClick={reset} variant="purple">
+                <Button onClick={reset} variant="primary">
                     {tCommon('tryAgain')}
                 </Button>
                 <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">

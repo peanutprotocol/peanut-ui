@@ -2,7 +2,8 @@
 
 import type { BundleInfo } from '@capgo/capacitor-updater'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { isSplashVisible } from '@/hooks/useSplashGate'
+import { completeOtaLaunchDecision, isSplashVisible } from '@/hooks/useSplashGate'
+import { useStoreUpdateAvailable } from '@/hooks/useStoreUpdateAvailable'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
 import type { OtaApplyOutcome } from '@/utils/capgo-updater'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
@@ -18,9 +19,9 @@ import { markNativeBootComplete } from '@/utils/native-app-ready'
 export type OtaApplyState = 'idle' | 'applying' | 'manual-restart' | 'failed'
 
 export interface OtaUpdateContextValue {
-    /** downloaded bundle queued by the plugin, waiting for a restart */
+    /** downloaded bundle waiting for a safe launch or explicit restart */
     pendingBundle: BundleInfo | null
-    /** the newest bundle targets a newer native binary — only the store can update */
+    /** a newer native binary is needed and a newer release is confirmed available in this platform's store */
     storeUpdateRequired: boolean
     applyState: OtaApplyState
     /** restart onto `pendingBundle` now (native only) */
@@ -46,7 +47,8 @@ const OtaUpdateContext = createContext<OtaUpdateContextValue>({
  */
 export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
     const [pendingBundle, setPendingBundle] = useState<BundleInfo | null>(null)
-    const [storeUpdateRequired, setStoreUpdateRequired] = useState(false)
+    const [nativeUpdateRequired, setNativeUpdateRequired] = useState(false)
+    const storeUpdateRequired = useStoreUpdateAvailable(nativeUpdateRequired)
     const [applyState, setApplyState] = useState<OtaApplyState>('idle')
     const fallbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
     // Read and written synchronously: two taps landing in the same tick both see
@@ -62,14 +64,14 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         // candidate existing, and failure must not prevent updater initialization.
         runningBundleOutranksBinary()
             .then((required) => {
-                if (!disposed && required) setStoreUpdateRequired(true)
+                if (!disposed && required) setNativeUpdateRequired(true)
             })
             .catch((err) => console.warn('[capgo] running floor read failed:', err))
 
-        // a bundle staged on an earlier launch is still queued in the plugin —
-        // read through the gate, which drops one built for a newer binary
+        // A download from an earlier launch (or a legacy native queue) may be
+        // waiting. Read through the gate, which drops incompatible bundles.
         importWithChunkRetry(() => import('@/utils/capgo-updater'))
-            .then((updater) => updater.readStagedBundle({ onStoreUpdateRequired: () => setStoreUpdateRequired(true) }))
+            .then((updater) => updater.readStagedBundle({ onStoreUpdateRequired: () => setNativeUpdateRequired(true) }))
             .then((bundle) => {
                 if (!disposed && bundle) setPendingBundle((current) => current ?? bundle)
             })
@@ -79,7 +81,7 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
             .then(async (updater) => {
                 const remove = await updater.initCapgoUpdater({
                     onUpdateAvailable: (bundle) => setPendingBundle(bundle),
-                    onStoreUpdateRequired: () => setStoreUpdateRequired(true),
+                    onStoreUpdateRequired: () => setNativeUpdateRequired(true),
                 })
                 // Unmounted while init was still resolving: run the cleanup now
                 // or the listeners it registered are never removed.
@@ -97,11 +99,13 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
                 // and racing them would report this launch's marker as a
                 // failure of the previous one. Only while the splash still
                 // hides the reload — see applyStagedBundleOnLaunch.
-                if (!isSplashVisible()) return
-                const staged = await updater.applyStagedBundleOnLaunch()
-                if (!disposed && staged) setPendingBundle((current) => current ?? staged)
+                if (isSplashVisible()) {
+                    const staged = await updater.applyStagedBundleOnLaunch()
+                    if (!disposed && staged) setPendingBundle((current) => current ?? staged)
+                }
             })
             .catch((err) => console.warn('[capgo] ota init failed:', err))
+            .finally(completeOtaLaunchDecision)
 
         return () => {
             disposed = true
@@ -127,11 +131,14 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
             return
         }
 
-        // Binaries whose plugin deadlocks on an in-place restart (see
-        // canRestartInPlace) can only quit. next() already staged the bundle, so
-        // relaunching applies it — and the state is set BEFORE the exit, so an
-        // exitApp that fails leaves the instruction on screen rather than a spinner.
+        // Old Android plugins deadlock on set(). Arm next() only for an explicit
+        // exit, never for an ordinary background transition such as a passkey.
         if (!(await updater.canRestartInPlace())) {
+            if (!(await updater.armStagedBundleForExit(pendingBundle.id))) {
+                applyingRef.current = false
+                setApplyState('failed')
+                return
+            }
             updater.markPendingApply(pendingBundle.id)
             setApplyState('manual-restart')
             try {
@@ -139,6 +146,10 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
                 await App.exitApp()
             } catch (err) {
                 console.warn('[capgo] exitApp failed:', err)
+                await updater.disarmBackgroundApply()
+                updater.clearPendingApply()
+                applyingRef.current = false
+                setApplyState('failed')
             }
             return
         }

@@ -47,7 +47,10 @@ export const saveToCookie = (key: string, data: unknown, expiryDays?: number) =>
         cookieString += `; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`
 
         document.cookie = cookieString
-        console.log(`Saved ${key} to cookie:`, data)
+        // Cookie values can contain invite/source context or other account
+        // metadata. Keep diagnostics useful without copying the value into
+        // browser logs, replay breadcrumbs, or support screenshots.
+        console.log(`Saved ${key} to cookie`)
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error saving to cookie:', error)
@@ -73,7 +76,7 @@ export const getFromCookie = (key: string) => {
         const decodedValue = decodeURIComponent(cookieValue)
 
         const parsedData = jsonParse(decodedValue)
-        console.log(`Retrieved ${key} from cookie:`, parsedData)
+        console.log(`Retrieved ${key} from cookie`)
         return parsedData
     } catch (error) {
         Sentry.captureException(error)
@@ -84,23 +87,16 @@ export const getFromCookie = (key: string) => {
 
 export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
     try {
-        const u = new URL(redirectUrl, window.location.origin)
-        // Only allow same-origin URLs
-        if (u.origin === window.location.origin) {
-            return u.pathname + u.search + u.hash
-        }
-        console.log('Rejecting off-origin URL:', redirectUrl)
-        // Reject off-origin URLs
-        return null
+        const origin = window.location.origin
+        const u = new URL(redirectUrl, origin)
+        if (u.origin !== origin || u.username || u.password) return null
+        // A same-origin URL can normalize to //host (e.g. /.//host).
+        // Router navigation reparses the path, so validate that representation too.
+        const decodedPath = decodeURIComponent(u.pathname)
+        if (!decodedPath.startsWith('/') || /^\/[\\/]/.test(decodedPath)) return null
+        if (new URL(decodedPath, origin).origin !== origin) return null
+        return u.pathname + u.search + u.hash
     } catch {
-        // For strings that can't be parsed as URLs, only allow relative paths
-        if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
-            // Additional check: ensure it doesn't contain a protocol
-            if (!redirectUrl.includes('://')) {
-                return redirectUrl
-            }
-        }
-        // Reject anything else (including protocol-relative URLs like //evil.com)
         return null
     }
 }

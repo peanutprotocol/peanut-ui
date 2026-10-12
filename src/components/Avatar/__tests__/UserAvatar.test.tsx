@@ -46,4 +46,20 @@ describe('UserAvatar', () => {
         expect(container.querySelector('svg')).toBeInTheDocument()
         expect(container).toHaveTextContent('')
     })
+
+    // list rows show the name next to the avatar — announcing it twice is noise
+    it('keeps the name for the letter but leaves the a11y tree when decorative', () => {
+        const { container } = render(<UserAvatar name="satoshi" avatarKey={null} decorative />)
+
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/s.webp')
+        expect(screen.queryByRole('img', { name: 'Avatar for satoshi' })).not.toBeInTheDocument()
+        expect(container.querySelector('[aria-hidden="true"]')).toBeInTheDocument()
+    })
+
+    it('hides the initials fallback too when decorative', () => {
+        const { container } = render(<UserAvatar name="0xf39Fd6" avatarKey={null} decorative />)
+
+        expect(container).toHaveTextContent(/^0$/)
+        expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true')
+    })
 })

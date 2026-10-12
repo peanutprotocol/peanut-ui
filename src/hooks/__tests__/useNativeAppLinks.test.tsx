@@ -2,9 +2,12 @@
 // unless a real deep link actually navigated — this is the only place that
 // happens, so it needs its own coverage (the pure payload logic is tested in
 // deferred-link.test.ts).
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { focusManager } from '@tanstack/react-query'
+import { useConnectivity } from '../useConnectivity'
+import { __resetConnectivityForTests, getConnectivityGeneration, reportNetworkError } from '@/utils/connectivity'
 import { useNativeAppLinks } from '../useNativeAppLinks'
-import { restoreDeferredContext } from '@/utils/deferred-link'
+import { applyDeferredPayload, parseDeferredPayload, restoreDeferredContext } from '@/utils/deferred-link'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 import { getOneSignalAdapter } from '@/services/onesignal'
 import { BASE_URL } from '@/constants/general.consts'
@@ -61,18 +64,50 @@ jest.mock('@capacitor/app', () => ({
 
 jest.mock('@/utils/deferred-link', () => ({
     restoreDeferredContext: jest.fn(() => Promise.resolve(null)),
+    parseDeferredPayload: jest.fn(() => null),
+    applyDeferredPayload: jest.fn(() => ({ dest: null, locale: null })),
 }))
 
 const mockRestore = restoreDeferredContext as jest.MockedFunction<typeof restoreDeferredContext>
+const mockParseDeferredPayload = parseDeferredPayload as jest.MockedFunction<typeof parseDeferredPayload>
+const mockApplyDeferredPayload = applyDeferredPayload as jest.MockedFunction<typeof applyDeferredPayload>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    __resetConnectivityForTests()
     launchUrl = undefined
     // Module state + the launch-url guard outlive a test: without these resets
     // an earlier test's navigation suppresses the next test's launch dispatch.
     resetDeepLinkStateForTests()
     resetBackHandlersForTests()
     sessionStorage.clear()
+    mockParseDeferredPayload.mockReturnValue(null)
+    mockApplyDeferredPayload.mockReturnValue({ dest: null, locale: null })
+})
+
+describe('app-entry gateway', () => {
+    it('applies a QR handoff and opens its destination without visiting /app', async () => {
+        launchUrl = 'https://peanut.me/home?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard'
+        const payload = { badgeCampaigns: ['door'], dest: '/card' }
+        mockParseDeferredPayload.mockReturnValue(payload)
+        mockApplyDeferredPayload.mockReturnValue({ dest: '/card', locale: null })
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/card'))
+        expect(mockParseDeferredPayload).toHaveBeenCalledWith('?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard')
+        expect(mockApplyDeferredPayload).toHaveBeenCalledWith(payload)
+        expect(push).not.toHaveBeenCalledWith(expect.stringContaining('/app'))
+    })
+
+    it('opens ordinary home when a generic QR has no deferred payload', async () => {
+        launchUrl = 'https://peanut.me/home?app_entry=1'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/home'))
+        expect(mockApplyDeferredPayload).not.toHaveBeenCalled()
+    })
 })
 
 describe('useNativeAppLinks deferred restore wiring', () => {
@@ -367,5 +402,47 @@ describe('deep-link telemetry redaction', () => {
 
         await waitFor(() => expect(capture).toHaveBeenCalled())
         expect(JSON.stringify(capture.mock.calls)).not.toContain('aB3xK9mQ2pL7vN4z')
+    })
+})
+
+describe('native resume connectivity', () => {
+    it('drops suspended failures before focus refetches, without a visibilitychange event', async () => {
+        const { result } = renderHook(() => {
+            useNativeAppLinks()
+            return useConnectivity()
+        })
+        await waitFor(() => expect(App.addListener).toHaveBeenCalledWith('appStateChange', expect.any(Function)))
+        const onStateChange = (App.addListener as jest.Mock).mock.calls.find(([event]) => event === 'appStateChange')[1]
+        const oldGeneration = getConnectivityGeneration()
+        act(() => {
+            reportNetworkError('/a', oldGeneration)
+            reportNetworkError('/b', oldGeneration)
+        })
+        expect(result.current.show).toBe(true)
+
+        act(() => onStateChange({ isActive: false }))
+        expect(result.current.show).toBe(false)
+        const unsubscribe = focusManager.subscribe(() => {
+            if (focusManager.isFocused()) {
+                reportNetworkError('/fresh-a', getConnectivityGeneration())
+                reportNetworkError('/fresh-b', getConnectivityGeneration())
+            }
+        })
+        act(() => {
+            onStateChange({ isActive: true })
+            reportNetworkError('/a', oldGeneration)
+            reportNetworkError('/b', oldGeneration)
+        })
+        unsubscribe()
+        // New requests still diagnose a real outage immediately after returning.
+        expect(result.current.isApiUnreachable).toBe(true)
+
+        act(() => {
+            onStateChange({ isActive: false })
+            onStateChange({ isActive: true })
+            reportNetworkError('/a', oldGeneration)
+            reportNetworkError('/b', oldGeneration)
+        })
+        expect(result.current.show).toBe(false)
     })
 })

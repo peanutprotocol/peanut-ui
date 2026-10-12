@@ -13,6 +13,7 @@ export const cryptoDeposit: TransactionStrategy = (entry: HistoryEntry): Transac
             : TRANSACTION_NAME_KEYS.depositSource,
     fullName: entry.senderAccount?.fullName ?? '',
     showFullName: entry.senderAccount?.showFullName,
+    avatarKey: entry.senderAccount?.avatarKey,
     isPeerActuallyUser: !!entry.senderAccount?.isUser,
     isLinkTx: false,
 })

@@ -5,10 +5,21 @@ export class ValidationError extends Error {
     }
 }
 
+/**
+ * Rejections the recipient classifier decides locally, with no network call.
+ * The `message` stays a readable English sentence for logs and for call sites
+ * that show it raw; a `code` lets the input component show translated copy
+ * instead. Omitted for errors that come back from a resolver.
+ */
+export type RecipientValidationCode = 'ARGENTINE_ALIAS' | 'INVALID_ENS' | 'UNSUPPORTED_WITHDRAW_RECIPIENT'
+
 export class RecipientValidationError extends ValidationError {
-    constructor(message: string) {
+    readonly code?: RecipientValidationCode
+
+    constructor(message: string, code?: RecipientValidationCode) {
         super(message)
         this.name = 'RecipientValidationError'
+        this.code = code
     }
 }
 

@@ -1,5 +1,4 @@
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { StatusTag } from './StatusTag'
 
 interface DocHeaderProps {
     title: string
@@ -20,7 +19,7 @@ export function DocHeader({ title, description, status, usages }: DocHeaderProps
                     // inherit the TitleBlock size-m type token
                     <h1 className="flex items-center gap-3">
                         {title}
-                        {status && <StatusTag status={status} />}
+                        {status && <span className="text-label-m text-foreground-secondary">{status}</span>}
                         {usages && <span className="text-body-xs text-foreground-secondary">{usages}</span>}
                     </h1>
                 }

@@ -1,11 +1,23 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { Field } from '@/components/0_Bruddle/Field'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import Loading from '@/components/Global/Loading'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { IS_DEV } from '@/constants/general.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import { DEFAULT_FORCE_CONFIG } from '@/components/Global/InvitesGraph/types'
+import { parseBoundedNumber } from './number-input'
 
 // Allowed users for full graph access (frontend check - backend also validates)
 const ALLOWED_USERNAMES = ['squirrel', 'kkonrad', 'hugo']
@@ -37,65 +49,54 @@ export default function FullGraphPage() {
     // Loading state
     if (isFetchingUser) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
-                <div className="text-white">Loading...</div>
-            </div>
+            <PageContainer alignItems="center" className="fixed inset-0 z-50 bg-background-disabled px-4">
+                <Loading />
+            </PageContainer>
         )
     }
 
     // Access denied screen
     if (!isAllowedUser) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
-                <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-                    <div className="text-center">
-                        <div className="mb-4 text-heading-big-input">🔒</div>
-                        <h2 className="mb-2 text-heading-s">Access Restricted</h2>
-                        <p className="text-body-s">This tool is only available to authorized users.</p>
-                        {user?.user?.username && (
-                            <p className="mt-2 text-body-xs">Logged in as: {user.user.username}</p>
-                        )}
-                    </div>
-                    <button onClick={() => (window.location.href = '/dev')} className="w-full text-body-s">
-                        ← Back to Dev Tools
-                    </button>
-                </div>
-            </div>
+            <PageContainer alignItems="center" className="fixed inset-0 z-50 bg-background-disabled px-4">
+                <EmptyState
+                    icon="lock"
+                    title="Access restricted"
+                    description="This tool is only available to authorized users."
+                    cta={<LinkButton href="/dev">Back to dev tools</LinkButton>}
+                />
+            </PageContainer>
         )
     }
 
     // API key input screen
     if (!apiKeySubmitted) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
-                <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-                    <div className="text-center">
-                        <div className="mb-4 text-heading-big-input">🕸️</div>
-                        <h2 className="mb-2 text-heading-s">Full Graph</h2>
-                        <p className="text-body-s">Admin tool - Enter your API key to visualize the network</p>
-                    </div>
-                    {error && (
-                        <div className="rounded-lg p-3 text-body-s">
-                            <div className="font-semibold">Error</div>
-                            <div>{error}</div>
-                        </div>
-                    )}
-                    <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleApiKeySubmit()}
-                        placeholder="Admin API Key"
-                        className="w-full rounded-lg border px-4 py-3 text-body-s transition-colors focus:ring-2 focus:outline-none"
+            <PageContainer alignItems="center" className="fixed inset-0 z-50 bg-background-disabled px-4">
+                <Card className="w-full max-w-md gap-6 p-6">
+                    <TitleBlock
+                        align="center"
+                        size="s"
+                        title="Full graph"
+                        description="Enter the admin API key to visualize the network."
                     />
+                    {error && <Callout priority="error">{error}</Callout>}
+                    <Field label="Admin API key">
+                        <BaseInput
+                            type="password"
+                            value={apiKey}
+                            onChange={(event) => setApiKey(event.target.value)}
+                            onKeyDown={(event) => event.key === 'Enter' && handleApiKeySubmit()}
+                        />
+                    </Field>
                     <Button onClick={handleApiKeySubmit} className="w-full">
-                        Enter Graph
+                        Enter graph
                     </Button>
-                    <button onClick={() => (window.location.href = '/dev')} className="w-full text-body-s">
-                        ← Back to Dev Tools
-                    </button>
-                </div>
-            </div>
+                    <LinkButton href="/dev" className="self-center">
+                        Back to dev tools
+                    </LinkButton>
+                </Card>
+            </PageContainer>
         )
     }
 
@@ -129,13 +130,16 @@ export default function FullGraphPage() {
                 }) => (
                     <>
                         {/* Controls Panel - Top Right */}
-                        <div className="absolute top-4 right-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+                        <Card
+                            className="absolute top-4 right-4 left-4 max-h-[calc(100vh_-_140px)] overflow-y-auto p-3 sm:left-auto sm:w-64"
+                            shadowSize="4"
+                        >
                             {/* FORCES + VISIBILITY merged */}
                             <h3 className="mb-2 text-label-m">Display & Forces</h3>
 
-                            <div className="space-y-2 text-[11px]">
+                            <div className="space-y-2 text-body-xs">
                                 {/* Scale indicator */}
-                                <div className="-mb-1 flex justify-between text-[8px]">
+                                <div className="-mb-1 flex justify-between text-label-m text-foreground-secondary">
                                     <span>0.1×</span>
                                     <span>1×</span>
                                     <span>10×</span>
@@ -143,82 +147,75 @@ export default function FullGraphPage() {
 
                                 {/* Repulsion Force */}
                                 <div className="space-y-0.5">
-                                    <label className="flex cursor-pointer items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                            <input
-                                                type="checkbox"
-                                                checked={forceConfig.charge.enabled}
-                                                onChange={(e) =>
-                                                    setForceConfig({
-                                                        ...forceConfig,
-                                                        charge: { ...forceConfig.charge, enabled: e.target.checked },
-                                                    })
-                                                }
-                                                className="h-3 w-3 rounded"
-                                            />
-                                            <span>Repulsion Force</span>
-                                        </div>
+                                    <div className="flex items-center justify-between">
+                                        <Checkbox
+                                            label="Repulsion force"
+                                            value={forceConfig.charge.enabled}
+                                            onChange={(e) =>
+                                                setForceConfig({
+                                                    ...forceConfig,
+                                                    charge: { ...forceConfig.charge, enabled: e.target.checked },
+                                                })
+                                            }
+                                        />
                                         {forceConfig.charge.enabled && (
-                                            <span className="text-[9px]">
+                                            <span className="text-label-m text-foreground-secondary">
                                                 {(
                                                     forceConfig.charge.strength / DEFAULT_FORCE_CONFIG.charge.strength
                                                 ).toFixed(1)}
                                                 x
                                             </span>
                                         )}
-                                    </label>
+                                    </div>
                                     {forceConfig.charge.enabled && (
-                                        <input
-                                            type="range"
+                                        <BaseInput
+                                            size="sm"
+                                            type="number"
                                             min="-1"
                                             max="1"
                                             step="0.05"
                                             value={Math.log10(
                                                 forceConfig.charge.strength / DEFAULT_FORCE_CONFIG.charge.strength
                                             )}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                if (exponent === null) return
                                                 setForceConfig({
                                                     ...forceConfig,
                                                     charge: {
                                                         ...forceConfig.charge,
                                                         strength:
                                                             DEFAULT_FORCE_CONFIG.charge.strength *
-                                                            Math.pow(10, parseFloat(e.target.value)),
+                                                            Math.pow(10, exponent),
                                                     },
                                                 })
-                                            }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
+                                            }}
                                         />
                                     )}
                                 </div>
 
                                 {/* Invite Force + Edges (merged) */}
                                 <div className="space-y-0.5">
-                                    <label className="flex cursor-pointer items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                            <input
-                                                type="checkbox"
-                                                checked={forceConfig.inviteLinks.enabled}
-                                                onChange={(e) => {
-                                                    setForceConfig({
-                                                        ...forceConfig,
-                                                        inviteLinks: {
-                                                            ...forceConfig.inviteLinks,
-                                                            enabled: e.target.checked,
-                                                        },
-                                                    })
-                                                    setVisibilityConfig({
-                                                        ...visibilityConfig,
-                                                        inviteEdges: e.target.checked,
-                                                    })
-                                                }}
-                                                className="h-3 w-3 rounded"
-                                            />
-                                            <span>Invite Force</span>
-                                            <span className="text-[9px]">+ edges</span>
-                                        </div>
+                                    <div className="flex items-center justify-between">
+                                        <Checkbox
+                                            label="Invite force and edges"
+                                            value={forceConfig.inviteLinks.enabled}
+                                            onChange={(e) => {
+                                                setForceConfig({
+                                                    ...forceConfig,
+                                                    inviteLinks: {
+                                                        ...forceConfig.inviteLinks,
+                                                        enabled: e.target.checked,
+                                                    },
+                                                })
+                                                setVisibilityConfig({
+                                                    ...visibilityConfig,
+                                                    inviteEdges: e.target.checked,
+                                                })
+                                            }}
+                                        />
                                         {forceConfig.inviteLinks.enabled && (
-                                            <span className="text-[9px]">
+                                            <span className="text-label-m text-foreground-secondary">
                                                 {(
                                                     forceConfig.inviteLinks.strength /
                                                     DEFAULT_FORCE_CONFIG.inviteLinks.strength
@@ -226,10 +223,11 @@ export default function FullGraphPage() {
                                                 x
                                             </span>
                                         )}
-                                    </label>
+                                    </div>
                                     {forceConfig.inviteLinks.enabled && (
-                                        <input
-                                            type="range"
+                                        <BaseInput
+                                            size="sm"
+                                            type="number"
                                             min="-1"
                                             max="1"
                                             step="0.05"
@@ -237,49 +235,45 @@ export default function FullGraphPage() {
                                                 forceConfig.inviteLinks.strength /
                                                     DEFAULT_FORCE_CONFIG.inviteLinks.strength
                                             )}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                if (exponent === null) return
                                                 setForceConfig({
                                                     ...forceConfig,
                                                     inviteLinks: {
                                                         ...forceConfig.inviteLinks,
                                                         strength:
                                                             DEFAULT_FORCE_CONFIG.inviteLinks.strength *
-                                                            Math.pow(10, parseFloat(e.target.value)),
+                                                            Math.pow(10, exponent),
                                                     },
                                                 })
-                                            }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
+                                            }}
                                         />
                                     )}
                                 </div>
 
                                 {/* P2P Force + Edges (merged) */}
                                 <div className="space-y-0.5">
-                                    <label className="flex cursor-pointer items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                            <input
-                                                type="checkbox"
-                                                checked={forceConfig.p2pLinks.enabled}
-                                                onChange={(e) => {
-                                                    setForceConfig({
-                                                        ...forceConfig,
-                                                        p2pLinks: {
-                                                            ...forceConfig.p2pLinks,
-                                                            enabled: e.target.checked,
-                                                        },
-                                                    })
-                                                    setVisibilityConfig({
-                                                        ...visibilityConfig,
-                                                        p2pEdges: e.target.checked,
-                                                    })
-                                                }}
-                                                className="h-3 w-3 rounded"
-                                            />
-                                            <span>P2P Force</span>
-                                            <span className="text-[9px]">+ edges</span>
-                                        </div>
+                                    <div className="flex items-center justify-between">
+                                        <Checkbox
+                                            label="P2P force and edges"
+                                            value={forceConfig.p2pLinks.enabled}
+                                            onChange={(e) => {
+                                                setForceConfig({
+                                                    ...forceConfig,
+                                                    p2pLinks: {
+                                                        ...forceConfig.p2pLinks,
+                                                        enabled: e.target.checked,
+                                                    },
+                                                })
+                                                setVisibilityConfig({
+                                                    ...visibilityConfig,
+                                                    p2pEdges: e.target.checked,
+                                                })
+                                            }}
+                                        />
                                         {forceConfig.p2pLinks.enabled && (
-                                            <span className="text-[9px]">
+                                            <span className="text-label-m text-foreground-secondary">
                                                 {(
                                                     forceConfig.p2pLinks.strength /
                                                     DEFAULT_FORCE_CONFIG.p2pLinks.strength
@@ -287,56 +281,52 @@ export default function FullGraphPage() {
                                                 x
                                             </span>
                                         )}
-                                    </label>
+                                    </div>
                                     {forceConfig.p2pLinks.enabled && (
-                                        <input
-                                            type="range"
+                                        <BaseInput
+                                            size="sm"
+                                            type="number"
                                             min="-1"
                                             max="1"
                                             step="0.05"
                                             value={Math.log10(
                                                 forceConfig.p2pLinks.strength / DEFAULT_FORCE_CONFIG.p2pLinks.strength
                                             )}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                if (exponent === null) return
                                                 setForceConfig({
                                                     ...forceConfig,
                                                     p2pLinks: {
                                                         ...forceConfig.p2pLinks,
                                                         strength:
                                                             DEFAULT_FORCE_CONFIG.p2pLinks.strength *
-                                                            Math.pow(10, parseFloat(e.target.value)),
+                                                            Math.pow(10, exponent),
                                                     },
                                                 })
-                                            }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
+                                            }}
                                         />
                                     )}
                                 </div>
 
                                 {/* Center Force (unified) */}
                                 <div className="space-y-1">
-                                    <label className="flex cursor-pointer items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                            <input
-                                                type="checkbox"
-                                                checked={
-                                                    forceConfig.center?.enabled ?? DEFAULT_FORCE_CONFIG.center.enabled
-                                                }
-                                                onChange={(e) =>
-                                                    setForceConfig({
-                                                        ...forceConfig,
-                                                        center: {
-                                                            ...(forceConfig.center || DEFAULT_FORCE_CONFIG.center),
-                                                            enabled: e.target.checked,
-                                                        },
-                                                    })
-                                                }
-                                                className="h-3 w-3 rounded text-amber-600"
-                                            />
-                                            <span>Center Force</span>
-                                        </div>
+                                    <div className="flex items-center justify-between">
+                                        <Checkbox
+                                            label="Center force"
+                                            value={forceConfig.center?.enabled ?? DEFAULT_FORCE_CONFIG.center.enabled}
+                                            onChange={(e) =>
+                                                setForceConfig({
+                                                    ...forceConfig,
+                                                    center: {
+                                                        ...(forceConfig.center || DEFAULT_FORCE_CONFIG.center),
+                                                        enabled: e.target.checked,
+                                                    },
+                                                })
+                                            }
+                                        />
                                         {(forceConfig.center?.enabled ?? DEFAULT_FORCE_CONFIG.center.enabled) && (
-                                            <span className="text-[9px]">
+                                            <span className="text-label-m text-foreground-secondary">
                                                 {(
                                                     (forceConfig.center?.strength ??
                                                         DEFAULT_FORCE_CONFIG.center.strength) /
@@ -345,16 +335,17 @@ export default function FullGraphPage() {
                                                 x
                                             </span>
                                         )}
-                                    </label>
+                                    </div>
                                     {(forceConfig.center?.enabled ?? DEFAULT_FORCE_CONFIG.center.enabled) && (
                                         <>
-                                            {/* Strength slider */}
+                                            {/* strength control */}
                                             <div className="space-y-0.5 pl-4">
-                                                <div className="flex justify-between text-[9px]">
+                                                <div className="flex justify-between text-label-m text-foreground-secondary">
                                                     <span>Strength</span>
                                                 </div>
-                                                <input
-                                                    type="range"
+                                                <BaseInput
+                                                    size="sm"
+                                                    type="number"
                                                     min="-1"
                                                     max="1"
                                                     step="0.05"
@@ -363,23 +354,24 @@ export default function FullGraphPage() {
                                                             DEFAULT_FORCE_CONFIG.center.strength) /
                                                             DEFAULT_FORCE_CONFIG.center.strength
                                                     )}
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
+                                                        const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                        if (exponent === null) return
                                                         setForceConfig({
                                                             ...forceConfig,
                                                             center: {
                                                                 ...(forceConfig.center || DEFAULT_FORCE_CONFIG.center),
                                                                 strength:
                                                                     DEFAULT_FORCE_CONFIG.center.strength *
-                                                                    Math.pow(10, parseFloat(e.target.value)),
+                                                                    Math.pow(10, exponent),
                                                             },
                                                         })
-                                                    }
-                                                    className="h-1 w-full cursor-pointer appearance-none rounded-lg accent-amber-600"
+                                                    }}
                                                 />
                                             </div>
-                                            {/* Size bias slider: 0=uniform, 9=big nodes get 10x pull */}
+                                            {/* size bias: 0=uniform, 9=big nodes get 10x pull */}
                                             <div className="space-y-0.5 pl-4">
-                                                <div className="flex justify-between text-[9px]">
+                                                <div className="flex justify-between text-label-m text-foreground-secondary">
                                                     <span>Size Bias</span>
                                                     <span>
                                                         {(
@@ -390,8 +382,9 @@ export default function FullGraphPage() {
                                                         x
                                                     </span>
                                                 </div>
-                                                <input
-                                                    type="range"
+                                                <BaseInput
+                                                    size="sm"
+                                                    type="number"
                                                     min="0"
                                                     max="9"
                                                     step="0.5"
@@ -399,18 +392,19 @@ export default function FullGraphPage() {
                                                         forceConfig.center?.sizeBias ??
                                                         DEFAULT_FORCE_CONFIG.center.sizeBias
                                                     }
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
+                                                        const sizeBias = parseBoundedNumber(e.target.value, 0, 9)
+                                                        if (sizeBias === null) return
                                                         setForceConfig({
                                                             ...forceConfig,
                                                             center: {
                                                                 ...(forceConfig.center || DEFAULT_FORCE_CONFIG.center),
-                                                                sizeBias: parseFloat(e.target.value),
+                                                                sizeBias,
                                                             },
                                                         })
-                                                    }
-                                                    className="h-1 w-full cursor-pointer appearance-none rounded-lg"
+                                                    }}
                                                 />
-                                                <div className="flex justify-between text-[8px]">
+                                                <div className="flex justify-between text-label-m text-foreground-secondary">
                                                     <span>1x uniform</span>
                                                     <span>10x big→center</span>
                                                 </div>
@@ -424,148 +418,114 @@ export default function FullGraphPage() {
 
                                 {/* External Nodes Section */}
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-1.5">
-                                        <input
-                                            type="checkbox"
-                                            checked={externalNodesConfig.enabled}
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            label="External nodes"
+                                            value={externalNodesConfig.enabled}
                                             onChange={(e) =>
                                                 setExternalNodesConfig({
                                                     ...externalNodesConfig,
                                                     enabled: e.target.checked,
                                                 })
                                             }
-                                            className="h-3 w-3 rounded"
                                         />
-                                        <span>External Nodes</span>
-                                        <span className="text-[9px]" title="Experimental feature">
-                                            ⚠️
-                                        </span>
+                                        <span className="text-label-m text-foreground-secondary">experimental</span>
                                         {externalNodesLoading && (
-                                            <span className="ml-auto animate-pulse text-[9px]">loading...</span>
-                                        )}
-                                        {externalNodesError && (
-                                            <span className="ml-auto text-[9px]" title={externalNodesError}>
-                                                ❌
-                                            </span>
+                                            <span className="ml-auto animate-pulse text-label-m">loading…</span>
                                         )}
                                         {!externalNodesLoading &&
                                             !externalNodesError &&
                                             externalNodesConfig.enabled && (
-                                                <span className="ml-auto text-[9px]">{externalNodes.length}</span>
+                                                <span className="ml-auto text-label-m">{externalNodes.length}</span>
                                             )}
                                     </div>
                                     {externalNodesError && externalNodesConfig.enabled && (
-                                        <div className="pl-4 text-[10px]">Failed to load. Check console.</div>
+                                        <Callout priority="error">Failed to load. Check the console.</Callout>
                                     )}
                                     {!externalNodesError && externalNodesConfig.enabled && (
-                                        <div className="space-y-1.5 pl-4">
+                                        <div className="space-y-2 pl-4">
                                             {/* Min connections - discrete options */}
-                                            <div className="space-y-0.5">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[9px]">Min users:</span>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {[1, 2, 3, 5, 10, 20, 50].map((val) => (
-                                                            <button
-                                                                key={val}
-                                                                onClick={() =>
-                                                                    setExternalNodesConfig({
-                                                                        ...externalNodesConfig,
-                                                                        minConnections: val,
-                                                                    })
-                                                                }
-                                                                className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
-                                                                    externalNodesConfig.minConnections === val
-                                                                        ? 'bg-orange-800 text-white'
-                                                                        : ''
-                                                                }`}
-                                                            >
-                                                                {val}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <Field label="Minimum users">
+                                                <BaseSelect
+                                                    value={String(externalNodesConfig.minConnections)}
+                                                    onValueChange={(value) =>
+                                                        setExternalNodesConfig({
+                                                            ...externalNodesConfig,
+                                                            minConnections: Number(value),
+                                                        })
+                                                    }
+                                                    aria-label="Minimum connected users"
+                                                    options={[1, 2, 3, 5, 10, 20, 50].map((value) => ({
+                                                        label: String(value),
+                                                        value: String(value),
+                                                    }))}
+                                                />
+                                            </Field>
                                             {/* Type filters */}
-                                            <div className="flex gap-2 text-[9px]">
-                                                <label className="flex cursor-pointer items-center gap-0.5">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={externalNodesConfig.types.WALLET}
-                                                        onChange={(e) =>
-                                                            setExternalNodesConfig({
-                                                                ...externalNodesConfig,
-                                                                types: {
-                                                                    ...externalNodesConfig.types,
-                                                                    WALLET: e.target.checked,
-                                                                },
-                                                            })
-                                                        }
-                                                        className="h-2.5 w-2.5 rounded"
-                                                    />
-                                                    <span>💳</span>
-                                                </label>
-                                                <label className="flex cursor-pointer items-center gap-0.5">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={externalNodesConfig.types.BANK}
-                                                        onChange={(e) =>
-                                                            setExternalNodesConfig({
-                                                                ...externalNodesConfig,
-                                                                types: {
-                                                                    ...externalNodesConfig.types,
-                                                                    BANK: e.target.checked,
-                                                                },
-                                                            })
-                                                        }
-                                                        className="h-2.5 w-2.5 rounded text-blue-500"
-                                                    />
-                                                    <span className="text-blue-600">🏦</span>
-                                                </label>
-                                                <label className="flex cursor-pointer items-center gap-0.5">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={externalNodesConfig.types.MERCHANT}
-                                                        onChange={(e) =>
-                                                            setExternalNodesConfig({
-                                                                ...externalNodesConfig,
-                                                                types: {
-                                                                    ...externalNodesConfig.types,
-                                                                    MERCHANT: e.target.checked,
-                                                                },
-                                                            })
-                                                        }
-                                                        className="h-2.5 w-2.5 rounded"
-                                                    />
-                                                    <span>🏪</span>
-                                                </label>
+                                            <div className="flex flex-wrap gap-2">
+                                                <Checkbox
+                                                    label="Wallet"
+                                                    value={externalNodesConfig.types.WALLET}
+                                                    onChange={(e) =>
+                                                        setExternalNodesConfig({
+                                                            ...externalNodesConfig,
+                                                            types: {
+                                                                ...externalNodesConfig.types,
+                                                                WALLET: e.target.checked,
+                                                            },
+                                                        })
+                                                    }
+                                                />
+                                                <Checkbox
+                                                    label="Bank"
+                                                    value={externalNodesConfig.types.BANK}
+                                                    onChange={(e) =>
+                                                        setExternalNodesConfig({
+                                                            ...externalNodesConfig,
+                                                            types: {
+                                                                ...externalNodesConfig.types,
+                                                                BANK: e.target.checked,
+                                                            },
+                                                        })
+                                                    }
+                                                />
+                                                <Checkbox
+                                                    label="Merchant"
+                                                    value={externalNodesConfig.types.MERCHANT}
+                                                    onChange={(e) =>
+                                                        setExternalNodesConfig({
+                                                            ...externalNodesConfig,
+                                                            types: {
+                                                                ...externalNodesConfig.types,
+                                                                MERCHANT: e.target.checked,
+                                                            },
+                                                        })
+                                                    }
+                                                />
                                             </div>
                                             {/* External link force strength */}
                                             <div className="space-y-0.5">
-                                                <label className="flex cursor-pointer items-center justify-between">
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={
-                                                                forceConfig.externalLinks?.enabled ??
-                                                                DEFAULT_FORCE_CONFIG.externalLinks.enabled
-                                                            }
-                                                            onChange={(e) =>
-                                                                setForceConfig({
-                                                                    ...forceConfig,
-                                                                    externalLinks: {
-                                                                        ...(forceConfig.externalLinks ||
-                                                                            DEFAULT_FORCE_CONFIG.externalLinks),
-                                                                        enabled: e.target.checked,
-                                                                    },
-                                                                })
-                                                            }
-                                                            className="h-2.5 w-2.5 rounded"
-                                                        />
-                                                        <span className="text-[9px]">Link Force</span>
-                                                    </div>
+                                                <div className="flex items-center justify-between">
+                                                    <Checkbox
+                                                        label="Link force"
+                                                        value={
+                                                            forceConfig.externalLinks?.enabled ??
+                                                            DEFAULT_FORCE_CONFIG.externalLinks.enabled
+                                                        }
+                                                        onChange={(e) =>
+                                                            setForceConfig({
+                                                                ...forceConfig,
+                                                                externalLinks: {
+                                                                    ...(forceConfig.externalLinks ||
+                                                                        DEFAULT_FORCE_CONFIG.externalLinks),
+                                                                    enabled: e.target.checked,
+                                                                },
+                                                            })
+                                                        }
+                                                    />
                                                     {(forceConfig.externalLinks?.enabled ??
                                                         DEFAULT_FORCE_CONFIG.externalLinks.enabled) && (
-                                                        <span className="text-[9px]">
+                                                        <span className="text-label-m text-foreground-secondary">
                                                             {(
                                                                 (forceConfig.externalLinks?.strength ??
                                                                     DEFAULT_FORCE_CONFIG.externalLinks.strength) /
@@ -574,11 +534,12 @@ export default function FullGraphPage() {
                                                             x
                                                         </span>
                                                     )}
-                                                </label>
+                                                </div>
                                                 {(forceConfig.externalLinks?.enabled ??
                                                     DEFAULT_FORCE_CONFIG.externalLinks.enabled) && (
-                                                    <input
-                                                        type="range"
+                                                    <BaseInput
+                                                        size="sm"
+                                                        type="number"
                                                         min="-1"
                                                         max="1"
                                                         step="0.05"
@@ -587,7 +548,9 @@ export default function FullGraphPage() {
                                                                 DEFAULT_FORCE_CONFIG.externalLinks.strength) /
                                                                 DEFAULT_FORCE_CONFIG.externalLinks.strength
                                                         )}
-                                                        onChange={(e) =>
+                                                        onChange={(e) => {
+                                                            const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                            if (exponent === null) return
                                                             setForceConfig({
                                                                 ...forceConfig,
                                                                 externalLinks: {
@@ -595,11 +558,10 @@ export default function FullGraphPage() {
                                                                         DEFAULT_FORCE_CONFIG.externalLinks),
                                                                     strength:
                                                                         DEFAULT_FORCE_CONFIG.externalLinks.strength *
-                                                                        Math.pow(10, parseFloat(e.target.value)),
+                                                                        Math.pow(10, exponent),
                                                                 },
                                                             })
-                                                        }
-                                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg"
+                                                        }}
                                                     />
                                                 )}
                                             </div>
@@ -611,68 +573,57 @@ export default function FullGraphPage() {
                                 <div className="my-1 border-t"></div>
 
                                 {/* Node visibility */}
-                                <div className="flex gap-3">
-                                    <label className="flex cursor-pointer items-center gap-1">
-                                        <input
-                                            type="checkbox"
-                                            checked={visibilityConfig.activeNodes}
-                                            onChange={(e) =>
-                                                setVisibilityConfig({
-                                                    ...visibilityConfig,
-                                                    activeNodes: e.target.checked,
-                                                })
-                                            }
-                                            className="h-3 w-3 rounded"
-                                        />
-                                        <span>Active</span>
-                                    </label>
-                                    <label className="flex cursor-pointer items-center gap-1">
-                                        <input
-                                            type="checkbox"
-                                            checked={visibilityConfig.inactiveNodes}
-                                            onChange={(e) =>
-                                                setVisibilityConfig({
-                                                    ...visibilityConfig,
-                                                    inactiveNodes: e.target.checked,
-                                                })
-                                            }
-                                            className="h-3 w-3 rounded"
-                                        />
-                                        <span>Inactive</span>
-                                    </label>
+                                <div className="flex flex-wrap gap-3">
+                                    <Checkbox
+                                        label="Active"
+                                        value={visibilityConfig.activeNodes}
+                                        onChange={(e) =>
+                                            setVisibilityConfig({
+                                                ...visibilityConfig,
+                                                activeNodes: e.target.checked,
+                                            })
+                                        }
+                                    />
+                                    <Checkbox
+                                        label="Inactive"
+                                        value={visibilityConfig.inactiveNodes}
+                                        onChange={(e) =>
+                                            setVisibilityConfig({
+                                                ...visibilityConfig,
+                                                inactiveNodes: e.target.checked,
+                                            })
+                                        }
+                                    />
                                 </div>
 
                                 {/* Other options */}
-                                <div className="flex items-center gap-3">
-                                    <label className="flex cursor-pointer items-center gap-1">
-                                        <input
-                                            type="checkbox"
-                                            checked={showUsernames}
-                                            onChange={(e) => setShowUsernames(e.target.checked)}
-                                            className="h-3 w-3 rounded"
-                                        />
-                                        <span>Names</span>
-                                    </label>
-                                </div>
+                                <Checkbox
+                                    label="Names"
+                                    value={showUsernames}
+                                    onChange={(event) => setShowUsernames(event.target.checked)}
+                                />
 
-                                {/* Top nodes slider */}
+                                {/* top nodes control */}
                                 <div className="space-y-0.5">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px]">Top nodes:</span>
-                                        <span className="text-[9px]">
+                                        <span className="text-body-xs">Top nodes:</span>
+                                        <span className="text-label-m text-foreground-secondary">
                                             {topNodes === 0 ? 'All' : topNodes.toLocaleString()}
                                         </span>
                                     </div>
-                                    <input
-                                        type="range"
+                                    <BaseInput
+                                        size="sm"
+                                        type="number"
                                         min="0"
                                         max="10000"
                                         step="500"
                                         value={topNodes}
-                                        onChange={(e) => setTopNodes(parseInt(e.target.value))}
-                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg"
+                                        onChange={(e) => {
+                                            const value = parseBoundedNumber(e.target.value, 0, 10000)
+                                            if (value !== null) setTopNodes(Math.round(value))
+                                        }}
                                     />
-                                    <div className="flex justify-between text-[8px]">
+                                    <div className="flex justify-between text-label-m text-foreground-secondary">
                                         <span>All</span>
                                         <span>5k</span>
                                         <span>10k</span>
@@ -680,49 +631,49 @@ export default function FullGraphPage() {
                                 </div>
 
                                 {/* Activity window */}
-                                <div className="flex items-center gap-1">
-                                    <span className="text-[10px]">Active =</span>
-                                    <select
-                                        value={activityFilter.activityDays}
-                                        onChange={(e) =>
+                                <Field label="Active window">
+                                    <BaseSelect
+                                        value={String(activityFilter.activityDays)}
+                                        onValueChange={(value) =>
                                             setActivityFilter({
                                                 ...activityFilter,
-                                                activityDays: parseInt(e.target.value),
+                                                activityDays: Number(value),
                                                 enabled: true,
                                             })
                                         }
-                                        className="flex-1 rounded border px-1 py-0.5 text-[10px]"
-                                    >
-                                        <option value={7}>7d</option>
-                                        <option value={14}>14d</option>
-                                        <option value={30}>30d</option>
-                                        <option value={60}>60d</option>
-                                        <option value={90}>90d</option>
-                                    </select>
-                                </div>
+                                        aria-label="Active window"
+                                        options={[7, 14, 30, 60, 90].map((value) => ({
+                                            label: `${value}d`,
+                                            value: String(value),
+                                        }))}
+                                    />
+                                </Field>
 
                                 {/* Action buttons */}
-                                <div className="flex gap-1">
-                                    <button
+                                <div className="flex flex-col gap-3">
+                                    <Button
+                                        variant="secondary"
+                                        size="small"
                                         onClick={handleRecalculate}
-                                        className="flex-1 rounded border px-2 py-0.5 text-[9px]"
                                         title="Recalculate layout with current settings"
+                                        icon="retry"
                                     >
-                                        🔄 Recalc
-                                    </button>
-                                    <button
+                                        Recalculate
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        size="small"
                                         onClick={handleReset}
-                                        className="flex-1 rounded border px-2 py-0.5 text-[9px]"
                                         title="Reset all settings to defaults"
                                     >
-                                        ↺ Defaults
-                                    </button>
+                                        Defaults
+                                    </Button>
                                 </div>
                             </div>
 
                             {/* Compact Legend — click to toggle visibility */}
                             <div className="mt-3 border-t pt-2">
-                                <div className="space-y-1 text-[9px]">
+                                <div className="space-y-1 text-label-m text-foreground-secondary">
                                     {/* Nodes — clickable toggles */}
                                     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                         {(
@@ -753,50 +704,46 @@ export default function FullGraphPage() {
                                                 },
                                             ] as const
                                         ).map(({ key, label, color, border }) => (
-                                            <button
+                                            <Checkbox
                                                 key={key}
-                                                onClick={() => {
+                                                value={!hiddenStatuses.has(key)}
+                                                onChange={() => {
                                                     const next = new Set(hiddenStatuses)
                                                     if (next.has(key)) next.delete(key)
                                                     else next.add(key)
                                                     setHiddenStatuses(next)
                                                 }}
-                                                className="flex cursor-pointer items-center gap-0.5"
-                                                style={{ opacity: hiddenStatuses.has(key) ? 0.3 : 1 }}
-                                                title={hiddenStatuses.has(key) ? `Show ${label}` : `Hide ${label}`}
-                                            >
-                                                <span
-                                                    className="inline-block h-2 w-2 rounded-full"
-                                                    style={{
-                                                        backgroundColor: color,
-                                                        border: border ? '1.5px solid #000' : undefined,
-                                                    }}
-                                                ></span>
-                                                <span
-                                                    style={{
-                                                        textDecoration: hiddenStatuses.has(key)
-                                                            ? 'line-through'
-                                                            : undefined,
-                                                    }}
-                                                >
-                                                    {label}
-                                                </span>
-                                            </button>
+                                                label={
+                                                    <span className="flex items-center gap-1">
+                                                        <span
+                                                            className="inline-block size-2 rounded-full"
+                                                            style={{
+                                                                backgroundColor: color,
+                                                                border: border
+                                                                    ? '1px solid var(--color-border-default)'
+                                                                    : undefined,
+                                                            }}
+                                                        />
+                                                        {label}
+                                                    </span>
+                                                }
+                                            />
                                         ))}
                                     </div>
                                     {/* External nodes */}
                                     {externalNodesConfig.enabled && (
                                         <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                             <span className="flex items-center gap-0.5">
-                                                <span className="inline-block h-2 w-2 rotate-45"></span>
+                                                <span className="inline-block h-2 w-2 rotate-45 bg-background-icon-bubble-yellow"></span>
                                                 Wallet
                                             </span>
                                             <span className="flex items-center gap-0.5">
-                                                <span className="inline-block h-2 w-2 bg-blue-500"></span>Bank
+                                                <span className="inline-block h-2 w-2 bg-background-icon-bubble-blue"></span>
+                                                Bank
                                             </span>
                                             <span className="flex items-center gap-0.5">
                                                 <span
-                                                    className="inline-block h-2 w-2"
+                                                    className="inline-block h-2 w-2 bg-background-badge-accent"
                                                     style={{
                                                         clipPath:
                                                             'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
@@ -812,7 +759,7 @@ export default function FullGraphPage() {
                                             <span className="inline-block h-0.5 w-3"></span>Invite
                                         </span>
                                         <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-0.5 w-3 bg-pink-500/50"></span>Payment
+                                            <span className="inline-block h-0.5 w-3 bg-action-primary/50"></span>Payment
                                         </span>
                                         <span className="flex items-center gap-0.5">
                                             <span className="inline-block h-0.5 w-3"></span>P2P
@@ -822,7 +769,7 @@ export default function FullGraphPage() {
                                     {topNodes > 0 && <p>Showing top {topNodes.toLocaleString()} nodes</p>}
                                 </div>
                             </div>
-                        </div>
+                        </Card>
                     </>
                 )}
             />

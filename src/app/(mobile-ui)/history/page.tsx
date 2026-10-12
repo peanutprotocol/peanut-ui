@@ -19,14 +19,6 @@ import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
-import CardUnlockHistoryItem from '@/components/Card/CardUnlockHistoryItem'
-import {
-    deriveCardUnlockEntry,
-    isCardUnlockHistoryItem,
-    type CardUnlockHistoryEntry,
-} from '@/components/Card/cardUnlock.types'
-import { useCardInfo } from '@/hooks/useCardInfo'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import React, { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
@@ -42,6 +34,24 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { displayableBadges } from '@/constants/badges.consts'
 
 /**
+ * the oldest timestamp history is known to be loaded through while more pages
+ * can still load, for placing badge and kyc rows. Infinity means nothing older
+ * can be placed yet.
+ *
+ * uses the api cursor, not the oldest visible row: sources are interleaved and
+ * some rows are filtered out, so a visible row can sit below unread ones.
+ */
+function getLoadedThroughMs(pages: HistoryResponse[] | undefined): number {
+    if (!pages?.length) return Infinity
+    // an earlier page's cursor is still a safe (newer) boundary if the latest is unusable
+    for (let i = pages.length - 1; i >= 0; i--) {
+        const ms = Date.parse(pages[i].cursor?.split('::')[0] ?? '')
+        if (Number.isFinite(ms)) return ms
+    }
+    return Infinity
+}
+
+/**
  * displays the user's transaction history with infinite scrolling and date grouping.
  */
 const HistoryPage = () => {
@@ -54,8 +64,6 @@ const HistoryPage = () => {
     const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { fetchUser } = useAuth()
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
-    const { cardInfo } = useCardInfo()
-    const { overview: rainOverview } = useRainCardOverview()
     const userId = user?.user.userId
     const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
 
@@ -181,14 +189,20 @@ const HistoryPage = () => {
         if (isLoading) {
             return []
         }
-        const entries: Array<HistoryEntry | BadgeHistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [
-            ...allEntries,
-        ]
+        const entries: Array<HistoryEntry | BadgeHistoryEntry | KycHistoryEntry> = [...allEntries]
+
+        // badge and kyc rows wait until history is loaded past them, so they
+        // don't sit at the bottom and jump when older pages arrive. rows at the
+        // cursor timestamp itself wait too, since equal timestamps can span pages.
+        // once no further page can load, all of them show
+        const loadedThroughMs = hasNextPage ? getLoadedThroughMs(historyData?.pages) : null
+        const isLoadedThrough = (timestamp: string | Date) =>
+            loadedThroughMs === null || new Date(timestamp).getTime() > loadedThroughMs
 
         // inject badge items from user profile, placed by earnedAt
         const badges = displayableBadges(user?.user?.badges ?? [])
         badges.forEach((b) => {
-            if (!b.earnedAt) return
+            if (!b.earnedAt || !isLoadedThrough(b.earnedAt)) return
             entries.push({
                 isBadge: true,
                 uuid: b.id ?? b.code,
@@ -203,20 +217,7 @@ const HistoryPage = () => {
         // add the single identity-verification row (provider-agnostic)
         if (user) {
             const kycEntry = buildKycHistoryEntry(user)
-            if (kycEntry) entries.push(kycEntry)
-        }
-
-        // add the card-unlock milestone row, placed chronologically. Unlike
-        // the home top-5 (where it ages out), the full page always carries it.
-        if (cardInfo) {
-            const unlock = deriveCardUnlockEntry({
-                hasIssuedCard: (rainOverview?.cards.length ?? 0) > 0,
-                hasCardAccess: cardInfo.hasCardAccess,
-                cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
-                skipBadges: cardInfo.skipBadges,
-                userBadges: user?.user?.badges,
-            })
-            if (unlock) entries.push(unlock)
+            if (kycEntry && isLoadedThrough(kycEntry.timestamp)) entries.push(kycEntry)
         }
 
         entries.sort((a, b) => {
@@ -226,7 +227,7 @@ const HistoryPage = () => {
         })
 
         return entries
-    }, [allEntries, user, isLoading, cardInfo, rainOverview])
+    }, [allEntries, historyData, hasNextPage, user, isLoading])
 
     // Memoize per-row drawer projection so the .map() below doesn't recompute
     // mapTransactionDataForDrawer per row on every parent rerender (websocket
@@ -234,7 +235,7 @@ const HistoryPage = () => {
     const drawerByUuid = useMemo(() => {
         const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
         for (const item of combinedAndSortedEntries) {
-            if (isKycStatusItem(item) || isBadgeHistoryItem(item) || isCardUnlockHistoryItem(item)) continue
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
             if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
         }
         return m
@@ -250,12 +251,14 @@ const HistoryPage = () => {
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <h2 className="text-heading-card text-foreground-primary">{t('transactions')}</h2>{' '}
-                <EmptyState icon="alert" title={t('errorTitle')} description={t('errorDescription')} />
+                <EmptyState icon="alert" iconColor="red" title={t('errorTitle')} description={t('errorDescription')} />
             </div>
         )
     }
 
-    if (!isLoading && combinedAndSortedEntries.length === 0) {
+    // keep the list (and its loader) while more pages can load: an empty first
+    // page can still have older rows behind it
+    if (!isLoading && !hasNextPage && combinedAndSortedEntries.length === 0) {
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
                 <NavHeader title={t('title')} />
@@ -288,20 +291,21 @@ const HistoryPage = () => {
                         lastGroupHeaderKey = currentGroupHeaderKey
                     }
 
-                    let position: CardPosition = 'middle'
-                    const isFirstOverall = index === 0
-                    const isLastOverall = index === combinedAndSortedEntries.length - 1
+                    // corners are per DATE GROUP: peek at the next entry to see
+                    // if it starts a new group
                     const isFirstInGroup = showHeader
+                    const nextItem = combinedAndSortedEntries[index + 1]
+                    const isLastInGroup =
+                        !nextItem ||
+                        getDateGroupKey(
+                            new Date(nextItem.timestamp),
+                            getDateGroup(new Date(nextItem.timestamp), today)
+                        ) !== currentGroupHeaderKey
 
-                    if (combinedAndSortedEntries.length === 1) {
-                        position = 'single'
-                    } else if (isFirstInGroup && isLastOverall) {
-                        position = 'single'
-                    } else if (isFirstInGroup || isFirstOverall) {
-                        position = 'first'
-                    } else if (isLastOverall) {
-                        position = 'last'
-                    }
+                    let position: CardPosition = 'middle'
+                    if (isFirstInGroup && isLastInGroup) position = 'solo'
+                    else if (isFirstInGroup) position = 'top'
+                    else if (isLastInGroup) position = 'bottom'
 
                     return (
                         <React.Fragment key={item.uuid}>
@@ -320,13 +324,6 @@ const HistoryPage = () => {
                                 <KycStatusItem position={position} />
                             ) : isBadgeHistoryItem(item) ? (
                                 <BadgeStatusItem position={position} entry={item} />
-                            ) : isCardUnlockHistoryItem(item) ? (
-                                <CardUnlockHistoryItem
-                                    entry={item}
-                                    position={position}
-                                    username={user?.user?.username ?? undefined}
-                                    badges={displayableBadges(user?.user?.badges ?? [])}
-                                />
                             ) : (
                                 (() => {
                                     const { transactionDetails, transactionCardType } =

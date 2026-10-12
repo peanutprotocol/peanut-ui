@@ -103,7 +103,7 @@ function TestHarness() {
         <WithdrawFlowProvider>
             <tokenSelectorContext.Provider value={tokenContext}>
                 <button onClick={() => setSelectedChainID('8453')}>switch network</button>
-                <InitialWithdrawView amount="1" onReview={jest.fn()} />
+                <InitialWithdrawView onContinue={jest.fn()} />
             </tokenSelectorContext.Provider>
         </WithdrawFlowProvider>
     )
@@ -145,7 +145,7 @@ function MountSeeder({
     if (!ready) return null
     return (
         <tokenSelectorContext.Provider value={tokenContext}>
-            <InitialWithdrawView amount="1" onReview={jest.fn()} />
+            <InitialWithdrawView onContinue={jest.fn()} />
         </tokenSelectorContext.Provider>
     )
 }
@@ -186,7 +186,7 @@ describe('InitialWithdrawView', () => {
         const { setSelectedChainID, setSelectedTokenAddress } = renderMountHarness(
             '0x9999999999999999999999999999999999999999'
         )
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Review' })).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument())
         expect(setSelectedChainID).not.toHaveBeenCalled()
         expect(setSelectedTokenAddress).not.toHaveBeenCalled()
     })
@@ -202,14 +202,14 @@ describe('InitialWithdrawView', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: 'set ENS recipient' }))
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Review' })).toBeEnabled())
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
 
         fireEvent.click(screen.getByRole('button', { name: 'switch network' }))
 
         await waitFor(() =>
             expect(mockValidateAndResolveRecipient).toHaveBeenCalledWith('alice.eth', true, 'evm', '8453')
         )
-        expect(screen.getByRole('button', { name: 'Review' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
 
         resolution.resolve({
             identifier: 'alice.eth',
@@ -217,6 +217,6 @@ describe('InitialWithdrawView', () => {
             resolvedAddress: '0x2222222222222222222222222222222222222222',
         })
 
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Review' })).toBeEnabled())
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
     })
 })

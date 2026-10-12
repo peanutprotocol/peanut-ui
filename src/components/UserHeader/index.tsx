@@ -1,44 +1,12 @@
 'use client'
 
-import { UserAvatar } from '@/components/Avatar/UserAvatar'
-import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
-import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import AddressLink from '../Global/AddressLink'
-import { Button } from '@/components/0_Bruddle/Button'
 import { isCryptoAddress } from '@/utils/general.utils'
-
-interface UserHeaderProps {
-    username: string
-    fullName?: string
-    isVerified?: boolean
-}
-
-export const UserHeader = ({ username }: UserHeaderProps) => {
-    const { user: authenticatedUser } = useAuth()
-    const ownAvatarKey = useAvatarKey(authenticatedUser?.user.avatarKey, authenticatedUser?.user.userId)
-    return (
-        <Link href={`/profile`} className="block">
-            <Button
-                variant="primary-soft"
-                className={twMerge(
-                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1 rounded-full px-1 md:h-9'
-                )}
-                shadowSize="3"
-                size="small"
-            >
-                {/* self surface — it links to /profile — so it shows the same
-                    picked sticker as /home, never a bare initial (TASK-22142) */}
-                <UserAvatar size="extra-small" name={username} avatarKey={ownAvatarKey} className="h-[30px] w-[30px]" />
-                <span className="pr-1 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
-            </Button>
-        </Link>
-    )
-}
 
 /**
  * Default type for the name. It has to be a type TOKEN, not a bare weight

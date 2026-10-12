@@ -5,7 +5,7 @@
  * The load-bearing claim: `Clipboard.read()` must NEVER run at scanner open
  * off Android-native. An un-gestured read raises the iOS "Allow Paste" alert,
  * which raced (and blocked) the camera permission dialog. iOS native only
- * probes prompt-free `hasStrings` and reads on the chip TAP; web/PWA does
+ * probes prompt-free `hasStrings` and reads on the chip TAP; web does
  * neither.
  */
 import React from 'react'
@@ -123,7 +123,7 @@ describe('camera permission denied: the modal keeps one primary + Dismiss', () =
     })
 })
 
-it('web/PWA: never reads the clipboard at open and shows no chip', async () => {
+it('web: never reads the clipboard at open and shows no chip', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
 

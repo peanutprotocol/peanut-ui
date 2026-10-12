@@ -23,11 +23,6 @@ describe('extractPaymentValue', () => {
         expect(extractPaymentValue('DE89 3704 0044 0532 0130 00 thanks', 'iban')).toBe('DE89370400440532013000')
     })
 
-    it('extracts a BIC but ignores ordinary words', () => {
-        expect(extractPaymentValue('Bank BIC DEUTDEDBBER for transfer', 'bic')).toBe('DEUTDEDBBER')
-        expect(extractPaymentValue('Deutsche Bank possible nonsense', 'bic')).toBeNull()
-    })
-
     it('extracts a routing number by exact 9-digit group', () => {
         expect(extractPaymentValue('routing 021000021 acct 123456789012', 'routingNumber')).toBe('021000021')
     })

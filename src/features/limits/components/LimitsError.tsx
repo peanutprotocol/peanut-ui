@@ -14,7 +14,12 @@ export default function LimitsError({ onRetry, isRetrying }: LimitsErrorProps) {
     const tCommon = useTranslations('common')
     return (
         <div className="px-2">
-            <EmptyState title={tCommon('somethingWentWrong')} description={t('error.description')} icon="alert" />
+            <EmptyState
+                title={tCommon('somethingWentWrong')}
+                description={t('error.description')}
+                icon="alert"
+                iconColor="red"
+            />
             <div className="mt-4 flex justify-center">
                 <Button icon="retry" shadowSize="4" onClick={onRetry} loading={isRetrying} disabled={isRetrying}>
                     {tCommon('retry')}

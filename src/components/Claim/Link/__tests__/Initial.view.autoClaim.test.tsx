@@ -157,8 +157,9 @@ jest.mock('@/services/sendLinks', () => ({
     sendLinksApi: { associateClaim: jest.fn().mockResolvedValue(undefined) },
 }))
 
+const mockAcceptInvite = jest.fn()
 jest.mock('@/services/invites', () => ({
-    invitesApi: { acceptInvite: jest.fn() },
+    invitesApi: { acceptInvite: (...args: unknown[]) => mockAcceptInvite(...args) },
 }))
 
 jest.mock('@/services/rhino-sda', () => ({
@@ -283,6 +284,18 @@ describe('InitialClaimLinkView post-auth auto-claim trigger', () => {
         expect(mockRemoveParamStep).toHaveBeenCalled()
         // and the flow advanced to SUCCESS
         await waitFor(() => expect(baseProps.onCustom).toHaveBeenCalledWith('SUCCESS'))
+    })
+
+    test('a stale legacy no-access flag does not gate an authenticated claim', async () => {
+        currentUser = {
+            ...stableUser,
+            user: { ...stableUser.user, hasAppAccess: false },
+        }
+
+        renderView('?step=claim')
+
+        await waitFor(() => expect(mockClaimLink).toHaveBeenCalledTimes(1))
+        expect(mockAcceptInvite).not.toHaveBeenCalled()
     })
 
     test('?step=regional-claim&method=pix restores the regional method and opens the regional flow', async () => {

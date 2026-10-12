@@ -1,6 +1,8 @@
 'use client'
 
-import DevChip from '../_components/DevChip'
+import { Card } from '@/components/0_Bruddle/Card'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 
 /**
  * Sticky "how much of the copy review is left" bar.
@@ -22,29 +24,19 @@ export default function ReviewProgressStrip({
     const percent = total > 0 ? Math.round((checked / total) * 100) : 0
 
     return (
-        <div className="sticky top-0 z-30 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border border-border-default bg-white px-3 py-2">
+        <Card className="sticky top-0 z-30 flex-row flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2">
             <span className="text-label-l">
                 Copy review: {checked}/{total || '…'} checked
             </span>
-            <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-sm border border-border-default bg-white">
-                <div
-                    className={done ? 'h-full bg-green-400' : 'h-full bg-action-secondary'}
-                    style={{ width: `${percent}%` }}
-                    aria-hidden
-                />
-            </div>
-            {done ? (
-                <DevChip tone="green">all reviewed</DevChip>
-            ) : (
-                <DevChip tone="yellow">{total - checked} awaiting verdict</DevChip>
-            )}
-            <button
-                type="button"
-                onClick={onReset}
-                className="text-[10px] text-foreground-secondary underline hover:text-foreground-primary"
-            >
-                reset
-            </button>
-        </div>
+            <ProgressBar
+                value={percent}
+                className="min-w-24 flex-1"
+                fillClassName={done ? 'bg-background-icon-bubble-green' : 'bg-action-secondary'}
+            />
+            <span className="text-label-m text-foreground-secondary">
+                {done ? 'all reviewed' : `${total - checked} awaiting verdict`}
+            </span>
+            <LinkButton onClick={onReset}>Reset</LinkButton>
+        </Card>
     )
 }

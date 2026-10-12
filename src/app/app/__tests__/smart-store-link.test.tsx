@@ -47,6 +47,8 @@ jest.mock('@/utils/capacitor', () => ({
 
 let mockFlagOn = true
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     isPwaSunsetOn: () => mockFlagOn,
     trackStoreClick: jest.fn(),
 }))
@@ -76,6 +78,7 @@ import SmartStoreRedirect from '../page'
 
 const PAYLOAD = 'pnutdl=1&lang=pt-br&invite=ABC123&dest=%2Fsend'
 const locationReplace = jest.fn()
+const locationAssign = jest.fn()
 
 function visit(search: string, pathname = '/app') {
     Object.defineProperty(window, 'location', {
@@ -86,12 +89,13 @@ function visit(search: string, pathname = '/app') {
             search,
             href: `https://peanut.me${pathname}${search}`,
             replace: locationReplace,
+            assign: locationAssign,
         },
     })
 }
 
 const renderPage = () => render(<SmartStoreRedirect />, { wrapper: IntlWrapper })
-const link = (name: RegExp) => screen.getByRole('link', { name })
+const storeButton = (name: RegExp) => screen.getByRole('button', { name })
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -129,7 +133,7 @@ describe('/app smart store link', () => {
         visit(`?${PAYLOAD}`)
         renderPage()
         expect(mockTrackHandoffCreated).toHaveBeenCalledTimes(1)
-        fireEvent.click(link(/google play/i))
+        fireEvent.click(storeButton(/google play/i))
         expect(mockTrackHandoffCreated).toHaveBeenCalledTimes(1)
     })
 
@@ -138,12 +142,12 @@ describe('/app smart store link', () => {
         visit(`?${PAYLOAD}`)
         renderPage()
         expect(locationReplace).not.toHaveBeenCalled()
-        expect(link(/app store/i)).toHaveAttribute('href', STORE_URL.ios)
-        expect(link(/google play/i)).toBeInTheDocument()
+        expect(storeButton(/google play/i)).toBeInTheDocument()
 
-        fireEvent.click(link(/app store/i))
+        fireEvent.click(storeButton(/app store/i))
         expect(mockCopyIOSHandoff).toHaveBeenCalledWith(PAYLOAD)
         expect(trackStoreClick).toHaveBeenCalledWith('ios', 'smart_link', true)
+        expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
     })
 
     it('ignores a querystring without the marker', () => {
@@ -156,7 +160,7 @@ describe('/app smart store link', () => {
     it('shows both stores on desktop and never redirects', () => {
         renderPage()
         expect(locationReplace).not.toHaveBeenCalled()
-        expect(screen.getAllByRole('link')).toHaveLength(2)
+        expect(screen.getAllByRole('button')).toHaveLength(2)
     })
 
     it('inside the app, applies the payload and routes to its destination', () => {

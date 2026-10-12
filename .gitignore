@@ -69,6 +69,7 @@ playground/
 package-lock.json
 !/scripts/screens/publisher/package-lock.json
 !/scripts/screens/deploy/package-lock.json
+!/scripts/screens/mcp/package-lock.json
 yarn.lock
 # Sentry Config File
 .sentryclirc

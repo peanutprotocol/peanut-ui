@@ -15,17 +15,21 @@
  */
 
 import { useMemo, useRef, useState } from 'react'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import { Card } from '@/components/0_Bruddle/Card'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { Section } from '@/components/0_Bruddle/Section'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
 import type { HeroVariant, UsernameBg } from '@/components/Card/share-asset/shareAsset.types'
 import { captureShareAsset, downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import { BADGE_CODES, getBadgeDisplayName } from '@/components/Badges/badge.utils'
 import { CANVAS_W, CANVAS_H } from '@/components/Card/share-asset/shareAssetLayout'
-import DevField from '../_components/DevField'
+import { Slider } from '@/components/Global/Slider'
 import DevPageShell from '../_components/DevPageShell'
-import DevPanel from '../_components/DevPanel'
-import DevPresetButton from '../_components/DevPresetButton'
 
 const ALL_CODES = BADGE_CODES
 
@@ -121,250 +125,268 @@ export default function ShareBuilderPage() {
             <div className="flex flex-col gap-8 lg:flex-row">
                 {/* ─── LEFT: Controls ──────────────────────────────────── */}
                 <aside className="flex flex-col gap-6 lg:w-[360px] lg:flex-shrink-0">
-                    <DevPanel title="Hero message (I got in)">
-                        <DevField label="Sticker type">
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Hero message (I got in)">
+                            <Field label="Sticker type">
+                                <Tabs
+                                    size="sm"
+                                    value={heroVariant}
+                                    onValueChange={(value) => setHeroVariant(value as HeroVariant | 'none')}
+                                    tabs={(['none', 'burst', 'pill', 'banner'] as const).map((value) => ({
+                                        value,
+                                        label: value,
+                                    }))}
+                                    aria-label="Hero sticker type"
+                                    fullWidth="stretch"
+                                />
+                            </Field>
+                            <Field label="Copy" htmlFor="share-hero-copy">
+                                <BaseInput
+                                    id="share-hero-copy"
+                                    size="sm"
+                                    value={heroText}
+                                    maxLength={28}
+                                    onChange={(e) => setHeroText(e.target.value)}
+                                    placeholder="I'M IN"
+                                />
+                            </Field>
                             <div className="flex flex-wrap gap-2">
-                                {(['none', 'burst', 'pill', 'banner'] as const).map((v) => (
-                                    <button
-                                        key={v}
-                                        onClick={() => setHeroVariant(v)}
-                                        className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
-                                            heroVariant === v
-                                                ? 'bg-action-primary text-foreground-primary'
-                                                : 'bg-white text-foreground-secondary'
-                                        }`}
-                                    >
-                                        {v}
-                                    </button>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText("I'M IN")}>
+                                    I&apos;M IN
+                                </Button>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText("shhhh, i'm in")}>
+                                    shhhh, i&apos;m in
+                                </Button>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText('ACCESS GRANTED')}>
+                                    ACCESS GRANTED
+                                </Button>
+                                <Button variant="secondary" size="small" onClick={() => setHeroText('I GOT THE CARD')}>
+                                    I GOT THE CARD
+                                </Button>
+                            </div>
+                            <Field label={`Size (${heroScale.toFixed(2)}×)`}>
+                                <Slider
+                                    min={0.6}
+                                    max={1.6}
+                                    step={0.05}
+                                    value={[heroScale]}
+                                    onValueChange={([value]) => setHeroScale(value)}
+                                    aria-label="Hero sticker size"
+                                />
+                            </Field>
+                            <Field label={`Tilt (${heroTilt}°)`}>
+                                <Slider
+                                    min={-20}
+                                    max={20}
+                                    step={1}
+                                    value={[heroTilt]}
+                                    onValueChange={([value]) => setHeroTilt(value)}
+                                    aria-label="Hero sticker tilt"
+                                />
+                            </Field>
+                        </Section>
+                    </Card>
+
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Identity">
+                            <Field label={`Username (${username.length} / 12)`} htmlFor="share-username">
+                                <BaseInput
+                                    id="share-username"
+                                    size="sm"
+                                    value={username}
+                                    maxLength={20}
+                                    onChange={(e) =>
+                                        setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
+                                    }
+                                    placeholder="kkonrad"
+                                />
+                            </Field>
+                            {username.length > 12 && (
+                                <Callout priority="error">
+                                    Username exceeds the 12-character production limit. The preview shrinks it only to
+                                    expose caller regressions.
+                                </Callout>
+                            )}
+                        </Section>
+                    </Card>
+
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Username pill">
+                            <Field label="Background">
+                                <Tabs
+                                    size="sm"
+                                    value={unameBg}
+                                    onValueChange={(value) => setUnameBg(value as UsernameBg)}
+                                    tabs={(['white', 'pink', 'blue'] as const).map((value) => ({
+                                        value,
+                                        label: value,
+                                    }))}
+                                    aria-label="Username pill background"
+                                    fullWidth="stretch"
+                                />
+                            </Field>
+                            <Field label={`"peanut.me/" size (${unamePrefix.toFixed(2)}× of handle)`}>
+                                <Slider
+                                    min={0.2}
+                                    max={0.7}
+                                    step={0.02}
+                                    value={[unamePrefix]}
+                                    onValueChange={([value]) => setUnamePrefix(value)}
+                                    aria-label="Username prefix size"
+                                />
+                            </Field>
+                            <Field label={`Handle size (${unameScale.toFixed(2)}×)`}>
+                                <Slider
+                                    min={0.6}
+                                    max={1.5}
+                                    step={0.05}
+                                    value={[unameScale]}
+                                    onValueChange={([value]) => setUnameScale(value)}
+                                    aria-label="Username handle size"
+                                />
+                            </Field>
+                            <Field label={`Handle letter-spacing (${unameTracking.toFixed(3)}em)`}>
+                                <Slider
+                                    min={-0.06}
+                                    max={0.12}
+                                    step={0.005}
+                                    value={[unameTracking]}
+                                    onValueChange={([value]) => setUnameTracking(value)}
+                                    aria-label="Username letter spacing"
+                                />
+                            </Field>
+                        </Section>
+                    </Card>
+
+                    <Card className="p-4" shadowSize="4">
+                        <Section title={`Badges (${selectedBadges.size} selected)`}>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                {ALL_CODES.map((code) => (
+                                    <Checkbox
+                                        key={code}
+                                        label={getBadgeDisplayName(code, code)}
+                                        value={selectedBadges.has(code)}
+                                        onChange={() => toggleBadge(code)}
+                                    />
                                 ))}
                             </div>
-                        </DevField>
-                        <DevField label="Copy">
-                            <input
-                                type="text"
-                                value={heroText}
-                                maxLength={28}
-                                onChange={(e) => setHeroText(e.target.value)}
-                                className="custom-input"
-                                placeholder="I'M IN"
-                            />
-                        </DevField>
-                        <div className="flex flex-wrap gap-2">
-                            <DevPresetButton onClick={() => setHeroText("I'M IN")}>I&apos;M IN</DevPresetButton>
-                            <DevPresetButton onClick={() => setHeroText("shhhh, i'm in")}>
-                                shhhh, i&apos;m in
-                            </DevPresetButton>
-                            <DevPresetButton onClick={() => setHeroText('ACCESS GRANTED')}>
-                                ACCESS GRANTED
-                            </DevPresetButton>
-                            <DevPresetButton onClick={() => setHeroText('I GOT THE CARD')}>
-                                I GOT THE CARD
-                            </DevPresetButton>
-                        </div>
-                        <DevField label={`Size (${heroScale.toFixed(2)}×)`}>
-                            <input
-                                type="range"
-                                min={0.6}
-                                max={1.6}
-                                step={0.05}
-                                value={heroScale}
-                                onChange={(e) => setHeroScale(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </DevField>
-                        <DevField label={`Tilt (${heroTilt}°)`}>
-                            <input
-                                type="range"
-                                min={-20}
-                                max={20}
-                                step={1}
-                                value={heroTilt}
-                                onChange={(e) => setHeroTilt(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </DevField>
-                    </DevPanel>
-
-                    <DevPanel title="Identity">
-                        <DevField label={`Username (${username.length} / 12)`}>
-                            <input
-                                type="text"
-                                value={username}
-                                maxLength={20}
-                                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                className="custom-input"
-                                placeholder="kkonrad"
-                            />
-                        </DevField>
-                        {username.length > 12 && (
-                            <p className="text-[10px] leading-snug font-bold text-red">
-                                ⚠️ Username &gt; 12 chars · production caps at 12. The @username pill shrinks
-                                defensively, but check the input gate in your caller.
-                            </p>
-                        )}
-                    </DevPanel>
-
-                    <DevPanel title="Username pill">
-                        <DevField label="Background">
                             <div className="flex flex-wrap gap-2">
-                                {(['white', 'pink', 'blue'] as const).map((c) => (
-                                    <button
-                                        key={c}
-                                        onClick={() => setUnameBg(c)}
-                                        className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
-                                            unameBg === c
-                                                ? 'bg-action-primary text-foreground-primary'
-                                                : 'bg-white text-foreground-secondary'
-                                        }`}
-                                    >
-                                        {c}
-                                    </button>
-                                ))}
-                            </div>
-                        </DevField>
-                        <DevField label={`"peanut.me/" size (${unamePrefix.toFixed(2)}× of handle)`}>
-                            <input
-                                type="range"
-                                min={0.2}
-                                max={0.7}
-                                step={0.02}
-                                value={unamePrefix}
-                                onChange={(e) => setUnamePrefix(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </DevField>
-                        <DevField label={`Handle size (${unameScale.toFixed(2)}×)`}>
-                            <input
-                                type="range"
-                                min={0.6}
-                                max={1.5}
-                                step={0.05}
-                                value={unameScale}
-                                onChange={(e) => setUnameScale(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </DevField>
-                        <DevField label={`Handle letter-spacing (${unameTracking.toFixed(3)}em)`}>
-                            <input
-                                type="range"
-                                min={-0.06}
-                                max={0.12}
-                                step={0.005}
-                                value={unameTracking}
-                                onChange={(e) => setUnameTracking(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </DevField>
-                    </DevPanel>
-
-                    <DevPanel title={`Badges (${selectedBadges.size} selected)`}>
-                        <div className="flex flex-wrap gap-2">
-                            {ALL_CODES.map((code) => (
-                                <button
-                                    key={code}
-                                    onClick={() => toggleBadge(code)}
-                                    className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
-                                        selectedBadges.has(code)
-                                            ? 'bg-action-primary text-foreground-primary'
-                                            : 'bg-white text-foreground-secondary'
-                                    }`}
-                                    title={code}
+                                <Button variant="secondary" size="small" onClick={() => setSelectedBadges(new Set())}>
+                                    0 badges
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="small"
+                                    onClick={() => setSelectedBadges(new Set(['OG_2025_10_12']))}
                                 >
-                                    {getBadgeDisplayName(code, code)}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <DevPresetButton onClick={() => setSelectedBadges(new Set())}>0 badges</DevPresetButton>
-                            <DevPresetButton onClick={() => setSelectedBadges(new Set(['OG_2025_10_12']))}>
-                                1 badge
-                            </DevPresetButton>
-                            <DevPresetButton
-                                onClick={() =>
-                                    setSelectedBadges(new Set(['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'CARD_PIONEER']))
-                                }
-                            >
-                                3
-                            </DevPresetButton>
-                            <DevPresetButton
-                                onClick={() =>
-                                    setSelectedBadges(
-                                        new Set([
-                                            'OG_2025_10_12',
-                                            'DEVCONNECT_BA_2025',
-                                            'CARD_PIONEER',
-                                            'BETA_TESTER',
-                                            'SUPPORT_SURVIVOR',
-                                            'ARBIVERSE_DEVCONNECT_BA_2025',
-                                            'NOT_SO_SHHHH',
-                                            'CARD_FIRST_SWIPE',
-                                            'DOUBLE_DIGITS',
-                                            'VERIFIED',
-                                            'CARD_SPENT_1K',
-                                            'MINI_INFLUENCER',
-                                        ])
-                                    )
-                                }
-                            >
-                                12
-                            </DevPresetButton>
-                            <DevPresetButton onClick={() => setSelectedBadges(new Set(ALL_CODES))}>
-                                all {ALL_CODES.length}
-                            </DevPresetButton>
-                        </div>
-                    </DevPanel>
+                                    1 badge
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="small"
+                                    onClick={() =>
+                                        setSelectedBadges(
+                                            new Set(['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'CARD_PIONEER'])
+                                        )
+                                    }
+                                >
+                                    3
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="small"
+                                    onClick={() =>
+                                        setSelectedBadges(
+                                            new Set([
+                                                'OG_2025_10_12',
+                                                'DEVCONNECT_BA_2025',
+                                                'CARD_PIONEER',
+                                                'BETA_TESTER',
+                                                'SUPPORT_SURVIVOR',
+                                                'ARBIVERSE_DEVCONNECT_BA_2025',
+                                                'NOT_SO_SHHHH',
+                                                'CARD_FIRST_SWIPE',
+                                                'DOUBLE_DIGITS',
+                                                'VERIFIED',
+                                                'CARD_SPENT_1K',
+                                                'MINI_INFLUENCER',
+                                            ])
+                                        )
+                                    }
+                                >
+                                    12
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="small"
+                                    onClick={() => setSelectedBadges(new Set(ALL_CODES))}
+                                >
+                                    all {ALL_CODES.length}
+                                </Button>
+                            </div>
+                        </Section>
+                    </Card>
 
-                    <DevPanel title="Layout">
-                        <DevField label={`Preview scale (${previewScale.toFixed(2)}×)`}>
-                            <input
-                                type="range"
-                                min={0.3}
-                                max={1}
-                                step={0.05}
-                                value={previewScale}
-                                onChange={(e) => setPreviewScale(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </DevField>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="flex-1"
-                                onClick={() => {
-                                    // Remounts ShareAssetD3 (key) → card face repaints; re-gate Save.
-                                    setAssetReady(false)
-                                    setSeedNonce((n) => n + 1)
-                                }}
-                            >
-                                Reroll seed
-                            </Button>
-                            <Button
-                                variant="stroke"
-                                shadowSize="4"
-                                className="flex-1"
-                                onClick={() => {
-                                    setAssetReady(false)
-                                    setAnimate((a) => !a)
-                                }}
-                            >
-                                {animate ? '✓ Animate' : 'Animate off'}
-                            </Button>
-                        </div>
-                    </DevPanel>
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Layout">
+                            <Field label={`Preview scale (${previewScale.toFixed(2)}×)`}>
+                                <Slider
+                                    min={0.3}
+                                    max={1}
+                                    step={0.05}
+                                    value={[previewScale]}
+                                    onValueChange={([value]) => setPreviewScale(value)}
+                                    aria-label="Preview scale"
+                                />
+                            </Field>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="primary"
+                                    className="flex-1"
+                                    onClick={() => {
+                                        // Remounts ShareAssetD3 (key) → card face repaints; re-gate Save.
+                                        setAssetReady(false)
+                                        setSeedNonce((n) => n + 1)
+                                    }}
+                                >
+                                    Reroll seed
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    className="flex-1"
+                                    onClick={() => {
+                                        setAssetReady(false)
+                                        setAnimate((a) => !a)
+                                    }}
+                                >
+                                    {animate ? '✓ Animate' : 'Animate off'}
+                                </Button>
+                            </div>
+                        </Section>
+                    </Card>
 
-                    <DevPanel title="Username length shortcuts">
-                        <div className="grid grid-cols-2 gap-2 text-body-xs">
-                            <DevPresetButton onClick={() => setUsername('me')}>2-char user</DevPresetButton>
-                            <DevPresetButton onClick={() => setUsername('twelvechars1')}>
-                                12 chars (max)
-                            </DevPresetButton>
-                            <DevPresetButton onClick={() => setUsername('thisistwentyplus_chars')}>
-                                20+ chars
-                            </DevPresetButton>
-                            <DevPresetButton onClick={() => setUsername('kkonrad')}>reset</DevPresetButton>
-                        </div>
-                    </DevPanel>
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Username length shortcuts">
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button variant="secondary" size="small" onClick={() => setUsername('me')}>
+                                    2-char user
+                                </Button>
+                                <Button variant="secondary" size="small" onClick={() => setUsername('twelvechars1')}>
+                                    12 chars (max)
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="small"
+                                    onClick={() => setUsername('thisistwentyplus_chars')}
+                                >
+                                    20+ chars
+                                </Button>
+                                <Button variant="secondary" size="small" onClick={() => setUsername('kkonrad')}>
+                                    reset
+                                </Button>
+                            </div>
+                        </Section>
+                    </Card>
                 </aside>
 
                 {/* ─── RIGHT: Preview ──────────────────────────────────── */}
@@ -378,7 +400,7 @@ export default function ShareBuilderPage() {
                         </span>
                     </div>
                     <div
-                        className="overflow-auto rounded-sm border-2 border-border-default bg-background"
+                        className="overflow-auto rounded-sm border-2 border-border-default bg-background-default"
                         style={{ minHeight: 200 }}
                     >
                         <div
@@ -418,8 +440,8 @@ export default function ShareBuilderPage() {
                     {/* Faithful "in the share flow" strip — mirrors how the asset,
                         the anti-dox toggle, and the share buttons stack in
                         BadgeSkipCelebration / CardUnlockDrawer. */}
-                    <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-sm border-2 border-dashed border-gray-600 bg-white p-4">
-                        <div className="text-center text-[10px] font-bold tracking-wider text-foreground-secondary uppercase">
+                    <Card className="mx-auto w-full max-w-md gap-3 border-dashed p-4">
+                        <div className="text-center text-label-m text-foreground-secondary uppercase">
                             ↑ asset · how it stacks in the real flow ↓
                         </div>
                         <Checkbox
@@ -428,12 +450,12 @@ export default function ShareBuilderPage() {
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <Button variant="purple" shadowSize="4" className="w-full">
+                        <Button variant="primary" className="w-full">
                             Share
                         </Button>
                         <Button
                             data-testid="save-image"
-                            variant="stroke"
+                            variant="secondary"
                             className="w-full"
                             onClick={handleSave}
                             loading={saving}
@@ -441,13 +463,11 @@ export default function ShareBuilderPage() {
                         >
                             Save image
                         </Button>
-                    </div>
+                    </Card>
 
-                    <div className="space-y-2 rounded-sm border border-border-default bg-white p-4 text-body-xs">
-                        <div className="font-bold tracking-wider text-foreground-secondary uppercase">
-                            Resulting props
-                        </div>
-                        <pre className="overflow-auto font-mono text-[11px] whitespace-pre-wrap">
+                    <Card className="gap-2 p-4 text-body-xs">
+                        <div className="text-label-m text-foreground-secondary uppercase">Resulting props</div>
+                        <pre className="overflow-auto font-mono text-body-xs whitespace-pre-wrap">
                             {JSON.stringify(
                                 {
                                     username,
@@ -462,7 +482,7 @@ export default function ShareBuilderPage() {
                                 2
                             )}
                         </pre>
-                    </div>
+                    </Card>
                 </main>
             </div>
         </DevPageShell>

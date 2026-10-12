@@ -17,6 +17,17 @@ afterAll(() => {
 const getHandle = (label: string) => screen.getByRole('button', { name: label })
 
 describe('SlideToConfirm', () => {
+    it('centers labels up to 20 characters on the full track and clears the handle for longer labels', () => {
+        const onConfirm = jest.fn()
+        const shortLabel = '12345678901234567890'
+        const longLabel = `${shortLabel}1`
+        const { rerender } = render(<SlideToConfirm label={shortLabel} onConfirm={onConfirm} />)
+        expect(screen.getByText(shortLabel).parentElement).toHaveClass('inset-x-0')
+
+        rerender(<SlideToConfirm label={longLabel} onConfirm={onConfirm} />)
+        expect(screen.getByText(longLabel).parentElement).toHaveClass('left-14', 'right-2')
+    })
+
     it('does not confirm on Enter or Space (no instant keyboard confirm)', () => {
         const onConfirm = jest.fn()
         render(<SlideToConfirm label="Slide to pay" onConfirm={onConfirm} />)

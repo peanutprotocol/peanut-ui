@@ -59,7 +59,10 @@ jest.mock('@/hooks/useDetermineBankClaimType', () => {
     return { ...actual, useDetermineBankClaimType: () => ({ claimType: actual.BankClaimType.ReceiverKycNeeded }) }
 })
 
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null, fetchUser: jest.fn() }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
+    useOptionalAuth: () => ({ user: null }),
+}))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ gateFor: () => ({ kind: 'needs-identity' }) }),
 }))
@@ -120,6 +123,6 @@ describe('BankFlowManager — bank-restricted residence', () => {
             fireEvent.click(screen.getByTestId('submit-bank-form'))
         })
         expect(handleInitiateKyc).not.toHaveBeenCalled()
-        expect(screen.getByText('Not available in your country')).toBeInTheDocument()
+        expect(screen.getByText('Not available in this country')).toBeInTheDocument()
     })
 })

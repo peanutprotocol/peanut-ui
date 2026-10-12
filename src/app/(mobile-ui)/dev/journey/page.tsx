@@ -2,8 +2,8 @@
 
 import { parseAsInteger, parseAsString, parseAsStringEnum, useQueryState, useQueryStates } from 'nuqs'
 import { useCallback, useMemo } from 'react'
+import { Section } from '@/components/0_Bruddle/Section'
 import DevPageShell from '../_components/DevPageShell'
-import DevSectionLabel from '../_components/DevSectionLabel'
 import EmailPreviewPanel from './EmailPreviewPanel'
 import FindingsStrip from './FindingsStrip'
 import JourneyBoard from './JourneyBoard'
@@ -72,24 +72,21 @@ export default function JourneyExplorerPage() {
             description="Every surface a user meets on the way to their first payment — what the app shows them, and what the lifecycle machine sends them — one column per funnel state."
             actions={<ViewModeToggle value={view} onChange={(next) => void setView(next)} />}
         >
-            <section className="flex flex-col gap-2">
-                <DevSectionLabel>Email-machine rules</DevSectionLabel>
+            <Section title="Email-machine rules">
                 <RulesLegend rules={spec?.rules ?? null} specError={loading ? null : error} />
-            </section>
+            </Section>
 
-            <section className="flex flex-col gap-2">
-                <DevSectionLabel>In-app surface kinds</DevSectionLabel>
+            <Section title="In-app surface kinds">
                 <KindLegend />
-            </section>
+            </Section>
 
-            <section className="flex flex-col gap-2">
-                <DevSectionLabel>Journey board</DevSectionLabel>
+            <Section title="Journey board">
                 <ReviewProgressStrip checked={checkedCount} total={renders.length} onReset={reset} />
-                <p className="text-[11px] leading-snug text-foreground-secondary">
+                <p className="text-body-xs leading-snug text-foreground-secondary">
                     Every email card with an amber dashed border still needs a product verdict. Click one to read the
-                    real render, then tick <span className="font-bold">Mark reviewed</span>. Two of them also carry a{' '}
-                    <span className="font-bold">decide:</span> chip — those need a keep-or-kill call, not only a copy
-                    read.
+                    real render, then tick <span className="text-body-s-semibold">Mark reviewed</span>. Two of them also
+                    carry a <span className="text-body-s-semibold">decide:</span> label — those need a keep-or-kill
+                    call, not only a copy read.
                 </p>
                 <JourneyBoard
                     spec={spec}
@@ -98,17 +95,15 @@ export default function JourneyExplorerPage() {
                     isReviewed={isReviewed}
                     onOpenEmail={openEmail}
                 />
-            </section>
+            </Section>
 
-            <section className="flex flex-col gap-2">
-                <DevSectionLabel>Findings — real product issues</DevSectionLabel>
+            <Section title="Findings — real product issues">
                 <FindingsStrip showDev={showDev} />
-            </section>
+            </Section>
 
-            <section className="flex flex-col gap-2">
-                <DevSectionLabel>User inspector</DevSectionLabel>
+            <Section title="User inspector">
                 <UserInspector />
-            </section>
+            </Section>
 
             {activeIndex >= 0 && (
                 <EmailPreviewPanel

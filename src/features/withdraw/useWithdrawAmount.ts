@@ -11,3 +11,12 @@ import { parseAsString, useQueryState } from 'nuqs'
 export function useWithdrawAmount() {
     return useQueryState('amount', parseAsString.withDefault(''))
 }
+
+/**
+ * The bank amount the user typed, in the destination currency
+ * (`?destinationAmount=2000`, TASK-23054). Set instead of `amount` when the
+ * account is paid in EUR, GBP, MXN or COP; the review step quotes the USDC for it.
+ */
+export function useWithdrawDestinationAmount() {
+    return useQueryState('destinationAmount', parseAsString.withDefault(''))
+}

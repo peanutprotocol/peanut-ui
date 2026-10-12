@@ -2,15 +2,22 @@
 
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
+import { Card } from '@/components/0_Bruddle/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
+import ProgressBar from '@/components/0_Bruddle/ProgressBar'
+import { Section } from '@/components/0_Bruddle/Section'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { isCapacitor } from '@/utils/capacitor'
 import { cancelHaptic, vibrateHaptic } from '@/utils/haptics'
-import Card from '@/components/Global/Card'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import DevPageShell from '../_components/DevPageShell'
 
 export default function DevShakeTestPage() {
+    const toast = useToast()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [holdProgress, setHoldProgress] = useState(0)
@@ -151,44 +158,26 @@ export default function DevShakeTestPage() {
 
     return (
         <DevPageShell
-            title="🧪 Dev Shake Test"
+            title="Shake test"
             description="Tunes the shake-and-hold gesture — progressive shake intensity, hold progress, haptics and the confetti payoff."
             width="prose"
             className={getShakeClass(isShaking, shakeIntensity)}
         >
             <div className="space-y-6 flex flex-col">
-                <Card className="space-y-4 p-6">
-                    <h2 className="text-center text-heading-s">Shake & Hold Test</h2>
-                    <p className="text-center text-body-s">Test the progressive shake animation and confetti effect</p>
-
-                    <div className="space-y-3">
-                        <div className="rounded-lg p-3 text-body-s">
-                            <div className="flex justify-between">
-                                <span>Progress:</span>
-                                <span className="font-mono font-bold">{Math.floor(holdProgress)}%</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Shake Intensity:</span>
-                                <span className="font-mono font-bold capitalize">{shakeIntensity}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>State:</span>
-                                <span className="font-mono font-bold">
-                                    {showSuccess ? '✅ Success!' : isShaking ? '🔄 Holding...' : '⏸️ Ready'}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Haptics:</span>
-                                <span className="font-mono font-bold">
-                                    {isCapacitor()
-                                        ? '✅ @capacitor/haptics (native engine)'
-                                        : typeof navigator !== 'undefined' && 'vibrate' in navigator
-                                          ? '✅ Vibration API (web)'
-                                          : '❌ None — iOS web has no Vibration API'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                <Card className="divide-y divide-dashed divide-border-default px-4">
+                    <DataRow label="Progress" value={`${Math.floor(holdProgress)}%`} />
+                    <DataRow label="Shake intensity" value={shakeIntensity} />
+                    <DataRow label="State" value={showSuccess ? 'success' : isShaking ? 'holding' : 'ready'} />
+                    <DataRow
+                        label="Haptics"
+                        value={
+                            isCapacitor()
+                                ? 'native engine'
+                                : typeof navigator !== 'undefined' && 'vibrate' in navigator
+                                  ? 'web vibration API'
+                                  : 'not available'
+                        }
+                    />
                 </Card>
 
                 {!showSuccess ? (
@@ -197,14 +186,13 @@ export default function DevShakeTestPage() {
                         <Button
                             onClick={() => {
                                 vibrateHaptic(200)
-                                alert(
-                                    `Haptic fired via ${isCapacitor() ? 'the native engine' : 'the web Vibration API'}. Did you feel it?`
-                                )
+                                const hapticResult = `Haptic fired through ${isCapacitor() ? 'the native engine' : 'the web Vibration API'}.`
+                                toast.info(hapticResult)
                             }}
-                            variant="primary-soft"
-                            shadowSize="4"
+                            variant="secondary"
+                            icon="mobile-install"
                         >
-                            📳 Simple Test: Vibrate 200ms
+                            Vibrate for 200ms
                         </Button>
 
                         {/* Hold-to-claim button */}
@@ -212,19 +200,12 @@ export default function DevShakeTestPage() {
                             onPointerDown={startHold}
                             onPointerUp={cancelHold}
                             onPointerLeave={cancelHold}
-                            shadowSize="4"
-                            className="relative overflow-hidden"
+                            icon="star"
                         >
-                            {/* Black progress fill from left to right */}
-                            <div
-                                className="absolute inset-0 bg-black transition-all duration-100"
-                                style={{
-                                    width: `${holdProgress}%`,
-                                    left: 0,
-                                }}
-                            />
-                            <span className="relative z-10">⭐ Hold to Claim Perk</span>
+                            Hold to claim perk
                         </Button>
+
+                        <ProgressBar value={holdProgress} fillClassName="bg-action-primary" />
 
                         <div className="text-center text-body-xs">
                             Hold the button for the full duration (quick taps show 500ms preview)
@@ -232,32 +213,34 @@ export default function DevShakeTestPage() {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <Card className="p-6">
-                            <div className="space-y-2 text-center">
-                                <div className="text-heading-l">🎉</div>
-                                <h3 className="text-heading-xs">Perk Claimed!</h3>
-                                <p className="text-body-s">Check if confetti appeared at the right time</p>
-                            </div>
-                        </Card>
+                        <EmptyState
+                            icon="trophy"
+                            iconColor="green"
+                            title="Perk claimed"
+                            description="Check that the confetti appeared at the right time."
+                        />
 
-                        <Button variant="primary-soft" shadowSize="4" onClick={reset}>
-                            🔄 Test Again
+                        <Button variant="secondary" icon="retry" onClick={reset}>
+                            Test again
                         </Button>
                     </div>
                 )}
 
-                <Card className="space-y-2 p-4">
-                    <h3 className="font-bold">Testing Checklist:</h3>
-                    <ul className="space-y-1 text-body-s">
-                        <li>✓ Button fills with black as you hold</li>
-                        <li>✓ Shake starts weak and gets progressively stronger</li>
-                        <li>✓ Haptic feedback intensifies with shake (PWA only)</li>
-                        <li>✓ Quick tap shows preview but resets (must hold full duration)</li>
-                        <li>✓ Release early cancels the action</li>
-                        <li>✓ After full hold: shake stops, confetti appears, final haptic</li>
-                        <li>✓ Works on mobile touch and desktop mouse</li>
-                    </ul>
-                </Card>
+                <Section title="Testing checklist">
+                    <Card className="p-4">
+                        <BulletList
+                            items={[
+                                'Progress fills while you hold.',
+                                'Shake starts weak and becomes stronger.',
+                                'Haptic feedback intensifies with the shake in the app.',
+                                'A quick tap previews the motion, then resets.',
+                                'An early release cancels the action.',
+                                'A full hold stops the shake, fires confetti, and sends a final haptic.',
+                                'Touch and mouse input both work.',
+                            ]}
+                        />
+                    </Card>
+                </Section>
             </div>
         </DevPageShell>
     )

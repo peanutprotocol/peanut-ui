@@ -1,9 +1,11 @@
 import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
+import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import {
     COUNTRIES_SEO,
     CORRIDORS,
     RECEIVE_SOURCES,
+    SEND_TO_COUNTRIES,
     COMPETITORS,
     EXCHANGES,
     DEPOSIT_RAILS,
@@ -111,7 +113,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         }
 
         // Send-money-to country pages
-        for (const country of Object.keys(COUNTRIES_SEO)) {
+        for (const country of SEND_TO_COUNTRIES) {
             if (!hasPageContent('send-to', country, locale)) continue
             pages.push({
                 path: `/${locale}/send-money-to/${country}`,
@@ -287,12 +289,15 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Team pages excluded from production sitemap (not yet launched)
     }
 
-    return pages.map((page) => ({
-        url: `${BASE_URL}${page.path}`,
-        lastModified: page.lastModified ?? BUILD_DATE,
-        changeFrequency: page.changeFrequency,
-        priority: page.priority,
-    }))
+    // A retired page answers 410 even while its content files still exist.
+    return pages
+        .filter((page) => !isGoneMarketingPath(page.path))
+        .map((page) => ({
+            url: `${BASE_URL}${page.path}`,
+            lastModified: page.lastModified ?? BUILD_DATE,
+            changeFrequency: page.changeFrequency,
+            priority: page.priority,
+        }))
 }
 
 export default generateSitemap

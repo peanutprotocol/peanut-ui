@@ -1,4 +1,6 @@
+import { classifyPasskeySentryEvent, isExpectedPasskeyDeviceEvent } from './src/utils/passkey-sentry-event'
 import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
+import { isExpectedCancellation, isExpectedCancellationChain } from './src/utils/expected-exception'
 // Shared Sentry utilities for filtering noise across all configs
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
@@ -63,6 +65,8 @@ const IGNORED_ERRORS = {
         'chrome-extension://',
         'moz-extension://',
         'safari-extension://',
+        // Firefox for iOS injects scripts that read `window.__firefox__`; nothing of ours does.
+        '__firefox__',
     ],
 
     // Third-party scripts we don't control
@@ -99,6 +103,19 @@ const IGNORED_ERRORS = {
     ],
 }
 
+const POSTHOG_RATE_LIMIT_NOTICE = /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i
+
+/**
+ * posthog-js console.errors this each time its client rate limiter drops a
+ * capture. Mirrored into PostHog as a `$exception`, the notice is itself a
+ * capture the limiter drops, which logs the notice again: one slow session
+ * produced 544 of them in five minutes. Exported for the PostHog mirror
+ * wrapper, whose processEvent hook runs before beforeSend.
+ */
+export function isPosthogRateLimitNotice(searchTexts: string[]): boolean {
+    return searchTexts.some((text) => POSTHOG_RATE_LIMIT_NOTICE.test(text.trim()))
+}
+
 // Deliberate product and SDK outcomes. Keep these outside IGNORED_ERRORS' fuzzy
 // substring matcher: a technical error that merely includes similar prose must
 // remain visible. Error classes are exact; messages are anchored to the complete
@@ -115,7 +132,7 @@ const EXPECTED_BEHAVIOR_MESSAGES = [
     /^You reached the limit of (?:10|20|30) cross-chain (?:withdrawals|transfers) per (?:hour|day|30 days)\. Try again in .+$/i,
     /^You reached the limit for withdrawals to other networks(?:\..*)?$/i,
     /^Company has exceeded their debt limit\.?$/i,
-    /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i,
+    POSTHOG_RATE_LIMIT_NOTICE,
 ]
 
 function isExpectedBehaviorError(event: ErrorEvent, searchTexts: string[]): boolean {
@@ -134,7 +151,9 @@ function isExpectedBehaviorError(event: ErrorEvent, searchTexts: string[]): bool
  * because notifyAppReady never landed. That last class is the reason this list
  * is not just the two it started with: an update that silently un-happens
  * leaves no other trace, and suppressing it made the whole population read as
- * one event in 90 days (PEANUT-UI-SVT).
+ * one event in 90 days (PEANUT-UI-SVT). A metadata-floor refusal is deliberately
+ * absent: it means the installed shell needs a store update and the delivery
+ * guard is working as designed (PEANUT-UI-T6R).
  */
 const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
 const CAPGO_ACTIONABLE = [
@@ -227,6 +246,65 @@ export function isThirdPartyScriptFrame(filename: string): boolean {
     return THIRD_PARTY_SCRIPT_FRAMES.some((pattern) => filename.includes(pattern))
 }
 
+/** The exception shape shared by Sentry events and PostHog's `$exception_list`. */
+interface ExceptionLike {
+    type?: string
+    value?: string
+    stacktrace?: { frames?: ReadonlyArray<{ filename?: string }> }
+}
+
+/*
+ * One-liners Brave iOS evaluates into the page from native code: its wallet
+ * (WalletTabHelper.swift) assigns `window.ethereum.selectedAddress`, and
+ * `__firefox__` is the user-script namespace it inherits from Firefox iOS. They
+ * throw on pages without an injected provider. Our code never assigns either
+ * global, so the complete text plus the absence of any bundle frame is proof
+ * of origin.
+ */
+const BROWSER_HOST_SCRIPT_ERRORS = [
+    /^undefined is not an object \(evaluating 'window\.ethereum\.selectedAddress = (?:undefined|"0x[0-9a-fA-F]{40}")'\)$/,
+    /^undefined is not an object \(evaluating 'window\.__firefox__\.[\w$]+'\)$/,
+    /^Can't find variable: __firefox__$/,
+]
+
+export function isBrowserHostScriptError(exceptions: ReadonlyArray<ExceptionLike>): boolean {
+    if (exceptions.length !== 1) return false
+    const [exception] = exceptions
+    if (exception.type !== 'TypeError' && exception.type !== 'ReferenceError') return false
+    if (!BROWSER_HOST_SCRIPT_ERRORS.some((pattern) => pattern.test(exception.value ?? ''))) return false
+    return (exception.stacktrace?.frames ?? []).every((frame) => !(frame.filename ?? '').includes('/_next/'))
+}
+
+const BROWSER_SHELLS: ReadonlyArray<[RegExp, string]> = [
+    [/\bBrave\b/, 'brave'],
+    [/FxiOS/, 'firefox-ios'],
+    [/CriOS/, 'chrome-ios'],
+    [/; wv\)/, 'android-webview'],
+]
+
+/**
+ * Attribution for a cross-origin `Script error.`, which the browser strips of
+ * message and stack: the cross-origin scripts on the page and the browser shell.
+ */
+export function crossOriginScriptErrorContext(
+    exceptions: ReadonlyArray<ExceptionLike>,
+    scripts: ReadonlyArray<{ src: string }>,
+    origin: string,
+    userAgent: string
+): Record<string, unknown> | null {
+    if (exceptions.length !== 1 || !/^Script error\.?$/.test(exceptions[0].value ?? '')) return null
+    if (exceptions[0].stacktrace?.frames?.length) return null
+    const hosts = new Set<string>()
+    for (const { src } of scripts) {
+        try {
+            const url = new URL(src)
+            if (url.origin !== origin) hosts.add(url.host)
+        } catch {}
+    }
+    const shell = BROWSER_SHELLS.find(([pattern]) => pattern.test(userAgent))?.[1] ?? 'other'
+    return { script_error_cross_origin_hosts: [...hosts].slice(0, 10), script_error_browser_shell: shell }
+}
+
 /**
  * The texts every noise predicate matches against, one entry per field.
  * Matching each field independently — rather than one concatenated string —
@@ -262,6 +340,14 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // a defect, and those would drown out the real failures.
     const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const searchTexts = getEventSearchTexts(event)
+    const exceptions = (event.exception?.values ?? []).filter((exception) => exception.type || exception.value)
+    const isCancellationChain = isExpectedCancellationChain(exceptions)
+    if (isCancellationChain || (!exceptions.length && isExpectedCancellation(event.message))) return true
+    const isMixedCancellationChain =
+        !isCancellationChain &&
+        exceptions.length > 0 &&
+        (isExpectedCancellation(event.message) ||
+            exceptions.some((exception) => isExpectedCancellation(exception.value)))
 
     /*
      * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo
@@ -306,6 +392,9 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
 
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
+        // The legacy fuzzy cancellation patterns must not undo the chain-wide
+        // policy above by matching the canceled root cause of a technical error.
+        if (group === 'userRejected' && isMixedCancellationChain) continue
         if (isCriticalFlow && group !== 'userRejected') continue
         for (const pattern of patterns) {
             if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {
@@ -319,6 +408,8 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     if (isTransientCapgoNoise(searchTexts)) {
         return true
     }
+
+    if (isBrowserHostScriptError(event.exception?.values ?? [])) return true
 
     // Ignore errors from browser extensions (client-side only, but safe to check everywhere)
     const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
@@ -563,9 +654,10 @@ export function cleanSensitiveHeaders(event: ErrorEvent): void {
  */
 export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
     redactQrTelemetry(event)
-    if (shouldIgnoreError(event)) {
+    if (isExpectedPasskeyDeviceEvent(event) || shouldIgnoreError(event)) {
         return null
     }
+    classifyPasskeySentryEvent(event)
     collapseNoisyFingerprint(event)
     cleanSensitiveHeaders(event)
     // Whether the device believed it was online at capture time — the free

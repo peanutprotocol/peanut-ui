@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react'
  * features/home/useHomeFlow).
  */
 export function useRewardsFlow() {
-    const { user, fetchUser } = useAuth()
+    const { user } = useAuth()
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const inviteesRef = useRef(null)
     const inviteesInView = useInView(inviteesRef, { once: true, margin: '-50px' })
@@ -47,7 +47,15 @@ export function useRewardsFlow() {
     const { data: myGraphResult } = useQuery({
         queryKey: ['myInviteGraph', user?.user.userId],
         queryFn: () => pointsApi.getUserInvitesGraph(),
-        enabled: !!user?.user.userId,
+        // The graph is below the points hero and invite summary. Do not let its
+        // comparatively expensive tree query compete with first content.
+        enabled:
+            !!user?.user.userId &&
+            !!tierInfo?.data &&
+            !isInvitesPending &&
+            !isInvitesError &&
+            ((invites?.invitees?.length ?? 0) > 0 || !!user?.invitedBy),
+        staleTime: 5 * 60 * 1000,
     })
 
     // Cash status (comprehensive earnings tracking)
@@ -68,11 +76,6 @@ export function useRewardsFlow() {
 
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.POINTS_PAGE_VIEWED)
-    }, [])
-
-    useEffect(() => {
-        // re-fetch user to get the latest invitees list for showing heart icon
-        fetchUser()
     }, [])
 
     return {

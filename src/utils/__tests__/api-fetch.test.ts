@@ -7,6 +7,11 @@ import { apiFetch, serverFetch } from '../api-fetch'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
+import posthog from 'posthog-js'
+import { enableDemoMode, disableDemoMode } from '@/utils/demo'
+import { demoRespond } from '@/utils/demo-api'
+
+jest.mock('@/utils/demo-api', () => ({ demoRespond: jest.fn() }))
 
 jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) })),
@@ -25,15 +30,36 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => false),
 }))
 
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+
 jest.mock('@/constants/general.consts', () => ({
     PEANUT_API_URL: 'https://api.test.com',
 }))
 
 const mockFetchWithSentry = fetchWithSentry as jest.MockedFunction<typeof fetchWithSentry>
+const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
 
 describe('apiFetch', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        disableDemoMode()
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+        disableDemoMode()
+    })
+
+    it('intercepts web demo writes before auth headers or real network requests', async () => {
+        ;(isCapacitor as jest.Mock).mockReturnValue(false)
+        const synthetic = { ok: true }
+        ;(demoRespond as jest.Mock).mockResolvedValue(synthetic)
+        enableDemoMode()
+        const options = { method: 'POST', body: JSON.stringify({ residenceCountry: 'BR' }) }
+        expect(await apiFetch('/update-user', options)).toBe(synthetic)
+        expect(demoRespond).toHaveBeenCalledWith('/update-user', options)
+        expect(getAuthHeaders).not.toHaveBeenCalled()
+        expect(mockFetchWithSentry).not.toHaveBeenCalled()
     })
 
     describe('url', () => {
@@ -162,6 +188,99 @@ describe('apiFetch', () => {
                     body,
                 })
             )
+        })
+    })
+
+    describe('performance telemetry', () => {
+        it('captures a sampled route template with server duration', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.01)
+            mockFetchWithSentry.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                headers: new Headers({ 'Server-Timing': 'app;dur=12.4' }),
+            } as Response)
+
+            await apiFetch('/users/alice?token=secret')
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_completed',
+                expect.objectContaining({
+                    route: '/users/:userId',
+                    method: 'GET',
+                    status_code: 200,
+                    server_duration_ms: 12.4,
+                    outcome: 'success',
+                })
+            )
+            expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('alice')
+            expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('secret')
+        })
+
+        it('captures every network failure outside the uniform sample', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            mockFetchWithSentry.mockRejectedValueOnce(new Error('private network detail'))
+
+            await expect(apiFetch('/points/cash-status')).rejects.toThrow('private network detail')
+
+            expect(mockCapture).toHaveBeenCalledTimes(1)
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({
+                    route: '/points/cash-status',
+                    outcome: 'network_error',
+                    problem: 'network_error',
+                })
+            )
+            expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private network detail')
+        })
+
+        it('classifies fetchWithSentry timeout errors as timeouts', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            const timeout = Object.assign(new Error('private timeout detail'), { name: 'ConnectionTimeoutError' })
+            mockFetchWithSentry.mockRejectedValueOnce(timeout)
+
+            await expect(apiFetch('/points/cash-status')).rejects.toBe(timeout)
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({ outcome: 'timeout', problem: 'timeout' })
+            )
+        })
+
+        it('separates a request interrupted by an app suspension from a timeout', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            const interrupted = Object.assign(new Error('Peanut is taking too long'), {
+                name: 'ConnectionTimeoutError',
+                interrupted: true,
+            })
+            mockFetchWithSentry.mockRejectedValueOnce(interrupted)
+
+            await expect(apiFetch('/users/me')).rejects.toBe(interrupted)
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({ outcome: 'interrupted', problem: 'interrupted' })
+            )
+        })
+
+        it('stops sending problem events after 20 in one page load', async () => {
+            jest.spyOn(Math, 'random').mockReturnValue(0.9)
+
+            await jest.isolateModulesAsync(async () => {
+                const { apiFetch: freshApiFetch } = await import('../api-fetch')
+                const { default: freshPosthog } = await import('posthog-js')
+                const { fetchWithSentry: freshFetch } = await import('@/utils/sentry.utils')
+
+                for (let i = 0; i < 25; i++) {
+                    ;(freshFetch as jest.Mock).mockRejectedValueOnce(new Error('offline'))
+                    await expect(freshApiFetch('/points/cash-status')).rejects.toThrow('offline')
+                }
+
+                const problems = (freshPosthog.capture as jest.Mock).mock.calls.filter(
+                    ([name]) => name === 'api_request_problem'
+                )
+                expect(problems).toHaveLength(20)
+            })
         })
     })
 })

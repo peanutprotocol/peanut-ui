@@ -12,7 +12,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
@@ -20,6 +20,9 @@ import {
 } from '@/constants/manteca.consts'
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -34,6 +37,8 @@ const MantecaDepositShareDetails = ({
     const params = useParams()
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+    const tWithdraw = useTranslations('withdraw')
+    const tProvider = useTranslations('provider')
     const currentCountryName = params.country as string
 
     const currentCountryDetails = useMemo(() => {
@@ -57,6 +62,8 @@ const MantecaDepositShareDetails = ({
         if (!currentCountryDetails) return fallback
         return MANTECA_COUNTRIES_CONFIG[currentCountryDetails.id]?.depositAddressLabel ?? fallback
     }, [currentCountryDetails, t])
+    // the deposit account belongs to manteca's local entity
+    const providerId = currentCountryDetails?.id === 'BR' ? 'manteca-br' : 'manteca-ar'
 
     // BRL synthetics no longer carry these (QR-only) — but BRL routes to the QR
     // screen, never here; the fallback just keeps the ARS/static path total.
@@ -106,7 +113,7 @@ const MantecaDepositShareDetails = ({
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                             />
-                            <IconBubble icon="bank" size="xs" color="blue" className="absolute -right-1 -bottom-1" />
+                            <IconBubble {...CONCEPT_ICONS.bank} size="xs" className="absolute -right-1 -bottom-1" />
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
@@ -121,9 +128,9 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
-                <Notification priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
+                <Callout priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
                     {t('manteca.sendOnlyOwnAccountDescription')}
-                </Notification>
+                </Callout>
                 <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (
@@ -150,20 +157,25 @@ const MantecaDepositShareDetails = ({
                         value={networkFees}
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
+                    <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
+                    <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
                     <PaymentInfoRow
-                        label={tCommon('peanutFee')}
-                        value={tCommon('sponsoredByPeanut')}
                         hideBottomBorder
+                        label={
+                            <span className="flex items-center gap-1">
+                                {tProvider('label.provider')}
+                                <ProviderHelp providerId={providerId} />
+                            </span>
+                        }
+                        value={PROVIDERS[providerId].brand}
                     />
                 </Card>
             </div>
 
-            <p className="text-body-xs text-foreground-secondary">{t('manteca.etaInstant')}</p>
-
             <ShareButton
                 generateText={async () => generateShareText()}
                 title={t('manteca.shareTitle')}
-                variant="purple"
+                variant="primary"
                 className="w-full"
             >
                 {t('manteca.shareDetails')}

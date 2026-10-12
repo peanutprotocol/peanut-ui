@@ -20,6 +20,10 @@ const LOCALE_PREFIXES = new Set(SUPPORTED_LOCALES.map((locale) => locale.toLower
  * which costs bytes but never breaks a page.
  */
 export function isMarketingRoute(pathname: string | null | undefined): boolean {
+    // Native exports replace the landing page with an app redirect. A cold
+    // launch may hydrate its index.html at /home or another deep-link path;
+    // choosing providers from that URL must not replace the prerendered tree.
+    if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') return false
     if (!pathname) return false
 
     const segments = pathname.split('/').filter(Boolean)

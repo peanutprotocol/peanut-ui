@@ -674,7 +674,9 @@ function applyRhinoResult({
     setIsFeeEstimationError,
     setQuoteExpiresAt,
 }: RhinoResultParams): void {
-    // USDC/USDT are both 6-decimal on every chain we support.
+    // Source units, not destination: both callers (withdraw, pay-request) pass
+    // the Peanut wallet token as source — Circle USDC on Arbitrum (Arb Sepolia
+    // in the sandbox), 6 decimals. Destination USDC can differ (BNB Chain is 18).
     const STABLECOIN_DECIMALS = 6
     const payAmountBaseUnits = parseUnits(preview.payAmount, STABLECOIN_DECIMALS)
 

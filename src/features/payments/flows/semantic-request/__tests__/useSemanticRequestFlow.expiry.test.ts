@@ -33,7 +33,7 @@ const ctx = {
         identifier: 'alice',
         resolvedAddress: '0x1111111111111111111111111111111111111111',
     },
-    chargeIdFromUrl: null,
+    chargeIdFromUrl: null as string | null,
     isAmountFromUrl: false,
     isTokenFromUrl: false,
     isChainFromUrl: false,
@@ -60,10 +60,11 @@ const ctx = {
 jest.mock('../SemanticRequestFlowContext', () => ({ useSemanticRequestFlowContext: () => ctx }))
 
 const mockCreateCharge = jest.fn()
+const mockFetchCharge = jest.fn()
 jest.mock('@/features/payments/shared/hooks/useChargeManager', () => ({
     useChargeManager: () => ({
         createCharge: mockCreateCharge,
-        fetchCharge: jest.fn(),
+        fetchCharge: (...args: unknown[]) => mockFetchCharge(...args),
         isCreating: false,
         isFetching: false,
     }),
@@ -108,7 +109,9 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     }),
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+const mockRefetchTokenData = jest.fn()
 const mockTokenSelection = {
+    refetchTokenData: mockRefetchTokenData,
     selectedChainID: '8453',
     selectedTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     selectedTokenData: {
@@ -137,11 +140,16 @@ jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn(), refetchQueries: jest.fn() }),
 }))
 jest.mock('@/constants/query.consts', () => ({ TRANSACTIONS: 'transactions' }))
+const mockSetChargeAmount = jest.fn()
+jest.mock('@/services/charges', () => ({
+    chargesApi: { setAmount: (...args: unknown[]) => mockSetChargeAmount(...args) },
+}))
 jest.mock('@/utils/settled-tx-hash.utils', () => ({
     resolveSettledTxHash: (r: { txHash?: string }) => ({ hash: r.txHash ?? '0xmined' }),
 }))
 
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 describe('useSemanticRequestFlow — quote expiry is decided at the tap', () => {
     beforeEach(() => {
@@ -178,6 +186,45 @@ describe('useSemanticRequestFlow — quote expiry is decided at the tap', () => 
 
         expect(mockSendTransactions).toHaveBeenCalled()
         expect(mockCalculate).toHaveBeenCalledTimes(quotesBeforeTap)
+    })
+})
+
+/**
+ * The spend engine's pre-prepare controller check can end the attempt before
+ * anything is prepared or signed — a dismissed card re-approval, or the screen
+ * left. The charge stays open, so this is not a failed payment.
+ */
+describe('useSemanticRequestFlow — card re-approval cancelled before signing', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        // A live quote — the expiry suite above leaves a stale one behind, and
+        // an expired quote returns before the spend is ever attempted.
+        route.quoteExpiresAt = null
+    })
+
+    it('shows no failure and records nothing when the spend aborts', async () => {
+        mockSendTransactions.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+
+        await act(async () => {
+            await result.current.executePayment()
+        })
+
+        expect(ctx.setError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(ctx.setIsSuccess).not.toHaveBeenCalled()
+        expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
+    })
+
+    it('a real send failure still surfaces', async () => {
+        mockSendTransactions.mockRejectedValue(new Error('bundler 502'))
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+
+        await act(async () => {
+            await result.current.executePayment()
+        })
+
+        expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 })
 
@@ -241,6 +288,7 @@ describe('request self-contributions', () => {
         ctx.charge = null
         ctx.currentView = 'INITIAL'
         mockTokenSelection.selectedChainID = '42161'
+        mockTokenSelection.selectedTokenData.chainId = '42161'
         const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
         await act(async () => {
             expect(await result.current.handlePayment(externalWallet)).toEqual({ success: true })
@@ -350,5 +398,244 @@ describe('semantic request USD denomination with a selected token', () => {
         const payload = mockCreateCharge.mock.calls[0][0]
         expect(Number(payload.tokenAmount)).toBe(0.004)
         expect(payload.currencyAmount).toBe('10')
+    })
+
+    // TASK-23172: while the price provider was down the API served a 10-day-old
+    // ETH price, and this conversion sized the payment with it.
+    describe('never sizes a payment with an outdated price', () => {
+        const NOW = new Date('2026-10-09T12:00:00Z').getTime()
+
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.useFakeTimers({ now: NOW })
+            ctx.charge = null
+            ctx.currentView = 'INITIAL'
+            ctx.amount = '10'
+            ctx.isTokenDenominated = false
+            ctx.recipient.recipientType = 'ADDRESS'
+            mockTokenSelection.selectedChainID = '8453'
+            mockTokenSelection.selectedTokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+            mockTokenSelection.selectedTokenData = {
+                address: mockTokenSelection.selectedTokenAddress,
+                chainId: '8453',
+                decimals: 18,
+                symbol: 'ETH',
+                price: 2500,
+            }
+            mockCreateCharge.mockResolvedValue(originalCharge)
+        })
+        afterEach(() => jest.useRealTimers())
+
+        it('refuses a price the API still flags stale after refreshing', async () => {
+            mockRefetchTokenData.mockImplementation(async () => mockTokenSelection.selectedTokenData)
+            Object.assign(mockTokenSelection.selectedTokenData, {
+                stale: true,
+                updatedAt: new Date(NOW - 60_000).toISOString(),
+            })
+            const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+            await act(async () => {
+                await result.current.handlePayment(true, true)
+            })
+            expect(mockCreateCharge).not.toHaveBeenCalled()
+            expect(ctx.setError).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    showError: true,
+                    errorMessage: expect.stringContaining('price is unavailable'),
+                })
+            )
+        })
+
+        it('converts with a live price, even one fetched a while ago', async () => {
+            Object.assign(mockTokenSelection.selectedTokenData, {
+                stale: false,
+                updatedAt: new Date(NOW - 15 * 60_000).toISOString(),
+            })
+            const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+            await act(async () => {
+                await result.current.handlePayment(true, true)
+            })
+            expect(Number(mockCreateCharge.mock.calls[0][0].tokenAmount)).toBe(0.004)
+        })
+    })
+})
+
+/**
+ * A request sent with no amount (TASK-22123): the requestee types one, and it
+ * is set on the charge before any money moves, because every payment path
+ * reads the amount from the charge.
+ */
+describe('open-amount requests', () => {
+    const ARB_USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ctx.charge = {
+            ...originalCharge,
+            chainId: '42161',
+            tokenAmount: null,
+            openAmount: true,
+            requestLink: { ...originalCharge.requestLink },
+        } as unknown as typeof originalCharge
+        ctx.currentView = 'INITIAL'
+        ctx.chargeIdFromUrl = null
+        // the field holds "12." while the requestee is still typing
+        ctx.amount = '12.'
+        ctx.usdAmount = ''
+        ctx.isTokenDenominated = false
+        ctx.urlToken = null
+        ctx.recipient.recipientType = 'USERNAME'
+        ctx.recipient.resolvedAddress = originalCharge.requestLink.recipientAddress
+        mockTokenSelection.selectedChainID = '42161'
+        mockTokenSelection.selectedTokenAddress = ARB_USDC
+        mockTokenSelection.selectedTokenData = {
+            address: ARB_USDC,
+            chainId: '42161',
+            decimals: 6,
+            symbol: 'USDC',
+            price: 1,
+        }
+        mockSetChargeAmount.mockResolvedValue(undefined)
+        mockSendMoney.mockResolvedValue({ txHash: '0xmined' })
+    })
+
+    it('sets the typed amount on the charge, then pays that amount', async () => {
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment()).toEqual({ success: true })
+        })
+        expect(mockSetChargeAmount).toHaveBeenCalledWith('charge-1', '12')
+        expect(mockSetChargeAmount.mock.invocationCallOrder[0]).toBeLessThan(mockSendMoney.mock.invocationCallOrder[0])
+        expect(mockSendMoney).toHaveBeenCalledWith(originalCharge.requestLink.recipientAddress, '12', {
+            kind: 'REQUEST_PAY',
+            chargeId: 'charge-1',
+        })
+        expect(ctx.setCharge).toHaveBeenCalledWith(
+            expect.objectContaining({ tokenAmount: '12', currencyAmount: '12', openAmount: true })
+        )
+        expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ chargeId: 'charge-1' }))
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+    })
+
+    it('moves no money when the amount cannot be set', async () => {
+        mockSetChargeAmount.mockRejectedValue(new Error('This request can no longer be changed'))
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment()).toEqual({ success: false })
+        })
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+
+    it('opens a fetched open-amount charge on the amount view, not the confirm', async () => {
+        const fetched = { ...ctx.charge, fulfillmentPayment: null }
+        ctx.charge = null
+        ctx.chargeIdFromUrl = 'charge-1'
+        ctx.currentView = 'CONFIRM'
+        mockFetchCharge.mockResolvedValue(fetched)
+        renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {})
+        expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
+        expect(ctx.setCurrentView).toHaveBeenCalledWith('INITIAL')
+    })
+
+    it('leaves a fixed-amount charge as it is', async () => {
+        ctx.charge = { ...originalCharge, chainId: '42161', requestLink: { ...originalCharge.requestLink } }
+        ctx.amount = '10'
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            await result.current.handlePayment()
+        })
+        expect(mockSetChargeAmount).not.toHaveBeenCalled()
+        expect(mockSendMoney).toHaveBeenCalledWith(originalCharge.requestLink.recipientAddress, '10', {
+            kind: 'REQUEST_PAY',
+            chargeId: 'charge-1',
+        })
+    })
+})
+
+describe('payments during a price-service outage', () => {
+    const ETH = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockRefetchTokenData.mockReset()
+        route.quoteExpiresAt = null
+        ctx.charge = { ...originalCharge, tokenAddress: ETH, tokenAmount: '0.1', tokenDecimals: 18, tokenSymbol: 'ETH' }
+        ctx.amount = '0.1'
+        ctx.usdAmount = '250'
+        ctx.currentView = 'INITIAL'
+        ctx.isTokenDenominated = true
+        ctx.isExternalWalletPayment = false
+        ctx.recipient.recipientType = 'ADDRESS'
+        ctx.recipient.resolvedAddress = originalCharge.requestLink.recipientAddress
+        mockTokenSelection.selectedChainID = '8453'
+        mockTokenSelection.selectedTokenAddress = ETH
+        mockTokenSelection.selectedTokenData = null as any
+        mockSendTransactions.mockResolvedValue({ txHash: '0xmined' })
+    })
+
+    it('continues an existing ETH charge, quotes it and pays without fetching a fiat price', async () => {
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment()).toEqual({ success: true })
+            await result.current.prepareRoute()
+            await result.current.executePayment()
+        })
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+        expect(mockRefetchTokenData).not.toHaveBeenCalled()
+        expect(mockCalculate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                destination: expect.objectContaining({
+                    tokenAddress: ETH,
+                    tokenAmount: '0.1',
+                    tokenDecimals: 18,
+                    chainId: '8453',
+                }),
+            })
+        )
+        expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+        expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+    })
+
+    it('permits an external wallet to continue an existing charge without a fiat price', async () => {
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment(true, true)).toEqual({ success: true })
+        })
+        expect(mockRefetchTokenData).not.toHaveBeenCalled()
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
+    it('retries the price lookup and uses its fresh result when creating a USD-sized charge', async () => {
+        ctx.charge = null
+        ctx.amount = '10'
+        ctx.isTokenDenominated = false
+        const freshPrice = { address: ETH, chainId: '8453', decimals: 18, symbol: 'ETH', price: 2000, stale: false }
+        mockTokenSelection.selectedTokenData = { ...freshPrice, price: 2500, stale: true } as any
+        mockRefetchTokenData.mockResolvedValueOnce({ ...freshPrice, stale: true }).mockResolvedValueOnce(freshPrice)
+        mockCreateCharge.mockResolvedValue(originalCharge)
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment(true, true)).toEqual({ success: false })
+        })
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+        await act(async () => {
+            expect(await result.current.handlePayment(true, true)).toEqual({ success: true })
+        })
+        expect(mockRefetchTokenData).toHaveBeenCalledTimes(2)
+        expect(mockCreateCharge).toHaveBeenCalledWith(
+            expect.objectContaining({ tokenAmount: '0.005000000000000000', currencyAmount: '10' })
+        )
+    })
+
+    it('never creates a new charge when the refreshed price is still missing', async () => {
+        ctx.charge = null
+        mockRefetchTokenData.mockResolvedValue(null)
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment(true, true)).toEqual({ success: false })
+        })
+        expect(mockCreateCharge).not.toHaveBeenCalled()
     })
 })

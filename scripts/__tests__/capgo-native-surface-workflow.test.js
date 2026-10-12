@@ -8,7 +8,12 @@ const workflow = fs.readFileSync(path.join(__dirname, '..', '..', '.github', 'wo
 describe('App Release OTA native surface gate', () => {
     it('validates an attested same-version Android replacement baseline', () => {
         expect(workflow).toContain('node scripts/check-native-capabilities.mjs "v$FLOOR"')
-        expect(workflow).toContain('node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android')
+        expect(workflow).toContain(
+            'node ../release-tooling/scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android --root "$PWD"'
+        )
+        expect(workflow).toContain(
+            'node ../release-tooling/scripts/check-native-ota-surface.mjs "v$FLOOR" --platform ios --root "$PWD"'
+        )
         expect(workflow).not.toContain('node scripts/native-fingerprint.mjs --diff "v$FLOOR"')
     })
 })

@@ -37,6 +37,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
         content?: React.ReactNode
         checkbox?: { text: string; checked: boolean; onChange: (checked: boolean) => void }
         ctas?: { text: string; disabled?: boolean; onClick: () => void }[]
+        tertiaryCta?: { text: string; disabled?: boolean; onClick?: () => void }
     }) => {
         const checkbox = props.checkbox
         if (!props.visible) return null
@@ -58,6 +59,11 @@ jest.mock('@/components/Global/ActionModal', () => ({
                         {c.text}
                     </button>
                 ))}
+                {props.tertiaryCta && (
+                    <button disabled={props.tertiaryCta.disabled} onClick={props.tertiaryCta.onClick}>
+                        {props.tertiaryCta.text}
+                    </button>
+                )}
             </div>
         )
     },

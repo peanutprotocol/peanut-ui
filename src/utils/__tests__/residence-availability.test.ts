@@ -8,35 +8,35 @@ import {
 } from '@/utils/residence-availability'
 import { isBridgeSupportedCountry, regionIntentForResidence } from '@/utils/regions.utils'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
-import { buildUnlockGroups, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
+import { buildBankRows, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
 
 const sets = LOCAL_RESIDENCE_RESTRICTION_SETS
 
 describe('residenceAvailability', () => {
     it('a residence whose intent is Bridge lists the Bridge set, its own currency first', () => {
         expect(regionIntentForResidence('PT')).toBe('EU')
-        expect(residenceAvailability(sets, 'PT').available).toEqual(['p2p', 'eurSepa', 'gbpFps', 'usdAch', 'card'])
-        expect(residenceAvailability(sets, 'DE').available).toEqual(['p2p', 'eurSepa', 'gbpFps', 'usdAch', 'card'])
+        expect(residenceAvailability(sets, 'PT').available).toEqual(['eurSepa', 'gbpFps', 'usdAch', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'DE').available).toEqual(['eurSepa', 'gbpFps', 'usdAch', 'card', 'p2p'])
         expect(regionIntentForResidence('US')).toBe('NA')
-        expect(residenceAvailability(sets, 'US').available).toEqual(['p2p', 'usdAch', 'eurSepa', 'gbpFps', 'card'])
+        expect(residenceAvailability(sets, 'US').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
     })
 
     it('Mexico adds SPEI on top of the Bridge set', () => {
         expect(residenceAvailability(sets, 'MX').available).toEqual([
-            'p2p',
             'spei',
             'eurSepa',
             'gbpFps',
             'usdAch',
             'card',
+            'p2p',
         ])
     })
 
     it('a LATAM residence lists its own QR rail and no Bridge rail', () => {
         expect(regionIntentForResidence('BR')).toBe('LATAM')
         expect(regionIntentForResidence('AR')).toBe('LATAM')
-        expect(residenceAvailability(sets, 'BR').available).toEqual(['p2p', 'pix', 'card'])
-        expect(residenceAvailability(sets, 'AR').available).toEqual(['p2p', 'arQr', 'card'])
+        expect(residenceAvailability(sets, 'BR').available).toEqual(['pix', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'AR').available).toEqual(['arQr', 'card', 'p2p'])
     })
 
     // The promise is derived from the residence's verification intent, so a
@@ -51,14 +51,14 @@ describe('residenceAvailability', () => {
     })
 
     it('rest of world reads bank transfers where supported, never a specific rail', () => {
-        expect(residenceAvailability(sets, 'NG').available).toEqual(['p2p', 'bank', 'card'])
+        expect(residenceAvailability(sets, 'NG').available).toEqual(['bank', 'card', 'p2p'])
     })
 
     it('restriction tiers surface as unavailable instead of overstating', () => {
         // Banking-only restriction (Bridge does not onboard JP residents)
         const jp = residenceAvailability(sets, 'JP')
         expect(jp.unavailable).toEqual(['banking'])
-        expect(jp.available).toEqual(['p2p', 'card'])
+        expect(jp.available).toEqual(['card', 'p2p'])
         // Card-only restriction (Rain's issuance list)
         const tr = residenceAvailability(sets, 'TR')
         expect(tr.unavailable).toEqual(['card'])
@@ -99,10 +99,10 @@ describe('multi-currency rail sets are qualified, not promised', () => {
     })
 
     it('ignores the non-rail items so the card never qualifies P2P or the card', () => {
-        expect(spansMultipleCurrencies(['p2p', 'card'])).toBe(false)
-        expect(spansMultipleCurrencies(['p2p', 'bank', 'card'])).toBe(false)
-        expect(spansMultipleCurrencies(['p2p', 'eurSepa', 'card'])).toBe(false)
-        expect(spansMultipleCurrencies(['p2p', 'eurSepa', 'usdAch', 'card'])).toBe(true)
+        expect(spansMultipleCurrencies(['card', 'p2p'])).toBe(false)
+        expect(spansMultipleCurrencies(['bank', 'card', 'p2p'])).toBe(false)
+        expect(spansMultipleCurrencies(['eurSepa', 'card', 'p2p'])).toBe(false)
+        expect(spansMultipleCurrencies(['eurSepa', 'usdAch', 'card', 'p2p'])).toBe(true)
     })
 })
 
@@ -112,12 +112,12 @@ describe('multi-currency rail sets are qualified, not promised', () => {
 // above against `regionIntentForResidence`). What it catches is the DS-review
 // failure itself: signup naming a rail that Unlock payments then shows as
 // unavailable for the same residence.
-describe('residenceAvailability vs buildUnlockGroups', () => {
+describe('residenceAvailability vs buildBankRows', () => {
     const ROW_FOR_RAIL: Record<AvailabilityRailKey, UnlockRowLabelKey> = {
-        pix: 'saBank',
-        arQr: 'saBank',
-        spei: 'naBank',
-        usdAch: 'naBank',
+        pix: 'brl',
+        arQr: 'ars',
+        spei: 'mxn',
+        usdAch: 'usd',
         eurSepa: 'sepa',
         gbpFps: 'sepa',
     }
@@ -126,14 +126,12 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
 
     const unlockRowsFor = (iso2: string) => {
         const restrictions = deriveResidenceRestrictionsFrom(sets, iso2)
-        return buildUnlockGroups({
-            regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'unlock' },
-            qrOnly: { brazil: false, argentina: false },
+        return buildBankRows({
+            bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
             restrictions,
-            card: 'get',
             residenceIso2: iso2,
             isEuropeResidence: iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2),
-        }).flatMap((group) => group.rows)
+        })
     }
 
     // Every country the residence picker offers, not a hand-picked sample — a
@@ -160,7 +158,9 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
     it('a banking-restricted residence lists no rail and Unlock payments marks every bank row unavailable', () => {
         for (const iso2 of ['JP', 'RU']) {
             expect(residenceAvailability(sets, iso2).available.filter(isRail)).toEqual([])
-            const bankRows = unlockRowsFor(iso2).filter((row) => row.id !== 'p2p' && row.id !== 'card')
+            const bankRows = unlockRowsFor(iso2).filter(
+                (row) => row.id !== 'p2p' && row.id !== 'card' && row.id !== 'crypto'
+            )
             expect(bankRows.every((row) => row.chip === 'notAvailable')).toBe(true)
         }
     })

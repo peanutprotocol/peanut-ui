@@ -19,7 +19,14 @@ function makeRepo() {
     for (const rel of ['scripts', 'android/app/src/main', 'ios/App/App.xcodeproj', 'patches']) {
         fs.mkdirSync(path.join(dir, rel), { recursive: true })
     }
-    for (const name of ['ota-platform-floor.mjs', 'native-fingerprint.mjs', 'release-version.mjs']) {
+    for (const name of [
+        'ota-platform-floor.mjs',
+        'native-fingerprint.mjs',
+        'release-version.mjs',
+        'check-native-ota-surface.mjs',
+        'check-native-change-scope.cjs',
+        'check-legacy-android-permissions.mjs',
+    ]) {
         fs.copyFileSync(path.join(REPO_ROOT, 'scripts', name), path.join(dir, 'scripts', name))
     }
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: '1.0.0' }))
@@ -48,8 +55,11 @@ function release({ dir, git }, tag) {
     git('tag', '-a', tag, '-m', `Native release ${tag.slice(1)}`)
 }
 
-function floors(dir, ref = 'HEAD') {
-    const out = execFileSync('node', [SCRIPT, '--root', dir, '--ref', ref], { cwd: dir, encoding: 'utf8' })
+function floors(dir, ref = 'HEAD', prospectiveVersion, replacementPlatform) {
+    const args = [SCRIPT, '--root', dir, '--ref', ref]
+    if (prospectiveVersion) args.push('--prospective-version', prospectiveVersion)
+    if (replacementPlatform) args.push('--replacement-platform', replacementPlatform)
+    const out = execFileSync('node', args, { cwd: dir, encoding: 'utf8' })
     return Object.fromEntries(
         out
             .trim()
@@ -62,6 +72,13 @@ function lowest(dir) {
     return execFileSync('node', [SCRIPT, '--root', dir, '--lowest'], { cwd: dir, encoding: 'utf8' }).trim()
 }
 
+function shared(dir, prospectiveVersion, replacementPlatform) {
+    const args = [SCRIPT, '--root', dir, '--shared']
+    if (prospectiveVersion) args.push('--prospective-version', prospectiveVersion)
+    if (replacementPlatform) args.push('--replacement-platform', replacementPlatform)
+    return execFileSync('node', args, { cwd: dir, encoding: 'utf8' }).trim()
+}
+
 function floorsFail(dir, platform) {
     const res = require('child_process').spawnSync('node', [SCRIPT, '--root', dir, '--platform', platform], {
         cwd: dir,
@@ -69,48 +86,6 @@ function floorsFail(dir, platform) {
     })
     return { status: res.status, stderr: res.stderr }
 }
-
-it.each([
-    ['@capacitor/android', '1.6.0', '1.5.0'],
-    ['@capacitor/ios', '1.5.0', '1.6.0'],
-    ['@capacitor/core', '1.6.0', '1.6.0'],
-    ['@capacitor-community/example-plugin', '1.6.0', '1.6.0'],
-])('a %s dependency bump raises only the affected native floors', (dependency, android, ios) => {
-    const repo = makeRepo()
-    const dependencies = {
-        '@capacitor/android': '8.2.0',
-        '@capacitor/ios': '8.2.0',
-        '@capacitor/core': '8.2.0',
-        '@capacitor-community/example-plugin': '8.2.0',
-    }
-    write(repo.dir, 'package.json', JSON.stringify({ version: '1.0.0', dependencies }))
-    const lockfile = () =>
-        'packages:\n' +
-        Object.entries(dependencies)
-            .map(([name, version]) => `  '${name}@${version}': {}`)
-            .join('\n')
-    write(repo.dir, 'pnpm-lock.yaml', lockfile())
-    release(repo, 'v1.5.0')
-    // The declared range and generated manifests can remain unchanged; the
-    // resolved lockfile version is the contract the next build actually uses.
-    dependencies[dependency] = '8.3.0'
-    write(repo.dir, 'pnpm-lock.yaml', lockfile())
-    release(repo, 'v1.6.0')
-
-    expect(floors(repo.dir)).toEqual({
-        NEXT_PUBLIC_OTA_FLOOR_ANDROID: android,
-        NEXT_PUBLIC_OTA_FLOOR_IOS: ios,
-    })
-    // The complete surface must still detect every dependency bump. Only the
-    // platform floor comparison narrows the dependency set.
-    const complete = require('child_process').spawnSync(
-        'node',
-        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--diff', 'v1.5.0'],
-        { encoding: 'utf8' }
-    )
-    expect(complete.status).toBe(1)
-    expect(complete.stdout).toContain('native-plugin-versions')
-})
 
 it('lets an untouched platform keep its older binaries', () => {
     const repo = makeRepo()
@@ -147,6 +122,145 @@ it('raises only the iOS floor for an iOS-only change', () => {
     expect(floors(repo.dir)).toEqual({
         NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.4.0',
         NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
+    })
+})
+
+it('keeps the iOS floor when only the Android runtime dependency changes', () => {
+    const repo = makeRepo()
+    write(repo.dir, 'pnpm-lock.yaml', "  '@capacitor/android@8.1.0':\n  '@capacitor/ios@8.1.0':\n")
+    release(repo, 'v1.4.0')
+    write(repo.dir, 'pnpm-lock.yaml', "  '@capacitor/android@8.2.0':\n  '@capacitor/ios@8.1.0':\n")
+    release(repo, 'v1.5.0')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.4.0',
+    })
+})
+
+it('uses a pre-split v2 same-version replacement as the platform baseline', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.5.0')
+    write(repo.dir, 'android/app/proguard-rules.pro', '# retain runtime metadata\n')
+    repo.git('add', 'android/app/proguard-rules.pro')
+    repo.git('commit', '-q', '-m', 'repair R8')
+    const fingerprint = execFileSync(
+        'node',
+        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--ref', 'HEAD', '--schema', 'v2'],
+        { cwd: repo.dir, encoding: 'utf8' }
+    ).trim()
+    repo.git(
+        'tag',
+        '-a',
+        'android-v1.5.0-replacement-fix',
+        '-m',
+        'Android replacement',
+        '-m',
+        `peanut-native-replacement-v2: platform=android base=v1.5.0 native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${fingerprint}`
+    )
+    write(repo.dir, 'src/later.ts', 'export const later = true\n')
+    repo.git('add', 'src/later.ts')
+    repo.git('commit', '-q', '-m', 'later OTA')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
+    })
+})
+
+describe('prospective native release', () => {
+    it('keeps the previous binary eligible for the exact .0 bundle when neither native surface changed', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.7.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0')).toBe('1.7.0')
+    })
+
+    it('uses the stricter platform floor for the shared .0 record', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'prospective 1.8.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.8.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0')).toBe('1.8.0')
+    })
+
+    it('rejects a prospective version behind an attested native release', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.8.0')
+
+        const result = require('node:child_process').spawnSync(
+            'node',
+            [SCRIPT, '--root', repo.dir, '--shared', '--prospective-version', '1.7.0'],
+            { cwd: repo.dir, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('is older than native release 1.8.0')
+    })
+
+    it('accepts an explicitly gated same-version Android replacement and keeps the shared floor safe', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+        release(repo, 'v1.8.0')
+        write(repo.dir, 'android/app/proguard-rules.pro', '# replacement packaging fix\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'replace Android 1.8.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0', 'android')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.8.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0', 'android')).toBe('1.8.0')
+    })
+
+    it('rejects a same-version replacement without the explicit platform gate', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.8.0')
+        write(repo.dir, 'android/app/proguard-rules.pro', '# replacement packaging fix\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'unattested replacement')
+
+        const result = require('node:child_process').spawnSync(
+            'node',
+            [SCRIPT, '--root', repo.dir, '--shared', '--prospective-version', '1.8.0'],
+            { cwd: repo.dir, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('already exists but its android native surface differs')
+    })
+
+    it('rejects native-contract changes from a same-version replacement', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.8.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'new native contract\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'unsafe replacement')
+
+        const result = require('node:child_process').spawnSync(
+            'node',
+            [
+                SCRIPT,
+                '--root',
+                repo.dir,
+                '--shared',
+                '--prospective-version',
+                '1.8.0',
+                '--replacement-platform',
+                'android',
+            ],
+            { cwd: repo.dir, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('not safe for older same-version android installs')
     })
 })
 
@@ -201,12 +315,10 @@ it('rejects an unknown platform', () => {
 })
 
 /*
- * --lowest is the single number Capgo gets, because one bundle serves both
- * platforms and a channel carries one min_update_version. Every install's
- * eligibility goes through it, and the per-platform cases above would stay green
- * if it picked the wrong side.
+ * --lowest is a diagnostic compatibility view. Production uploads separate
+ * platform records and must use --platform for each record's server floor.
  */
-describe('--lowest, the shared server floor', () => {
+describe('--lowest diagnostic output', () => {
     it('takes the iOS side when iOS is lower', () => {
         const repo = makeRepo()
         release(repo, 'v1.4.0')
@@ -274,7 +386,7 @@ describe('major boundary', () => {
         })
     })
 
-    it('keeps the shared server floor inside the same band', () => {
+    it('keeps the diagnostic floor inside the same band', () => {
         expect(lowest(acrossMajors().dir)).toBe('2.1.0')
     })
 })

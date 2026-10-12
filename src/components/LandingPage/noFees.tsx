@@ -67,7 +67,7 @@ export function NoFees({
     return (
         <section
             id="no-fees"
-            className={twMerge('relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14', className)}
+            className={twMerge('relative overflow-hidden bg-blue-300 px-4 py-24 md:py-14', className)}
         >
             {/* CSS keyframes rather than framer-motion: these loop forever, and a
                 perpetual rAF loop on the main thread was the landing page's single
@@ -105,7 +105,9 @@ export function NoFees({
 
                 {/* fluid below md so the longest word of the headline still
                     fits at 320px; unchanged from md up */}
-                <h1 className={`font-roboto-flex-extrabold ${headlineSize} text-black md:text-headingMedium`}>
+                <h1
+                    className={`font-roboto-flex-extrabold ${headlineSize} text-foreground-primary md:text-headingMedium`}
+                >
                     {strings.zeroFees}
                 </h1>
 
@@ -115,7 +117,7 @@ export function NoFees({
                     the SVG did. */}
                 <div className="@container mx-auto mb-1 w-full max-w-xs md:max-w-md">
                     {/* cqw sizing has to sit inside the container, not on it */}
-                    <div className="pt-[0.23em] font-sans text-[9.79cqw]/[1.21] font-[450] tracking-[-0.058em] text-black">
+                    <div className="pt-[0.23em] font-sans text-[9.79cqw]/[1.21] font-[450] tracking-[-0.058em] text-foreground-primary">
                         <p>
                             {reallyZeroLead}
                             <span className="relative inline-block">

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
 import type { RainCooldownEventDetail } from '@/services/rain'
+import { publishCooldownEndsAt, useCooldownRemaining } from '@/hooks/useCooldownRemaining'
 
 /**
  * Global UI state for the Rain withdrawal-signature cooldown.
@@ -36,28 +37,16 @@ const RainCooldownContext = createContext<RainCooldownContextType | undefined>(u
 
 const COOLDOWN_TOAST_ID = 'rain-cooldown'
 
-function formatRemaining(ms: number): string {
-    const totalSec = Math.max(0, Math.ceil(ms / 1000))
-    const m = Math.floor(totalSec / 60)
-    const s = totalSec % 60
-    return `${m}:${s.toString().padStart(2, '0')}`
-}
-
-/** Toast inner content — its own component so it ticks via setInterval
+/** Toast inner content — its own component so it ticks every second
  *  without re-animating the parent toast (id-de-dupe keeps the toast stable). */
-const CooldownPillContent = ({ endsAt }: { endsAt: number }) => {
+const CooldownPillContent = () => {
     const t = useTranslations('global')
-    const [now, setNow] = useState(() => Date.now())
-    useEffect(() => {
-        const id = window.setInterval(() => setNow(Date.now()), 1000)
-        return () => window.clearInterval(id)
-    }, [])
-    const remainingMs = Math.max(0, endsAt - now)
+    const remaining = useCooldownRemaining()
     return (
         <div className="flex items-center gap-2">
             <Icon name="clock" className="h-4 w-4 text-foreground-primary" />
             <span className="text-label-l text-foreground-primary tabular-nums">
-                {t('rainCooldownPill')} · {formatRemaining(remainingMs)}
+                {t('rainCooldownPill')} · {remaining}
             </span>
         </div>
     )
@@ -105,9 +94,14 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
         toast({
             id: COOLDOWN_TOAST_ID,
             duration: 'persistent',
-            content: <CooldownPillContent endsAt={cooldownEndsAt} />,
+            content: <CooldownPillContent />,
         })
     }, [cooldownEndsAt, toast, dismiss])
+
+    // the pill and the error read the deadline from the shared clock, not from
+    // the toast's props, so a retry that extends it updates both
+    useEffect(() => publishCooldownEndsAt(cooldownEndsAt), [cooldownEndsAt])
+    useEffect(() => () => publishCooldownEndsAt(null), [])
 
     // Clear the cooldown end-time once it actually elapses so the toast is
     // dismissed via the effect above. One scheduled timeout per cooldown.

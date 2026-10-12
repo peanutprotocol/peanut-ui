@@ -13,6 +13,9 @@ interface DataRowProps {
     copyValue?: string
     onClick?: () => void
     trailing?: React.ReactNode
+    wrapLabel?: boolean
+    spacious?: boolean
+    compact?: boolean
 }
 
 /**
@@ -32,10 +35,15 @@ export const DataRow = ({
     copyValue,
     onClick,
     trailing,
+    wrapLabel = false,
+    spacious = false,
+    compact = false,
 }: DataRowProps) => (
     <div
         className={twMerge(
-            'flex w-full items-center justify-between gap-3 py-3',
+            'ds-data-row flex w-full items-center justify-between gap-3 py-3',
+            spacious && 'min-h-20 py-4',
+            compact && 'h-12 py-1',
             onClick &&
                 'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled'
         )}
@@ -54,8 +62,8 @@ export const DataRow = ({
         }
         translate="no"
     >
-        <div className="relative flex shrink-0 items-center">
-            <span className="text-body-s text-foreground-secondary">{label}</span>
+        <div className={twMerge('relative flex shrink-0 items-center', wrapLabel && 'min-w-0 flex-1 shrink')}>
+            <span className="ds-data-row-label text-body-s text-foreground-secondary">{label}</span>
             {moreInfoText && (
                 <div className="relative z-20 flex items-center justify-center px-2">
                     <Tooltip content={moreInfoText} position="right">
@@ -67,13 +75,30 @@ export const DataRow = ({
         {loading ? (
             <Loading />
         ) : (
-            <div className="flex min-w-0 items-center justify-end gap-2 text-right text-label-l text-foreground-primary">
+            <div
+                className={twMerge(
+                    'ds-data-row-value flex min-w-0 items-center justify-end gap-2 text-right text-label-l text-foreground-primary',
+                    wrapLabel && 'shrink-0'
+                )}
+            >
                 {/* min-w-0 + break-words: a single unbreakable token (wallet
                     address, tx hash) must wrap inside the card, not stretch
                     the row and escape the layout. */}
-                <span className="min-w-0 break-words">{value}</span>
+                <span
+                    className={twMerge(
+                        'min-w-0 break-words',
+                        allowCopy && typeof value === 'string' && 'ds-data-row-copyable-value'
+                    )}
+                >
+                    {value}
+                </span>
                 {allowCopy && typeof value === 'string' && (
-                    <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />
+                    <CopyToClipboard
+                        textToCopy={copyValue ?? value}
+                        fill="black"
+                        iconSize="4"
+                        className="shrink-0 print:hidden"
+                    />
                 )}
                 {trailing}
             </div>

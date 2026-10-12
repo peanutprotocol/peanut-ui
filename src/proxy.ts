@@ -5,6 +5,8 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
+import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
+import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -17,6 +19,12 @@ export function proxy(request: NextRequest) {
     // `src/app/dev/*`, which have no layout gate at all.
     if (shouldBlockDevRoute(pathname)) {
         return new NextResponse(null, { status: 404 })
+    }
+
+    // Retired marketing pages answer 410 before the page route runs, so the
+    // status holds even while the content mirror still has their files.
+    if (isGoneMarketingPath(pathname)) {
+        return new NextResponse(null, { status: 410, headers: { 'X-Robots-Tag': 'noindex' } })
     }
 
     // check if full maintenance mode is enabled
@@ -35,6 +43,17 @@ export function proxy(request: NextRequest) {
         }
     }
 
+    // QR downloads enter through /home because that path is already claimed by
+    // every released native shell. A browser has no App Link interception, so
+    // route it to the web-only smart-store page while preserving the deferred
+    // handoff. Remove the routing marker so /app can never loop back here.
+    if (pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+        const target = request.nextUrl.clone()
+        target.pathname = '/app'
+        target.searchParams.delete(APP_ENTRY_QUERY_PARAM)
+        return NextResponse.redirect(target, 307)
+    }
+
     const url = request.nextUrl.clone()
     const promoList: { [key: string]: string } = JSON.parse(process.env.PROMO_LIST ?? '{}')
 
@@ -49,7 +68,7 @@ export function proxy(request: NextRequest) {
     // NOTE: deliberately NO cookie-based /setup → /home bounce here. Cookie presence
     // says nothing about session validity; bouncing on it looped forever against the
     // logged-out `/home → /setup` redirect in (mobile-ui)/layout.tsx (TASK-21050,
-    // logged-out PWA lockout). The authenticated-at-/setup case is handled client-side
+    // logged-out redirect loop). The authenticated-at-/setup case is handled client-side
     // by the existing-session prompt in (setup)/setup/page.tsx, which trusts /users/me.
 
     // Handle promo link redirection. Must run before the locale redirect: the
@@ -189,5 +208,8 @@ export const config = {
         '/link/:path*',
         '/dev/:path*',
         '/qr/:path*',
+        // Retired marketing pages (GONE_MARKETING_PATHS in gone-routes.consts.ts).
+        '/:locale/united-kingdom',
+        '/:locale/send-money-from/united-kingdom/to/:to',
     ],
 }

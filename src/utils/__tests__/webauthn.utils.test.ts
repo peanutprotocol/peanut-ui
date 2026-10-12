@@ -5,7 +5,9 @@ import {
     getPasskeyErrorSetupKey,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    withIOSPasskeyLoginRecovery,
 } from '../webauthn.utils'
+import { isIOSNative } from '@/utils/capacitor'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -14,7 +16,14 @@ jest.mock('posthog-js', () => ({
 
 jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
 }))
+
+jest.mock('@/utils/capacitor', () => ({
+    isIOSNative: jest.fn(() => false),
+}))
+
+const mockIsIOSNative = isIOSNative as jest.Mock
 
 describe('capturePasskeySignFailure', () => {
     beforeEach(() => {
@@ -33,6 +42,17 @@ describe('capturePasskeySignFailure', () => {
         })
     })
 
+    test('counts a ceremony guard timeout as a signing failure', () => {
+        const timeout = Object.assign(new Error('passkey ceremony did not settle within 60000ms'), {
+            name: 'CeremonyTimeoutError',
+        })
+        capturePasskeySignFailure(timeout, 'sign-user-op')
+        expect(posthog.capture).toHaveBeenCalledWith('passkey_sign_failed', {
+            error_name: 'CeremonyTimeoutError',
+            context: 'sign-user-op',
+        })
+    })
+
     test('ignores non-WebAuthn errors so signing catches can call it unconditionally', () => {
         // The signing catch blocks see every failure (insufficient funds,
         // bundler timeouts, …) — only WebAuthn ceremony errors may emit the
@@ -44,11 +64,11 @@ describe('capturePasskeySignFailure', () => {
 })
 
 describe('classifyPasskeyError', () => {
-    test('maps iOS ASAuthorizationError 1004 (failed, e.g. no usable passkey) to LOGIN_CANCELED', () => {
+    test('maps exhausted iOS ASAuthorizationError 1004 to PASSKEY_INTERRUPTED, not a false no-passkey claim', () => {
         const err = new Error(
             'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1004.)'
         )
-        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_INTERRUPTED')
     })
 
     test('maps iOS ASAuthorizationError 1001 (user canceled) to LOGIN_CANCELED', () => {
@@ -77,6 +97,89 @@ describe('classifyPasskeyError', () => {
 
     test('falls back to LOGIN_ERROR for unknown errors', () => {
         expect(classifyPasskeyError(new Error('mystery')).code).toBe('LOGIN_ERROR')
+    })
+
+    test('maps a browser request still pending from an earlier prompt to PASSKEY_INTERRUPTED', () => {
+        const err = Object.assign(new Error('A request is already pending.'), { name: 'OperationError' })
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_INTERRUPTED')
+    })
+})
+
+describe('withIOSPasskeyLoginRecovery', () => {
+    const authorizationFailed = () =>
+        new Error(
+            'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1004.)'
+        )
+    const verifyRejected = () =>
+        Object.assign(new Error('Passkey verification was rejected'), { name: 'PasskeyVerifyRejectedError' })
+
+    beforeEach(() => {
+        mockIsIOSNative.mockReturnValue(true)
+    })
+
+    afterEach(() => {
+        mockIsIOSNative.mockReturnValue(false)
+        jest.useRealTimers()
+    })
+
+    test('recovers a cold-start 1004 and one rejected credential in a single bounded flow', async () => {
+        jest.useFakeTimers()
+        const operation = jest
+            .fn<Promise<string>, []>()
+            .mockRejectedValueOnce(authorizationFailed())
+            .mockRejectedValueOnce(verifyRejected())
+            .mockResolvedValueOnce('verified')
+
+        const result = withIOSPasskeyLoginRecovery(operation)
+        await jest.runAllTimersAsync()
+
+        await expect(result).resolves.toBe('verified')
+        expect(operation).toHaveBeenCalledTimes(3)
+        expect(posthog.capture).toHaveBeenNthCalledWith(1, 'passkey_login_retry', {
+            retry_reason: 'authorization_failed',
+            retry_number: 1,
+            native: true,
+        })
+        expect(posthog.capture).toHaveBeenNthCalledWith(2, 'passkey_login_retry', {
+            retry_reason: 'verification_rejected',
+            retry_number: 2,
+            native: true,
+        })
+    })
+
+    test('does not retry a real user cancellation', async () => {
+        const operation = jest
+            .fn<Promise<string>, []>()
+            .mockRejectedValue(
+                new Error(
+                    'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1001.)'
+                )
+            )
+
+        await expect(withIOSPasskeyLoginRecovery(operation)).rejects.toThrow('error 1001')
+        expect(operation).toHaveBeenCalledTimes(1)
+    })
+
+    test('never retries the same recovery reason twice', async () => {
+        jest.useFakeTimers()
+        const operation = jest.fn<Promise<string>, []>().mockRejectedValue(authorizationFailed())
+
+        const result = withIOSPasskeyLoginRecovery(operation)
+        const assertion = expect(result).rejects.toThrow('error 1004')
+        await jest.runAllTimersAsync()
+
+        await assertion
+        expect(operation).toHaveBeenCalledTimes(2)
+    })
+
+    test('leaves web and Android behavior unchanged', async () => {
+        mockIsIOSNative.mockReturnValue(false)
+        const operation = jest.fn<Promise<string>, []>().mockRejectedValue(verifyRejected())
+
+        await expect(withIOSPasskeyLoginRecovery(operation)).rejects.toMatchObject({
+            name: 'PasskeyVerifyRejectedError',
+        })
+        expect(operation).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -127,15 +230,39 @@ describe('getPasskeyErrorSetupKey', () => {
         Object.assign(new Error('curated english copy'), { name: 'PasskeyError', code })
 
     test('maps a known PasskeyError code to its translated setup.* catalog key', () => {
-        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_CANCELED'))).toBe('waitlist.loginCanceled')
+        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_CANCELED'))).toBe('passkey.notCompleted')
         expect(getPasskeyErrorSetupKey(passkeyError('CEREMONY_TIMEOUT'))).toBe('passkey.tookTooLong')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_NOT_READY'))).toBe('passkey.notReady')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_STATE'))).toBe('passkey.deviceState')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_INTERRUPTED'))).toBe('passkey.interrupted')
         expect(getPasskeyErrorSetupKey(passkeyError('NETWORK'))).toBe('passkey.serverUnreachable')
-        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_UNSUPPORTED'))).toBe('passkey.unsupported')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_ORIGIN'))).toBe('passkey.origin')
         expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_ERROR'))).toBe('passkey.loginError')
+    })
+
+    test.each([
+        [
+            'Mac Chrome',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+            'passkey.unsupportedDesktop',
+        ],
+        [
+            'Android',
+            'Mozilla/5.0 (Linux; Android 13; M2012K10C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
+            'passkey.unsupported',
+        ],
+        [
+            'iPhone',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Mobile/15E148 Safari/604.1',
+            'passkey.unsupportedIos',
+        ],
+    ])('gives %s its own unsupported-passkey guidance', (_platform, userAgent, key) => {
+        const ua = jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(userAgent)
+        try {
+            expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_UNSUPPORTED'))).toBe(key)
+        } finally {
+            ua.mockRestore()
+        }
     })
 
     test('returns undefined for non-PasskeyError failures and unknown codes', () => {
@@ -168,6 +295,12 @@ describe('normalizeNativePasskeyError', () => {
         )
         expect((err as Error).name).toBe('NotSupportedError')
         expect(classifyPasskeyError(err).code).toBe('PASSKEY_UNSUPPORTED')
+    })
+
+    test('treats the Android no-credential rejection as no passkey on this device, not a failed verification', () => {
+        const err = normalizeNativePasskeyError(capacitorRejection('No matching passkey was found.', 'NotFoundError'))
+        expect((err as Error).name).toBe('NotFoundError')
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
     })
 
     test('leaves an unattributable native failure alone rather than guessing', () => {

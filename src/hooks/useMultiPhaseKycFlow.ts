@@ -9,9 +9,11 @@ import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
+import type { SumsubSubmissionSource } from '@/components/Kyc/sumsubSdk.types'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -297,21 +299,44 @@ export const useMultiPhaseKycFlow = ({
         liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
         handleRestartIdentity,
+        handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
+        handleFixableGate,
         handleSdkComplete: originalHandleSdkComplete,
         handleClose,
         refreshToken,
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         isActionFlow,
+        isResidenceChangeFlow,
         isMultiLevel,
         verificationSession,
         showCorrection,
         correctVerificationData,
         dismissCorrection,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
+
+    const [submissionAttempt, setSubmissionAttempt] = useState(() => ({
+        id: 0,
+        intent: regionIntent,
+        residence: isResidenceChangeFlow,
+    }))
+    const reportedAttemptsRef = useRef(new Set<number>())
+    // Every SDK opening (initiate, restart, correction, self-heal, start-action) is a fresh attempt.
+    // Set during render so the SDK launch effect in the same commit binds to the new attempt.
+    const [attemptWrapperOpen, setAttemptWrapperOpen] = useState(showWrapper)
+    if (showWrapper !== attemptWrapperOpen) {
+        setAttemptWrapperOpen(showWrapper)
+        if (showWrapper) {
+            setSubmissionAttempt((attempt) => ({
+                id: attempt.id + 1,
+                intent: attempt.intent,
+                residence: isResidenceChangeFlow,
+            }))
+        }
+    }
 
     // keep ref in sync
     useEffect(() => {
@@ -351,20 +376,35 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [liveKycStatus, fetchUser, regionIntent, showWrapper, isMultiLevel])
 
-    // A multi-level session never reaches handleSdkComplete on the happy path:
-    // the SDK stays open through the follow-up level and the APPROVED transition
-    // closes it without onComplete. The wrapper reports the Level-1 submit
-    // through onSubmitted instead, so the funnel still gets its KYC_SUBMITTED.
-    const handleSdkSubmitted = useCallback(() => {
-        reportedRejectionRef.current = null
-        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
-    }, [regionIntent])
+    // Retain the attempt in late SDK callbacks so they cannot consume a newer attempt's submission.
+    // A residence change is an action on an approved identity, never an identity submission.
+    const captureSubmission = useCallback(
+        (source: SumsubSubmissionSource | 'sdk_complete') => {
+            if (submissionAttempt.residence || reportedAttemptsRef.current.has(submissionAttempt.id)) return
+            reportedAttemptsRef.current.add(submissionAttempt.id)
+            posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
+                region_intent: submissionAttempt.intent,
+                submit_source: source,
+            })
+        },
+        [submissionAttempt]
+    )
+
+    const handleSdkSubmitted = useCallback(
+        (source: SumsubSubmissionSource = 'sdk_submitted') => {
+            reportedRejectionRef.current = null
+            captureSubmission(source)
+        },
+        [captureSubmission]
+    )
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         reportedRejectionRef.current = null
-        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
-        isRealtimeFlowRef.current = true
+        if (!isResidenceChangeFlow) {
+            captureSubmission('sdk_complete')
+            isRealtimeFlowRef.current = true
+        }
         // Deliberately does NOT consume a deferred ACTION_REQUIRED for the capture
         // effect. On native this callback is ambiguous in a multi-level session:
         // SumsubNativeSdk marks Pending as submitted, so a Level-1 submit followed
@@ -374,34 +414,45 @@ export const useMultiPhaseKycFlow = ({
         // still consumes for the sibling transition effect — pre-existing, and the
         // same ambiguity applies to it.)
         originalHandleSdkComplete()
+        // Residence submission only puts the dedicated action into provider
+        // review. The approved identity and its rails remain authoritative
+        // until a matching GREEN webhook promotes the new residence, so there
+        // is no post-approval rail orchestration to start here.
+        if (isResidenceChangeFlow) return
         // for action flows (manteca, self-heal), the base status is already APPROVED
         // and won't transition — directly start the preparing/tracking phase
         if (isActionFlow && !verificationSession) {
             handleSumsubApproved()
         }
-    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent, verificationSession])
+    }, [
+        originalHandleSdkComplete,
+        handleSumsubApproved,
+        isActionFlow,
+        isResidenceChangeFlow,
+        captureSubmission,
+        verificationSession,
+    ])
 
-    // true only while a PWA-reload resume drives handleInitiateKyc, so the
-    // analytics event can distinguish a resume from a genuine new initiation
-    // (a resume otherwise looks identical and inflates "initiated" counts).
+    // Existing Android PWAs can cold-reload after opening the camera or gallery.
+    // Keep the exact initiate arguments so the same applicant flow can reopen
+    // until installed PWAs are blocked at the native migration cutoff.
     const resumingRef = useRef(false)
-
-    // Arguments of the initiate that opened the SDK, replayed on resume. The
-    // LATAM surfaces build the flow as `useMultiPhaseKycFlow({})` and pass the
-    // intent at call time, so a resume that re-initiates with hook defaults
-    // there mints a token for the wrong verification level — and still opens the
-    // SDK, so the flag is not cleared and the user never sees what went wrong.
-    // The resolved intent is stored rather than the raw override so the replay
-    // pins the exact intent used.
     const lastInitiateArgsRef = useRef<KycResumeState>({})
 
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
+        async (
+            overrideIntent?: KYCRegionIntent,
+            levelName?: string,
+            crossRegion?: boolean,
+            targetCountry?: string,
+            corridor?: DepositCorridor
+        ) => {
             const intent = overrideIntent ?? regionIntent
+            setSubmissionAttempt((attempt) => ({ id: attempt.id + 1, intent, residence: false }))
             lastIntentRef.current = intent
             setRequestedIntent(intent)
-            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry }
+            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
                 { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
@@ -417,24 +468,20 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
+            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
-    // PWA-reload resume (see useSumsubReloadResume). On mount, if the state is
-    // in the URL but the SDK is closed, re-initiate with the same arguments:
-    // mint a fresh token for the existing applicant and reopen the SDK. The SDK
-    // now launches straight into Sumsub on open (the StartVerificationView intro
-    // was removed with the native-SDK refactor), so no extra auto-start step is
-    // needed.
     useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
-        // Returns whether the SDK actually opened — a resume that resolves
-        // without opening (already-approved user, or a remediation flow the
-        // replay can't reconstruct) clears the state instead of retrying on
-        // every future reload.
         resumingRef.current = true
-        const opened = await handleInitiateKyc(state.intent, state.levelName, state.crossRegion, state.targetCountry)
+        const opened = await handleInitiateKyc(
+            state.intent,
+            state.levelName,
+            state.crossRegion,
+            state.targetCountry,
+            state.corridor
+        )
         resumingRef.current = false
         return !!opened
     })
@@ -664,9 +711,11 @@ export const useMultiPhaseKycFlow = ({
         // initiation
         handleInitiateKyc,
         handleRestartIdentity,
+        handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
+        handleFixableGate,
         isLoading,
         error: error ?? (depositBlocked ? t('railsUnavailableError') : null),
         errorCooldown,

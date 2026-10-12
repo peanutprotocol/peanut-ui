@@ -54,7 +54,8 @@
         "TOUCHED_GRASS": "/badges/touched_grass.svg",
         "TRON": "/badges/tron.svg",
         "VERIFIED": "/badges/verified.svg",
-        "WAITLIST_SKIP": "/badges/skip_pass.svg"
+        "WAITLIST_SKIP": "/badges/skip_pass.svg",
+        "WHITE_HAT": "/badges/white_hat.png"
     },
     "avatars": {
         "basics": [
@@ -119,6 +120,7 @@
             "OFFRAMP_USER": ["bolt", "spark", "wink"],
             "OG_2025_10_12": ["coin", "link", "shades"],
             "PEANUT_SHAPER": [],
+            "PEANUT_TEAM": [],
             "PRODUCT_HUNT": [],
             "PSYOPS_DIVISION": [],
             "SECOND_INVITE": [],
@@ -133,7 +135,8 @@
             "TOUCHED_GRASS": [],
             "TRON": [],
             "VERIFIED": [],
-            "WAITLIST_SKIP": ["key", "keyhole", "wink"]
+            "WAITLIST_SKIP": ["key", "keyhole", "wink"],
+            "WHITE_HAT": ["hat", "wink"]
         }
     }
 }

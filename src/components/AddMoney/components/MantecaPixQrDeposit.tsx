@@ -9,8 +9,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { useTranslations } from 'next-intl'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 
 const MantecaPixQrDeposit: FC<{
     depositDetails: MantecaDepositResponseData
@@ -61,7 +62,7 @@ const MantecaPixQrDeposit: FC<{
                     <IconBubble icon="check" size="l" color="green" />
                     <h2 className="text-heading-s text-foreground-primary">{t('pix.depositReceived')}</h2>
                     <p className="text-body-s text-foreground-secondary">{t('pix.balanceUpdated')}</p>
-                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
+                    <Button variant="primary" shadowSize="4" className="w-full" onClick={onDone}>
                         {tCommon('done')}
                     </Button>
                 </div>
@@ -78,9 +79,8 @@ const MantecaPixQrDeposit: FC<{
         return (
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onDone} />
-                <div className="my-auto flex flex-col justify-center">
-                    <CyclingLoading />
-                </div>
+                {/* fiat has left the bank — "confirming" is truthful (TASK-22452) */}
+                <ProcessingScreen title={t('processingDepositTitle')} description={t('processingDepositBody')} />
             </PageStack>
         )
     }
@@ -95,7 +95,9 @@ const MantecaPixQrDeposit: FC<{
                 </div>
 
                 {!qr ? (
-                    <CyclingLoading />
+                    // the qr is still being generated — title only, no
+                    // "confirming" claim before any money moved (TASK-22452)
+                    <ProcessingScreen title={t('processingDepositTitle')} />
                 ) : (
                     <>
                         <QRCodeWrapper url={qr} isBlurred={isExpired} disabled={isExpired} className="max-w-[280px]" />
@@ -109,7 +111,7 @@ const MantecaPixQrDeposit: FC<{
                         {isExpired ? (
                             <div className="flex flex-col gap-3 text-center">
                                 <p className="text-body-s text-foreground-secondary">{t('pix.qrExpired')}</p>
-                                <Button variant="stroke" className="w-full" onClick={onBack}>
+                                <Button variant="primary" className="w-full" onClick={onBack}>
                                     {t('pix.goBack')}
                                 </Button>
                             </div>
@@ -121,6 +123,8 @@ const MantecaPixQrDeposit: FC<{
                                 <CopyToClipboard textToCopy={qr} type="button" className="w-full" />
                             </div>
                         )}
+
+                        <ProviderFinePrint providerId="manteca-br" />
                     </>
                 )}
             </PageStack.Center>

@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { Steps as StepsCards } from '@/components/Marketing/Steps'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { extractText } from './mdx.utils'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Stars } from './Stars'
 import { getTranslations } from '@/i18n'
@@ -21,16 +22,6 @@ interface StepsProps {
     /** Injected by createMdxComponents — never authored in MDX. */
     locale?: Locale
     children: ReactNode
-}
-
-/** Extract text content from React nodes for descriptions and JSON-LD */
-function extractText(node: ReactNode): string {
-    if (typeof node === 'string') return node
-    if (typeof node === 'number') return String(node)
-    if (!node) return ''
-    if (Array.isArray(node)) return node.map(extractText).join('')
-    if (isValidElement(node)) return extractText(node.props.children)
-    return ''
 }
 
 const stepsClouds = [
@@ -78,11 +69,18 @@ export function Steps({ title, children, locale = DEFAULT_LOCALE }: StepsProps) 
     }
 
     return (
-        <section className="relative mb-10 overflow-hidden bg-secondary-1 px-4 py-16 md:py-24">
-            <CloudsCss clouds={stepsClouds} />
-            <Stars />
+        <section className="relative mb-10 px-4 py-16 md:py-24">
+            {/* the yellow band is its own layer so it runs the full width of the
+                viewport even inside a narrow column (blog posts render this MDX
+                in MarketingShell's max-w-3xl). the clouds and stars ride the band.
+                100vw overshoots by the scrollbar width — the marketing layout
+                clips the x axis, so the page never scrolls sideways. */}
+            <div className="absolute inset-y-0 left-1/2 z-0 w-[100vw] -translate-x-1/2 overflow-hidden bg-action-secondary">
+                <CloudsCss clouds={stepsClouds} />
+                <Stars />
+            </div>
             <div className="relative z-10 mx-auto max-w-3xl">
-                <h2 className="mb-8 text-h2 font-bold md:text-h1">{heading}</h2>
+                <h2 className="mb-8 text-heading-l md:text-heading-xl">{heading}</h2>
                 <StepsCards steps={steps} />
             </div>
             <JsonLd data={howToSchema} />

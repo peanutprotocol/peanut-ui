@@ -25,9 +25,9 @@ export function PropsTable({ rows }: { rows: PropsTableRow[] }) {
                 <tbody>
                     {rows.map((row) => (
                         <tr key={row.name} className="border-b border-border-disabled last:border-0">
-                            <td className="px-4 py-2 font-mono font-bold">
+                            <td className="px-4 py-2 font-mono text-label-m">
                                 {row.name}
-                                {row.required && <span className="ml-1 text-foreground-error">*</span>}
+                                {row.required && <span className="ml-1 text-foreground-secondary">*</span>}
                             </td>
                             <td className="px-4 py-2 font-mono text-foreground-secondary">{row.type}</td>
                             <td className="px-4 py-2 font-mono text-foreground-secondary">{row.default}</td>

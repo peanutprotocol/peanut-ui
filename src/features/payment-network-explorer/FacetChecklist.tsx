@@ -1,5 +1,7 @@
 import InfoTooltip from './InfoTooltip'
 import type { ExplorerFacet } from './types'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 interface FacetChecklistProps {
     label: string
@@ -23,44 +25,39 @@ export default function FacetChecklist({
     }
 
     return (
-        <fieldset className="border-t border-n-1/15 py-3 first:border-t-0 first:pt-0">
-            <legend className="mb-2 flex w-full items-center gap-1.5 text-xs font-bold tracking-wide text-grey-1 uppercase">
+        <fieldset className="border-t border-border-subtle py-3 first:border-t-0 first:pt-0">
+            <legend className="mb-2 flex w-full items-center gap-1 text-label-m text-foreground-secondary uppercase">
                 {label}
                 <InfoTooltip label={label}>{tooltip}</InfoTooltip>
                 {selected.length > 0 && (
-                    <button
-                        type="button"
-                        onClick={() => onChange([])}
-                        className="ml-auto text-[11px] tracking-normal text-n-1 normal-case underline"
-                    >
+                    <LinkButton onClick={() => onChange([])} className="ml-auto tracking-normal normal-case">
                         Clear
-                    </button>
+                    </LinkButton>
                 )}
             </legend>
             {facets.length === 0 ? (
-                <p className="text-xs text-grey-1">{emptyLabel}</p>
+                <p className="text-body-xs text-foreground-secondary">{emptyLabel}</p>
             ) : (
-                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                <div className="flex max-h-40 flex-col gap-2 overflow-y-auto pr-1">
                     {facets.map((facet) => {
                         const checked = selected.includes(facet.value)
                         return (
-                            <label
+                            <Checkbox
                                 key={facet.value}
-                                className={`flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-xs ${
-                                    checked ? 'bg-primary-3/35 font-semibold' : 'hover:bg-[#f3efe9]'
-                                }`}
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => toggle(facet.value)}
-                                    className="size-3.5 rounded border-n-1 accent-black"
-                                />
-                                <span className="min-w-0 flex-1 truncate" title={facet.label}>
-                                    {facet.label}
-                                </span>
-                                <span className="text-grey-1 tabular-nums">{facet.observedCount.toLocaleString()}</span>
-                            </label>
+                                value={checked}
+                                onChange={() => toggle(facet.value)}
+                                className="w-full"
+                                label={
+                                    <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                                        <span className="truncate" title={facet.label}>
+                                            {facet.label}
+                                        </span>
+                                        <span className="text-foreground-secondary tabular-nums">
+                                            {facet.observedCount.toLocaleString()}
+                                        </span>
+                                    </span>
+                                }
+                            />
                         )
                     })}
                 </div>

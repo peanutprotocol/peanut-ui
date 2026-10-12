@@ -100,7 +100,6 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/utils/native-routes', () => ({ profileUrl: (username: string) => `/profile/${username}` }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
-jest.mock('@/assets/mascot', () => ({ PeanutWavingHello: { src: '/peanut.svg' } }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
     Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
         <button onClick={onClick}>{children}</button>
@@ -161,6 +160,23 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/juanacervio'))
+        expect(mockClaimBadgeCampaigns).not.toHaveBeenCalled()
+    })
+
+    it('auto-routes an authenticated visitor even when the legacy app-access flag is false', async () => {
+        mockAuth.user = { user: { userId: 'user-1', username: 'member', hasAppAccess: false } }
+        mockSearch = 'code=alice'
+        mockQueryResult.data = {
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'alice',
+        }
+
+        render(<InvitesPage />)
+
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
+        expect(screen.queryByRole('button', { name: 'Create your wallet' })).not.toBeInTheDocument()
         expect(mockClaimBadgeCampaigns).not.toHaveBeenCalled()
     })
 
@@ -441,7 +457,7 @@ describe('invite and badge campaign routing boundaries', () => {
         }
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['Creator/Summer', 'second'])
@@ -464,7 +480,7 @@ describe('invite and badge campaign routing boundaries', () => {
         }
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('offramp', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
@@ -516,7 +532,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         expect(await screen.findByText('peanut invited you to Peanut')).toBeInTheDocument()
         expect(screen.queryByText('Claim your badge')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Create your wallet' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('squirrelinvitesyou', 'PAYMENT_LINK')
         // utm values stopped being badge identities (TASK-21226); nothing queues
@@ -603,7 +619,7 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockLogin).toHaveBeenCalledTimes(1)
     })
 
-    it('hands a guest Claim your spot off to the stores during the migration window', async () => {
+    it('hands a guest wallet signup off to the stores during the migration window', async () => {
         mockAuth.user = null
         mockSearch = 'code=alice'
         mockQueryResult.data = {
@@ -615,15 +631,52 @@ describe('invite and badge campaign routing boundaries', () => {
         mockInterceptGuestCta.mockReturnValue(true)
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
 
         // invite bookkeeping still runs so post-install signup recovers context
         expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
-        expect(mockInterceptGuestCta).toHaveBeenCalledTimes(1)
+        expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: 'alice', dest: undefined })
         expect(mockPush).not.toHaveBeenCalledWith('/setup?step=signup')
         // the CTA rendered for a settled guest — the impression must be armed
         const lastOpts = mockUseGuestStoreHandoff.mock.calls.at(-1)?.[0]
         expect(lastOpts?.trackImpressionWhenGuest).toBe(true)
+    })
+
+    it('carries the inviter and safe continuation into the download QR handoff', async () => {
+        mockAuth.user = null
+        mockSearch = 'code=alice&redirect_uri=%2Fclaim%2Fpending'
+        mockQueryResult.data = {
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'alice',
+        }
+        mockInterceptGuestCta.mockReturnValue(true)
+
+        render(<InvitesPage />)
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
+
+        expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: 'alice', dest: '/claim/pending' })
+        expect(mockSaveRedirectUrl).toHaveBeenCalledTimes(1)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('does not carry an invalid inviter or external continuation into the download handoff', async () => {
+        mockAuth.user = null
+        mockSearch = 'code=nobody&badge_campaign=summer&redirect_uri=https%3A%2F%2Fexample.com'
+        mockQueryResult.data = {
+            success: false,
+            attributionResolved: false,
+            onboardingResolved: false,
+            username: '',
+        }
+        mockInterceptGuestCta.mockReturnValue(true)
+
+        render(<InvitesPage />)
+        fireEvent.click(await screen.findByRole('button', { name: 'Sign up' }))
+
+        expect(mockStashInvite).not.toHaveBeenCalled()
+        expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: undefined, dest: undefined })
     })
 
     it('never arms the guest impression on the invalid-invite error view', async () => {

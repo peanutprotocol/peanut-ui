@@ -66,6 +66,7 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={recipientName}
+                    avatarKey={claimLinkData?.sender?.avatarKey}
                     amount={amount ?? '0'}
                     tokenSymbol={claimLinkData?.tokenSymbol ?? ''}
                 />

@@ -1,18 +1,14 @@
 import { USER_PREFERENCES_KEY_SUFFIX, WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
-import type { DeviceType } from '@/hooks/useGetDeviceType'
 import type { ScreenId } from './Setup.types'
 
-export type SetupEntryStep = Extract<ScreenId, 'landing' | 'signup' | 'pwa-install' | 'android-initial-pwa-install'>
+export type SetupEntryStep = Extract<ScreenId, 'landing' | 'signup'>
 
 export interface SetupEntryInput {
-    isCapacitor: boolean
-    deviceType: DeviceType
-    isStandalonePWA: boolean
     /** An invite code from the store, the cookie or `?code=`. */
     hasInviteCode: boolean
-    /** The legacy `?step=` param: `signup` skips the invite gate, `login` lands on Log In. */
+    /** The legacy `?step=` param: `signup` opens the form directly, `login` lands on Log In. */
     stepParam: string | null
-    /** pwa-sunset notice window on web: signups are closed, so nothing may skip the landing gate. */
+    /** Native-migration notice window on web: signups are closed, so nothing may skip the landing gate. */
     webSignupClosed: boolean
     /** Durable passkey credentials on this device (see hasKnownDeviceCredentials). */
     knownDevice: boolean
@@ -29,15 +25,11 @@ export interface SetupEntryInput {
  */
 export function resolveSetupEntryStep(input: SetupEntryInput): SetupEntryStep {
     if (input.knownDevice || input.stepParam === 'login') return 'landing'
-    // ?step=signup is what every campaign entrypoint sends; the invite cookie
-    // survives the PWA-install hop. Neither may skip the landing gate while web
-    // signups are closed, or claim/invite links deep-link into a closed form.
-    const skipInviteGate = (input.hasInviteCode || input.stepParam === 'signup') && !input.webSignupClosed
-    if (input.isCapacitor) return skipInviteGate ? 'signup' : 'landing'
-    if (skipInviteGate) return 'signup'
-    if (input.deviceType === 'android') return input.isStandalonePWA ? 'landing' : 'android-initial-pwa-install'
-    if (input.deviceType === 'ios') return 'landing'
-    return 'pwa-install'
+    // Invite/campaign entrypoints can open the signup form directly. This is
+    // navigation only: neither the presence nor absence of an invite controls
+    // account access now that signup is open.
+    const openSignupDirectly = (input.hasInviteCode || input.stepParam === 'signup') && !input.webSignupClosed
+    return openSignupDirectly ? 'signup' : 'landing'
 }
 
 function hasCookie(key: string): boolean {

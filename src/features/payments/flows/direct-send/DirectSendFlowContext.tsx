@@ -23,6 +23,8 @@ export interface DirectSendRecipient {
     address: Address
     userId?: string
     fullName?: string
+    /** Their picked profile avatar; null means the username-letter fallback. */
+    avatarKey?: string | null
 }
 
 // attachment options

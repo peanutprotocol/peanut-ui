@@ -23,13 +23,14 @@ const { execSync } = require('child_process')
 const { toMarketingVersion, stampMarketingVersion } = require('./marketing-version')
 
 // Must match the pin in the plugin's plugin.xml (<pod name="IdensicMobileSDK" spec="=X" />).
-const SUMSUB_VERSION = '1.42.0'
+const SUMSUB_VERSION = '1.46.1'
 
 const repoRoot = path.join(__dirname, '..')
 const pluginPkg = '@sumsub/cordova-idensic-mobile-sdk-plugin'
 const pluginDir = path.join(repoRoot, 'ios/capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin')
 const frameworksDir = path.join(pluginDir, 'Frameworks')
 const xcframework = path.join(frameworksDir, 'IdensicMobileSDK.xcframework')
+const sumsubVersionFile = path.join(frameworksDir, 'sumsub-version.txt')
 const pkgSwiftPath = path.join(pluginDir, 'Package.swift')
 const capAppPkgSwift = path.join(repoRoot, 'ios/App/CapApp-SPM/Package.swift')
 const pbxprojPath = path.join(repoRoot, 'ios/App/App.xcodeproj/project.pbxproj')
@@ -103,24 +104,106 @@ if (!fs.existsSync(pluginDir)) {
     process.exit(1)
 }
 
-// 1. Vendor the xcframework (download once; it survives within a single CI run).
-if (!fs.existsSync(xcframework)) {
-    fs.mkdirSync(frameworksDir, { recursive: true })
-    const zipUrl = `https://raw.githubusercontent.com/SumSubstance/IdensicMobileSDK-iOS-Release/master/${SUMSUB_VERSION}/IdensicMobileSDK-${SUMSUB_VERSION}.zip`
-    const zipPath = path.join(frameworksDir, 'IdensicMobileSDK.zip')
-    console.log(`[postsync] downloading IdensicMobileSDK ${SUMSUB_VERSION}…`)
-    execSync(`curl -fsSL -o "${zipPath}" "${zipUrl}"`, { stdio: 'inherit' })
-    // Core subspec only needs IdensicMobileSDK.xcframework (top-level in the zip).
-    execSync(`unzip -oq "${zipPath}" "IdensicMobileSDK.xcframework/*" -d "${frameworksDir}"`, {
-        stdio: 'inherit',
-    })
-    fs.rmSync(zipPath, { force: true })
-    if (!fs.existsSync(xcframework)) {
-        console.error('[postsync] ERROR: IdensicMobileSDK.xcframework not found after extraction')
-        process.exit(1)
-    }
-    console.log('[postsync] vendored IdensicMobileSDK.xcframework')
+const pluginXml = fs.readFileSync(require.resolve(`${pluginPkg}/plugin.xml`), 'utf8')
+const requiredSumsubVersion = pluginXml.match(/<pod\s+name="IdensicMobileSDK"\s+spec="=([^"]+)"/)?.[1]
+if (requiredSumsubVersion !== SUMSUB_VERSION) {
+    throw new Error(`Sumsub framework ${SUMSUB_VERSION} does not match the installed plugin's ${requiredSumsubVersion}`)
 }
+
+// Publish the Frameworks container and its version marker together. Keep the
+// marker outside the SDK itself so its code signature remains intact.
+function isCompleteSumsubFramework(directory) {
+    try {
+        const info = fs.statSync(path.join(directory, 'Info.plist'))
+        if (!info.isFile() || info.size === 0) return false
+        const slices = fs
+            .readdirSync(directory, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory() && entry.name !== '_CodeSignature')
+        return (
+            slices.length > 0 &&
+            slices.every((slice) => {
+                const binary = fs.statSync(
+                    path.join(directory, slice.name, 'IdensicMobileSDK.framework/IdensicMobileSDK')
+                )
+                return binary.isFile() && binary.size > 0
+            })
+        )
+    } catch (error) {
+        if (error.code === 'ENOENT') return false
+        throw error
+    }
+}
+
+// 1. Vendor the xcframework. Local commands can overlap even though release CI
+// uses isolated runners. Refuse a second writer rather than interleave removals.
+;(function vendorSumsub() {
+    const lockPath = path.join(pluginDir, '.sumsub-postsync.lock')
+    let lock
+    try {
+        lock = fs.openSync(lockPath, 'wx', 0o600)
+    } catch (error) {
+        if (error.code !== 'EEXIST') throw error
+        throw new Error(
+            'Another Sumsub postsync is active. Retry after it finishes. If a previous run crashed, remove ' +
+                lockPath +
+                ' only after checking that no postsync is running.'
+        )
+    }
+    let stagingDir
+    try {
+        let cachedVersion
+        try {
+            cachedVersion = fs.readFileSync(sumsubVersionFile, 'utf8').trim()
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error
+        }
+        if (cachedVersion === SUMSUB_VERSION && isCompleteSumsubFramework(xcframework)) return
+
+        stagingDir = fs.mkdtempSync(path.join(pluginDir, '.sumsub-'))
+        const stagedFrameworksDir = path.join(stagingDir, 'Frameworks')
+        fs.mkdirSync(stagedFrameworksDir)
+        const stagedFramework = path.join(stagedFrameworksDir, 'IdensicMobileSDK.xcframework')
+        const zipPath = path.join(stagingDir, 'IdensicMobileSDK.zip')
+        const zipUrl = `https://raw.githubusercontent.com/SumSubstance/IdensicMobileSDK-iOS-Release/master/${SUMSUB_VERSION}/IdensicMobileSDK-${SUMSUB_VERSION}.zip`
+        console.log(`[postsync] downloading IdensicMobileSDK ${SUMSUB_VERSION}…`)
+        execSync(`curl -fsSL -o "${zipPath}" "${zipUrl}"`, { stdio: 'inherit' })
+        execSync(`unzip -oq "${zipPath}" "IdensicMobileSDK.xcframework/*" -d "${stagedFrameworksDir}"`, {
+            stdio: 'inherit',
+        })
+        if (!isCompleteSumsubFramework(stagedFramework)) {
+            throw new Error('IdensicMobileSDK.xcframework is incomplete after extraction')
+        }
+        const marker = fs.openSync(path.join(stagedFrameworksDir, 'sumsub-version.txt'), 'wx', 0o600)
+        try {
+            fs.writeFileSync(marker, SUMSUB_VERSION)
+        } finally {
+            fs.closeSync(marker)
+        }
+
+        const previousFrameworksDir = path.join(stagingDir, 'previous-frameworks')
+        let movedPrevious = false
+        try {
+            fs.renameSync(frameworksDir, previousFrameworksDir)
+            movedPrevious = true
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error
+        }
+        try {
+            fs.renameSync(stagedFrameworksDir, frameworksDir)
+        } catch (error) {
+            if (movedPrevious) fs.renameSync(previousFrameworksDir, frameworksDir)
+            throw error
+        }
+        console.log('[postsync] vendored IdensicMobileSDK.xcframework')
+    } finally {
+        try {
+            if (stagingDir) fs.rmSync(stagingDir, { recursive: true, force: true })
+        } finally {
+            fs.closeSync(lock)
+            fs.unlinkSync(lockPath)
+        }
+    }
+})()
 
 // 2. Patch the generated Package.swift to declare + depend on the binary target.
 let pkg = fs.readFileSync(pkgSwiftPath, 'utf8')
@@ -214,34 +297,98 @@ if (pkg.includes('IdensicMobileSDK')) {
     // Patch the generated CapApp-SPM Package.swift (cap sync rewrites it, so
     // this runs after every sync — same lifecycle as the SumSub patch above).
     let capPkg = fs.readFileSync(capPkgPath, 'utf8')
-    if (capPkg.includes('MeaPushProvisioning')) {
+    const hasMppTarget = /\.binaryTarget\s*\(\s*name:\s*"MeaPushProvisioning"/.test(capPkg)
+    const hasMppProduct = capPkg.includes('targets: ["MeaPushProvisioning"]')
+    const hasMppDependency = capPkg.includes('\n                "MeaPushProvisioning"\n')
+
+    if (hasMppTarget && hasMppProduct && hasMppDependency) {
         console.log('[postsync] CapApp-SPM Package.swift already patched for MPP')
-        return
+    } else {
+        // Each anchor is validated on its own — a half-applied patch would leave
+        // the binary target undeclared (or unused), and the Swift plugin would
+        // silently compile its canImport stub instead of failing the build.
+        if (!hasMppTarget) {
+            const afterTarget = capPkg.replace(
+                'targets: [\n',
+                'targets: [\n' +
+                    '        .binaryTarget(\n' +
+                    '            name: "MeaPushProvisioning",\n' +
+                    '            path: "Frameworks/MeaPushProvisioning.xcframework"\n' +
+                    '        ),\n'
+            )
+            if (afterTarget === capPkg) {
+                console.error(
+                    '[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale'
+                )
+                process.exit(1)
+            }
+            capPkg = afterTarget
+        }
+
+        if (!hasMppProduct) {
+            const afterProduct = capPkg.replace(
+                '            targets: ["CapApp-SPM"])\n    ],',
+                '            targets: ["CapApp-SPM"]),\n' +
+                    '        .library(\n' +
+                    '            name: "MeaPushProvisioning",\n' +
+                    '            targets: ["MeaPushProvisioning"])\n' +
+                    '    ],'
+            )
+            if (afterProduct === capPkg) {
+                console.error('[postsync] ERROR: CapApp-SPM Package.swift products anchor not found — MPP patch stale')
+                process.exit(1)
+            }
+            capPkg = afterProduct
+        }
+
+        if (!hasMppDependency) {
+            const afterDependency = capPkg.replace(
+                '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin")\n',
+                '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin"),\n' +
+                    '                "MeaPushProvisioning"\n'
+            )
+            if (afterDependency === capPkg) {
+                console.error(
+                    '[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale'
+                )
+                process.exit(1)
+            }
+            capPkg = afterDependency
+        }
+
+        fs.writeFileSync(capPkgPath, capPkg)
+        console.log('[postsync] patched CapApp-SPM Package.swift with MeaPushProvisioning binary target + product')
     }
-    // Each anchor is validated on its own — a half-applied patch would leave
-    // the binary target undeclared (or unused), and the Swift plugin would
-    // silently compile its canImport stub instead of failing the build.
-    const afterTarget = capPkg.replace(
-        'targets: [\n',
-        'targets: [\n' +
-            '        .binaryTarget(\n' +
-            '            name: "MeaPushProvisioning",\n' +
-            '            path: "Frameworks/MeaPushProvisioning.xcframework"\n' +
-            '        ),\n'
-    )
-    if (afterTarget === capPkg) {
-        console.error('[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale')
-        process.exit(1)
+
+    // The Wallet issuer extension is a separate target, so it does not inherit
+    // the app target's SwiftPM product dependency. Add the product only after
+    // the credential-gated xcframework exists; without it the extension builds
+    // its canImport-fenced unavailable stub on developer machines.
+    const pbxProductId = 'AA0000000000000000000D01'
+    const pbxBuildFileId = 'AA0000000000000000000D02'
+    let pbx = fs.readFileSync(pbxprojPath, 'utf8')
+    if (!pbx.includes('MeaPushProvisioning in PushProvisioningExtension Frameworks')) {
+        pbx = pbx.replace(
+            '/* End PBXBuildFile section */',
+            `\t\t${pbxBuildFileId} /* MeaPushProvisioning in PushProvisioningExtension Frameworks */ = {isa = PBXBuildFile; productRef = ${pbxProductId} /* MeaPushProvisioning */; };\n/* End PBXBuildFile section */`
+        )
+        pbx = pbx.replace(
+            'AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t);',
+            'AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t' +
+                pbxBuildFileId +
+                ' /* MeaPushProvisioning in PushProvisioningExtension Frameworks */,\n\t\t\t);'
+        )
+        pbx = pbx.replace(
+            'name = PushProvisioningExtension;\n\t\t\tproductName = PushProvisioningExtension;',
+            'name = PushProvisioningExtension;\n\t\t\tpackageProductDependencies = (\n\t\t\t\t' +
+                pbxProductId +
+                ' /* MeaPushProvisioning */,\n\t\t\t);\n\t\t\tproductName = PushProvisioningExtension;'
+        )
+        pbx = pbx.replace(
+            '/* End XCSwiftPackageProductDependency section */',
+            `\t\t${pbxProductId} /* MeaPushProvisioning */ = {\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tpackage = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;\n\t\t\tproductName = MeaPushProvisioning;\n\t\t};\n/* End XCSwiftPackageProductDependency section */`
+        )
+        fs.writeFileSync(pbxprojPath, pbx)
+        console.log('[postsync] linked MeaPushProvisioning into PushProvisioningExtension')
     }
-    capPkg = afterTarget.replace(
-        '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin")\n',
-        '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin"),\n' +
-            '                "MeaPushProvisioning"\n'
-    )
-    if (capPkg === afterTarget) {
-        console.error('[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale')
-        process.exit(1)
-    }
-    fs.writeFileSync(capPkgPath, capPkg)
-    console.log('[postsync] patched CapApp-SPM Package.swift with MeaPushProvisioning binary target')
 })()

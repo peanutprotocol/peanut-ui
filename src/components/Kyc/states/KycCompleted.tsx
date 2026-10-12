@@ -30,7 +30,7 @@ export const KycCompleted = ({ reviewedAt }: { reviewedAt?: string }) => {
     return (
         <div className="space-y-4">
             <KYCStatusDrawerItem status="completed" customText={t('verified')} />
-            <Card position="single" className="pb-4">
+            <Card position="solo" className="pb-4">
                 <PaymentInfoRow label={t('verifiedOn')} value={verifiedOn} />
                 <PaymentInfoRow
                     label={t('pointsEarned')}

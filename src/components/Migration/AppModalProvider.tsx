@@ -1,10 +1,10 @@
 'use client'
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { openStore } from '@/utils/migration.utils'
+import { openStore, storeForDevice } from '@/utils/migration.utils'
 import { type MigrationSurface } from '@/constants/migration.consts'
 
 // Load the QR library only after a desktop CTA is clicked.
@@ -27,11 +27,12 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
     const interceptAppCta = useCallback<AppModalValue>(
         (nextSurface) => {
             if (!migrationOn || isCapacitor()) return false
-            if (deviceType === DeviceType.WEB) {
+            const store = storeForDevice(deviceType)
+            if (!store) {
                 setSurface(nextSurface)
                 return true
             }
-            openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', nextSurface)
+            openStore(store, nextSurface)
             return true
         },
         [migrationOn, deviceType]
@@ -40,7 +41,7 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
     return (
         <AppModalContext.Provider value={interceptAppCta}>
             {children}
-            {surface && <ScanToDownloadModal visible onClose={() => setSurface(null)} surface={surface} />}
+            {surface && <ScanToDownloadModal visible onClose={() => setSurface(null)} surface={surface} showLogIn />}
         </AppModalContext.Provider>
     )
 }

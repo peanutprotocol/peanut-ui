@@ -6,7 +6,6 @@ import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
-import { MANTECA_COUNTRIES_CONFIG } from '@/constants/manteca.consts'
 import { useTranslations } from 'next-intl'
 
 interface MantecaDetailsStepProps {
@@ -20,15 +19,15 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
     destinationAddress,
     setDestinationAddress,
 }) => {
+    const tCommon = useTranslations('common')
     const t = useTranslations('claim')
+    const tWithdraw = useTranslations('withdraw')
     const handleOnClick = async () => {
         setCurrentStep(MercadoPagoStep.REVIEW)
     }
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
-
-    const countryConfig = MANTECA_COUNTRIES_CONFIG['AR']
 
     const validateDestinationAddress = async (value: string) => {
         value = value.trim()
@@ -58,14 +57,14 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
                             setErrorMessage(null)
                         }
                     }}
-                    placeholder={countryConfig.accountNumberLabel}
+                    placeholder={tWithdraw('manteca.destinationLabel', { country: 'AR' })}
                     validate={validateDestinationAddress}
                     smartPasteKind="cbuCvuAlias"
                 />
                 {errorMessage && <FieldError>{errorMessage}</FieldError>}
             </div>
             <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                <span>{t('manteca.ownAccountOnly')}</span>
+                <span>{tCommon('ownAccountOnly')}</span>
             </div>
             <Button
                 disabled={

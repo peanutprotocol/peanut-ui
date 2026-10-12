@@ -19,7 +19,7 @@
  * note: request payment flows use RequestPotActionList instead
  */
 
-import StatusBadge from '../../Global/Badges/StatusBadge'
+import Badge from '../../Global/Badges/Badge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
@@ -114,18 +114,12 @@ export default function SendLinkActionList({
         return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
     }, [claimType])
 
-    // Guest claim-to-bank (claimer unverified, but the sender can receive a bank
-    // off-ramp) is under maintenance: the BE 503s POST /bridge/offramp/create-for-guest.
-    // Render the bank option greyed + "Soon!" so guests can't enter a flow that would
-    // fail. The authenticated self off-ramp (UserBankClaim) is unaffected.
-    const isGuestBankClaim = claimType === BankClaimType.GuestBankClaim
-
     // filter and sort payment methods based on geolocation
     const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
         isMethodUnavailable: (method) =>
             method.soon ||
-            (method.id === 'bank' && (requiresVerification || isGuestBankClaim)) ||
+            (method.id === 'bank' && requiresVerification) ||
             (['mercadopago', 'pix'].includes(method.id) && !isMantecaPayEnabled),
         methods: showDevconnectMethod
             ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect')
@@ -193,17 +187,15 @@ export default function SendLinkActionList({
     }
 
     const handleContinueWithPeanut = () => {
-        // migration window: web signups are closed — hand the guest to the
-        // app stores instead (QR modal on desktop, store link on mobile).
-        // the sender's invite code rides the deferred hand-off explicitly —
-        // no cookie is written until /invite, which a guest never reaches.
-        // dest defaults to this claim path (the #p= secret never rides).
+        // The sender's username rides the store/web signup hand-off so the
+        // authenticated retry can record referral rewards without an input
+        // screen. The claim secret itself never rides in the hand-off.
         const rawUsername = claimLinkData?.sender?.username
         const guestInvite = isInviteLink && rawUsername ? toInviteCode(rawUsername) : undefined
         if (!isLoggedIn && interceptGuestCta({ invite: guestInvite })) return
         addParamStep('claim')
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
-        if (isInviteLink && !userHasAppAccess && rawUsername) {
+        if (isInviteLink && !isLoggedIn && rawUsername) {
             const inviteCode = toInviteCode(rawUsername)
             stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
             router.push(inviteFlowUrl(inviteCode, redirectUri))
@@ -213,7 +205,6 @@ export default function SendLinkActionList({
     }
 
     const username = claimLinkData?.sender?.username
-    const userHasAppAccess = user?.user?.hasAppAccess ?? false
     const devconnectMethod = DEVCONNECT_CLAIM_METHODS.find((m) => m.id === 'devconnect')!
 
     /*
@@ -235,7 +226,7 @@ export default function SendLinkActionList({
             {showDevconnectMethod && (
                 <>
                     <Button
-                        variant="primary-soft"
+                        variant="secondary"
                         shadowSize="4"
                         icon="arrow-down"
                         onClick={() => {
@@ -264,7 +255,7 @@ export default function SendLinkActionList({
                     onClick={handleContinueWithPeanut}
                     className="flex w-full items-center gap-1"
                 >
-                    {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.continueWith')} </div>}
+                    {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.createAccount')}</div>}
                     <div className="flex items-center gap-1">
                         <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
                         <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
@@ -272,8 +263,8 @@ export default function SendLinkActionList({
                 </Button>
             )}
 
-            {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
-                <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
+            {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !isLoggedIn && username && (
+                <div className="flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                     <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
@@ -299,7 +290,7 @@ export default function SendLinkActionList({
                                 return (
                                     <MethodCard
                                         onClick={() => {
-                                            if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
+                                            if (isInviteLink && !isLoggedIn && method.id !== 'devconnect') {
                                                 setSelectedMethod(method)
                                                 setShowInviteModal(true)
                                             } else {
@@ -309,7 +300,6 @@ export default function SendLinkActionList({
                                         key={method.id}
                                         method={method}
                                         requiresVerification={methodRequiresVerification}
-                                        soon={method.id === 'bank' && isGuestBankClaim}
                                     />
                                 )
                             })}
@@ -328,7 +318,7 @@ export default function SendLinkActionList({
                     method: minAmountErrorInfo?.title ?? t('minAmount.thisPaymentMethod'),
                     amount: minAmountErrorInfo?.amount ?? 0,
                 })}
-                icon="alert"
+                tone="attention"
                 ctas={[
                     {
                         text: tCommon('close'),
@@ -336,9 +326,7 @@ export default function SendLinkActionList({
                         onClick: () => setShowMinAmountError(false),
                     },
                 ]}
-                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
             />
 
             <ConfirmInviteModal
@@ -366,28 +354,24 @@ const MethodCard = ({
     onClick,
     requiresVerification,
     isDisabled,
-    soon,
 }: {
     method: PaymentMethod
     onClick: () => void
     requiresVerification?: boolean
     isDisabled?: boolean
-    // forces the "Soon!" badge + greyed/non-interactive state even when the
-    // static method config has soon=false (e.g. guest claim-to-bank maintenance)
-    soon?: boolean
 }) => {
     const t = useTranslations('claim')
-    const showSoon = method.soon || soon
+    const showSoon = method.soon
     return (
         <ListItem
-            position="single"
-            body={<div className="text-[12px]">{method.description}</div>}
+            position="solo"
+            body={<div className="text-body-xs">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
                     {(showSoon || requiresVerification) && (
-                        <StatusBadge
-                            status={requiresVerification ? 'custom' : 'soon'}
+                        <Badge
+                            status={requiresVerification ? 'pending' : 'soon'}
                             customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />
                     )}
@@ -395,7 +379,7 @@ const MethodCard = ({
             }
             onClick={onClick}
             disabled={showSoon || isDisabled}
-            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+            trailing={<IconStack icons={method.icons} iconSize={24} />}
         />
     )
 }

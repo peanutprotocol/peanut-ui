@@ -1,4 +1,4 @@
-import { deriveProviderRejection } from './provider-rejection.utils'
+import { deriveProviderRejection, identityDocumentRestartAction } from './provider-rejection.utils'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
 function mantecaRail(overrides: Partial<RailCapability> = {}): RailCapability {
@@ -248,5 +248,93 @@ describe('deriveProviderRejection — actionKey (per-requirement Sumsub level)',
         )
         expect(info.state).toBe('fixable')
         expect(info.actionKey).toBe('sumsub:source_of_funds')
+    })
+})
+
+// api#1776: an approval with no identity document on file. The API sends one
+// top-level restart action and leaves every rail as it was, so a pool rail
+// still pays. The verify buttons must start the identity check, never Manteca
+// onboarding.
+describe('deriveProviderRejection — approval with no identity document', () => {
+    const documentRestart: NextAction = {
+        key: 'restart-identity',
+        kind: 'restart-identity',
+        purpose: 'identity_document_missing',
+    }
+    const poolRail = mantecaRail({
+        operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+    })
+
+    test('the top-level action makes an untouched pool rail a restart, with its own reason code', () => {
+        expect(deriveProviderRejection([poolRail], 'MANTECA', [documentRestart])).toEqual({
+            provider: 'MANTECA',
+            state: 'restart-identity',
+            // the copy comes from the reason code's catalog entry, not from prose
+            userMessage: null,
+            reasonCode: 'identity_document_missing',
+            actionKey: null,
+        })
+    })
+
+    test('it wins whatever the rails say', () => {
+        const fixable = mantecaRail({
+            status: 'requires-info',
+            reason: { code: 'source_of_funds', userMessage: 'We need information about your source of funds.' },
+        })
+        const blocked = mantecaRail({ status: 'blocked', reason: { code: 'verification_blocked', userMessage: 'x' } })
+        for (const rails of [[fixable], [blocked], []]) {
+            const info = deriveProviderRejection(rails, 'MANTECA', [documentRestart])
+            expect(info.state).toBe('restart-identity')
+            expect(info.reasonCode).toBe('identity_document_missing')
+        }
+    })
+
+    test('the identity is user-wide, so the Bridge rows restart too', () => {
+        expect(deriveProviderRejection([], 'BRIDGE', [documentRestart]).state).toBe('restart-identity')
+    })
+
+    test('without the action the rails decide as before', () => {
+        expect(deriveProviderRejection([poolRail], 'MANTECA', []).state).toBe('happy')
+        expect(deriveProviderRejection([poolRail], 'MANTECA').state).toBe('happy')
+    })
+
+    test('a rail-level restart keeps its own path and reason code', () => {
+        const info = deriveProviderRejection(
+            [
+                mantecaRail({
+                    status: 'blocked',
+                    blockingActions: ['restart-identity'],
+                    reason: { code: 'country_not_supported', userMessage: 'try another document' },
+                }),
+            ],
+            'MANTECA',
+            [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'restart' }]
+        )
+        expect(info.state).toBe('restart-identity')
+        expect(info.reasonCode).toBe('country_not_supported')
+        expect(info.userMessage).toBe('try another document')
+    })
+})
+
+describe('identityDocumentRestartAction', () => {
+    const documentRestart: NextAction = {
+        key: 'restart-identity',
+        kind: 'restart-identity',
+        purpose: 'identity_document_missing',
+    }
+
+    test('finds the restart by its purpose', () => {
+        const wait: NextAction = { key: 'wait:bridge', kind: 'wait', purpose: 'review' }
+        expect(identityDocumentRestartAction([wait, documentRestart])).toBe(documentRestart)
+    })
+
+    test('ignores a restart for another cause and another kind with the same purpose', () => {
+        expect(
+            identityDocumentRestartAction([
+                { key: 'restart-identity', kind: 'restart-identity', purpose: 'restart' },
+                { key: 'sumsub:x', kind: 'sumsub', purpose: 'identity_document_missing' },
+            ])
+        ).toBeUndefined()
+        expect(identityDocumentRestartAction([])).toBeUndefined()
     })
 })

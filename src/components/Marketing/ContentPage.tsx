@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
-import Link from 'next/link'
+import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
 import { JsonLd } from './JsonLd'
 import { articleSchema, type ArticleMeta } from '@/lib/seo/schemas'
 import { BASE_URL } from '@/constants/general.consts'
 import { MarketingErrorBoundary } from './MarketingErrorBoundary'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { PROSE_WIDTH } from './constants'
 
 interface ContentPageProps {
     /** Compiled MDX content element */
@@ -16,6 +17,12 @@ interface ContentPageProps {
     article?: ArticleMeta
     /** Page locale — used for the error-boundary fallback copy. */
     locale?: Locale
+    /**
+     * Locale whose file serves the prose. Differs from `locale` on a fallback
+     * page (pt-br URL, English file), and the article's inLanguage must name
+     * the language the article is actually written in.
+     */
+    contentLocale?: Locale
 }
 
 /**
@@ -23,7 +30,13 @@ interface ContentPageProps {
  * Handles BreadcrumbList JSON-LD + visible breadcrumb nav.
  * The MDX body owns all layout (Hero is full-bleed, prose sections are contained).
  */
-export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_LOCALE }: ContentPageProps) {
+export function ContentPage({
+    children,
+    breadcrumbs,
+    article,
+    locale = DEFAULT_LOCALE,
+    contentLocale = locale,
+}: ContentPageProps) {
     const i18n = getTranslations(locale)
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
@@ -40,29 +53,19 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
     return (
         <>
             <JsonLd data={breadcrumbSchema} />
-            {article && <JsonLd data={articleSchema({ inLanguage: locale, ...article })} />}
+            {article && <JsonLd data={articleSchema({ inLanguage: contentLocale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
-                <article className="content-page bg-background select-text">
-                    {children}
-                    <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pt-4 pb-8 md:px-4">
-                        <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
-                            {breadcrumbs.map((crumb, i) => (
-                                <li key={crumb.href} className="flex items-center gap-1">
-                                    {i > 0 && <span aria-hidden>/</span>}
-                                    {i < breadcrumbs.length - 1 ? (
-                                        <Link
-                                            href={crumb.href}
-                                            className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
-                                        >
-                                            {crumb.name}
-                                        </Link>
-                                    ) : (
-                                        <span className="font-medium text-n-1">{crumb.name}</span>
-                                    )}
-                                </li>
-                            ))}
-                        </ol>
-                    </nav>
+                <article className="content-page select-text">
+                    {/* the body is written in the content locale; on a fallback
+                        page that differs from the route (Hero marks its marquee) */}
+                    <div lang={contentLocale}>{children}</div>
+                    {/* the trail sits at the bottom of the page: the header already
+                        gives the way back, so the crumbs are a footer affordance */}
+                    <Breadcrumb
+                        items={breadcrumbs}
+                        label={i18n.breadcrumbLabel}
+                        className={`mx-auto ${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4`}
+                    />
                 </article>
             </MarketingErrorBoundary>
         </>

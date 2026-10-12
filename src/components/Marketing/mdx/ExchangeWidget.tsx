@@ -3,10 +3,11 @@
 import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryStates } from 'nuqs'
-import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
+import ExchangeRateWidget, { type ExchangeRateWidgetLabels } from '@/components/Global/ExchangeRateWidget'
 import Star from '@/assets/illustrations/star.svg'
 import Image from 'next/image'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
+import { Card } from '@/components/0_Bruddle/Card'
 
 const widgetClouds = [
     { top: '10%', width: 140, speed: '38s', direction: 'ltr' as const },
@@ -18,9 +19,18 @@ interface ExchangeWidgetProps {
     destinationCurrency?: string
     /** ISO 4217 source currency code. Defaults to "USD". */
     sourceCurrency?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    ctaLabel?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    labels?: Partial<ExchangeRateWidgetLabels>
 }
 
-function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: ExchangeWidgetProps) {
+function ExchangeWidgetInner({
+    destinationCurrency,
+    sourceCurrency = 'USD',
+    ctaLabel = 'Send Money',
+    labels,
+}: ExchangeWidgetProps) {
     const router = useRouter()
     const [{ from, to }, setQuery] = useQueryStates(
         { from: parseAsString, to: parseAsString },
@@ -34,8 +44,11 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
         }
     }, [destinationCurrency, sourceCurrency, to, from, setQuery])
 
+    // bg-blue-300 is the marketing sky fill (landing page, AppShell banner and
+    // migration hero all use it). No semantic token names it — flagged, not
+    // swapped: the only token carrying that hex is avatar-blue-border.
     return (
-        <section className="relative my-8 w-full pt-10 pb-14 md:pt-14 md:pb-18" style={{ backgroundColor: '#90A8ED' }}>
+        <section className="relative my-8 w-full bg-blue-300 pt-10 pb-14 md:pt-14 md:pb-16">
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <CloudsCss clouds={widgetClouds} />
                 <Image
@@ -55,7 +68,8 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
             </div>
             <div className="relative z-10 mx-auto max-w-[640px] px-6 md:px-4">
                 <ExchangeRateWidget
-                    ctaLabel="Send Money"
+                    ctaLabel={ctaLabel}
+                    labels={labels}
                     ctaIcon="arrow-up-right"
                     ctaAction={(from, to) => {
                         router.push(`/send?from=${from}&to=${to}`)
@@ -66,6 +80,17 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
     )
 }
 
+// label + bordered amount row — the shape ExchangeRateWidget renders twice
+const amountFieldSkeleton = (
+    <div className="w-full">
+        <div className="h-5 w-24 animate-pulse rounded bg-foreground-primary/10" />
+        <div className="mt-2 flex w-full items-center gap-4 rounded-sm border border-border-default p-4">
+            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
+            <div className="ml-auto h-5 w-20 animate-pulse rounded-full bg-foreground-primary/10" />
+        </div>
+    </div>
+)
+
 /**
  * Embeddable exchange rate calculator for MDX content pages.
  *
@@ -73,21 +98,31 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
  *   <ExchangeWidget destinationCurrency="ARS" />
  *   <ExchangeWidget destinationCurrency="BRL" sourceCurrency="EUR" />
  */
-export function ExchangeWidget({ destinationCurrency, sourceCurrency }: ExchangeWidgetProps) {
+export function ExchangeWidget(props: ExchangeWidgetProps) {
     return (
         <Suspense
             fallback={
-                <section
-                    className="relative my-8 w-full overflow-hidden pt-10 pb-14 md:pt-14 md:pb-18"
-                    style={{ backgroundColor: '#90A8ED' }}
-                >
-                    <div className="mx-auto flex max-w-[640px] justify-center px-6 md:px-4">
-                        <div className="btn btn-shadow-primary-4 h-[300px] w-full animate-pulse bg-white md:w-[420px]" />
+                <section className="relative my-8 w-full overflow-hidden bg-blue-300 pt-10 pb-14 md:pt-14 md:pb-16">
+                    <div className="relative z-10 mx-auto max-w-[640px] px-6 md:px-4">
+                        {/* same Card, same slots, same sizes as the loaded
+                            widget, so the swap does not jump */}
+                        <Card
+                            shadowSize="4"
+                            className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]"
+                        >
+                            {amountFieldSkeleton}
+                            <div className="size-8 animate-pulse rounded-full bg-foreground-primary/10" />
+                            {amountFieldSkeleton}
+                            <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
+                            <div className="min-h-17 w-full rounded-sm border border-border-default" />
+                            <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
+                            <div className="min-h-4 w-full" />
+                        </Card>
                     </div>
                 </section>
             }
         >
-            <ExchangeWidgetInner destinationCurrency={destinationCurrency} sourceCurrency={sourceCurrency} />
+            <ExchangeWidgetInner {...props} />
         </Suspense>
     )
 }

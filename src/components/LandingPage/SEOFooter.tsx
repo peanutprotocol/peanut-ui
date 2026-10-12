@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import manifest from '@/content/generated/footer-manifest.json'
+import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
+import { countryIso2 } from '@/data/seo/corridors'
+import { localizedCountryName, ptBrFromPreposition } from '@/utils/country-name.utils'
 
 // Server-only SEO footer driven by the content manifest
 // (peanut-content/generated/footer-manifest.json). The manifest is bundled at
@@ -18,7 +21,7 @@ interface ManifestEntry {
 function FooterSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div>
-            <h3 className="mb-3 text-xs font-bold text-white">{title}</h3>
+            <h3 className="mb-3 text-label-m text-white">{title}</h3>
             <ul className="space-y-1">{children}</ul>
         </div>
     )
@@ -40,10 +43,20 @@ const RESOURCES_MOVED_ELSEWHERE = new Set(['terms', 'jobs'])
  */
 const ARTICLES_DROPPED_AS_DUPLICATES = new Set(['fees-pricing'])
 
-/** Manifest names are authored English and rendered as-is across every locale;
- *  this override follows suit rather than translating one item in a column of
- *  untranslated siblings. */
-const RESOURCE_NAME_OVERRIDES: Record<string, string> = { pricing: 'Fees and Pricing' }
+/**
+ * Manifest names are authored in English only, so Learn More labels come from
+ * the catalog by manifest slug. A slug missing here (a new manifest entry)
+ * shows its English manifest name until it gets a catalog key.
+ */
+const LEARN_MORE_LABELS: Record<string, keyof Translations> = {
+    help: 'helpCenter',
+    pricing: 'footerLinkPricing',
+    'supported-networks': 'footerLinkSupportedNetworks',
+    'digital-nomads': 'footerLinkDigitalNomads',
+    families: 'footerLinkFamilies',
+    'remote-workers': 'footerLinkRemoteWorkers',
+    verification: 'footerLinkVerification',
+}
 
 /**
  * Every published legal document, in the order a reader needs them: the two
@@ -79,7 +92,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+                    className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
                 >
                     {children}
                 </a>
@@ -98,7 +111,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
             <Link
                 prefetch={false}
                 href={href}
-                className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+                className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
             >
                 {children}
             </Link>
@@ -109,7 +122,10 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
 export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {}) {
     const i18n = getTranslations(locale)
     const sendTo = (manifest.sendMoney?.to ?? []) as ManifestEntry[]
-    const sendFrom = (manifest.sendMoney?.from ?? []) as ManifestEntry[]
+    // The manifest may still list a retired corridor; it answers 410.
+    const sendFrom = ((manifest.sendMoney?.from ?? []) as ManifestEntry[]).filter(
+        (entry) => !isGoneMarketingPath(entry.href)
+    )
     const compare = (manifest.compare ?? []) as ManifestEntry[]
     const articles = (((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]).filter(
         (entry) => !ARTICLES_DROPPED_AS_DUPLICATES.has(entry.slug)
@@ -121,6 +137,21 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
     const learnMoreResources = resources.filter((entry) => !RESOURCES_MOVED_ELSEWHERE.has(entry.slug))
 
     const link = (entry: ManifestEntry) => (entry.external ? entry.href : resolveContentHref(entry.href, locale))
+    // Manifest country names are English short forms ("UK", "US"). en keeps them;
+    // other locales name the country from the ISO-2 code on its country page.
+    const countryName = (entry: ManifestEntry) =>
+        locale === DEFAULT_LOCALE
+            ? entry.name
+            : localizedCountryName(locale, countryIso2(entry.slug)?.toUpperCase(), entry.name)
+    // pt-BR footerSendFrom is "Enviar {name}": the preposition carries the article.
+    const fromName = (entry: ManifestEntry) =>
+        locale === 'pt-br'
+            ? `${ptBrFromPreposition(countryIso2(entry.slug))} ${countryName(entry)}`
+            : countryName(entry)
+    const learnMoreLabel = (entry: ManifestEntry) => {
+        const key = LEARN_MORE_LABELS[entry.slug]
+        return key ? i18n[key] : entry.name
+    }
 
     return (
         <nav aria-label={i18n.footerSiteDirectory} className="bg-black px-8 py-8 pb-24 md:px-20 md:pb-8">
@@ -129,12 +160,12 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                     <FooterSection title={i18n.sendMoney}>
                         {sendTo.map((entry) => (
                             <FooterLink key={`to-${entry.slug}`} href={link(entry)}>
-                                {t(i18n.footerSendTo, { name: entry.name })}
+                                {t(i18n.footerSendTo, { name: countryName(entry) })}
                             </FooterLink>
                         ))}
                         {sendFrom.map((entry) => (
                             <FooterLink key={`from-${entry.slug}`} href={link(entry)}>
-                                {t(i18n.footerSendFrom, { name: entry.name })}
+                                {t(i18n.footerSendFrom, { name: fromName(entry) })}
                             </FooterLink>
                         ))}
                     </FooterSection>
@@ -154,7 +185,7 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                     <FooterSection title={i18n.footerLearnMoreSection}>
                         {learnMoreResources.map((entry) => (
                             <FooterLink key={`resource-${entry.slug}`} href={link(entry)} external={entry.external}>
-                                {RESOURCE_NAME_OVERRIDES[entry.slug] ?? entry.name}
+                                {learnMoreLabel(entry)}
                             </FooterLink>
                         ))}
                         {/* Sits directly under Supported Networks, at the end of
@@ -162,7 +193,7 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                         <FooterLink href={`/${locale}/status`}>{i18n.footerStatus}</FooterLink>
                         {articles.map((entry) => (
                             <FooterLink key={entry.slug} href={link(entry)}>
-                                {entry.name}
+                                {learnMoreLabel(entry)}
                             </FooterLink>
                         ))}
                     </FooterSection>

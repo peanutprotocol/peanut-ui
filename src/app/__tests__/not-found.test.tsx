@@ -8,11 +8,8 @@ jest.mock('@/components/Global/SupportDrawer', () => ({
     __esModule: true,
     default: () => <div data-testid="support-drawer" />,
 }))
-jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-        <button {...props}>{children}</button>
-    ),
-}))
+// no Button mock: the CTAs use the real component's link mode, and the test
+// asserts the anchors it renders (server-renderable href = 404 recovery)
 
 function ModalState() {
     const { isSupportModalOpen, supportPrefilledMessage } = useModalsContext()
@@ -30,6 +27,8 @@ describe('global not-found page', () => {
         expect(screen.getByRole('heading', { name: "Hmm, we can't find that page." })).toBeInTheDocument()
         expect(screen.queryByTestId('support-drawer')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'let support know' })).toHaveAttribute('href', 'mailto:help@peanut.me')
+        // both CTAs are real anchors so the 404 recovers even without hydration
+        expect(screen.getByRole('link', { name: 'Take me home' })).toHaveAttribute('href', '/')
         expect(screen.getByRole('link', { name: 'Contact support' })).toHaveAttribute('href', 'mailto:help@peanut.me')
     })
 

@@ -21,7 +21,7 @@ export const PeanutDoesntStoreAnyPersonalInformation = ({ className }: { classNa
             href={DOCUMENTS_HELP_HREF}
             // min-h-11, not a pseudo-element hit area: an 11px footnote's own
             // line box is nowhere near the 44px floor, so the after:-inset
-            // trick the Notification dismiss uses would have to guess at a
+            // trick the Callout dismiss uses would have to guess at a
             // height it cannot know. The row centres its content, so the text
             // stays where it was and only the tappable box grows.
             className={twMerge(

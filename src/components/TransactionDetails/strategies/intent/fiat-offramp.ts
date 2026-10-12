@@ -35,6 +35,7 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                         ? undefined
                         : TRANSACTION_NAME_KEYS.recipient,
                 fullName: entry.recipientAccount?.fullName ?? '',
+                avatarKey: entry.recipientAccount?.avatarKey,
                 isPeerActuallyUser: true,
                 isLinkTx: false,
             }
@@ -54,6 +55,7 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                 entry.senderAccount?.username || entry.senderAccount?.identifier
                     ? undefined
                     : TRANSACTION_NAME_KEYS.bankAccount,
+            avatarKey: entry.senderAccount?.avatarKey,
             isPeerActuallyUser: !!entry.senderAccount?.isUser,
             isLinkTx: false,
         }

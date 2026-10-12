@@ -1,3 +1,5 @@
+let mockRequestContact: any = { data: null, isLoading: false, isError: false }
+jest.mock('@/hooks/useRequestContact', () => ({ useRequestContact: () => mockRequestContact }))
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import posthog from 'posthog-js'
@@ -44,8 +46,12 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 // the prior-transfer indicator, not the page furniture.
 jest.mock('../ProfileHeader', () => ({
     __esModule: true,
-    default: ({ haveSentMoneyToUser }: { haveSentMoneyToUser?: boolean }) => (
-        <div data-testid="profile-header" data-sent-money={String(!!haveSentMoneyToUser)} />
+    default: ({ haveSentMoneyToUser, avatarKey }: { haveSentMoneyToUser?: boolean; avatarKey?: string | null }) => (
+        <div
+            data-testid="profile-header"
+            data-sent-money={String(!!haveSentMoneyToUser)}
+            data-avatar-key={avatarKey ?? ''}
+        />
     ),
 }))
 jest.mock('@/components/Badges/BadgesRow', () => ({ __esModule: true, default: () => null }))
@@ -70,7 +76,11 @@ jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default:
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, onClick }: ComponentProps<'button'>) => <button onClick={onClick}>{children}</button>,
+    Button: ({ children, onClick, disabled }: ComponentProps<'button'>) => (
+        <button onClick={onClick} disabled={disabled}>
+            {children}
+        </button>
+    ),
 }))
 
 const JOIN_CTA = en.profile.publicProfile.joinCta
@@ -179,6 +189,17 @@ describe('PublicProfile guest door', () => {
         expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, expect.anything())
     })
 
+    it('routes a registered user directly even when a cached legacy access flag is false', async () => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
+        mockRequestContact = { data: { relationshipTypes: ['received_money'] }, isLoading: false, isError: false }
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
+
+        expect(mockPush).toHaveBeenCalledWith('/request/satoshi')
+        expect(screen.queryByTestId('invite-drawer')).not.toBeInTheDocument()
+    })
+
     it('holds the impression back until auth has settled', async () => {
         mockAuth = { user: null, isFetchingUser: true }
         renderWithIntl(<PublicProfile username="satoshi" />)
@@ -279,6 +300,69 @@ describe('PublicProfile prior-transfer indicator', () => {
     })
 })
 
+// TASK-22625: the profile owner's picked avatar comes from the same
+// getByUsername payload the rest of the header already reads.
+describe('PublicProfile avatar', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('hands the profile owner pick to the header', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+    })
+
+    it('hands null through when the owner has no pick', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1' })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalled())
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+})
+
+// The [...recipient] route reuses this component across profile navigations.
+describe('PublicProfile avatar across navigations', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('never wears the previous profile owner avatar, not even for one render', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        // second profile: never resolves, so the loaded avatar can only be
+        // excluded by the username it was loaded for — an effect-time reset
+        // would already have painted one render of the first owner's pick.
+        mockGetByUsername.mockReturnValue(new Promise(() => {}))
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
+
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+
+    it('shows the second owner pick once it lands', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        mockGetByUsername.mockResolvedValue({ userId: 'user-2', avatarKey: 'basic.star' })
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.star')
+        )
+    })
+})
+
 describe('PublicProfile back navigation', () => {
     beforeEach(() => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
@@ -299,5 +383,38 @@ describe('PublicProfile back navigation', () => {
         fireEvent.click(await screen.findByTestId('nav-back'))
         expect(mockBack).toHaveBeenCalledTimes(1)
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+describe('PublicProfile request eligibility', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('disables Request for a non-money contact without disabling Send', async () => {
+        mockRequestContact = { data: null, isLoading: false, isError: false }
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        expect(await screen.findByRole('button', { name: en.navigation.request })).toBeDisabled()
+        expect(screen.getByRole('button', { name: en.navigation.send })).not.toBeDisabled()
+        expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
+    })
+
+    it('keeps money-contact restrictions without restoring the removed invite gate', async () => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
+        mockRequestContact = { data: null, isLoading: false, isError: false }
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        expect(await screen.findByRole('button', { name: en.navigation.request })).toBeDisabled()
+        expect(screen.getByRole('button', { name: en.navigation.send })).not.toBeDisabled()
+        expect(screen.queryByTestId('invite-drawer')).not.toBeInTheDocument()
+        expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
+    })
+
+    it('allows Request for a received-money contact even without a sent-money badge', async () => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
+        mockRequestContact = { data: { relationshipTypes: ['received_money'] }, isLoading: false, isError: false }
+        mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: false, isError: false })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
+        expect(mockPush).toHaveBeenCalledWith('/request/satoshi')
     })
 })

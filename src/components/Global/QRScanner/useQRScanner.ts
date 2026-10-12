@@ -20,7 +20,7 @@ const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
     IOS_CAMERA_DELAY_MS: 200,
-    // How long a web/PWA start() may run before the permission modal takes over
+    // How long a web start() may run before the permission modal takes over
     // the screen. Not an expiry: the attempt keeps running behind the modal, so
     // this is only how long the user waits for actionable UI.
     CAMERA_START_TIMEOUT_MS: 5000,
@@ -379,7 +379,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     await scanner.start()
                 } else {
                     /*
-                     * iOS PWA (WKWebView) getUserMedia can hang forever after the user
+                     * WebKit getUserMedia can hang forever after the user
                      * denies permission instead of rejecting, so a deadline is still
                      * what puts the permission modal on screen. But that hang is
                      * indistinguishable from a prompt the user simply has not answered

@@ -48,6 +48,15 @@ beforeEach(() => {
 })
 
 describe('OtaUpdateModal dismissal locking', () => {
+    it('does not expose a Capgo compatibility ID as the release number', () => {
+        mockOta.pendingBundle = { id: 'bridge', version: '1.6.1000-android' }
+        renderAt('idle')
+        expect(
+            screen.getByText('Tap Update to install the new version. If Peanut closes, open it again.')
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/1\.6\.1000/)).not.toBeInTheDocument()
+    })
+
     it('locks every dismissal path while the apply is in flight', () => {
         renderAt('applying')
         const modal = screen.getByTestId('modal')

@@ -61,7 +61,7 @@ export const SoundPlayer = ({ sound }: SoundPlayerProps) => {
                         err?.name === 'NotAllowedError' || /gesture|autoplay|play\(\) failed/i.test(message)
 
                     if (isAutoplayBlocked) {
-                        // defer playback until next user interaction (mobile/pwa autoplay policies)
+                        // defer playback until the next user interaction (mobile autoplay policies)
                         unlock = () => {
                             audio
                                 .play()

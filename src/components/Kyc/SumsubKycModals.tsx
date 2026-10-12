@@ -27,8 +27,8 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 onClose={flow.dismissCorrection}
                 title={t('title')}
                 description={flow.verificationSession?.reasonCode === 'INVALID_TAX_ID' ? t('taxId') : t('details')}
-                tone="warning"
-                ctas={[{ text: t('correct'), variant: 'purple', onClick: flow.correctVerificationData }]}
+                tone="attention"
+                ctas={[{ text: t('correct'), variant: 'primary', onClick: flow.correctVerificationData }]}
             />
             <KycRestartCooldownModal
                 cooldown={flow.errorCooldown}

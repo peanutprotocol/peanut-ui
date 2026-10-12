@@ -9,8 +9,9 @@ import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { serverFetch } from '@/utils/api-fetch'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { chargesApi } from './charges'
-import { type TCharge } from './services.types'
+import { type CreateChargeRequest, type TCharge } from './services.types'
 import { BASE_URL } from '@/constants/general.consts'
+import { ApiError } from '@/services/api-error'
 
 type ApiAccount = {
     identifier: string
@@ -25,6 +26,9 @@ export type ApiUser = {
     firstName: string
     lastName: string
     showFullName?: boolean
+    /** Picked profile avatar, `basic.<slug>` / `badge.<CODE>.<slug>` / `letter.<a-z>`;
+     *  null (or absent, on an older API) means the username-letter fallback. */
+    avatarKey?: string | null
     totalUsdSentToCurrentUser: string
     totalUsdReceivedFromCurrentUser: string
     /**
@@ -56,7 +60,35 @@ export class AccountHasBalanceError extends Error {
     }
 }
 
+export type UsernameCheckResult =
+    | { status: 'found' }
+    | { status: 'not-found' }
+    | { status: 'invalid' }
+    | { status: 'rate-limited'; retryAfterSeconds: number }
+
 export const usersApi = {
+    checkUsername: async (username: string): Promise<UsernameCheckResult> => {
+        const response = await serverFetch('/users/username/check', {
+            method: 'POST',
+            body: JSON.stringify({ username }),
+        })
+        if (response.status === 429) {
+            const body = await response.json().catch(() => null)
+            return {
+                status: 'rate-limited',
+                retryAfterSeconds:
+                    typeof body?.retryAfterSeconds === 'number'
+                        ? body.retryAfterSeconds
+                        : Number(response.headers.get('Retry-After')) || 1,
+            }
+        }
+        if (response.status === 400) return { status: 'invalid' }
+        if (!response.ok) throw new Error('Failed to check username')
+
+        const body = (await response.json()) as { found: boolean }
+        return { status: body.found ? 'found' : 'not-found' }
+    },
+
     getByUsername: async (username: string): Promise<ApiUser> => {
         const response = await serverFetch(`/users/username/${username}`, {
             method: 'GET',
@@ -80,13 +112,16 @@ export const usersApi = {
         attachment,
     }: {
         username: string
+        /** blank leaves the amount to the requestee, who chooses it before paying */
         amount: string
         toAddress: string
         attachment?: IAttachmentOptions
     }): Promise<TCharge> => {
+        const price: Pick<CreateChargeRequest, 'pricing_type' | 'local_price'> = amount
+            ? { pricing_type: 'fixed_price', local_price: { amount, currency: 'USD' } }
+            : { pricing_type: 'no_price' }
         return chargesApi.create({
-            pricing_type: 'fixed_price',
-            local_price: { amount, currency: 'USD' },
+            ...price,
             baseUrl: BASE_URL,
             requestId: undefined,
             requestProps: {
@@ -120,6 +155,14 @@ export const usersApi = {
         if (body?.error === 'ACCOUNT_HAS_BALANCE') {
             throw new AccountHasBalanceError(typeof body.balanceUsd === 'string' ? body.balanceUsd : null)
         }
-        throw new Error('Failed to request account deletion')
+        throw new ApiError('Failed to request account deletion', {
+            status: response.status,
+            code:
+                typeof body?.code === 'string'
+                    ? body.code
+                    : body?.error === 'DEPOSIT_ACCOUNTS_UNAVAILABLE'
+                      ? body.error
+                      : undefined,
+        })
     },
 }

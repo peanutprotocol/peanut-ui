@@ -1,6 +1,6 @@
 'use client'
 
-import DevChip from '../_components/DevChip'
+import { Card } from '@/components/0_Bruddle/Card'
 import { SURFACE_KIND_META, SURFACE_KIND_ORDER } from './surfaceKindMeta'
 
 /**
@@ -9,18 +9,16 @@ import { SURFACE_KIND_META, SURFACE_KIND_ORDER } from './surfaceKindMeta'
  */
 export default function KindLegend() {
     return (
-        <div className="grid gap-2 rounded-sm border border-border-default bg-white p-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 xl:grid-cols-4">
             {SURFACE_KIND_ORDER.map((kind) => {
                 const meta = SURFACE_KIND_META[kind]
                 return (
                     <div key={kind} className="flex flex-col gap-1">
-                        <DevChip tone={meta.tone} className="self-start">
-                            {meta.label}
-                        </DevChip>
-                        <p className="text-[11px] leading-snug text-foreground-secondary">{meta.description}</p>
+                        <span className="text-label-m text-foreground-primary">{meta.label}</span>
+                        <p className="text-body-xs leading-snug text-foreground-secondary">{meta.description}</p>
                     </div>
                 )
             })}
-        </div>
+        </Card>
     )
 }

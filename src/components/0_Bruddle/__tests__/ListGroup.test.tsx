@@ -15,9 +15,9 @@ describe('ListGroup', () => {
                 <Probe label="c" />
             </ListGroup>
         )
-        expect(screen.getByTestId('a')).toHaveAttribute('data-position', 'first')
+        expect(screen.getByTestId('a')).toHaveAttribute('data-position', 'top')
         expect(screen.getByTestId('b')).toHaveAttribute('data-position', 'middle')
-        expect(screen.getByTestId('c')).toHaveAttribute('data-position', 'last')
+        expect(screen.getByTestId('c')).toHaveAttribute('data-position', 'bottom')
     })
 
     test('a lone child is single', () => {
@@ -26,7 +26,7 @@ describe('ListGroup', () => {
                 <Probe label="only" />
             </ListGroup>
         )
-        expect(screen.getByTestId('only')).toHaveAttribute('data-position', 'single')
+        expect(screen.getByTestId('only')).toHaveAttribute('data-position', 'solo')
     })
 
     test('conditionally-hidden children renumber the rest', () => {
@@ -38,18 +38,18 @@ describe('ListGroup', () => {
                 <Probe label="c" />
             </ListGroup>
         )
-        expect(screen.getByTestId('a')).toHaveAttribute('data-position', 'first')
-        expect(screen.getByTestId('c')).toHaveAttribute('data-position', 'last')
+        expect(screen.getByTestId('a')).toHaveAttribute('data-position', 'top')
+        expect(screen.getByTestId('c')).toHaveAttribute('data-position', 'bottom')
     })
 
     test('an explicit position on a child wins', () => {
         render(
             <ListGroup>
-                <Probe label="a" position="single" />
+                <Probe label="a" position="solo" />
                 <Probe label="b" />
             </ListGroup>
         )
-        expect(screen.getByTestId('a')).toHaveAttribute('data-position', 'single')
-        expect(screen.getByTestId('b')).toHaveAttribute('data-position', 'last')
+        expect(screen.getByTestId('a')).toHaveAttribute('data-position', 'solo')
+        expect(screen.getByTestId('b')).toHaveAttribute('data-position', 'bottom')
     })
 })

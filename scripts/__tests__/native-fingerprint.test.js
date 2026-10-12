@@ -26,6 +26,7 @@ const FIXTURE_FILES = [
     'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
     'ios/App/App.xcodeproj/project.pbxproj',
     'ios/App/App/Info.plist',
+    'ios/App/App/PrivacyInfo.xcprivacy',
     'ios/App/App/App.entitlements',
     'ios/App/App/AppRelease.entitlements',
     'ios/App/App/ClipboardDetectPlugin.swift',
@@ -110,6 +111,13 @@ describe('native-fingerprint', () => {
         expect(fingerprint()).toBe(first)
     })
 
+    it('keeps the pre-split v2 fingerprint schema available for immutable attestations', () => {
+        const legacy = fingerprint('--schema', 'v2')
+
+        expect(legacy).toMatch(/^[0-9a-f]{16}$/)
+        expect(legacy).not.toBe(fingerprint('--schema', 'v3'))
+    })
+
     it('covers every native input, hashing it or recording its absence', () => {
         const result = run(fixture.dir, '--manifest')
         const keys = Object.keys(JSON.parse(result.stdout))
@@ -123,7 +131,9 @@ describe('native-fingerprint', () => {
         expect(keys).toContain('capacitor.config.ts')
         expect(keys).toContain('android/app/src/**.{java,kt}')
         expect(keys).toContain('ios/App/**.swift')
-        expect(keys).toContain('native-plugin-versions')
+        expect(keys).toContain('android/native-plugin-versions')
+        expect(keys).toContain('ios/native-plugin-versions')
+        expect(keys).toContain('shared/native-plugin-versions')
         expect(keys).toContain('android/app/src/main/res/**.xml')
         expect(keys).toContain('ios/App/**.{plist,entitlements}')
         expect(keys).toContain('patches/**')
@@ -145,7 +155,7 @@ describe('native-fingerprint', () => {
     it('exits 1 naming the culprit when the surface moved', () => {
         withPatchedInput(
             'android/capacitor.settings.gradle',
-            (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
+            (content) => content.replace('capacitor-updater@8.51.23', 'capacitor-updater@9.0.0'),
             () => {
                 const result = run(fixture.dir, '--diff', 'HEAD')
 
@@ -162,7 +172,7 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'android/capacitor.settings.gradle',
-            (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
+            (content) => content.replace('capacitor-updater@8.51.23', 'capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -197,6 +207,16 @@ describe('native-fingerprint', () => {
             // xcodebuild archives against, so a pin can move on its own.
             'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
             (content) => content.replace('"version" : "5.12.0"', '"version" : "5.13.0"'),
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when the app privacy manifest changes', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'ios/App/App/PrivacyInfo.xcprivacy',
+            (content) => content.replace('C617.1', 'C617.2'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -294,7 +314,7 @@ describe('native-fingerprint', () => {
             // The OTA workflow runs `pnpm install` but never regenerates the
             // committed Capacitor manifests, so a bump without a `cap sync`
             // ships the new JS wrapper against unchanged manifest bytes.
-            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
+            (content) => content.split('@capgo/capacitor-updater@8.51.23').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -351,7 +371,7 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'pnpm-lock.yaml',
-            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
+            (content) => content.split('@capgo/capacitor-updater@8.51.23').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -387,8 +407,8 @@ describe('native-fingerprint', () => {
  * with no `platform` would be skipped by platformDiff for both platforms — the
  * lenient direction, which is how an unnoticed native change reaches an older
  * binary. `shared` is a deliberate answer, not a default: capacitor.config.ts,
- * patches/ and the resolved plugin versions sit outside android/ and ios/ while
- * describing the native half of both.
+ * patches/ and cross-platform plugin versions sit outside android/ and ios/
+ * while describing the native half of both.
  */
 describe('platform classification', () => {
     const inputs = () => {
@@ -416,7 +436,15 @@ describe('platform classification', () => {
         const shared = inputs()
             .filter((input) => input.platform === 'shared')
             .map((input) => input.id)
-        expect(shared).toEqual(expect.arrayContaining(['capacitor.config.ts', 'patches/**', 'native-plugin-versions']))
+        expect(shared).toEqual(
+            expect.arrayContaining(['capacitor.config.ts', 'patches/**', 'shared/native-plugin-versions'])
+        )
+    })
+
+    it('keeps platform runtime dependency versions on their own platform', () => {
+        const classified = Object.fromEntries(inputs().map(({ id, platform }) => [id, platform]))
+        expect(classified['android/native-plugin-versions']).toBe('android')
+        expect(classified['ios/native-plugin-versions']).toBe('ios')
     })
 
     // Named for iOS but not under ios/ — it pins iOS native SDK versions after

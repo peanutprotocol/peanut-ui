@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
     BADGE_ASSET_FALLBACKS,
@@ -124,5 +124,43 @@ describe('getBadgeShareText', () => {
                 localizedFallback,
             })
         ).toBe(localizedFallback)
+    })
+})
+
+// TASK-22677: badge art ships on one square canvas that a slot cannot stretch.
+// Mixed canvases (2048x1455 beside 2048x2048) drew art anywhere between 17px
+// and 40px tall in the same 40px slot, and preserveAspectRatio="none" let any
+// box without object-contain squash it. mono/skills/badges-recraft
+// normalize-badge-canvas.mjs writes this shape; this keeps a hand-dropped
+// file honest.
+describe('badge artwork geometry', () => {
+    const svgRoot = (svg: string) => svg.match(/<svg\b[^>]*>/)?.[0] ?? ''
+    const svgViewBox = (root: string) => {
+        const raw = root.match(/(?<![\w-])viewBox\s*=\s*"([^"]*)"/)?.[1] ?? ''
+        const [, , width = 0, height = 0] = raw
+            .trim()
+            .split(/[\s,]+/)
+            .map(Number)
+        return { width, height }
+    }
+    const pngSize = (png: Buffer) => ({ width: png.readUInt32BE(16), height: png.readUInt32BE(20) })
+
+    it('ships every catalog badge on a square canvas with no preserveAspectRatio=none', () => {
+        for (const iconPath of Object.values(BADGE_ASSET_FALLBACKS)) {
+            const file = join(process.cwd(), 'public', iconPath)
+            if (iconPath.endsWith('.svg')) {
+                const root = svgRoot(readFileSync(file, 'utf8'))
+                const { width, height } = svgViewBox(root)
+                const stretchable = /preserveAspectRatio\s*=\s*"none"/.test(root)
+                expect({ iconPath, square: width > 0 && Math.abs(width - height) < 0.01, stretchable }).toEqual({
+                    iconPath,
+                    square: true,
+                    stretchable: false,
+                })
+            } else {
+                const { width, height } = pngSize(readFileSync(file))
+                expect({ iconPath, square: width > 0 && width === height }).toEqual({ iconPath, square: true })
+            }
+        }
     })
 })

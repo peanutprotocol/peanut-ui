@@ -5,6 +5,7 @@ import { useAuth } from '@/context/authContext'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import { serverFetch } from '@/utils/api-fetch'
 import { generateInviteCodeLink, sanitizeRedirectURL, saveRedirectUrl } from '@/utils/general.utils'
+import { parseQrRedirectUrl } from '@/utils/qr-redirect.utils'
 import { qrSuccessUrl } from '@/utils/native-routes'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
@@ -48,19 +49,10 @@ export function useQrClaimFlow() {
                 // Internal redirect - use sanitized path with Next.js router
                 router.push(sanitizedPath)
             } else {
-                // External redirect - validate it's expected domain before redirecting
-                try {
-                    const url = new URL(redirectQrData.redirectUrl)
-                    // Allow external redirects ONLY for trusted domains (peanut.me)
-                    // This relies on backend validation during QR claiming
-                    if (url.hostname.includes('peanut.me') || url.hostname.includes('localhost')) {
-                        window.location.href = redirectQrData.redirectUrl
-                    } else {
-                        console.error('Untrusted external redirect blocked:', redirectQrData.redirectUrl)
-                        setError(t('claim.invalidDestination'))
-                    }
-                } catch {
-                    console.error('Invalid redirect URL:', redirectQrData.redirectUrl)
+                const destination = parseQrRedirectUrl(redirectQrData.redirectUrl)
+                if (destination) {
+                    window.location.href = destination.href
+                } else {
                     setError(t('claim.invalidDestination'))
                 }
             }
@@ -73,7 +65,7 @@ export function useQrClaimFlow() {
             saveRedirectUrl()
             router.push('/setup')
         }
-    }, [isCheckingStatus, redirectQrData, user, router])
+    }, [isCheckingStatus, redirectQrData, user, router, t])
 
     const handleClaim = useCallback(async () => {
         // Auth check is already handled by useEffect above

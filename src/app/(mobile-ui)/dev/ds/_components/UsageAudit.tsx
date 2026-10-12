@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
-import { BaseInput } from '@/components/0_Bruddle/BaseInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import BaseSelect from '@/components/0_Bruddle/BaseSelect'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Section } from '@/components/0_Bruddle/Section'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { DocPage } from './DocPage'
 
 export type UsageStatus = 'live' | 'showcase-only' | 'dead' | 'duplicate' | 'variant' | 'canonical' | 'adhoc'
@@ -25,40 +30,33 @@ export interface UsageCategory {
     items: UsageItem[]
 }
 
-const STATUS_META: Record<UsageStatus, { label: string; cls: string; hint: string }> = {
+const STATUS_META: Record<UsageStatus, { label: string; hint: string }> = {
     live: {
         label: 'live in product',
-        cls: 'bg-background-badge-success text-foreground-primary border-border-default',
         hint: 'rendered on real app screens',
     },
     variant: {
         label: 'redundant variant',
-        cls: 'bg-background-badge-info text-foreground-primary border-border-default',
         hint: 'used, but duplicates another impl',
     },
     duplicate: {
         label: 'duplicate',
-        cls: 'bg-background-badge-error text-foreground-primary border-border-default',
         hint: 'same job as a canonical impl',
     },
     canonical: {
         label: 'canonical',
-        cls: 'bg-action-primary/50 text-foreground-primary border-border-default',
         hint: 'the one to keep',
     },
     adhoc: {
         label: 'ad-hoc inline',
-        cls: 'bg-background-badge-attention text-foreground-primary border-border-default',
         hint: 'reinvented inline, not the primitive',
     },
     'showcase-only': {
         label: 'SHOWCASE-ONLY',
-        cls: 'bg-background-badge-attention/60 text-foreground-secondary border-border-subtle',
         hint: 'exists in /dev only — product never renders it',
     },
     dead: {
         label: 'DEAD · never used',
-        cls: 'bg-background-disabled text-foreground-secondary border-border-subtle',
         hint: 'referenced nowhere, delete-candidate',
     },
 }
@@ -66,11 +64,7 @@ const STATUS_ORDER: UsageStatus[] = ['live', 'canonical', 'variant', 'duplicate'
 
 function StatusChip({ status }: { status: UsageStatus }) {
     const m = STATUS_META[status] ?? STATUS_META.live
-    return (
-        <span className={`inline-block rounded-round border px-2 py-0.5 text-label-m whitespace-nowrap ${m.cls}`}>
-            {m.label}
-        </span>
-    )
+    return <span className="text-label-m whitespace-nowrap text-foreground-secondary">{m.label}</span>
 }
 
 export function UsageAudit({
@@ -131,13 +125,12 @@ export function UsageAudit({
         <DocPage>
             {/* Hero — DS Card on the lens tint */}
             <Card className={`p-4 ${heroClass}`}>
-                <p className="text-label-m text-foreground-primary/70 uppercase">{eyebrow}</p>
-                <h1 className="mt-1 text-h4">{title}</h1>
-                <div className="mt-2 text-label-l text-foreground-primary">{intro}</div>
+                <p className="text-label-m text-foreground-over-color-secondary uppercase">{eyebrow}</p>
+                <TitleBlock size="m" title={<h1>{title}</h1>} description={intro} />
             </Card>
 
             {/* Stat cards */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
                     { label: 'inventoried', value: counts.total },
                     { label: 'live in product', value: counts.live },
@@ -152,66 +145,59 @@ export function UsageAudit({
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-x-3 gap-y-1 rounded-sm border border-dashed border-border-subtle p-3">
+            <Card className="flex-row flex-wrap gap-x-3 gap-y-2 border-dashed border-border-subtle p-3">
                 {STATUS_ORDER.map((s) => (
                     <span key={s} className="flex items-center gap-1 text-body-xs text-foreground-secondary">
                         <StatusChip status={s} />
                         {STATUS_META[s].hint}
                     </span>
                 ))}
-            </div>
+            </Card>
 
             {/* Filters */}
-            <div className="space-y-2">
-                <BaseInput
-                    variant="sm"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search name / divergence / file…"
-                    aria-label="Search audit items"
-                />
-                <div className="flex flex-wrap gap-1">
-                    {['all', ...catNames].map((c) => (
-                        <button
-                            key={c}
-                            onClick={() => setCat(c)}
-                            className={`rounded-round border border-border-default px-2 py-1 text-label-m ${
-                                cat === c
-                                    ? 'bg-action-primary text-foreground-primary'
-                                    : 'bg-background-default text-foreground-secondary'
-                            }`}
-                        >
-                            {c}
-                        </button>
-                    ))}
-                </div>
-                <div className="flex flex-wrap gap-1">
-                    {['all', ...STATUS_ORDER].map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => setStatus(s)}
-                            className={`rounded-round border px-2 py-1 text-label-m ${
-                                status === s
-                                    ? 'border-border-default bg-foreground-primary text-foreground-inverse'
-                                    : 'border-border-disabled bg-background-default text-foreground-secondary'
-                            }`}
-                        >
-                            {s === 'all' ? 'all status' : STATUS_META[s as UsageStatus].label}
-                        </button>
-                    ))}
-                </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Field label="Search">
+                    <BaseInput
+                        size="sm"
+                        value={q}
+                        onChange={(event) => setQ(event.target.value)}
+                        placeholder="Name, divergence, or file"
+                        aria-label="Search audit items"
+                    />
+                </Field>
+                <Field label="Category">
+                    <BaseSelect
+                        value={cat}
+                        onValueChange={setCat}
+                        aria-label="Audit category"
+                        options={['all', ...catNames].map((value) => ({ label: value, value }))}
+                    />
+                </Field>
+                <Field label="Status">
+                    <BaseSelect
+                        value={status}
+                        onValueChange={setStatus}
+                        aria-label="Audit status"
+                        options={[
+                            { label: 'all status', value: 'all' },
+                            ...STATUS_ORDER.map((value) => ({ label: STATUS_META[value].label, value })),
+                        ]}
+                    />
+                </Field>
             </div>
 
             {/* Grouped items */}
             {visible.map((c) => (
-                <div key={c.category}>
-                    <div className="mb-2 border-b border-border-default pb-1">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-label-l">{c.category}</h2>
+                <Section
+                    key={c.category}
+                    title={
+                        <span className="flex items-center justify-between">
+                            <span>{c.category}</span>
                             <span className="text-body-xs text-foreground-secondary">{c.items.length} shown</span>
-                        </div>
-                        {c.summary && <p className="mt-1 text-body-xs text-foreground-secondary">{c.summary}</p>}
-                    </div>
+                        </span>
+                    }
+                >
+                    {c.summary && <p className="text-body-xs text-foreground-secondary">{c.summary}</p>}
                     <div className="space-y-2">
                         {c.items.map((i, idx) => {
                             const isDead = i.status === 'dead' || i.status === 'showcase-only'
@@ -226,17 +212,11 @@ export function UsageAudit({
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <p className="text-label-l">{i.name}</p>
-                                        <span
-                                            className={`shrink-0 rounded-sm px-2 py-0.5 text-label-m ${
-                                                i.realUsages > 0
-                                                    ? 'bg-foreground-primary text-foreground-inverse'
-                                                    : 'bg-background-disabled text-foreground-secondary'
-                                            }`}
-                                        >
+                                        <span className="shrink-0 text-label-m text-foreground-secondary">
                                             {i.realUsages}× app
                                         </span>
                                     </div>
-                                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                    <div className="mt-1 flex flex-wrap items-center gap-1">
                                         <StatusChip status={i.status} />
                                         {typeof i.devUsages === 'number' && i.devUsages > 0 && (
                                             <span className="text-body-xs text-foreground-secondary">
@@ -244,8 +224,8 @@ export function UsageAudit({
                                             </span>
                                         )}
                                         {i.verified && (
-                                            <span className="text-body-xs text-foreground-secondary">
-                                                ✓ re-verified
+                                            <span className="flex items-center gap-1 text-body-xs text-foreground-secondary">
+                                                <Icon name="check" size={16} /> re-verified
                                             </span>
                                         )}
                                     </div>
@@ -266,7 +246,7 @@ export function UsageAudit({
                             )
                         })}
                     </div>
-                </div>
+                </Section>
             ))}
 
             {footnote && (

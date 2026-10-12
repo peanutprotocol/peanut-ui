@@ -1,16 +1,23 @@
-import { EHistoryUserRole } from '@/utils/history.utils'
+import { EHistoryUserRole, getTransactionSign } from '@/utils/history.utils'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import {
-    isFxBearingFlow,
-    isSendLinkEntry,
-    usesCompletedTimestampLabel,
-} from '@/components/TransactionDetails/transaction-predicates'
+import { isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
+    receiptHeadlineAmount,
+    receiptStatusDate,
     type BankAccountLabelKey,
 } from '@/components/TransactionDetails/transaction-details.utils'
+import {
+    isSettledConversion,
+    receiptConvertedAmount,
+    receiptExchangeRate,
+} from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, formatCurrency, isStableCoin, printableAddress } from '@/utils/general.utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
+import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
+import { PROVIDERS } from '@/constants/providers.consts'
+import { providerIdForTransaction } from '@/utils/provider.utils'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
  *  the exact strings the receipt page renders. */
@@ -24,13 +31,19 @@ export interface ReceiptPdfRow {
 export interface ReceiptPdfModel {
     title: string
     issuedBy: string
+    companyName: string
+    companyAddressLines: readonly string[]
     site: string
     amountDisplay: string
     convertedAmountDisplay?: string
-    statusLabel?: string
     rows: ReceiptPdfRow[]
-    referenceLabel: string
-    reference: string
+    /** small print naming the provider that moved the money */
+    provider?: {
+        intro: string
+        name: string
+        addressLines: readonly string[]
+        termsUrl?: string
+    }
     fileName: string
 }
 
@@ -40,12 +53,12 @@ const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> =
     clabe: 'CLABE',
 }
 
-const EM_DASH = '—'
+const DATE_FALLBACK = '-'
 
 function formatDate(source: string | Date | undefined | null, locale: string): string {
-    if (!source) return EM_DASH
+    if (!source) return DATE_FALLBACK
     const date = new Date(source)
-    if (isNaN(date.getTime())) return EM_DASH
+    if (isNaN(date.getTime())) return DATE_FALLBACK
     // Same shape as useReceiptDateFormatter ("March 30, 2025 - 14:05").
     const day = new Intl.DateTimeFormat(locale, {
         year: 'numeric',
@@ -60,24 +73,6 @@ function formatDate(source: string | Date | undefined | null, locale: string): s
         timeZone: 'UTC',
     }).format(date)
     return `${day} - ${time} UTC`
-}
-
-/** Local fiat / destination-token conversion — same preference order and
- *  stablecoin skip as the receipt component's `convertedAmount`. */
-function convertedAmount(transaction: TransactionDetails): string | undefined {
-    const code = transaction.currency?.code
-    const amount = transaction.currency?.amount
-    if (code && amount) {
-        const upper = code.toUpperCase()
-        if (upper !== 'USD' && !isStableCoin(upper)) {
-            return `${upper} ${formatCurrency(amount)}`
-        }
-    }
-    const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-    if (tokenSymbol && tokenSymbol !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
-        return `${transaction.tokenAmount} ${tokenSymbol}`
-    }
-    return undefined
 }
 
 /**
@@ -102,7 +97,9 @@ function safeFileNamePart(id: string): string {
 export function buildReceiptPdfModel(
     transaction: TransactionDetails,
     t: PdfTranslate,
-    locale: string
+    locale: string,
+    /** the owner's verified residence; only the route's owner check passes one */
+    ownerResidence?: string | null
 ): ReceiptPdfModel {
     const rows: ReceiptPdfRow[] = []
     const push = (label: string, value: string | undefined | null) => {
@@ -118,6 +115,12 @@ export function buildReceiptPdfModel(
     const allowCancelledSenderFields =
         !isCancelled || (isSendLinkEntry(transaction) && role === EHistoryUserRole.SENDER)
 
+    // One date leads the rows: the date of the state the document records,
+    // from the same rule as the screen's status row (receiptStatusDate), never
+    // the download time. No readable date, no row — never a dash.
+    const statusDate = formatDate(receiptStatusDate(transaction)?.date, locale)
+    if (statusDate !== DATE_FALLBACK) push(t('transaction.officialReceipt.pdf.date'), statusDate)
+
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)
 
@@ -126,74 +129,24 @@ export function buildReceiptPdfModel(
 
     // Counterparty: FE-generated labels localize via nameKey; raw counterparty
     // data renders via printableAddress (shortens addresses, passes usernames).
-    const counterparty = transaction.nameKey
+    const counterpartyName = transaction.nameKey
         ? t(`transaction.${transaction.nameKey}`, transaction.nameParams)
         : transaction.userName
           ? printableAddress(transaction.userName)
           : undefined
+    // A PIX-key payment reads "Maria Da Silva · maria@silva.com.br", as in the drawer title.
+    const counterparty =
+        counterpartyName && transaction.nameDetail
+            ? `${counterpartyName} · ${transaction.nameDetail}`
+            : counterpartyName
     push(
         role === EHistoryUserRole.RECIPIENT ? t('transaction.officialReceipt.pdf.from') : t('transaction.rows.to'),
         counterparty
     )
 
-    // Lifecycle timestamps — same visibility rules as the receipt's date rows.
-    const willShowCompleted = status === 'completed' && !!transaction.completedAt
-    if (transaction.createdAt && !willShowCompleted) {
-        push(t('transaction.rows.created'), formatDate(transaction.createdAt, locale))
-    }
-    if (isCancelled) {
-        push(
-            t('transaction.rows.cancelled'),
-            formatDate(transaction.cancelledDate || transaction.createdAt || transaction.date, locale)
-        )
-    }
-    if (status === 'completed' && transaction.claimedAt) {
-        push(t('transaction.rows.claimed'), formatDate(transaction.claimedAt, locale))
-    }
-    if (willShowCompleted) {
-        const completedLabel = usesCompletedTimestampLabel(transaction)
-            ? t('transaction.rows.completed')
-            : role === EHistoryUserRole.SENDER
-              ? t('transaction.rows.sent')
-              : t('transaction.rows.received')
-        push(completedLabel, formatDate(transaction.completedAt, locale))
-    }
-    if (status === 'refunded') {
-        push(t('transaction.rows.refunded'), formatDate(transaction.date, locale))
-    }
-
-    if (
-        isFxBearingFlow(transaction) &&
-        drawer?.receipt?.exchange_rate &&
-        transaction.currency?.code &&
-        transaction.currency.code.toUpperCase() !== 'USD' &&
-        !isStableCoin(transaction.currency.code) &&
-        !isCancelled
-    ) {
-        push(
-            t('common.exchangeRate'),
-            `1 USD = ${transaction.currency.code.toUpperCase()} ${formatCurrency(drawer.receipt.exchange_rate, 4)}`
-        )
-    }
-
-    if (transaction.fee !== undefined && !isCancelled) {
-        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
-    }
-
-    if (transaction.txHash) {
-        push(t('transaction.rows.txId'), transaction.txHash)
-    }
-
-    if (
-        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-        transaction.id &&
-        !isCancelled
-    ) {
-        push(t('transaction.rows.transferId'), transaction.id)
-    }
-
-    // Always masked: the PDF lives behind a shareable URL, so the unmasked
-    // guest-claim exception the in-app receipt makes does not apply here.
+    // Who: always mask bank identifiers. PDF files are explicitly downloadable
+    // and shareable, so the unmasked guest-claim exception the in-app receipt
+    // makes does not apply.
     if (transaction.bankAccountDetails?.identifier && !isCancelled) {
         const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type)
         const label =
@@ -206,23 +159,68 @@ export function buildReceiptPdfModel(
         )
     }
 
+    // Money, the provider last (receipt-rows ruling)
+    push(t('common.exchangeRate'), receiptExchangeRate(transaction))
+
+    if (transaction.fee !== undefined && !isCancelled) {
+        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
+    }
+
+    // without the owner's residence bridge gets its brand-only record
+    const providerId = providerIdForTransaction(transaction, ownerResidence)
+    const provider = providerId ? PROVIDERS[providerId] : undefined
+    if (provider) {
+        push(
+            t(providerId === 'third-national' ? 'provider.label.cardProvider' : 'provider.label.provider'),
+            provider.brand
+        )
+    }
+
+    // Trace, then the comment
+    if (transaction.txHash) {
+        push(t('transaction.rows.txId'), transaction.txHash)
+    }
+
+    if (
+        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
+        transaction.id &&
+        !isCancelled
+    ) {
+        push(t('transaction.rows.transferId'), transaction.id)
+    }
+
     if (transaction.memo?.trim() && allowCancelledSenderFields) {
         push(t('common.comment'), transaction.memoKey ? t(`transaction.${transaction.memoKey}`) : transaction.memo)
     }
 
-    const numericAmount = Number(transaction.amount)
-    const safeAmount = isNaN(numericAmount) ? 0 : Math.abs(numericAmount)
+    // The payer's own reference on a bank deposit is NOT printed. It is free
+    // text a third party typed (up to 300 characters), and "Share receipt" sends
+    // this document onward. The owner still reads it in the receipt drawer.
+    // Temporary decision TD-12.
+
+    // One rule for both the screen and this document — see receiptHeadlineAmount.
+    const headline = receiptHeadlineAmount(transaction, Number(transaction.amount), getTransactionSign(transaction))
+    const safeAmount = Math.abs(headline.amount)
+    // Same rule as the screen: no conversion on a cancelled entry; settled it
+    // is a fact, before that an estimate.
+    const converted = isCancelled ? undefined : receiptConvertedAmount(transaction)
 
     return {
         title: t('transaction.officialReceipt.pdf.title'),
-        issuedBy: t('transaction.officialReceipt.issuedBy'),
-        site: 'peanut.me',
-        amountDisplay: `$${formatCurrency(safeAmount.toString())}`,
-        convertedAmountDisplay: convertedAmount(transaction),
-        statusLabel,
+        issuedBy: t('transaction.officialReceipt.pdf.issuedBy'),
+        companyName: RECEIPT_COMPANY.name,
+        companyAddressLines: RECEIPT_COMPANY.addressLines,
+        site: RECEIPT_COMPANY.site,
+        amountDisplay: `${headline.sign}${formatBankAmount(safeAmount, 'USD')}`,
+        convertedAmountDisplay: converted && !isSettledConversion(transaction) ? `≈ ${converted}` : converted,
         rows,
-        referenceLabel: t('transaction.officialReceipt.reference'),
-        reference: transaction.id,
+        provider: provider && {
+            intro: t('provider.sheetIntro', { brand: provider.brand }),
+            name: provider.legalName ?? provider.brand,
+            addressLines: provider.registeredOffice ?? [],
+            // only terms the user accepted; peanut alone contracts with rhino
+            termsUrl: provider.userContract ? provider.termsUrl : undefined,
+        },
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }
 }

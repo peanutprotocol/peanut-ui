@@ -28,7 +28,7 @@ export function prepare(source) {
     const marker = '/* screen-capture-adapter-v1 */'
     edit('src/utils/api-fetch.ts', (s) => {
         if (s.includes(marker)) return s
-        const anchor = /async function callApi\([^)]*\): Promise<Response> \{/
+        const anchor = /(?:async\s+)?function callApi\([^)]*\)(?:\s*:\s*Promise<Response>)?\s*\{/
         if (!anchor.test(s)) throw new Error('Historical API entry shape is unsupported')
         return s.replace(
             anchor,

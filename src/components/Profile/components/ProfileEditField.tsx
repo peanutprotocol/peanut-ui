@@ -1,7 +1,7 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import React, { forwardRef, useId } from 'react'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Field } from '@/components/0_Bruddle/Field'
 
 interface ProfileEditFieldProps {
     label: string
@@ -17,6 +17,7 @@ interface ProfileEditFieldProps {
     inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
     maxLength?: number
     error?: string
+    inputSize?: 'sm' | 'md'
 }
 
 /**
@@ -45,6 +46,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
             inputMode,
             maxLength,
             error,
+            inputSize = 'sm',
         },
         ref
     ) => {
@@ -60,9 +62,9 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                     >
                         {label}
                     </label>
-                    {badge && <StatusBadge status="soon" size="small" customText={badge} />}
+                    {badge && <Badge status="soon" size="small" customText={badge} />}
                 </div>
-                <FieldColumn error={error} errorId={`${id}-error`}>
+                <Field error={error} errorId={`${id}-error`}>
                     <BaseInput
                         ref={ref}
                         name={name}
@@ -73,14 +75,14 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? `${id}-error` : undefined}
                         id={id}
-                        variant="sm"
+                        size={inputSize}
                         type={type}
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         placeholder={placeholder}
                         disabled={disabled}
                     />
-                </FieldColumn>
+                </Field>
             </div>
         )
     }

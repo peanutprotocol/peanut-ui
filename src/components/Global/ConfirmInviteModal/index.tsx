@@ -5,7 +5,7 @@ import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import ActionModal from '@/components/Global/ActionModal'
-import { PeanutWavingHello } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 
 interface ConfirmInviteModalProps {
     isOpen: boolean
@@ -26,8 +26,15 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
     return (
         <ActionModal
             hideOverlay
-            modalPanelClassName="rounded-none border-0"
-            contentContainerClassName="isolate"
+            // the white surface moves from the panel to the content box on purpose.
+            // the panel is a stacking context (transform-gpu + will-change), so a
+            // -z-10 child can never paint behind the panel's OWN background — the
+            // mascot came out in front of the modal, over the title. behind an
+            // in-flow child's background it can: negative z paints before block
+            // backgrounds. `isolate` here made it worse by trapping the mascot in
+            // the content box's own context.
+            modalPanelClassName="rounded-none border-0 bg-transparent dark:bg-transparent"
+            contentContainerClassName="bg-background-default"
             visible={isOpen}
             onClose={onClose}
             title={t('confirmInviteModal.title')}
@@ -37,7 +44,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                 {
                     text: '',
                     shadowSize: '4',
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'sm:flex-none',
                     onClick: handleContinueWithPeanut,
                     children: (
@@ -52,7 +59,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                 },
                 {
                     text: t('confirmInviteModal.continueWithMethod', { method }),
-                    variant: 'stroke',
+                    variant: 'secondary',
                     className: 'sm:flex-none',
                     onClick: handleLoseInvite,
                 },
@@ -61,13 +68,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
             footer={
                 <div className="absolute top-6 left-0 -z-10 flex w-full -translate-y-[80%] justify-center">
                     <div className="relative h-42 w-[90%] md:h-52">
-                        <Image
-                            src={PeanutWavingHello.src}
-                            unoptimized
-                            alt="Peanut Man"
-                            className="object-contain"
-                            fill
-                        />
+                        <PeanutMascot pose="waving-hello" alt="Peanut Man" className="size-full" />
                     </div>
                 </div>
             }

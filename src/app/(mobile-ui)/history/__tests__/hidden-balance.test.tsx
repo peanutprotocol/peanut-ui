@@ -53,11 +53,6 @@ jest.mock('@/utils/history.utils', () => ({
 jest.mock('@/components/Kyc/KycStatusItem', () => ({ KycStatusItem: () => null, isKycStatusItem: () => false }))
 jest.mock('@/components/Badges/BadgeStatusItem', () => ({ BadgeStatusItem: () => null }))
 jest.mock('@/components/Badges/badge.types', () => ({ isBadgeHistoryItem: () => false }))
-jest.mock('@/components/Card/CardUnlockHistoryItem', () => () => null)
-jest.mock('@/components/Card/cardUnlock.types', () => ({
-    deriveCardUnlockEntry: () => null,
-    isCardUnlockHistoryItem: () => false,
-}))
 jest.mock('@/components/Global/NavHeader', () => () => null)
 jest.mock('@/components/Global/Loading', () => () => null)
 jest.mock('@/components/Global/EmptyStates/EmptyState', () => () => null)

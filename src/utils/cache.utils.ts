@@ -25,11 +25,11 @@ export async function purgeCaches(patterns: readonly string[]): Promise<void> {
 }
 
 /**
- * True when running as an installed PWA rather than a browser tab.
+ * True when the current browser window is an installed PWA.
  *
- * Load-bearing for reload decisions: `window.location.reload()` in an Android
- * standalone session can bounce the user out to Chrome (see the sw-registration
- * script in layout.tsx), so callers navigate differently here.
+ * Existing installs remain reachable until the native migration cutoff.
+ * Android standalone reloads can leave the app window and open Chrome, so
+ * reload callers must keep a standalone-safe path during that transition.
  */
 export function isStandalonePwa(): boolean {
     if (typeof window === 'undefined') return false
@@ -39,7 +39,6 @@ export function isStandalonePwa(): boolean {
             (navigator as Navigator & { standalone?: boolean }).standalone === true
         )
     } catch {
-        // matchMedia unavailable -> assume not standalone
         return false
     }
 }

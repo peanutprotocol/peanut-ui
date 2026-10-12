@@ -14,7 +14,6 @@ jest.mock('@/utils/auth-token', () => ({
     getAuthToken: jest.fn(() => null),
     getClearEpoch: jest.fn(() => 0),
 }))
-jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false, isStandaloneDisplayMode: () => false }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'desktop' }) }))
 jest.mock('posthog-js', () => ({ default: { capture: jest.fn() }, capture: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: jest.fn(() => false) }))

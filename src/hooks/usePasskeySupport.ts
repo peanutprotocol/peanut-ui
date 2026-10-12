@@ -1,112 +1,58 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { browserSupportsWebAuthn } from '@simplewebauthn/browser'
-import { isCapacitor } from '@/utils/capacitor'
+import { checkPasskeyCapability, failedPasskeyCapability, type PasskeyCapability } from './passkeySupport.utils'
 
 export interface PasskeySupportResult {
     isSupported: boolean
     isLoading: boolean
     error: string | null
     browserSupported: boolean
-    conditionalMediationSupported: boolean
     recheckSupport: () => void
 }
 
-/**
- * Hook to check if the current browser and device support passkeys (WebAuthn)
- * Includes both basic WebAuthn support and conditional mediation (passkey) support
- *
- * @returns {PasskeySupportResult} Object containing support status, loading state, error info, and recheck function
- */
+/** Checks whether this environment has a usable path to create a passkey. */
 export function usePasskeySupport(): PasskeySupportResult {
-    const [isSupported, setIsSupported] = useState(false)
+    const [capability, setCapability] = useState<PasskeyCapability>({
+        isSupported: false,
+        error: null,
+        browserSupported: false,
+    })
     const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [browserSupported, setBrowserSupported] = useState(false)
-    const [conditionalMediationSupported, setConditionalMediationSupported] = useState(false)
 
     const checkSupport = useCallback(async () => {
         setIsLoading(true)
-        setError(null)
 
         try {
-            // in capacitor, passkeys are handled natively (android via plugin, ios via WKWebView)
-            // skip browser-level checks since they may report false negatives in a webview
-            if (isCapacitor()) {
-                setBrowserSupported(true)
-                setConditionalMediationSupported(true)
-                setIsSupported(true)
-                return
-            }
-
-            // Check basic WebAuthn support first
-            const basicWebAuthnSupport = browserSupportsWebAuthn()
-            setBrowserSupported(basicWebAuthnSupport)
-
-            if (!basicWebAuthnSupport) {
-                setIsSupported(false)
-                setConditionalMediationSupported(false)
-                return
-            }
-
-            // Check if running in a secure context (required for WebAuthn)
-            if (typeof window !== 'undefined' && !window.isSecureContext) {
-                setError('Passkeys require a secure context (HTTPS)')
-                setIsSupported(false)
-                setConditionalMediationSupported(false)
-                return
-            }
-
-            // Check passkey (conditional mediation) support
-            if (typeof window.PublicKeyCredential?.isConditionalMediationAvailable === 'function') {
-                try {
-                    const conditionalSupport = await window.PublicKeyCredential.isConditionalMediationAvailable()
-                    setConditionalMediationSupported(conditionalSupport)
-                    setIsSupported(conditionalSupport)
-                } catch (err) {
-                    console.warn('Error checking conditional mediation support:', err)
-                    setError('Unable to determine passkey support')
-                    setIsSupported(false)
-                    setConditionalMediationSupported(false)
-                }
-            } else {
-                // Fallback: if conditional mediation API is not available,
-                // assume passkeys are not supported but basic WebAuthn might be
-                setConditionalMediationSupported(false)
-                setIsSupported(false)
-            }
+            setCapability(await checkPasskeyCapability())
         } catch (err) {
             console.error('Error checking passkey support:', err)
-            setError('Failed to check passkey support')
-            setIsSupported(false)
-            setBrowserSupported(false)
-            setConditionalMediationSupported(false)
+            setCapability(failedPasskeyCapability())
         } finally {
             setIsLoading(false)
         }
     }, [])
 
     const recheckSupport = useCallback(() => {
-        checkSupport()
+        void checkSupport()
     }, [checkSupport])
 
     useEffect(() => {
-        // Only run on client side
         if (typeof window === 'undefined') {
             setIsLoading(false)
             return
         }
 
-        checkSupport()
+        void checkSupport()
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void checkSupport()
+            }
+        }
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
     }, [checkSupport])
 
-    return {
-        isSupported,
-        isLoading,
-        error,
-        browserSupported,
-        conditionalMediationSupported,
-        recheckSupport,
-    }
+    return { ...capability, isLoading, recheckSupport }
 }

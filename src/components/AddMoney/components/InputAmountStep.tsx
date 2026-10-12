@@ -1,8 +1,8 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import RateUnavailable from '@/components/Global/RateUnavailable'
@@ -22,7 +22,7 @@ interface InputAmountStepProps {
     isLoading: boolean
     tokenAmount: string
     setTokenAmount: ((value: string) => void) | React.Dispatch<React.SetStateAction<string>>
-    // flow-level failure (API/provider/sumsub) — renders in the Notification
+    // flow-level failure (API/provider/sumsub) — renders in the Callout
     error: string | null
     // client-side amount validation — renders as the field's own error under the input
     validationError?: string | null
@@ -37,6 +37,8 @@ interface InputAmountStepProps {
     onBack: () => void
     // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
     maintenanceBanner?: React.ReactNode
+    // who provides the deposit, one line under the continue button (TASK-23295)
+    providerFinePrint?: React.ReactNode
 }
 
 const InputAmountStep = ({
@@ -55,6 +57,7 @@ const InputAmountStep = ({
     limitsCurrency,
     onBack,
     maintenanceBanner,
+    providerFinePrint,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -94,7 +97,8 @@ const InputAmountStep = ({
                 <div className="text-label-l">{t('howMuchToAdd')}</div>
 
                 {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
-                <FieldColumn
+                <Field
+                    helper={t('mustMatchBankTransfer')}
                     error={!limitsValidation?.isBlocking ? validationError : undefined}
                     errorTestId="error-alert"
                 >
@@ -117,16 +121,15 @@ const InputAmountStep = ({
                         setCurrentDenomination={setCurrentDenomination}
                         hideBalance
                     />
-                </FieldColumn>
+                </Field>
 
                 {/* limits warning/error card */}
-                {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
+                {limitsCardProps && (
+                    <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
+                )}
 
-                <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                    <span>{t('mustMatchBankTransfer')}</span>
-                </div>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     onClick={onSubmit}
                     disabled={
@@ -142,11 +145,13 @@ const InputAmountStep = ({
                 >
                     {tCommon('continue')}
                 </Button>
+                {/* fine print sits under the CTA, never between the amount and the button */}
+                {providerFinePrint}
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && (
-                    <Notification priority="error" data-testid="error-alert">
+                    <Callout priority="error" data-testid="error-alert">
                         {error}
-                    </Notification>
+                    </Callout>
                 )}
                 {/* not gated on `error`/limits like the alert above: the retry is the only
                     way to clear the rate block that disables Continue (dev #2843) */}

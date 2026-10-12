@@ -33,11 +33,9 @@ jest.mock('@/hooks/usePullToRefresh', () => ({
     useShouldPullToRefresh: () => () => true,
 }))
 jest.mock('@/hooks/useNativePlugins', () => ({ useNativePlugins: jest.fn() }))
-jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/hooks/useSafeBack', () => ({}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false, enableDemoMode: jest.fn() }))
-jest.mock('@/utils/migration.utils', () => ({ shouldShowSunsetBlock: () => false }))
 
 // Child screens are stubbed: this spec is about which one the layout picks.
 jest.mock('@/components/Global/BackendErrorScreen', () => ({
@@ -57,11 +55,8 @@ jest.mock('@/components/Global/SupportDrawer', () => ({ __esModule: true, defaul
 jest.mock('@/components/Global/SupportDeepLink', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/QRScannerOverlay', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/SecurityVerificationOverlay', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/ForceIOSPWAInstall', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/Invites/JoinWaitlistPage', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 
-import Layout from '../layout'
+import Layout from '../MobileLayoutClient'
 import {
     beginIntentionalLogout,
     clearRedirectUrl,
@@ -278,12 +273,66 @@ describe('(mobile-ui) layout — no user', () => {
         })
     })
 
+    /*
+     * The gate had no floor under it. On native `authReady()` can park before
+     * the user query ever fires, so `isFetchingUser` stays true, the /setup
+     * bounce never arms, and the mascot runs forever with no way out.
+     */
+    describe('the protected gate cannot wait forever', () => {
+        it('a gate still working after 15s hands over to the backend error screen', () => {
+            mockUseAuth.mockReturnValue(authState({ isFetchingUser: true }))
+
+            renderLayout()
+
+            expect(screen.getByTestId('loading')).toBeInTheDocument()
+            expect(screen.queryByTestId('backend-error-screen')).not.toBeInTheDocument()
+
+            act(() => {
+                jest.advanceTimersByTime(15000)
+            })
+
+            expect(screen.getByTestId('backend-error-screen')).toBeInTheDocument()
+            expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
+        })
+
+        it('auth settling before 15s disarms the watchdog', () => {
+            mockUseAuth.mockReturnValue(authState({ isFetchingUser: true }))
+            const { rerender } = renderLayout()
+
+            act(() => {
+                jest.advanceTimersByTime(14000)
+            })
+            mockUseAuth.mockReturnValue(authState({ user: CACHED_USER }))
+            act(() => rerenderLayout(rerender))
+
+            act(() => {
+                jest.advanceTimersByTime(30000)
+            })
+
+            expect(screen.queryByTestId('backend-error-screen')).not.toBeInTheDocument()
+            expect(screen.getByTestId('app-shell')).toBeInTheDocument()
+        })
+    })
+
     it('refetch blip over cached data: keeps the app, no error screen, no redirect', () => {
         mockUseAuth.mockReturnValue(authState({ user: CACHED_USER, userFetchError: new Error('blip') }))
 
         renderLayout()
 
         expect(screen.queryByTestId('backend-error-screen')).not.toBeInTheDocument()
+        expect(screen.getByTestId('app-shell')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    it('does not render the retired app waitlist for a legacy false access flag', () => {
+        mockUseAuth.mockReturnValue(
+            authState({
+                user: { user: { ...CACHED_USER.user, hasAppAccess: false }, accounts: [] },
+            })
+        )
+
+        renderLayout()
+
         expect(screen.getByTestId('app-shell')).toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
     })

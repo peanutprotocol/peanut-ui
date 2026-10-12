@@ -11,16 +11,28 @@ import { loadMessages } from '../messages'
  * concluded these were missing.
  */
 const CHECKLIST_KEYS = [
-    'title',
+    'welcomeTitle',
+    'welcomeTitleSpoken',
+    'welcomeBody',
+    'progress',
     'createAccount',
     'createAccountDone',
     'addMoney',
     'addMoneyRoutes',
-    'addMoneyRoutesKyc',
-    'getCard',
-    'getCardNote',
+    'addMoneyRoutesNoBank',
+    'addMoneyDone',
+    'addMoneyStandingAccounts',
+    'verifyIdentity',
+    'verifyIdentityNote',
+    'verifyIdentityDone',
+    'inReview',
     'firstPayment',
-    'firstPaymentNote',
+    'firstPaymentCardNote',
+    'firstPaymentQrNote',
+    'firstPaymentCardOnlyNote',
+    'firstPaymentHeldCardNote',
+    'firstPaymentHeldCardQrNote',
+    'hide',
 ] as const
 
 describe('getting-started checklist copy resolves in every locale', () => {
@@ -41,8 +53,19 @@ describe('getting-started checklist copy resolves in every locale', () => {
         const es419 = (await loadMessages('es-419')) as unknown as Record<string, any>
 
         expect(esAR.home.gettingStarted.addMoneyRoutes).toBe(es419.home.gettingStarted.addMoneyRoutes)
-        expect(esAR.home.gettingStarted.getCardNote).toBe(es419.home.gettingStarted.getCardNote)
+        expect(esAR.home.gettingStarted.verifyIdentityNote).toBe(es419.home.gettingStarted.verifyIdentityNote)
         // and its own delta still wins where it does restate one
-        expect(esAR.home.gettingStarted.addMoneyRoutesKyc).not.toBe(es419.home.gettingStarted.addMoneyRoutesKyc)
+        expect(esAR.home.gettingStarted.firstPaymentCardNote).not.toBe(es419.home.gettingStarted.firstPaymentCardNote)
     })
+})
+
+describe('the Spanish welcome title', () => {
+    it.each(['es-419', 'es-AR'] as const)(
+        '%s shows "Bienvenid@" and gives screen readers a spoken form without the @',
+        async (locale) => {
+            const g = ((await loadMessages(locale)) as unknown as Record<string, any>).home.gettingStarted
+            expect(g.welcomeTitle).toBe('¡Bienvenid@ a Peanut!')
+            expect(g.welcomeTitleSpoken).toBe('¡Te damos la bienvenida a Peanut!')
+        }
+    )
 })

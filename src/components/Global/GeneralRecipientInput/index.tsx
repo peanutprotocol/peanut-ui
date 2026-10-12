@@ -9,6 +9,7 @@ import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
 import { isValidAddressForFamily, type WithdrawAddressFamily } from '@/lib/validation/addressFamily'
+import { RecipientValidationError, type RecipientValidationCode } from '@/lib/url-parser/errors'
 import { BASE_URL } from '@/constants/general.consts'
 
 type GeneralRecipientInputProps = {
@@ -27,6 +28,17 @@ type GeneralRecipientInputProps = {
      *  address record for this chain (mainnet record when omitted). */
     chainId?: string
 }
+
+/**
+ * Rejections the classifier decides locally get translated copy — an Argentine
+ * user typing an alias reads the guidance in their own language. Anything a
+ * resolver rejected keeps its own English message.
+ */
+const LOCAL_ERROR_KEYS = {
+    ARGENTINE_ALIAS: 'generalRecipientInput.argentineAlias',
+    INVALID_ENS: 'generalRecipientInput.invalidEns',
+    UNSUPPORTED_WITHDRAW_RECIPIENT: 'generalRecipientInput.unsupportedRecipient',
+} as const satisfies Record<RecipientValidationCode, string>
 
 export type GeneralRecipientUpdate = {
     recipient: { name: string | undefined; address: string }
@@ -97,7 +109,9 @@ const GeneralRecipientInput = ({
                         resolvedAddress.current = validation.resolvedAddress
                         type = validation.recipientType.toLowerCase() as RecipientType
                     } catch (error: unknown) {
-                        errorMessage.current = (error as Error).message
+                        const code = error instanceof RecipientValidationError ? error.code : undefined
+                        const messageKey = code && LOCAL_ERROR_KEYS[code]
+                        errorMessage.current = messageKey ? t(messageKey) : (error as Error).message
                         // For withdrawal context, failed non-address inputs should be treated as ENS
                         if (isWithdrawal && !trimmedInput.startsWith('0x')) {
                             type = 'ens'

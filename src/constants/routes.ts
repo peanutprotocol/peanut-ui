@@ -55,6 +55,7 @@ export const DEDICATED_ROUTES = [
     'lp',
     'exchange',
     'shhhhh',
+    'app-help', // static help article JSON for the in-app help drawer
 
     // Future SEO routes (pre-register so catch-all doesn't intercept)
     'send-money-to',
@@ -129,7 +130,7 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
  * Production dev tools require a signed-in Peanut user. Each tool applies its
  * own server-enforced role check after the normal app session gate.
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view)(\/|$|\?)/
 
 /**
  * Regex for dev-only public routes: ALL /dev pages (index + every tool/preview).

@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import EvmChainChips from './EvmChainChips'
 import { useTranslations } from 'next-intl'
@@ -26,8 +26,7 @@ const SupportedNetworksDrawer = ({ visible, onClose }: SupportedNetworksDrawerPr
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        {/* same bright-yellow bubble as TokenAndNetworkConfirmationDrawer — the two
-                            screens carry the same permanent-loss warning and should read alike */}
+                        {/* bright-yellow bubble: this screen carries the permanent-loss warning */}
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('title')}</DrawerTitle>
@@ -38,7 +37,7 @@ const SupportedNetworksDrawer = ({ visible, onClose }: SupportedNetworksDrawerPr
                         <div className="flex flex-wrap justify-center gap-2">
                             <EvmChainChips />
                         </div>
-                        <Notification priority="attention">{t('warning')}</Notification>
+                        <Callout priority="attention">{t('warning')}</Callout>
                         <Button shadowSize="4" className="w-full justify-center" onClick={onClose}>
                             {t('cta')}
                         </Button>

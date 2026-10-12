@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import ProfileEditField from '@/components/Profile/components/ProfileEditField'
 import { updateUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
@@ -26,18 +27,32 @@ interface ProvideEmailStepProps {
 export default function ProvideEmailStep({ visible, onComplete, onSkip }: ProvideEmailStepProps) {
     const t = useTranslations('kyc')
     const { user, fetchUser } = useAuth()
-    const [email, setEmail] = useState('')
+    const savedEmail = user?.user.email || ''
+    const [email, setEmail] = useState(savedEmail)
+    const editedRef = useRef(false)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // flow/api failure — not attributable to the email field, rendered as a
+    // notification banner instead of a field error (design.md error display)
+    const [flowError, setFlowError] = useState<string | null>(null)
 
     useEffect(() => {
         if (visible) {
+            editedRef.current = false
             setEmail('')
             setError(null)
+            setFlowError(null)
         }
     }, [visible])
 
+    useEffect(() => {
+        if (visible && !editedRef.current) setEmail(savedEmail)
+    }, [visible, savedEmail])
+
     const handleSave = useCallback(async () => {
+        // one visible cause at a time: reset both channels before selecting
+        setError(null)
+        setFlowError(null)
         const trimmed = email.trim()
         if (!isValidEmail(trimmed)) {
             setError(t('provideEmail.invalidEmail'))
@@ -45,15 +60,14 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
         }
         const userId = user?.user?.userId
         if (!userId) {
-            setError(t('provideEmail.stillLoading'))
+            setFlowError(t('provideEmail.stillLoading'))
             return
         }
         setIsSaving(true)
-        setError(null)
         try {
             const response = await updateUserById({ userId, email: trimmed })
             if (response.error) {
-                setError(response.error)
+                setFlowError(response.error)
                 return
             }
             // The BE resubmits the blocked rails on email set; refetch so the
@@ -62,7 +76,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             await fetchUser()
             onComplete()
         } catch {
-            setError(t('provideEmail.saveFailed'))
+            setFlowError(t('provideEmail.saveFailed'))
         } finally {
             setIsSaving(false)
         }
@@ -72,6 +86,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
         <ActionModal
             visible={visible}
             onClose={onSkip}
+            tone="info"
             icon={'user-id' as IconName}
             title={t('provideEmail.title')}
             description={t('provideEmail.description')}
@@ -80,27 +95,30 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     text: t(isSaving ? 'provideEmail.saving' : 'provideEmail.save'),
                     onClick: handleSave,
                     disabled: isSaving || email.trim().length === 0,
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },
-                {
-                    text: t('provideEmail.notNow'),
-                    onClick: onSkip,
-                    variant: 'stroke' as const,
-                    className: 'w-full',
-                },
             ]}
+            tertiaryCta={{ text: t('provideEmail.notNow'), onClick: onSkip }}
             content={
                 <div className="w-full pt-2 text-left">
                     <ProfileEditField
                         label={t('provideEmail.emailLabel')}
                         value={email}
-                        onChange={setEmail}
+                        onChange={(value) => {
+                            editedRef.current = true
+                            setEmail(value)
+                        }}
                         placeholder={t('provideEmail.emailPlaceholder')}
                         type="email"
                     />
                     {error && <FieldError className="mt-1">{error}</FieldError>}
+                    {flowError && (
+                        <Callout priority="error" className="mt-2">
+                            {flowError}
+                        </Callout>
+                    )}
                 </div>
             }
         />

@@ -74,6 +74,24 @@ const IMPACT_LABELS: Record<string, (i18n: Translations) => string> = {
     rain: (i18n) => i18n.statusImpactRain,
 }
 
+/**
+ * Rendered on the server, so an unqualified `toLocaleString` would format in
+ * whatever zone the host happens to run in and give the reader nothing to
+ * interpret it against. Pinned to UTC, and the page states that it is.
+ *
+ * Lives here rather than in StatusBoard because IncidentList is a separate
+ * client module and both need it.
+ */
+export function formatTime(iso: string, locale: string): string {
+    return new Date(iso).toLocaleString(locale, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+    })
+}
+
 export function incidentImpact(serviceKey: string, i18n: Translations): string {
     // A service we have copy for is the norm; the fallback matters when the
     // API starts publishing a key before this deploy knows about it.

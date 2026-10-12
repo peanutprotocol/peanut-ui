@@ -30,6 +30,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
                     : TRANSACTION_NAME_KEYS.receivedViaLink,
             fullName: entry.senderAccount?.fullName ?? '',
             showFullName: isPeerActuallyUser ? entry.senderAccount?.showFullName : undefined,
+            avatarKey: entry.senderAccount?.avatarKey,
             isPeerActuallyUser,
             isLinkTx: !isPeerActuallyUser,
         }
@@ -54,6 +55,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
             nameForDetails: entry.recipientAccount?.username ?? entry.recipientAccount?.identifier ?? '',
             fullName: entry.recipientAccount?.fullName ?? '',
             showFullName: entry.recipientAccount?.showFullName,
+            avatarKey: entry.recipientAccount?.avatarKey,
             isPeerActuallyUser: true,
             isLinkTx: false,
         }

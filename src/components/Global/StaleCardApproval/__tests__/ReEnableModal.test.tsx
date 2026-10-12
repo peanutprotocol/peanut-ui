@@ -26,6 +26,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
         title?: string
         description?: string
         ctas?: { text: string; onClick: () => void }[]
+        tertiaryCta?: { text: string; disabled?: boolean; onClick?: () => void }
     }) =>
         props.visible ? (
             <div data-testid="modal">
@@ -36,6 +37,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
                         {c.text}
                     </button>
                 ))}
+                {props.tertiaryCta && <button onClick={props.tertiaryCta.onClick}>{props.tertiaryCta.text}</button>}
             </div>
         ) : null,
 }))
@@ -59,7 +61,7 @@ describe('StaleCardApprovalReEnableModal', () => {
 
         fireStaleEvent()
         expect(screen.getByTestId('modal')).toBeInTheDocument()
-        expect(screen.getByText('Re-enable your card')).toBeInTheDocument()
+        expect(screen.getByText('Re-enable the card')).toBeInTheDocument()
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 
@@ -86,6 +88,22 @@ describe('StaleCardApprovalReEnableModal', () => {
         })
 
         expect(screen.getByText(/couldn't re-enable your card/i)).toBeInTheDocument()
+        expect(screen.getByText('Re-enable card')).toBeInTheDocument()
+    })
+
+    // A rotation caught while the grant was being SAVED is a recognised
+    // outcome; the generic "unexpected" copy would misdescribe it.
+    it('a rotated-during-save refusal names the cause and keeps the retry CTA', async () => {
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'stale-approval' } })
+        render(<StaleCardApprovalReEnableModal />)
+        fireStaleEvent()
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Re-enable card'))
+        })
+
+        expect(screen.getByText(/updated while we were saving/i)).toBeInTheDocument()
+        expect(screen.queryByText(/couldn't re-enable your card/i)).not.toBeInTheDocument()
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 

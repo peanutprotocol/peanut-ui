@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { rejectLabelCode } from '@/constants/sumsub-reject-labels.consts'
 
 // renders sumsub reject labels as individual notifications, with a generic fallback
@@ -23,15 +23,15 @@ export const RejectLabelsList = ({ rejectLabels }: { rejectLabels?: string[] | n
     }, [labels, t])
 
     if (!reasons) {
-        return <Notification priority="error">{t('rejectLabelsFallbackDescription')}</Notification>
+        return <Callout priority="error">{t('rejectLabelsFallbackDescription')}</Callout>
     }
 
     return (
         <div className="space-y-2">
             {reasons.map((reason, i) => (
-                <Notification key={i} priority="error" title={reason.title}>
+                <Callout key={i} priority="error" title={reason.title}>
                     {reason.description}
-                </Notification>
+                </Callout>
             ))}
         </div>
     )

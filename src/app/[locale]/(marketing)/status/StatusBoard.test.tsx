@@ -1,4 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+// the banner and the incident badges read their chrome copy through next-intl,
+// which the marketing provider supplies at runtime
+import { renderWithIntl as render } from '@/test-utils/intl'
 import { OperationalDonut, StatusBanner, StatusBoard, operationalScore } from './StatusBoard'
 import { getTranslations } from '@/i18n'
 import type { StatusProvider, StatusSummary } from './types'
@@ -151,7 +154,7 @@ describe('StatusBoard', () => {
     // knowing whether Peanut is up should convey.
     it('treats an unknown overall state as an outage, not as a neutral notice', () => {
         const { container } = render(<StatusBanner state="unknown" title="Status unavailable" />)
-        expect(container.firstElementChild?.className).toContain('bg-error-1')
+        expect(container.firstElementChild?.className).toContain('bg-background-badge-error')
     })
 
     it('says a bar with no checks was unmonitored rather than showing 0/0', () => {

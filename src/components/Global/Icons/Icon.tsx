@@ -23,10 +23,12 @@ import {
     CirclePlus,
     Clipboard,
     Clock,
+    Coins,
     ContactRound,
     Copy,
     CreditCard,
     ChevronDown,
+    Pencil,
     ChevronRight,
     ChevronUp,
     Dice5,
@@ -120,6 +122,7 @@ export type IconName =
     | 'wallet-cancel'
     | 'wallet-outline'
     | 'currency'
+    | 'coins'
     | 'achievements'
     | 'link'
     | 'link-slash'
@@ -167,6 +170,7 @@ export type IconName =
     | 'alert-filled'
     | 'paste'
     | 'credit-card'
+    | 'edit'
     | 'menu'
     | 'more-horizontal'
     | 'trash'
@@ -279,6 +283,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'wallet-cancel': WalletCancelIcon,
     'wallet-outline': (props) => <LucideWrapper Icon={Wallet} {...props} />,
     currency: (props) => <LucideWrapper Icon={Banknote} {...props} />,
+    coins: (props) => <LucideWrapper Icon={Coins} {...props} />,
     achievements: (props) => <LucideWrapper Icon={Award} {...props} />,
     link: (props) => <LucideWrapper Icon={LinkIcon} {...props} />,
     'link-slash': (props) => <LucideWrapper Icon={Unlink} {...props} />,
@@ -335,6 +340,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'alert-filled': (props) => <LucideWrapper Icon={AlertTriangle} {...props} filled />,
     paste: (props) => <LucideWrapper Icon={Clipboard} {...props} />,
     'credit-card': (props) => <LucideWrapper Icon={CreditCard} {...props} />,
+    edit: (props) => <LucideWrapper Icon={Pencil} {...props} />,
     menu: (props) => <LucideWrapper Icon={Menu} {...props} />,
     'more-horizontal': (props) => <LucideWrapper Icon={MoreHorizontal} {...props} />,
     trash: (props) => <LucideWrapper Icon={Trash2} {...props} />,

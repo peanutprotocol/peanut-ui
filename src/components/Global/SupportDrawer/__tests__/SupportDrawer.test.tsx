@@ -468,6 +468,28 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
         jest.mocked(ensureNativeCameraPermission).mockClear()
     })
 
+    it('never paints web chrome during native open, close and re-entry, including the token wait', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc' })
+        mockUseCrispTokenId.mockReturnValue(undefined)
+        const view = render(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
+
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1))
+
+        modalsState.isSupportModalOpen = false
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        modalsState.isSupportModalOpen = true
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(2))
+        expect(view.container).toBeEmptyDOMElement()
+    })
+
     it('does NOT open the native messenger while a logged-in user’s token is still resolving', async () => {
         mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
         mockUseCrispTokenId.mockReturnValue(undefined)
@@ -726,5 +748,43 @@ describe('SupportDrawer — Android hardware back', () => {
 
         expect(consumed).toBe(false)
         expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+    })
+})
+
+// Defence in depth for the 2026-09-21 leak: the marketing Crisp bubble rode a
+// client-side navigation into the app and covered the withdraw form's last
+// field. The marketing layout's own lifecycle is the fix; this marker is the
+// backstop, and the CSS rule it drives keys off the APP so it can never reach
+// the drawer's /crisp-proxy iframe.
+describe('SupportDrawer — stock Crisp launcher marker', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({})
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockSetIsSupportModalOpen.mockReset()
+        resetBackHandlersForTests()
+        modalsState.isSupportModalOpen = false
+    })
+
+    it('marks the document while the app drawer is mounted, and unmarks it on unmount', () => {
+        expect(document.documentElement.dataset.crispLauncher).toBeUndefined()
+
+        const { unmount } = render(<SupportDrawer />)
+        expect(document.documentElement.dataset.crispLauncher).toBe('hidden')
+
+        unmount()
+        expect(document.documentElement.dataset.crispLauncher).toBeUndefined()
+    })
+
+    it('keeps the drawer usable — it still opens and closes', () => {
+        modalsState.isSupportModalOpen = true
+        render(<SupportDrawer />)
+
+        expect(document.querySelector('iframe[src*="crisp-proxy"]')).not.toBeNull()
+
+        act(() => {
+            dispatchBackPress()
+        })
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(false)
     })
 })

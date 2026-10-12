@@ -26,9 +26,9 @@
  *
  * Both share the same sessionStorage guard (one auto-reload per 60s) so they
  * can't compound into a reload loop; when the guard blocks, behavior degrades
- * to exactly what it was before this existed. Standalone PWA mode is excluded
- * because window.location.reload() there can bounce the user out to the
- * browser (see the sw-registration script in layout.tsx).
+ * to exactly what it was before this existed. Installed PWAs are excluded
+ * until the native migration cutoff because an Android standalone reload can
+ * leave the app window and open Chrome.
  */
 
 const GUARD_KEY = 'peanut-chunk-reload-at'

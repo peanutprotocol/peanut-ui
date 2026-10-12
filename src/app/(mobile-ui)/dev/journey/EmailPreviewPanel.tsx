@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
+import { Button } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
-import DevChip from '../_components/DevChip'
-import DevSegmented from '../_components/DevSegmented'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { decisionFlagFor, emailPreviewUrl } from './emailReview'
 import StuckBadge from './StuckBadge'
 import type { EmailRenderRef } from './journeyTypes'
@@ -54,20 +56,22 @@ export default function EmailPreviewPanel({
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
-            <button
+            <Button
                 type="button"
+                variant="ghost"
+                disableHaptics
                 aria-label="Close preview"
                 onClick={onClose}
-                className="absolute inset-0 cursor-default bg-black/40"
+                className="absolute inset-0 h-full w-full cursor-default rounded-none bg-foreground-primary/80 p-0"
             />
 
-            <aside className="relative flex h-full w-full max-w-full flex-col border-l-2 border-border-default bg-white md:w-[640px]">
+            <aside className="relative flex h-full w-full max-w-full flex-col border-l-2 border-border-default bg-background-default md:w-160">
                 <header className="flex flex-col gap-2 border-b border-border-default p-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-col gap-1">
                             <div className="text-label-l leading-tight">{active.step.subject}</div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="font-mono text-[10px] text-foreground-secondary">
+                            <div className="flex flex-wrap items-center gap-1">
+                                <span className="font-mono text-body-xs text-foreground-secondary">
                                     {active.eventType}
                                 </span>
                                 {typeof active.step.afterDaysStuck === 'number' && (
@@ -75,57 +79,50 @@ export default function EmailPreviewPanel({
                                 )}
                             </div>
                         </div>
-                        <button
-                            type="button"
+                        <Button
+                            variant="ghost"
+                            shape="square"
+                            size="small"
+                            icon="cancel"
                             onClick={onClose}
                             aria-label="Close preview"
-                            className="shrink-0 rounded-sm border border-border-default px-2 py-1 text-label-m hover:bg-purple-200/40"
-                        >
-                            esc ✕
-                        </button>
+                            className="w-auto shrink-0"
+                        />
                     </div>
 
                     {decision && (
-                        <div className="flex flex-col gap-1 rounded-sm border border-border-default bg-action-secondary/40 p-2">
-                            <DevChip tone="pink" className="self-start">
-                                {decision.label}
-                            </DevChip>
-                            <p className="text-[11px] leading-snug">{decision.note}</p>
-                        </div>
+                        <Callout priority="attention" title={decision.label}>
+                            {decision.note}
+                        </Callout>
                     )}
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         {siblings.length > 1 ? (
-                            <DevSegmented
+                            <Tabs
                                 size="sm"
+                                aria-label="Copy variant"
                                 value={String(active.example)}
-                                options={siblings.map((sibling) => ({
+                                tabs={siblings.map((sibling) => ({
                                     value: String(sibling.example),
                                     label: sibling.exampleLabel,
-                                    hint: `example=${sibling.example}`,
                                 }))}
-                                onChange={(next) =>
+                                onValueChange={(next) =>
                                     onSelect(renders.findIndex((render) => render.id === `${active.eventType}#${next}`))
                                 }
                             />
                         ) : (
-                            <span className="text-[11px] text-foreground-secondary">Single copy variant.</span>
+                            <span className="text-body-xs text-foreground-secondary">Single copy variant.</span>
                         )}
-                        <a
-                            href={emailPreviewUrl(active.eventType, active.example, false)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-label-m text-black underline"
-                        >
-                            open raw ↗
-                        </a>
+                        <LinkButton href={emailPreviewUrl(active.eventType, active.example, false)} external icon>
+                            Open raw
+                        </LinkButton>
                     </div>
-                    <p className="text-[10px] leading-snug text-foreground-secondary">
+                    <p className="text-body-xs leading-snug text-foreground-secondary">
                         Frame blank? The API only allows the embed from localhost:3050 — use open raw ↗ instead.
                     </p>
                 </header>
 
-                <div className="min-h-0 flex-1 bg-purple-200/20">
+                <div className="min-h-0 flex-1 bg-background-badge-accent/20">
                     <iframe
                         key={active.id}
                         title={`Email preview — ${active.eventType} example ${active.example}`}
@@ -142,25 +139,27 @@ export default function EmailPreviewPanel({
                         onChange={() => onToggleReviewed(active.id)}
                     />
                     <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-foreground-secondary">
+                        <span className="text-body-xs text-foreground-secondary">
                             {position}/{renders.length}
                         </span>
-                        <button
-                            type="button"
+                        <Button
+                            variant="secondary"
+                            size="small"
                             disabled={activeIndex === 0}
                             onClick={() => onSelect(activeIndex - 1)}
-                            className="rounded-sm border border-border-default px-2.5 py-1 text-label-m hover:bg-purple-200/40 disabled:opacity-30"
+                            className="w-auto"
                         >
-                            ← prev
-                        </button>
-                        <button
-                            type="button"
+                            Previous
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="small"
                             disabled={activeIndex >= renders.length - 1}
                             onClick={() => onSelect(activeIndex + 1)}
-                            className="rounded-sm border border-border-default px-2.5 py-1 text-label-m hover:bg-purple-200/40 disabled:opacity-30"
+                            className="w-auto"
                         >
-                            next →
-                        </button>
+                            Next
+                        </Button>
                     </div>
                 </footer>
             </aside>

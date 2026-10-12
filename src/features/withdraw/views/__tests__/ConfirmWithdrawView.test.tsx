@@ -48,7 +48,7 @@ describe('ConfirmWithdrawView — network fee row', () => {
     it('shows the sponsored label when the account quote carries no fee, and pay == receive', () => {
         renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0} />)
         expect(screen.getByText('Sponsored by Peanut!')).toBeInTheDocument()
-        // "Recipient receives" and "You pay" both read $10 — nothing on top.
+        // "Recipient receives" and "Total" both read $10 — nothing on top.
         expect(screen.getAllByText('$10')).toHaveLength(2)
     })
 
@@ -62,6 +62,113 @@ describe('ConfirmWithdrawView — network fee row', () => {
         renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0.51} payAmount="10.51" />)
         expect(screen.getByText('$0.51')).toBeInTheDocument()
         expect(screen.queryByText('Sponsored by Peanut!')).not.toBeInTheDocument()
+    })
+})
+
+describe('ConfirmWithdrawView — the gates hold on both CTAs', () => {
+    it('does not explain the fee when the quote failed', () => {
+        // the row shows a dash; "delivery is free" and "this network charges"
+        // are both wrong when nothing was quoted. The tooltip text only enters
+        // the DOM on hover, so assert on its trigger: PaymentInfoRow renders
+        // the info icon only when it is given text.
+        const quoted = renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0} />)
+        const withTooltips = quoted.container.querySelectorAll('svg.lucide-info').length
+        quoted.unmount()
+
+        const failed = renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0} quoteFailed />)
+        expect(failed.container.querySelectorAll('svg.lucide-info').length).toBe(withTooltips - 1)
+    })
+
+    it('blocks Retry too — a failed send is not a way past the gate', () => {
+        const onConfirm = jest.fn()
+        renderWithIntl(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                networkFee={10}
+                belowMinimumMessage="The network fee would leave nothing to deliver."
+                error="Something went wrong"
+            />
+        )
+
+        const retry = screen.getByRole('button', { name: /retry/i })
+        expect(retry).toBeDisabled()
+        fireEvent.click(retry)
+        expect(onConfirm).not.toHaveBeenCalled()
+    })
+
+    it('disables Confirm when the live-fee message appears and re-enables it once cleared', () => {
+        const onConfirm = jest.fn()
+        const message =
+            'The network fee to Solana is $3.00, which would leave nothing to deliver. Enter a larger amount.'
+        const view = renderWithIntl(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="2"
+                payAmount="2"
+                receiveAmount="1.5"
+                networkFee={0.5}
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeEnabled()
+
+        view.rerender(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="2"
+                payAmount="2"
+                receiveAmount="0"
+                networkFee={3}
+                belowMinimumMessage={message}
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeDisabled()
+        expect(screen.getByText(message)).toBeInTheDocument()
+
+        view.rerender(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                amount="4"
+                networkFee={3}
+                receiveAmount="1"
+                payAmount="4"
+            />
+        )
+        expect(screen.getByRole('button', { name: /withdraw/i })).toBeEnabled()
+        expect(screen.queryByText(message)).not.toBeInTheDocument()
+    })
+
+    it('keeps Retry alive once the funds moved — it only replays the record', () => {
+        // a full-balance withdrawal empties the wallet, so the balance gate
+        // would otherwise disable the only recovery from a failed record
+        const onConfirm = jest.fn()
+        renderWithIntl(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                insufficientBalance
+                belowMinimumMessage="The network fee would leave nothing to deliver."
+                alreadySpent
+                error="Could not record the payment"
+            />
+        )
+
+        const retry = screen.getByRole('button', { name: /retry/i })
+        expect(retry).toBeEnabled()
+        fireEvent.click(retry)
+        expect(onConfirm).toHaveBeenCalled()
+    })
+
+    it('blocks Retry when the balance cannot cover the spend', () => {
+        const onConfirm = jest.fn()
+        renderWithIntl(
+            <ConfirmWithdrawView {...baseProps} onConfirm={onConfirm} insufficientBalance error="Send failed" />
+        )
+
+        expect(screen.getByRole('button', { name: /retry/i })).toBeDisabled()
     })
 })
 
@@ -81,5 +188,16 @@ describe('USDC confirmation precision', () => {
         expect(screen.getAllByText(`$${amount}`)).toHaveLength(2)
         fireEvent.click(screen.getByRole('button', { name: /withdraw/i }))
         expect(onConfirm).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('ConfirmWithdrawView — address-book prompt placement', () => {
+    it('renders the prompt after the recipient and before the fee rows', () => {
+        renderWithIntl(<ConfirmWithdrawView {...baseProps} saveAddressPrompt={<div data-testid="save-prompt" />} />)
+        const recipient = screen.getByText(baseProps.toAddress)
+        const prompt = screen.getByTestId('save-prompt')
+        const fee = screen.getByText('Network fee')
+        expect(recipient.compareDocumentPosition(prompt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(prompt.compareDocumentPosition(fee) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 })

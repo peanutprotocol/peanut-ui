@@ -7,7 +7,6 @@ import { useQrClaimFlow } from '../useQrClaimFlow'
 
 const mockPush = jest.fn()
 const mockSaveRedirectUrl = jest.fn()
-const mockSanitizeRedirectURL = jest.fn()
 const mockServerFetch = jest.fn()
 
 let mockUser: any = null
@@ -32,7 +31,7 @@ jest.mock('@/utils/api-fetch', () => ({
 jest.mock('@/utils/general.utils', () => ({
     saveRedirectUrl: (...args: unknown[]) => mockSaveRedirectUrl(...args),
     generateInviteCodeLink: (username: string) => ({ inviteLink: `https://peanut.me/${username}/i/123` }),
-    sanitizeRedirectURL: (url: string) => mockSanitizeRedirectURL(url),
+    sanitizeRedirectURL: jest.requireActual('@/utils/cookie-url.utils').sanitizeRedirectURL,
 }))
 jest.mock('@/utils/native-routes', () => ({
     qrSuccessUrl: (code: string) => `/qr/${code}/success`,
@@ -61,7 +60,6 @@ describe('useQrClaimFlow', () => {
             isLoading: false,
             error: null,
         }
-        mockSanitizeRedirectURL.mockReturnValue('/kush/i/123')
         renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         expect(mockPush).toHaveBeenCalledWith('/kush/i/123')
     })
@@ -72,7 +70,24 @@ describe('useQrClaimFlow', () => {
             isLoading: false,
             error: null,
         }
-        mockSanitizeRedirectURL.mockReturnValue(null)
+        const { result } = renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(result.current.error).toBe('claim.invalidDestination')
+    })
+
+    it.each([
+        'https://peanut.me.evil.example/phish',
+        'https://evilpeanut.me/phish',
+        'https://localhost.evil.example/phish',
+        'javascript://peanut.me/%0Aalert(1)',
+        '/.//evil.example',
+        '/%2e//evil.example',
+        '/a/..//evil.example',
+        `${window.location.origin}/.//evil.example`,
+        'https://peanut.me/.//evil.example',
+        String.raw`/\evil.example`,
+    ])('blocks the destination end to end: %s', (redirectUrl) => {
+        mockQrStatus = { data: { claimed: true, redirectUrl }, isLoading: false, error: null }
         const { result } = renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         expect(mockPush).not.toHaveBeenCalled()
         expect(result.current.error).toBe('claim.invalidDestination')

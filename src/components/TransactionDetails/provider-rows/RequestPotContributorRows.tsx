@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { formatCurrency, printableUserHandle } from '@/utils/general.utils'
 
@@ -24,9 +25,18 @@ export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
             {requestPotContributors.map((contributor) => (
                 <div key={contributor.uuid} className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2">
-                        {/* AvatarWithBadge derives the per-username colors
-                            itself when none are passed */}
-                        <AvatarWithBadge name={contributor.username ?? ''} size="tiny" />
+                        {contributor.isPeanutUser ? (
+                            <UserAvatar
+                                name={contributor.username ?? ''}
+                                avatarKey={contributor.avatarKey}
+                                size="xs"
+                                decorative
+                            />
+                        ) : (
+                            /* AvatarWithBadge derives the per-username colors
+                               itself when none are passed */
+                            <AvatarWithBadge name={contributor.username ?? ''} size="xs" />
+                        )}
                         <span className="truncate text-body-s text-foreground-primary">
                             {printableUserHandle(contributor.username ?? '')}
                         </span>

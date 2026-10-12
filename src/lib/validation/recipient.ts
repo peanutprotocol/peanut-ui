@@ -9,6 +9,8 @@ import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { type RecipientType } from '../url-parser/types/payment'
 import { isValidAddressForFamily, type WithdrawAddressFamily } from './addressFamily'
+import { isArgentinePaymentAlias } from './argentine-alias'
+import { isSupportedEnsName } from './ens'
 
 export async function validateAndResolveRecipient(
     recipient: string,
@@ -80,7 +82,15 @@ export async function validateAndResolveRecipient(
 }
 
 export const getRecipientType = (recipient: string, isWithdrawal: boolean = false): RecipientType => {
-    if (recipient.includes('.')) {
+    // Decided before ENS classification. The predicate itself defers to the
+    // ENS namespace check, so a name is never claimed as an alias.
+    if (isArgentinePaymentAlias(recipient)) {
+        // Own-account ARS withdrawals do accept an alias; this branch is only
+        // about paying someone else from the recipient field.
+        throw new RecipientValidationError('Paying another person by alias is not supported', 'ARGENTINE_ALIAS')
+    }
+
+    if (isSupportedEnsName(recipient)) {
         return 'ENS'
     }
 
@@ -91,9 +101,17 @@ export const getRecipientType = (recipient: string, isWithdrawal: boolean = fals
         throw new RecipientValidationError('Invalid address')
     }
 
-    // For withdrawals, treat non-addresses as ENS names instead of usernames
+    // Withdrawals have no username branch, so anything left is free text — a
+    // pasted payload, a sentence. Reject it here instead of sending it as an
+    // ENS name; it could never have resolved.
     if (isWithdrawal) {
-        return 'ENS'
+        throw new RecipientValidationError('Enter a wallet address or an ENS name', 'UNSUPPORTED_WITHDRAW_RECIPIENT')
+    }
+
+    // A dotted string that is not a supported ENS name is not a username
+    // either — Peanut usernames hold no dots.
+    if (recipient.includes('.')) {
+        throw new RecipientValidationError('Invalid ENS name', 'INVALID_ENS')
     }
 
     return 'USERNAME'

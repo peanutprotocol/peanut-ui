@@ -6,7 +6,11 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web', IOS: 'ios', ANDROID: 'android' },
     useDeviceType: () => ({ deviceType: 'web' }),
 }))
-jest.mock('@/utils/migration.utils', () => ({ trackStoreClick: jest.fn() }))
+jest.mock('@/utils/migration.utils', () => ({
+    trackStoreClick: jest.fn(),
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
+}))
 jest.mock('@/utils/deferred-link', () => ({
     copyIOSHandoff: jest.fn(),
     trackDeferredHandoffCreated: jest.fn(),
@@ -49,6 +53,19 @@ it('counts an iOS handoff only after the clipboard write succeeds, once per payl
         fireEvent.click(screen.getByRole('link', { name: 'App Store' }))
     })
     expect(trackDeferredHandoffCreated).toHaveBeenCalledTimes(1)
+})
+
+it('copies the full iOS payload while keeping the Android store link bounded', async () => {
+    const iosPayload = `${payload}&at=full-journey`
+    render(<StoreBadges surface="landing_door" payload={payload} iosPayload={iosPayload} />)
+    expect(screen.getByRole('link', { name: 'Google Play' })).toHaveAttribute(
+        'href',
+        `https://play.google.com/store/apps?referrer=${payload}`
+    )
+    await act(async () => {
+        fireEvent.click(screen.getByRole('link', { name: 'App Store' }))
+    })
+    expect(copyIOSHandoff).toHaveBeenCalledWith(iosPayload)
 })
 
 it('does not count a failed iOS clipboard write', async () => {

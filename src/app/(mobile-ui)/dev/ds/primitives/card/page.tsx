@@ -3,6 +3,9 @@
 import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
 import { DocHeader } from '../../_components/DocHeader'
@@ -10,6 +13,9 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { WhenToUse } from '../../_components/WhenToUse'
+import { DesignNote } from '../../_components/DesignNote'
 
 export default function CardPage() {
     return (
@@ -20,14 +26,32 @@ export default function CardPage() {
                 status="production"
             />
 
+            <WhenToUse
+                use={[
+                    'A standalone block on a screen — icon bubble, title, body, CTA',
+                    'A summary surface that holds one result or one number',
+                    'Set the padding yourself — a bare Card has none (p-4 inside blocks, p-6 for the board CTA card)',
+                    'Add shadowSize to lift the card; leave it off for a flat block',
+                ]}
+                dontUse={[
+                    'Stacked list rows — use ListItem inside a ListGroup',
+                    'Rows inside the card — use DataRow; a ListItem there doubles the borders',
+                    'A no-data state — use EmptyState',
+                    'An inline status or error message — use Callout',
+                ]}
+            />
+
+            <DesignNote type="info">
+                Building a card? Start from Patterns → Cards. It says which shadow, which IconBubble size and which
+                header gap to use.
+            </DesignNote>
+            <LinkButton href="/dev/ds/patterns/cards-global">Patterns → Cards</LinkButton>
+
             <Playground
                 name="Card"
                 importPath={`import { Card } from '@/components/0_Bruddle/Card'`}
                 defaults={{ shadowSize: '4' }}
-                controls={[
-                    { type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] },
-                    { type: 'select', prop: 'color', label: 'color', options: ['primary', 'secondary'] },
-                ]}
+                controls={[{ type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] }]}
                 render={(props) => (
                     <Card {...props} className="w-full max-w-xs p-4">
                         <Card.Header>
@@ -42,7 +66,6 @@ export default function CardPage() {
                 codeTemplate={(props) => {
                     const parts = ['<Card']
                     if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
-                    if (props.color && props.color !== 'primary') parts.push(`color="${props.color}"`)
                     parts.push('className="p-4">')
                     return (
                         parts.join(' ') +
@@ -56,12 +79,14 @@ export default function CardPage() {
             <PropsTable
                 rows={[
                     { name: 'shadowSize', type: "'4' | '6' | '8'", default: '(none)' },
-                    { name: 'color', type: "'primary' | 'secondary'", default: "'primary'" },
                     { name: 'className', type: 'string', default: '(none)' },
                 ]}
             />
 
-            <DocSection title="Shadow Variants">
+            <DocSection
+                title="Shadow Variants"
+                description={`In-app cards are flat: leave shadowSize off. shadowSize="4" is for marketing and public pages. 6 and 8 have no Card callers.`}
+            >
                 <DocSection.Content>
                     <div className="space-y-3">
                         <Card className="p-4">
@@ -109,6 +134,31 @@ export default function CardPage() {
                 </DocSection.Code>
             </DocSection>
 
+            <DocSection
+                title="Header spacing"
+                description="Header → content is M/12 (gap-3 on the Card). Inside the header, title → description is XS/4 (gap-1, TitleBlock)."
+            >
+                <DocSection.Content>
+                    <Card className="flex flex-col gap-3 p-4">
+                        <TitleBlock title="Recover card funds" description="We send them to your Peanut wallet" />
+                        <p className="text-body-s">Body content starts 12px below the header.</p>
+                    </Card>
+                    <DesignNote type="info">
+                        Card.Header and Card.Content draw their own rule and padding instead. They are legacy: two
+                        callers (withdraw/manteca, [...recipient]/error).
+                    </DesignNote>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Header → content"
+                        code={`<Card className="flex flex-col gap-3 p-4">
+  <TitleBlock title="Recover card funds" description="We send them to your Peanut wallet" />
+  {content}
+</Card>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
             <SectionDivider />
 
             <DocSection
@@ -127,13 +177,13 @@ export default function CardPage() {
                                     </Card.Description>
                                 </div>
                             </div>
-                            <Button variant="purple" className="w-full">
+                            <Button variant="primary" className="w-full">
                                 Verify now
                             </Button>
                         </Card>
                         <Card className="items-center gap-6 p-6 text-center">
                             <div className="flex flex-col items-center gap-2">
-                                <IconBubble icon="check" color="yellow" />
+                                <IconBubble {...CONCEPT_ICONS.verification} />
                                 <div className="flex flex-col items-center gap-1">
                                     <Card.Title className="pb-0 text-center">Verify to get started</Card.Title>
                                     <Card.Description className="text-center">
@@ -142,10 +192,10 @@ export default function CardPage() {
                                 </div>
                             </div>
                             <div className="flex w-full flex-col gap-3">
-                                <Button variant="purple" className="w-full">
+                                <Button variant="primary" className="w-full">
                                     Path 1
                                 </Button>
-                                <Button variant="stroke" className="w-full">
+                                <Button variant="secondary" className="w-full">
                                     Path 2
                                 </Button>
                             </div>
@@ -174,11 +224,58 @@ export default function CardPage() {
       <Card.Description>Use bank accounts…</Card.Description>
     </div>
   </div>
-  <Button variant="purple" className="w-full">Verify now</Button>
+  <Button variant="primary" className="w-full">Verify now</Button>
 </Card>`}
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Payment success — summary row"
+                    path="src/features/payments/shared/components/PaymentSuccessView.tsx"
+                    description="No shadow, row layout: green check bubble beside the amount and recipient."
+                    code={`<Card className="flex items-center gap-3 p-4">
+  <div className="flex items-center gap-3">
+    <IconBubble icon="check" color="green" />
+  </div>
+  <div className="space-y-1">
+    <h1 className="text-body-s text-foreground-secondary">{getTitle()}</h1>
+    ...
+  </div>
+</Card>`}
+                >
+                    <Card className="flex items-center gap-3 p-4">
+                        <div className="flex items-center gap-3">
+                            <IconBubble icon="check" color="green" />
+                        </div>
+                        <div className="space-y-1">
+                            <h1 className="text-body-s text-foreground-secondary">Sent to lucia</h1>
+                            <p className="text-heading-s">$24.00</p>
+                        </div>
+                    </Card>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Rewards — invite earnings"
+                    path="src/app/(mobile-ui)/rewards/invites/page.tsx"
+                    description="Centered column card holding one number — the lifetime USD earned from invites."
+                    code={`<Card className="flex flex-col items-center justify-center gap-2 p-4">
+  <h2 className="text-center text-body-m text-foreground-primary">
+    {t('friendsEarnedYou')}
+  </h2>
+  <span className="text-heading-m text-foreground-primary">
+    \${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
+  </span>
+</Card>`}
+                >
+                    <Card className="flex flex-col items-center justify-center gap-2 p-4">
+                        <h2 className="text-center text-body-m text-foreground-primary">Your friends earned you</h2>
+                        <span className="text-heading-m text-foreground-primary">$18.50</span>
+                        <span className="text-body-s text-foreground-secondary">1,850 points</span>
+                    </Card>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

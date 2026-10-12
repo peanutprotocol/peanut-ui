@@ -9,13 +9,7 @@ import { useBadgeCopy } from './useBadgeCopy'
 import { type BadgeHistoryEntry } from './badge.types'
 import { BadgeImage } from './BadgeImage'
 
-export const BadgeStatusItem = ({
-    position = 'first',
-    entry,
-}: {
-    position?: CardPosition
-    entry: BadgeHistoryEntry
-}) => {
+export const BadgeStatusItem = ({ position = 'top', entry }: { position?: CardPosition; entry: BadgeHistoryEntry }) => {
     const t = useTranslations('badges')
     const badgeCopy = useBadgeCopy()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -42,7 +36,7 @@ export const BadgeStatusItem = ({
                         <BadgeImage
                             src={getBadgeIcon(entry.code, entry.iconUrl)}
                             alt={t('iconAlt', { name: displayName })}
-                            className="size-10 object-contain"
+                            className="size-8 object-contain"
                             width={32}
                             height={32}
                         />

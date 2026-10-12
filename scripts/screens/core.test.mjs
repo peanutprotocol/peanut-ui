@@ -4,8 +4,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
+import { CAPTURE_PROFILES } from './capture-profiles.mjs'
 import {
     validateCapture,
+    validateJourneys,
     compare,
     storeAsset,
     verifyAsset,
@@ -47,21 +49,101 @@ const screen = (id, image = a) => ({
     image,
     thumbnail: image,
 })
+const iphoneDevice = {
+    platform: 'ios',
+    label: 'iPhone',
+    cutout: 'dynamic-island',
+    safeArea: { top: 59, right: 0, bottom: 34, left: 0 },
+}
+test('capture device metadata is canonical and part of comparison identity', () => {
+    const withDevice = { ...capture([screen('home')]), device: iphoneDevice }
+    assert.deepEqual(validateCapture(withDevice).device, iphoneDevice)
+    assert.throws(
+        () =>
+            validateCapture({
+                ...withDevice,
+                device: { ...iphoneDevice, safeArea: { ...iphoneDevice.safeArea, top: 0 } },
+            }),
+        /Unsupported capture device/
+    )
+    assert.throws(() => compare(capture([screen('home')]), withDevice, dir), /environments differ/)
+})
 test('same pixels remain unchanged; changed pixels get a diff', () => {
     const r = compare(capture([screen('home')]), capture([screen('home', b)]), dir)
     assert.equal(r.screens[0].status, 'changed')
     assert.ok(r.screens[0].diff)
     assert.equal(compare(capture([screen('home')]), capture([screen('home')]), dir).screens[0].status, 'unchanged')
 })
+test('four-pixel rendering noise stays unchanged and the first visible percentage still changes', () => {
+    for (const [profile, { width, height }] of Object.entries(CAPTURE_PROFILES)) {
+        const image = new PNG({ width, height })
+        image.data.fill(255)
+        const original = storeAsset(dir, PNG.sync.write(image))
+        const firstChangedPixelCount = Math.ceil(width * height * 0.00005)
+        const profiledCapture = (imageName) => ({
+            ...capture([screen('home', imageName)]),
+            width,
+            height,
+            profile: `en-${profile}`,
+        })
+        for (const count of [4, firstChangedPixelCount - 1, firstChangedPixelCount]) {
+            const noisy = PNG.sync.read(PNG.sync.write(image))
+            // Isolated solid pixels avoid pixelmatch's anti-aliasing exclusions.
+            for (let i = 0; i < count; i++) {
+                const offset = (100 * width + 100 + i * 3) * 4
+                noisy.data[offset] = noisy.data[offset + 1] = noisy.data[offset + 2] = 0
+            }
+            const changedImage = storeAsset(dir, PNG.sync.write(noisy))
+            const row = compare(profiledCapture(original), profiledCapture(changedImage), dir).screens[0]
+            assert.equal(row.pixels, count)
+            assert.equal(row.percent, (count / (width * height)) * 100)
+            assert.equal(row.status, count < firstChangedPixelCount ? 'unchanged' : 'changed')
+            assert.equal(row.belowThreshold, count < firstChangedPixelCount ? true : undefined)
+            assert.equal(Boolean(row.diff), count >= firstChangedPixelCount)
+            if (row.status === 'changed') assert.notEqual(row.percent.toFixed(2), '0.00')
+        }
+    }
+})
+test('capture metadata preserves journey order and comparisons use it instead of screen IDs', () => {
+    const later = { ...screen('alpha'), order: 20, journey: 'Account setup' }
+    const earlier = { ...screen('zeta'), order: 10, journey: 'Account setup' }
+    const validated = validateCapture(capture([later, earlier]))
+    assert.equal(validated.screens[0].journey, 'Account setup')
+    assert.equal(validated.screens[0].order, 20)
+    assert.deepEqual(
+        compare(capture([later, earlier]), capture([later, earlier]), dir).screens.map(({ id }) => id),
+        ['zeta', 'alpha']
+    )
+})
 test('failure cannot become a removed or unchanged screen', () => {
     const failed = { id: 'home', name: 'Home', flow: 'Home', kind: 'route', status: 'failed', reason: 'Wrong route' }
     const r = compare(capture([screen('home')]), capture([failed]), dir)
-    assert.equal(r.screens[0].status, 'unavailable')
+    assert.equal(r.screens[0].status, 'failed')
     assert.equal(r.complete, false)
 })
-test('historical unsupported state is unavailable, not new', () => {
+test('a captured state with an unavailable baseline is new to review and retains the baseline gap', () => {
     const old = { ...screen('home'), status: 'unavailable', reason: 'Adapter unavailable' }
-    assert.equal(compare(capture([old]), capture([screen('home')]), dir).screens[0].status, 'unavailable')
+    const result = compare(capture([old]), capture([screen('home')]), dir)
+    assert.equal(result.screens[0].status, 'new')
+    assert.equal(result.screens[0].before.status, 'unavailable')
+    assert.equal(result.screens[0].before.reason, 'Adapter unavailable')
+    assert.equal(result.screens[0].after.image, a)
+    assert.equal(result.screens[0].diff, undefined)
+    assert.equal(result.complete, false)
+    for (const status of ['failed', 'excluded']) {
+        const gap = { ...old, status }
+        assert.equal(compare(capture([gap]), capture([screen('home')]), dir).screens[0].status, status)
+    }
+    assert.equal(compare(capture([screen('home')]), capture([old]), dir).screens[0].status, 'unavailable')
+})
+test('intentional exclusions and absent routes remain distinguishable from failures', () => {
+    const excluded = { ...screen('excluded'), status: 'excluded', reason: 'Alias covered elsewhere' }
+    const absent = { ...screen('absent'), status: 'absent', reason: 'Route does not exist' }
+    const r = compare(capture([excluded, absent]), capture([excluded, absent]), dir)
+    assert.deepEqual(
+        r.screens.map((s) => s.status),
+        ['absent', 'excluded']
+    )
 })
 test('only complete catalogues prove additions and removals', () => {
     const r = compare(capture([screen('old')]), capture([screen('new')]), dir)
@@ -77,16 +159,36 @@ test('different harness, fixtures or environment requires recapture', () => {
         assert.throws(() => compare(capture([screen('home')]), r, dir), /environments differ/)
     }
 })
+test('captures from different locales cannot be compared', () => {
+    const portuguese = { ...capture([screen('home')]), locale: 'pt-BR', profile: 'pt-BR-393x852' }
+    assert.throws(() => compare(capture([screen('home')]), portuguese, dir), /environments differ/)
+})
 test('reject empty, duplicate, path traversal, and forged completion', () => {
     assert.throws(() => validateCapture(capture([])))
     assert.throws(() => validateCapture(capture([screen('home'), screen('home')])))
     assert.throws(() => validateCapture(capture([screen('../escape')])))
     assert.throws(() => validateCapture(capture([{ ...screen('home'), image: '../../secret' }])))
+    assert.throws(() => validateCapture({ ...capture([screen('home')]), locale: 'fr', profile: 'fr-393x852' }))
+    assert.throws(() => validateCapture({ ...capture([screen('home')]), width: 440 }))
+    assert.throws(() =>
+        validateCapture({ ...capture([screen('home')]), profile: 'en-999x999', width: 999, height: 999 })
+    )
     assert.equal(
         validateCapture({ ...capture([{ ...screen('home'), status: 'failed', reason: 'timeout' }]), complete: true })
             .complete,
         false
     )
+})
+test('accepts each additional baseline profile only when its name and dimensions agree', () => {
+    for (const [width, height] of [
+        [440, 956],
+        [360, 800],
+        [320, 712],
+    ]) {
+        const input = { ...capture([screen('home')]), profile: `en-${width}x${height}`, width, height }
+        assert.equal(validateCapture(input).profile, input.profile)
+        assert.throws(() => validateCapture({ ...input, height: height + 1 }), /Unsupported capture profile/)
+    }
 })
 test('asset digest and dimensions are checked before decoding', () => {
     const name = '0'.repeat(64) + '.png'
@@ -95,6 +197,98 @@ test('asset digest and dimensions are checked before decoding', () => {
     const p = new PNG({ width: 2, height: 2 })
     const tiny = storeAsset(dir, PNG.sync.write(p))
     assert.throws(() => verifyAsset(dir, tiny), /dimensions/)
+    const journey = new PNG({ width: 1170, height: 1992 })
+    const journeyName = storeAsset(dir, PNG.sync.write(journey))
+    assert.doesNotThrow(() => verifyAsset(dir, journeyName, { variableDimensions: true }))
+})
+
+test('Nutcracker journeys retain only allowlisted public metadata', () => {
+    const input = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: 'a'.repeat(40),
+        uiCommit: 'b'.repeat(40),
+        apiCommit: 'c'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T00:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        attemptedSteps: 1,
+        failedSteps: 0,
+        omittedFailedSteps: 0,
+        complete: true,
+        replaySecret: 'do-not-publish',
+        screens: [
+            {
+                id: 'send-success',
+                name: 'Send success',
+                flow: 'e2e-send',
+                route: '/send/success',
+                kind: 'route',
+                status: 'passed',
+                trustTier: 'full-e2e',
+                image: a,
+                thumbnail: b.replace(/\.png$/, '.webp'),
+                trace: { authorization: 'secret' },
+            },
+        ],
+    }
+    const output = validateJourneys(input)
+    assert.equal(output.complete, true)
+    assert.equal(output.replaySecret, undefined)
+    assert.equal(output.screens[0].trace, undefined)
+    assert.equal(output.screens[0].route, '/send/success')
+    assert.equal(output.screens[0].trustTier, 'full-e2e')
+    assert.equal(output.attemptedSteps, 1)
+    assert.equal(output.failedSteps, 0)
+    assert.equal(output.omittedFailedSteps, 0)
+    assert.equal(
+        validateJourneys({
+            ...input,
+            complete: true,
+            failedSteps: 1,
+            screens: [{ ...input.screens[0], status: 'failed' }],
+        }).complete,
+        false
+    )
+    assert.equal(
+        validateJourneys({
+            ...input,
+            complete: true,
+            attemptedSteps: 2,
+            failedSteps: 1,
+            omittedFailedSteps: 1,
+        }).complete,
+        false
+    )
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], route: '/claim#p=do-not-publish' }],
+            }),
+        /Invalid journey route/
+    )
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], thumbnail: a }],
+            }),
+        /Invalid journey image/
+    )
+    assert.throws(() => validateJourneys({ ...input, attemptedSteps: undefined }), /Invalid journey run counts/)
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], trustTier: 'surface-only' }],
+            }),
+        /Invalid journey trust tier/
+    )
 })
 test('exact review merge-base and first-parent resolution', () => {
     const head = 'a'.repeat(40),

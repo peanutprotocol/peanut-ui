@@ -13,11 +13,10 @@ const MIN_SPIN_MS = 600
 const SUCCESS_HOLD_MS = 550 // how long the checkmark stays up before retracting
 const RETRACT_MS = 220 // matches the indicator's transform transition
 const CHECK_POP_MS = 260
-const CONTENT_SETTLE_MS = 340
 const DEFAULT_REFRESH_TARGET = '#scrollable-content'
 
-const IDLE_BG = '#ffffff'
-const SUCCESS_BG = '#98E9AB' // green-1
+const IDLE_BG = 'var(--color-background-default)'
+const SUCCESS_BG = 'var(--color-background-badge-success)'
 
 const SVG_OPEN =
     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" ' +
@@ -35,8 +34,6 @@ interface UsePullToRefreshOptions {
     shouldPullToRefresh?: () => boolean
     // whether to enable pull-to-refresh (defaults to true)
     enabled?: boolean
-    // element that gets the "content settled" fade once the refetch lands
-    refreshTargetSelector?: string
 }
 
 /**
@@ -48,7 +45,7 @@ export function useShouldPullToRefresh(): () => boolean {
     const scrollableContentRef = useRef<Element | null>(null)
     return useCallback(() => {
         if (window.scrollY > 0) return false
-        if (!scrollableContentRef.current) {
+        if (!scrollableContentRef.current?.isConnected) {
             scrollableContentRef.current = document.querySelector(DEFAULT_REFRESH_TARGET)
         }
         const scrollableContent = scrollableContentRef.current
@@ -76,17 +73,15 @@ export function useShouldPullToRefresh(): () => boolean {
  *               threshold, with a light haptic on the crossing
  *   refreshing→ spinner, held for MIN_SPIN_MS so a cache-warm refetch is still
  *               legible
- *   done      → green checkmark + success haptic, and the content fades back
- *               in so the screen visibly re-renders
+ *   done      → green checkmark + success haptic; the page stays fully visible
  */
 export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
-    const { shouldPullToRefresh, enabled = true, refreshTargetSelector = DEFAULT_REFRESH_TARGET } = options
+    const { shouldPullToRefresh, enabled = true } = options
     const queryClient = useQueryClient()
 
     // store in refs so listener registration survives re-renders
     const shouldPullToRefreshRef = useRef(shouldPullToRefresh)
     const queryClientRef = useRef(queryClient)
-    const refreshTargetRef = useRef(refreshTargetSelector)
 
     useEffect(() => {
         shouldPullToRefreshRef.current = shouldPullToRefresh
@@ -95,10 +90,6 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
     useEffect(() => {
         queryClientRef.current = queryClient
     }, [queryClient])
-
-    useEffect(() => {
-        refreshTargetRef.current = refreshTargetSelector
-    }, [refreshTargetSelector])
 
     useEffect(() => {
         if (typeof window === 'undefined' || !enabled) return
@@ -135,9 +126,6 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         const animate = (element: Element, keyframes: Keyframe[], animationOptions: KeyframeAnimationOptions) =>
             typeof element.animate === 'function' ? element.animate(keyframes, animationOptions) : null
 
-        const prefersReducedMotion = () =>
-            typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
         const setIndicator = (pull: number, withTransition: boolean) => {
             indicator.style.transition = withTransition
                 ? 'transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease'
@@ -171,6 +159,8 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
                 ':is([role="dialog"], [role="alertdialog"]):is([data-state="open"], [aria-modal="true"]):not([hidden])'
             )
 
+        const canPull = () => window.scrollY === 0 && (shouldPullToRefreshRef.current?.() ?? true)
+
         const onTouchStart = (e: TouchEvent) => {
             if (refreshing) return
             if (hasOpenDialog() || e.touches.length !== 1) {
@@ -182,8 +172,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
                 resetPull()
                 return
             }
-            const allowed = shouldPullToRefreshRef.current ? shouldPullToRefreshRef.current() : window.scrollY === 0
-            if (!allowed) return
+            if (!canPull()) {
+                resetPull()
+                return
+            }
             // a new pull can start inside the retract window — put the arrow back
             // now, so the previous run's checkmark doesn't get swapped mid-gesture
             restoreIdleIndicator()
@@ -197,7 +189,7 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchMove = (e: TouchEvent) => {
             if (!pulling || refreshing) return
-            if (hasOpenDialog()) {
+            if (hasOpenDialog() || e.touches.length !== 1 || !canPull()) {
                 resetPull()
                 return
             }
@@ -206,8 +198,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             if (!axisLock && (Math.abs(dx) > AXIS_LOCK_SLOP_PX || Math.abs(dy) > AXIS_LOCK_SLOP_PX)) {
                 axisLock = Math.abs(dy) >= Math.abs(dx) ? 'y' : 'x'
             }
-            // don't hijack horizontal gestures (carousels) or real scrolls
-            if (axisLock === 'x' || window.scrollY > 0) {
+            // Don't hijack horizontal gestures (carousels) or real scrolls.
+            // An upward swipe belongs to scrolling for the rest of this touch,
+            // even if the finger reverses direction after reaching the top.
+            if (axisLock === 'x' || dy < -AXIS_LOCK_SLOP_PX) {
                 resetPull()
                 return
             }
@@ -222,15 +216,6 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             }
         }
 
-        // the refreshed screen fades back in — on native nothing else on screen
-        // changes when the refetch resolves, so this is the "it reloaded" signal
-        const settleContent = () => {
-            if (prefersReducedMotion()) return
-            const target = document.querySelector(refreshTargetRef.current)
-            if (!target) return
-            animate(target, [{ opacity: 0.35 }, { opacity: 1 }], { duration: CONTENT_SETTLE_MS, easing: 'ease-out' })
-        }
-
         const finishRefresh = () => {
             spinAnimation?.cancel()
             spinAnimation = null
@@ -242,7 +227,6 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
                 easing: 'ease-out',
             })
             notifyHaptic('success')
-            settleContent()
             timers.push(
                 setTimeout(() => {
                     refreshing = false
@@ -255,7 +239,7 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchEnd = () => {
             if (!pulling || refreshing) return
-            if (hasOpenDialog()) {
+            if (hasOpenDialog() || !canPull()) {
                 resetPull()
                 return
             }

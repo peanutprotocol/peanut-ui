@@ -19,7 +19,7 @@ import {
     EVM_DEPOSIT_TOKEN_EXCEPTIONS,
 } from '../rhino.consts'
 import { RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN } from '@/components/Global/TokenSelector/TokenSelector.consts'
-import { CHAIN_REGISTRY, CHAIN_ROLLOUT_FLAGS, NON_EVM_WITHDRAW_CHAINS } from '../chainRegistry.consts'
+import { CHAIN_REGISTRY, NON_EVM_WITHDRAW_CHAINS, resolveChainRegistryEntry } from '../chainRegistry.consts'
 
 describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
     it('EVM_CHAIN_ID_TO_RHINO_NAME', () => {
@@ -118,37 +118,22 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
         expect(CHAIN_LOGOS.SCROLL).toMatch(/^https:\/\//) // legacy display-only
     })
 
-    it('CHAIN_ROLLOUT_FLAGS — every surface key of a flagged chain maps to ONE flag', () => {
-        expect(CHAIN_ROLLOUT_FLAGS).toEqual({
-            '8453': 'chain-rollout-base',
-            BASE: 'chain-rollout-base',
-            '43114': 'chain-rollout-avalanche',
-            '999': 'chain-rollout-hyperevm',
-            '57073': 'chain-rollout-ink',
-            '747474': 'chain-rollout-katana',
-            KATANA: 'chain-rollout-katana',
-            '59144': 'chain-rollout-linea',
-            '5000': 'chain-rollout-mantle',
-            '9745': 'chain-rollout-plasma',
-            PLASMA: 'chain-rollout-plasma',
-            '988': 'chain-rollout-stable',
-            '4217': 'chain-rollout-tempo',
-            TEMPO: 'chain-rollout-tempo',
-            '8217': 'chain-rollout-kaia',
-            KAIA: 'chain-rollout-kaia',
-            solana: 'chain-rollout-solana',
-            SOLANA: 'chain-rollout-solana',
-            tron: 'chain-rollout-tron',
-            TRON: 'chain-rollout-tron',
-        })
-    })
-
     it('NON_EVM_WITHDRAW_CHAINS synthetic records', () => {
         expect(Object.keys(NON_EVM_WITHDRAW_CHAINS).sort()).toEqual(['solana', 'tron'])
         expect(NON_EVM_WITHDRAW_CHAINS.solana.tokens.map((t) => t.symbol)).toEqual(['USDC', 'USDT'])
         expect(NON_EVM_WITHDRAW_CHAINS.solana.tokens[0].address).toBe('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
         expect(NON_EVM_WITHDRAW_CHAINS.tron.tokens.map((t) => t.symbol)).toEqual(['USDT'])
         expect(NON_EVM_WITHDRAW_CHAINS.tron.tokens[0].address).toBe('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t')
+    })
+
+    it('resolves wire identifiers to the canonical explorer metadata', () => {
+        expect(resolveChainRegistryEntry('421614')?.id).toBe('42161')
+        expect(resolveChainRegistryEntry('MATIC_POS')?.id).toBe('137')
+        expect(resolveChainRegistryEntry(' solana ')?.transactionExplorerUrlPrefix).toBe('https://solscan.io/tx/')
+        expect(resolveChainRegistryEntry('TRON')?.transactionExplorerUrlPrefix).toBe(
+            'https://tronscan.org/#/transaction/'
+        )
+        expect(resolveChainRegistryEntry('unknown')).toBeUndefined()
     })
 
     it('registry invariants', () => {

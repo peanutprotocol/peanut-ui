@@ -1,3 +1,5 @@
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import IndicatorDot from '@/components/Global/IndicatorDot'
@@ -12,13 +14,7 @@ import {
     isPerkReward,
 } from '@/components/TransactionDetails/transaction-predicates'
 import { useTranslations } from 'next-intl'
-import {
-    formatNumberForDisplay,
-    formatCurrency,
-    printableUserHandle,
-    isStableCoin,
-    shortenStringLong,
-} from '@/utils/general.utils'
+import { formatNumberForDisplay, printableUserHandle, isStableCoin, shortenStringLong } from '@/utils/general.utils'
 import {
     getAvatarUrl,
     getTransactionSign,
@@ -27,15 +23,16 @@ import {
     PENDING_AMOUNT_STATUSES,
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
+import { formatBankAmount } from '@/utils/currency'
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import { isAddress } from 'viem'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import { normalizeEnsName } from '@/utils/ens-name.utils'
-import StatusPill, { type StatusPillType } from '../Global/StatusPill'
+import Badge, { type IconStatusType } from '../Global/Badges/Badge'
 import { VerifiedUserLabel } from '../UserHeader'
-import { PerkIcon } from './PerkIcon'
+import { MerchantLogoIcon } from './MerchantLogoIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PEANUTMAN } from '@/assets/mascot'
@@ -56,7 +53,7 @@ interface TransactionCardProps {
     type: TransactionType
     name: string
     amount: number // For USD, this amount might come signed from mapTransactionDataForDrawer
-    status?: StatusPillType
+    status?: IconStatusType
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails
@@ -123,6 +120,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const userNameForAvatar =
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
+    // The sticker's letter follows the handle instead, so a peer with no pick
+    // looks the same here as on their profile. A counterparty with only a
+    // display name has their address in `userName`, which draws no letter — the
+    // display name is the only thing left to derive one from.
+    const avatarNameForAvatar = isAddress(transaction.userName) ? userNameForAvatar : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(name)
@@ -161,15 +163,18 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
 
-    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString(), 2, 0)
-    const formattedTotalAmountCollected = formatCurrency(transaction.totalAmountCollected.toString(), 2, 0)
+    // The receipt's amount format: cents shown, no ".00" on a round amount.
+    // The row used to drop a trailing zero, so the list said "$12.5" beside a
+    // receipt that said "$12.50".
+    const formattedAmount = formatBankAmount(Math.abs(usdAmount), 'USD')
+    const formattedTotalAmountCollected = formatBankAmount(transaction.totalAmountCollected, 'USD')
 
-    let displayAmount = `${sign}$${formattedAmount}`
+    let displayAmount = `${sign}${formattedAmount}`
 
     if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
-        displayAmount = `$${formattedTotalAmountCollected} / $${formattedAmount}`
+        displayAmount = `${formattedTotalAmountCollected} / ${formattedAmount}`
     } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
-        displayAmount = `$${formattedTotalAmountCollected}`
+        displayAmount = formattedTotalAmountCollected
     }
 
     let currencyDisplayAmount: string | undefined
@@ -248,27 +253,43 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         Boolean(transaction.extraDataForDrawer?.cardPayment?.settlementAdjusted) &&
         !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
+    // Rain enriches a card spend with the merchant's own brand logo. Show it
+    // in the row's leading slot when present; the generic card badge stays as
+    // the fallback (used when there is no logo, and when the URL fails to load).
+    const merchantLogo = isCardPaymentEntry(transaction)
+        ? transaction.extraDataForDrawer?.cardPayment?.merchantLogo
+        : null
+
+    const genericBadge = (
+        <TransactionAvatarBadge
+            initials={initials}
+            userName={userNameForAvatar}
+            avatarName={avatarNameForAvatar}
+            avatarKey={transaction.avatarKey}
+            isPeer={transaction.isPeerActuallyUser}
+            isLinkTransaction={isLinkTx}
+            transactionType={type}
+            status={status}
+            size="s"
+            countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
+        />
+    )
+
     // txn avatar handles icon/initials/colors — the row's leading slot
     const leading = isTest ? (
         <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
             <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
         </div>
     ) : isPerkRewardEntry ? (
-        <PerkIcon size="extra-small" />
+        <IconBubble {...CONCEPT_ICONS.rewards} size="s" />
     ) : avatarUrl ? (
         <div className={'relative flex size-8 items-center justify-center rounded-full'}>
             <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
         </div>
+    ) : merchantLogo ? (
+        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} />
     ) : (
-        <TransactionAvatarBadge
-            initials={initials}
-            userName={userNameForAvatar}
-            isLinkTransaction={isLinkTx}
-            transactionType={type}
-            context="card"
-            size="extra-small"
-            countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
-        />
+        genericBadge
     )
 
     return (
@@ -300,9 +321,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 ? t('type.setup')
                                 : isPerkRewardEntry
                                   ? t('type.reward')
-                                  : t(getActionLabelKey(type, status))}
+                                  : t(transaction.actionLabelKey ?? getActionLabelKey(type, status))}
                         </span>
-                        {showStatusChip && status && <StatusPill status={status} />}
+                        {showStatusChip && status && <Badge type="icon" status={status} />}
                         {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
                     </div>
                 }
@@ -385,7 +406,7 @@ const TYPE_LABEL_KEYS = {
 
 /** Catalog key for the row's action label — refunded rows read "Refund"
  *  regardless of the underlying type. */
-function getActionLabelKey(type: TransactionType, status?: StatusPillType) {
+function getActionLabelKey(type: TransactionType, status?: IconStatusType) {
     return TYPE_LABEL_KEYS[status === 'refunded' ? 'refund' : type]
 }
 

@@ -12,6 +12,8 @@ interface SearchInputProps {
     inputRef?: React.RefObject<HTMLInputElement>
     className?: string
     'aria-label'?: string
+    /** Clear-button label. Needed where the `global` namespace is absent (marketing). */
+    clearLabel?: string
 }
 
 /**
@@ -26,6 +28,7 @@ export const SearchInput = ({
     placeholder,
     inputRef,
     className,
+    clearLabel,
     ...props
 }: SearchInputProps) => {
     const t = useTranslations('global')
@@ -37,7 +40,8 @@ export const SearchInput = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="h-10 w-full px-10 text-body-s font-normal"
+                size="sm"
+                className="w-full px-10 text-body-s font-normal"
                 {...props}
             />
             <Icon
@@ -47,10 +51,10 @@ export const SearchInput = ({
             />
             {value && (
                 <Button
-                    variant="transparent"
+                    variant="ghost"
                     onClick={onClear}
                     className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0 after:absolute after:-inset-3"
-                    aria-label={t('tokenSelector.clearSearch')}
+                    aria-label={clearLabel ?? t('tokenSelector.clearSearch')}
                 >
                     <div className="flex size-6 items-center justify-center">
                         <Icon name="cancel" size={16} className="text-foreground-secondary" />

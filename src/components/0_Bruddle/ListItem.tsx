@@ -8,6 +8,11 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 interface ListItemProps {
     title: React.ReactNode
+    /**
+     * one line with an ellipsis, for a string title that is data (a name, an
+     * address, a bank name, a token symbol). Copy leaves it off and wraps.
+     */
+    truncate?: boolean
     body?: React.ReactNode
     /** allow a string body to wrap instead of using the default one-line ellipsis */
     bodyWrap?: boolean
@@ -28,20 +33,22 @@ interface ListItemProps {
 /**
  * Row component from the figma list-item board (17802:61530).
  * Anatomy: leading slot + title (16/20 semibold) + body (14/20 secondary),
- * trailing slot / chevron. Grouping via position (top/middle/bottom/solo),
+ * trailing slot / chevron. Grouping via position (solo/top/middle/bottom),
  * pressed = disabled-background fill, disabled (board 17785:14606) =
- * background/disabled fill + border/subtle + secondary title, content at full
+ * background/disabled fill + secondary title, the default border stays (hugo,
+ * 2026-09-24: a grey border read as a broken row next to its group), content at full
  * opacity so badges and checkmarks keep their contrast. Rows compute to
  * >=48px (32px leading slot + p-4) — over the 44px touch-target floor.
  */
 export const ListItem = ({
     title,
+    truncate = false,
     body,
     bodyWrap = false,
     leading,
     trailing,
     chevron,
-    position = 'single',
+    position = 'solo',
     disabled,
     onClick,
     className,
@@ -63,16 +70,6 @@ export const ListItem = ({
             onClick={disabled ? undefined : handleClick}
             role={onClick ? 'button' : undefined}
             tabIndex={onClick && !disabled ? 0 : undefined}
-            onKeyDown={
-                handleClick && !disabled
-                    ? (e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              handleClick()
-                          }
-                      }
-                    : undefined
-            }
             aria-disabled={disabled || undefined}
             aria-label={ariaLabel}
             data-testid={dataTestId}
@@ -81,18 +78,28 @@ export const ListItem = ({
                 onClick &&
                     !disabled &&
                     'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled',
-                disabled && 'border-border-subtle bg-background-disabled',
+                disabled && 'bg-background-disabled',
                 className
             )}
         >
             <div className="flex min-w-0 items-center gap-3">
                 {leading}
-                {/* plain strings get the board one-line truncation; custom nodes render
-                    in a block wrapper untruncated (a div inside a span is invalid html
-                    and truncate only ellipsizes text anyway) */}
+                {/* copy wraps, never ellipsizes: a cut title hid the row's meaning at
+                    375px ("Withdraw to your own accou…", QA 2026-09-24). Data titles
+                    opt into one line with `truncate`, so a long address cannot
+                    stack three lines. Custom nodes get a div, since a div inside a
+                    span is invalid html */}
                 <div className="flex min-w-0 flex-col gap-0.5">
                     {typeof title === 'string' ? (
-                        <span className={twMerge('truncate text-body-m-semibold', titleColor)}>{title}</span>
+                        <span
+                            className={twMerge(
+                                'text-body-m-semibold',
+                                truncate ? 'truncate' : 'break-words',
+                                titleColor
+                            )}
+                        >
+                            {title}
+                        </span>
                     ) : (
                         <div className={twMerge('min-w-0 text-body-m-semibold', titleColor)}>{title}</div>
                     )}

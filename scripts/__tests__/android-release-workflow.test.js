@@ -9,9 +9,14 @@ const workflow = fs.readFileSync(
 )
 
 describe('Android replacement release workflow', () => {
-    it('fetches tags and resolves a blank direct dispatch to the current native version', () => {
+    it('accepts only automatic main OTA handoffs and validates the native version', () => {
+        expect(workflow).toContain('    workflow_call:')
+        expect(workflow).not.toContain('    workflow_dispatch:')
+        expect(workflow).not.toContain('    push:')
+        expect(workflow).toContain("github.workflow == 'App Release Android & iOS'")
+        expect(workflow).toContain("github.event_name == 'workflow_run'")
+        expect(workflow).toContain('github.run_attempt == 1')
         expect(workflow).toContain('fetch-depth: 0')
-        expect(workflow).toContain("inputs.versionName == '' && 'production-release'")
         expect(workflow).toContain('VERSION_NAME="$(node scripts/release-version.mjs native-floor)"')
         expect(workflow).toContain('node scripts/check-native-capabilities.mjs "v$VERSION_NAME"')
     })
@@ -20,7 +25,18 @@ describe('Android replacement release workflow', () => {
         expect(workflow).toContain(
             'node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android --legacy-compatible'
         )
-        expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"')
+        expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD"')
+        expect(workflow).toContain('IS_REBUILD: ${{ steps.version.outputs.rebuild }}')
+    })
+
+    it('keeps TASK-21683 profile builds on Play internal without production OTA or tags', () => {
+        expect(workflow).toContain("github.ref_name == 'innolope/TASK-21683-lottie-native-testflight'")
+        expect(workflow).toContain('TASK-21683 profile builds may upload only to Play internal')
+        expect(workflow).toContain('echo "profile=$PROFILE_BUILD"')
+        expect(workflow).toContain("KEEP_LOTTIE_PROFILE: ${{ steps.version.outputs.profile == 'true'")
+        expect(workflow).toContain("WEBVIEW_DEBUG: ${{ steps.version.outputs.profile == 'true'")
+        expect(workflow).toContain("if: steps.version.outputs.profile != 'true'")
+        expect(workflow).toContain("steps.version.outputs.profile != 'true'")
     })
 
     it('allows only a same-build OTA to sort above a replacement binary', () => {
@@ -59,10 +75,18 @@ describe('Android replacement release workflow', () => {
 
         expect(releaseJob).toBeGreaterThan(-1)
         expect(baselineJob).toBeGreaterThan(releaseJob)
-        expect(workflow).toContain("if: needs.release.outputs.rebuild == 'true'")
-        expect(workflow).toContain('peanut-native-replacement-v2: platform=android')
+        expect(workflow).toContain(
+            "needs.release.outputs.rebuild == 'true' && github.workflow == 'App Release Android & iOS'"
+        )
+        expect(workflow).toContain('peanut-native-replacement-v3: platform=android')
         expect(workflow).toContain('js-guard=android-capacitor-permissions-v1')
         expect(workflow).toContain('android-v${VERSION}-replacement-${GITHUB_SHA:0:12}')
         expect(workflow.slice(baselineJob)).toContain('contents: write')
+    })
+
+    it('keeps the Android 1.6 bridge active while a changed native binary builds', () => {
+        expect(workflow).toContain('node scripts/capgo-release-guard.mjs android-bridge-status')
+        expect(workflow).not.toContain('node scripts/check-native-ota-surface.mjs v1.6.0 --platform android')
+        expect(workflow).toContain('run: bash scripts/publish-native-ota.sh')
     })
 })

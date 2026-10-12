@@ -13,7 +13,7 @@ import type { SurfaceMeta } from './list'
 
 export type Surface = SurfaceMeta & {
     render?: () => React.ReactNode
-    modalsContextFlag?: 'signIn' | 'support' | 'iosPwaInstall'
+    modalsContextFlag?: 'signIn' | 'support'
 }
 
 export const SURFACES: Record<string, Surface> = {}

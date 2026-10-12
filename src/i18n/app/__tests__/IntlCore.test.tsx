@@ -56,6 +56,26 @@ describe('IntlCore splash gating', () => {
         expect(mockMarkLocaleApplied).not.toHaveBeenCalled()
     })
 
+    it('shows setup only after its language catalog has loaded', async () => {
+        let finishLoad!: (messages: typeof spanishCatalog) => void
+        const load = jest.fn(
+            () =>
+                new Promise<typeof spanishCatalog>((resolve) => {
+                    finishLoad = resolve
+                })
+        )
+        render(
+            <IntlCore base={en} load={load} gatesSplash startupFallback={<span>Loading setup</span>}>
+                <Probe />
+            </IntlCore>
+        )
+        expect(screen.queryByTestId('probe')).not.toBeInTheDocument()
+        await waitFor(() => expect(load).toHaveBeenCalled())
+        finishLoad(spanishCatalog)
+        await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('Cancelar'))
+        expect(screen.queryByText('Loading setup')).not.toBeInTheDocument()
+    })
+
     it('the app instance marks applied once the startup catalog is painted', async () => {
         const load = jest.fn(() => Promise.resolve(spanishCatalog))
         render(

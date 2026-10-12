@@ -117,7 +117,7 @@ export interface PendingClipboardCopy {
  *
  * WebKit only allows a clipboard write while the user activation from the click
  * is still live, and awaiting the request that mints the link spends it — so a
- * plain writeText afterwards is rejected on Safari and iOS PWAs. Handing
+ * plain writeText afterwards is rejected on Safari. Handing
  * ClipboardItem a promise instead starts the write inside the gesture and lets
  * the text land later. Everything else falls back to a plain post-await copy.
  */

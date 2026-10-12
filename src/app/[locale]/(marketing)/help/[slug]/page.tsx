@@ -4,7 +4,13 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, listContentSlugs, contentLocaleFor, availableContentLocales } from '@/lib/content'
+import {
+    readPageContentLocalized,
+    listContentSlugs,
+    contentLocaleFor,
+    availableContentLocales,
+    helpArticleTitle,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -39,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${contentLocale}/help/${slug}`,
@@ -58,16 +64,18 @@ export default async function HelpArticlePage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('help', slug, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
 
-    const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')
+    const displayTitle = helpArticleTitle(mdxSource.frontmatter.title)
     const url = `/${locale}/help/${slug}`
 
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: i18n.help, href: `/${locale}/help` },

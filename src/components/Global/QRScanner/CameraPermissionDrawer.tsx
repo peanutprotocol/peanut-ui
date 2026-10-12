@@ -6,6 +6,7 @@ import type { StaticImageData } from 'next/image'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import Carousel from '@/components/Global/Carousel'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
@@ -141,7 +142,7 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="camera" className="bg-action-secondary" />
+                        <IconBubble icon="camera" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('qrScanner.cameraPermission.title')}</DrawerTitle>
                         </DrawerHeader>
@@ -190,13 +191,13 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                             </div>
                         )}
 
-                        {/* one primary + one secondary (Dismiss) — the old
+                        {/* one primary + the tertiary Dismiss link — the old
                             paste CTA made two secondaries, off the recipe (ruled
                             2026-09-03, kush). trade-off accepted: a camera-denied
                             native user loses the paste entry on this screen */}
                         {canDeepLinkToSettings ? (
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full justify-center"
                                 onClick={() => {
@@ -206,13 +207,19 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                                 {t('qrScanner.cameraPermission.native.openSettings')}
                             </Button>
                         ) : (
-                            <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={onRetry}>
+                            <Button
+                                variant="primary"
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={onRetry}
+                            >
                                 {tCommon('tryAgain')}
                             </Button>
                         )}
-                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
-                            {t('qrScanner.cameraPermission.dismiss')}
-                        </Button>
+                        {/* mt-2 on the gap-4 column: 24px above the tertiary */}
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={onClose}>{t('qrScanner.cameraPermission.dismiss')}</LinkButton>
+                        </div>
                     </div>
                 </div>
             </DrawerContent>

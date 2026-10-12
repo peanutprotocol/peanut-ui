@@ -1,6 +1,8 @@
 import {
     contentGeneratedAt,
+    helpArticleTitle,
     listAllContent,
+    listContentSlugs,
     readPageContent,
     resolveContentHref,
     type ContentFrontmatter,
@@ -70,6 +72,13 @@ describe('listAllContent', () => {
 })
 
 describe('resolveContentHref', () => {
+    it('keeps locale-neutral app routes bare — /{locale}/card would 404 in the country catch-all', () => {
+        expect(resolveContentHref('/card', 'es-ar')).toBe('/card')
+        expect(resolveContentHref('/shhhhh?campaign=x', 'pt-br')).toBe('/shhhhh?campaign=x')
+        expect(resolveContentHref('https://peanut.me/card', 'es-ar')).toBe('https://peanut.me/card')
+        expect(resolveContentHref('https://peanut.me/en/card', 'es-ar')).toBe('https://peanut.me/card')
+    })
+
     it.each([
         ['/en/countries-do-not-exist', '/es-ar/countries-do-not-exist'],
         ['/en/poland', '/es-419/poland'],
@@ -178,5 +187,29 @@ describe('contentGeneratedAt', () => {
         // A real authored date, not the build clock.
         expect(at!.getTime()).toBeLessThan(Date.now())
         expect(at!.getUTCFullYear()).toBeGreaterThanOrEqual(2026)
+    })
+})
+
+describe('helpArticleTitle', () => {
+    it.each([
+        ['Peanut Transaction Limits | Peanut Help', 'Peanut Transaction Limits'],
+        ['Límites de transacciones | Ayuda Peanut', 'Límites de transacciones'],
+        ['Limites de transações | Ajuda Peanut', 'Limites de transações'],
+        ['Reportar un Error o Falla de Seguridad | Peanut', 'Reportar un Error o Falla de Seguridad'],
+        ['A title with no suffix', 'A title with no suffix'],
+    ])('%s → %s', (title, expected) => {
+        expect(helpArticleTitle(title)).toBe(expected)
+    })
+
+    it('leaves no site suffix on any help article in any locale', () => {
+        for (const slug of listContentSlugs('help')) {
+            for (const locale of ['en', 'es-419', 'es-ar', 'pt-br']) {
+                const page = readPageContent<{ title?: string }>('help', slug, locale)
+                if (!page?.frontmatter.title) continue
+                const title = helpArticleTitle(page.frontmatter.title)
+                expect(title).not.toContain('|')
+                expect(title.length).toBeGreaterThan(0)
+            }
+        }
     })
 })

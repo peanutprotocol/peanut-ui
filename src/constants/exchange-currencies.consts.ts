@@ -7,7 +7,10 @@
 // URL, and a bookmark predating this list (`?from=PLN`) would otherwise render
 // PLN in the trigger, fetch a PLN quote and point the CTA at the Poland flow —
 // a currency the product does not support.
-export const SUPPORTED_EXCHANGE_CURRENCIES = ['USD', 'EUR', 'GBP', 'MXN', 'ARS', 'BRL'] as const
+// COP is here because the FX service quotes it: it is in the Manteca provider
+// domain (peanut-api-ts `src/fx/domain.ts`), which is measured against the
+// provider rather than substituted from the reference feed.
+export const SUPPORTED_EXCHANGE_CURRENCIES = ['USD', 'EUR', 'GBP', 'MXN', 'ARS', 'BRL', 'COP'] as const
 
 export type SupportedExchangeCurrency = (typeof SUPPORTED_EXCHANGE_CURRENCIES)[number]
 

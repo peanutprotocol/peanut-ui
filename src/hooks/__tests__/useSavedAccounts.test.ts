@@ -36,6 +36,19 @@ describe('useSavedAccounts', () => {
         expect(result.current.map((a) => a.type)).toEqual([AccountType.IBAN, AccountType.MANTECA])
     })
 
+    it('drops an account the API switched off as not owned by the current provider customer, so it can be added again', () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                accounts: [
+                    { ...acct(AccountType.IBAN, 'DE00'), deactivationReason: 'not_owned_by_current_bridge_customer' },
+                    { ...acct(AccountType.IBAN, 'DE11'), deactivationReason: null },
+                ],
+            },
+        })
+        const { result } = renderHook(() => useSavedAccounts())
+        expect(result.current.map((a) => a.identifier)).toEqual(['DE11'])
+    })
+
     it('excludes wallets and other non-bank account types', () => {
         mockUseAuth.mockReturnValue({
             user: { accounts: [acct(AccountType.PEANUT_WALLET, '0xabc'), acct(AccountType.EVM_ADDRESS, '0xdef')] },

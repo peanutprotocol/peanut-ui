@@ -5,9 +5,11 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
+import { WhenToUse } from '../../_components/WhenToUse'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function LoadingPage() {
     return (
@@ -16,6 +18,20 @@ export default function LoadingPage() {
                 title="Loading"
                 description="One Loading component: spinner variant for inline/button use, mascot variant (the old PeanutLoading) for full-page or section loading states."
                 status="production"
+            />
+
+            <WhenToUse
+                use={[
+                    'Inline waits: the spinner variant inside buttons, rows, and small containers.',
+                    'Screen-level waits: variant="mascot" while a session or a whole page resolves.',
+                    'A spinner standing in for one value — keep the loaded line height, so the page does not jump.',
+                    'coverFullScreen only while the wait blocks the whole screen, and only while loading is active.',
+                ]}
+                dontUse={[
+                    'A list or section whose shape you already know. → use a skeleton that renders the exact loaded layout.',
+                    'A whole-page skeleton — skeleton the loading section, never the page.',
+                    'The mascot inside a button or a list row — that is the spinner variant.',
+                ]}
             />
 
             {/* Loading (CSS Spinner) */}
@@ -145,6 +161,52 @@ export default function LoadingPage() {
                     render it only when loading is active to avoid blocking the UI.
                 </DesignNote>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Home — balance while it refetches"
+                    path="src/features/home/views/BalanceSection.tsx"
+                    description="Default spinner standing in for the amount. The wrapper keeps the heading line height, so the page does not jump when the number arrives."
+                    code={`{/* 48px = the heading-xl line height, so the page does not jump when the number arrives. */}
+<div className="flex min-h-12 items-center justify-center gap-2">
+  {isFetching || balance === undefined ? (
+    <Loading />
+  ) : (
+    <span className="flex items-center gap-2">
+      <span className="text-heading-s text-foreground-primary">$</span>
+      <span className="text-heading-xl text-foreground-primary">{formatted}</span>
+    </span>
+  )}
+</div>`}
+                >
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="flex min-h-12 items-center justify-center gap-2">
+                            <Loading />
+                        </div>
+                        <div className="flex min-h-12 items-center justify-center gap-2">
+                            <span className="text-heading-s text-foreground-primary">$</span>
+                            <span className="text-heading-xl text-foreground-primary">42.50</span>
+                        </div>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="App shell — auth not ready yet"
+                    path="src/app/(mobile-ui)/layout.tsx"
+                    description="The mascot variant carries the whole screen while the session resolves. No message: the wait is short and the brand mark says enough."
+                    code={`if (!isReady) {
+  return (
+    <div className="flex h-dvh w-full flex-col items-center justify-center">
+      <Loading variant="mascot" />
+    </div>
+  )
+}`}
+                >
+                    <div className="flex h-48 w-full flex-col items-center justify-center">
+                        <Loading variant="mascot" />
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

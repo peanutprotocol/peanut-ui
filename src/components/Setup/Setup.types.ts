@@ -1,51 +1,71 @@
+import type { OnboardingAnimationName } from './components/OnboardingAnimation'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
+import type { PeanutMascotSceneName } from '@/components/Global/PeanutMascot/PeanutMascotScene'
+
+/** A setup screen leads with a still, an animated pose, or a composed mascot scene. */
+export type SetupIllustration =
+    | { src: string }
+    | { pose: MascotPose }
+    | { scene: PeanutMascotSceneName }
+    | { animation: OnboardingAnimationName }
+
 export type ScreenId =
     | 'landing'
     | 'welcome'
+    | 'invite'
     | 'signup'
+    | 'advantage-card'
+    | 'advantage-bank'
+    | 'advantage-fees'
+    | 'notification-email'
+    | 'advantage-payments'
     | 'residence'
-    | 'passkey-permission'
+    | 'payment-plan'
+    | 'advantage-rewards'
+    | 'advantage-control'
     | 'passkey-success'
     | 'notification-permission'
-    | 'pwa-install'
-    | 'android-initial-pwa-install'
     | 'add-wallets'
     | 'success'
-    | 'unsupported-browser'
     | 'join-beta'
     | 'sign-test-transaction'
 
-export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
+export type LayoutType = 'signup'
 
 export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    'advantage-card': undefined
+    'advantage-bank': undefined
+    'advantage-fees': undefined
+    'notification-email': undefined
+    'advantage-payments': undefined
     residence: undefined
-    'passkey-permission': {
-        handle: string
-    }
+    'advantage-rewards': undefined
     'passkey-success': undefined
+    'advantage-control': undefined
     'notification-permission': undefined
     'add-wallets': undefined
     success: undefined
     'contact-info': undefined
-    'pwa-install': undefined
-    'android-initial-pwa-install': undefined
-    'unsupported-browser': undefined
     'join-beta': undefined
     'sign-test-transaction': undefined
 }
 
 export interface StepComponentProps {
+    /** Resolved arrival direction, including browser history navigation. */
+    entryDirection?: number
+    onComplete?: () => void
     handle?: string
-    deferredPrompt?: BeforeInstallPromptEvent | null
-    canInstall?: boolean
 }
 
 export interface ISetupStep {
     screenId: ScreenId
     layoutType: LayoutType
-    image: string
+    image: SetupIllustration
+    /** Full-page checklist or final confirmation, without the split illustration hero. */
+    fullScreen?: boolean
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
     showSkipButton?: boolean
@@ -59,16 +79,11 @@ export interface ISetupStep {
      * (each view must keep exactly one top-level heading).
      */
     titleInView?: boolean
+    /** Sell screens lead with the larger heading. */
+    titleSize?: 's' | 'm'
+    /** The description continues the heading as a second statement. */
+    descriptionInTitle?: boolean
     imageClassName?: string
     titleClassName?: string
     contentClassName?: string
-}
-
-export interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: Array<string>
-    readonly userChoice: Promise<{
-        outcome: 'accepted' | 'dismissed'
-        platform: string
-    }>
-    prompt(): Promise<void>
 }

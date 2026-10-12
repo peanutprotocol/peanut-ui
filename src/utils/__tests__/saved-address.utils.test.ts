@@ -1,6 +1,5 @@
 import {
     daysSince,
-    lastUsedTone,
     normalizeSavedAddress,
     savedAddressKey,
     savedAddressLabel,
@@ -28,13 +27,9 @@ describe('saved-address.utils', () => {
         expect(shortSavedAddress('not-an-address')).toBe('not-an-address')
     })
 
-    it('tone: <7d recent, 7–30d aging, 30+ stale', () => {
+    it('counts whole days since the last use', () => {
         const now = new Date('2026-08-26T12:00:00Z')
         expect(daysSince('2026-08-26T01:00:00Z', now)).toBe(0)
         expect(daysSince('2026-08-20T12:00:00Z', now)).toBe(6)
-        expect(lastUsedTone(6)).toBe('recent')
-        expect(lastUsedTone(7)).toBe('aging')
-        expect(lastUsedTone(30)).toBe('aging')
-        expect(lastUsedTone(31)).toBe('stale')
     })
 })

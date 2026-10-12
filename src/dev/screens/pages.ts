@@ -6,9 +6,10 @@ export type PageCapture = {
     /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
     fixture?: string
     entryRoute?: string
-    actions?: Array<{ click: string } | { fill: { selector: string; value: string } }>
+    actions?: Array<{ click: string } | { clickSelector: string } | { fill: { selector: string; value: string } }>
+    /** Prove the requested overlay is open, including its selected row. */
+    expectSelector?: string
     routePattern?: string
-    exclusion?: string
     /** Accessible names clicked in order before the shot. */
     clicks?: string[]
     /** Scroll to the bottom first — some notifications sit below the fold. */
@@ -44,11 +45,12 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p09-profile-about', name: 'Profile — about', route: '/profile/about' },
     { id: 'p10-exchange-rate', name: 'Exchange rate', route: '/profile/exchange-rate' },
 
-    { id: 'p11-identity-verification', name: 'Identity verification', route: '/profile/identity-verification' },
+    // ids kept from before the 2026-09-25 split, so the screen library keeps each history
+    { id: 'p11-identity-verification', name: 'Accounts', route: '/profile/accounts' },
     {
         id: 'p12-identity-additional',
-        name: 'Identity — additional',
-        route: '/profile/identity-verification/additional',
+        name: 'Accounts — additional verification',
+        route: '/profile/accounts/additional',
     },
     { id: 'p13-limits', name: 'Limits', route: '/limits' },
 
@@ -60,12 +62,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p19-add-money-us-bank', name: 'Add money — US bank', route: '/add-money/usa/bank' },
 
     { id: 'p20-qr-pay', name: 'QR Pay', route: '/qr-pay' },
-    {
-        id: 'p21-qr',
-        exclusion: 'Native query-route stub; app-owned QR drawer is captured separately, native shell routing is v2',
-        name: 'QR',
-        route: '/qr',
-    },
     { id: 'p22-card', name: 'Card', route: '/card' },
     { id: 'p23-card-limit', name: 'Card — limit', route: '/card/limit' },
     { id: 'p24-card-pin', name: 'Card — PIN', route: '/card/pin' },
@@ -75,12 +71,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p27-recover-wallet', name: 'Recover wallet', route: '/recover-wallet' },
     { id: 'p28-history', name: 'History', route: '/history' },
     { id: 'p29-badges', name: 'Badges', route: '/badges' },
-    {
-        id: 'p30-points',
-        exclusion: 'Legacy entry redirects to Rewards; the Rewards fixtures cover this UI',
-        name: 'Points',
-        route: '/points',
-    },
     { id: 'p31-send', name: 'Send', route: '/send' },
     { id: 'p32-request', name: 'Request', route: '/request' },
     { id: 'p33-claim', name: 'Claim', route: '/claim' },
@@ -102,8 +92,8 @@ export const PAGE_CAPTURES: PageCapture[] = [
     },
     {
         id: 'p38-kyc-action-required',
-        name: 'Identity — action required',
-        route: '/profile/identity-verification',
+        name: 'Accounts — verification action required',
+        route: '/profile/accounts',
         fixture: 'kyc-action-required',
     },
     { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },
@@ -115,36 +105,10 @@ export const PAGE_CAPTURES: PageCapture[] = [
 PAGE_CAPTURES.push(
     { id: 'p43-card-physical', name: 'Physical card', route: '/card/physical' },
     { id: 'p44-card-add-to-wallet', name: 'Add card to wallet', route: '/card/add-to-wallet' },
-    {
-        id: 'p45-card-payment',
-        exclusion: 'Routing-only card payment handoff; no standalone product screen',
-        name: 'Card payment',
-        route: '/card-payment',
-    },
     { id: 'p46-card-signature', name: 'Repair card signature', route: '/fix-card-signature' },
     { id: 'p47-pay-request', name: 'Pay a request', route: '/pay-request?id=synthetic-request' },
-    {
-        id: 'p48-points-invites',
-        exclusion: 'Legacy entry redirects to Rewards invites; covered by the Rewards invites fixture',
-        name: 'Points and invites',
-        route: '/points/invites',
-    },
-    {
-        id: 'p49-request-pay',
-        exclusion: 'Routing-only request link resolver; request and payment screens are captured separately',
-        name: 'Request payment',
-        route: '/request/pay',
-    },
-    { id: 'p50-setup-session', name: 'Setup — existing session', route: '/setup', fixture: 'setup-pending' },
-    { id: 'p51-setup-finish', name: 'Setup completion', route: '/setup/finish', fixture: 'setup-pending' },
     { id: 'p52-kyc-success', name: 'Verification success', route: '/kyc/success' },
     { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance' },
-    {
-        id: 'p54-pay-recipient',
-        exclusion: 'Legacy pay URL redirects to the send-recipient screen captured by p55',
-        name: 'Pay a recipient',
-        route: '/pay/demo',
-    },
     { id: 'p55-send-recipient', name: 'Send to a recipient', route: '/send/demo' },
     { id: 'p56-request-recipient', name: 'Request from a recipient', route: '/request/demo' },
     { id: 'p57-qr-code', name: 'QR payment — invalid code', route: '/qr/synthetic-invalid' },
@@ -160,20 +124,17 @@ PAGE_CAPTURES.push(
         route: '/withdraw/spain/bank',
         entryRoute: '/withdraw?amount=50',
         actions: [
-            { click: 'ES27' },
+            { click: '0802' },
             { fill: { selector: 'input[inputmode=decimal]', value: '50' } },
             { click: 'Continue' },
         ],
         fixture: 'withdraw',
     },
-    { id: 'p65-withdraw-argentina', name: 'Withdraw — Argentina', route: '/withdraw/argentina', fixture: 'withdraw' },
-    {
-        id: 'p66-bank-local',
-        exclusion: 'Argentina bank deposits use the regional Manteca route captured by p69',
-        name: 'Add money — local bank',
-        route: '/add-money/argentina/bank',
-        fixture: 'add-money',
-    },
+    // p65-withdraw-argentina removed: Argentina has one live withdraw rail
+    // (Manteca), so /withdraw/argentina redirects straight to /withdraw/manteca
+    // (AddWithdrawCountriesList redirect, added 2026-09-16). A screenshot there
+    // never settles on /withdraw/argentina, and the Manteca form it lands on is
+    // already covered by p16-withdraw-manteca.
     { id: 'p67-recipient', name: 'Recipient profile', route: '/demo' },
     {
         id: 'p68-invite',
@@ -186,15 +147,75 @@ PAGE_CAPTURES.push(
         name: 'Add money — regional method',
         route: '/add-money/argentina/manteca',
         fixture: 'add-money',
-    }
-)
-
-PAGE_CAPTURES.push(
-    {
-        id: 'h01-notifications',
-        name: 'Notifications — empty inbox',
-        route: '/notifications',
-        routePattern: '/notifications',
     },
-    { id: 'h02-settings', name: 'Settings — logout', route: '/settings', routePattern: '/settings' }
+    { id: 'p70-payments', name: 'Payments', route: '/profile/payments', fixture: 'profile-payments' },
+    {
+        id: 'p71-accounts-held',
+        name: 'Accounts — one held, the rest folded',
+        route: '/profile/accounts',
+        fixture: 'profile-accounts',
+    },
+    {
+        id: 'p72-accounts-held-open',
+        name: 'Accounts — open a new account, unfolded',
+        route: '/profile/accounts',
+        fixture: 'profile-accounts',
+        clicks: ['Open new account'],
+    },
+    {
+        id: 'p73-token-selector-drawer',
+        name: 'Token selector — open drawer, selected token',
+        route: '/withdraw/crypto',
+        fixture: 'withdraw-crypto-destination',
+        actions: [
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+        ],
+        expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p74-network-selector-drawer',
+        name: 'Network selector — open drawer, selected network',
+        route: '/withdraw/crypto',
+        fixture: 'withdraw-crypto-destination',
+        actions: [
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { click: 'More networks' },
+            { clickSelector: '[role="dialog"] [role="option"]' },
+            { click: 'More networks' },
+        ],
+        expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p75-residence-country-dropdown',
+        name: 'Residence — open country dropdown, selected country',
+        route: '/dev/surfaces?s=03-a-residence-select',
+        actions: [
+            { clickSelector: '[role="combobox"]' },
+            { clickSelector: '[role="listbox"] [role="option"]' },
+            { clickSelector: '[role="combobox"]' },
+        ],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p76-exchange-currency-dropdown',
+        name: 'Exchange rate — open currency dropdown, selected currency',
+        route: '/profile/exchange-rate',
+        actions: [{ clickSelector: 'button[aria-haspopup="listbox"]' }],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    },
+    {
+        id: 'p77-base-select-dropdown',
+        name: 'BaseSelect — open dropdown, selected option',
+        route: '/dev/ds/primitives/base-select',
+        actions: [
+            { clickSelector: 'button[role="combobox"]' },
+            { clickSelector: '[role="option"]' },
+            { clickSelector: 'button[role="combobox"]' },
+        ],
+        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+    }
 )

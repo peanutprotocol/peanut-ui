@@ -328,6 +328,9 @@ export type OverlayTarget = {
     route: string
     fixture?: string
     clickKeys?: string[]
+    /** clicked after `clickKeys` — for affordances whose only label is an aria
+     *  string built from data (the rename button carries the row's name) */
+    clickSelectors?: string[]
     /** selector that must be visible — proves the overlay actually opened */
     proof?: string
 }
@@ -356,6 +359,15 @@ export const OVERLAY_TARGETS: OverlayTarget[] = [
     { id: 'add-money-bank-list', route: '/add-money?method=bank', fixture: 'add-money' },
     { id: 'profile-avatar-picker', route: '/profile?avatarPicker=true', proof: '[data-vaul-drawer], [role="dialog"]' },
     { id: 'withdraw-all-methods', route: '/withdraw?showAll=true', fixture: 'withdraw' },
+    { id: 'withdraw-pick', route: '/withdraw', fixture: 'withdraw-pick' },
+    { id: 'withdraw-destination-names', route: '/withdraw', fixture: 'withdraw-destination-names' },
+    {
+        id: 'withdraw-rename-drawer',
+        route: '/withdraw',
+        fixture: 'withdraw-destination-names',
+        clickSelectors: ['[data-testid="destination-edit"]'],
+        proof: '[data-vaul-drawer], [role="dialog"]',
+    },
     { id: 'limits-argentina', route: '/limits?region=argentina' },
     { id: 'limits-brazil', route: '/limits?region=brazil' },
     { id: 'card-pin-set', route: '/card/pin?mode=set' },

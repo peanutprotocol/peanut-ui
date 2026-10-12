@@ -141,6 +141,29 @@ describe('isReservedRoute', () => {
     })
 })
 
+// PUBLIC_ROUTES_REGEX had no path boundary, so any prefix collision leaked
+// through the auth gate: /qr-pay matched 'qr' and rendered logged-out.
+describe('isPublicRoute — path boundary', () => {
+    test('public routes still match, with and without a trailing segment', () => {
+        expect(isPublicRoute('/qr')).toBe(true)
+        expect(isPublicRoute('/qr/')).toBe(true)
+        expect(isPublicRoute('/claim')).toBe(true)
+        expect(isPublicRoute('/claim/abc123')).toBe(true)
+        expect(isPublicRoute('/request/pay')).toBe(true)
+        expect(isPublicRoute('/pay/hugo')).toBe(true)
+        expect(isPublicRoute('/support')).toBe(true)
+        expect(isPublicRoute('/invite/xyz')).toBe(true)
+        expect(isPublicRoute('/profile/view/hugo')).toBe(true)
+    })
+
+    test('prefix collisions no longer test public', () => {
+        expect(isPublicRoute('/qr-pay')).toBe(false)
+        expect(isPublicRoute('/claimfoo')).toBe(false)
+        expect(isPublicRoute('/invites')).toBe(false)
+        expect(isPublicRoute('/supporters')).toBe(false)
+    })
+})
+
 describe('payment explorer access gate', () => {
     test('requires the normal app session in production', () => {
         expect(isPublicRoute('/dev/payment-graph', false)).toBe(false)

@@ -1,0 +1,181 @@
+'use client'
+
+import { Button } from '@/components/0_Bruddle/Button'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import Badge from '@/components/Global/Badges/Badge'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import Loading from '@/components/Global/Loading'
+import { RequestBankInstructions } from '@/features/deposit-accounts/components/RequestBankInstructions'
+import {
+    bankPayAmountFigure,
+    readServerPayerAmount,
+    resolveBankPayAmount,
+} from '@/features/deposit-accounts/payerAmount'
+import { corridorFromRailId } from '@/features/deposit-accounts/rails'
+import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
+import { useRequestDepositInstructions } from '@/features/deposit-accounts/useRequestDepositInstructions'
+import type { RequestPayRail } from '@/services/services.types'
+import { useTranslations } from 'next-intl'
+import { formatBankAmount } from '@/utils/currency'
+import { useState } from 'react'
+import { RequestPaymentContext, type RequestPaymentContextProps } from './RequestPaymentContext'
+import type { CardPosition } from '@/components/Global/Card/card.utils'
+
+/**
+ * Pay this request straight into the requester's bank account.
+ *
+ * Only offered when the requester opted in, and the details are fetched when
+ * the payer opens the drawer rather than with the screen: bank details are not
+ * something to load into a page the payer may never ask for. They are never on
+ * the username page for the same reason — a request link is a thing somebody
+ * was given, a public profile is not.
+ *
+ * With a `rail` from the pay-amounts route the row names the currency and the
+ * amount before the tap, and the drawer asks for the account in that currency.
+ * Without one — an API that predates the route — the row is generic and the
+ * backend picks the account.
+ */
+export function PayByBankTransferDrawer({
+    requestId,
+    bankPayable,
+    usdAmount,
+    remainingUsd,
+    serverCountsAllPayments,
+    rail,
+    onUnavailable,
+    nested = false,
+    requestContext,
+    position = 'solo',
+}: {
+    requestId: string
+    bankPayable: boolean
+    /** what this payer entered, in dollars, so they read it in the account's currency */
+    usdAmount?: string
+    /** what the request still needs, in dollars */
+    remainingUsd?: number
+    /** false when the API's remainder misses money the screen has counted — see `resolveBankPayAmount` */
+    serverCountsAllPayments?: boolean
+    /** the requester's bank rail this row pays into, with what the request still needs on it */
+    rail?: RequestPayRail
+    /**
+     * The details for this rail could not be served. Called when the payer
+     * leaves the dead end, so the list stops offering the row.
+     */
+    onUnavailable?: () => void
+    /** This rail opens from the currency chooser rather than from the page. */
+    nested?: boolean
+    requestContext?: RequestPaymentContextProps
+    position?: CardPosition
+}) {
+    const t = useTranslations('payment')
+    const { railName } = useDepositAccountCopy()
+    const [isOpen, setIsOpen] = useState(false)
+    const railCurrency = rail?.payerAmount.currency.toUpperCase()
+    const { instructions, isLoading, isUnavailable } = useRequestDepositInstructions(
+        requestId,
+        bankPayable && isOpen,
+        railCurrency
+    )
+
+    if (!bankPayable) return null
+
+    const corridor = rail?.railId ? corridorFromRailId(rail.railId) : undefined
+    const title =
+        railCurrency && corridor
+            ? t('bankTransfer.payInCurrency', { currency: railCurrency, rail: railName(corridor) })
+            : t('bankTransfer.title')
+
+    // The same resolver the drawer uses, so the row and the details it opens
+    // never state two amounts. A dollar fallback is not a rail amount, so the
+    // row stays quiet about it.
+    const railAmount = railCurrency
+        ? resolveBankPayAmount({
+              server: readServerPayerAmount(rail?.payerAmount),
+              payerUsd: usdAmount,
+              remainingUsd,
+              serverCountsAllPayments,
+              accountCurrency: railCurrency,
+              clientRate: 0,
+          })
+        : undefined
+    const figure = railAmount?.kind === 'local' ? bankPayAmountFigure(railAmount) : undefined
+
+    return (
+        <>
+            <ListItem
+                position={position}
+                title={
+                    <div className="flex flex-wrap items-center gap-2">
+                        {title}
+                        {figure && (
+                            <Badge
+                                status={figure.approx ? 'neutral' : 'completed'}
+                                customText={t(figure.approx ? 'bankTransfer.estimateBadge' : 'bankTransfer.exactBadge')}
+                            />
+                        )}
+                    </div>
+                }
+                body={
+                    <div className="text-body-xs">
+                        {!figure
+                            ? t('bankTransfer.description')
+                            : figure.approx
+                              ? t('bankTransfer.amountValueApprox', {
+                                    amount: formatBankAmount(figure.value, figure.currency),
+                                })
+                              : formatBankAmount(figure.value, figure.currency)}
+                    </div>
+                }
+                onClick={() => setIsOpen(true)}
+                chevron
+            />
+            <Drawer open={isOpen} onOpenChange={setIsOpen} nested={nested}>
+                <DrawerContent className="py-6">
+                    <DrawerHeader>
+                        <DrawerTitle className="text-start">{title}</DrawerTitle>
+                    </DrawerHeader>
+                    {requestContext && <RequestPaymentContext {...requestContext} />}
+                    <div className="max-h-[70vh] overflow-auto">
+                        {isLoading && (
+                            <div className="flex justify-center py-8">
+                                <Loading />
+                            </div>
+                        )}
+                        {/* A dead end needs a way on: the other ways to pay are
+                            on the list this drawer covers. */}
+                        {!isLoading && isUnavailable && (
+                            <div className="flex flex-col gap-4 py-4">
+                                <p className="text-body-s text-foreground-secondary">{t('bankTransfer.unavailable')}</p>
+                                <Button
+                                    variant="primary"
+                                    className="w-full"
+                                    onClick={() => {
+                                        setIsOpen(false)
+                                        onUnavailable?.()
+                                    }}
+                                    data-testid="bank-transfer-other-ways"
+                                >
+                                    {t('bankTransfer.otherWays')}
+                                </Button>
+                            </div>
+                        )}
+                        {instructions && (
+                            <RequestBankInstructions
+                                // The row's figure came from the pay-amounts read,
+                                // which is cached; the instructions are fetched
+                                // fresh and carry their own. Two reads of a moving
+                                // rate gave the row and the details it opens two
+                                // different estimates. The row's figure is the one
+                                // the payer tapped on, so the details state it too.
+                                instructions={rail ? { ...instructions, payerAmount: rail.payerAmount } : instructions}
+                                usdAmount={usdAmount}
+                                remainingUsd={remainingUsd}
+                                serverCountsAllPayments={serverCountsAllPayments}
+                            />
+                        )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
+        </>
+    )
+}

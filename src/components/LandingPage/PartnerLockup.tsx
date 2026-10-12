@@ -52,7 +52,7 @@ export function PartnerLockup({
                 <Image src={logo} alt={logoAlt} width={150} height={38} className={logoClassName} />
             </span>
 
-            <span className="font-roboto-flex mt-3 text-base text-n-1 underline group-hover:no-underline md:text-lg">
+            <span className="font-roboto-flex mt-3 text-base text-foreground-primary underline group-hover:no-underline md:text-lg">
                 {learnMore} →
             </span>
         </Link>

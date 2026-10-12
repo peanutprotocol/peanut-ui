@@ -44,26 +44,32 @@ export const AppShell = ({
             <>
                 {/* Status-bar safe zone + banner ribbon. Android 15 (targetSdk 36)
                     forces edge-to-edge, so the webview draws UNDER the status bar —
-                    fill the inset with the brand periwinkle (matches the onboarding
-                    illustration). --safe-top resolves to env(), which is 0 on web and
+                    use the current setup hero tint. --safe-top resolves to env(), which is 0 on web and
                     on non-edge-to-edge Android — no-op there. On Android 15+ Capacitor
                     overwrites it with the natively measured inset. */}
-                <div className="bg-blue-300 pt-safe-top">{banner}</div>
+                <div className="setup-hero-background pt-safe-top transition-colors duration-fast ease-in-out motion-reduce:transition-none">
+                    {banner}
+                </div>
                 {/* The strip above only RESERVES the inset — it scrolls away with the
                     document on steps taller than the viewport (the dual-residence
                     compare cards), and the illustration then rides up under the status
                     bar. This cover paints the inset wherever the page is scrolled to,
                     the same way the app variant does. Height is exactly the inset, so
                     it stops short of the back button at top-8. */}
-                <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-blue-300" />
+                <div
+                    aria-hidden
+                    className="setup-hero-background pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top transition-colors duration-fast ease-in-out motion-reduce:transition-none"
+                />
                 {children}
-                {/* Bottom safe-area fill. Mirrors the strip above so the bottom
-                    matches on edge-to-edge Android; iOS fills white (the panel
-                    above the home indicator is white there). */}
+                {/* Reserve the inset in the document so the last action can scroll
+                    clear of the system navigation bar, including its shadow. */}
+                <div aria-hidden className={twMerge('h-safe-bottom', bottomInsetClassName)} />
+                {/* Cover scrolling content beneath the system bar, just like the
+                    top inset. A fill behind the page cannot hide button shadows. */}
                 <div
                     aria-hidden
                     className={twMerge(
-                        'pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-safe-bottom',
+                        'pointer-events-none fixed inset-x-0 bottom-0 z-40 h-safe-bottom transition-colors duration-fast ease-in-out motion-reduce:transition-none',
                         bottomInsetClassName
                     )}
                 />
@@ -87,14 +93,22 @@ export const AppShell = ({
                 // the shell already starts below --safe-top, so pt-4 means 16px
                 // below the safe-area boundary. Keep the XL/24 bottom rhythm.
                 className={twMerge(
-                    'relative w-full flex-1 overflow-y-auto bg-background-page px-4 pt-4 pb-6',
+                    // Reserve the scrollbar gutter so a fold/expander that grows
+                    // the page and shows a scrollbar does not narrow this box and
+                    // shift the centered mx-auto content sideways.
+                    'relative w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto bg-background-page pt-4 pb-6',
                     contentClassName
                 )}
             >
                 {/* TabSlide IS the centering wrapper: it stays inside #scrollable-content
-                    (pull-to-refresh reads that element) and adds no extra layout node. */}
+                    (pull-to-refresh reads that element) and adds no extra layout node.
+                    The L/16 screen inset lives HERE, inside the cap, not on the scroll
+                    container: outside it the centering margins swallow it past 448px, so
+                    a page rendered 448 wide on desktop while /home — the only page that
+                    re-applied p-4 inside the column — rendered 416 and matched the bottom
+                    nav. One inset, one width, every page (bottom nav span = 448 - 32). */}
                 <TabSlide
-                    className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}
+                    className={twMerge('mx-auto flex w-full max-w-md items-center justify-center px-4', innerClassName)}
                 >
                     {children}
                 </TabSlide>

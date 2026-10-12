@@ -27,8 +27,8 @@ export default function BigComponentsPage() {
             categories={BIG_COMPONENT_CATEGORIES}
             footnote={
                 <>
-                    <span className="font-bold text-foreground-primary">Method:</span> every modal / drawer / list /
-                    composite-card component was enumerated by grep, real usage counted (excl <code>/dev</code> +
+                    <span className="text-body-s-semibold text-foreground-primary">Method:</span> every modal / drawer /
+                    list / composite-card component was enumerated by grep, real usage counted (excl <code>/dev</code> +
                     tests), and divergences characterized (radius, padding, close behavior, header pattern).
                     Dead/showcase-only claims were independently re-verified.
                 </>

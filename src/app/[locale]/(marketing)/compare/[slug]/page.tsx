@@ -3,16 +3,14 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { COMPETITORS } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import { getTranslations } from '@/i18n'
+import { getTranslations, t } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
 import {
     readPageContentLocalized,
     type ContentFrontmatter,
     contentLocaleFor,
     availableContentLocales,
 } from '@/lib/content'
-import type { Locale } from '@/i18n/types'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -48,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${contentLocale}/compare/peanut-vs-${slug}`,
@@ -72,23 +70,21 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('compare', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('compare', slug, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/compare/peanut-vs-${slug}`
     const hubHref = `/${locale}/content?type=compare`
 
-    const localizedHrefs = Object.fromEntries(
-        SUPPORTED_LOCALES.map((l) => [l, `/${l}/compare/peanut-vs-${slug}`])
-    ) as Record<Locale, string>
-
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: i18n.filterCompare, href: hubHref },
-                { name: `Peanut vs ${competitor.name}`, href: url },
+                { name: t(i18n.footerPeanutVs, { name: competitor.name }), href: url },
             ]}
             article={
                 mdxSource.frontmatter.generated_at
@@ -101,9 +97,6 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
                     : undefined
             }
         >
-            <div className="mx-auto max-w-[640px] px-6 pt-4 md:px-4">
-                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
-            </div>
             {content}
         </ContentPage>
     )

@@ -1,8 +1,8 @@
 'use client'
 
-import * as RadixTabs from '@radix-ui/react-tabs'
-import { type ReactNode } from 'react'
-import { PROSE_WIDTH } from './constants'
+import { Children, isValidElement, type ReactElement, type ReactNode } from 'react'
+import { Tabs as DsTabs } from '@/components/0_Bruddle/Tabs'
+import { PROSE_WIDTH } from '../constants'
 
 interface TabsProps {
     /** Comma-separated tab labels, e.g. "Peanut,Wise,Western Union" */
@@ -16,11 +16,12 @@ interface TabPanelProps {
     children: ReactNode
 }
 
-const triggerClasses =
-    'flex-1 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1'
-
 /**
- * Tabbed content for MDX pages.
+ * Tabbed content for MDX pages — a thin adapter over the DS `Tabs` primitive
+ * (`0_Bruddle/Tabs`). MDX cannot pass an array prop, so this keeps the
+ * `labels` + `<TabPanel>` authoring shape and folds it into the array the
+ * primitive takes. `TabPanel` is a marker: the adapter reads its props, the
+ * primitive renders the panels.
  *
  * Usage:
  * ```mdx
@@ -38,34 +39,34 @@ const triggerClasses =
  * ```
  */
 export function Tabs({ labels, children }: TabsProps) {
-    const tabs = labels.split(',').map((l) => l.trim())
+    const panels = new Map(
+        Children.toArray(children)
+            .filter((child): child is ReactElement<TabPanelProps> => isValidElement(child))
+            .map((child) => [child.props.label, child.props.children])
+    )
+    const tabs = labels
+        .split(',')
+        .map((label) => label.trim())
+        .map((label) => ({
+            value: label,
+            label,
+            // -mx-4 cancels the panel's own horizontal padding: MDX prose already
+            // carries the px-6 column gutter, and stacking both left ~30
+            // characters per line at 375px
+            content: <div className="-mx-4">{panels.get(label) ?? null}</div>,
+        }))
+
     return (
         <div className={`mx-auto my-8 ${PROSE_WIDTH} px-6 md:px-4`}>
-            <RadixTabs.Root defaultValue={tabs[0]} className="w-full">
-                <RadixTabs.List
-                    className="flex w-full items-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-n-1/10"
-                    aria-label="Content tabs"
-                >
-                    {tabs.map((tab) => (
-                        <RadixTabs.Trigger key={tab} value={tab} className={triggerClasses}>
-                            {tab}
-                        </RadixTabs.Trigger>
-                    ))}
-                </RadixTabs.List>
-                {children}
-            </RadixTabs.Root>
+            {/* forceMount: every panel's prose has to stay in the server HTML for crawlers.
+                size="lg": `lg`'s first home (kush, 2026-09-21). This row is panelled,
+                desktop-read article furniture, which is the 52px/px-6 step's case —
+                product controls stay on the 44px `md` default. */}
+            <DsTabs tabs={tabs} aria-label="Content tabs" forceMount size="lg" />
         </div>
     )
 }
 
-export function TabPanel({ label, children }: TabPanelProps) {
-    return (
-        <RadixTabs.Content
-            value={label}
-            forceMount
-            className="mt-4 text-base leading-[1.75] text-grey-1 data-[state=inactive]:hidden"
-        >
-            {children}
-        </RadixTabs.Content>
-    )
+export function TabPanel({ children }: TabPanelProps) {
+    return <>{children}</>
 }

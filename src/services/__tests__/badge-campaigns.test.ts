@@ -92,6 +92,7 @@ describe('badge badge campaign claims contract', () => {
     })
 
     it('settles source-qualified UTM identities only from typed backend outcomes', async () => {
+        // retired wire values on purpose: queued installs can still carry utm: identities (TASK-21226)
         const qualifiedIdentities = [
             'utm:token-nation-2026',
             'utm:touched-grass',
@@ -453,6 +454,7 @@ describe('badge badge campaign claims contract', () => {
                         badgeCode: 'PERMANENT_BADGE',
                         outcome: 'awarded',
                         capabilities: [{ key: 'card.flow.bypass', lifecycle: { kind: 'one_shot' } }],
+                        // retired destination fields are ignored, not validated (TASK-21226)
                         acquisition: { fallback: 'normal_app', destination: 'offramp_migration' },
                         reward: { amount: 1000, currency: 'USD' },
                     },

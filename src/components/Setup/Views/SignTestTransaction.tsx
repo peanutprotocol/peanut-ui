@@ -1,8 +1,12 @@
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
+import { LinkButton, LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
-import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Icon } from '@/components/Global/Icons/Icon'
+import SetupFooter from '../components/SetupFooter'
+import SetupTitleBlock from '../components/SetupTitleBlock'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
@@ -15,79 +19,196 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
+import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
+import {
+    clearSignupAttribution,
+    hasPendingSignupAttribution,
+    readSignupAttributionAsync,
+} from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
+import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
+import { confettiPresets } from '@/utils/confetti'
 
-export function AccountReadyView({
-    onContinue,
-    isRedirecting = false,
+export function SetupConfirmationView({
+    onConfirm,
+    isLoading = false,
+    error,
+    buttonText,
+    showTitle = true,
+    merged = false,
 }: {
-    onContinue: () => void
-    isRedirecting?: boolean
+    onConfirm: () => void
+    isLoading?: boolean
+    error?: string | null
+    buttonText?: string
+    showTitle?: boolean
+    merged?: boolean
 }) {
     const t = useTranslations('setup')
+    const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
+    const button = (
+        <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
+            {buttonText || t(merged ? 'cta.finish' : 'testTransaction.confirmAndFinish')}
+        </Button>
+    )
+    // In the sign-up flow this is the "Only for you" step: the shared title block
+    // at the top, the passkey confirmation on the pinned primary.
+    if (merged) {
+        return (
+            <div className="flex flex-1 flex-col gap-6">
+                <SetupTitleBlock
+                    title={showTitle ? t('steps.advantage-control.title') : undefined}
+                    description={t('steps.advantage-control.description')}
+                />
+                {error && <Callout priority="error">{error}</Callout>}
+                <SetupFooter actions={button} />
+            </div>
+        )
+    }
     return (
-        <div className="flex w-full flex-col gap-4 text-left">
-            {/* neither block is a warning or a caveat, so they read as plain
-                    text under grey mini-headers rather than tinted Notifications */}
-            <div className="flex flex-col gap-1">
-                <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
-                <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-                <MiniHeader>{t('accountReady.laterTitle')}</MiniHeader>
-                <p className="text-body-s text-foreground-primary">{t('accountReady.laterBody')}</p>
-            </div>
-            <Button
-                onClick={onContinue}
-                loading={isRedirecting}
-                disabled={isRedirecting}
-                shadowSize="4"
-                className="mt-2"
-            >
-                {t('accountReady.cta')}
-            </Button>
-        </div>
+        <PageStack className="flex-1">
+            <PageStack.Center>
+                {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
+                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
+                    {t('steps.sign-test-transaction.description')}
+                </p>
+                {error && <Callout priority="error">{error}</Callout>}
+            </PageStack.Center>
+            <SetupFooter actions={button}>
+                <p className="text-center text-body-xs text-foreground-secondary">
+                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
+                        <Icon name="info" size={16} className="shrink-0" />
+                        {t('passkey.learnMore')}
+                    </LinkButton>
+                </p>
+            </SetupFooter>
+            <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
+        </PageStack>
     )
 }
 
-const SignTestTransaction = () => {
+const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () => void; merged?: boolean }) => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser } = useAuth()
-    const { residenceCountry, secondResidenceCountry, setIsLoading: setSetupLoading } = useSetupFlowContext()
+    const {
+        residenceCountry,
+        secondResidenceCountry,
+        setIsLoading: setSetupLoading,
+        signupEntryFlow,
+        fundingChannel,
+        paymentChannel,
+    } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
-    const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
-    // Fresh signups pause on the account-ready screen instead of auto-redirecting;
-    // the ref (not state) guards the redirect effect against firing during the
-    // re-render window between account creation and the state update below.
-    const [accountReady, setAccountReady] = useState(false)
     const creatingAccountRef = useRef(false)
     /*
      * handleRedirect CONSUMES the stored post-auth route, so it must fire once.
-     * A second tap would find nothing stored, fall back to /home and race the
-     * first push — a signup entered from /receipt would land on /home. The ref
-     * is the guard (state is async, so a same-tick double tap would pass it);
-     * the state only drives the button's disabled/loading affordance.
+     * A second caller would find nothing stored, fall back to /home and race
+     * the first redirect — a signup entered from /receipt would land on /home.
      */
     const redirectingRef = useRef(false)
-    const [isRedirecting, setIsRedirecting] = useState(false)
+    const completionCelebratedRef = useRef(false)
 
-    const goToAccount = () => {
+    const redirectToAccount = () => {
         if (redirectingRef.current) return
         redirectingRef.current = true
-        setIsRedirecting(true)
-        // This screen is only reachable for an account created in this
-        // session, so it inherits no earlier session's page — only a deep link
-        // the person themselves asked for.
+        // This terminal path only runs for an account created in this session,
+        // so it inherits no earlier session's page — only a deep link the
+        // person themselves asked for.
         handleRedirect({ isNewAccount: true })
+    }
+
+    const completeSignup = async () => {
+        console.log('[SignTestTransaction] Account setup complete')
+        // The final passkey confirmation has succeeded and the account exists.
+        // The finish route redirects immediately; setup celebrates on its
+        // dedicated final screen after the completion callback.
+        if (!onComplete && !completionCelebratedRef.current) {
+            completionCelebratedRef.current = true
+            confettiPresets.celebration()
+        }
+        const inviteCode = getFromCookie('inviteCode')
+        // Native Preferences can be the only surviving copy after a WebView
+        // process restart, so load the durable context before emitting the
+        // terminal event or deleting it.
+        const signupAttribution = await readSignupAttributionAsync()
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+            ...setupCountrySignalProperties(),
+            acquisition_source: inviteCode ? 'referred' : 'organic',
+            invite_code: inviteCode || undefined,
+            ...signupAnalyticsContext(signupEntryFlow),
+            funding_methods: fundingChannel
+                ? [fundingChannel === 'crypto' || fundingChannel === 'peanut' ? fundingChannel : 'bank']
+                : [],
+            ...(signupAttribution
+                ? {
+                      signup_journey_id: signupAttribution.journeyId,
+                      signup_platform: signupAttribution.platform,
+                      signup_attribution_capture_method: signupAttribution.captureMethod,
+                  }
+                : {}),
+        })
+        // The attachment clears its retry marker only after acknowledgement.
+        // Keep failed deliveries user-bound and durable through completion so
+        // the authenticated recovery path can retry after an app restart.
+        if (user && !(await hasPendingSignupAttribution(user.user.userId))) {
+            await clearSignupAttribution()
+        }
+        // Keep the independently observed hints on the identified analytics
+        // profile. Only the user's declared residences go to /update-user.
+        try {
+            posthog.setPersonProperties(setupCountrySignalProperties())
+        } catch {
+            // Country-signal analytics must never hold account completion.
+        }
+
+        // Persist the residence answer from the residence step, now that
+        // the account exists. Fire-and-forget: prequalification data,
+        // never a reason to fail or delay the redirect.
+        if (residenceCountry) {
+            posthog.setPersonProperties({
+                residence_country: residenceCountry,
+                second_residence_country: secondResidenceCountry || undefined,
+            })
+            const userId = user?.user?.userId
+            if (userId) {
+                storeDeclaredResidence(userId, residenceCountry)
+                storeSecondResidence(userId, secondResidenceCountry || null)
+                void updateUserById({
+                    userId,
+                    residenceCountry,
+                    ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
+                })
+                    .then((result) => {
+                        // updateUserById maps API failures to { error },
+                        // it doesn't throw them — inspect the result.
+                        if (result?.error) {
+                            console.error('[SignTestTransaction] Failed to persist residence:', result.error)
+                        }
+                    })
+                    .catch((err: unknown) => {
+                        console.error('[SignTestTransaction] Failed to persist residence:', err)
+                    })
+            }
+        }
+
+        // Completion is terminal for this screen. Keep both loading states
+        // active until navigation unmounts it so a slow route transition
+        // cannot expose a second completion attempt.
+        if (onComplete) {
+            // Keep the account-exists effect from consuming the saved destination
+            // before the user leaves the dedicated celebration screen.
+            redirectingRef.current = true
+            onComplete()
+        } else redirectToAccount()
     }
 
     // ensure user is fetched when component mounts (important for new signups)
@@ -123,18 +244,21 @@ const SignTestTransaction = () => {
 
     useEffect(() => {
         // Login flow only: an account that existed before this screen redirects
-        // straight in. A signup that just created its account stays for the
-        // account-ready screen and redirects from its CTA instead — nothing may
-        // navigate off that screen on its own, so it is a hard guard here and
-        // not only the creating-account ref.
-        if (accountReady || creatingAccountRef.current) return
+        // straight in. Signup completion owns its own redirect, guarded so the
+        // account refetch cannot consume the stored destination a second time.
+        // A wallet can already be saved by an earlier ambiguous signup request.
+        // That is not proof of confirmation during this visit to the final step.
+        if (onComplete || creatingAccountRef.current || redirectingRef.current) return
         if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
+            redirectingRef.current = true
             handleRedirect()
         }
-    }, [accountExists, accountReady])
+    }, [accountExists, handleRedirect, onComplete])
 
     const handleTestTransaction = async () => {
+        if (redirectingRef.current) return
+
         if (!address) {
             setError(t('testTransaction.errors.noWalletAddress'))
             return
@@ -188,67 +312,40 @@ const SignTestTransaction = () => {
                 console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
             }
 
-            // if successful and account doesn't exist, finalize account setup
-            if (!accountExists) {
+            // A retry must also confirm the current choices: a prior request may
+            // have committed before the user returned and changed their plan.
+            if (onComplete || !accountExists || (creatingAccountRef.current && fundingChannel && paymentChannel)) {
                 console.log('[SignTestTransaction] Finalizing account setup')
                 creatingAccountRef.current = true
-                const success = await finalizeAccountSetup(address)
+                const success = await finalizeAccountSetup(
+                    address,
+                    fundingChannel && paymentChannel ? { fundingChannel, paymentChannel } : undefined
+                )
                 if (!success) {
-                    console.error('[SignTestTransaction] Failed to finalize account setup')
+                    // The request layer already recorded the concrete failure;
+                    // avoid another console-captured wrapper event here.
+                    console.info('[SignTestTransaction] Account setup remains retryable')
                     setError(setupError || t('testTransaction.errors.setupFailed'))
                     setIsSigning(false)
                     setSetupLoading(false)
                     return
                 }
 
-                // account setup complete - addAccount() already fetched and verified user data
-                console.log('[SignTestTransaction] Account setup complete, showing the account-ready screen')
-                const inviteCode = getFromCookie('inviteCode')
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
-                    acquisition_source: inviteCode ? 'referred' : 'organic',
-                    invite_code: inviteCode || undefined,
-                })
-
-                // Persist the residence answer from the residence step, now that
-                // the account exists. Fire-and-forget: prequalification data,
-                // never a reason to fail or delay the redirect.
-                if (residenceCountry) {
-                    posthog.setPersonProperties({
-                        residence_country: residenceCountry,
-                        second_residence_country: secondResidenceCountry || undefined,
-                    })
-                    const userId = user?.user?.userId
-                    if (userId) {
-                        storeDeclaredResidence(userId, residenceCountry)
-                        storeSecondResidence(userId, secondResidenceCountry || null)
-                        void updateUserById({
-                            userId,
-                            residenceCountry,
-                            ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
-                        })
-                            .then((result) => {
-                                // updateUserById maps API failures to { error },
-                                // it doesn't throw them — inspect the result.
-                                if (result?.error) {
-                                    console.error('[SignTestTransaction] Failed to persist residence:', result.error)
-                                }
-                            })
-                            .catch((err: unknown) => {
-                                console.error('[SignTestTransaction] Failed to persist residence:', err)
-                            })
-                    }
-                }
-
-                // The finish line does two jobs: celebrate what already works
-                // without ID, and plant the honest KYC expectation before home
-                // ever asks. The redirect moves to its CTA.
-                setIsSigning(false)
-                setSetupLoading(false)
-                setAccountReady(true)
+                // addAccount() already fetched and verified user data.
+                await completeSignup()
             } else {
-                // if account already exists, just navigate home (login flow)
-                console.log('[SignTestTransaction] Account exists, redirecting to the app')
-                // keep loading state active until redirect completes
+                if (creatingAccountRef.current) {
+                    // A prior ambiguous request can commit after both immediate
+                    // profile reconciliations fail. Retry consumes that signup
+                    // marker and presents the same success state as the direct
+                    // response instead of leaving the button loading forever.
+                    console.log('[SignTestTransaction] Reconciled account from an earlier setup request')
+                    await completeSignup()
+                } else {
+                    // Login flow: the account-exists effect owns navigation.
+                    console.log('[SignTestTransaction] Account exists, redirecting to the app')
+                    // keep loading state active until redirect completes
+                }
             }
         } catch (e) {
             console.error('[SignTestTransaction] Test transaction failed:', e)
@@ -277,54 +374,24 @@ const SignTestTransaction = () => {
     }
 
     const isLoading = isSigning || isProcessing || isFetchingUser || !user
-    const isDisabled = isLoading
     const displayError = error || setupError
 
     // determine button text based on state
     const getButtonText = () => {
         if (isFetchingUser || !user) return tCommon('loading')
         if (testTransactionCompleted && displayError) return t('testTransaction.retryAccountSetup')
-        return t('testTransaction.confirmAndFinish')
+        return undefined
     }
 
-    if (accountReady) return <AccountReadyView onContinue={goToAccount} isRedirecting={isRedirecting} />
-
     return (
-        <div>
-            <div className="flex h-full flex-col justify-between gap-6 p-0 md:min-h-32">
-                <div className="flex h-full flex-col justify-end gap-2">
-                    {/* Rendered here, not by the step chrome, so the account-ready
-                        state doesn't repeat it (descriptionInView on the step). */}
-                    <p className="mb-1 text-body-s text-foreground-secondary">
-                        {t('steps.sign-test-transaction.description')}
-                    </p>
-                    {displayError && <Notification priority="error">{displayError}</Notification>}
-                    <Button
-                        loading={isLoading}
-                        disabled={isDisabled}
-                        onClick={handleTestTransaction}
-                        className="text-nowrap"
-                        shadowSize="4"
-                    >
-                        {getButtonText()}
-                    </Button>
-                </div>
-                <div>
-                    {/* In-app explainer instead of a browser redirect — leaving
-                        the app mid-signup loses users (full guide inside). */}
-                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
-                        <button
-                            type="button"
-                            className="relative underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                            onClick={() => setIsPasskeyInfoOpen(true)}
-                        >
-                            {t('passkey.learnMore')}
-                        </button>
-                    </p>
-                </div>
-            </div>
-            <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
-        </div>
+        <SetupConfirmationView
+            onConfirm={handleTestTransaction}
+            isLoading={isLoading}
+            error={displayError}
+            buttonText={getButtonText()}
+            merged={merged}
+            showTitle={!!onComplete}
+        />
     )
 }
 
@@ -336,9 +403,10 @@ export const PasskeyDocsLink = ({ className }: { className?: string }) => {
             // them as colors and deletes the size (see LinkButton.tsx:40)
             className={`text-body-xs text-foreground-secondary ${twMerge('border-t border-border-subtle pt-2 text-center', className)}`}
         >
-            <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+            <SetupDocLink kind="passkeys" href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
+                <Icon name="info" size={16} className="shrink-0" />
                 {t('passkey.learnMore')}
-            </DocsLink>{' '}
+            </SetupDocLink>{' '}
         </p>
     )
 }

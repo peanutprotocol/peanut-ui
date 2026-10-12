@@ -7,7 +7,6 @@
  * the root layout (server component) renders this single client boundary.
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
-import { InputModalityProvider } from '@/components/Accessibility/InputModalityProvider'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
@@ -22,14 +21,30 @@ import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { isMarketingRoute } from '@/utils/marketing-routes'
+import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useSyncExternalStore } from 'react'
+import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
+import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
+import { AppHelpProvider } from '@/components/Global/AppHelpProvider'
 
-// Harness bootstrap ships only in harness builds. In prod bundles the dynamic
-// import is in dead code behind `if (false)` and webpack drops the chunk.
+/*
+ * Harness bootstrap ships only in harness builds. In prod bundles the dynamic
+ * import is in dead code behind `if (false)` and webpack drops the chunk.
+ *
+ * It is rendered at the TOP of the tree below, above every lazily-loaded
+ * provider and outside the unsupported-WebView branch, because it is the
+ * recovery path: a reproduce link is opened precisely when the browser holds a
+ * stale session and a stale build, and anything mounted under the app's
+ * provider chunks can only run once those chunks have. Mounted deeper, a
+ * boundary that never resolved left the reproduce effect unmounted, the
+ * manifest unfetched and — because the (mobile-ui) layout suppresses its
+ * /setup bounce while `?__reproduce` is present — the mascot on screen forever.
+ */
 const HarnessBootstrap = HARNESS_ENABLED
     ? dynamic(() => import('@/context/HarnessBootstrap').then((m) => m.HarnessBootstrap), {
           ssr: false,
@@ -51,14 +66,18 @@ if (typeof window !== 'undefined') applyLegacyAndroidSafeAreaZeroFromUserAgent()
 
 // Decided once at load, client only. A WebView that cannot parse the
 // stylesheet gets the inline-styled update screen in place of the app tree.
-const UNSUPPORTED_WEBVIEW =
-    typeof window !== 'undefined' && isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
+const subscribeWebViewSupport = () => () => {}
+const unsupportedWebView = () => isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
+const serverUnsupportedWebView = () => false
 
-const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
+const AppGlobals = dynamic(() => importWithChunkRetry(() => import('./AppGlobals')).then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
-const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
+const AppIntlProvider = dynamic(() =>
+    importWithChunkRetry(() => import('@/i18n/app/AppIntlProvider')).then((m) => m.AppIntlProvider)
+)
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
+    const unsupported = useSyncExternalStore(subscribeWebViewSupport, unsupportedWebView, serverUnsupportedWebView)
     useSplashGate()
     // App Links + push-tap routing must be registered on EVERY cold-start
     // destination (including logged-out /setup), hence here and not (mobile-ui).
@@ -68,14 +87,26 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // The marketing site renders without the wallet provider tree, so the
     // globals that depend on it are not mounted there either. `isMarketingRoute`
     // fails safe: an unrecognised path gets the full app tree.
-    const marketing = isMarketingRoute(usePathname())
+    const pathname = usePathname()
+    const marketing = isMarketingRoute(pathname)
+
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 
-    if (UNSUPPORTED_WEBVIEW) {
+    // One mount, used by both branches below. Nothing in it reads a provider:
+    // ReproduceBootstrap works off window.location and HarnessReplay off the
+    // DOM, so it can sit above the whole tree.
+    const harness = HarnessBootstrap && (
+        <Suspense fallback={null}>
+            <HarnessBootstrap />
+        </Suspense>
+    )
+
+    if (unsupported) {
         // notifyAppReady still has to run here, or the plugin's app-ready
         // timeout rolls the active OTA bundle back on this screen.
         return (
             <OtaUpdateProvider>
+                {harness}
                 <AppIntlProvider>
                     <UnsupportedWebViewScreen />
                 </AppIntlProvider>
@@ -91,7 +122,13 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
            only through the dynamically-imported AppStateProviders chunk, and a
            chunk that loads slowly or fails would take readiness down with it. */
         <OtaUpdateProvider>
+            {harness}
+            <SignupAttributionNavigationCapture pathname={pathname} />
+            <PathnamePageviewTracker />
             <NuqsAdapter>
+                <Suspense fallback={null}>
+                    <ScreenTransitionTracker />
+                </Suspense>
                 <PeanutProvider>
                     {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
                         → useSendMoney calls useTranslations, so the intl context has to
@@ -102,14 +139,13 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                 <TranslationSafeWrapper>
                                     <ConsoleGreeting />
                                     <ScreenOrientationLocker />
-                                    {HarnessBootstrap && (
-                                        <Suspense fallback={null}>
-                                            <HarnessBootstrap />
-                                        </Suspense>
+                                    {marketing ? (
+                                        children
+                                    ) : (
+                                        <AppHelpProvider>
+                                            <AppGlobals>{children}</AppGlobals>
+                                        </AppHelpProvider>
                                     )}
-                                    <InputModalityProvider>
-                                        {marketing ? children : <AppGlobals>{children}</AppGlobals>}
-                                    </InputModalityProvider>
                                 </TranslationSafeWrapper>
                             </FooterVisibilityProvider>
                         </ContextProvider>
@@ -118,4 +154,17 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             </NuqsAdapter>
         </OtaUpdateProvider>
     )
+}
+
+/** Capture every App Router entry after the document-level bootstrap. */
+export function SignupAttributionNavigationCapture({ pathname }: { pathname: string | null }) {
+    useEffect(() => {
+        if (!isCapacitor()) {
+            // instrumentation-client owns the one document-referrer capture.
+            // Every React entry is therefore referrer-free, including hydration
+            // of the initial URL and all later SPA transitions.
+            captureSignupAttribution()
+        }
+    }, [pathname])
+    return null
 }

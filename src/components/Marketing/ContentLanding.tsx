@@ -1,24 +1,34 @@
 'use client'
 
 import { useMemo } from 'react'
-import Link from 'next/link'
 import Fuse from 'fuse.js'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
-import { Icon } from '@/components/Global/Icons/Icon'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { SearchInput } from '@/components/SearchInput'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
+import { ContentLinkRow } from './ContentLinkRow'
+import { HUB_WIDTH } from './constants'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
+import { isEnglishFallback } from '@/i18n/englishFallback'
 
-const PROSE_WIDTH = 'max-w-[720px]'
 const TYPE_VALUES: ContentItemType[] = ['blog', 'stories', 'use-cases', 'compare']
+
+// the "no type filter" tab. Not a ContentItemType, and not '' — radix rejects an empty
+// tab value. It never reaches the URL: onValueChange maps it back to `type: null`.
+const ALL_VALUE = 'all'
 
 export interface ContentLandingStrings {
     searchPlaceholder: string
+    clearSearch: string
     noResults: string
     filterAll: string
     filterBlog: string
     filterStories: string
     filterUseCases: string
     filterCompare: string
+    /** Label on an item the fallback serves in English, e.g. "En inglés". */
+    inEnglish: string
 }
 
 interface Props {
@@ -29,6 +39,7 @@ interface Props {
 
 interface ContentLinkListProps {
     items: ContentItem[]
+    locale: Locale
     strings: ContentLandingStrings
     /** Group by type under section headings — the unfiltered hub view. */
     grouped: boolean
@@ -51,24 +62,26 @@ function typeLabelsFor(strings: ContentLandingStrings): Record<ContentItemType, 
     }
 }
 
-function renderLinkRows(items: ContentItem[]) {
+function renderLinkRows(items: ContentItem[], locale: Locale, inEnglish: string) {
     return (
-        <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
-            {items.map((item) => (
-                <Link
-                    key={`${item.type}/${item.slug}`}
-                    href={item.href}
-                    className="group flex items-center justify-between border-b border-n-1/10 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
-                >
-                    <div className="flex flex-col gap-0.5">
-                        <h3 className="text-base font-semibold text-n-1 group-hover:underline">
-                            {displayTitle(item.title)}
-                        </h3>
-                        <p className="line-clamp-1 text-sm leading-[1.75] text-grey-1">{item.description}</p>
-                    </div>
-                    <Icon name="arrow-up-right" size={16} className="shrink-0 text-grey-1" />
-                </Link>
-            ))}
+        <div className="flex flex-col">
+            {items.map((item, i) => {
+                // The link keeps pointing at the English URL (it owns the prose); the label
+                // and lang tell the reader and screen readers what language they will get.
+                const english = isEnglishFallback(item.lang, locale)
+                return (
+                    <ContentLinkRow
+                        key={`${item.type}/${item.slug}`}
+                        href={item.href}
+                        title={displayTitle(item.title)}
+                        description={item.description}
+                        index={i}
+                        total={items.length}
+                        lang={english ? item.lang : undefined}
+                        languageLabel={english ? inEnglish : undefined}
+                    />
+                )
+            })}
         </div>
     )
 }
@@ -78,11 +91,11 @@ function renderLinkRows(items: ContentItem[]) {
  * filtering has run, and the page renders it as the Suspense fallback: a subtree that reads the
  * URL prerenders as its fallback, so this is what puts article links in the crawlable HTML.
  */
-export function ContentLinkList({ items, strings, grouped }: ContentLinkListProps) {
+export function ContentLinkList({ items, locale, strings, grouped }: ContentLinkListProps) {
     const typeLabels = typeLabelsFor(strings)
 
     return (
-        <div className={`mx-auto ${PROSE_WIDTH} px-6 pb-12 md:px-4`}>
+        <div className={`mx-auto ${HUB_WIDTH} px-6 pb-12 md:px-4`}>
             {grouped ? (
                 <div className="flex flex-col gap-10">
                     {TYPE_VALUES.map((t) => {
@@ -90,22 +103,22 @@ export function ContentLinkList({ items, strings, grouped }: ContentLinkListProp
                         if (inType.length === 0) return null
                         return (
                             <section key={t}>
-                                <h2 className="mb-4 text-xs font-bold tracking-widest text-grey-1 uppercase">
+                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {typeLabels[t]}
                                 </h2>
-                                {renderLinkRows(inType)}
+                                {renderLinkRows(inType, locale, strings.inEnglish)}
                             </section>
                         )
                     })}
                 </div>
             ) : (
-                renderLinkRows(items)
+                renderLinkRows(items, locale, strings.inEnglish)
             )}
         </div>
     )
 }
 
-export default function ContentLanding({ items, strings }: Props) {
+export default function ContentLanding({ items, locale, strings }: Props) {
     const [{ q, type }, setFilters] = useQueryStates({
         q: parseAsString,
         type: parseAsStringEnum<ContentItemType>(TYPE_VALUES),
@@ -138,54 +151,44 @@ export default function ContentLanding({ items, strings }: Props) {
 
     const typeLabels = typeLabelsFor(strings)
 
-    const chipBase = 'rounded-sm border border-n-1 px-3 py-1 text-sm transition-colors'
-
     return (
         <>
-            <div className={`mx-auto mt-10 mb-6 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
-                <div className="relative">
-                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-grey-1">
-                        <Icon name="search" size={18} />
-                    </div>
-                    <input
-                        type="text"
-                        aria-label={strings.searchPlaceholder}
-                        placeholder={strings.searchPlaceholder}
-                        value={q ?? ''}
-                        onChange={(e) => setFilters({ q: e.target.value || null })}
-                        className="h-12 w-full rounded-sm border border-n-1 bg-white pr-4 pl-10 text-base caret-primary-1 focus:ring-1 focus:ring-n-1 focus:outline-none"
-                    />
-                </div>
+            <div className={`mx-auto mt-10 mb-6 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
+                <SearchInput
+                    value={q ?? ''}
+                    onChange={(value) => setFilters({ q: value || null })}
+                    onClear={() => setFilters({ q: null })}
+                    placeholder={strings.searchPlaceholder}
+                    aria-label={strings.searchPlaceholder}
+                    clearLabel={strings.clearSearch}
+                />
             </div>
 
-            <div className={`mx-auto mb-4 ${PROSE_WIDTH} px-6 md:px-4`}>
-                <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setFilters({ type: null })}
-                        className={`${chipBase} ${activeType === null ? 'bg-primary-1/20 font-semibold' : 'hover:bg-primary-3/30'}`}
-                    >
-                        {strings.filterAll}
-                    </button>
-                    {TYPE_VALUES.map((t) => (
-                        <button
-                            key={t}
-                            type="button"
-                            onClick={() => setFilters({ type: activeType === t ? null : t })}
-                            className={`${chipBase} ${activeType === t ? 'bg-primary-1/20 font-semibold' : 'hover:bg-primary-3/30'}`}
-                        >
-                            {typeLabels[t]}
-                        </button>
-                    ))}
-                </div>
+            <div className={`mx-auto mb-4 ${HUB_WIDTH} px-6 md:px-4`}>
+                {/* nuqs owns the value: ?type=blog is a shareable filtered URL, so the
+                    tabs read and write the query state directly and hold none of their own.
+                    ALL_VALUE stands in for `type=null` because a radix tab value cannot be
+                    empty. */}
+                <Tabs
+                    size="sm"
+                    aria-label={strings.filterAll}
+                    value={activeType ?? ALL_VALUE}
+                    onValueChange={(next) =>
+                        setFilters({ type: next === ALL_VALUE ? null : (next as ContentItemType) })
+                    }
+                    tabs={[
+                        { value: ALL_VALUE, label: strings.filterAll },
+                        ...TYPE_VALUES.map((t) => ({ value: t, label: typeLabels[t] })),
+                    ]}
+                />
             </div>
 
             {filtered.length === 0 ? (
-                <div className={`mx-auto ${PROSE_WIDTH} px-6 pb-12 md:px-4`}>
-                    <p className="py-12 text-center text-grey-1">{strings.noResults}</p>
+                <div className={`mx-auto ${HUB_WIDTH} px-6 pb-12 md:px-4`}>
+                    <EmptyState icon="search" title={strings.noResults} />
                 </div>
             ) : (
-                <ContentLinkList items={filtered} strings={strings} grouped={groupResults} />
+                <ContentLinkList items={filtered} locale={locale} strings={strings} grouped={groupResults} />
             )}
         </>
     )

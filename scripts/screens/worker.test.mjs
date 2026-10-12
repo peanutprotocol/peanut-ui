@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import worker from './worker/index.mjs'
 const request = (path, method = 'GET') => new Request(`https://screens.example.com${path}`, { method })
-test('worker exposes only public report objects and supports read methods', async () => {
+test('worker exposes only protected gallery objects and supports read methods', async () => {
     let reads = 0
     const env = {
         REPORTS: {
@@ -16,22 +16,58 @@ test('worker exposes only public report objects and supports read methods', asyn
     for (const path of [
         '/screen-data/entries/private.json',
         '/screen-data/assets/a.png',
+        `/screen-data/assets/${'a'.repeat(64)}.jpg`,
         '/screen-data/secrets',
         '/other',
     ])
         assert.equal((await worker.fetch(request(path), env)).status, 404)
     assert.equal(reads, 0)
+    const collectionUrl = '/collections/multi-action-screens-revised-review-20260921-05ad56c3fe/?locale=en#fixture-home'
+    const continueResponse = await worker.fetch(
+        request(`/screen-data/auth/continue?return=${encodeURIComponent(collectionUrl)}`),
+        env
+    )
+    assert.equal(continueResponse.status, 302)
+    assert.equal(continueResponse.headers.get('location'), collectionUrl)
+    assert.equal(continueResponse.headers.get('cache-control'), 'no-store')
+    for (const unsafe of [
+        'https://evil.example/',
+        '//evil.example/',
+        '/\\evil.example/',
+        '/screen-data/index.json',
+        'javascript:alert(1)',
+    ])
+        assert.equal(
+            (await worker.fetch(request(`/screen-data/auth/continue?return=${encodeURIComponent(unsafe)}`), env))
+                .status,
+            400
+        )
+    assert.equal(reads, 0)
     assert.equal((await worker.fetch(request('/screen-data/index.json', 'POST'), env)).status, 405)
     const index = await worker.fetch(request('/screen-data/index.json'), env)
-    assert.equal(index.headers.get('cache-control'), 'public, max-age=60')
+    assert.equal(index.headers.get('cache-control'), 'private, max-age=60')
     const report = await worker.fetch(request('/screen-data/reports/2026-09-11/dev-abc/manifest.json'), env)
-    assert.match(report.headers.get('cache-control'), /immutable/)
+    assert.equal(report.headers.get('cache-control'), 'private, max-age=60')
+    const collection = await worker.fetch(
+        request('/screen-data/collections/choice-overload-20260916-abc/manifest.json'),
+        env
+    )
+    assert.equal(collection.headers.get('cache-control'), 'private, max-age=10')
+    const archive = await worker.fetch(request('/screen-data/reports/2026-09-11/dev-abc/offline.tar.gz'), env)
+    assert.match(archive.headers.get('cache-control'), /immutable/)
+    const asset = await worker.fetch(request(`/screen-data/assets/${'a'.repeat(64)}.png`), env)
+    assert.equal(asset.headers.get('content-type'), 'image/png')
+    assert.equal(asset.headers.get('cache-control'), 'private, max-age=31536000, immutable')
     const head = await worker.fetch(request('/screen-data/index.json', 'HEAD'), env)
     assert.equal(await head.text(), '')
 })
 test('missing or failed storage never returns the gallery HTML', async () => {
     assert.equal(
-        (await worker.fetch(request('/screen-data/latest.json'), { REPORTS: { get: async () => null } })).status,
+        (
+            await worker.fetch(request('/screen-data/latest.json'), {
+                REPORTS: { get: async () => null },
+            })
+        ).status,
         404
     )
     const failed = await worker.fetch(request('/screen-data/latest.json'), {

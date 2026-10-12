@@ -1,7 +1,7 @@
 /**
  * DeleteAccountButton — modal state-machine tests.
  * Strategy: mock the deps (auth, wallet, router, toast, service, posthog,
- * mascots) and stub ActionModal to a minimal surface that renders the title +
+ * mascot player) and stub ActionModal to a minimal surface that renders the title +
  * CTA buttons, so we can drive blocked / confirm -> loading -> done -> logout
  * and the error-toast branch.
  */
@@ -10,6 +10,7 @@ import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-librar
 import { IntlWrapper } from '@/test-utils/intl'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import { AccountHasBalanceError } from '@/services/users'
+import { ApiError } from '@/services/api-error'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -36,19 +37,14 @@ jest.mock('@/services/users', () => ({
     },
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => mockCapture(...a) } }))
-jest.mock('@/assets/mascot', () => ({
-    PeanutSad: { src: 'sad' },
-    PeanutCrying: { src: 'cry' },
-    PeanutPointing: { src: 'point' },
-}))
-jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 
 // Minimal ActionModal: render title + CTAs as buttons when visible, and surface
 // the lock props (preventClose / hideModalCloseButton) as data-attributes so we
 // can assert the dismissal wiring without rendering the real modal.
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
-    default: ({ visible, title, description, ctas, preventClose, hideModalCloseButton }: any) =>
+    default: ({ visible, title, description, ctas, tertiaryCta, preventClose, hideModalCloseButton }: any) =>
         visible ? (
             <div
                 data-testid="modal"
@@ -62,6 +58,11 @@ jest.mock('@/components/Global/ActionModal', () => ({
                         {c.text}
                     </button>
                 ))}
+                {tertiaryCta && (
+                    <button disabled={tertiaryCta.disabled} onClick={tertiaryCta.onClick}>
+                        {tertiaryCta.text}
+                    </button>
+                )}
             </div>
         ) : null,
 }))
@@ -75,9 +76,9 @@ beforeEach(() => {
 describe('DeleteAccountButton', () => {
     it('opens the confirm modal and fires the initiated event', () => {
         render(<DeleteAccountButton />)
-        fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
 
-        expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+        expect(screen.getByText('Leaving already?')).toBeInTheDocument()
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_INITIATED)
     })
 
@@ -85,7 +86,7 @@ describe('DeleteAccountButton', () => {
         mockRequestDeletion.mockResolvedValueOnce(undefined)
         render(<DeleteAccountButton />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
         fireEvent.click(screen.getByText('Yes, delete it'))
 
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_CONFIRMED)
@@ -100,13 +101,32 @@ describe('DeleteAccountButton', () => {
         mockRequestDeletion.mockRejectedValueOnce(new Error('boom'))
         render(<DeleteAccountButton />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
         fireEvent.click(screen.getByText('Yes, delete it'))
 
         await waitFor(() => expect(mockToastError).toHaveBeenCalled())
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
         // still on the confirm step, not signed out
-        expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+        expect(screen.getByText('Leaving already?')).toBeInTheDocument()
+        expect(mockLogout).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        [
+            'DEPOSIT_IN_FLIGHT',
+            'A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.',
+        ],
+        [
+            'DEPOSIT_ACCOUNTS_UNAVAILABLE',
+            'We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later.',
+        ],
+    ])('explains %s without logging out or showing success', async (code, message) => {
+        mockRequestDeletion.mockRejectedValueOnce(new ApiError('Backend refusal', { status: 409, code }))
+        render(<DeleteAccountButton />)
+        fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+        fireEvent.click(screen.getByText('Yes, delete it'))
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(message))
+        expect(screen.getByText('Leaving already?')).toBeInTheDocument()
         expect(mockLogout).not.toHaveBeenCalled()
     })
 
@@ -115,7 +135,7 @@ describe('DeleteAccountButton', () => {
         mockRequestDeletion.mockReturnValueOnce(new Promise<void>((r) => (resolveDeletion = () => r())))
         render(<DeleteAccountButton />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
         // confirm step is dismissible
         expect(screen.getByTestId('modal').dataset.preventClose).toBe('false')
         expect(screen.getByTestId('modal').dataset.hideClose).toBe('false')
@@ -134,10 +154,10 @@ describe('DeleteAccountButton', () => {
 
     it('cancel closes the modal without calling the API', () => {
         render(<DeleteAccountButton />)
-        fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
         fireEvent.click(screen.getByText("Never mind, I'll stay"))
 
-        expect(screen.queryByText("Aw, you're leaving?")).not.toBeInTheDocument()
+        expect(screen.queryByText('Leaving already?')).not.toBeInTheDocument()
         expect(mockRequestDeletion).not.toHaveBeenCalled()
     })
 
@@ -147,11 +167,11 @@ describe('DeleteAccountButton', () => {
             mockWallet.formattedSpendableBalance = '500.00'
             render(<DeleteAccountButton />)
 
-            fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
 
-            expect(screen.getByText('Move your money first')).toBeInTheDocument()
+            expect(screen.getByText('Move money first')).toBeInTheDocument()
             expect(screen.getByText(/You still have \$500\.00/)).toBeInTheDocument()
-            expect(screen.queryByText("Aw, you're leaving?")).not.toBeInTheDocument()
+            expect(screen.queryByText('Leaving already?')).not.toBeInTheDocument()
             expect(mockRequestDeletion).not.toHaveBeenCalled()
             expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
         })
@@ -160,8 +180,8 @@ describe('DeleteAccountButton', () => {
             mockWallet.spendableBalance = 500_000_000n
             render(<DeleteAccountButton />)
 
-            fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
-            fireEvent.click(screen.getByText('Move my money'))
+            fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+            fireEvent.click(screen.getByText('Move money'))
 
             expect(mockPush).toHaveBeenCalledWith('/withdraw')
             expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
@@ -171,18 +191,18 @@ describe('DeleteAccountButton', () => {
             mockWallet.spendableBalance = 9_999n
             render(<DeleteAccountButton />)
 
-            fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
 
-            expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+            expect(screen.getByText('Leaving already?')).toBeInTheDocument()
         })
 
         it('falls back to the confirm step while the balance is still unknown', () => {
             mockWallet.spendableBalance = undefined
             render(<DeleteAccountButton />)
 
-            fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
 
-            expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+            expect(screen.getByText('Leaving already?')).toBeInTheDocument()
         })
 
         it('shows the blocked step with the server figure when the server refuses', async () => {
@@ -190,10 +210,10 @@ describe('DeleteAccountButton', () => {
             mockRequestDeletion.mockRejectedValueOnce(new AccountHasBalanceError('12.34'))
             render(<DeleteAccountButton />)
 
-            fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
             fireEvent.click(screen.getByText('Yes, delete it'))
 
-            await waitFor(() => expect(screen.getByText('Move your money first')).toBeInTheDocument())
+            await waitFor(() => expect(screen.getByText('Move money first')).toBeInTheDocument())
             expect(screen.getByText(/You still have \$12\.34/)).toBeInTheDocument()
             expect(mockToastError).not.toHaveBeenCalled()
             expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)

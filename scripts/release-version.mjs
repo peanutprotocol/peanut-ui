@@ -26,6 +26,7 @@
 //   node scripts/release-version.mjs native-floor
 //   node scripts/release-version.mjs newest-native
 //   node scripts/release-version.mjs validate <version> --kind <native|ota>
+//   Add --root <app-checkout> when the release tooling is checked out separately.
 //
 // Needs full history and tags (actions/checkout with fetch-depth: 0).
 
@@ -67,6 +68,11 @@ if (invokedDirectly()) {
 }
 
 function main(argv) {
+    if (argv.includes('--root')) {
+        const root = flag(argv, '--root')
+        if (!root) throw new Error('--root needs a directory')
+        setRepoRoot(root)
+    }
     const [mode, ...rest] = argv
     const major = readMajor()
 

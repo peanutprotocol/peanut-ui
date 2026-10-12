@@ -4,6 +4,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { useTranslations } from 'next-intl'
 import { useRainCooldown } from '@/context/RainCooldownContext'
 import DocsLink from '@/components/Global/DocsLink'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 
 /**
  * Shown the first time the user trips Rain's withdrawal-signature lock in a
@@ -22,25 +23,25 @@ const RainCooldownIntroModal = () => {
         <ActionModal
             visible={showIntroModal}
             onClose={dismissIntroModal}
+            tone="attention"
             icon="clock"
-            iconContainerClassName="bg-action-secondary"
             title={t('rainCooldownIntroModal.title')}
             description={t('rainCooldownIntroModal.description')}
             ctas={[
                 {
                     text: tCommon('gotIt'),
-                    variant: 'purple',
+                    variant: 'primary',
                     shadowSize: '4',
                     onClick: dismissIntroModal,
                 },
             ]}
             footer={
-                <DocsLink
-                    href="/en/help/card-collateral"
-                    className="block pt-2 text-center text-body-s text-black underline"
-                >
-                    {t('rainCooldownIntroModal.readMore')}
-                </DocsLink>
+                <div className="pt-2 text-center">
+                    {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
+                    <DocsLink href="/en/help/card-collateral" className={LINK_BUTTON_CLASSES}>
+                        {t('rainCooldownIntroModal.readMore')}
+                    </DocsLink>
+                </div>
             }
         />
     )

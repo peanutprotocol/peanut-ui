@@ -243,6 +243,16 @@ for (const locale of APP_LOCALES_SWEEP) {
                         return
                     }
                 }
+                for (const selector of overlay.clickSelectors ?? []) {
+                    try {
+                        await page.locator(selector).first().click({ timeout: 8_000 })
+                        await page.waitForTimeout(600)
+                    } catch {
+                        record({ ...cell, status: 'skip', reason: `could not click ${selector}` }, testInfo)
+                        test.skip(true, `could not click ${selector}`)
+                        return
+                    }
+                }
                 // AFTER the clicks: a URL param rename degrades the cell to a
                 // base-page scan, and a click whose modal never renders still
                 // "succeeds" — the proof element is what says the overlay is

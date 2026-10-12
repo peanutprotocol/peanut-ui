@@ -19,6 +19,7 @@ import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -72,6 +73,7 @@ export function useDirectSendFlow() {
         address: walletAddress,
         sendMoney,
         formattedSpendableBalance,
+        spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
     } = useWallet()
@@ -205,6 +207,12 @@ export function useDirectSendFlow() {
                 // analytics only — never user-visible
             }
         } catch (err) {
+            // The card re-approval prompt was dismissed, or the screen was left,
+            // before anything was prepared or signed: no charge was paid and
+            // nothing is in flight. Control flow, not a failed send — no error
+            // copy on a screen the user may have left, and no Sentry report.
+            if (err instanceof SpendRecoveryAbortedError) return
+
             const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
 
@@ -283,6 +291,7 @@ export function useDirectSendFlow() {
         isConnected,
         walletAddress,
         formattedBalance: formattedSpendableBalance,
+        balanceFillAmount: spendableBalanceDecimal,
 
         // actions
         setAmount: handleSetAmount,

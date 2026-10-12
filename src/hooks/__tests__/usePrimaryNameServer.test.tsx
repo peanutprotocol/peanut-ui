@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { usePrimaryNameServer } from '../usePrimaryNameServer'
@@ -31,7 +31,11 @@ describe('usePrimaryNameServer', () => {
         mockServerFetch.mockResolvedValue(jsonResponse({ name: 'alice.eth' }))
         const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
         await waitFor(() => expect(result.current.primaryName).toBe('alice.eth'))
-        expect(mockServerFetch).toHaveBeenCalledWith(`/ens/reverse/${ADDRESS}`, { method: 'GET' })
+        expect(mockServerFetch).toHaveBeenCalledWith(`/ens/reverse/${ADDRESS}`, {
+            method: 'GET',
+            signal: expect.any(AbortSignal),
+            silentTimeout: true,
+        })
         // client fallback stays a no-op while the server path works
         expect(mockOnChainLookup).not.toHaveBeenCalled()
     })
@@ -58,6 +62,49 @@ describe('usePrimaryNameServer', () => {
         const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
         await waitFor(() => expect(mockOnChainLookup).toHaveBeenCalledWith(ADDRESS))
         expect(result.current.primaryName).toBeUndefined()
+    })
+
+    it('uses the on-chain fallback when the optional server lookup times out', async () => {
+        mockServerFetch.mockRejectedValue(
+            Object.assign(new Error('Request timed out'), { name: 'ConnectionTimeoutError' })
+        )
+        mockOnChainLookup.mockResolvedValue('alice.eth')
+        const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
+        await waitFor(() => expect(result.current.primaryName).toBe('alice.eth'))
+        expect(mockOnChainLookup).toHaveBeenCalledWith(ADDRESS)
+    })
+
+    it('preserves the cached display name when a timeout and the fallback both fail', async () => {
+        window.localStorage.setItem(
+            'ens-primary-name-cache',
+            JSON.stringify({ [ADDRESS.toLowerCase()]: { name: 'cached.eth', ts: Date.now() } })
+        )
+        mockServerFetch.mockRejectedValue(
+            Object.assign(new Error('Request timed out'), { name: 'ConnectionTimeoutError' })
+        )
+        const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
+        await waitFor(() => expect(mockOnChainLookup).toHaveBeenCalledWith(ADDRESS))
+        expect(result.current.primaryName).toBe('cached.eth')
+        expect(window.localStorage.getItem('ens-primary-name-cache')).toContain('cached.eth')
+    })
+
+    it('cancels an unused server lookup without starting the on-chain fallback', async () => {
+        let rejectRequest!: (error: Error) => void
+        mockServerFetch.mockImplementation(
+            () =>
+                new Promise<Response>((_resolve, reject) => {
+                    rejectRequest = reject
+                })
+        )
+        const hook = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
+        await waitFor(() => expect(mockServerFetch).toHaveBeenCalled())
+        const signal = mockServerFetch.mock.calls[0][1]?.signal
+        hook.unmount()
+        expect(signal?.aborted).toBe(true)
+        await act(async () => {
+            rejectRequest(Object.assign(new Error('The request was cancelled'), { name: 'AbortError' }))
+        })
+        expect(mockOnChainLookup).not.toHaveBeenCalled()
     })
 
     it('paints the cached name immediately on mount while the lookup is pending', async () => {

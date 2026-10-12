@@ -45,10 +45,9 @@ describe('recognizeQr', () => {
             ['vitalik.eth', '.eth domain'],
             ['jota.peanut.me', '.me domain'],
             ['sub.domain.eth', 'subdomain'],
-            ['test.crypto', '.crypto domain'],
-            ['user.wallet', '.wallet domain'],
             ['www.example.com', 'www subdomain'],
             ['example.com', 'basic domain'],
+            ['sub.example.xyz', 'DNS-backed name under a newer TLD'],
         ])('should recognize %s (%s)', (data, _description) => {
             expect(recognizeQr(data)).toBe(EQrType.ENS_NAME)
         })
@@ -59,6 +58,10 @@ describe('recognizeQr', () => {
             ['test.', 'trailing dot'],
             ['.test.eth', 'leading dot'],
             ['test..eth', 'double dot'],
+            // Unstoppable Domains namespaces, which our ENS resolver cannot
+            // answer for — they never resolved, they only cost a lookup.
+            ['test.crypto', '.crypto domain'],
+            ['user.wallet', '.wallet domain'],
         ])('should NOT recognize %s (%s)', (data, _description) => {
             expect(recognizeQr(data)).not.toBe(EQrType.ENS_NAME)
         })
@@ -626,10 +629,20 @@ describe('recognizeQr', () => {
                 expect(result).not.toBe(EQrType.ENS_NAME)
             })
 
-            // Incomplete strings like "com.mercadolibre" might match ENS_NAME
-            // This is expected - the fix ensures COMPLETE QRs are recognized correctly
-            expect(recognizeQr('com.mercadolibre')).toBe(EQrType.ENS_NAME)
-            expect(recognizeQr('ar.com.globalgetnet')).toBe(EQrType.ENS_NAME)
+            // QR fragments are no longer read as ENS names: the tail of each is
+            // not a public suffix, so the resolver can never answer for them.
+            expect(recognizeQr('com.mercadolibre')).not.toBe(EQrType.ENS_NAME)
+            expect(recognizeQr('ar.com.globalgetnet')).not.toBe(EQrType.ENS_NAME)
+        })
+
+        it('should recognize an Argentine payment alias as its own type', () => {
+            expect(recognizeQr('CASA.FUTBOLERA')).toBe(EQrType.ARGENTINA_ALIAS)
+            expect(recognizeQr('casa.futbolera')).toBe(EQrType.ARGENTINA_ALIAS)
+        })
+
+        it('should keep a formatted CPF a PIX key, not an alias', () => {
+            // Same dotted shape as an alias; Brazil keeps its own branch.
+            expect(recognizeQr('123.456.789-01')).toBe(EQrType.PIX_KEY)
         })
     })
 

@@ -42,7 +42,10 @@ export interface MixedEphemeralSpendArgs {
 
 export type MixedEphemeralSpendResult =
     | { ok: true; userOpHash: Hash; receipt: TransactionReceipt | null }
-    | { ok: false; reason: string }
+    /** `revertConfirmed` is set ONLY where a receipt reported success === false:
+     *  the batch reverted atomically, so nothing moved and adminNonce rolled
+     *  back. Absent means unknown — never assume the op did not execute. */
+    | { ok: false; reason: string; revertConfirmed?: true }
 
 export function buildWithdrawCall(prep: PrepareRainWithdrawalResponse, adminSignature: Hex): EphemeralCall {
     return {
@@ -152,7 +155,12 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
              * the same prep will succeed. Report failure, not success.
              */
             if (!userOpReceipt.success) {
-                return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
+                // Strictly `false` — a missing/malformed flag is unknown, not proof.
+                return {
+                    ok: false,
+                    reason: 'ephemeral userOp reverted on-chain',
+                    ...(userOpReceipt.success === false ? { revertConfirmed: true as const } : {}),
+                }
             }
             receipt = userOpReceipt.receipt
         } catch (error) {
@@ -163,7 +171,11 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
             // above so the passkey fallback still runs.
             const rescued = await rescueUserOpReceipt(session.client, userOpHash, error, 'mixed-ephemeral-spend')
             if (rescued && !rescued.success) {
-                return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
+                return {
+                    ok: false,
+                    reason: 'ephemeral userOp reverted on-chain',
+                    ...(rescued.success === false ? { revertConfirmed: true as const } : {}),
+                }
             }
             receipt = rescued?.receipt ?? null
         }

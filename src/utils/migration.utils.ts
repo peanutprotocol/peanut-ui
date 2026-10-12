@@ -1,14 +1,9 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BASE_URL, IS_DEV } from '@/constants/general.consts'
-import {
-    MIGRATION_CUTOVER_DATE,
-    PWA_SUNSET_FLAG,
-    STORE_URL,
-    type MigrationSurface,
-    type StoreKind,
-} from '@/constants/migration.consts'
+import { PWA_SUNSET_FLAG, STORE_URL, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
 import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import {
     buildDeferredPayload,
@@ -20,29 +15,28 @@ import {
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 
 /**
- * PR previews are temporary review environments, so they must retain the web
- * signup flow even when the production PWA sunset flag is enabled. The dev
- * branch is excluded because its preview deployment backs staging, where QA
- * still needs to exercise the production migration state.
+ * Every Vercel preview deployment keeps the web signup flow while the
+ * production PWA sunset flag is enabled: ad-hoc PR previews are temporary
+ * review environments, and the `dev` branch preview backs staging, where the
+ * team still creates accounts. Both read the production PostHog project, so
+ * the flag alone cannot tell them apart from peanut.me.
  *
  * Require a git ref as well as VERCEL_ENV: local visual builds set only
- * NEXT_PUBLIC_VERCEL_ENV=preview to enable fixtures and must keep the explicit
- * localStorage sunset override working.
+ * NEXT_PUBLIC_VERCEL_ENV=preview to enable fixtures and must keep following
+ * the flag.
  */
-function isVercelPrPreview(): boolean {
-    const gitRef = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF
-    return process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' && Boolean(gitRef) && gitRef !== 'dev'
+function isVercelPreviewDeployment(): boolean {
+    return process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' && Boolean(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF)
 }
 
 /**
- * Read the flag from PostHog. Local, CI and staging builds also accept
- * localStorage['pwa-sunset'] = 'true' because PostHog may be unavailable there.
- * Production builds for peanut.me ignore the override. Ad-hoc PR previews
- * always keep the web signup flow available for product review.
+ * Read the flag from PostHog. Local, CI, staging and preview builds also
+ * accept localStorage['pwa-sunset'] = 'true' because PostHog may be
+ * unavailable there, and because it is how QA forces the migration state on
+ * a deployment that otherwise ignores the flag. Production builds for
+ * peanut.me ignore the override.
  */
 export function isPwaSunsetOn(): boolean {
-    if (isVercelPrPreview()) return false
-
     if (
         (IS_DEV || !IS_PROD_DOMAIN) &&
         typeof localStorage !== 'undefined' &&
@@ -50,43 +44,22 @@ export function isPwaSunsetOn(): boolean {
     ) {
         return true
     }
+    if (isVercelPreviewDeployment()) return false
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
 }
 
-/**
- * The one sunset-block predicate, shared by every layout that can replace the
- * app with the download screen ((mobile-ui) and (setup)). Public paths are the
- * caller's concern: guest claim/request links must keep working, so the
- * mobile-ui layout passes `isPublic`.
- */
-export function shouldShowSunsetBlock({
-    migrationOn,
-    hasKeepWebBypass,
-    isPublic = false,
-    now = Date.now(),
-}: {
-    migrationOn: boolean
-    hasKeepWebBypass: boolean
-    isPublic?: boolean
-    now?: number
-}): boolean {
-    return migrationOn && !isPublic && !isCapacitor() && !hasKeepWebBypass && now >= getMigrationCutoverTime()
+/** The store this device downloads from. Desktop has none: it gets the QR code instead. */
+export function storeForDevice(deviceType: DeviceType): StoreKind | null {
+    if (deviceType === DeviceType.IOS) return 'ios'
+    if (deviceType === DeviceType.ANDROID) return 'android'
+    return null
 }
 
-/**
- * Cutover timestamp with a dev-only localStorage override
- * (`localStorage.setItem('pwa-sunset-cutover', '2020-01-01')` + reload) so the
- * post-cutover sunset block can be QA'd locally without editing the constant.
- */
-export function getMigrationCutoverTime(): number {
-    if (IS_DEV && typeof localStorage !== 'undefined') {
-        const iso = localStorage.getItem('pwa-sunset-cutover')
-        if (iso) {
-            const t = new Date(iso).getTime()
-            if (!Number.isNaN(t)) return t
-        }
-    }
-    return MIGRATION_CUTOVER_DATE.getTime()
+/** The icon on a download button: the visitor's store, or a QR code on desktop. */
+export function storeIcon(store: StoreKind | null): 'apple-logo' | 'google-play' | 'qr-code' {
+    if (store === 'ios') return 'apple-logo'
+    if (store === 'android') return 'google-play'
+    return 'qr-code'
 }
 
 /** Track a store CTA click without navigating (for anchors that navigate themselves). */
@@ -116,7 +89,7 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 
     let payload = ''
     try {
-        payload = buildDeferredPayload(handoff?.dest, handoff?.invite)
+        payload = buildDeferredPayload(handoff?.dest, handoff?.invite, store)
     } catch {
         // a payload failure must never block the store bounce itself
     }
@@ -144,7 +117,7 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 export function storeAnchorHref(store: StoreKind): string {
     if (!isCapacitor() && store === 'android') {
         try {
-            return playStoreUrlWithReferrer(buildDeferredPayload())
+            return playStoreUrlWithReferrer(buildDeferredPayload(undefined, undefined, 'android'))
         } catch {
             // fall through to the bare url — the bounce itself never breaks
         }
@@ -160,7 +133,7 @@ export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) 
     }
     let payload = ''
     try {
-        payload = buildDeferredPayload()
+        payload = buildDeferredPayload(undefined, undefined, store)
     } catch {}
     trackStoreClick(store, surface, !!payload)
     if (store === 'ios' && payload)

@@ -48,8 +48,8 @@ const Avatar = ({ tweet }: { tweet: Tweet }) => {
 
     if (!tweet.avatar || imgError) {
         return (
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-n-1 text-white">
-                <span className="text-xs font-bold">{tweet.author[0]?.toUpperCase()}</span>
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-950 text-white">
+                <span className="text-label-m">{tweet.author[0]?.toUpperCase()}</span>
             </div>
         )
     }
@@ -68,14 +68,14 @@ const Avatar = ({ tweet }: { tweet: Tweet }) => {
 
 /** X/Twitter verified badge icon */
 const VerifiedBadge = () => (
-    <svg className="h-3.5 w-3.5 flex-shrink-0 text-[#3b82f6]" viewBox="0 0 24 24" fill="currentColor">
+    <svg className="h-3.5 w-3.5 flex-shrink-0 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
         <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
     </svg>
 )
 
 /** X/Twitter logo icon */
 const XLogo = () => (
-    <svg className="h-4 w-4 flex-shrink-0 text-n-1 opacity-40" viewBox="0 0 24 24" fill="currentColor">
+    <svg className="h-4 w-4 flex-shrink-0 text-foreground-primary opacity-40" viewBox="0 0 24 24" fill="currentColor">
         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
 )
@@ -86,10 +86,10 @@ const TweetHeader = ({ tweet }: { tweet: Tweet }) => (
         <Avatar tweet={tweet} />
         <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-                <span className="truncate text-sm font-bold text-n-1">{tweet.author}</span>
+                <span className="truncate text-label-l text-foreground-primary">{tweet.author}</span>
                 {tweet.verified && <VerifiedBadge />}
             </div>
-            <span className="text-xs text-grey-1">{tweet.handle}</span>
+            <span className="text-body-xs text-foreground-secondary">{tweet.handle}</span>
         </div>
         <XLogo />
     </div>
@@ -103,7 +103,7 @@ const TweetHeader = ({ tweet }: { tweet: Tweet }) => (
 const PlayOverlay = () => (
     <div className="absolute inset-0 flex items-center justify-center bg-black/20">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-lg">
-            <svg className="ml-1 h-8 w-8 text-n-1" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="ml-1 h-8 w-8 text-foreground-primary" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M8 5v14l11-7z" />
             </svg>
         </div>
@@ -112,7 +112,7 @@ const PlayOverlay = () => (
 
 /** Base card styles shared across all card types */
 const CARD_BASE_CLASSES =
-    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-n-1 bg-white transition-all duration-100 hover:brightness-95 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none'
+    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none'
 
 /** Featured card with media (photo or video) - tallest card type */
 const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
@@ -130,7 +130,7 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
             className={CARD_BASE_CLASSES}
         >
             {photoMedia && !imgError ? (
-                <div className="relative h-[220px] w-full flex-shrink-0 overflow-hidden border-b-2 border-n-1 bg-grey-2">
+                <div className="relative h-[220px] w-full flex-shrink-0 overflow-hidden border-b-2 border-border-default bg-gray-200">
                     <Image
                         src={photoMedia.url}
                         alt="Tweet media"
@@ -142,11 +142,11 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
                     {hasVideo && <PlayOverlay />}
                 </div>
             ) : hasVideo ? (
-                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-black">
+                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-border-default bg-black">
                     <PlayOverlay />
                 </div>
             ) : (
-                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-gradient-to-br from-secondary-4 to-amber-100">
+                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-border-default bg-gradient-to-br from-background-badge-attention to-yellow-200">
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute -top-4 -left-4 text-7xl">🥜</div>
                         <div className="absolute -right-4 -bottom-4 text-7xl">🥜</div>
@@ -156,7 +156,7 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
             )}
             <div className="flex min-h-0 flex-1 flex-col p-3">
                 <TweetHeader tweet={tweet} />
-                <p className="mt-2 line-clamp-4 flex-1 overflow-hidden text-[13px] leading-snug text-n-1">
+                <p className="mt-2 line-clamp-4 flex-1 overflow-hidden text-[13px] leading-snug text-foreground-primary">
                     {tweet.content}
                 </p>
             </div>
@@ -174,7 +174,9 @@ const StandardCard = ({ tweet }: { tweet: Tweet }) => (
         className={`${CARD_BASE_CLASSES} p-3`}
     >
         <TweetHeader tweet={tweet} />
-        <p className="mt-2 line-clamp-6 flex-1 overflow-hidden text-[13px] leading-snug text-n-1">{tweet.content}</p>
+        <p className="mt-2 line-clamp-6 flex-1 overflow-hidden text-[13px] leading-snug text-foreground-primary">
+            {tweet.content}
+        </p>
     </a>
 )
 
@@ -188,7 +190,9 @@ const TinyCard = ({ tweet }: { tweet: Tweet }) => (
         className={`${CARD_BASE_CLASSES} p-3`}
     >
         <TweetHeader tweet={tweet} />
-        <p className="mt-2 line-clamp-3 flex-1 overflow-hidden text-[13px] leading-snug text-n-1">{tweet.content}</p>
+        <p className="mt-2 line-clamp-3 flex-1 overflow-hidden text-[13px] leading-snug text-foreground-primary">
+            {tweet.content}
+        </p>
     </a>
 )
 
@@ -338,12 +342,12 @@ const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     if (columns.length === 0) return null
 
     return (
-        <section id="testimonials" className="w-full bg-primary-1 pt-12 pb-10 md:pt-16 md:pb-14">
+        <section id="testimonials" className="w-full bg-background-brand pt-12 pb-10 md:pt-16 md:pb-14">
             <div className="mx-auto max-w-7xl px-4 pb-8">
-                <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-n-1 lg:text-headingMedium">
+                <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-foreground-primary lg:text-headingMedium">
                     {strings.wallOfLove}
                 </h2>
-                <p className="mt-3 text-center text-base text-n-1 md:text-xl">
+                <p className="mt-3 text-center text-body-m text-foreground-primary md:text-xl">
                     {strings.wallOfLoveBody}{' '}
                     <a
                         href="https://twitter.com/search?q=%40joinpeanut"

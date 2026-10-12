@@ -34,9 +34,11 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             [QR_INIT_CODE.MERCHANT_REFUND]: t('errors.merchantNotAvailable'),
             [QR_INIT_CODE.NOT_PROVISIONED]: t('errors.kycRequired'),
             [QR_INIT_CODE.KYC]: t('errors.kycRequired'),
+            [QR_INIT_CODE.SENDER_REJECTED]: t('errors.senderRejected'),
             [QR_INIT_CODE.PIX_MIN_AMOUNT]: pixMinAmountErrorMessage,
             [QR_INIT_CODE.PIX_RECURRING]: pixRecurringErrorMessage,
             [QR_INIT_CODE.MISSING_AMOUNT]: t('errors.genericQrDetails'),
+            [QR_INIT_CODE.NOT_FOUND]: t('errors.merchantNotAvailable'),
             [QR_INIT_CODE.EXPIRED]: t('errors.merchantChargeExpired'),
             [QR_INIT_CODE.DECODE]: qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'),
             [QR_INIT_CODE.PROVIDER_UNAVAILABLE]: t('errors.providerIssues', { method: qrMethodName }),
@@ -52,6 +54,7 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             offline: t('errors.connectionLost'),
             'auth-missing': t('errors.authError'),
             'provider-issues': t('errors.providerIssues', { method: qrMethodName }),
+            rejected: t('errors.initiateUnexpected'),
         }),
         [t, pixMinAmountErrorMessage, pixRecurringErrorMessage, qrType, qrMethodName]
     )

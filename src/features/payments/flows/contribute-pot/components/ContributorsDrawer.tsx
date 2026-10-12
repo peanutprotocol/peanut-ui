@@ -13,10 +13,9 @@
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
 import ContributorCard, { type Contributor } from '@/components/Global/Contributors/ContributorCard'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
-import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type PotContributor } from '../ContributePotFlowContext'
 import { useMemo } from 'react'
-import { Users } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 interface ContributorsDrawerProps {
@@ -35,6 +34,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
             fulfillmentPayment: null,
             isUserVerified: false,
             isPeanutUser: !!c.username,
+            avatarKey: c.avatarKey ?? null,
         }))
     }, [contributors])
 
@@ -45,13 +45,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
     return (
         <Drawer>
             <DrawerTrigger asChild>
-                <Button
-                    icon={<Users />}
-                    variant="transparent"
-                    className="relative h-5 w-fit self-start p-0 text-body-xs underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 active:translate-x-0 active:translate-y-0 active:text-foreground-primary"
-                >
-                    {t('contributors.seeAll')}
-                </Button>
+                <LinkButton className="self-start">{t('contributors.seeAll')}</LinkButton>
             </DrawerTrigger>
             <DrawerContent className="py-6">
                 <DrawerHeader>
@@ -59,7 +53,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                         {t('contributors.title', { count: contributors.length })}
                     </DrawerTitle>
                 </DrawerHeader>
-                <div className="space-y-0 max-h-[60vh] overflow-auto">
+                <div className="max-h-[60vh] overflow-auto">
                     {contributorCards.map((contributor, index) => (
                         <ContributorCard
                             key={contributor.uuid}

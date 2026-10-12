@@ -1,9 +1,11 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import DocsLink from '@/components/Global/DocsLink'
+import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -28,25 +30,31 @@ const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: ()
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="lock" className="bg-action-primary" />
+                        <IconBubble icon="lock" color="blue" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('title')}</DrawerTitle>
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        <div className="flex flex-col gap-3 text-left text-body-s text-foreground-primary">
+                        <div className="flex flex-col gap-3 text-left text-body-s leading-relaxed text-foreground-primary">
                             <p>{t('what')}</p>
                             <p>{t('backup')}</p>
                             <p>{t('privacy')}</p>
-                            <p className="text-body-xs text-foreground-secondary">
-                                <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
-                                    {t('fullGuide')}
-                                </DocsLink>
-                            </p>
                         </div>
-                        <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="primary" shadowSize="4" className="w-full justify-center" onClick={onClose}>
                             {tCommon('gotIt')}
                         </Button>
+                        <p className="text-center">
+                            <SetupDocLink
+                                kind="passkeys"
+                                href="/en/help/passkeys"
+                                className={LINK_BUTTON_CLASSES}
+                                onBeforeOpen={onClose}
+                            >
+                                <Icon name="info" size={16} className="shrink-0" />
+                                {t('fullGuide')}
+                            </SetupDocLink>
+                        </p>
                     </div>
                 </div>
             </DrawerContent>

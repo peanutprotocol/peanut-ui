@@ -23,7 +23,11 @@ export function generateMetadata({
     keywords?: string
     /** Canonical URL path (e.g. '/careers') or full URL. Resolved against metadataBase. */
     canonical?: string
-    /** Marketing locale of the page — emits og:locale + og:locale:alternate. */
+    /**
+     * Language of the page's prose — emits og:locale + og:locale:alternate.
+     * Content routes pass the locale whose file serves the page, not the URL
+     * locale: a pt-br URL served from the English file is English.
+     */
     locale?: Locale
 }): Metadata {
     const ogImage = dynamicOg

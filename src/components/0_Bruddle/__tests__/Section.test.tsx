@@ -13,6 +13,21 @@ describe('Section', () => {
         expect(screen.getByText('row')).toBeInTheDocument()
     })
 
+    test('trailing sits on the title row and stays out of the heading name', () => {
+        render(
+            <Section title="Select a network" trailing={<button>More networks</button>}>
+                <div>row</div>
+            </Section>
+        )
+        // the action must not be absorbed into the h2's accessible name —
+        // that is why trailing renders as a sibling, not a child, of the heading
+        const heading = screen.getByRole('heading', { level: 2, name: 'Select a network' })
+        const action = screen.getByRole('button', { name: 'More networks' })
+        expect(heading).not.toContainElement(action)
+        // and they share one row, so the action never drops to its own line
+        expect(heading.parentElement).toBe(action.parentElement)
+    })
+
     test('no title, no heading element', () => {
         render(
             <Section>

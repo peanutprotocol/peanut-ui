@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { reviewProvenance } from './review-provenance.mjs'
+import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 const repository = 'peanutprotocol/peanut-ui'
 const head = 'a'.repeat(40),
     base = 'b'.repeat(40),
@@ -26,8 +26,14 @@ test('ambiguous sibling PRs fail closed without an event binding', () => {
     assert.throws(() => reviewProvenance(repository, run, [pr, { ...pr, number: 13 }], git), /Ambiguous/)
 })
 test('event snapshot preserves the original base across concurrent dev changes', () => {
-    const event = { ...run, pull_requests: [{ number: 12, head: pr.head, base: { ...pr.base, sha: oldBase } }] }
+    const event = {
+        ...run,
+        head_sha: 'd'.repeat(40),
+        pull_requests: [{ number: 12, head: pr.head, base: { ...pr.base, sha: oldBase } }],
+    }
     assert.equal(reviewProvenance(repository, event, [pr, { ...pr, number: 13 }], git).before, oldBase)
+    assert.equal(reviewProvenance(repository, event, [pr], git).after, head)
+    assert.equal(reviewHeadRevision(event), head)
 })
 test('closed or merged PR runs cannot overwrite the report link', () => {
     assert.equal(reviewProvenance(repository, run, [{ ...pr, state: 'closed' }], git), null)
@@ -35,5 +41,12 @@ test('closed or merged PR runs cannot overwrite the report link', () => {
 })
 test('mismatched event head is rejected', () => {
     const event = { ...run, pull_requests: [{ number: 12, head: { ...pr.head, sha: oldBase }, base: pr.base }] }
-    assert.throws(() => reviewProvenance(repository, event, [pr], git), /snapshot/)
+    assert.equal(reviewProvenance(repository, event, [pr], git), null)
+})
+test('snapshot branch and base must match the triggering review', () => {
+    for (const snapshot of [
+        { number: 12, head: { ...pr.head, ref: 'other' }, base: pr.base },
+        { number: 12, head: pr.head, base: { ...pr.base, ref: 'main' } },
+    ])
+        assert.throws(() => reviewProvenance(repository, { ...run, pull_requests: [snapshot] }, [pr], git), /snapshot/)
 })

@@ -15,8 +15,9 @@ import { useRouter } from 'next/navigation'
 import Divider from '@/components/0_Bruddle/Divider'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import IconStack from '@/components/Global/IconStack'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
+import { usePaymentMethodLabels } from '@/features/payments/shared/hooks/usePaymentMethodLabels'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import Loading from '@/components/Global/Loading'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -46,6 +47,7 @@ export function PaymentMethodActionList({
     const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
+    const methodLabels = usePaymentMethodLabels()
     // Display-only "REQUIRES VERIFICATION" badges, provider-blind. The real
     // gate happens later in the add-money flow.
     //   QR-pay methods (mercadopago / pix) ← any rail with `pay` op enabled
@@ -107,14 +109,14 @@ export function PaymentMethodActionList({
                     return (
                         <ListItem
                             key={method.id}
-                            position="single"
-                            body={<div className="text-[12px]">{method.description}</div>}
+                            position="solo"
+                            body={<div className="text-body-xs">{methodLabels(method).description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
-                                    {method.title}
+                                    {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
-                                        <StatusBadge
-                                            status={methodRequiresVerification ? 'custom' : 'soon'}
+                                        <Badge
+                                            status={methodRequiresVerification ? 'pending' : 'soon'}
                                             customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />
                                     )}
@@ -122,7 +124,7 @@ export function PaymentMethodActionList({
                             }
                             onClick={() => handleMethodClick(method)}
                             disabled={method.soon || !isAmountEntered}
-                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            trailing={<IconStack icons={method.icons} iconSize={24} />}
                         />
                     )
                 })}

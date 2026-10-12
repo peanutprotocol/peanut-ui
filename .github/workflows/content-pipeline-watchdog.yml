@@ -114,7 +114,12 @@ jobs:
                   # which MONO_TOKEN has):
                   #   FRESH   — expected...stamped: is the stamp the expected commit
                   #             or a descendant of it?
-                  #   ON_MAIN — stamped...main: is the stamp on mono main at all?
+                  #   ON_MAIN — main...stamped: is the stamp on mono main at all?
+                  #             "behind" or "identical" means yes. Asked this way the
+                  #             diff is empty; stamped...main diffs every mono commit
+                  #             since the last publish, and GitHub answered it with a
+                  #             500 under load (2026-09-29 22:30 UTC, 36 commits, 300+
+                  #             files), which paged as a stuck pipeline.
                   #             The mirror has workflow_dispatch and checks out the
                   #             triggering ref, so a manual run from a branch would
                   #             publish content main never had. FRESH alone would
@@ -122,10 +127,16 @@ jobs:
                   # Only the four documented statuses count as an answer; a failed
                   # call yields "" and lands in the DEGRADED branch below, with the
                   # raw response in the log.
+                  # One retry: a single transient GitHub error must not page as a
+                  # watchdog fault.
                   compare_status() {
-                    local out st
-                    out=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/compare/$1" --jq '.status' 2>&1)
-                    st=$(printf '%s' "$out" | grep -Eox 'identical|ahead|behind|diverged' || true)
+                    local out st try
+                    for try in 1 2; do
+                      out=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/compare/$1" --jq '.status' 2>&1)
+                      st=$(printf '%s' "$out" | grep -Eox 'identical|ahead|behind|diverged' || true)
+                      [ -n "$st" ] && break
+                      [ "$try" = 1 ] && sleep 15
+                    done
                     [ -z "$st" ] && echo "::warning::compare $1 gave no status: $(printf '%s' "$out" | head -c 300)" >&2
                     printf '%s' "$st"
                   }
@@ -133,7 +144,7 @@ jobs:
                   ON_MAIN=""
                   if [ -n "$EXPECTED" ] && [ -n "$MIRRORED" ]; then
                     FRESH=$(compare_status "${EXPECTED}...${MIRRORED}")
-                    ON_MAIN=$(compare_status "${MIRRORED}...main")
+                    ON_MAIN=$(compare_status "main...${MIRRORED}")
                   fi
 
                   echo "expected mono@${EXPECTED:0:7} | mirrored @${MIRRORED:-none} (fresh: ${FRESH:-?}, on main: ${ON_MAIN:-?}) | peanut-content ${TIP:0:7} | live ${LIVE:0:7}"
@@ -154,7 +165,7 @@ jobs:
                   if [ "$DEGRADED" = true ]; then
                     STALE="**the watchdog itself could not evaluate the pipeline** — check its permissions before assuming content is stuck"
                     MIRROR_BROKEN=true
-                  elif [ "$ON_MAIN" != "identical" ] && [ "$ON_MAIN" != "ahead" ]; then
+                  elif [ "$ON_MAIN" != "identical" ] && [ "$ON_MAIN" != "behind" ]; then
                     STALE="the mirror published a commit that is not on mono main (published \`${MIRRORED:0:7}\`, compare to main: ${ON_MAIN})"
                     MIRROR_BROKEN=true
                   elif [ "$FRESH" != "identical" ] && [ "$FRESH" != "ahead" ]; then

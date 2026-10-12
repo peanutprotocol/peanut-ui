@@ -78,9 +78,15 @@ jest.mock('@/utils/walletCredential.utils', () => ({
 jest.mock('@sentry/nextjs', () => ({
     captureException: (...args: unknown[]) => mockCaptureException(...args),
     captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'localhost' }))
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => false,
+    isAndroidNative: () => false,
+    isIOSNative: () => false,
+    getNativeRpId: () => 'localhost',
+}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 
 /*

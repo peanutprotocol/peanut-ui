@@ -2,7 +2,7 @@ import { act, render as rtlRender, screen, waitFor, type RenderOptions } from '@
 import { type ReactElement, type ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'
 import en from '@/i18n/app/messages/en.json'
-import { SumsubNativeSdk } from '../SumsubNativeSdk'
+import { ORPHANED_SDK_GRACE_MS, SumsubNativeSdk } from '../SumsubNativeSdk'
 
 const IntlWrapper = ({ children }: { children: ReactNode }) => (
     <NextIntlClientProvider locale="en" messages={en}>
@@ -25,8 +25,28 @@ jest.mock('@/components/Global/Modal', () => ({
     },
 }))
 
+let isAndroid = false
+jest.mock('@/utils/capacitor', () => ({ isAndroidNativeBridge: () => isAndroid }))
+
+const callOrder: string[] = []
+let listenerRegistered: Promise<void> = Promise.resolve()
+let appStateHandler: ((state: { isActive: boolean }) => void) | undefined
+const removeAppStateListener = jest.fn()
+jest.mock('@capacitor/app', () => ({
+    App: {
+        addListener: (_event: string, handler: (state: { isActive: boolean }) => void) => {
+            callOrder.push('listen')
+            appStateHandler = handler
+            return listenerRegistered.then(() => ({ remove: removeAppStateListener }))
+        },
+    },
+}))
+
 const launch = jest.fn()
 const dismiss = jest.fn()
+const resetSdk = jest.fn()
+const configureApplicant = jest.fn()
+let builtInstances: { sendEvent: jest.Mock; getNewAccessToken: jest.Mock }[] = []
 let statusHandler: ((event: { newStatus?: string }) => void) | undefined
 
 function installSdk() {
@@ -37,8 +57,24 @@ function installSdk() {
     }
     builder.withLocale = () => builder
     builder.withDebug = () => builder
-    builder.build = () => ({ launch, dismiss })
-    ;(window as unknown as { SNSMobileSDK: unknown }).SNSMobileSDK = { init: () => builder }
+    builder.withApplicantConf = (conf: unknown) => {
+        configureApplicant(conf)
+        return builder
+    }
+    builder.build = () => {
+        const instance = {
+            launch: (...a: unknown[]) => {
+                callOrder.push('launch')
+                return launch(...a)
+            },
+            dismiss,
+            sendEvent: jest.fn(),
+            getNewAccessToken: jest.fn(),
+        }
+        builtInstances.push(instance)
+        return instance
+    }
+    ;(window as unknown as { SNSMobileSDK: unknown }).SNSMobileSDK = { init: () => builder, reset: resetSdk }
 }
 
 const baseProps = () => ({
@@ -52,9 +88,17 @@ describe('SumsubNativeSdk', () => {
     beforeEach(() => {
         launch.mockReset()
         dismiss.mockReset()
+        resetSdk.mockReset()
+        configureApplicant.mockReset()
         capture.mockClear()
         captureException.mockClear()
         statusHandler = undefined
+        builtInstances = []
+        callOrder.length = 0
+        listenerRegistered = Promise.resolve()
+        isAndroid = false
+        appStateHandler = undefined
+        removeAppStateListener.mockReset()
         launch.mockReturnValue(new Promise(() => {}))
         installSdk()
     })
@@ -81,6 +125,16 @@ describe('SumsubNativeSdk', () => {
             render(<SumsubNativeSdk visible {...baseProps()} accessToken={null} />)
         })
         expect(launch).not.toHaveBeenCalled()
+    })
+
+    it('prefills the email once without relaunching over an in-progress email edit', async () => {
+        const props = { ...baseProps(), email: 'signup@example.com' }
+        const { rerender } = render(<SumsubNativeSdk visible {...props} />)
+        await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+        expect(configureApplicant).toHaveBeenCalledWith({ email: 'signup@example.com' })
+        rerender(<SumsubNativeSdk visible {...props} email="updated-profile@example.com" />)
+        expect(launch).toHaveBeenCalledTimes(1)
+        expect(configureApplicant).toHaveBeenCalledTimes(1)
     })
 
     // refreshToken() writes a new token into the same state while the native
@@ -202,6 +256,51 @@ describe('SumsubNativeSdk', () => {
         expect(captureException).toHaveBeenCalled()
     })
 
+    it('recovers a stale Cordova instance lock once without showing an error', async () => {
+        launch.mockRejectedValueOnce(new Error('Aborted since another instance is in use!'))
+        launch.mockResolvedValueOnce({ success: true, status: 'Initial' })
+        const props = baseProps()
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...props} />)
+        })
+
+        await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1))
+        expect(resetSdk).toHaveBeenCalledTimes(1)
+        expect(launch).toHaveBeenCalledTimes(2)
+        expect(captureException).not.toHaveBeenCalled()
+        expect(screen.queryByText(/failed to load verification/i)).not.toBeInTheDocument()
+    })
+
+    it('reports a failed retry instead of resetting the lock repeatedly', async () => {
+        launch.mockRejectedValueOnce(new Error('Aborted since another instance is in use!'))
+        launch.mockRejectedValueOnce(new Error('native launch still failed'))
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...baseProps()} />)
+        })
+
+        expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
+        expect(resetSdk).toHaveBeenCalledTimes(1)
+        expect(launch).toHaveBeenCalledTimes(2)
+        expect(capture).toHaveBeenCalledWith(
+            'kyc_sdk_init_failed',
+            expect.objectContaining({ reason: 'launch-rejected', message: 'native launch still failed' })
+        )
+    })
+
+    it('does not reset the lock for unrelated native launch errors', async () => {
+        launch.mockRejectedValue(new Error('network unavailable'))
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...baseProps()} />)
+        })
+
+        expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
+        expect(resetSdk).not.toHaveBeenCalled()
+        expect(launch).toHaveBeenCalledTimes(1)
+    })
+
     it('surfaces and reports a missing plugin instead of opening nothing', async () => {
         delete (window as unknown as { SNSMobileSDK?: unknown }).SNSMobileSDK
         const props = baseProps()
@@ -217,8 +316,8 @@ describe('SumsubNativeSdk', () => {
         )
     })
 
-    // Without this the plugin's module-level lock is never released and every
-    // later launch rejects with "Aborted since another instance is in use!".
+    // Dismiss closes the native screen; a stale JavaScript lock is recovered
+    // on the next launch because this call does not reliably clear it.
     it('dismisses the native SDK when the flow closes', async () => {
         const props = baseProps()
         const { rerender } = render(<SumsubNativeSdk visible={false} {...props} />)
@@ -231,5 +330,313 @@ describe('SumsubNativeSdk', () => {
         })
 
         expect(dismiss).toHaveBeenCalledTimes(1)
+    })
+
+    describe('submission telemetry survives cancellation', () => {
+        const submittedStatuses = ['Pending', 'Approved', 'TemporarilyDeclined', 'FinallyRejected', 'ActionCompleted']
+        const deferredLaunch = () => {
+            let resolve: (value: unknown) => void = () => {}
+            let reject: (reason: Error) => void = () => {}
+            launch.mockReturnValueOnce(
+                new Promise((res, rej) => {
+                    resolve = res
+                    reject = rej
+                })
+            )
+            return { resolve, reject }
+        }
+
+        it.each(submittedStatuses)('reports %s on hide once, even when its launch settles later', async (status) => {
+            const pending = deferredLaunch()
+            const props = { ...baseProps(), onSubmitted: jest.fn() }
+            const { rerender, unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            act(() => statusHandler?.({ newStatus: status }))
+            expect(props.onSubmitted).not.toHaveBeenCalled()
+
+            act(() => rerender(<SumsubNativeSdk visible={false} {...props} />))
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            await act(async () => pending.resolve({ success: true, status }))
+            unmount()
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each(submittedStatuses)('reports late %s after unmount without completion or close', async (status) => {
+            const pending = deferredLaunch()
+            const props = { ...baseProps(), onSubmitted: jest.fn() }
+            const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            unmount()
+            expect(props.onSubmitted).not.toHaveBeenCalled()
+            await act(async () => pending.resolve({ success: true, status }))
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each(['Initial', 'missing', 'rejected'])('does not infer submission from a late %s result', async (kind) => {
+            const pending = deferredLaunch()
+            const props = { ...baseProps(), onSubmitted: jest.fn() }
+            const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            act(() => statusHandler?.({ newStatus: 'Initial' }))
+            unmount()
+            await act(async () => {
+                if (kind === 'rejected') pending.reject(new Error('cancelled native launch'))
+                else pending.resolve(kind === 'missing' ? { success: true } : { success: true, status: 'Initial' })
+            })
+            expect(props.onSubmitted).not.toHaveBeenCalled()
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each(['cleanup', 'late result'])('contains a throwing submitted callback during %s', async (path) => {
+            const pending = deferredLaunch()
+            const props = {
+                ...baseProps(),
+                onSubmitted: jest.fn(() => {
+                    throw new Error('telemetry callback failed')
+                }),
+            }
+            const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            if (path === 'cleanup') act(() => statusHandler?.({ newStatus: 'Pending' }))
+            expect(() => unmount()).not.toThrow()
+            await act(async () => pending.resolve({ success: true, status: 'Pending' }))
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it('keeps cancelled telemetry bound to the callback that owned its launch', async () => {
+            const first = deferredLaunch()
+            const second = deferredLaunch()
+            const original = { ...baseProps(), onSubmitted: jest.fn() }
+            const replacement = { ...baseProps(), onSubmitted: jest.fn() }
+            const { rerender, unmount } = render(<SumsubNativeSdk visible {...original} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            act(() => rerender(<SumsubNativeSdk visible {...replacement} />))
+            expect(launch).toHaveBeenCalledTimes(1)
+            act(() => rerender(<SumsubNativeSdk visible={false} {...replacement} />))
+            act(() => rerender(<SumsubNativeSdk visible {...replacement} />))
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(2))
+
+            await act(async () => first.resolve({ success: true, status: 'Approved' }))
+            expect(original.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(original.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(replacement.onSubmitted).not.toHaveBeenCalled()
+            expect(original.onComplete).not.toHaveBeenCalled()
+            expect(original.onClose).not.toHaveBeenCalled()
+            expect(replacement.onComplete).not.toHaveBeenCalled()
+            expect(replacement.onClose).not.toHaveBeenCalled()
+
+            unmount()
+            await act(async () => second.resolve({ success: true, status: 'Pending' }))
+            expect(original.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(replacement.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(replacement.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(replacement.onComplete).not.toHaveBeenCalled()
+            expect(replacement.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each([false, true])(
+            'does not add teardown telemetry after normal completion (multi-level: %s)',
+            async (isMultiLevel) => {
+                const pending = deferredLaunch()
+                const events: string[] = []
+                const props = {
+                    ...baseProps(),
+                    isMultiLevel,
+                    onSubmitted: jest.fn(() => {
+                        events.push('submitted')
+                    }),
+                    onComplete: jest.fn(() => {
+                        events.push('complete')
+                    }),
+                    onClose: jest.fn(() => {
+                        events.push('close')
+                    }),
+                }
+                const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+                await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+                act(() => statusHandler?.({ newStatus: 'Pending' }))
+                await act(async () => pending.resolve({ success: true, status: 'Pending' }))
+                expect(events).toEqual(isMultiLevel ? ['submitted', 'close'] : ['complete'])
+                unmount()
+                expect(events).toEqual(isMultiLevel ? ['submitted', 'close'] : ['complete'])
+            }
+        )
+    })
+
+    // TASK-22030: Android can destroy the SDK screen without the plugin calling
+    // back (an app-icon tap cleared the task). launch() then never settles, the
+    // instance lock stays held and Verify does nothing until the app is killed.
+    describe('android: SDK screen destroyed without a callback', () => {
+        beforeEach(() => {
+            isAndroid = true
+            jest.useFakeTimers()
+        })
+        afterEach(() => {
+            jest.useRealTimers()
+        })
+
+        const openSdk = async (props: ReturnType<typeof baseProps> & Record<string, unknown>) => {
+            const utils = render(<SumsubNativeSdk visible {...props} />)
+            // let the dynamic @capacitor/app import register its listener
+            await act(async () => {})
+            return utils
+        }
+
+        const resumeApp = (isActive = true) => act(() => appStateHandler?.({ isActive }))
+
+        it('releases the lock and exits the flow when the WebView resumes with no callback', async () => {
+            const props = baseProps()
+            await openSdk(props)
+
+            await resumeApp()
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(resetSdk).toHaveBeenCalledTimes(1)
+            expect(props.onClose).toHaveBeenCalledTimes(1)
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(capture).toHaveBeenCalledWith('kyc_sdk_orphaned', { platform: 'native' })
+        })
+
+        it('lets a normal close callback win inside the grace period', async () => {
+            let resolveLaunch: (value: unknown) => void = () => {}
+            launch.mockReturnValue(new Promise((resolve) => (resolveLaunch = resolve)))
+            const props = baseProps()
+            await openSdk(props)
+
+            await resumeApp()
+            await act(async () => {
+                resolveLaunch({ success: true, status: 'Pending' })
+            })
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(props.onComplete).toHaveBeenCalledTimes(1)
+            expect(props.onClose).not.toHaveBeenCalled()
+            expect(resetSdk).not.toHaveBeenCalled()
+        })
+
+        // A permission prompt before the SDK screen opens resumes the WebView;
+        // the SDK screen then covers it, which Capacitor reports as inactive.
+        it('does not recover when the WebView is covered again before the grace period ends', async () => {
+            const props = baseProps()
+            await openSdk(props)
+
+            await resumeApp(true)
+            await resumeApp(false)
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(resetSdk).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it('still completes a single-level flow the user submitted before the screen was destroyed', async () => {
+            const props = baseProps()
+            await openSdk(props)
+
+            await act(async () => {
+                statusHandler?.({ newStatus: 'Pending' })
+            })
+            await resumeApp()
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+
+            expect(props.onComplete).toHaveBeenCalledTimes(1)
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        // Capacitor does not replay appStateChange to late listeners, so a
+        // listener that registered after launch could miss the only resume.
+        it('registers the resume listener before launching the SDK', async () => {
+            await openSdk(baseProps())
+            expect(callOrder).toEqual(['listen', 'launch'])
+        })
+
+        // The wrapper's launch callback clears its global event route even when
+        // a newer session owns it. A stale session settling late must not cut
+        // the new session off from status events and token refreshes.
+        it('keeps routing native events to the new session when the old launch settles late', async () => {
+            let resolveFirst: (value: unknown) => void = () => {}
+            launch.mockReturnValueOnce(new Promise((resolve) => (resolveFirst = resolve)))
+            const props = baseProps()
+            const { rerender } = await openSdk(props)
+
+            await resumeApp()
+            await act(async () => {
+                jest.advanceTimersByTime(ORPHANED_SDK_GRACE_MS)
+            })
+            expect(props.onClose).toHaveBeenCalledTimes(1)
+
+            // the flow closes, then the user taps Verify again
+            await act(async () => {
+                rerender(<SumsubNativeSdk visible={false} {...props} />)
+            })
+            await act(async () => {
+                rerender(<SumsubNativeSdk visible {...props} />)
+            })
+            expect(builtInstances).toHaveLength(2)
+
+            await act(async () => {
+                resolveFirst({ success: true, status: 'Initial' })
+            })
+
+            const sdk = (window as unknown as { SNSMobileSDK: Required<NonNullable<Window['SNSMobileSDK']>> })
+                .SNSMobileSDK
+            sdk.sendEvent('onStatusChanged', { newStatus: 'Pending' })
+            sdk.getNewAccessToken()
+
+            expect(builtInstances[1].sendEvent).toHaveBeenCalledWith('onStatusChanged', { newStatus: 'Pending' })
+            expect(builtInstances[1].getNewAccessToken).toHaveBeenCalledTimes(1)
+            expect(builtInstances[0].sendEvent).not.toHaveBeenCalled()
+            // the stale result is ignored, not reported as a second close
+            expect(props.onClose).toHaveBeenCalledTimes(1)
+        })
+
+        // Native dismiss dereferences the plugin's SDK, which is still null
+        // before the first launch: dismissing then crashes the app.
+        it('does not dismiss an SDK that never launched when the flow closes during setup', async () => {
+            let finishRegistration: () => void = () => {}
+            listenerRegistered = new Promise((resolve) => (finishRegistration = resolve))
+            const { unmount } = await openSdk(baseProps())
+            expect(launch).not.toHaveBeenCalled()
+
+            unmount()
+            await act(async () => {
+                finishRegistration()
+            })
+
+            expect(dismiss).not.toHaveBeenCalled()
+            expect(launch).not.toHaveBeenCalled()
+            expect(removeAppStateListener).toHaveBeenCalledTimes(1)
+        })
+
+        it('removes the listener when the flow closes', async () => {
+            const { unmount } = await openSdk(baseProps())
+            unmount()
+            expect(removeAppStateListener).toHaveBeenCalledTimes(1)
+        })
+
+        // iOS app state follows the whole app, so a resume there says nothing
+        // about whether the SDK screen is still up.
+        it('does not watch app state off Android', async () => {
+            isAndroid = false
+            await openSdk(baseProps())
+            expect(appStateHandler).toBeUndefined()
+        })
     })
 })

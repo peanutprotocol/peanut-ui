@@ -1,3 +1,4 @@
+import { nativePasskeyFailure } from './native-passkey-errors'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
 import { isNativeFetchRejection } from '@/utils/native-fetch-rejection'
 
@@ -49,6 +50,7 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
  *  the `errors` next-intl namespace (see `useFriendlyError`). This module stays
  *  copy-free — it only classifies. */
 export type FriendlyErrorCode =
+    | 'bankAccountNotUsable'
     | 'transferTemporarilyUnavailable'
     | 'userOpReverted'
     | 'balanceSettling'
@@ -78,6 +80,11 @@ export type FriendlyErrorCode =
     | 'insufficientBalance'
     | 'operationTimedOut'
     | 'passkeyNotCompleted'
+    | 'passkeyAssociationUnavailable'
+    | 'passkeyAssociationMismatch'
+    | 'passkeyDeviceLocked'
+    | 'passkeyBiometryRequired'
+    | 'passkeyVerificationIncomplete'
     | 'claimLinkFailed'
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
@@ -93,6 +100,8 @@ export type FriendlyErrorCode =
     | 'cardRateLimited'
     | 'xchainWithdrawLimit'
     | 'xchainPaymentLimit'
+    | 'xchainWithdrawDisabled'
+    | 'xchainPaymentDisabled'
     | 'linkTransactionHashFetch'
 
 /**
@@ -110,7 +119,6 @@ export type FriendlyErrorCode =
  */
 export type FriendlyError =
     | { kind: 'code'; code: FriendlyErrorCode }
-    | { kind: 'params'; code: 'rainCooldownRetry'; values: { minutes: number } }
     | { kind: 'params'; code: 'xchainWithdrawLimitRetry'; values: { days: number; hours: number; minutes: number } }
     | { kind: 'params'; code: 'xchainPaymentLimitRetry'; values: { days: number; hours: number; minutes: number } }
     | { kind: 'text'; text: string }
@@ -145,6 +153,9 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     // A claim or cancel on a deposit the recipient already withdrew. The API
     // leaves the link CLAIMED and answers 409 with this code (TASK-22091).
     [API_ERROR_CODES.LINK_ALREADY_CLAIMED]: 'sendLinkAlreadyClaimed',
+    // A saved bank account the provider refused for good (TASK-23054). The API
+    // has already switched it off, so a retry cannot help: add it again.
+    [API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE]: 'bankAccountNotUsable',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a
@@ -223,12 +234,9 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // carry no `.code` and fall straight through, which is what keeps this
     // safe to ship before/independently of the backend deploy.
     const wire = wireErrorCode(error)
-    if (wire && COOLDOWN_WIRE_CODES.includes(wire)) {
-        const minutes = cooldownMinutes(error)
-        return minutes === null
-            ? code('rainCooldownRetryShortly')
-            : { kind: 'params', code: 'rainCooldownRetry', values: { minutes } }
-    }
+    // Fixed copy on purpose: screens store this as a string, so a number here
+    // would freeze. CooldownErrorText swaps in the live countdown on render.
+    if (wire && COOLDOWN_WIRE_CODES.includes(wire)) return code('rainCooldownRetryShortly')
     // The backend already ships a specific, user-ready sentence for a
     // sub-minimum bridge ("Amount ($2.00) is below the $5 minimum to bridge to
     // ETHEREUM.") with the interpolated amounts and chain — pass it through
@@ -251,6 +259,12 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
         return payment
             ? { kind: 'params', code: 'xchainPaymentLimitRetry', values }
             : { kind: 'params', code: 'xchainWithdrawLimitRetry', values }
+    }
+    if (wire === API_ERROR_CODES.XCHAIN_WITHDRAW_DISABLED) {
+        // A per-account policy turned cross-chain off (support did it, on
+        // purpose). No wait exists, so no countdown — the copy points at
+        // Arbitrum (always available) and support, never at "try again".
+        return code(opts?.crossChainSurface === 'payment' ? 'xchainPaymentDisabled' : 'xchainWithdrawDisabled')
     }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
@@ -324,6 +338,16 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // than error.name: NotAllowedError is also thrown by camera/clipboard
     // APIs (the QR scanner raises one), and wrapped signing errors keep the
     // text but lose the name.
+    const nativeReason = nativePasskeyFailure(message ?? text)
+    const passkeyCodes = {
+        association_unavailable: 'passkeyAssociationUnavailable',
+        association_mismatch: 'passkeyAssociationMismatch',
+        device_locked: 'passkeyDeviceLocked',
+        biometry_required: 'passkeyBiometryRequired',
+        authorization_failed: 'passkeyNotCompleted',
+        canceled: 'passkeyVerificationIncomplete',
+    } as const
+    if (nativeReason) return code(passkeyCodes[nativeReason])
     if (text.includes('not allowed by the user agent')) return code('passkeyNotCompleted')
     if (text.includes('Wrong password or invalid transaction.') || text.includes('transaction may fail'))
         return code('claimLinkFailed')

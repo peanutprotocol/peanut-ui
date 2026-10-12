@@ -19,6 +19,8 @@ jest.mock('@/hooks/useGetDeviceType', () => {
 })
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor }))
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     openStore: (...args: unknown[]) => mockOpenStore(...args),
 }))
 jest.mock('@/utils/deferred-link', () => ({
@@ -143,6 +145,26 @@ describe('useGuestStoreHandoff surface', () => {
         expect(handled).toBe(false)
         expect(mockOpenStore).not.toHaveBeenCalled()
         expect(result.current.storeHandoffModal).toBeNull()
+    })
+
+    /* handoffActive is what labels the button. A CTA reading "Download Peanut"
+       that still opens web signup is worse than the old copy, so it must track
+       the same two gates the intercept uses. */
+    it('reports the hand-off active only where the intercept will take the click', () => {
+        const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
+        expect(result.current.handoffActive).toBe(true)
+    })
+
+    it('reports no hand-off while the migration flag is off', () => {
+        mockMigrationOn = false
+        const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
+        expect(result.current.handoffActive).toBe(false)
+    })
+
+    it('reports no hand-off inside the native app', () => {
+        mockIsCapacitor = true
+        const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
+        expect(result.current.handoffActive).toBe(false)
     })
 
     it('tracks the guest impression against the caller surface', () => {

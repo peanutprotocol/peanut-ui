@@ -47,22 +47,26 @@ export default function NativeReceiptPage() {
     const unavailable = !entryId || !kind ? 'gone' : isError && !entry ? 'loadFailed' : undefined
 
     return (
-        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-4">
+        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center p-4">
             {/* app chrome: mobile only, and never on the printed/PDF receipt */}
             <div className="md:hidden print:hidden">
                 <NavHeader titleKey="receipt" />
             </div>
-            <div className="flex flex-1 flex-col items-center justify-center">
+            <div className="flex min-h-0 flex-1 flex-col items-center py-4">
                 {unavailable ? (
-                    <ReceiptUnavailable
-                        variant={unavailable}
-                        onRetry={unavailable === 'loadFailed' ? () => void refetch() : undefined}
-                    />
+                    <div className="m-auto">
+                        <ReceiptUnavailable
+                            variant={unavailable}
+                            onRetry={unavailable === 'loadFailed' ? () => void refetch() : undefined}
+                        />
+                    </div>
                 ) : isLoading || !entry ? (
-                    <Loading variant="mascot" />
+                    <div className="m-auto">
+                        <Loading variant="mascot" />
+                    </div>
                 ) : (
                     <TransactionDetailsReceipt
-                        className="w-full"
+                        className="my-auto w-full"
                         transaction={mapTransactionDataForDrawer(entry).transactionDetails}
                     />
                 )}

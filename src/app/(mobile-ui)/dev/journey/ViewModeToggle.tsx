@@ -1,6 +1,6 @@
 'use client'
 
-import DevSegmented from '../_components/DevSegmented'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import type { JourneyViewMode } from './journeyTypes'
 
 const OPTIONS: { value: JourneyViewMode; label: string; hint: string }[] = [
@@ -16,5 +16,13 @@ export default function ViewModeToggle({
     value: JourneyViewMode
     onChange: (next: JourneyViewMode) => void
 }) {
-    return <DevSegmented value={value} options={OPTIONS} onChange={onChange} />
+    return (
+        <Tabs
+            size="sm"
+            value={value}
+            tabs={OPTIONS}
+            onValueChange={(next) => onChange(next as JourneyViewMode)}
+            aria-label="Journey view"
+        />
+    )
 }

@@ -41,8 +41,13 @@ jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+// the no-history Back fallback each render asks for
+const mockSafeBackFallbacks: string[] = []
 jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+    useSafeBack: (fallbackUrl: string) => {
+        mockSafeBackFallbacks.push(fallbackUrl)
+        return jest.fn()
+    },
 }))
 
 jest.mock('@/context/tokenSelector.context', () => {
@@ -75,8 +80,12 @@ jest.mock('@/utils/token.utils', () => ({
 }))
 
 jest.mock('@/utils/cross-chain-fee.utils', () => ({
-    isWithdrawFeeDisproportionate: () => false,
+    ...jest.requireActual('@/utils/cross-chain-fee.utils'),
+    isWithdrawFeeDisproportionate: (...args: unknown[]) => mockIsWithdrawFeeDisproportionate(...args),
 }))
+// Off by default so the existing cases keep their old behaviour; the fee suite
+// restores the real rule to cover the heads-up the schedule can now trigger.
+const mockIsWithdrawFeeDisproportionate = jest.fn((..._args: unknown[]) => false)
 
 const mockIsAmountWithinBalance = jest.fn((..._args: unknown[]) => true)
 jest.mock('@/utils/balance.utils', () => ({
@@ -122,7 +131,15 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
     __esModule: true,
-    default: (props: { onConfirm: () => void; onBack: () => void }) => (
+    default: (props: {
+        onConfirm: () => void
+        onBack: () => void
+        networkFee?: number
+        receiveAmount?: string | null
+        showHighFeeWarning?: boolean
+        belowMinimumMessage?: string | null
+        alreadySpent?: boolean
+    }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
                 Back
@@ -130,19 +147,56 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
                 Confirm
             </button>
+            <span data-testid="network-fee">{String(props.networkFee)}</span>
+            <span data-testid="receive-amount">{String(props.receiveAmount)}</span>
+            <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
+            <span data-testid="below-minimum">{String(props.belowMinimumMessage)}</span>
+            <span data-testid="already-spent">{String(!!props.alreadySpent)}</span>
         </>
     ),
 }))
 
-// exposes onReview so the setup (request/charge creation) path is testable
+// exposes onContinue so the setup (request/charge creation) path is testable
 jest.mock('@/features/withdraw/views/InitialWithdrawView', () => ({
     __esModule: true,
-    default: (props: { onReview: (data: unknown) => void }) => (
-        <button data-testid="review-cta" onClick={() => props.onReview(withdrawData)}>
+    default: (props: { onContinue: (data: unknown) => void }) => (
+        <button
+            data-testid="destination-cta"
+            onClick={() => {
+                props.onContinue({ ...withdrawData })
+                mockStepper.step = 'amount'
+            }}
+        >
             Review
         </button>
     ),
 }))
+
+jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
+    WithdrawAmountView: (props: {
+        walletBalance: string
+        onContinue: () => void
+        onBack: () => void
+        error: { errorMessage: string }
+    }) => (
+        <>
+            <span data-testid="balance-label">{props.walletBalance}</span>
+            {props.error.errorMessage && <p role="alert">{props.error.errorMessage}</p>}
+            <button data-testid="back-amount" onClick={props.onBack}>
+                Back
+            </button>
+            <button data-testid="review-cta" onClick={props.onContinue}>
+                Review
+            </button>
+        </>
+    ),
+}))
+
+function selectDestinationAndReview() {
+    const destination = screen.queryByTestId('destination-cta')
+    if (destination) fireEvent.click(destination)
+    fireEvent.click(screen.getByTestId('review-cta'))
+}
 
 jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
     __esModule: true,
@@ -243,7 +297,7 @@ const mockWithdrawFlow = {
     setShowCompatibilityModal: jest.fn(),
     isPreparingReview: false,
     setIsPreparingReview: jest.fn(),
-    paymentError: null,
+    paymentError: null as string | null,
     setPaymentError: mockSetPaymentError,
     setError: mockSetWithdrawError,
     chargeDetails,
@@ -261,7 +315,10 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
 // mutable so the frozen-spend tests can move the balance between setup and confirm
-const mockWalletState = { spendableBalance: (100n * 10n ** 6n) as bigint | undefined }
+const mockWalletState = {
+    spendableBalance: (100n * 10n ** 6n) as bigint | undefined,
+    formattedSpendableBalance: '100.00',
+}
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
@@ -269,6 +326,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
         sendMoney: mockSendMoney,
         sendTransactions: mockSendTransactions,
         spendableBalance: mockWalletState.spendableBalance,
+        formattedSpendableBalance: mockWalletState.formattedSpendableBalance,
     }),
 }))
 
@@ -293,12 +351,15 @@ jest.mock('@/features/payments/shared/hooks/useCrossChainTransfer', () => ({
 }))
 
 const mockRecordPayment = jest.fn()
+// stable across renders like the real hook's reset: the page's mount-reset effect
+// depends on it, and a fresh function each render would re-run that reset
+const mockResetPaymentRecorder = jest.fn()
 jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
     usePaymentRecorder: () => ({
         isRecording: false,
         error: null,
         recordPayment: mockRecordPayment,
-        reset: jest.fn(),
+        reset: mockResetPaymentRecorder,
     }),
 }))
 // address book: react-query backed; these tests pin the charge-completion paths only
@@ -316,6 +377,8 @@ jest.mock('@/hooks/useSavedAddresses', () => ({
 import WithdrawCryptoPage from '../page'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
+import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -333,16 +396,264 @@ beforeEach(() => {
     mockWithdrawFlow.showCompatibilityModal = false
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
+    Object.assign(mockCrossChainTransfer, {
+        isXChain: false,
+        isDiffToken: false,
+        quoteExpiresAt: null,
+        feeUsd: 0,
+        receiveAmount: '50',
+        isCalculating: false,
+        isFeeEstimationError: false,
+    })
+    chargeDetails.chainId = '42161'
+    withdrawData.token.price = 1
+    mockIsWithdrawFeeDisproportionate.mockImplementation(() => false)
+    mockWithdrawFlow.paymentError = null
     mockUrlAmount = '50'
     mockStepper.step = 'review'
     mockWithdrawFlow.isMaxWithdrawal = false
     mockWalletState.spendableBalance = 100n * 10n ** 6n
+    mockWalletState.formattedSpendableBalance = '100.00'
     mockIsAmountWithinBalance.mockReset()
     mockIsAmountWithinBalance.mockImplementation(() => true)
 })
 
+// The fee is whatever Rhino's account-bound quote says, re-fetched on every
+// attempt. Nothing in the client decides which networks charge.
+describe('crypto withdraw confirm — network fee', () => {
+    const realRule = jest.requireActual('@/utils/cross-chain-fee.utils').isWithdrawFeeDisproportionate
+
+    it('shows the quoted fee verbatim and the quoted delivery beside it', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 1.53, receiveAmount: '48.47' })
+
+        render(<WithdrawCryptoPage />)
+
+        // pay mode: the quote already took the fee off what arrives
+        expect(screen.getByTestId('network-fee').textContent).toBe('1.53')
+        expect(screen.getByTestId('receive-amount').textContent).toBe('48.47')
+    })
+
+    it('shows the sponsored label when the quote prices the route at zero', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, receiveAmount: '50' })
+
+        render(<WithdrawCryptoPage />)
+
+        // a zero quote is Rhino saying this route costs nothing on our account
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+        expect(screen.getByTestId('receive-amount').textContent).toBe('50')
+    })
+
+    it('stays sponsored on a same-chain withdrawal', () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, feeUsd: 0 })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+    })
+
+    it('blocks a withdrawal the quoted fee would swallow whole', () => {
+        chargeDetails.chainId = 'solana'
+        mockUrlAmount = '0.5'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0.5, receiveAmount: '0' })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('below-minimum').textContent).toMatch(/leave nothing to deliver/)
+    })
+
+    it('refuses to broadcast when the fee would take the whole withdrawal', async () => {
+        mockUrlAmount = '1'
+        chargeDetails.chainId = 'solana'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 1, receiveAmount: '0' })
+
+        await confirm()
+
+        await waitFor(() => expect(mockSetWithdrawError).toHaveBeenCalled())
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
+    // Page logic only: the mocked view has no disabled state, so a tap stands in
+    // for Confirm and for Retry (set paymentError). Disabled buttons are pinned
+    // in ConfirmWithdrawView.test.tsx. The flow context and the route quote are
+    // made stateful here so the real charge reset and re-preparation run.
+    it('refuses Confirm and Retry when the live fee rises past the amount, then needs a fresh $4 charge and quote to continue', async () => {
+        const charge = (uuid: string, amount: string) => ({
+            ...chargeDetails,
+            uuid,
+            tokenAmount: amount,
+            chainId: 'solana',
+        })
+        // the fee the route quote reports, at whatever amount it is asked for
+        let liveFee = 0.5
+        mockCrossChainTransfer.calculate.mockImplementation((params: { source: { tokenAmount: string } }) => {
+            const amount = params.source.tokenAmount
+            Object.assign(mockCrossChainTransfer, {
+                feeUsd: liveFee,
+                payAmount: amount,
+                receiveAmount: String(Number(amount) - liveFee),
+            })
+            return Promise.resolve()
+        })
+        mockWithdrawFlow.setChargeDetails.mockImplementation((next: typeof chargeDetails | null) => {
+            mockWithdrawFlow.chargeDetails = next as typeof chargeDetails
+        })
+        jest.mocked(chargesApi.create)
+            .mockResolvedValueOnce({ data: { id: 'charge-2' } } as never)
+            .mockResolvedValueOnce({ data: { id: 'charge-4' } } as never)
+        jest.mocked(chargesApi.get)
+            .mockResolvedValueOnce(charge('charge-2', '2') as never)
+            .mockResolvedValueOnce(charge('charge-4', '4') as never)
+        mockSendTransactions.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'mixed',
+            intentId: 'prep-intent-fee',
+        })
+        mockCrossChainTransfer.isXChain = true
+        mockUrlAmount = '2'
+        // the selected destination matches the charges returned above
+        const originalChain = withdrawData.chain
+        withdrawData.chain = { chainId: 'solana', networkName: 'Solana' } as never
+
+        try {
+            // prepare the $2 charge through the real setup, then enter review
+            mockStepper.step = 'recipient'
+            const view = render(<WithdrawCryptoPage />)
+            selectDestinationAndReview()
+            await waitFor(() => expect(mockWithdrawFlow.chargeDetails?.uuid).toBe('charge-2'))
+            mockStepper.step = 'review'
+            view.rerender(<WithdrawCryptoPage />)
+            expect(mockCrossChainTransfer.calculate).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    source: expect.objectContaining({ tokenAmount: '2' }),
+                    contextId: 'charge-2',
+                })
+            )
+            view.rerender(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('below-minimum').textContent).toBe('null')
+
+            const expectNothingMoved = () => {
+                expect(mockSendTransactions).not.toHaveBeenCalled()
+                expect(mockSendMoney).not.toHaveBeenCalled()
+                expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+                // a refused tap funds and creates nothing: only the $2 charge exists
+                expect(chargesApi.create).toHaveBeenCalledTimes(1)
+                expect(requestsApi.create).not.toHaveBeenCalled()
+            }
+
+            // the live fee rises past the $2 amount
+            liveFee = 3
+            Object.assign(mockCrossChainTransfer, { feeUsd: 3, receiveAmount: '0' })
+            view.rerender(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('below-minimum').textContent).toMatch(
+                /network fee to Solana is \$3\.00, which would leave nothing to deliver\. Enter a larger amount/
+            )
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await waitFor(() =>
+                expect(mockSetPaymentError).toHaveBeenCalledWith(
+                    expect.stringMatching(/fee is more than this withdrawal/)
+                )
+            )
+            expectNothingMoved()
+
+            // Retry: an error is on screen and the fee is still too high
+            mockWithdrawFlow.paymentError = 'Something went wrong'
+            mockSetPaymentError.mockClear()
+            view.rerender(<WithdrawCryptoPage />)
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await waitFor(() =>
+                expect(mockSetPaymentError).toHaveBeenCalledWith(
+                    expect.stringMatching(/fee is more than this withdrawal/)
+                )
+            )
+            expectNothingMoved()
+
+            // the user goes back and raises the amount to $4: the page drops the
+            // $2 charge, cancels its draft, and there is nothing left to confirm
+            mockWithdrawFlow.paymentError = null
+            mockStepper.step = 'amount'
+            mockUrlAmount = '4'
+            view.rerender(<WithdrawCryptoPage />)
+            expect(mockWithdrawFlow.chargeDetails).toBeNull()
+            expect(chargesApi.cancel).toHaveBeenCalledWith('charge-2')
+            mockStepper.step = 'review'
+            view.rerender(<WithdrawCryptoPage />)
+            expect(screen.queryByTestId('confirm-withdraw')).not.toBeInTheDocument()
+            expectNothingMoved()
+
+            // Review at $4 prepares a fresh charge and quotes it at the same $3 fee
+            mockStepper.step = 'amount'
+            view.rerender(<WithdrawCryptoPage />)
+            fireEvent.click(screen.getByTestId('review-cta'))
+            await waitFor(() => expect(mockWithdrawFlow.chargeDetails?.uuid).toBe('charge-4'))
+            expect(chargesApi.create).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    local_price: { amount: '4', currency: 'USD' },
+                    requestProps: expect.objectContaining({ chainId: 'solana' }),
+                })
+            )
+            mockStepper.step = 'review'
+            view.rerender(<WithdrawCryptoPage />)
+            expect(mockCrossChainTransfer.calculate).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    source: expect.objectContaining({ tokenAmount: '4' }),
+                    destination: expect.objectContaining({ chainId: 'solana' }),
+                    contextId: 'charge-4',
+                })
+            )
+            view.rerender(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('network-fee').textContent).toBe('3')
+            expect(screen.getByTestId('receive-amount').textContent).toBe('1')
+            expect(screen.getByTestId('below-minimum').textContent).toBe('null')
+
+            // one broadcast, sized by the fresh quote and recorded against the fresh charge
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            expect(mockSendTransactions).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({ requiredUsdcAmount: 4_000000n })
+            )
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+            expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ chargeId: 'charge-4' }))
+        } finally {
+            withdrawData.chain = originalChain
+            mockCrossChainTransfer.calculate.mockImplementation(() => undefined)
+            mockWithdrawFlow.setChargeDetails.mockImplementation(() => undefined)
+            mockWithdrawFlow.chargeDetails = chargeDetails
+            mockCrossChainTransfer.payAmount = null
+        }
+    })
+
+    it('raises the heads-up when the quoted fee dominates a small withdrawal', () => {
+        mockIsWithdrawFeeDisproportionate.mockImplementation((...args: unknown[]) =>
+            realRule(...(args as Parameters<typeof realRule>))
+        )
+        chargeDetails.chainId = '1'
+        mockUrlAmount = '5'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 1.5 })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('high-fee-warning').textContent).toBe('true')
+    })
+})
+
 describe('crypto withdraw preparation', () => {
+    it('shows preparation failures on the amount screen', () => {
+        mockStepper.step = 'recipient'
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('destination-cta'))
+        mockWithdrawFlow.paymentError = 'Rate unavailable'
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByRole('alert')).toHaveTextContent('Rate unavailable')
+        expect(chargesApi.create).not.toHaveBeenCalled()
+    })
+
     it('creates a standalone WITHDRAW charge without an existing request link', async () => {
         mockStepper.step = 'recipient'
         mockWithdrawFlow.recipient.name = ' Alice.eth '
@@ -350,7 +661,7 @@ describe('crypto withdraw preparation', () => {
         jest.mocked(chargesApi.get).mockResolvedValue(chargeDetails as never)
         try {
             render(<WithdrawCryptoPage />)
-            fireEvent.click(screen.getByTestId('review-cta'))
+            selectDestinationAndReview()
             await waitFor(() => expect(mockWithdrawFlow.setShowCompatibilityModal).toHaveBeenCalledWith(true))
             expect(requestsApi.create).not.toHaveBeenCalled()
             expect(chargesApi.create).toHaveBeenCalledTimes(1)
@@ -374,6 +685,62 @@ describe('crypto withdraw preparation', () => {
         } finally {
             mockStepper.step = 'review'
         }
+    })
+
+    // TASK-22590: USDC on BNB Chain is 18-decimal on-chain. The request is
+    // sized and labelled in destination units, so the catalog entry the
+    // selector hands over must reach the charge as 18, not USDC's usual 6.
+    it('sizes a BNB Chain USDC withdrawal request in 18-decimal destination units', async () => {
+        const bsc = (await getSupportedChainsAndTokens())['56']
+        const usdc = bsc.tokens.find((t) => t.symbol === 'USDC')!
+        const original = { token: withdrawData.token, chain: withdrawData.chain }
+        withdrawData.token = { address: usdc.address, symbol: usdc.symbol, decimals: usdc.decimals, price: 1 }
+        withdrawData.chain = { chainId: 56, name: bsc.networkName }
+        mockStepper.step = 'recipient'
+        jest.mocked(chargesApi.create).mockResolvedValue({ data: { id: CHARGE_UUID } } as never)
+        jest.mocked(chargesApi.get).mockResolvedValue(chargeDetails as never)
+        try {
+            render(<WithdrawCryptoPage />)
+            selectDestinationAndReview()
+            await waitFor(() => expect(chargesApi.create).toHaveBeenCalledTimes(1))
+            const [payload] = jest.mocked(chargesApi.create).mock.calls[0]
+            expect(payload).toMatchObject({
+                local_price: { amount: '50', currency: 'USD' },
+                requestProps: {
+                    chainId: '56',
+                    tokenAddress: usdc.address,
+                    tokenSymbol: 'USDC',
+                    tokenDecimals: 18,
+                    tokenAmount: '50.000000000000000000',
+                },
+            })
+        } finally {
+            Object.assign(withdrawData, original)
+            mockStepper.step = 'review'
+        }
+    })
+})
+
+// Back with no in-app history landed on /withdraw?showAll=true, the full method
+// list, and skipped the saved destinations. /withdraw shows them when there are any.
+describe('crypto withdraw — Back without history', () => {
+    it('falls back to the withdraw entry, not the full method list', () => {
+        mockStepper.step = 'recipient'
+        render(<WithdrawCryptoPage />)
+
+        expect(mockSafeBackFallbacks.at(-1)).toBe('/withdraw')
+    })
+})
+
+describe('crypto withdraw amount step — balance label', () => {
+    it('shows the two-decimal display balance, never the raw USDC units', () => {
+        mockStepper.step = 'recipient'
+        mockWalletState.spendableBalance = 11_652_683n
+        mockWalletState.formattedSpendableBalance = '11.65'
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('destination-cta'))
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('balance-label')).toHaveTextContent(/^11\.65$/)
     })
 })
 
@@ -636,6 +1003,37 @@ describe('crypto withdraw confirm — charge completion', () => {
     })
 })
 
+/**
+ * The spend engine checks the card controller before it prepares or signs
+ * anything, and that check can end the attempt: the re-approval prompt was
+ * dismissed, or the screen was left. Nothing was broadcast and no charge was
+ * paid, so the review screen must not read as a failed withdrawal.
+ */
+describe('crypto withdraw — card re-approval cancelled before the broadcast', () => {
+    it('leaves the review screen clean: no error, no failure report, no success step', async () => {
+        mockSendMoney.mockRejectedValue(new SpendRecoveryAbortedError(new Error('grant dismissed')))
+
+        await confirm()
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+
+    it('a real broadcast failure still surfaces and is reported', async () => {
+        mockSendMoney.mockRejectedValue(new Error('bundler 502'))
+
+        await confirm()
+
+        await waitFor(() =>
+            expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        )
+        expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+})
+
 describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)', () => {
     // The prod incident: recordPayment times out AFTER the on-chain transfer
     // broadcast; the user lands on Retry, and pre-fix Retry re-ran the whole
@@ -663,6 +1061,39 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
         expect(mockSendTransactions).not.toHaveBeenCalled()
         // The record ran twice, both times with the ORIGINAL mined hash.
         expect(mockRecordPayment).toHaveBeenCalledTimes(2)
+        expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+    })
+
+    it('keeps the record-only retry available when the spend emptied the wallet', async () => {
+        // Full-balance withdrawal: the on-chain leg lands, the record fails,
+        // and the balance refresh then makes the original spend look
+        // unaffordable. The CTA gates must step aside or the only recovery
+        // from a stuck PENDING charge is greyed out.
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+        mockRecordPayment.mockRejectedValueOnce(new Error('Request timed out after 30000ms'))
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+
+        // the funds have left, so the view is told this charge is already spent
+        expect(screen.getByTestId('already-spent').textContent).toBe('true')
+
+        // and the wallet now reads empty against that same spend
+        mockWalletState.spendableBalance = 0n
+        mockIsAmountWithinBalance.mockImplementation(() => false)
+
+        // the replay still runs, with the original mined hash and no re-broadcast
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockRecordPayment).toHaveBeenCalledTimes(2))
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
         expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
     })
 
@@ -732,7 +1163,7 @@ describe('crypto withdraw — URL amount validation (Chip review round 4)', () =
     const clickReview = () => {
         mockStepper.step = 'recipient'
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         return view
     }
 
@@ -855,7 +1286,7 @@ describe('crypto withdraw — the spend is frozen with the charge', () => {
     const setupThenShowConfirm = async () => {
         mockStepper.step = 'recipient'
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         mockStepper.step = 'review'
         view.rerender(<WithdrawCryptoPage />)
@@ -969,7 +1400,7 @@ describe('crypto withdraw retry — after a route error (cross-chain cap 429, TA
         mockWalletState.spendableBalance = 10_126123n
         mockStepper.step = 'recipient'
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         mockStepper.step = 'review'
         view.rerender(<WithdrawCryptoPage />)
@@ -1058,14 +1489,14 @@ describe('unpaid withdrawal draft cleanup', () => {
     it('cancels a created charge when its detail fetch fails', async () => {
         jest.mocked(chargesApi.get).mockRejectedValueOnce(new Error('detail fetch failed'))
         render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.cancel).toHaveBeenCalledWith(CHARGE_UUID))
         expect(mockSendMoney).not.toHaveBeenCalled()
     })
 
     it('cancels the unpaid charge on unmount', async () => {
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         view.unmount()
         await waitFor(() => expect(chargesApi.cancel).toHaveBeenCalledWith(CHARGE_UUID))
@@ -1080,24 +1511,41 @@ describe('unpaid withdrawal draft cleanup', () => {
                 })
         )
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         view.unmount()
         resolveCreate({ data: { id: CHARGE_UUID } } as never)
         await waitFor(() => expect(chargesApi.cancel).toHaveBeenCalledWith(CHARGE_UUID))
         expect(chargesApi.get).not.toHaveBeenCalled()
     })
 
+    it('cancels a late charge when Back returns from amount to destination', async () => {
+        let resolveCreate!: (value: never) => void
+        jest.mocked(chargesApi.create).mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveCreate = resolve
+                })
+        )
+        render(<WithdrawCryptoPage />)
+        selectDestinationAndReview()
+        fireEvent.click(screen.getByTestId('back-amount'))
+        resolveCreate({ data: { id: CHARGE_UUID } } as never)
+        await waitFor(() => expect(chargesApi.cancel).toHaveBeenCalledWith(CHARGE_UUID))
+        expect(chargesApi.get).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
     it('creates only one charge for two Review clicks', async () => {
         render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         expect(chargesApi.create).toHaveBeenCalledTimes(1)
     })
 
     it('cancels on Back and refuses a stale Confirm handler', async () => {
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         mockStepper.step = 'review'
         view.rerender(<WithdrawCryptoPage />)
@@ -1110,7 +1558,7 @@ describe('unpaid withdrawal draft cleanup', () => {
     it('allows a new Review after a signing error without cancelling the old charge', async () => {
         mockSendMoney.mockRejectedValueOnce(new Error('signing rejected'))
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         mockStepper.step = 'review'
         view.rerender(<WithdrawCryptoPage />)
@@ -1119,7 +1567,7 @@ describe('unpaid withdrawal draft cleanup', () => {
         fireEvent.click(screen.getByTestId('back-review'))
         mockStepper.step = 'recipient'
         view.rerender(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.create).toHaveBeenCalledTimes(2))
         expect(chargesApi.cancel).not.toHaveBeenCalled()
     })
@@ -1127,7 +1575,7 @@ describe('unpaid withdrawal draft cleanup', () => {
     it('cancels and clears the charge when the compatibility modal closes', async () => {
         mockWithdrawFlow.showCompatibilityModal = true
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         fireEvent.click(screen.getByTestId('modal-close'))
         expect(chargesApi.cancel).toHaveBeenCalledWith(CHARGE_UUID)
@@ -1139,7 +1587,7 @@ describe('unpaid withdrawal draft cleanup', () => {
     it('broadcasts once for two Confirm clicks while the first send is pending', async () => {
         mockSendMoney.mockImplementationOnce(() => new Promise(() => {}))
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         mockStepper.step = 'review'
         view.rerender(<WithdrawCryptoPage />)
@@ -1153,7 +1601,7 @@ describe('unpaid withdrawal draft cleanup', () => {
     it('never cancels after signing starts, including an ambiguous timeout', async () => {
         mockSendMoney.mockRejectedValueOnce(new Error('network timeout'))
         const view = render(<WithdrawCryptoPage />)
-        fireEvent.click(screen.getByTestId('review-cta'))
+        selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         mockStepper.step = 'review'
         view.rerender(<WithdrawCryptoPage />)

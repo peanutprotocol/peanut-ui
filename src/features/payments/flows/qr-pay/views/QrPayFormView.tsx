@@ -3,15 +3,22 @@
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import Card from '@/components/Global/Card'
+import GlobalCard from '@/components/Global/Card'
+import { Card } from '@/components/0_Bruddle/Card'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
@@ -24,17 +31,25 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
+import { pixKeyOwnerDetails } from '@/utils/pix.utils'
+import SaveAddressPrompt from '@/features/withdraw/components/AddressBook/SaveAddressPrompt'
 
 export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
+    const tProvider = useTranslations('provider')
     const {
         paymentProcessor,
+        targetMantecaCountry,
         paymentLock,
         qrPayment,
         merchantName,
         pixKeyLabel,
+        pixKeyOwner,
+        isAwaitingPixKeyOwner,
+        pixKeySave,
         methodIcon,
         currency,
         currencyAmount,
@@ -45,8 +60,13 @@ export function QrPayFormView() {
         errorInitiatingPayment,
         isBlockingError,
         balanceErrorMessage,
+        rateUnavailable,
+        retryRate,
         shouldBlockPay,
         isLoading,
+        loadingState,
+        quoteUpdatedNotice,
+        isQuoteRecovering,
         payQR,
         handleCurrencyAmountChange,
         balance,
@@ -74,9 +94,19 @@ export function QrPayFormView() {
         onNeedsSupport: () => openSupportForLimits('Hi, I would like to increase my payment limits.'),
     })
 
+    const ownerDetails = pixKeyOwner && pixKeyLabel ? pixKeyOwnerDetails(pixKeyLabel, pixKeyOwner.legalIdMasked) : null
+
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
+
+    // the manteca entity behind the rail, for the provider row (TASK-23295)
+    const providerId =
+        paymentProcessor === 'MANTECA' && targetMantecaCountry
+            ? targetMantecaCountry === 'BR'
+                ? 'manteca-br'
+                : 'manteca-ar'
+            : null
 
     return (
         <>
@@ -88,14 +118,14 @@ export function QrPayFormView() {
                 onRefreshToken={qrLimitIncreaseFlow.refreshToken}
                 isMultiLevel
             />
-            <div className="flex min-h-inherit flex-col gap-8">
+            <PageStack>
                 <NavHeader title={tNav('pay')} />
 
                 {/* Payment Content */}
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     {/* Merchant Card */}
                     <Card className="p-4">
-                        <div className="space-x-3 flex items-center">
+                        <div className="flex items-center gap-3">
                             <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-white">
                                 <Image
                                     src={methodIcon}
@@ -107,16 +137,42 @@ export function QrPayFormView() {
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="flex items-center gap-1 text-center text-body-s">
-                                    <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
+                                    <Icon name="arrow-up-right" size={16} /> {t('youArePaying')}
                                 </p>
                                 <p
                                     className={`text-heading-xs break-words ${pixKeyLabel ? 'ph-mask ph-no-capture' : ''}`}
                                 >
                                     {merchantName}
                                 </p>
+                                {/* The heading is the owner's name; this line names the key and tax ID it belongs to. */}
+                                {ownerDetails && (
+                                    <p className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary">
+                                        {ownerDetails.pixKey}
+                                        {ownerDetails.pixKey && ownerDetails.taxId && ' · '}
+                                        {/* "CPF 12*******90" never breaks between the label and the number. */}
+                                        {ownerDetails.taxId && (
+                                            <span className="whitespace-nowrap">
+                                                {t('pixKeyOwnerTaxId', {
+                                                    taxIdKind: ownerDetails.taxId.kind,
+                                                    taxId: ownerDetails.taxId.value,
+                                                })}
+                                            </span>
+                                        )}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </Card>
+
+                    {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
+                    {pixKeySave.isOffered && (
+                        <SaveAddressPrompt
+                            checked={pixKeySave.checked}
+                            nickname={pixKeySave.nickname}
+                            onCheckedChange={pixKeySave.setChecked}
+                            onNicknameChange={pixKeySave.setNickname}
+                        />
+                    )}
 
                     {/* Amount Card */}
                     {currency && (
@@ -172,11 +228,11 @@ export function QrPayFormView() {
                     })()}
 
                     {/* Information Card */}
-                    <Card className="space-y-0 px-4">
+                    <GlobalCard className="px-4">
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
+                            moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null
@@ -198,38 +254,71 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder
+                            hideBottomBorder={!providerId}
                         />
-                    </Card>
+                        {providerId && (
+                            <PaymentInfoRow
+                                hideBottomBorder
+                                label={
+                                    <span className="flex items-center gap-1">
+                                        {tProvider('label.provider')}
+                                        <ProviderHelp providerId={providerId} />
+                                    </span>
+                                }
+                                value={PROVIDERS[providerId].brand}
+                            />
+                        )}
+                    </GlobalCard>
 
                     {/* Send Button */}
                     <Button
                         onClick={payQR}
                         shadowSize="4"
-                        loading={isLoading}
+                        loading={isLoading || isQuoteRecovering}
                         disabled={
                             !!errorInitiatingPayment ||
                             isBlockingError ||
+                            rateUnavailable ||
                             !amount ||
                             isLoading ||
+                            // A replacement quote is being obtained — paying now
+                            // would submit under terms the user has not seen.
+                            isQuoteRecovering ||
                             !!balanceErrorMessage ||
                             shouldBlockPay ||
+                            isAwaitingPixKeyOwner ||
+                            pixKeySave.blocksPay ||
                             !usdAmount ||
                             usdAmount === '0.00' ||
                             limitsValidation.isBlocking
                         }
                     >
-                        {isLoading ? tCommon('loading') : tNav('pay')}
+                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
+
+                    {isLoading && (
+                        <p role="status" className="text-center text-body-s text-foreground-secondary">
+                            {tLoading(loadingStateKey(loadingState))}
+                        </p>
+                    )}
+
+                    {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
+                    {quoteUpdatedNotice && (
+                        <Callout priority="info" data-testid="quote-updated-notice">
+                            {quoteUpdatedNotice}
+                        </Callout>
+                    )}
+
+                    {rateUnavailable && <RateUnavailable onRetry={retryRate} />}
 
                     {/* Error State */}
                     {errorMessage && (
-                        <Notification priority="error" data-testid="error-alert">
-                            {errorMessage}
-                        </Notification>
+                        <Callout priority="error" data-testid="error-alert">
+                            <CooldownErrorText message={errorMessage} />
+                        </Callout>
                     )}
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         </>
     )
 }

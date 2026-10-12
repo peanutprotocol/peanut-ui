@@ -1,8 +1,9 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Field } from '@/components/0_Bruddle/Field'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import AmountInput from '@/components/Global/AmountInput'
@@ -10,12 +11,13 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import RateUnavailable from '@/components/Global/RateUnavailable'
-import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
+import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import {
@@ -26,6 +28,8 @@ import {
 } from '@/utils/capability-gate'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeBankFlow } from '../useBridgeBankFlow'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { getBankRegionIntent, providerForRegionIntent } from '@/utils/regions.utils'
 
 // The Bridge SEPA bank deposit page. Only mounted for non-Manteca countries — the
 // AddMoneyBankPage wrapper bounces BR/AR away before this ever renders, so none of
@@ -33,19 +37,17 @@ import { useBridgeBankFlow } from '../useBridgeBankFlow'
 export function BridgeBankOnrampView() {
     const {
         urlState,
-        setUrlState,
         user,
         selectedCountry,
         onBack,
         locale,
         t,
         tCommon,
-        tUnlock,
         gate,
         sumsubFlow,
         handleVerify,
         pendingModal,
-        advisoryModalProps,
+        advisoryDeadline,
         showBridgeTos,
         hideTos,
         setIsSupportModalOpen,
@@ -72,6 +74,10 @@ export function BridgeBankOnrampView() {
         setShowKycModal,
         onrampData,
     } = useBridgeBankFlow()
+    const bridgeProviderId = useBridgeProviderId()
+    // the destination's intent; a residence no bank onboards gets the bank-unavailable screen, which names no provider
+    const kycProviderId =
+        providerForRegionIntent(getBankRegionIntent(selectedCountry)) === 'bridge' ? bridgeProviderId : undefined
 
     // Show loading while user is being fetched and no step in URL yet
     if (!urlState.step && user === null) {
@@ -107,7 +113,10 @@ export function BridgeBankOnrampView() {
         if (!onrampData?.transferId) {
             return <Loading variant="mascot" />
         }
-        return <AddMoneyBankDetails onBack={() => setUrlState({ step: 'inputAmount' })} />
+        // Settled screen: the deposit is already created. Leave the flow the way the
+        // input step does, not back to `inputAmount` (which would let the user start a
+        // second deposit).
+        return <AddMoneyBankDetails onBack={onBack} />
     }
 
     if (urlState.step === 'verify') {
@@ -121,7 +130,9 @@ export function BridgeBankOnrampView() {
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     visible
                     presentation="page"
-                    navTitle={tUnlock('title')}
+                    // Reached from Add money, so it keeps that title; the same
+                    // unlock opened from Accounts and payments is a drawer there.
+                    navTitle={t('title')}
                     onBack={onBack}
                     onClose={onBack}
                     onVerify={handleVerify}
@@ -132,21 +143,38 @@ export function BridgeBankOnrampView() {
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
+                    providerId={kycProviderId}
                 />
             </>
         )
     }
 
     if (urlState.step === 'inputAmount') {
-        const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
+        // the card is the only thing that can replace the amount message, so the
+        // message rule reads the same props the card is rendered from
+        const limitsCardProps = getLimitsWarningCardProps({
+            validation: limitsValidation,
+            flowType: 'onramp',
+            currency: 'USD',
+        })
 
         return (
-            <div className="space-y-8 flex flex-col justify-start">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                <PageStack.Center className="gap-4 md:my-0">
                     <div className="text-label-l">{t('howMuchToAdd')}</div>
-                    {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
-                    <FieldColumn error={!limitsValidation.isBlocking ? validationError : undefined}>
+                    {/* the field error yields to the limits card only when that card renders */}
+                    <Field
+                        error={
+                            shouldShowAmountError({
+                                showError: !!validationError,
+                                showsLimitsCard: !!limitsCardProps,
+                                limitsBlocking: limitsValidation.isBlocking,
+                            })
+                                ? validationError
+                                : undefined
+                        }
+                    >
                         <AmountInput
                             initialAmount={rawTokenAmount}
                             setPrimaryAmount={handleTokenAmountChange}
@@ -164,31 +192,20 @@ export function BridgeBankOnrampView() {
                             }
                             hideBalance
                         />
-                    </FieldColumn>
+                    </Field>
 
                     {/* limits warning/error card */}
-                    {showLimitsCard &&
-                        (() => {
-                            const limitsCardProps = getLimitsWarningCardProps({
-                                validation: limitsValidation,
-                                flowType: 'onramp',
-                                currency: 'USD',
-                            })
-                            return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
-                        })()}
-
-                    {!limitsValidation.isBlocking && (
-                        <Notification priority="attention">{t('amountMustMatchBank')}</Notification>
-                    )}
+                    {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
-                        <Notification priority="info" title={t('eurAccountsOnlyTitle')}>
+                        <Callout priority="info" title={t('eurAccountsOnlyTitle')}>
                             {t('eurAccountsOnlyDescription')}
-                        </Notification>
+                        </Callout>
                     )}
+                    {advisoryDeadline && <VerificationDeadlineNotice effectiveDate={advisoryDeadline} />}
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={
@@ -207,19 +224,18 @@ export function BridgeBankOnrampView() {
                     >
                         {tCommon('continue')}
                     </Button>
-                    {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
-                    {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
-                        <Notification priority="error">{error.errorMessage}</Notification>
-                    )}
+                    {shouldShowAmountError({
+                        showError: error.showError && !!error.errorMessage,
+                        showsLimitsCard: !!limitsCardProps,
+                        limitsBlocking: limitsValidation.isBlocking,
+                    }) && <Callout priority="error">{error.errorMessage}</Callout>}
                     {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
-                </div>
+                </PageStack.Center>
 
                 <OnrampConfirmationModal
                     visible={showWarningModal}
                     onClose={handleWarningCancel}
                     onConfirm={handleWarningConfirm}
-                    amount={rawTokenAmount}
-                    currency={getCurrencySymbol(getCurrencyConfig(selectedCountry.id, 'onramp').currency)}
                 />
 
                 <InitiateKycModal
@@ -243,9 +259,8 @@ export function BridgeBankOnrampView() {
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
+                    providerId={kycProviderId}
                 />
-
-                <AdvisoryPreemptModal {...advisoryModalProps} />
 
                 <KycReverificationPendingModal
                     isOpen={pendingModal.isOpen}
@@ -268,9 +283,8 @@ export function BridgeBankOnrampView() {
                         handleWarningConfirm()
                     }}
                     onSkip={hideTos}
-                    reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                 />
-            </div>
+            </PageStack>
         )
     }
 
