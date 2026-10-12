@@ -82,6 +82,34 @@ describe('release version resolver', () => {
             expect(result.stdout.trim()).toBe('2.3.0')
         })
 
+        // Oct 9 2026: iOS published the 1.10.0 bundle, Android failed, and no
+        // v1.10.0 tag was written. Reusing 1.10.0 collides with that Capgo record
+        // after both store uploads, so the next store build counts past it.
+        it('counts past an untagged build that a half-release left in Capgo', () => {
+            const dir = repo('1.0.53', { tags: ['v1.8.0', 'v1.9.0', 'ota-1.9.1'] })
+            for (const reserved of ['1.10.0', '1.10.1-ios', '1.10.1']) {
+                const result = run(dir, ['native', '--reserved', reserved])
+                expect(result.status).toBe(0)
+                expect(result.stdout.trim()).toBe('1.11.0')
+            }
+        })
+
+        it('ignores reserved versions at or below the newest tag', () => {
+            const dir = repo('1.0.53', { tags: ['v1.9.0'] })
+            for (const reserved of ['builtin', '1.9.1-ios', '1.9.0', '1.5.1003-ios', '0.9.0']) {
+                expect(run(dir, ['native', '--reserved', reserved]).stdout.trim()).toBe('1.10.0')
+            }
+        })
+
+        it('refuses a reserved version too far ahead to be a half-release', () => {
+            const dir = repo('1.0.53', { tags: ['v1.9.0'] })
+            expect(run(dir, ['native', '--reserved', '1.12.0']).stdout.trim()).toBe('1.13.0')
+            for (const reserved of ['1.13.0', '2.1.0', 'garbage']) {
+                const result = run(dir, ['native', '--reserved', reserved])
+                expect(result.status).toBe(1)
+            }
+        })
+
         // A tagless checkout would silently resolve build 1 forever, re-shipping one
         // version — the tag list is the registry, so its absence is an error.
         it('fails on a checkout with no tags rather than restarting the count', () => {
@@ -140,11 +168,31 @@ describe('release version resolver', () => {
             expect(result.stdout.trim()).toBe('1.5.3')
         })
 
-        it('refuses when the channel is ahead of every native build', () => {
-            const result = run(repo('1.0.53', { tags: ['v1.5.0'] }), ['ota', '--current', '1.6.0'])
+        // The Oct 9 2026 wedge: the iOS channel served the untagged 1.10.0 and
+        // every OTA failed here. The bundle 1.10.1 still sorts above every shipped
+        // binary, and its floor comes from the tags, not from this number.
+        it('keeps counting in the band of an untagged half-release', () => {
+            const dir = repo('1.0.53', { tags: ['v1.9.0', 'ota-1.9.1'] })
+            expect(run(dir, ['ota', '--current', '1.10.0']).stdout.trim()).toBe('1.10.1')
+            expect(run(dir, ['ota', '--current', '1.10.1-ios']).stdout.trim()).toBe('1.10.2')
+        })
+
+        it('counts past OTA tags already shipped in the untagged band', () => {
+            const dir = repo('1.0.53', { tags: ['v1.9.0', 'ota-1.10.1', 'ota-1.10.2'] })
+            expect(run(dir, ['ota', '--current', '1.10.0']).stdout.trim()).toBe('1.10.3')
+        })
+
+        it('refuses when the channel is too far ahead of every native build', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.5.0'] }), ['ota', '--current', '1.9.0'])
 
             expect(result.status).toBe(1)
             expect(result.stderr).toMatch(/ahead of the newest native build/)
+        })
+
+        it('refuses a channel in another major', () => {
+            const dir = repo('1.0.53', { tags: ['v1.5.0'] })
+            expect(run(dir, ['ota', '--current', '2.1.0']).status).toBe(1)
+            expect(run(dir, ['ota', '--current', '0.5.3']).status).toBe(1)
         })
 
         it('refuses before any native release exists', () => {
