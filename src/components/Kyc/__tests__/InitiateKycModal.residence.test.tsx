@@ -125,3 +125,29 @@ describe('InitiateKycModal — a requirement the approved identity never collect
         expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
     })
 })
+
+describe('InitiateKycModal — a requirement the app cannot collect', () => {
+    beforeEach(() => {
+        mockRestrictions = { banking: false, card: false }
+        mockIsRegionRestricted = false
+    })
+
+    it('reads the catalog line and offers support', () => {
+        const onContactSupport = jest.fn()
+        renderModal({
+            variant: 'blocked',
+            reasonCode: 'requirements_uncollectable',
+            providerMessage: 'Backend English prose',
+            onContactSupport,
+        })
+        expect(
+            screen.getByText(
+                "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you."
+            )
+        ).toBeInTheDocument()
+        expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+        screen.getByRole('button', { name: 'Contact support' }).click()
+        expect(onContactSupport).toHaveBeenCalled()
+        expect(onVerify).not.toHaveBeenCalled()
+    })
+})

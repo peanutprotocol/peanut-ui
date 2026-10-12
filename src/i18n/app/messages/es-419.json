@@ -3370,6 +3370,8 @@
             "address_of_residence": "Necesitamos tu dirección de residencia para continuar.",
             "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agrégalo y lo reintentaremos automáticamente.",
             "requirements_missing": "Nuestro socio de pagos necesita un documento más que no estaba en tu verificación. Agrégalo y terminaremos la configuración automáticamente.",
+            "identity_document_insufficient": "El documento con el que te verificaste no se puede usar para esta cuenta. Verifícate de nuevo con otro documento de identidad.",
+            "requirements_uncollectable": "Nuestro socio de pagos necesita algo que no podemos recopilar en la app. Escríbele a soporte y terminaremos la configuración contigo.",
             "proof_of_address": "Necesitamos un comprobante de domicilio válido.",
             "source_of_funds": "Necesitamos información sobre el origen de tus fondos.",
             "proof_of_source_of_funds": "Necesitamos un documento que compruebe el origen de tus fondos.",
