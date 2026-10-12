@@ -83,8 +83,8 @@ export function StatementsPage() {
             <div className="flex flex-col gap-6">
                 <p className="text-body-s text-foreground-secondary">{t('intro')}</p>
                 {/* Format and Period are the same control (Aleks, 2026-10-01): one
-                    select each, the chosen format's hint on the helper line. */}
-                <Field label={t('format')} helper={t(`formatHints.${format}`)}>
+                    select each, no hint under Format (Aleks, 2026-10-12). */}
+                <Field label={t('format')}>
                     <BaseSelect
                         aria-label={t('format')}
                         options={STATEMENT_FORMATS.map((option) => ({ value: option, label: option.toUpperCase() }))}

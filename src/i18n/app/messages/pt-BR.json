@@ -2515,13 +2515,8 @@
     },
     "statements": {
         "title": "Extratos",
-        "intro": "Um extrato mostra toda a atividade da conta em um período, com datas, valores e status. Escolha um formato e um período e depois baixe o arquivo.",
+        "intro": "Um extrato mostra toda a atividade da sua conta em um período, com datas, valores e status. Escolha um formato e um período e depois baixe o arquivo.",
         "format": "Formato",
-        "formatHints": {
-            "pdf": "Para compartilhar ou imprimir",
-            "csv": "Para planilhas e contabilidade",
-            "xlsx": "Para Excel"
-        },
         "period": "Período",
         "periods": {
             "allTime": "Todo o histórico",

@@ -1183,10 +1183,7 @@
     },
     "statements": {
         "title": "Resúmenes",
-        "intro": "Un resumen muestra toda la actividad de la cuenta en un período, con fechas, montos y estado. Elegí un formato y un período, y luego descargá el archivo.",
-        "formatHints": {
-            "csv": "Para planillas y contabilidad"
-        },
+        "intro": "Un resumen muestra toda la actividad de tu cuenta en un período, con fechas, montos y estado. Elegí un formato y un período, y luego descargá el archivo.",
         "customPeriod": {
             "description": "Elegí el primer y el último día."
         },
