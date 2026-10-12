@@ -54,7 +54,9 @@ export default function EmailStep() {
             // after its one retry, as `result.error`. The button stays enabled
             // after an error, so Continue is the retry.
             if (user.user.email !== value) {
-                const result = await updateUserById({ userId: user.user.userId, email: value })
+                const result = await updateUserById({ userId: user.user.userId, email: value }).catch(() => ({
+                    error: 'request failed',
+                }))
                 if (result.error) {
                     const duplicate = result.error === 'This email is already associated with another account'
                     setEmailInUse(duplicate)
@@ -71,7 +73,11 @@ export default function EmailStep() {
             }
             // A navigation failure is not a failed save: showing saveFailed
             // here would ask the user to retry an email the API already has.
-            await handleNext().catch((navigationError: unknown) => captureException(navigationError))
+            try {
+                await handleNext()
+            } catch (navigationError) {
+                captureException(navigationError)
+            }
         } finally {
             savingRef.current = false
             setSaving(false)
@@ -105,6 +111,11 @@ export default function EmailStep() {
                     <Button type="submit" shadowSize="4" loading={saving} disabled={saving || !email.trim()}>
                         {t('continue')}
                     </Button>
+                }
+                secondary={
+                    <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary compact:pt-2">
+                        {t('optOutNote')}
+                    </p>
                 }
             >
                 {emailInUse && (

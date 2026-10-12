@@ -29,6 +29,10 @@ jest.mock('@/hooks/useNotifications', () => ({
         oneSignalInitialized: mockReady,
     }),
 }))
+const mockCaptureException = jest.fn()
+jest.mock('@/utils/sentry-lazy', () => ({
+    captureException: (...args: unknown[]) => mockCaptureException(...args),
+}))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }),
 }))
@@ -136,6 +140,25 @@ it('keeps the email step retryable after a rejected request', async () => {
     await screen.findByText('We couldn’t save your email. Please try again.')
     expect(mockNext).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+})
+it('reports a navigation failure after a confirmed save instead of showing a failed save', async () => {
+    const navigationError = new Error('stepper failed')
+    mockNext.mockRejectedValueOnce(navigationError)
+    renderStep(<EmailStep />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'money@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockCaptureException).toHaveBeenCalledWith(navigationError))
+    expect(screen.queryByText('We couldn’t save your email. Please try again.')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+})
+it('says once, below Continue, that we email about the account and the user can opt out', () => {
+    renderStep(<EmailStep />)
+    const note = screen.getByText('We’ll email you about your account. You can opt out anytime.')
+    expect(
+        screen.getByRole('button', { name: 'Continue' }).compareDocumentPosition(note) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(screen.getAllByText(/opt out/i)).toHaveLength(1)
 })
 it('does not leave the email step before the authenticated user is available', async () => {
     mockUser = null

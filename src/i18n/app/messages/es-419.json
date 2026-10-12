@@ -742,8 +742,7 @@
                 "description": "Abre cuentas en las monedas en que te pagan. Gratis para abrir, sin cuotas mensuales."
             },
             "notification-email": {
-                "title": "Sin spam. Promesa de meñique.",
-                "description": "Puedes darte de baja cuando quieras."
+                "title": "Sin spam. Promesa de meñique."
             },
             "notification-permission": {
                 "title": "Activa las notificaciones",
@@ -977,7 +976,8 @@
             "invalid": "Ingresa un correo electrónico válido.",
             "notReady": "Tu cuenta aún se está cargando. Inténtalo en un momento.",
             "saveFailed": "No pudimos guardar tu correo. Inténtalo de nuevo.",
-            "accessHint": "Tu passkey controla el acceso a tu cuenta. Tu correo es para notificaciones."
+            "accessHint": "Tu passkey controla el acceso a tu cuenta. Tu correo es para notificaciones.",
+            "optOutNote": "Te enviaremos correos sobre tu cuenta. Puedes darte de baja cuando quieras."
         },
         "notifications": {
             "pushLabel": "Notificaciones push",
