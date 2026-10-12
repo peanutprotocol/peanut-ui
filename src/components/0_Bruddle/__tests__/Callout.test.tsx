@@ -231,6 +231,16 @@ describe('Callout support CTA', () => {
         expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()
     })
 
+    test('offerSupport adds the CTA to a short line that does not ask for support', () => {
+        renderInApp(
+            <Callout priority="error" offerSupport>
+                Unexpected issue.
+            </Callout>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(screen.getByTestId('support-probe')).toHaveTextContent('I got this error in the app: Unexpected issue.')
+    })
+
     test.each([
         "Peanut doesn't support recurring PIX payments. Ask for a regular PIX QR code instead.",
         'Peanut no admite este QR. Solo cuentas bancarias donde haya soporte.',
