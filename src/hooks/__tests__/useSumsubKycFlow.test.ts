@@ -6,6 +6,7 @@ import {
     startKycDocumentReplacement,
     saveKycFeatures,
 } from '@/app/actions/kyc-workflow'
+import type { KycFeatureReports } from '@/app/actions/types/kyc-workflow.types'
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
@@ -1515,6 +1516,144 @@ describe('document-first verification', () => {
         expect(startKycDocumentReplacement).not.toHaveBeenCalled()
         expect(mockInitiate).not.toHaveBeenCalled()
         expect(result.current.documentPlan).toBeNull()
+    })
+    describe('saving features for an approved identity', () => {
+        const added = { ...plan.features, bank: true }
+        const saved = { ...plan, available: false, routes: [], features: added }
+        const reports = (bank: KycFeatureReports['bank']): KycFeatureReports => ({
+            qr: { state: 'on' },
+            bank,
+            local: { state: 'not_requested' },
+            card: { state: 'not_requested' },
+        })
+        const openFeatures = async (options: Parameters<typeof useSumsubKycFlow>[0]) => {
+            jest.mocked(getKycDocumentPlan)
+                .mockResolvedValueOnce({ ...plan, available: false, routes: [] })
+                .mockResolvedValue(plan)
+            jest.mocked(getKycDocumentStatus).mockResolvedValue('APPROVED')
+            const hook = renderHook(() => useSumsubKycFlow(options))
+            await act(async () => {
+                await hook.result.current.handleInitiateKyc()
+            })
+            expect(hook.result.current.documentPreferencesOnly).toBe(true)
+            return hook
+        }
+        const save = async (
+            result: Awaited<ReturnType<typeof openFeatures>>['result'],
+            bank: KycFeatureReports['bank']
+        ) => {
+            jest.mocked(saveKycFeatures)
+                .mockClear()
+                .mockResolvedValue({ plan: saved, features: reports(bank) })
+            await act(async () => {
+                await result.current.confirmDocumentPlan('', [], added)
+            })
+        }
+        beforeEach(() => {
+            mockStartAction.mockReset()
+            mockRestart.mockReset()
+        })
+
+        it('a feature that needs one more document opens that step instead of reporting success', async () => {
+            const onKycSuccess = jest.fn()
+            const onManualClose = jest.fn()
+            const { result } = await openFeatures({ onKycSuccess, onManualClose })
+            mockStartAction.mockResolvedValue({
+                data: {
+                    token: 'tok-poa',
+                    levelName: 'provider-rfi-proof-of-address',
+                    externalActionId: 'supplement-0123456789abcdef-1',
+                },
+            })
+
+            await save(result, { state: 'action_required', action: 'supplement:bridge' })
+
+            expect(saveKycFeatures).toHaveBeenCalledWith(added)
+            expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
+            expect(onKycSuccess).not.toHaveBeenCalled()
+            expect(onManualClose).not.toHaveBeenCalled()
+            expect(result.current.documentPlan).toBeNull()
+            expect(result.current.accessToken).toBe('tok-poa')
+            expect(result.current.showWrapper).toBe(true)
+            expect(result.current.isActionFlow).toBe(true)
+            expect(result.current.isLoading).toBe(false)
+            expect(result.current.error).toBeNull()
+        })
+
+        it('an expired supplement token is re-minted through start-action with the same key', async () => {
+            const { result } = await openFeatures({})
+            mockStartAction
+                .mockResolvedValueOnce({ data: { token: 'tok-poa', levelName: 'provider-rfi-proof-of-address' } })
+                .mockResolvedValueOnce({ data: { token: 'tok-poa-2', levelName: 'provider-rfi-proof-of-address' } })
+            await save(result, { state: 'action_required', action: 'supplement:bridge' })
+            mockInitiate.mockClear()
+            jest.mocked(resumeKycDocumentAttempt).mockClear()
+
+            let refreshed: string | undefined
+            await act(async () => {
+                refreshed = await result.current.refreshToken()
+            })
+
+            expect(refreshed).toBe('tok-poa-2')
+            expect(mockStartAction).toHaveBeenCalledTimes(2)
+            expect(mockStartAction).toHaveBeenLastCalledWith('supplement:bridge')
+            expect(result.current.accessToken).toBe('tok-poa-2')
+            expect(mockInitiate).not.toHaveBeenCalled()
+            expect(resumeKycDocumentAttempt).not.toHaveBeenCalled()
+        })
+
+        it('a feature that is being set up reports success as before', async () => {
+            const onKycSuccess = jest.fn()
+            const { result } = await openFeatures({ onKycSuccess })
+
+            await save(result, { state: 'setting_up' })
+
+            expect(onKycSuccess).toHaveBeenCalledTimes(1)
+            expect(mockStartAction).not.toHaveBeenCalled()
+            expect(result.current.documentPlan).toBeNull()
+        })
+
+        it('a step that is not a supplement keeps reporting success', async () => {
+            const onKycSuccess = jest.fn()
+            const { result } = await openFeatures({ onKycSuccess })
+
+            await save(result, { state: 'action_required' })
+
+            expect(onKycSuccess).toHaveBeenCalledTimes(1)
+            expect(mockStartAction).not.toHaveBeenCalled()
+        })
+
+        it('a requirement the app cannot collect sends the user to support and reports no success', async () => {
+            const onKycSuccess = jest.fn()
+            const onManualClose = jest.fn()
+            const { result } = await openFeatures({ onKycSuccess, onManualClose })
+
+            await save(result, { state: 'refused', reason: 'requirements_uncollectable' })
+
+            expect(onKycSuccess).not.toHaveBeenCalled()
+            expect(onManualClose).not.toHaveBeenCalled()
+            expect(mockStartAction).not.toHaveBeenCalled()
+            expect(result.current.error).toBe(
+                "USD, EUR, MXN and GBP accounts: we can't finish setting this up in the app. Contact support and we'll complete it for you."
+            )
+            expect(result.current.documentPlan).toEqual(saved)
+            expect(result.current.isLoading).toBe(false)
+        })
+
+        it('a feature that needs a different ID document asks for support and never restarts identity', async () => {
+            const onKycSuccess = jest.fn()
+            const { result } = await openFeatures({ onKycSuccess })
+
+            await save(result, { state: 'refused', reason: 'identity_document_insufficient' })
+
+            expect(onKycSuccess).not.toHaveBeenCalled()
+            expect(mockRestart).not.toHaveBeenCalled()
+            expect(mockStartAction).not.toHaveBeenCalled()
+            expect(result.current.error).toBe(
+                "USD, EUR, MXN and GBP accounts: this needs a different ID document than the one you verified with. Contact support and we'll help you verify with another one."
+            )
+            expect(result.current.documentPlan).toEqual(saved)
+        })
     })
     it('a feature toggle before identity shows the plan the save returned', async () => {
         const { result } = renderHook(() => useSumsubKycFlow({}))

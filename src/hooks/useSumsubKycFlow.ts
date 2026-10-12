@@ -12,6 +12,7 @@ import type {
     KycDocumentPlan,
     KycAttemptSession,
     KycDocumentChoice,
+    KycFeatureReports,
     KycFeatures,
 } from '@/app/actions/types/kyc-workflow.types'
 import { useRouter } from 'next/navigation'
@@ -109,6 +110,34 @@ const ACTION_ERROR_KEYS = {
  */
 const isMultiLevelIntent = (intent: KYCRegionIntent | undefined): boolean => intent === 'LATAM' || intent === 'EU'
 
+type RefusalCopy = 'supplement.uncollectable' | 'supplement.identityDocumentInsufficient'
+const REFUSAL_COPY = new Map<string | undefined, RefusalCopy>([
+    ['requirements_uncollectable', 'supplement.uncollectable'],
+    ['identity_document_insufficient', 'supplement.identityDocumentInsufficient'],
+])
+
+/** What an approved user must do after saving features, beyond waiting for providers. */
+function savedFeaturesOutcome(
+    features: KycFeatures,
+    before: KycFeatures,
+    reports: KycFeatureReports | undefined
+): { action: string } | { feature: keyof KycFeatures; copy: RefusalCopy } | null {
+    if (!reports) return null
+    const keys = Object.keys(features) as (keyof KycFeatures)[]
+    const action = keys
+        .map((key) => reports[key])
+        .find((report) => report?.state === 'action_required' && report.action?.startsWith('supplement:'))?.action
+    if (action) return { action }
+    for (const key of keys) {
+        const copy =
+            features[key] !== before[key] && reports[key]?.state === 'refused'
+                ? REFUSAL_COPY.get(reports[key].reason)
+                : undefined
+        if (copy) return { feature: key, copy }
+    }
+    return null
+}
+
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
         if (elapsedMs < untilMs) return delayMs
@@ -151,8 +180,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const documentAttemptRef = useRef<string | null>(null)
     const documentRequestKeyRef = useRef<string | null>(null)
     const documentBusyRef = useRef(false)
-    // handleInitiateKyc is declared after confirmDocumentPlan, which needs it for the hand-off.
+    // Both are declared after confirmDocumentPlan, which hands off to them.
     const legacyInitiateRef = useRef<(() => Promise<unknown>) | null>(null)
+    const startActionRef = useRef<((key: string) => Promise<void>) | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setErrorState] = useState<string | null>(null)
@@ -452,19 +482,32 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     (Object.keys(features) as (keyof KycFeatures)[]).some(
                         (key) => features[key] !== documentPlan.features[key]
                     )
+                let supplementAction: string | undefined
                 try {
                     // Saving an approved user's features enrols and submits providers, so it waits for Continue.
-                    if (changed) await saveKycFeatures(features)
+                    const saved = changed ? await saveKycFeatures(features) : undefined
+                    const outcome = changed
+                        ? savedFeaturesOutcome(features, documentPlan.features, saved?.features)
+                        : null
+                    if (saved && outcome && 'copy' in outcome) {
+                        setDocumentPlan(saved.plan)
+                        setError(t(outcome.copy, { feature: t(`documents.${outcome.feature}`) }))
+                        return
+                    }
+                    supplementAction = outcome && 'action' in outcome ? outcome.action : undefined
                     setDocumentPlan(null)
                     userInitiatedRef.current = false
-                    if (changed) onKycSuccess?.()
-                    else onManualClose?.()
+                    if (!supplementAction) {
+                        if (changed) onKycSuccess?.()
+                        else onManualClose?.()
+                    }
                 } catch {
                     setError(t('errorInitiateFailed'))
                 } finally {
                     documentBusyRef.current = false
                     setIsLoading(false)
                 }
+                if (supplementAction) await startActionRef.current?.(supplementAction)
                 return
             }
             try {
@@ -1160,6 +1203,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         },
         [t, actionErrorMessage, setError, acceptSessionView]
     )
+    startActionRef.current = handleStartAction
 
     // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,
     // source of funds) are their own Sumsub levels, keyed by the verdict's

@@ -3326,6 +3326,10 @@
             "preferencesTitle": "Recursos de pagamento",
             "preferencesDescription": "Escolha os recursos de pagamento que deseja usar. Sua identidade continua verificada.",
             "preferencesContinue": "Continuar"
+        },
+        "supplement": {
+            "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
+            "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação. Fale com o suporte e ajudamos você a se verificar com outro."
         }
     },
     "identity": {

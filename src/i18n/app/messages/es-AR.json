@@ -1505,6 +1505,10 @@
             "preferencesTitle": "Funciones de pago",
             "preferencesDescription": "Elegí las funciones de pago que querés usar. Tu identidad sigue verificada.",
             "preferencesContinue": "Continuar"
+        },
+        "supplement": {
+            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos.",
+            "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte. Contactá a soporte y te ayudamos a verificarte con otro."
         }
     },
     "identity": {
