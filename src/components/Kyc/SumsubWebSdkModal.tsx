@@ -105,6 +105,7 @@ export const SumsubWebSdkModal = ({
                             </div>
                             <div
                                 ref={setSdkContainer}
+                                data-testid="kyc-sumsub-sdk"
                                 className="relative h-full w-full overflow-auto [&>iframe]:!min-h-full"
                             />
                         </div>

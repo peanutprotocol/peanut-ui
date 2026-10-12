@@ -50,6 +50,13 @@ describe('InitiateKycModal — residence check', () => {
     it('offers the unlock when banking is available', () => {
         renderModal()
         expect(screen.getByText('Verify identity')).toBeInTheDocument()
+        expect(screen.getByTestId('kyc-initiate-cta')).toHaveTextContent('Verify identity')
+    })
+
+    it("marks the cross-region continue with the caller's test id", () => {
+        renderModal({ variant: 'cross_region', regionName: 'Argentina', ctaTestId: 'kyc-identity-gate-cta' })
+        expect(screen.getByTestId('kyc-identity-gate-cta')).toHaveTextContent('Continue')
+        expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
     })
 
     it('replaces the unlock offer when the residence rules out bank rails', () => {
@@ -138,9 +145,9 @@ describe('InitiateKycModal — a requirement the approved identity never collect
                 ...(presentation ? { presentation } : {}),
             })
 
-            expect(
-                screen.getByText("We're checking your proof of address. Bank accounts open once it's approved.")
-            ).toBeInTheDocument()
+            expect(screen.getByTestId('kyc-supplement-in-review')).toHaveTextContent(
+                "We're checking your proof of address. Bank accounts open once it's approved."
+            )
             expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
             expect(screen.queryByTestId('kyc-supplement-cta')).not.toBeInTheDocument()
             expect(

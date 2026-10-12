@@ -69,6 +69,8 @@ interface InitiateKycModalProps {
     navTitle?: string
     /** Bridge callers name the entity here; the Manteca flows get theirs from `taxIdCountry` */
     providerId?: ProviderId
+    /** test id of the start-verification CTA (default and cross-region variants) */
+    ctaTestId?: string
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -103,6 +105,7 @@ export const InitiateKycModal = ({
     onBack,
     navTitle,
     providerId,
+    ctaTestId = 'kyc-initiate-cta',
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -132,6 +135,7 @@ export const InitiateKycModal = ({
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isSupplementInReview = reasonCode === 'requirements_in_review'
+    const descriptionTestId = isSupplementInReview ? 'kyc-supplement-in-review' : undefined
     const isRegionUnavailable = variant === 'region-unavailable'
     // Resolved once so every branch below reads one variant rather than each
     // re-checking the residence — the caller's variant is what the rail gate
@@ -230,12 +234,14 @@ export const InitiateKycModal = ({
             return {
                 text: tCommon(isLoading ? 'loading' : 'continue'),
                 onClick: onVerify,
+                testId: ctaTestId,
             }
         }
         return {
             text: isLoading ? tCommon('loading') : t('initiate.ctaUnlockNow'),
             onClick: onVerify,
             icon: 'check-circle',
+            testId: ctaTestId,
         }
     }
 
@@ -354,7 +360,9 @@ export const InitiateKycModal = ({
                 <div className="flex flex-col items-center gap-4 text-center">
                     <IconBubble icon={iconName} size="l" color={isErrorState ? 'red' : 'blue'} />
                     {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
-                    <div className="w-full text-body-s text-foreground-secondary">{description(false)}</div>
+                    <div className="w-full text-body-s text-foreground-secondary" data-testid={descriptionTestId}>
+                        {description(false)}
+                    </div>
                 </div>
                 <Button
                     variant="primary"
@@ -398,7 +406,9 @@ export const InitiateKycModal = ({
                     </div>
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
-                        <div className="w-full text-body-s text-foreground-secondary">{description(true)}</div>
+                        <div className="w-full text-body-s text-foreground-secondary" data-testid={descriptionTestId}>
+                            {description(true)}
+                        </div>
                         <Button
                             variant="primary"
                             shadowSize="4"

@@ -207,7 +207,17 @@ export function CorridorGateDrawer({
                     />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{title}</DrawerTitle>
-                        {body && <DrawerDescription>{body}</DrawerDescription>}
+                        {body && (
+                            <DrawerDescription
+                                data-testid={
+                                    notice.reasonCode === 'requirements_in_review'
+                                        ? 'kyc-supplement-in-review'
+                                        : undefined
+                                }
+                            >
+                                {body}
+                            </DrawerDescription>
+                        )}
                     </DrawerHeader>
                     {/* a flow-level failure, so a Callout: it carries role="alert"
                         and the button below is the retry */}

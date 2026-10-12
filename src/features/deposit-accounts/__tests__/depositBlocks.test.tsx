@@ -171,7 +171,7 @@ describe('what a block does to the gate view', () => {
 
         const props = flowProps(undefined, false, gate)
         render(flow(props))
-        expect(screen.getByText(message)).toBeInTheDocument()
+        expect(screen.getByTestId('kyc-supplement-in-review')).toHaveTextContent(message)
         expect(screen.queryByTestId('corridor-gate-verify')).not.toBeInTheDocument()
         expect(screen.queryByTestId('corridor-gate-support')).not.toBeInTheDocument()
         expect(props.onResolveGate).not.toHaveBeenCalled()

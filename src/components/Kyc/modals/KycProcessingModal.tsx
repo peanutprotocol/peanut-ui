@@ -63,7 +63,9 @@ export const KycProcessingModal = ({
                         <IconBubble icon="clock" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{isStale ? t('processingStaleTitle') : t('processingTitle')}</DrawerTitle>
-                            <DrawerDescription>
+                            <DrawerDescription
+                                data-testid={supplementInReview ? 'kyc-supplement-in-review' : undefined}
+                            >
                                 {reasonKey
                                     ? tIdentity(reasonKey)
                                     : canResume

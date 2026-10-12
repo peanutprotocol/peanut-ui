@@ -93,7 +93,7 @@ describe('KycProcessingModal', () => {
                 onContactSupport={onContactSupport}
             />
         )
-        expect(screen.getByText(message)).toBeInTheDocument()
+        expect(screen.getByTestId('kyc-supplement-in-review')).toHaveTextContent(message)
         expect(screen.queryByText(/left the verification unfinished/)).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Continue verification' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()
