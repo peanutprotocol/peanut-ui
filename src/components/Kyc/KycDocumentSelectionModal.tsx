@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -31,17 +31,27 @@ export function KycDocumentSelectionModal({
     const [draftFeatures, setDraftFeatures] = useState(plan.features)
     const features = preferencesOnly ? draftFeatures : plan.features
     const route = plan.routes.find((r) => r.id === routeId)
+    const choicesRouteRef = useRef<string | undefined>(undefined)
     useEffect(() => {
-        setRouteId(plan.routes[0]?.id ?? '')
+        setRouteId((id) => (plan.routes.some((r) => r.id === id) ? id : (plan.routes[0]?.id ?? '')))
         setDraftFeatures(plan.features)
     }, [plan])
     useEffect(() => {
+        // A feature toggle re-plans the same route; only switching routes discards what was chosen.
+        const sameRoute = choicesRouteRef.current === route?.id
+        choicesRouteRef.current = route?.id
+        const keep = (value: string | undefined, allowed: string[]) =>
+            value && allowed.includes(value) ? value : allowed.length === 1 ? allowed[0] : ''
         setChoices(
-            route?.documents.map((d) => ({
-                key: d.key,
-                type: d.types.length === 1 ? d.types[0] : '',
-                issuingCountry: d.countries.length === 1 ? d.countries[0] : '',
-            })) ?? []
+            (current) =>
+                route?.documents.map((d) => {
+                    const previous = sameRoute ? current.find((c) => c.key === d.key) : undefined
+                    return {
+                        key: d.key,
+                        type: keep(previous?.type, d.types),
+                        issuingCountry: keep(previous?.issuingCountry, d.countries),
+                    }
+                }) ?? []
         )
     }, [route])
     const countryNames = new Intl.DisplayNames([locale], { type: 'region' })
@@ -75,7 +85,7 @@ export function KycDocumentSelectionModal({
                 }}
             >
                 <p>{t(preferencesOnly ? 'preferencesDescription' : 'description')}</p>
-                <fieldset disabled={busy} className="flex flex-col gap-2">
+                <fieldset aria-busy={busy} className="flex flex-col gap-2">
                     <legend className="mb-2 font-semibold">{t('features')}</legend>
                     {(['qr', 'local', 'bank', 'card'] as const).map((feature) => (
                         <label className="flex min-h-11 items-center gap-3" key={feature}>
@@ -83,6 +93,7 @@ export function KycDocumentSelectionModal({
                                 type="checkbox"
                                 checked={features[feature]}
                                 onChange={(e) => {
+                                    if (busy) return
                                     const next = { ...features, [feature]: e.target.checked }
                                     if (preferencesOnly) setDraftFeatures(next)
                                     else void onFeatures(next)
