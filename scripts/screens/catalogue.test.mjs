@@ -63,7 +63,6 @@ test('account setup keeps distinct integer steps in the intended journey order',
     assert.deepEqual(
         setup.map(({ id }) => id),
         [
-            '01-b-first-launch-intro',
             '01-a-landing',
             '06-b-invite',
             '06-a-signup',

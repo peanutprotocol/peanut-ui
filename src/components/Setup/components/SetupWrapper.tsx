@@ -9,7 +9,6 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useFirstLaunchIntro } from '@/hooks/useFirstLaunchIntro'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion'
@@ -63,8 +62,6 @@ interface SetupWrapperProps {
     onSkip?: () => void
     step?: number
     direction?: number
-    /** Isolated Screen Library presentation; never reads or writes install state. */
-    firstLaunchIntroPreview?: 'play' | 'still'
     fullScreen?: boolean
     showProgress?: boolean
 }
@@ -213,37 +210,10 @@ const ImageSection = ({
     imageClassName,
     direction = 0,
     prefersReducedMotion,
-    intro,
 }: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction'> & {
     prefersReducedMotion: boolean
-    intro: ReturnType<typeof useFirstLaunchIntro>
 }) => {
     const t = useTranslations('setup.wrapper')
-    const introPresentation = intro.active || intro.played
-    const [introLayout, setIntroLayout] = useState<{ viewport: number; available: number; resting: number } | null>(
-        null
-    )
-    useLayoutEffect(() => {
-        if (!introPresentation) return
-        const measure = () => {
-            const styles = getComputedStyle(document.documentElement)
-            const viewport = window.innerHeight
-            const safeTop = parseFloat(styles.getPropertyValue('--safe-top')) || 0
-            const safeBottom = parseFloat(styles.getPropertyValue('--safe-bottom')) || 0
-            // The hero settles at the same height every step uses (the CSS class), measured once here.
-            const probe = document.createElement('div')
-            probe.className = 'setup-hero-height'
-            probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none'
-            document.body.appendChild(probe)
-            const resting = window.innerWidth < 768 ? probe.getBoundingClientRect().height : viewport
-            probe.remove()
-            setIntroLayout({ viewport, available: viewport - safeTop - safeBottom, resting })
-        }
-        measure()
-        window.addEventListener('resize', measure)
-        return () => window.removeEventListener('resize', measure)
-    }, [introPresentation])
-    const restingHeight = introLayout?.resting ?? 0
 
     if (!image) return null
 
@@ -261,7 +231,6 @@ const ImageSection = ({
         'pose' in image ? (
             <PeanutMascot
                 pose={image.pose}
-                onReady={intro.onMascotReady}
                 alt={t('illustrationAlt')}
                 className={twMerge(
                     imageClassName || 'relative h-full max-w-full',
@@ -301,31 +270,14 @@ const ImageSection = ({
                 variants={artVariants}
                 custom={direction}
                 initial="enter"
+                animate="center"
                 exit="exit"
-                animate={
-                    intro.played && introLayout
-                        ? {
-                              top: intro.active ? (introLayout.available - introLayout.viewport * 0.44) / 2 : 64,
-                              height: intro.active ? introLayout.viewport * 0.44 : restingHeight - 72,
-                              opacity: intro.phase === 'checking' ? 0 : 1,
-                              x: 0,
-                          }
-                        : 'center'
-                }
-                transition={
-                    prefersReducedMotion
-                        ? { duration: 0 }
-                        : intro.played
-                          ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-                          : ART_TRANSITION
-                }
+                transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
                 className={twMerge(
                     'absolute inset-x-0 flex items-center justify-center',
-                    intro.active && !intro.played && 'invisible top-[calc(50%_-_22dvh)] h-[44dvh]',
-                    !introPresentation &&
-                        ('animation' in image
-                            ? 'top-14 bottom-1 md:top-20 md:bottom-8'
-                            : 'top-16 bottom-2 md:top-20 md:bottom-8')
+                    'animation' in image
+                        ? 'top-14 bottom-1 md:top-20 md:bottom-8'
+                        : 'top-16 bottom-2 md:top-20 md:bottom-8'
                 )}
             >
                 {illustration}
@@ -336,26 +288,18 @@ const ImageSection = ({
     // special rendering for welcome/signup screens with animated decorations
     if (isSignup) {
         return (
-            <motion.div
+            <div
                 data-setup-hero
-                initial={false}
-                animate={
-                    intro.played && introLayout
-                        ? { height: intro.active ? introLayout.available : restingHeight }
-                        : undefined
-                }
-                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className={twMerge(
                     containerClass,
-                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
-                    intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:w-full'
+                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* Per-step backgrounds move with the art: clouds on the landing
                     screen only, so later illustrations stay clear, and the "@" signs on
                     the username step. */}
                 <AnimatePresence initial={false} custom={direction}>
-                    {screenId === 'landing' && !intro.active && (
+                    {screenId === 'landing' && (
                         <motion.div
                             key="landing-clouds"
                             variants={artVariants}
@@ -385,22 +329,7 @@ const ImageSection = ({
                     )}
                 </AnimatePresence>
                 {animatedIllustration}
-                <AnimatePresence>
-                    {intro.active && intro.greetingVisible && (
-                        <motion.div
-                            key="intro-greeting"
-                            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-                            className="absolute inset-x-0 top-[calc(50%_+_16dvh)] px-6 text-center text-heading-s"
-                            role="status"
-                        >
-                            {t('introGreeting')}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </motion.div>
+            </div>
         )
     }
 
@@ -441,7 +370,6 @@ export const SetupWrapper = memo(function SetupWrapper({
     titleClassName,
     step,
     direction = 0,
-    firstLaunchIntroPreview,
     fullScreen: fullScreenProp = false,
     showProgress = true,
 }: SetupWrapperProps) {
@@ -453,7 +381,6 @@ export const SetupWrapper = memo(function SetupWrapper({
     )
     const fullScreen = fullScreenProp || fullScreenOverride === screenId
     const prefersReducedMotion = useReducedMotion()
-    const intro = useFirstLaunchIntro(screenId === 'landing', firstLaunchIntroPreview)
     const previousStep = useRef(step)
     const transitionDirection =
         step !== undefined && previousStep.current !== undefined && step !== previousStep.current
@@ -504,22 +431,20 @@ export const SetupWrapper = memo(function SetupWrapper({
 
     return (
         <div
-            data-first-launch-intro={intro.active ? intro.phase : undefined}
             className={twMerge(
                 'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto bg-white',
                 // The first panel rises from below the viewport. Fill the exposed
                 // space with the same blue as the hero, not the page beige.
                 screenId === 'landing' && 'bg-background-setup-hero',
-                fullScreen && 'bg-background-default',
-                intro.active && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] overflow-y-hidden'
+                fullScreen && 'bg-background-default'
             )}
         >
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
                 showSkipButton={showSkipButton}
-                // Hidden during the first-launch intro, and on a full-page step without progress (the celebration).
-                showLanguageSwitcher={!intro.active && (!fullScreen || showProgress)}
+                // Hidden on a full-page step without progress (the celebration).
+                showLanguageSwitcher={!fullScreen || showProgress}
                 onBack={onBack}
                 onSkip={onSkip}
             />
@@ -540,7 +465,6 @@ export const SetupWrapper = memo(function SetupWrapper({
                         image={image}
                         direction={transitionDirection}
                         prefersReducedMotion={!!prefersReducedMotion}
-                        intro={intro}
                     />
                 )}
                 {/* Stack complete panels so the incoming slide covers the outgoing one without a blank frame. */}
@@ -560,16 +484,12 @@ export const SetupWrapper = memo(function SetupWrapper({
                             {/* content section */}
                             <motion.div
                                 initial={animatePanelIn ? { y: '100%' } : false}
-                                animate={intro.active ? { y: '100%' } : { y: 0 }}
+                                animate={{ y: 0 }}
                                 transition={
                                     prefersReducedMotion
                                         ? { duration: 0 }
-                                        : intro.played
-                                          ? { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-                                          : { type: 'spring', stiffness: 260, damping: 30 }
+                                        : { type: 'spring', stiffness: 260, damping: 30 }
                                 }
-                                aria-hidden={intro.active}
-                                inert={intro.active}
                                 className={twMerge(
                                     // The footer's reserved secondary slot keeps the primary CTA clear of the
                                     // home gesture area, so the panel needs only pb-6 above the safe-area inset.

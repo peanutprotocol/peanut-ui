@@ -768,8 +768,7 @@
             "skip": "Omitir"
         },
         "wrapper": {
-            "illustrationAlt": "Ilustración de la sección",
-            "introGreeting": "¡Hola! Soy Peanut"
+            "illustrationAlt": "Ilustración de la sección"
         },
         "next": "Siguiente",
         "logIn": "Iniciar sesión",

@@ -12,7 +12,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 
-const mockMarkIntroSeen = jest.fn().mockResolvedValue(undefined)
 const mockClear = jest.fn()
 const mockCancelQueries = jest.fn().mockResolvedValue(undefined)
 const mockRefetch = jest.fn().mockResolvedValue({ data: null })
@@ -20,7 +19,6 @@ const mockApiFetch = jest.fn().mockResolvedValue(undefined)
 const mockToastError = jest.fn()
 const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
 
-jest.mock('@/utils/first-launch-intro', () => ({ markFirstLaunchIntroSeen: () => mockMarkIntroSeen() }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@tanstack/react-query', () => ({
@@ -97,7 +95,6 @@ const stubLocation = (onNavigate?: () => void) => {
 describe('logoutUser', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockMarkIntroSeen.mockReset().mockResolvedValue(undefined)
         mockCancelQueries.mockResolvedValue(undefined)
         mockRefetch.mockResolvedValue({ data: null })
         mockClearSignupAttribution.mockResolvedValue(undefined)
@@ -211,30 +208,4 @@ describe('logoutUser', () => {
 
         expect(navigated).toBe(true)
     })
-    it.each([false, true])(
-        'marks the intro seen before navigating to setup (skipBackendCall=%s)',
-        async (skipBackendCall) => {
-            let finish: (() => void) | undefined
-            mockMarkIntroSeen.mockImplementation(
-                () =>
-                    new Promise<void>((resolve) => {
-                        finish = resolve
-                    })
-            )
-            const navigate = jest.fn()
-            stubLocation(navigate)
-            const { result } = renderHook(() => useAuth(), { wrapper })
-            let logout: Promise<void> | undefined
-            act(() => {
-                logout = result.current.logoutUser({ skipBackendCall })
-            })
-            await waitFor(() => expect(mockMarkIntroSeen).toHaveBeenCalledTimes(1))
-            expect(navigate).not.toHaveBeenCalled()
-            finish?.()
-            await act(async () => {
-                await logout
-            })
-            expect(navigate).toHaveBeenCalledTimes(1)
-        }
-    )
 })

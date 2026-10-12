@@ -768,8 +768,7 @@
             "skip": "Skip"
         },
         "wrapper": {
-            "illustrationAlt": "Section illustration",
-            "introGreeting": "Hey, I’m Peanut"
+            "illustrationAlt": "Section illustration"
         },
         "next": "Next",
         "logIn": "Log in",
