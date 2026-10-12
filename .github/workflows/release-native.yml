@@ -260,7 +260,7 @@ jobs:
 
             - name: Post the failure to Discord
               env:
-                  DISCORD_WEBHOOK: ${{ secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}
+                  DISCORD_WEBHOOK: ${{ secrets.RELEASE_ALERT_DISCORD_WEBHOOK || secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}
                   RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
                   VERSION: ${{ needs.resolve.outputs.version }}
                   RESULTS: 'resolve=${{ needs.resolve.result }} ios=${{ needs.ios.result }} android=${{ needs.android.result }} publish=${{ needs.publish.result }} tag=${{ needs.tag.result }}'
