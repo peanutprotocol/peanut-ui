@@ -9325,6 +9325,15 @@
                 }
             }
         },
+        "/healthz/mobula": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/healthz/rain": {
             "get": {
                 "responses": {
@@ -23656,20 +23665,10 @@
                                                             "additionalProperties": false,
                                                             "properties": {
                                                                 "code": {
-                                                                    "anyOf": [
-                                                                        {
-                                                                            "enum": [
-                                                                                "IDENTITY"
-                                                                            ],
-                                                                            "type": "string"
-                                                                        },
-                                                                        {
-                                                                            "enum": [
-                                                                                "PROOF_OF_ADDRESS"
-                                                                            ],
-                                                                            "type": "string"
-                                                                        }
-                                                                    ]
+                                                                    "enum": [
+                                                                        "IDENTITY"
+                                                                    ],
+                                                                    "type": "string"
                                                                 },
                                                                 "countries": {
                                                                     "items": {
@@ -23681,10 +23680,6 @@
                                                                     "uniqueItems": true
                                                                 },
                                                                 "key": {
-                                                                    "pattern": "^[A-Za-z0-9._:-]{1,64}$",
-                                                                    "type": "string"
-                                                                },
-                                                                "poaPreset": {
                                                                     "pattern": "^[A-Za-z0-9._:-]{1,64}$",
                                                                     "type": "string"
                                                                 },
@@ -23719,21 +23714,6 @@
                                                                     },
                                                                     "type": "array",
                                                                     "uniqueItems": true
-                                                                },
-                                                                "supplement": {
-                                                                    "additionalProperties": false,
-                                                                    "properties": {
-                                                                        "levelName": {
-                                                                            "maxLength": 255,
-                                                                            "minLength": 1,
-                                                                            "pattern": "^[^\r\n]+$",
-                                                                            "type": "string"
-                                                                        }
-                                                                    },
-                                                                    "required": [
-                                                                        "levelName"
-                                                                    ],
-                                                                    "type": "object"
                                                                 },
                                                                 "types": {
                                                                     "items": {
@@ -23836,6 +23816,63 @@
                                                             "routeId": {
                                                                 "pattern": "^[A-Za-z0-9._:-]{1,64}$",
                                                                 "type": "string"
+                                                            },
+                                                            "supplementNeeds": {
+                                                                "items": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "code": {
+                                                                            "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "key": {
+                                                                            "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "levelName": {
+                                                                            "maxLength": 255,
+                                                                            "minLength": 1,
+                                                                            "pattern": "^[^\r\n]+$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "requiredBy": {
+                                                                            "items": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "BRIDGE"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "MANTECA"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "RAIN"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "minItems": 1,
+                                                                            "type": "array",
+                                                                            "uniqueItems": true
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "key",
+                                                                        "code",
+                                                                        "requiredBy",
+                                                                        "levelName"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
+                                                                "maxItems": 32,
+                                                                "type": "array"
                                                             }
                                                         },
                                                         "type": "object"

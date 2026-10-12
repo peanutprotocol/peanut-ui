@@ -5279,6 +5279,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/healthz/mobula": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz/rain": {
         parameters: {
             query?: never;
@@ -12903,14 +12936,11 @@ export interface paths {
                             policyVersion: string | null;
                             routes: {
                                 documents: {
-                                    code: "IDENTITY" | "PROOF_OF_ADDRESS";
+                                    /** @enum {string} */
+                                    code: "IDENTITY";
                                     countries: string[];
                                     key: string;
-                                    poaPreset?: string;
                                     requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
-                                    supplement?: {
-                                        levelName: string;
-                                    };
                                     types: string[];
                                 }[];
                                 id: string;
@@ -12962,6 +12992,12 @@ export interface paths {
                                     levelName?: string;
                                     residenceCountry?: string;
                                     routeId?: string;
+                                    supplementNeeds?: {
+                                        code: string;
+                                        key: string;
+                                        levelName: string;
+                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN")[];
+                                    }[];
                                 };
                                 /** Format: date-time */
                                 createdAt: string;
