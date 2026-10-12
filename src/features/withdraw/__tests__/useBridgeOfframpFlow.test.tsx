@@ -159,8 +159,14 @@ jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
 }))
 
+let mockDocumentPlan: unknown = null
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ isLoading: false, showWrapper: false, handleSelfHealResubmit: jest.fn() }),
+    useMultiPhaseKycFlow: () => ({
+        isLoading: false,
+        showWrapper: false,
+        documentPlan: mockDocumentPlan,
+        handleSelfHealResubmit: jest.fn(),
+    }),
 }))
 
 jest.mock('@/hooks/useWaitingOnProviderModal', () => ({
@@ -257,9 +263,25 @@ beforeEach(() => {
     mockQuote = null
     mockQuoteError = false
     mockQuoteCalls.length = 0
+    mockDocumentPlan = null
 })
 
 // ---------- tests ----------
+
+describe('useBridgeOfframpFlow — KYC modal', () => {
+    it('closes when the document list opens', async () => {
+        mockGateKind = 'needs-identity'
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(view.result.current.showKycModal).toBe(true)
+
+        mockDocumentPlan = { available: true, routes: [] }
+        view.rerender()
+        expect(view.result.current.showKycModal).toBe(false)
+    })
+})
 
 describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
     it('runs create → send → confirm with the normalized URL amount', async () => {

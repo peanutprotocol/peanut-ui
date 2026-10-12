@@ -3,7 +3,7 @@
 import { type IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useCallback, useContext, useMemo, useState, useRef } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { createGuestClaimExternalAccount } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
@@ -157,6 +157,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         },
         onManualClose: () => setIsKycModalOpen(false),
     })
+
+    // close the kyc modal once the document list or the sdk opens; on an error it stays to show it
+    useEffect(() => {
+        if (sumsubFlow.showWrapper || sumsubFlow.documentPlan) setShowKycModal(false)
+    }, [sumsubFlow.showWrapper, sumsubFlow.documentPlan])
 
     /**
      * @name handleConfirmClaim
@@ -396,8 +401,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             selectedCountry?.id
                         )
                     }
-                    // only close if sdk opened — if it errored, keep modal open to show error
-                    if (sumsubFlow.showWrapper) setShowKycModal(false)
                 }}
                 onContactSupport={() => {
                     setShowKycModal(false)

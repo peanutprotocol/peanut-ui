@@ -43,11 +43,11 @@ export function useDepositGateRemediation(): {
     // corridor they tapped, one verification later.
     const [kycCorridor, setKycCorridor] = useState<DepositCorridor | undefined>()
 
-    // the SDK takes over the screen; the modal that offered to open it should not
-    // still be sitting behind it
+    // the document list or the SDK takes over the screen; the modal that offered
+    // to open it should not stay in front of it
     useEffect(() => {
-        if (sumsubFlow.showWrapper) setKycModalGate(undefined)
-    }, [sumsubFlow.showWrapper])
+        if (sumsubFlow.showWrapper || sumsubFlow.documentPlan) setKycModalGate(undefined)
+    }, [sumsubFlow.showWrapper, sumsubFlow.documentPlan])
 
     const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
         setKycCorridor(corridor)

@@ -130,12 +130,14 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
+let mockDocumentPlan: unknown = null
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleFixableRejection: mockHeal,
         handleRestartIdentity: mockRestartIdentity,
         handleInitiateKyc: mockInitiateKyc,
         showWrapper: false,
+        documentPlan: mockDocumentPlan,
     }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
@@ -178,6 +180,7 @@ beforeEach(() => {
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
     mockIdentityReason = undefined
+    mockDocumentPlan = null
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
@@ -202,6 +205,16 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
         fireEvent.click(screen.getByText('initiate-kyc-modal'))
         expect(mockInitiateKyc).toHaveBeenCalledWith()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('closes the start modal when the document list opens, so the list is the only modal in front', () => {
+        const { rerender } = render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(screen.getByText('initiate-kyc-modal'))
+        expect(screen.getByText('initiate-kyc-modal')).toBeInTheDocument()
+        mockDocumentPlan = { available: true, routes: [] }
+        rerender(<ActivationCTAs onboarding={NEW_USER} />)
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 
     it('the QR ID check is the shared one (useQrIdentityCheck)', () => {

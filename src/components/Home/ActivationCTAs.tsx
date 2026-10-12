@@ -92,10 +92,10 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // The checklist's Verify row opens the same start modal the bank and
     // deposit gates use: its outage, region and residence checks run here too.
     const [showInitiateKyc, setShowInitiateKyc] = useState(false)
-    // the SDK takes over the screen; the modal that opened it should not stay behind it
+    // the document list or the SDK takes over the screen; the modal that opened it should not stay in front
     useEffect(() => {
-        if (kycFlow.showWrapper) setShowInitiateKyc(false)
-    }, [kycFlow.showWrapper])
+        if (kycFlow.showWrapper || kycFlow.documentPlan) setShowInitiateKyc(false)
+    }, [kycFlow.showWrapper, kycFlow.documentPlan])
 
     // Each onboarding step is reported once per session, not on every Home visit.
     const userId = user?.user?.userId
