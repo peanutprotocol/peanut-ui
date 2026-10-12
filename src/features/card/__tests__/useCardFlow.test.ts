@@ -14,7 +14,8 @@ let mockOverviewLoading = false
 let mockUser: { user: { userId: string } } | null = { user: { userId: 'user-1' } }
 let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
 const mockInvalidateQueries = jest.fn()
-const mockQueryClient = { invalidateQueries: mockInvalidateQueries }
+let mockUserFetching = 0
+const mockQueryClient = { invalidateQueries: mockInvalidateQueries, isFetching: () => mockUserFetching }
 
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
@@ -22,6 +23,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: undefined, isLoading: false, error: null, refetch: jest.fn() }),
     useQueryClient: () => mockQueryClient,
+    useIsFetching: () => mockUserFetching,
 }))
 jest.mock('next-intl', () => ({
     useTranslations: () => (key: string) => key,
@@ -88,6 +90,7 @@ const mockApplyForCard = rainApi.applyForCard as jest.Mock
 describe('useCardFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockUserFetching = 0
         mockFunded = true
         mockState = 'add-card'
         mockOverview = undefined
@@ -280,6 +283,7 @@ describe('useCardFlow — overview status reconciliation', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockUserFetching = 0
         mockUser = { user: { userId: 'user-1' } }
         mockState = 'pending'
         mockOverviewLoading = false
@@ -331,13 +335,36 @@ describe('useCardFlow — overview status reconciliation', () => {
         mockOverview = overview('PENDING', 'pending')
         const { rerender } = renderHook(() => useCardFlow())
         mockUser = { user: { userId: 'user-2' } }
-        mockOverview = overview('REQUIRES_INFORMATION', 'needsInformation')
+        mockOverview = overview('PENDING', 'pending')
         rerender()
         expect(mockInvalidateQueries).not.toHaveBeenCalled()
         mockOverview = overview('ENABLED', 'approved')
         rerender()
         expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
         expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['user'] })
+    })
+
+    it.each(['REQUIRES_INFORMATION', 'REJECTED', 'REQUIRES_SUPPORT'])(
+        'refreshes a possibly older profile once when the first overview shows %s',
+        (railStatus) => {
+            mockOverview = overview(railStatus, 'needsInformation')
+            const { rerender } = renderHook(() => useCardFlow())
+            expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
+            expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['user'] })
+            rerender()
+            mockOverview = overview(railStatus, 'needsInformation')
+            rerender()
+            expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('refreshes on first sight for each newly authenticated user whose screen shows a reason', () => {
+        mockOverview = overview('PENDING', 'pending')
+        const { rerender } = renderHook(() => useCardFlow())
+        mockUser = { user: { userId: 'user-2' } }
+        mockOverview = overview('REQUIRES_INFORMATION', 'needsInformation')
+        rerender()
+        expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -346,6 +373,7 @@ describe('useCardFlow — state viewed analytics', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockUserFetching = 0
         mockUser = { user: { userId: 'user-1' } }
         mockState = 'requires-info'
         mockOverviewLoading = false
@@ -407,5 +435,26 @@ describe('useCardFlow — state viewed analytics', () => {
             application_status: 'needsInformation',
             reason_code: 'card_needs_review',
         })
+    })
+
+    it('waits for an in-flight profile refresh so the reason matches the new state', () => {
+        mockUserFetching = 1
+        mockRainRails = [{ id: 'rain.card', reason: { code: 'card_rejected', userMessage: 'Stale prose' } }]
+        const { rerender } = renderHook(() => useCardFlow())
+        expect(stateEvents()).toHaveLength(0)
+        mockUserFetching = 0
+        mockRainRails = [{ id: 'rain.card', reason: { code: 'card_needs_review', userMessage: 'Fresh prose' } }]
+        rerender()
+        expect(stateEvents()).toEqual([
+            [
+                ANALYTICS_EVENTS.CARD_STATE_VIEWED,
+                {
+                    state: 'requires-info',
+                    previous_state: null,
+                    application_status: 'needsInformation',
+                    reason_code: 'card_needs_review',
+                },
+            ],
+        ])
     })
 })

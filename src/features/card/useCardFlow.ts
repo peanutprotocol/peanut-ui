@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -61,6 +61,9 @@ export function useCardFlow() {
     const applicationStatus = overview?.status.applicationStatus ?? null
     const railStatus = overview?.status.railStatus ?? null
     const hasOverviewStatus = !!overview?.status
+    const showsCapabilityReason =
+        !!overview?.status.hasApplication && railStatus !== 'PENDING' && railStatus !== 'ENABLED'
+    const userFetching = useIsFetching({ queryKey: [USER] })
     const lastOverviewStatusRef = useRef<{
         userId: string
         railStatus: string | null
@@ -74,13 +77,16 @@ export function useCardFlow() {
         if (!hasOverviewStatus) return
         const previous = lastOverviewStatusRef.current
         lastOverviewStatusRef.current = { userId, railStatus, applicationStatus }
-        if (
-            previous?.userId === userId &&
+        const firstSight = previous?.userId !== userId
+        const changed =
+            !!previous &&
+            !firstSight &&
             (previous.railStatus !== railStatus || previous.applicationStatus !== applicationStatus)
-        ) {
+        // The cached profile can predate the first overview, so a screen that shows the capability reason refreshes it once.
+        if (changed || (firstSight && showsCapabilityReason)) {
             void queryClient.invalidateQueries({ queryKey: [USER] })
         }
-    }, [userId, hasOverviewStatus, railStatus, applicationStatus, queryClient])
+    }, [userId, hasOverviewStatus, railStatus, applicationStatus, showsCapabilityReason, queryClient])
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -123,6 +129,8 @@ export function useCardFlow() {
     useEffect(() => {
         if (state === 'loading') return
         if (lastReportedStateRef.current === state) return
+        // Wait out a profile refresh so reason_code matches the overview status; reads the client, not the hook, to see a refetch started this commit.
+        if (queryClient.isFetching({ queryKey: [USER] }) > 0) return
         posthog.capture(ANALYTICS_EVENTS.CARD_STATE_VIEWED, {
             state,
             previous_state: lastReportedStateRef.current,
@@ -130,7 +138,7 @@ export function useCardFlow() {
             reason_code: reasonCode,
         })
         lastReportedStateRef.current = state
-    }, [state, applicationStatus, reasonCode])
+    }, [state, applicationStatus, reasonCode, userFetching, queryClient])
 
     // Write-only URL mirror for the computed state. Lets you see at a glance
     // which screen the user is on (?card_state=add-card, etc.) without
