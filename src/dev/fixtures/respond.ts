@@ -6,6 +6,7 @@
 import { demoRespond } from '@/utils/demo-api'
 import { FIXTURES } from './registry'
 import { ensureActiveFixture } from './active'
+import { isStressActive, stressResponse } from './stress'
 import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
@@ -56,8 +57,13 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     // fallback for the rest. A fixture only says what differs from that.
     const base = await demoRespond(path, options, { offline: true })
     const override = fixture.responses?.[key]
-    if (override === undefined) return base
+    const stress = isStressActive() && !!base.headers.get('content-type')?.includes('json')
+    if (override === undefined && !stress) return base
 
     const data = await base.json().catch(() => ({}))
-    return new Response(JSON.stringify(merge(data, override)), { status: base.status, headers: JSON_HEADERS })
+    const merged = override === undefined ? data : merge(data, override)
+    return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
+        status: base.status,
+        headers: JSON_HEADERS,
+    })
 }
