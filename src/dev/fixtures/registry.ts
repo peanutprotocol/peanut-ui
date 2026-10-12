@@ -1439,6 +1439,51 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    'bank-proof-of-address-supplement': {
+        route: '/profile/accounts',
+        about: 'Identity approved with bank accounts ticked: Bridge waits for a proof of address, collected on its supplement action after the identity.',
+        responses: {
+            'GET /users/me': {
+                // what api#1816 answers right after the approval: the rail is
+                // parked REQUIREMENTS_MISSING and names supplement:bridge
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.sepa_eu',
+                            provider: 'bridge',
+                            method: 'SEPA_EU',
+                            channel: 'bank',
+                            country: 'EU',
+                            currency: 'EUR',
+                            status: 'blocked',
+                            reason: {
+                                code: 'requirements_missing',
+                                userMessage: 'We need one more document to finish setting this up.',
+                            },
+                            blockingActions: ['supplement:bridge'],
+                            resolved: {
+                                status: 'fixable',
+                                blocking: {
+                                    code: 'requirements_missing',
+                                    userMessage: 'We need one more document to finish setting this up.',
+                                    selfHealable: true,
+                                    selfHealKind: 'document-resubmit',
+                                },
+                                nextAction: {
+                                    key: 'supplement:bridge',
+                                    kind: 'sumsub',
+                                    purpose: 'requirements_missing',
+                                },
+                            },
+                        },
+                    ],
+                    nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+
     reconsent: {
         route: '/home',
         about: 'Re-consent modal over home: two updated documents as a centered link line.',
