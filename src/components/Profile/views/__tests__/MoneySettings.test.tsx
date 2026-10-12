@@ -923,7 +923,7 @@ describe('MoneySettings', () => {
         expect(mockSelfHealResubmit).not.toHaveBeenCalled()
     })
 
-    it('every other fixable rejection here still takes resubmit — Manteca is untouched', () => {
+    it('a Manteca requirement goes through the same router, which opens its own level', () => {
         mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
         mockRails = [
             {
@@ -944,8 +944,110 @@ describe('MoneySettings', () => {
         fireEvent.click(screen.getByText('BRL'))
         fireEvent.click(screen.getByText('Upload document'))
 
-        expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
-        expect(mockFixableRejection).not.toHaveBeenCalled()
+        expect(mockFixableRejection).toHaveBeenCalledWith(
+            expect.objectContaining({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        )
+        expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    // The send gate's parks for a document-first user. The fix button follows
+    // the row's action: a supplement opens through start-action, never the
+    // resubmit route that 404s without a provider rejection.
+    describe('a rail parked for a need the approved identity did not meet', () => {
+        const parked = (code: string, resolved: Record<string, unknown>) => ({
+            ...residenceParkedRail,
+            reason: { code, userMessage: 'Backend English prose' },
+            resolved,
+        })
+
+        it('opens the missing requirement through its supplement action', () => {
+            mockRails = [
+                parked('requirements_missing', {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'requirements_missing',
+                        userMessage: 'Backend English prose',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                    nextAction: { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' },
+                }),
+            ]
+            mockIsKycApproved = true
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+            fireEvent.click(screen.getByText('Upload document'))
+
+            expect(mockFixableRejection).toHaveBeenCalledWith(
+                expect.objectContaining({ provider: 'BRIDGE', actionKey: 'supplement:bridge' })
+            )
+            expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+        })
+
+        it('asks for another document when the one on file cannot serve the provider', () => {
+            mockRails = [
+                parked('identity_document_insufficient', {
+                    status: 'blocked',
+                    blocking: {
+                        code: 'identity_document_insufficient',
+                        userMessage: 'Backend English prose',
+                        selfHealable: true,
+                        selfHealKind: 'restart-identity',
+                    },
+                    nextAction: {
+                        key: 'restart-identity',
+                        kind: 'restart-identity',
+                        purpose: 'identity_document_insufficient',
+                    },
+                }),
+            ]
+            mockIsKycApproved = true
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(
+                screen.getByText(
+                    "The document you verified with can't be used for this account. Verify again with a different ID document."
+                )
+            ).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Verify with a different document' }))
+            expect(mockRestartIdentity).toHaveBeenCalled()
+            expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+            expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+        })
+
+        it('sends a need the app cannot collect to support, and says why', () => {
+            mockRails = [
+                parked('requirements_uncollectable', {
+                    status: 'blocked',
+                    blocking: {
+                        code: 'requirements_uncollectable',
+                        userMessage: 'Backend English prose',
+                        selfHealable: false,
+                        selfHealKind: 'contact-support',
+                    },
+                    nextAction: {
+                        key: 'contact-support',
+                        kind: 'contact-support',
+                        purpose: 'requirements_uncollectable',
+                    },
+                }),
+            ]
+            mockIsKycApproved = true
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(
+                screen.getByText(
+                    "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you."
+                )
+            ).toBeInTheDocument()
+            expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+            expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+            expect(mockFixableRejection).not.toHaveBeenCalled()
+            expect(mockRestartIdentity).not.toHaveBeenCalled()
+        })
     })
 
     /**

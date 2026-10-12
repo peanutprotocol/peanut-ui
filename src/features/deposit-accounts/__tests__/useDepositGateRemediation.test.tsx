@@ -13,11 +13,13 @@ import type { DepositCorridor } from '../types'
 const handleInitiateKyc = jest.fn()
 const handleRestartIdentity = jest.fn()
 const handleSelfHealResubmit = jest.fn()
+const handleFixableGate = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: (...args: unknown[]) => handleInitiateKyc(...args),
         handleRestartIdentity: () => handleRestartIdentity(),
         handleSelfHealResubmit: (...args: unknown[]) => handleSelfHealResubmit(...args),
+        handleFixableGate: (...args: unknown[]) => handleFixableGate(...args),
         isLoading: false,
         error: null,
         errorCooldown: null,
@@ -73,11 +75,33 @@ describe('useDepositGateRemediation', () => {
         expect(handleInitiateKyc).not.toHaveBeenCalled()
     })
 
-    it('resubmits a rejected document rather than collecting it again', async () => {
-        await openBannerFor({ kind: 'fixable-rejection' } as GateState)
+    it('hands a fixable rejection to the shared router rather than collecting it again', async () => {
+        const gate = { kind: 'fixable-rejection' } as GateState
+        await openBannerFor(gate)
 
-        expect(handleSelfHealResubmit).toHaveBeenCalledWith('BRIDGE')
+        expect(handleFixableGate).toHaveBeenCalledWith('BRIDGE', gate)
         expect(handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    // A supplement has no provider rejection behind it, so the resubmit route 404s.
+    it('passes a parked rail its supplement action, never straight to resubmit', async () => {
+        const gate = {
+            kind: 'fixable-rejection',
+            userMessage: null,
+            actionKey: 'supplement:bridge',
+            reason: { code: 'requirements_missing', userMessage: 'x' },
+        } as GateState
+        await openBannerFor(gate, 'SEPA_EU')
+
+        expect(handleFixableGate).toHaveBeenCalledWith('BRIDGE', gate)
+        expect(handleSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    it("names the corridor's own provider", async () => {
+        const gate = { kind: 'fixable-rejection', actionKey: 'sumsub:source_of_funds' } as GateState
+        await openBannerFor(gate, 'PIX_BR')
+
+        expect(handleFixableGate).toHaveBeenCalledWith('MANTECA', gate)
     })
 
     it('starts a first identity run for a user who has none', async () => {
