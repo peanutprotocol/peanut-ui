@@ -413,7 +413,9 @@ jobs:
                   path: test-results/junit.xml
                   retention-days: 7
 
-    # Dev captures are opt-in via /ds-shots (ds-shots-request.yml).
+    # Feeds ds-shots and i18n-overflow. ds-shots skips PRs into dev (dev
+    # captures are opt-in via /ds-shots, ds-shots-request.yml); i18n-overflow
+    # runs on them.
     # Can this PR move a pixel? Answered from the PR file list over the API, so
     # a docs-only, workflow-only or test-only PR skips the capture with no
     # checkout and no install.
@@ -424,7 +426,6 @@ jobs:
         # neither the submodule checkout nor the comment can work. Skip it.
         if: >-
             github.event_name == 'pull_request' &&
-            github.event.pull_request.base.ref != 'dev' &&
             github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
         # Reads the PR file list and nothing else.
@@ -490,11 +491,12 @@ jobs:
         if: >-
             always() && needs.backdoor-scan.result == 'success' &&
             ((github.event_name == 'push' && contains(fromJSON('["main","feat/design-system"]'), github.ref_name))
-            || needs.ds-shots-filter.outputs.render == 'true')
+            || (github.event.pull_request.base.ref != 'dev' && needs.ds-shots-filter.outputs.render == 'true'))
         runs-on: ubuntu-latest
-        # Build, capture, regression specs, and the i18n overflow gate took
-        # more than 30m on PR #3521 while tests were still passing. Allow
-        # enough time for the full suite, including runner variance.
+        # Build, capture, regression specs, and the i18n overflow gate (since
+        # moved to i18n-overflow) took more than 30m on PR #3521 while tests
+        # were still passing. Allow enough time for the full suite, including
+        # runner variance.
         timeout-minutes: 45
         # Read-only on purpose. This job checks out the PR and runs its
         # install, build and test code, and a later step is not an isolation
@@ -772,18 +774,6 @@ jobs:
             - name: Run regression specs
               run: pnpm test:e2e:regression
 
-            # i18n overflow gate (TASK-22366): renders the fixture set, the
-            # localized landing routes and the setup screens in es-419 at
-            # 320px and fails when translated copy is clipped. Absolute DOM
-            # check, no baseline — so it runs the same way on push and PR.
-            # Advisory the same way this whole job is (not in
-            # ci-success.needs); give it its own blocking job after a week of
-            # PRs with zero false positives.
-            # Failure screenshots land in e2e/__results__/, which the
-            # failure upload below already ships.
-            - name: i18n overflow gate
-              run: pnpm test:i18n-overflow:run
-
             # The page snapshot in error-context.md is the only way to see
             # WHAT rendered on the runner when a spec dies in CI but passes
             # locally. Without this upload the failure is undebuggable.
@@ -792,6 +782,100 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: regression-results-${{ github.run_number }}
+                  path: e2e/__results__/
+                  retention-days: 7
+
+    # i18n overflow gate (TASK-22366, TASK-22585): renders the fixture set,
+    # the localized landing routes and the setup screens in es-419, pt-BR and
+    # es-AR at 320px, plus the cut-copy screens at 375px, and fails when copy
+    # is clipped. Absolute DOM check, no baseline.
+    #
+    # Its own job so it runs on PRs into dev, where ds-shots no longer runs.
+    # ADVISORY for a one-week trial (runtime and catch rate): NOT in
+    # ci-success.needs. Add it there to make it blocking.
+    i18n-overflow:
+        name: i18n-overflow
+        needs: [backdoor-scan, ds-shots-filter]
+        # `always()` because a skipped ds-shots-filter would skip this job too;
+        # the backdoor-scan result is checked by hand for the same reason.
+        if: >-
+            always() && needs.backdoor-scan.result == 'success' &&
+            needs.ds-shots-filter.outputs.render == 'true'
+        runs-on: ubuntu-latest
+        # Build ~5m + gate ~9m. A hang past this is a bug, not a slow day.
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Resolve Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+            - name: Install Playwright browsers
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
+              run: npx playwright install --with-deps chromium
+
+            # Same apt-stall retry as press-contract.
+            - name: Install Playwright system deps
+              if: steps.pw-cache.outputs.cache-hit == 'true'
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
+
+            # Same build env as ds-shots: preview enables ?__fixture=, and the
+            # base URL matches the server in playwright.shots.config.ts.
+            - name: Build
+              env:
+                  NEXT_PUBLIC_VERCEL_ENV: preview
+                  NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+              run: pnpm build
+
+            - name: i18n overflow gate
+              run: pnpm test:i18n-overflow:run
+
+            - name: Upload results on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: i18n-overflow-results-${{ github.run_number }}
                   path: e2e/__results__/
                   retention-days: 7
 
