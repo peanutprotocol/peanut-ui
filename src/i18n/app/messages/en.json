@@ -2515,13 +2515,8 @@
     },
     "statements": {
         "title": "Statements",
-        "intro": "A statement lists all the activity on the account for a period, with dates, amounts and status. Pick a format and a period, then download the file.",
+        "intro": "A statement lists all the activity on your account for a period, with dates, amounts and status. Pick a format and a period, then download the file.",
         "format": "Format",
-        "formatHints": {
-            "pdf": "To share or print",
-            "csv": "For spreadsheets and accounting",
-            "xlsx": "For Excel"
-        },
         "period": "Period",
         "periods": {
             "allTime": "All time",

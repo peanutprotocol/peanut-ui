@@ -2515,13 +2515,8 @@
     },
     "statements": {
         "title": "Estados de cuenta",
-        "intro": "Un estado de cuenta muestra toda la actividad de la cuenta en un período, con fechas, montos y estado. Elige un formato y un período, y luego descarga el archivo.",
+        "intro": "Un estado de cuenta muestra toda la actividad de tu cuenta en un período, con fechas, montos y estado. Elige un formato y un período, y luego descarga el archivo.",
         "format": "Formato",
-        "formatHints": {
-            "pdf": "Para compartir o imprimir",
-            "csv": "Para hojas de cálculo y contabilidad",
-            "xlsx": "Para Excel"
-        },
         "period": "Período",
         "periods": {
             "allTime": "Todo el historial",

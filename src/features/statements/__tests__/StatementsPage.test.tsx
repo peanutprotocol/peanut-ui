@@ -51,7 +51,6 @@ function renderPage(search = '') {
 // the Field that holds a select: its label's column, with the helper or error line
 const periodField = () => screen.getByText('period').parentElement!
 const periodSelect = () => screen.getByRole('combobox', { name: 'period' })
-const formatField = () => screen.getByText('format').parentElement!
 const formatSelect = () => screen.getByRole('combobox', { name: 'format' })
 const choose = (select: () => HTMLElement, name: string) => {
     fireEvent.click(select())
@@ -81,7 +80,6 @@ describe('StatementsPage', () => {
         renderPage()
         expect(periodSelect()).toHaveTextContent('periods.allTime')
         expect(formatSelect()).toHaveTextContent('PDF')
-        expect(within(formatField()).getByText('formatHints.pdf')).toBeInTheDocument()
         expect(calendar()).not.toBeInTheDocument()
         expect(within(periodField()).queryByText(/\.\./)).not.toBeInTheDocument()
         expect(downloadButton()).toBeEnabled()
@@ -95,22 +93,17 @@ describe('StatementsPage', () => {
         expect(day('2026-08-14')).toHaveAttribute('aria-selected', 'true')
         expect(within(periodField()).getByText('2026-08-03..2026-08-14')).toBeInTheDocument()
         expect(formatSelect()).toHaveTextContent('XLSX')
-        expect(within(formatField()).getByText('formatHints.xlsx')).toBeInTheDocument()
         expect(downloadButton()).toBeEnabled()
     })
 
-    it('moves ?format= and the hint with the format select, and the export asks for that format and period', async () => {
+    it('moves ?format= with the format select, and the export asks for that format and period', async () => {
         const { url } = renderPage('?from=2026-08-03&to=2026-08-14')
         expect(formatSelect()).toHaveTextContent('PDF')
-        expect(within(formatField()).getByText('formatHints.pdf')).toBeInTheDocument()
 
         choose(formatSelect, 'CSV')
 
         await waitFor(() => expect(url()?.get('format')).toBe('csv'))
         expect(formatSelect()).toHaveTextContent('CSV')
-        // the hint follows the choice, one line, never both (form-field board)
-        expect(within(formatField()).getByText('formatHints.csv')).toBeInTheDocument()
-        expect(within(formatField()).queryByText('formatHints.pdf')).not.toBeInTheDocument()
 
         fireEvent.click(downloadButton())
         await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith('downloaded'))
