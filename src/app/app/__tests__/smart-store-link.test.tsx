@@ -47,6 +47,8 @@ jest.mock('@/utils/capacitor', () => ({
 
 let mockFlagOn = true
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     isPwaSunsetOn: () => mockFlagOn,
     trackStoreClick: jest.fn(),
 }))

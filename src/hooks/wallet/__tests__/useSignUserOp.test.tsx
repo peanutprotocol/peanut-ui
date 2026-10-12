@@ -35,7 +35,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
     USER_OP_ENTRY_POINT: { address: '0x0000000071727De22E5E9d8BAf0edAc6f37da032', version: '0.7' },
 }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('@/utils/webauthn.utils', () => ({ capturePasskeySignFailure: jest.fn() }))
 const mockWithCeremonyPurpose = jest.fn((_purpose: string, fn: () => unknown) => fn())
 jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
@@ -510,4 +510,46 @@ describe('signCallsUserOp binds validation, fallback prepare and signature to on
         expect(a.sponsor).not.toHaveBeenCalled()
         expect(signed?.signedUserOp.signature).toBe('0x5b')
     })
+})
+
+describe('signTransferUserOp', () => {
+    it('reports a signing failure once: signCallsUserOp owns the capture', async () => {
+        fake.account.signUserOperation.mockRejectedValue(new Error('User action is not allowed'))
+        const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        const { result } = renderHook(() => useSignUserOp())
+        await act(async () => {
+            await expect(
+                result.current.signTransferUserOp('0x00000000000000000000000000000000000000a1', '1.50', '42161')
+            ).rejects.toThrow('not allowed')
+        })
+        expect(captureException).toHaveBeenCalledTimes(1)
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    it('still reports an amount that cannot be encoded', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        const { result } = renderHook(() => useSignUserOp())
+        await act(async () => {
+            await expect(
+                result.current.signTransferUserOp('0x00000000000000000000000000000000000000a1', 'abc', '42161')
+            ).rejects.toThrow()
+        })
+        expect(captureException).toHaveBeenCalledTimes(1)
+        expect(fake.account.signUserOperation).not.toHaveBeenCalled()
+    })
+})
+
+it.each([
+    '(com.apple.AuthenticationServices.AuthorizationError error 1001.)',
+    'The operation couldn’t be completed. Stolen Device Protection is enabled and biometry is required.',
+])('propagates the signing refusal without exception amplification or another signature: %s', async (message) => {
+    const error = Object.assign(new Error(message), { name: 'NotAllowedError' })
+    fake.account.signUserOperation.mockRejectedValue(error)
+    const { result } = renderHook(() => useSignUserOp())
+    await act(async () => {
+        await expect(result.current.signTransferUserOp(RECIPIENT, '1.50', '42161')).rejects.toBe(error)
+    })
+    expect(fake.account.signUserOperation).toHaveBeenCalledTimes(1)
+    expect(captureException).not.toHaveBeenCalled()
 })

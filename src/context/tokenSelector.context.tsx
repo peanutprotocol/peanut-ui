@@ -29,6 +29,7 @@ export const tokenSelectorContext = createContext({
     setIsXChain: (_value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
+    refetchTokenData: async (): Promise<ITokenPriceData | null | undefined> => undefined,
     supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
     selectedTokenBalance: undefined as string | undefined,
     setSelectedTokenBalance: (_balance: string | undefined) => {},
@@ -76,6 +77,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         data: tokenPriceData,
         isLoading: isFetchingTokenData,
         isFetching,
+        refetch,
     } = useTokenPrice({
         tokenAddress: selectedTokenAddress,
         chainId: selectedChainID,
@@ -85,6 +87,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
     // Derive selectedTokenData from query (single source of truth)
     const selectedTokenData = tokenPriceData
+    const refetchTokenData = useCallback(async () => (await refetch()).data, [refetch])
 
     // Trigger xchain route refetch when token data changes
     // This preserves the original behavior where setRefetchXchainRoute(true) was called
@@ -127,6 +130,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setIsXChain,
                 selectedTokenData,
                 isFetchingTokenData,
+                refetchTokenData,
                 supportedChainsAndTokens,
                 selectedTokenBalance,
                 setSelectedTokenBalance,

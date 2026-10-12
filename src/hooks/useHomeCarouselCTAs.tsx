@@ -12,7 +12,7 @@ import { useCapabilities } from './useCapabilities'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
-import { DeviceType, useDeviceType } from './useGetDeviceType'
+import { useDeviceType } from './useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
@@ -22,7 +22,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from './useMigrationFlag'
-import { openStore } from '@/utils/migration.utils'
+import { openStore, storeForDevice } from '@/utils/migration.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
@@ -154,11 +154,9 @@ export const useHomeCarouselCTAs = ({
                 logo: PEANUTMAN_MOBILE,
                 iconSize: 16,
                 onClick: () => {
-                    if (deviceType === DeviceType.WEB) {
-                        setIsGetAppModalOpen(true)
-                    } else {
-                        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', MIGRATION_SURFACES.HOME_BANNER)
-                    }
+                    const store = storeForDevice(deviceType)
+                    if (store) openStore(store, MIGRATION_SURFACES.HOME_BANNER)
+                    else setIsGetAppModalOpen(true)
                 },
             })
         }

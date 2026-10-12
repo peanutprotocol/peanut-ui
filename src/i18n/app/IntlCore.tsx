@@ -1,8 +1,9 @@
 'use client'
 
-import { NextIntlClientProvider, IntlErrorCode, type IntlError } from 'next-intl'
+import { NextIntlClientProvider } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_APP_LOCALE, type AppLocale } from './config'
+import { onIntlError } from './intl-error'
 import { AppLocaleContext } from './locale-context'
 import { type AppMessages } from './messages'
 import {
@@ -14,16 +15,6 @@ import {
     persistLocale,
 } from './locale-store'
 import { isHtmlLangClaimed, setHtmlLangReleaseListener } from '../htmlLangClaim'
-
-function onIntlError(error: IntlError): void {
-    if (error.code === IntlErrorCode.MISSING_MESSAGE) {
-        // unreachable for valid keys (catalogs are deep-merged over English);
-        // never crash on copy in production
-        if (process.env.NODE_ENV !== 'production') console.warn(error.message)
-        return
-    }
-    console.error(error)
-}
 
 /**
  * Locale resolution + NextIntlClientProvider, independent of which catalog it

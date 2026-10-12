@@ -26,6 +26,7 @@ const FIXTURE_FILES = [
     'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
     'ios/App/App.xcodeproj/project.pbxproj',
     'ios/App/App/Info.plist',
+    'ios/App/App/PrivacyInfo.xcprivacy',
     'ios/App/App/App.entitlements',
     'ios/App/App/AppRelease.entitlements',
     'ios/App/App/ClipboardDetectPlugin.swift',
@@ -154,7 +155,7 @@ describe('native-fingerprint', () => {
     it('exits 1 naming the culprit when the surface moved', () => {
         withPatchedInput(
             'android/capacitor.settings.gradle',
-            (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
+            (content) => content.replace('capacitor-updater@8.51.23', 'capacitor-updater@9.0.0'),
             () => {
                 const result = run(fixture.dir, '--diff', 'HEAD')
 
@@ -171,7 +172,7 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'android/capacitor.settings.gradle',
-            (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
+            (content) => content.replace('capacitor-updater@8.51.23', 'capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -206,6 +207,16 @@ describe('native-fingerprint', () => {
             // xcodebuild archives against, so a pin can move on its own.
             'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
             (content) => content.replace('"version" : "5.12.0"', '"version" : "5.13.0"'),
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when the app privacy manifest changes', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'ios/App/App/PrivacyInfo.xcprivacy',
+            (content) => content.replace('C617.1', 'C617.2'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -303,7 +314,7 @@ describe('native-fingerprint', () => {
             // The OTA workflow runs `pnpm install` but never regenerates the
             // committed Capacitor manifests, so a bump without a `cap sync`
             // ships the new JS wrapper against unchanged manifest bytes.
-            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
+            (content) => content.split('@capgo/capacitor-updater@8.51.23').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -360,7 +371,7 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'pnpm-lock.yaml',
-            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
+            (content) => content.split('@capgo/capacitor-updater@8.51.23').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })

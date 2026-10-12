@@ -84,6 +84,10 @@ export interface IToken {
 export type ITokenPriceData = {
     chainId: string
     price: number
+    /** When the API fetched the price (ISO 8601); absent for client-side $1 stablecoins. */
+    updatedAt?: string
+    /** The API's provider failed and this is an older cached price — display only. */
+    stale?: boolean
 } & IToken
 
 export interface IToken {
@@ -130,6 +134,8 @@ export interface IBridgeAccount {
         postal_code?: string
     }
     beneficiary_address_valid: boolean
+    /** False once the provider has deactivated the account. */
+    active?: boolean
 }
 
 export type LinkStatus = 'loading' | 'unclaimed' | 'claimed' | 'expired' | 'cancelled'

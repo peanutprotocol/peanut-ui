@@ -24,6 +24,11 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 
+const mockNativeShare = jest.fn()
+const mockNativeClipboardWrite = jest.fn().mockResolvedValue(undefined)
+jest.mock('@capacitor/share', () => ({ Share: { share: (opts: unknown) => mockNativeShare(opts) } }))
+jest.mock('@capacitor/clipboard', () => ({ Clipboard: { write: (opts: unknown) => mockNativeClipboardWrite(opts) } }))
+
 const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
 const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share')
 const originalSecureContext = Object.getOwnPropertyDescriptor(window, 'isSecureContext')
@@ -224,5 +229,84 @@ describe('ShareButton', () => {
         await waitFor(() => expect(navigator.share).toHaveBeenCalledTimes(1))
         expect(onSuccess).not.toHaveBeenCalled()
         expect(onError).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-23176: the share sheet needs the click's user activation, so it must
+// open before the clipboard write settles, and on native it goes through the
+// share plugin because android's webview has no navigator.share
+describe('ShareButton share sheet', () => {
+    afterEach(() => {
+        delete (globalThis as { ClipboardItem?: unknown }).ClipboardItem
+        delete (window as { Capacitor?: unknown }).Capacitor
+    })
+
+    it('opens the web share sheet without waiting for the clipboard write', async () => {
+        // a write that never settles: the old code awaited it before sharing
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { write: jest.fn().mockReturnValue(new Promise(() => {})), writeText: jest.fn() },
+        })
+        ;(globalThis as { ClipboardItem?: unknown }).ClipboardItem = class {
+            constructor(public data: Record<string, Promise<Blob>>) {}
+        }
+        const share = jest.fn().mockResolvedValue(undefined)
+        Object.defineProperty(navigator, 'share', { configurable: true, value: share })
+
+        renderWithIntl(
+            <ShareButton title="" generateText={() => Promise.resolve('Badge share text')}>
+                Share badge
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share badge' }))
+
+        await waitFor(() => expect(share).toHaveBeenCalledWith({ title: '', text: 'Badge share text' }))
+    })
+
+    it('uses the native share plugin inside the app', async () => {
+        ;(window as { Capacitor?: unknown }).Capacitor = {
+            isNativePlatform: () => true,
+            isPluginAvailable: (name: string) => name === 'Share',
+        }
+        mockNativeShare.mockResolvedValue({})
+        Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
+        const onSuccess = jest.fn()
+
+        renderWithIntl(
+            <ShareButton title="" generateText={() => Promise.resolve('Badge share text')} onSuccess={onSuccess}>
+                Share badge
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share badge' }))
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(mockNativeShare).toHaveBeenCalledWith({ title: '', text: 'Badge share text' })
+        expect(mockNativeClipboardWrite).toHaveBeenCalledWith({ string: 'Badge share text' })
+    })
+
+    it('treats a dismissed native share sheet as a cancel, not an error', async () => {
+        ;(window as { Capacitor?: unknown }).Capacitor = {
+            isNativePlatform: () => true,
+            isPluginAvailable: (name: string) => name === 'Share',
+        }
+        mockNativeShare.mockRejectedValue(new Error('Share canceled'))
+        const onSuccess = jest.fn()
+        const onError = jest.fn()
+
+        renderWithIntl(
+            <ShareButton
+                generateText={() => Promise.resolve('Badge share text')}
+                onSuccess={onSuccess}
+                onError={onError}
+            >
+                Share badge
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share badge' }))
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(mockNativeShare).toHaveBeenCalledTimes(1)
+        expect(onError).not.toHaveBeenCalled()
+        expect(mockToastError).not.toHaveBeenCalled()
     })
 })

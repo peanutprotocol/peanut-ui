@@ -29,6 +29,8 @@ type ValidatedInputProps = {
     isInputChanging?: boolean
     validationIsNeutral?: boolean
     smartPasteKind?: PasteFieldKind
+    /** Fixed text before the value, such as the "@" of a username. */
+    prefix?: string
 }
 
 export type InputUpdate = {
@@ -55,6 +57,7 @@ const ValidatedInput = ({
     isInputChanging = false,
     validationIsNeutral = false,
     smartPasteKind,
+    prefix,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
     const reduceMotion = useReducedMotion()
@@ -200,6 +203,11 @@ const ValidatedInput = ({
                             <MoreInfo text={infoText} />
                         </div>
                     )}
+                    {prefix && (
+                        <span aria-hidden="true" className="pl-3 text-body-s text-foreground-secondary">
+                            {prefix}
+                        </span>
+                    )}
                 </div>
 
                 <div className="notranslate flex w-full items-center" translate="no">
@@ -219,7 +227,7 @@ const ValidatedInput = ({
                         }
                         className={twMerge(
                             `notranslate w-full border-0 bg-background-default pr-1 text-body-s outline-none focus:outline-none focus-visible:outline-none active:bg-background-default`,
-                            !!infoText ? 'pl-0' : 'pl-4'
+                            !!infoText ? 'pl-0' : prefix ? 'pl-8' : 'pl-4'
                         )}
                         placeholder={placeholder}
                         spellCheck="false"

@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl'
 import { AccountType } from '@/interfaces/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
 
@@ -12,10 +13,14 @@ import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
 const ExchangeRate = ({ accountType }: Omit<IExchangeRate, 'enabled'>) => {
     const t = useTranslations('exchangeRate.row')
     const tCommon = useTranslations('common')
-    const { exchangeRate, isFetchingRate } = useGetExchangeRate({ accountType })
+    const { exchangeRate, isFetchingRate, isRateError, refetchRate } = useGetExchangeRate({ accountType })
 
     if (accountType === AccountType.US) {
         return <PaymentInfoRow loading={isFetchingRate} label={tCommon('exchangeRate')} value={`1 USD`} />
+    }
+
+    if (isRateError && !isFetchingRate) {
+        return <RateUnavailable onRetry={() => void refetchRate()} />
     }
 
     const currency = getOfframpConfigFromAccount({ type: accountType }).currency.toUpperCase()

@@ -33,6 +33,8 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 }))
 
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     storeAnchorHref: () => 'https://example.test/store',
     onStoreAnchorClick: jest.fn(),
 }))

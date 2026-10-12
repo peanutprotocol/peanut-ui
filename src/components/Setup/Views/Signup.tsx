@@ -1,23 +1,25 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import SetupFooter from '../components/SetupFooter'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
+import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useQueryClient } from '@tanstack/react-query'
+import { USER } from '@/constants/query.consts'
+import { DEMO_USER } from '@/constants/demo-data'
+import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { invitesApi } from '@/services/invites'
-import { toInviteCode } from '@/utils/invite-code.utils'
-import { readInviteCode } from '@/utils/invite-stash'
+import { useSignupPasskey } from '@/features/setup/useSignupPasskey'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 // Valid username-shaped ideas, so the joke can double as inspiration.
@@ -34,24 +36,23 @@ const USERNAME_IDEAS = [
     'peanutpirate?',
 ] as const
 
+/** Claim username: validates the handle, then "Claim" creates the passkey and the account. */
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } =
-        useSetupFlowContext()
+    const {
+        username,
+        setUsername,
+        setResidenceCountry,
+        setSecondResidenceCountry,
+        setSignupCompleted,
+        setNoBackLockScreenId,
+    } = useSetupFlowContext()
+    const queryClient = useQueryClient()
     const [error, setError] = useState('')
-    const { handleNext, isLoading } = useSetupFlow()
+    const { isLoading, setScreenId } = useSetupFlow()
+    const passkey = useSignupPasskey(username)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
-    // the drawer edits a draft; only a validated, added inviter reaches the flow context
-    const [inviterOpen, setInviterOpen] = useState(false)
-    const [inviterDraft, setInviterDraft] = useState('')
-    const [inviterValid, setInviterValid] = useState(false)
-    const [inviterChanging, setInviterChanging] = useState(false)
-    const [inviterError, setInviterError] = useState('')
-    const inviterValueRef = useRef('')
-    // inviter behind an invite link (?code= or a stashed referral), shown until a manual one replaces it
-    const [linkInviter, setLinkInviter] = useState('')
-    const shownInviter = inviterUsername ? toInviteCode(inviterUsername) : linkInviter
     const prefersReducedMotion = useReducedMotion()
     const [suggestionIndex, setSuggestionIndex] = useState(-1)
     const [placeholderStopped, setPlaceholderStopped] = useState(false)
@@ -74,73 +75,31 @@ const SignupStep = () => {
         }
     }, [username, placeholderStopped, prefersReducedMotion])
 
-    const validateInviter = async (value: string): Promise<boolean> => {
-        setInviterError('')
-        const result = await invitesApi.validateInviteCode(value)
-        const valid = result.success && result.attributionResolved
-        if (inviterValueRef.current !== value) return valid
-        posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid, source: 'signup_optional_inviter' })
-        if (!valid) setInviterError(t('signupStep.inviterNotFound'))
-        return valid
-    }
+    const busy = passkey.isClaiming || isLoading
 
-    useEffect(() => {
-        // a manual inviter already wins over the link code, so there is nothing to resolve
-        if (inviterUsername) return
-        const code = readInviteCode()
-        if (!code) {
-            setLinkInviter('')
+    const onClaim = async () => {
+        if (!isValid || isChanging || busy) return
+        if (isDemoUsername(username)) {
+            enableDemoMode()
+            // Retire any pre-demo user request before seeding the synthetic session.
+            await queryClient.cancelQueries({ queryKey: [USER] })
+            queryClient.setQueryData([USER], DEMO_USER)
+            setResidenceCountry('BR')
+            setSecondResidenceCountry('')
+            setNoBackLockScreenId('advantage-control')
+            setSignupCompleted(true)
+            setScreenId('advantage-control')
             return
         }
-        let cancelled = false
-        void invitesApi.validateInviteCode(code).then((result) => {
-            if (!cancelled && result.success && result.attributionResolved && result.username) {
-                setLinkInviter(result.username)
-            }
-        })
-        return () => {
-            cancelled = true
-        }
-        // re-runs when a manual inviter is removed, so the restored link inviter shows again
-    }, [inviterUsername])
-
-    const openInviter = () => {
-        inviterValueRef.current = ''
-        setInviterDraft('')
-        setInviterValid(false)
-        setInviterChanging(false)
-        setInviterError('')
-        setInviterOpen(true)
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
+        await passkey.claim()
     }
-
-    const addInviter = () => {
-        setInviterUsername(inviterDraft)
-        setInviterOpen(false)
-    }
-
-    // undoes a mistaken manual inviter and restores the invite-link referral, if there was one
-    const removeInviter = () => {
-        inviterValueRef.current = ''
-        clearManualInvite()
-        setInviterUsername('')
-        setInviterOpen(false)
-    }
-
-    const onNext = () =>
-        handleNext(async () => {
-            if (!isValid) return false
-            const code = toInviteCode(inviterUsername)
-            if (code) {
-                applyManualInvite(code)
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
-            }
-            return true
-        })
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
         // clear error when starting a new validation
         setError('')
+
+        // Reserved local demo entry: typing validates it, but only submission activates the session.
+        if (isDemoUsername(username)) return true
 
         // handle empty input
         if (!username) {
@@ -235,10 +194,12 @@ const SignupStep = () => {
         }
     }
 
+    const passkeyMessage = passkey.inlineError ?? passkey.preflightWarning
+
     return (
         <>
             <div className="flex h-full flex-1 flex-col justify-between gap-6">
-                <div className="flex w-full flex-1 flex-col gap-4">
+                <div className="flex w-full flex-1 flex-col justify-center gap-4">
                     <div className="flex flex-col gap-1">
                         <div
                             className="relative"
@@ -257,6 +218,7 @@ const SignupStep = () => {
                                 onUpdate={handleInputUpdate}
                                 isSetupFlow
                                 isInputChanging={isChanging}
+                                prefix="@"
                                 className="rounded-sm"
                             />
                             <AnimatePresence>
@@ -268,95 +230,75 @@ const SignupStep = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -5 }}
                                         transition={{ duration: 0.18 }}
-                                        className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-body-s text-foreground-secondary"
+                                        className="pointer-events-none absolute inset-y-0 left-8 flex items-center text-body-s text-foreground-secondary"
                                     >
                                         {USERNAME_IDEAS[suggestionIndex]}
                                     </motion.span>
                                 )}
                             </AnimatePresence>
                         </div>
-                        <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
+                        <div className="min-h-8 compact:min-h-6">{error && <FieldError>{error}</FieldError>}</div>
                     </div>
+                    {passkey.usernameTaken && (
+                        <div className="flex flex-col gap-3">
+                            <Callout priority="error">{t('passkey.usernameTaken')}</Callout>
+                            <Button
+                                loading={passkey.isLoggingIn}
+                                disabled={passkey.isLoggingIn}
+                                variant="secondary"
+                                onClick={passkey.logIn}
+                                shadowSize="4"
+                            >
+                                {t('logIn')}
+                            </Button>
+                        </div>
+                    )}
+                    {passkeyMessage && <Callout priority="error">{passkeyMessage}</Callout>}
                 </div>
                 <SetupFooter
                     actions={
                         <Button
                             size="medium"
                             className="w-full"
-                            loading={isLoading}
+                            loading={busy}
                             shadowSize="4"
-                            onClick={onNext}
-                            disabled={!isValid || isChanging || isLoading}
+                            onClick={onClaim}
+                            disabled={!isValid || isChanging || busy}
                         >
                             {t('cta.claimName')}
                         </Button>
                     }
-                >
-                    {shownInviter ? (
-                        <div className="flex items-center gap-1 text-body-xs text-foreground-secondary">
-                            <span>{t('signupStep.invitedBy', { username: shownInviter })}</span>
-                            <LinkButton onClick={openInviter}>{t('signupStep.changeInviter')}</LinkButton>
-                        </div>
-                    ) : (
-                        <LinkButton onClick={openInviter}>{t('signupStep.whoInvitedYou')}</LinkButton>
-                    )}
-                    <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary">
-                        {t.rich('signupStep.termsAgreement', {
-                            terms: (chunks) => (
-                                <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">
-                                    {chunks}
-                                </SetupDocLink>
-                            ),
-                            privacy: (chunks) => (
-                                <SetupDocLink kind="privacy" href="/privacy" className="underline underline-offset-2">
-                                    {chunks}
-                                </SetupDocLink>
-                            ),
-                        })}
-                    </p>
-                </SetupFooter>
+                    secondary={
+                        <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary compact:pt-2">
+                            {t.rich('signupStep.termsAgreement', {
+                                terms: (chunks) => (
+                                    <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">
+                                        {chunks}
+                                    </SetupDocLink>
+                                ),
+                                privacy: (chunks) => (
+                                    <SetupDocLink
+                                        kind="privacy"
+                                        href="/privacy"
+                                        className="underline underline-offset-2"
+                                    >
+                                        {chunks}
+                                    </SetupDocLink>
+                                ),
+                            })}
+                        </p>
+                    }
+                />
             </div>
-            <Drawer open={inviterOpen} onOpenChange={setInviterOpen} shouldScaleBackground={false}>
-                <DrawerContent>
-                    <div className="flex flex-col gap-4 pb-4">
-                        <DrawerTitle>{t('signupStep.whoInvitedYou')}</DrawerTitle>
-                        <p className="text-body-s text-foreground-secondary">{t('signupStep.inviterHelp')}</p>
-                        <div className="flex flex-col gap-1">
-                            <ValidatedInput
-                                aria-label={t('signupStep.inviterUsernameLabel')}
-                                placeholder={t('signupStep.inviterUsernamePlaceholder')}
-                                value={inviterDraft}
-                                debounceTime={750}
-                                validate={validateInviter}
-                                shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
-                                onUpdate={({ value, isValid, isChanging }) => {
-                                    inviterValueRef.current = value
-                                    setInviterDraft(value)
-                                    setInviterValid(isValid)
-                                    setInviterChanging(isChanging)
-                                    if (isChanging) setInviterError('')
-                                }}
-                                isSetupFlow
-                                isInputChanging={inviterChanging}
-                            />
-                            {inviterError && <FieldError>{inviterError}</FieldError>}
-                        </div>
-                        <Button
-                            shadowSize="4"
-                            className="w-full"
-                            disabled={!inviterValid || inviterChanging}
-                            onClick={addInviter}
-                        >
-                            {t('signupStep.addInviter')}
-                        </Button>
-                        {inviterUsername && (
-                            <LinkButton className="self-center" onClick={removeInviter}>
-                                {t('signupStep.removeInviter')}
-                            </LinkButton>
-                        )}
-                    </div>
-                </DrawerContent>
-            </Drawer>
+            {passkey.helpErrorName && (
+                <PasskeySetupHelpDrawer
+                    visible={passkey.isHelpOpen}
+                    onClose={passkey.closeHelp}
+                    onRetry={passkey.retryFromHelp}
+                    errorName={passkey.helpErrorName}
+                    platform={passkey.deviceType}
+                />
+            )}
         </>
     )
 }

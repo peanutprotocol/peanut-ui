@@ -49,6 +49,7 @@ describe('validateInviteCode mixed-version resolution', () => {
 
         await expect(validateInviteCode('not-an-invite')).resolves.toEqual({
             error: 'Invite code is not valid',
+            status: 409,
         })
     })
 

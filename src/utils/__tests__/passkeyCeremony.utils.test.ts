@@ -19,10 +19,14 @@ import { clearCachedStepUpToken, getCachedStepUpToken } from '@/services/step-up
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
+import { openCredentialCall } from '@/utils/webauthn-ceremony-telemetry'
+import { WebAuthnAbortService } from '@simplewebauthn/browser'
+import { waitFor } from '@testing-library/react'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
 jest.mock('@/utils/auth-token', () => ({ setAuthToken: jest.fn() }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
+jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({ openCredentialCall: jest.fn(() => undefined) }))
 const mockIsCapacitor = isCapacitor as jest.Mock
 const mockSetAuthToken = setAuthToken as jest.Mock
 const mockCaptureException = captureException as jest.Mock
@@ -114,6 +118,20 @@ describe('raceCeremonyTimeout', () => {
         await assertion
         resolveLate('too-late') // must not turn the settled rejection into a success
         await expect(raced).rejects.toBeInstanceOf(CeremonyTimeoutError)
+    })
+
+    it('runs the timeout hook only when the ceremony times out', async () => {
+        jest.useFakeTimers()
+        const onTimeout = jest.fn()
+        await expect(raceCeremonyTimeout(Promise.resolve('key'), 1_000, onTimeout)).resolves.toBe('key')
+        jest.advanceTimersByTime(1_000)
+        expect(onTimeout).not.toHaveBeenCalled()
+
+        const raced = raceCeremonyTimeout(new Promise<never>(() => {}), 1_000, onTimeout)
+        const assertion = expect(raced).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        jest.advanceTimersByTime(1_000)
+        await assertion
+        expect(onTimeout).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -350,6 +368,52 @@ describe('guardPasskeyCeremony', () => {
         const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyTimeoutError)
         await jest.advanceTimersByTimeAsync(300_000)
         await assertion
+    })
+
+    it('web: aborts the abandoned browser request on timeout so the retry is not refused as pending', async () => {
+        const cancelCeremony = WebAuthnAbortService.cancelCeremony as unknown as jest.Mock
+        cancelCeremony.mockClear()
+        jest.useFakeTimers()
+        const pending = guardPasskeyCeremony(() => new Promise<never>(() => {}))
+        const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        await jest.advanceTimersByTimeAsync(300_000)
+        await assertion
+        jest.useRealTimers()
+        await waitFor(() => expect(cancelCeremony).toHaveBeenCalledTimes(1))
+    })
+
+    it('native: leaves the plugin ceremony alone on timeout (the shim ignores a mid-call abort)', async () => {
+        const cancelCeremony = WebAuthnAbortService.cancelCeremony as unknown as jest.Mock
+        cancelCeremony.mockClear()
+        mockIsCapacitor.mockReturnValue(true)
+        setGlobal(SHIM_INSTALLED, true)
+        jest.useFakeTimers()
+        const pending = guardPasskeyCeremony(() => new Promise<never>(() => {}))
+        const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        await jest.advanceTimersByTimeAsync(60_000)
+        await assertion
+        jest.useRealTimers()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        expect(cancelCeremony).not.toHaveBeenCalled()
+    })
+})
+
+describe('captureCeremonyGuardError', () => {
+    it('records whether an OS credential call was still pending when the guard fired', () => {
+        ;(openCredentialCall as jest.Mock).mockReturnValueOnce({ inFlight: true, elapsedMs: 58_000 })
+        captureCeremonyGuardError(new CeremonyTimeoutError(60_000), 'login', { elapsedMs: 60_000 })
+        expect(mockCaptureException).toHaveBeenCalledWith(expect.any(CeremonyTimeoutError), {
+            tags: { error_type: 'login_ceremony_timeout' },
+            extra: expect.objectContaining({ osCallInFlight: true, osCallElapsedMs: 58_000, elapsedMs: 60_000 }),
+        })
+    })
+
+    it('tags a signing timeout so it is separable from login and registration', () => {
+        captureCeremonyGuardError(new CeremonyTimeoutError(60_000), 'sign')
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.any(CeremonyTimeoutError),
+            expect.objectContaining({ tags: { error_type: 'sign_ceremony_timeout' } })
+        )
     })
 })
 

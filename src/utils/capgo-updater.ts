@@ -2,6 +2,7 @@
 // only imported when isCapacitor() is true — uses dynamic import in the hook.
 
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
+import { getBinaryInfo } from '@/utils/app-version'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { isNativePrerelease } from '@/utils/native-prerelease'
@@ -213,7 +214,8 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
         // launch, so a persistent unknown outage still reaches Sentry.
         const streak = recordFailureStreak(message)
         if (OTA_BROKEN_ERRORS.some((pattern) => message.includes(pattern))) {
-            console.error('[capgo] update check failed:', message)
+            if (await firstBrokenReportForBinary(message)) console.error('[capgo] update check failed:', message)
+            else console.info('[capgo] update check failed:', message)
         } else if (streak >= PERSISTENT_FAILURE_THRESHOLD) {
             console.error(`[capgo] update check failed on ${streak} consecutive launches:`, message)
         } else {
@@ -674,6 +676,18 @@ function isUpToDateRejection(message: string): boolean {
 const OTA_BROKEN_ERRORS = ['disable_auto_update_under_native', 'Checksum mismatch', 'OTA signing metadata']
 
 const FAILURE_STREAK_KEY = 'capgoUpdateFailureStreak'
+const BROKEN_REPORTED_KEY = 'capgoBrokenOtaReported'
+
+// A broken OTA stays broken for that binary until a bundle is published for it,
+// so one report per device per build says which builds are affected; every
+// further launch would only repeat it (PEANUT-UI-TCJ).
+async function firstBrokenReportForBinary(message: string): Promise<boolean> {
+    const binary = await getBinaryInfo()
+    const key = `${binary?.appVersion ?? ''}+${binary?.appBuild ?? ''}|${message}`
+    if (readStoredValue(BROKEN_REPORTED_KEY) === key) return false
+    writeStoredValue(BROKEN_REPORTED_KEY, key)
+    return true
+}
 const PERSISTENT_FAILURE_THRESHOLD = 3
 
 function recordFailureStreak(message: string): number {

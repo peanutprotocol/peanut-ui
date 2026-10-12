@@ -46,7 +46,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * whatever renders here is what search engines get. Serve the real link list, and skeleton only
  * the search box that genuinely needs the client.
  */
-function LandingFallback({ items, strings }: { items: ContentItem[]; strings: ContentLandingStrings }) {
+function LandingFallback({
+    items,
+    locale,
+    strings,
+}: {
+    items: ContentItem[]
+    locale: Locale
+    strings: ContentLandingStrings
+}) {
     return (
         <>
             {/* the hub column, shared with ContentLanding so the search box cannot
@@ -55,7 +63,7 @@ function LandingFallback({ items, strings }: { items: ContentItem[]; strings: Co
             <div className={`mx-auto mt-10 mb-6 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
                 <div className="h-10 w-full animate-pulse rounded-sm border border-border-default bg-foreground-primary/10" />
             </div>
-            <ContentLinkList items={items} strings={strings} grouped />
+            <ContentLinkList items={items} locale={locale} strings={strings} grouped />
         </>
     )
 }
@@ -77,6 +85,7 @@ export default async function ContentHubPage({ params }: PageProps) {
         filterStories: i18n.filterStories,
         filterUseCases: i18n.filterUseCases,
         filterCompare: i18n.filterCompare,
+        inEnglish: i18n.inEnglish,
     }
 
     return (
@@ -87,8 +96,8 @@ export default async function ContentHubPage({ params }: PageProps) {
                 { name: i18n.content, href: `/${locale}/content` },
             ]}
         >
-            <Hero title={i18n.contentHubTitle} subtitle={i18n.contentHubSubtitle} />
-            <Suspense fallback={<LandingFallback items={items} strings={strings} />}>
+            <Hero title={i18n.contentHubTitle} subtitle={i18n.contentHubSubtitle} locale={typedLocale} />
+            <Suspense fallback={<LandingFallback items={items} locale={typedLocale} strings={strings} />}>
                 <ContentLanding items={items} locale={typedLocale} strings={strings} />
             </Suspense>
         </ContentPage>

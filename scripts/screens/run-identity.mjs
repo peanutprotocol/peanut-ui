@@ -12,6 +12,6 @@ export function verifyRunIdentity(run, repository, runId, attempt) {
         !['pull_request', 'push', 'workflow_dispatch'].includes(run.event)
     )
         throw new Error('Run provenance mismatch')
-    if (run.event !== 'pull_request' && run.head_branch !== 'dev')
-        throw new Error('Only dev runs may publish integration or historical reports')
+    if (run.event !== 'pull_request' && !['dev', 'main'].includes(run.head_branch))
+        throw new Error('Only dev or main runs may publish integration or historical reports')
 }

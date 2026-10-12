@@ -19,7 +19,6 @@ export const ANALYTICS_EVENTS = {
     HOME_VIEWED: 'home_viewed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
-    HOME_CHECKLIST_HIDDEN: 'home_checklist_hidden',
     HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
@@ -318,6 +317,7 @@ export const ANALYTICS_EVENTS = {
     // card_tokenization_declined (Rain webhooks) close this funnel.
     CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
     CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_ALREADY_ADDED: 'card_add_to_wallet_already_added',
     CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
     CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
@@ -360,7 +360,6 @@ export const ANALYTICS_EVENTS = {
     // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
     // `store` ∈ 'ios' | 'android'. qr_shown fires once per QR display (the
     // smart QR serves both stores, so it has no store dimension).
-    MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
     // guest Join/Continue-with-Peanut CTA rendered to a logged-out web
     // visitor during the window — the impression leg of the guest funnel
     MIGRATION_GUEST_CTA_SHOWN: 'migration_guest_cta_shown',

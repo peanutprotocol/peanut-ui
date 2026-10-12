@@ -13,7 +13,7 @@
 #   ANDROID_VERSION_NAME=1.0.0 pnpm native:release   # override the user-facing name
 #   ANDROID_VERSION_CODE=9000 pnpm native:release    # force a code (e.g. to leapfrog a prior upload)
 #
-# Requires android/keystore.properties (gitignored) for signing — see docs/NATIVE-RELEASE.md.
+# Requires android/keystore.properties (gitignored) for signing — see mono ops/releases.md, native appendix.
 
 set -euo pipefail
 
@@ -36,7 +36,7 @@ echo "▶ Android release — versionName=$VERSION_NAME  versionCode=$VERSION_CO
 
 if [ ! -f android/keystore.properties ]; then
     echo "⚠️  android/keystore.properties not found — the release will be unsigned and rejected by Play."
-    echo "    See docs/NATIVE-RELEASE.md §4 (Signing & keystore)."
+    echo "    See mono ops/releases.md, appendix Native 4 (signing & keystore)."
 fi
 
 # NODE_ENV must be set for the cap CLI process: capacitor.config.ts derives
@@ -53,7 +53,7 @@ AAB="android/app/build/outputs/bundle/release/app-release.aab"
 echo ""
 if [ -f "$AAB" ]; then
     echo "✅ AAB ready: $AAB  (versionCode $VERSION_CODE, versionName $VERSION_NAME)"
-    echo "   Upload to Play (internal track first). See docs/NATIVE-RELEASE.md §7."
+    echo "   Upload to Play (internal track first). See mono ops/releases.md, appendix Native 7."
 else
     echo "❌ Expected AAB not found at $AAB — check the Gradle output above."
     exit 1
