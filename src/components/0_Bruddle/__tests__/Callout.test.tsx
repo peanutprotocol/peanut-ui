@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/react'
 // the dismiss aria-label comes from the common catalog via useTranslations
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { ModalsProvider, useModalsContext } from '@/context/ModalsContext'
+import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { Callout } from '../Callout'
 
 describe('Callout', () => {
@@ -207,10 +208,31 @@ describe('Callout support CTA', () => {
 
     test('an error that says to contact support opens the drawer with the error prefilled', () => {
         renderInApp(<Callout priority="error">Transfer failed. Please contact support.</Callout>)
-        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        fireEvent.click(screen.getByRole('button', { name: 'contact support' }))
         expect(screen.getByTestId('support-probe')).toHaveTextContent(
             'I got this error in the app: Transfer failed. Please contact support.'
         )
+    })
+
+    test('the message says "contact support" once: its own words are the link, with no second link under it', () => {
+        renderInApp(<Callout priority="error">Unexpected issue. Contact support.</Callout>)
+        const alert = screen.getByRole('alert')
+        expect(alert).toHaveTextContent(/^Unexpected issue\. Contact support\.$/)
+        expect(screen.getAllByRole('button', { name: /contact support/i })).toHaveLength(1)
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(screen.getByTestId('support-probe')).toHaveTextContent(
+            'I got this error in the app: Unexpected issue. Contact support.'
+        )
+    })
+
+    test('the message words link to support through CooldownErrorText too (the flows that render errors with it)', () => {
+        renderInApp(
+            <Callout priority="error">
+                <CooldownErrorText message="No se pudo iniciar el pago. Contactá a soporte" />
+            </Callout>
+        )
+        expect(screen.getAllByRole('button')).toHaveLength(1)
+        expect(screen.getByRole('button', { name: 'Contactá a soporte' })).toBeInTheDocument()
     })
 
     test('reads text rendered by a child component, and in Spanish and Portuguese', () => {
@@ -223,7 +245,7 @@ describe('Callout support CTA', () => {
         expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
         unmount()
         renderInApp(<Callout priority="error">Entre em contato com o suporte.</Callout>)
-        expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'contato com o suporte' })).toBeInTheDocument()
     })
 
     test('no CTA when the error does not mention support', () => {
@@ -250,13 +272,19 @@ describe('Callout support CTA', () => {
         expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()
     })
 
-    test.each(['Support can open another one for you.', 'O suporte pode verificar.', 'Fale com o suporte.'])(
+    test.each(['Support can open another one for you.', 'O suporte pode verificar.'])(
         'a CTA when the error points at support: %s',
         (text) => {
             renderInApp(<Callout priority="error">{text}</Callout>)
             expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
         }
     )
+
+    test('a Portuguese ask links its own words: Fale com o suporte.', () => {
+        renderInApp(<Callout priority="error">Fale com o suporte.</Callout>)
+        expect(screen.getAllByRole('button')).toHaveLength(1)
+        expect(screen.getByRole('button', { name: 'Fale com o suporte' })).toBeInTheDocument()
+    })
 
     test('no CTA on non-error priorities', () => {
         renderInApp(<Callout priority="info">Our support team replies within a day</Callout>)

@@ -147,7 +147,6 @@ function SetupScreenBody({
             {...stepCopy}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
-            showLogoutButton={step.screenId === 'sign-test-transaction' && showProgress}
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}
