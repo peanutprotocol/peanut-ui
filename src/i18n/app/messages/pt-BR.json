@@ -768,8 +768,7 @@
             "skip": "Pular"
         },
         "wrapper": {
-            "illustrationAlt": "Ilustração da seção",
-            "introGreeting": "Oi, eu sou o Peanut"
+            "illustrationAlt": "Ilustração da seção"
         },
         "next": "Avançar",
         "logIn": "Entrar",
