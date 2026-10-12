@@ -565,6 +565,26 @@ describe('useShakeSession: create failures', () => {
 })
 
 describe('useShakeSession: re-shake', () => {
+    // review finding (ui#3148): a card from the previous shake must not stay tappable
+    // while the new search is still in flight
+    it('clears the previous people as soon as a new shake starts', async () => {
+        const second = deferred<ShakeSessionResponse>()
+        mockCreateSession.mockResolvedValueOnce(makeSession('s1', [ANA])).mockReturnValueOnce(second.promise)
+        const hook = setup()
+        await shakeNow(hook)
+        expect(hook.result.current.candidates).toEqual([ANA])
+
+        const { done } = await startShake(hook)
+        expect(hook.result.current.state).toBe('searching')
+        expect(hook.result.current.candidates).toEqual([])
+
+        await act(async () => {
+            second.resolve(makeSession('s2', [BOB]))
+            await done
+        })
+        expect(hook.result.current.candidates).toEqual([BOB])
+    })
+
     it('cancels the previous session and creates a new one', async () => {
         const hook = setup()
         await shakeNow(hook)

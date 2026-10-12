@@ -102,8 +102,9 @@ const COPY = {
     empty: 'No one yet. Ask them to shake too.',
     expired: 'Search ended. Shake again to look for people.',
     error: "Couldn't reach Peanut. Check your connection and try again.",
-    locationHint: 'Turn on location to see only people near you.',
+    locationHint: 'Turn on location to find people near you more easily.',
     listTitle: 'People nearby',
+    confirmRecipient: 'Check the @username before you pay.',
 }
 const rateLimitedCopy = (seconds: number) => `Too many shakes. Try again in ${seconds}s.`
 
@@ -746,5 +747,23 @@ describe('ShakeToPayView: privacy', () => {
 
         expect(container.innerHTML).not.toContain('52.37')
         expect(container.innerHTML).not.toContain('4.895')
+    })
+})
+
+// review finding (ui#3148): matching can still list someone who did not share a location,
+// so the list asks the payer to confirm the recipient
+describe('ShakeToPayView: confirming the recipient', () => {
+    it('asks the payer to check the @username whenever people are listed', () => {
+        mockSession.state = 'searching'
+        mockSession.candidates = [ANA, BOB]
+        renderView()
+        expect(byText(COPY.confirmRecipient)).toBeInTheDocument()
+    })
+
+    it('does not show the prompt while no one is listed', () => {
+        mockSession.state = 'searching'
+        mockSession.candidates = []
+        renderView()
+        expect(byText(COPY.confirmRecipient)).not.toBeInTheDocument()
     })
 })

@@ -683,11 +683,12 @@
             "title": "Agitá para pagar",
             "tapToFind": "Tocá para buscar personas",
             "empty": "Todavía nadie. Pedile que también agite su teléfono.",
+            "confirmRecipient": "Revisá el @usuario antes de pagar.",
             "expired": "La búsqueda terminó. Agitá de nuevo para buscar personas.",
             "error": "No pudimos conectar con Peanut. Revisá tu conexión e intentá de nuevo.",
             "rateLimited": "Demasiados intentos. Intentá de nuevo en {seconds} s.",
             "motionDenied": "El acceso al movimiento está desactivado. Tocá el botón.",
-            "locationHint": "Activá la ubicación para ver solo a personas cerca de vos."
+            "locationHint": "Activá la ubicación para encontrar más fácil a personas cerca de vos."
         }
     },
     "request": {

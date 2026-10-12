@@ -92,6 +92,8 @@ export function useShakeSession() {
             const gen = ++generation.current
             clearPoll()
             releaseSession()
+            // the previous shake's people must not stay tappable while this one is in flight
+            setCandidates([])
             setRetryAfterSeconds(null)
             setState('searching')
 

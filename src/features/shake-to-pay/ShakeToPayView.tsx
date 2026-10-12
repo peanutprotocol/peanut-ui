@@ -141,52 +141,55 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
                     {candidates.length === 0 ? (
                         <p className="text-body-s text-foreground-secondary">{t('empty')}</p>
                     ) : (
-                        <ListGroup>
-                            {candidates.map((candidate, index) => {
-                                const name = candidate.displayName ?? candidate.username
-                                const isContact = contactUsernames.has(candidate.username.toLowerCase())
-                                return (
-                                    <ListItem
-                                        key={candidate.username}
-                                        aria-label={t('payAria', {
-                                            name: candidate.displayName ?? `@${candidate.username}`,
-                                        })}
-                                        leading={
-                                            <UserAvatar
-                                                size="s"
-                                                name={candidate.username}
-                                                avatarKey={candidate.avatarKey}
-                                                decorative
-                                            />
-                                        }
-                                        title={
-                                            <span className="flex min-w-0 items-center gap-1">
-                                                <span className="truncate">{name}</span>
-                                                {candidate.isVerified && (
-                                                    <Icon
-                                                        name="check"
-                                                        size={16}
-                                                        className="shrink-0 text-green-500"
-                                                        aria-label={t('verified')}
-                                                        role="img"
-                                                    />
-                                                )}
-                                            </span>
-                                        }
-                                        body={`@${candidate.username}`}
-                                        trailing={
-                                            isContact ? (
-                                                <span className="text-label-m text-foreground-secondary">
-                                                    {t('contact')}
+                        <>
+                            <p className="text-body-s text-foreground-secondary">{t('confirmRecipient')}</p>
+                            <ListGroup>
+                                {candidates.map((candidate, index) => {
+                                    const name = candidate.displayName ?? candidate.username
+                                    const isContact = contactUsernames.has(candidate.username.toLowerCase())
+                                    return (
+                                        <ListItem
+                                            key={candidate.username}
+                                            aria-label={t('payAria', {
+                                                name: candidate.displayName ?? `@${candidate.username}`,
+                                            })}
+                                            leading={
+                                                <UserAvatar
+                                                    size="s"
+                                                    name={candidate.username}
+                                                    avatarKey={candidate.avatarKey}
+                                                    decorative
+                                                />
+                                            }
+                                            title={
+                                                <span className="flex min-w-0 items-center gap-1">
+                                                    <span className="truncate">{name}</span>
+                                                    {candidate.isVerified && (
+                                                        <Icon
+                                                            name="check"
+                                                            size={16}
+                                                            className="shrink-0 text-green-500"
+                                                            aria-label={t('verified')}
+                                                            role="img"
+                                                        />
+                                                    )}
                                                 </span>
-                                            ) : undefined
-                                        }
-                                        chevron
-                                        onClick={() => handleSelect(candidate, index)}
-                                    />
-                                )
-                            })}
-                        </ListGroup>
+                                            }
+                                            body={`@${candidate.username}`}
+                                            trailing={
+                                                isContact ? (
+                                                    <span className="text-label-m text-foreground-secondary">
+                                                        {t('contact')}
+                                                    </span>
+                                                ) : undefined
+                                            }
+                                            chevron
+                                            onClick={() => handleSelect(candidate, index)}
+                                        />
+                                    )
+                                })}
+                            </ListGroup>
+                        </>
                     )}
                 </Section>
             )}
