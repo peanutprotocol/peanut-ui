@@ -135,15 +135,14 @@ describe('the 7 Oct incident: updated terms and the waitlist announcement', () =
 })
 
 describe('other pairs that collide today', () => {
-    test('terms outranks the Home push ask, the balance warning and the download prompt', () => {
-        const d = run({
+    test('install is the most critical ask; terms outranks the Home push ask and the balance warning', () => {
+        const everything = {
             ...TERMS_NEEDED,
             push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: false },
             balance: { loaded: true, usd: 900 },
-            isNative: false,
-            migration: { on: true },
-        })
-        expect(d.interrupt).toBe('legal-reconsent')
+        }
+        expect(run({ ...everything, isNative: false, migration: { on: true } }).interrupt).toBe('install-app')
+        expect(run(everything).interrupt).toBe('legal-reconsent')
     })
 
     test('a T1 ask may follow another T1 in the same session; a T4 may not', () => {

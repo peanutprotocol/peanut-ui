@@ -105,8 +105,9 @@ export const finishCardSetup: AttentionAsk = {
 
 export const installApp: AttentionAsk = {
     id: 'install-app',
-    tier: 2,
-    rank: 1, // N1
+    tier: 1,
+    // N1, and the most critical ask (Slava, 2026-10-12): the web app is being retired
+    rank: 0,
     presentation: 'modal',
     surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
@@ -114,8 +115,7 @@ export const installApp: AttentionAsk = {
         if (gate !== 'ready') return gate
         return !s.isNative && s.migration.on ? 'show' : 'ineligible'
     },
-    // the web app is being retired, so this one T2 ask may interrupt
-    policy: { interrupt: 'session', snoozeDays: 3 },
+    policy: { snoozeDays: 3 },
     analyticsKey: MODAL_TYPES.MIGRATION_DOWNLOAD,
 }
 

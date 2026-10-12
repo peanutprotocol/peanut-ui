@@ -21,9 +21,10 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
 }))
 
+let mockOverlayOpen = false
 jest.mock('@/utils/overlay-visibility', () => ({
     ...jest.requireActual('@/utils/overlay-visibility'),
-    useAnyOverlayOpen: () => false,
+    useAnyOverlayOpen: () => mockOverlayOpen,
 }))
 
 let mockState: JourneyState
@@ -234,8 +235,13 @@ const entry = (userId: string, askId: string): LedgerEntry | undefined =>
 
 /** the install-app interrupt is refused by budget (a T1 already fired), so the zone may take it */
 const t1AlreadyFired = () => setSessionInterrupts({ userId: 'user-a', ids: ['legal-reconsent'], open: null })
+// install-app is tier 1 (the most critical ask): only a user-opened overlay keeps it out of the interrupt
+const installCanOnlyTakeTheCard = () => {
+    mockOverlayOpen = true
+}
 
 beforeEach(() => {
+    mockOverlayOpen = false
     window.localStorage.clear()
     mockCapture.mockClear()
     mockCaptureException.mockClear()
@@ -337,7 +343,7 @@ describe('the Home zone', () => {
     })
 
     test('the install-app card snoozes', async () => {
-        t1AlreadyFired()
+        installCanOnlyTakeTheCard()
         mockState = state(INSTALL_APP_WEB)
         await mount()
         expect(latest?.decision.interrupt).toBeNull()
@@ -539,6 +545,7 @@ describe('the Home zone', () => {
         // "Ledger legacy mapping: dismissedCarouselCTAs entries map slide id → ask id (... app-install → install-app
         //  with a 7-day snooze from the close date ...), including the legacy string[] shape (closed 'now')"
         t1AlreadyFired()
+        if (ask === 'install-app') installCanOnlyTakeTheCard()
         updateUserPreferences('user-a', { dismissedCarouselCTAs: stored as Record<string, string> | string[] })
         mockState = state(patch)
         await mount()

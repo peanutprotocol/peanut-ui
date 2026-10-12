@@ -100,7 +100,7 @@ describe('registry: the zone asks follow the approved ranked list', () => {
         ['verification-due', 1, 3, ['zone']],
         ['blocked-card', 2, 2, ['zone']],
         ['checklist', 2, 3, ['zone']],
-        ['install-app', 2, 1, ['interrupt', 'zone']],
+        ['install-app', 1, 0, ['interrupt', 'zone']],
         ['verification-advisory', 3, 0, ['zone']],
         ['qr-payment', 3, 2, ['zone']],
         ['verify-for-qr', 3, 3, ['zone']],
@@ -334,11 +334,10 @@ describe('the push ask in the zone', () => {
         expect(d.zone?.id).not.toBe('push-home-fallback')
     })
 
-    test('the to-do list holds Home: install-app neither interrupts nor takes the zone', () => {
-        // phase 8: while the to-do list shows, only a strictly higher tier may overlay it (install-app is T2 · 1)
+    test('install is the most critical ask: it opens over the to-do list, which keeps the card', () => {
+        // install-app is T1 · 0 (Slava, 2026-10-12), so the to-do list does not hold it back
         const d = run({ isNative: false, migration: { on: true }, activated: false, onboarding: onboarding('verify') })
-        expect(d.interrupt).toBeNull()
-        expect(d.trace.reasons['install-app']).toBe('held by the to-do list')
+        expect(d.interrupt).toBe('install-app')
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
     })
 })
