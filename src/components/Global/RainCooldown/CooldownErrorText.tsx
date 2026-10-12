@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useCooldownRemaining } from '@/hooks/useCooldownRemaining'
+import { SupportAskText } from '@/components/0_Bruddle/SupportAskText'
 
 /**
  * Renders a flow's error message. When it is the card cool-down error, the
  * frozen copy is replaced by a live countdown from the same clock as the
  * cool-down pill, so the two never disagree. Any other message renders
- * unchanged.
+ * unchanged, except that inside an error Callout its "contact support" words
+ * become the support link.
  */
 export default function CooldownErrorText({ message }: { message: string }) {
     const t = useTranslations('errors')
@@ -20,7 +22,7 @@ export default function CooldownErrorText({ message }: { message: string }) {
     }, [remaining])
 
     // ponytail: matched by copy, not a code — screens store the error as a string
-    if (message !== t('rainCooldownRetryShortly')) return <>{message}</>
+    if (message !== t('rainCooldownRetryShortly')) return <SupportAskText text={message} />
 
     if (remaining !== null) {
         // the parent callout is role="alert": a text change every second would
