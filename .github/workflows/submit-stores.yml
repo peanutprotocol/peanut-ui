@@ -105,6 +105,8 @@ jobs:
                   WHATS_NEW: ${{ inputs.whats_new }}
                   DRY_RUN: ${{ inputs.dry_run }}
               run: |
+                  # The step shell is plain `bash -e`; without pipefail, tee would turn a failed submission green.
+                  set -o pipefail
                   args=(ios --version "$VERSION" --whats-new "$WHATS_NEW")
                   [ "$DRY_RUN" = true ] && args+=(--dry-run)
                   node scripts/submit-stores.mjs "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -127,6 +129,8 @@ jobs:
                   ROLLOUT: ${{ inputs.android_rollout }}
                   DRY_RUN: ${{ inputs.dry_run }}
               run: |
+                  # The step shell is plain `bash -e`; without pipefail, tee would turn a failed submission green.
+                  set -o pipefail
                   args=(android --version "$VERSION" --whats-new "$WHATS_NEW" --rollout "$ROLLOUT")
                   [ "$DRY_RUN" = true ] && args+=(--dry-run)
                   node scripts/submit-stores.mjs "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
