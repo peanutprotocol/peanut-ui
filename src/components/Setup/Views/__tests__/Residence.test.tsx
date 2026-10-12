@@ -254,7 +254,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
         expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
-        expect(screen.getAllByRole('combobox')).toHaveLength(1)
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
     })
 
     it('stops attributing a promoted country to the geo suggestion', () => {
@@ -283,7 +283,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Remove Germany' }))
         expect(mockSetResidenceCountry).not.toHaveBeenCalledWith('DE')
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
-        expect(screen.getAllByRole('combobox')).toHaveLength(1)
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
     })
 
     it('reports the congrats outcome for an unrestricted residence and advances to the plan', () => {
