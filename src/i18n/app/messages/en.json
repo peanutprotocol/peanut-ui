@@ -742,8 +742,7 @@
                 "description": "Open accounts in the currencies you get paid in. Free to open, no monthly fees."
             },
             "notification-email": {
-                "title": "No spam. Pinky promise.",
-                "description": "You can always opt out."
+                "title": "No spam. Pinky promise."
             },
             "notification-permission": {
                 "title": "Turn on notifications",
@@ -977,7 +976,8 @@
             "invalid": "Enter a valid email address.",
             "notReady": "Your account is still loading. Try again in a moment.",
             "saveFailed": "We couldn’t save your email. Please try again.",
-            "accessHint": "Your passkey controls account access. Your email is for notifications."
+            "accessHint": "Your passkey controls account access. Your email is for notifications.",
+            "optOutNote": "We’ll email you about your account. You can turn off news and offers anytime."
         },
         "notifications": {
             "pushLabel": "Push notifications",

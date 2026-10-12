@@ -742,8 +742,7 @@
                 "description": "Abra contas nas moedas em que você recebe. Abertura grátis, sem mensalidade."
             },
             "notification-email": {
-                "title": "Sem spam. Juro de dedinho.",
-                "description": "Você pode cancelar quando quiser."
+                "title": "Sem spam. Juro de dedinho."
             },
             "notification-permission": {
                 "title": "Ative as notificações",
@@ -977,7 +976,8 @@
             "invalid": "Digite um e-mail válido.",
             "notReady": "Sua conta ainda está carregando. Tente novamente em instantes.",
             "saveFailed": "Não foi possível salvar seu e-mail. Tente novamente.",
-            "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações."
+            "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações.",
+            "optOutNote": "Vamos enviar e-mails sobre sua conta. Você pode desativar novidades e ofertas quando quiser."
         },
         "notifications": {
             "pushLabel": "Notificações push",
