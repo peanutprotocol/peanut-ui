@@ -2000,8 +2000,49 @@ describe('an API without a readable document plan keeps the legacy flow', () => 
         await act(async () => {
             await result.current.handleInitiateKyc()
         })
-        expect(mockInitiate).toHaveBeenCalled()
+        expect(mockInitiate).toHaveBeenCalledWith(expect.objectContaining({ documentSelection: false }))
         expect(result.current.error).toBeNull()
+        expect(result.current.accessToken).toBe('legacy-token')
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.documentPlan).toBeNull()
+    })
+
+    it('keeps the legacy session off the picker contract when its token is refreshed', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { status: 'NOT_STARTED', token: 'legacy-token', applicantId: 'applicant-1' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        mockInitiate.mockClear()
+        await act(async () => {
+            await result.current.refreshToken()
+        })
+        expect(mockInitiate).toHaveBeenCalledWith(expect.objectContaining({ documentSelection: false }))
+    })
+
+    it('a later plan that refuses document-first continues the started legacy flow, announcing the picker again', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { status: 'PENDING', token: 'legacy-token', applicantId: 'applicant-1' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({
+            available: false,
+            activeAttemptId: null,
+            policyVersion: 'v1',
+            routes: [],
+        } as never)
+        mockInitiate.mockClear()
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(result.current.documentPlan).toBeNull()
+        expect(mockInitiate).toHaveBeenCalledTimes(1)
+        expect(mockInitiate.mock.calls[0][0]).not.toHaveProperty('documentSelection')
         expect(result.current.accessToken).toBe('legacy-token')
     })
 

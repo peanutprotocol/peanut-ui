@@ -180,6 +180,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [documentConfig, setDocumentConfig] = useState<KycAttemptSession['sdkConfig']>()
     const documentRestartRef = useRef(false)
     const documentAttemptRef = useRef<string | null>(null)
+    // Set when the plan could not be read: the legacy session this starts must not announce the picker.
+    const planUnreadableRef = useRef(false)
     const documentRequestKeyRef = useRef<string | null>(null)
     const documentBusyRef = useRef(false)
     // Both are declared after confirmDocumentPlan, which hands off to them.
@@ -405,6 +407,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     regionIntent: regionIntentRef.current,
                     levelName: levelNameRef.current,
                     targetCountry: targetCountryRef.current,
+                    ...(planUnreadableRef.current && { documentSelection: false }),
                 })
                 if (response.data?.status) {
                     setLiveKycStatus(response.data.status)
@@ -601,6 +604,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     documentRestartRef.current = false
                     setDocumentPreferencesOnly(false)
                     const plan = await findKycDocumentPlan()
+                    planUnreadableRef.current = plan === null
                     if (plan?.available) {
                         if (plan.activeAttemptId) {
                             try {
@@ -641,6 +645,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     crossRegion,
                     targetCountry,
                     correctSession,
+                    ...(planUnreadableRef.current && { documentSelection: false }),
                 })
 
                 if (response.data?.attemptId && response.data.token && response.data.sdkConfig) {
@@ -934,6 +939,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             regionIntent: regionIntentRef.current,
             levelName: levelNameRef.current,
             targetCountry: targetCountryRef.current,
+            ...(planUnreadableRef.current && { documentSelection: false }),
         })
 
         if (response.error || !response.data?.token) {

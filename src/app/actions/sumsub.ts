@@ -105,6 +105,8 @@ export const initiateSumsubKyc = async (params?: {
     crossRegion?: boolean
     targetCountry?: string
     correctSession?: boolean
+    /** false on the legacy fallback after a failed plan read, so the backend starts the legacy flow */
+    documentSelection?: boolean
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string; code?: SumsubActionErrorCode }> => {
     const body: Record<string, string | boolean | undefined> = {
         corridor: params?.corridor,
@@ -119,7 +121,7 @@ export const initiateSumsubKyc = async (params?: {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
             // The backend only asks clients that announce the document picker to choose documents first.
-            headers: { 'x-kyc-document-selection': '1' },
+            headers: params?.documentSelection === false ? {} : { 'x-kyc-document-selection': '1' },
             body: JSON.stringify(body),
         })
 

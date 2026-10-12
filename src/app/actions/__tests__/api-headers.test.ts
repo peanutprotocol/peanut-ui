@@ -113,6 +113,14 @@ describe('action functions Content-Type headers', () => {
         expect(getLastCallHeaders()['Authorization']).toBe('Bearer test-token')
     })
 
+    it('leaves the document-selection header off the legacy fallback after a failed plan read', async () => {
+        const { initiateSumsubKyc } = require('@/app/actions/sumsub')
+        await initiateSumsubKyc({ documentSelection: false })
+        expect(getLastCallUrl()).toBe('https://api.test.com/users/identity')
+        expect(getLastCallHeaders()['x-kyc-document-selection']).toBeUndefined()
+        expect(getLastCallHeaders()['Authorization']).toBe('Bearer test-token')
+    })
+
     it('should include Content-Type in updateUserById', async () => {
         const { updateUserById } = require('@/app/actions/users')
         await updateUserById({ name: 'Test' })
