@@ -1504,7 +1504,7 @@ describe('document-first verification', () => {
         const features = { ...plan.features, bank: true }
         jest.mocked(saveKycFeatures)
             .mockClear()
-            .mockResolvedValue({ ...plan, available: false, routes: [], features })
+            .mockResolvedValue({ plan: { ...plan, available: false, routes: [], features } })
         await act(async () => {
             await result.current.confirmDocumentPlan('', [], features)
         })
@@ -1515,6 +1515,20 @@ describe('document-first verification', () => {
         expect(startKycDocumentReplacement).not.toHaveBeenCalled()
         expect(mockInitiate).not.toHaveBeenCalled()
         expect(result.current.documentPlan).toBeNull()
+    })
+    it('a feature toggle before identity shows the plan the save returned', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        const features = { ...plan.features, bank: true }
+        const replanned = { ...plan, features }
+        jest.mocked(saveKycFeatures).mockClear().mockResolvedValue({ plan: replanned })
+        await act(async () => {
+            await result.current.updateDocumentFeatures(features)
+        })
+        expect(saveKycFeatures).toHaveBeenCalledWith(features, false)
+        expect(result.current.documentPlan).toEqual(replanned)
     })
     it('chooses replacement documents in Peanut before resetting identity', async () => {
         const { result } = renderHook(() => useSumsubKycFlow({}))

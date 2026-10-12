@@ -1,6 +1,12 @@
 import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
-import type { KycAttemptSession, KycDocumentPlan, KycDocumentChoice, KycFeatures } from './types/kyc-workflow.types'
+import type {
+    KycAttemptSession,
+    KycDocumentPlan,
+    KycDocumentChoice,
+    KycFeatureReports,
+    KycFeatures,
+} from './types/kyc-workflow.types'
 
 async function read<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await serverFetch(path, { ...options, cache: 'no-store', redactTelemetry: true })
@@ -20,9 +26,15 @@ export async function findKycDocumentPlan(restart = false): Promise<KycDocumentP
         return null
     }
 }
-export async function saveKycFeatures(features: KycFeatures, restart = false) {
-    await read('/users/kyc-intents', { method: 'PUT', body: JSON.stringify(features) })
-    return getKycDocumentPlan(restart)
+export async function saveKycFeatures(
+    features: KycFeatures,
+    restart = false
+): Promise<{ plan: KycDocumentPlan; features?: KycFeatureReports }> {
+    const saved = await read<{ features?: KycFeatureReports } | null>('/users/kyc-intents', {
+        method: 'PUT',
+        body: JSON.stringify(features),
+    })
+    return { plan: await getKycDocumentPlan(restart), features: saved?.features ?? undefined }
 }
 function validSession(value: KycAttemptSession): KycAttemptSession {
     const identity = value?.sdkConfig?.documentDefinitions?.IDENTITY

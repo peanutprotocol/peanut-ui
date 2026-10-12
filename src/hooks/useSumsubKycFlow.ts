@@ -428,7 +428,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setIsLoading(true)
             setError(null)
             try {
-                setDocumentPlan(await saveKycFeatures(features, documentRestartRef.current))
+                setDocumentPlan((await saveKycFeatures(features, documentRestartRef.current)).plan)
                 documentRequestKeyRef.current = null
             } catch {
                 setError(t('errorInitiateFailed'))
