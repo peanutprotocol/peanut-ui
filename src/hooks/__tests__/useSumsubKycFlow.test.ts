@@ -1102,6 +1102,44 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
         expect(mockResubmit).not.toHaveBeenCalled()
     })
 
+    it('BRIDGE requirements_missing goes to start-action with its supplement key — there is no rejection to resubmit', async () => {
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-poa', levelName: 'provider-rfi-proof-of-address' } })
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'supplement:bridge',
+                reason: { code: 'requirements_missing' },
+            })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
+        expect(mockResubmit).not.toHaveBeenCalled()
+        expect(result.current.accessToken).toBe('tok-poa')
+        expect(result.current.isActionFlow).toBe(true)
+    })
+
+    it('a supplement key takes start-action even when the reason code is missing', async () => {
+        mockStartAction
+            .mockResolvedValueOnce({ data: { token: 'tok-poa', levelName: 'provider-rfi-proof-of-address' } })
+            .mockResolvedValueOnce({ data: { token: 'tok-poa-2', levelName: 'provider-rfi-proof-of-address' } })
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'BRIDGE', actionKey: 'supplement:bridge' })
+        })
+        let refreshed: string | undefined
+        await act(async () => {
+            refreshed = await result.current.refreshToken()
+        })
+
+        expect(mockStartAction).toHaveBeenNthCalledWith(1, 'supplement:bridge')
+        expect(mockStartAction).toHaveBeenNthCalledWith(2, 'supplement:bridge')
+        expect(refreshed).toBe('tok-poa-2')
+        expect(mockResubmit).not.toHaveBeenCalled()
+        expect(mockInitiate).not.toHaveBeenCalled()
+    })
+
     it('handleFixableGate on any other Bridge gate still takes resubmit', async () => {
         mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge' } } as never)
         const { result } = renderHook(() => useSumsubKycFlow())

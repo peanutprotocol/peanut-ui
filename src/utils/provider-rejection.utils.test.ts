@@ -251,6 +251,52 @@ describe('deriveProviderRejection — actionKey (per-requirement Sumsub level)',
     })
 })
 
+describe('deriveProviderRejection — a requirement the approved identity never collected', () => {
+    const supplement: NextAction = { key: 'supplement:bridge', kind: 'sumsub', purpose: 'unlock-bridge' }
+    const bridgeRail = (overrides: Partial<RailCapability> = {}): RailCapability => ({
+        id: 'bridge.ach_us',
+        provider: 'bridge',
+        method: 'ACH',
+        channel: 'bank',
+        country: 'US',
+        currency: 'USD',
+        status: 'requires-info',
+        reason: { code: 'requirements_missing', userMessage: 'We need one more document.' },
+        blockingActions: [supplement.key],
+        ...overrides,
+    })
+
+    test('a parked Bridge rail is fixable through its supplement key', () => {
+        const info = deriveProviderRejection([bridgeRail()], 'BRIDGE', [supplement])
+        expect(info).toMatchObject({
+            state: 'fixable',
+            reasonCode: 'requirements_missing',
+            actionKey: 'supplement:bridge',
+        })
+    })
+
+    test('the verdict the API resolved carries the same key', () => {
+        const info = deriveProviderRejection(
+            [
+                bridgeRail({
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'requirements_missing',
+                            userMessage: 'We need one more document.',
+                            selfHealable: true,
+                            selfHealKind: 'document-resubmit',
+                        },
+                        nextAction: supplement,
+                    },
+                }),
+            ],
+            'BRIDGE'
+        )
+        expect(info).toMatchObject({ state: 'fixable', actionKey: 'supplement:bridge' })
+    })
+})
+
 // api#1776: an approval with no identity document on file. The API sends one
 // top-level restart action and leaves every rail as it was, so a pool rail
 // still pays. The verify buttons must start the identity check, never Manteca

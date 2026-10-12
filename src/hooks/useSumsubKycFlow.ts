@@ -1219,9 +1219,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // CTA renders an error under copy that just asked for the user's address
     // (TASK-22286). Route that one code to start-action, which resolves the level
     // from RFI_LEVELS, and leave every rejection-shaped case exactly as it was.
+    // A `supplement:` key (`requirements_missing`) is parked the same way, for a
+    // requirement the approved identity never collected.
     const handleFixableRejection = useCallback(
         (rejection: { provider: 'BRIDGE' | 'MANTECA'; actionKey?: string | null; reasonCode?: string | null }) =>
-            rejection.actionKey && (rejection.provider === 'MANTECA' || rejection.reasonCode === 'residence_unresolved')
+            rejection.actionKey &&
+            (rejection.provider === 'MANTECA' ||
+                rejection.reasonCode === 'residence_unresolved' ||
+                rejection.actionKey.startsWith('supplement:'))
                 ? handleStartAction(rejection.actionKey)
                 : handleSelfHealResubmit(rejection.provider),
         [handleStartAction, handleSelfHealResubmit]
