@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
+    findKycDocumentPlan,
     getKycDocumentPlan,
     getKycDocumentStatus,
     resumeKycDocumentAttempt,
@@ -330,7 +331,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
         const fetchCurrentStatus = async () => {
             try {
-                if ((await getKycDocumentPlan()).available) return
+                if ((await findKycDocumentPlan())?.available) return
                 const response = await initiateSumsubKyc({ regionIntent })
                 if (response.data?.status && !initiatingRef.current && !showWrapperRef.current) {
                     setLiveKycStatus(response.data.status)
@@ -416,7 +417,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (documentBusyRef.current) return
         setDocumentPlan(null)
         userInitiatedRef.current = false
-    }, [])
+        onManualClose?.()
+    }, [onManualClose])
     const updateDocumentFeatures = useCallback(
         async (features: KycFeatures) => {
             if (documentBusyRef.current) return
@@ -436,18 +438,33 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [t, setError]
     )
     const confirmDocumentPlan = useCallback(
-        async (routeId: string, documents: KycDocumentChoice[]) => {
+        async (routeId: string, documents: KycDocumentChoice[], features?: KycFeatures) => {
             if (documentBusyRef.current || !documentPlan?.policyVersion) return
             documentBusyRef.current = true
             setIsLoading(true)
             setError(null)
-            try {
-                if (documentPreferencesOnly) {
+            if (documentPreferencesOnly) {
+                const changed =
+                    !!features &&
+                    (Object.keys(features) as (keyof KycFeatures)[]).some(
+                        (key) => features[key] !== documentPlan.features[key]
+                    )
+                try {
+                    // Saving an approved user's features enrols and submits providers, so it waits for Continue.
+                    if (changed) await saveKycFeatures(features)
                     setDocumentPlan(null)
                     userInitiatedRef.current = false
-                    onKycSuccess?.()
-                    return
+                    if (changed) onKycSuccess?.()
+                    else onManualClose?.()
+                } catch {
+                    setError(t('errorInitiateFailed'))
+                } finally {
+                    documentBusyRef.current = false
+                    setIsLoading(false)
                 }
+                return
+            }
+            try {
                 documentRequestKeyRef.current ??= Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
                     byte.toString(16).padStart(2, '0')
                 ).join('')
@@ -477,7 +494,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [documentPlan, documentPreferencesOnly, onKycSuccess, acceptDocumentSession, t, setError]
+        [documentPlan, documentPreferencesOnly, onKycSuccess, onManualClose, acceptDocumentSession, t, setError]
     )
 
     const handleInitiateKyc = useCallback(
@@ -527,8 +544,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (!correctSession && !levelName) {
                     documentRestartRef.current = false
                     setDocumentPreferencesOnly(false)
-                    const plan = await getKycDocumentPlan()
-                    if (plan.available) {
+                    const plan = await findKycDocumentPlan()
+                    if (plan?.available) {
                         if (plan.activeAttemptId)
                             acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
                         else {
@@ -538,10 +555,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         return false
                     }
                     // Approved workflow users can add providers without replacing or recollecting identity.
+                    // A cross-region or country-specific entry needs the enrolment initiate performs, not the picker.
                     if (
-                        plan.policyVersion &&
-                        (await getKycDocumentStatus()) === 'APPROVED' &&
-                        (await getKycDocumentPlan(true)).available
+                        plan?.policyVersion &&
+                        !crossRegion &&
+                        !targetCountry &&
+                        !corridor &&
+                        (await getKycDocumentStatus().catch(() => undefined)) === 'APPROVED' &&
+                        (await findKycDocumentPlan(true))?.available
                     ) {
                         setDocumentPreferencesOnly(true)
                         setDocumentPlan(plan)
@@ -902,8 +923,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             residenceChangeRef.current = false
 
             try {
-                const plan = await getKycDocumentPlan(true)
-                if (plan.available) {
+                const plan = await findKycDocumentPlan(true)
+                if (plan?.available) {
                     documentRestartRef.current = true
                     setDocumentPreferencesOnly(false)
                     if (plan.activeAttemptId)

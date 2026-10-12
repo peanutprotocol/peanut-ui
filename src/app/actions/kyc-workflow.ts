@@ -12,6 +12,14 @@ export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPl
     if (typeof plan.available !== 'boolean' || !Array.isArray(plan.routes)) throw new Error('Invalid KYC plan')
     return plan
 }
+/** No plan means the legacy flow: an API without the route, a rollback or a failed read must not block KYC. */
+export async function findKycDocumentPlan(restart = false): Promise<KycDocumentPlan | null> {
+    try {
+        return await getKycDocumentPlan(restart)
+    } catch {
+        return null
+    }
+}
 export async function saveKycFeatures(features: KycFeatures, restart = false) {
     await read('/users/kyc-intents', { method: 'PUT', body: JSON.stringify(features) })
     return getKycDocumentPlan(restart)

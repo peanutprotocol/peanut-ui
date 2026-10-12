@@ -1,5 +1,6 @@
 jest.mock('@/app/actions/kyc-workflow', () => ({
     getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    findKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
     getKycDocumentStatus: jest.fn(),
     resumeKycDocumentAttempt: jest.fn(),
     startKycDocumentAttempt: jest.fn(),

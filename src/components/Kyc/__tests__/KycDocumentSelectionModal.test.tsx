@@ -81,5 +81,29 @@ it('updates verified users’ feature preferences without asking for documents a
         screen.getByText('Choose the payment features you’d like to use. Your identity stays verified.')
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(onConfirm).toHaveBeenCalledWith('', [])
+    expect(onConfirm).toHaveBeenCalledWith('', [], plan.features)
+})
+
+it('a verified user’s ticks are sent only on Continue, because saving them enrols providers', () => {
+    const onFeatures = jest.fn()
+    const onConfirm = jest.fn().mockResolvedValue(undefined)
+    renderWithIntl(
+        <KycDocumentSelectionModal
+            preferencesOnly
+            plan={{ ...plan, available: false, routes: [] }}
+            busy={false}
+            error={null}
+            onClose={jest.fn()}
+            onFeatures={onFeatures}
+            onConfirm={onConfirm}
+        />
+    )
+    const [, local, , card] = screen.getAllByRole('checkbox')
+    fireEvent.click(card)
+    fireEvent.click(local)
+    fireEvent.click(local)
+    expect(onFeatures).not.toHaveBeenCalled()
+    expect(onConfirm).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(onConfirm).toHaveBeenCalledWith('', [], { ...plan.features, card: true })
 })

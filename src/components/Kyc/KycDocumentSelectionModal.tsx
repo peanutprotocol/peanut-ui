@@ -21,15 +21,19 @@ export function KycDocumentSelectionModal({
     error: string | null
     onClose: () => void
     onFeatures: (features: KycFeatures) => Promise<void>
-    onConfirm: (routeId: string, documents: KycDocumentChoice[]) => Promise<void>
+    onConfirm: (routeId: string, documents: KycDocumentChoice[], features?: KycFeatures) => Promise<void>
 }) {
     const t = useTranslations('kyc.documents')
     const locale = useLocale()
     const [routeId, setRouteId] = useState(plan.routes[0]?.id ?? '')
     const [choices, setChoices] = useState<KycDocumentChoice[]>([])
+    // An approved user's saved features enrol providers, so they are only sent on Continue.
+    const [draftFeatures, setDraftFeatures] = useState(plan.features)
+    const features = preferencesOnly ? draftFeatures : plan.features
     const route = plan.routes.find((r) => r.id === routeId)
     useEffect(() => {
         setRouteId(plan.routes[0]?.id ?? '')
+        setDraftFeatures(plan.features)
     }, [plan])
     useEffect(() => {
         setChoices(
@@ -59,14 +63,15 @@ export function KycDocumentSelectionModal({
             (!!route &&
                 choices.length === route.documents.length &&
                 choices.every((c) => c.type && c.issuingCountry))) &&
-        Object.values(plan.features).some(Boolean)
+        Object.values(features).some(Boolean)
     return (
         <Modal visible onClose={onClose} preventClose={busy} title={t(preferencesOnly ? 'preferencesTitle' : 'title')}>
             <form
                 className="flex flex-col gap-6 p-6"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    if (ready) void onConfirm(preferencesOnly ? '' : routeId, preferencesOnly ? [] : choices)
+                    if (!ready) return
+                    void (preferencesOnly ? onConfirm('', [], draftFeatures) : onConfirm(routeId, choices))
                 }}
             >
                 <p>{t(preferencesOnly ? 'preferencesDescription' : 'description')}</p>
@@ -76,8 +81,12 @@ export function KycDocumentSelectionModal({
                         <label className="flex min-h-11 items-center gap-3" key={feature}>
                             <input
                                 type="checkbox"
-                                checked={plan.features[feature]}
-                                onChange={(e) => void onFeatures({ ...plan.features, [feature]: e.target.checked })}
+                                checked={features[feature]}
+                                onChange={(e) => {
+                                    const next = { ...features, [feature]: e.target.checked }
+                                    if (preferencesOnly) setDraftFeatures(next)
+                                    else void onFeatures(next)
+                                }}
                             />
                             {t(feature)}
                         </label>
