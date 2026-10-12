@@ -273,9 +273,12 @@ export const useCreateRequestLink = () => {
 
                 // POST new request. A re-tap of the same unchanged form reuses
                 // the key, so the API answers with the request it already made.
+                // A non-USD request's dollar estimate moves with every rate
+                // refresh and the API ignores it, so it is not part of the form.
+                const { tokenAmount: _dollarEstimate, ...withoutEstimate } = requestData
                 const requestDetails = await requestsApi.create({
                     ...requestData,
-                    idempotencyKey: submissionKey(requestData),
+                    idempotencyKey: submissionKey(isDenominated ? withoutEstimate : requestData),
                 })
 
                 // An API deployed before `requestedAmount` does not refuse the
