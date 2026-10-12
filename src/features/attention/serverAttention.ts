@@ -14,12 +14,20 @@ export interface ServerAttention {
     nextAsk: string | null
 }
 
+/** anything but a version-1 body (a demo or fixture default, a proxy page) reads as no answer */
+export function asServerAttention(body: unknown): ServerAttention | undefined {
+    if (!body || typeof body !== 'object') return undefined
+    const { version, ranking, verdicts } = body as Partial<ServerAttention>
+    if (version !== 1 || !Array.isArray(ranking) || !verdicts || typeof verdicts !== 'object') return undefined
+    return body as ServerAttention
+}
+
 async function fetchServerAttention(): Promise<ServerAttention | undefined> {
     const response = await serverFetch('/users/me/attention', { callerReportsFailures: true })
     // an API deployed before the endpoint: the local ranking decides
     if (response.status === 404) return undefined
     if (!response.ok) throw new Error(`attention ${response.status}`)
-    return (await response.json()) as ServerAttention
+    return asServerAttention(await response.json())
 }
 
 export function useServerAttention(): ServerAttention | undefined {

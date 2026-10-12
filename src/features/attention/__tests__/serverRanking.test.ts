@@ -5,7 +5,7 @@
  */
 import { decide } from '../decide'
 import { ASKS } from '../registry'
-import { applyServerRanking } from '../serverAttention'
+import { applyServerRanking, asServerAttention } from '../serverAttention'
 import type { AttentionAsk, JourneyState, Ledger, Session } from '../types'
 
 type Server = NonNullable<Parameters<typeof applyServerRanking>[1]>
@@ -178,5 +178,19 @@ describe('decide() over the server ranking', () => {
     test('a server verdict can put a card in the zone the local data would not', () => {
         const d = run(applyServerRanking(ASKS, serverOf({ verdicts: { invite: 'show' } })), { invitesSent: 3 })
         expect(d.zone).toEqual({ id: 'invite', mode: 'ask' })
+    })
+})
+
+describe('asServerAttention', () => {
+    test.each([{}, [], null, 'ok', { version: 2, ranking: [], verdicts: {} }, { version: 1, verdicts: {} }])(
+        'a body that is not a version-1 answer reads as no answer: %j',
+        (body) => {
+            expect(asServerAttention(body)).toBeUndefined()
+        }
+    )
+
+    test('a version-1 answer passes through', () => {
+        const body = { version: 1, ranking: [], verdicts: {}, nextAsk: null }
+        expect(asServerAttention(body)).toBe(body)
     })
 })
