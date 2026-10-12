@@ -44,6 +44,10 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const method = (options?.method ?? 'GET').toUpperCase()
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
 
+    // No fixture call reaches the network, so a spec cannot see requests there.
+    // A spec that creates this list reads each call the page made from it.
+    ;(window as Window & { __fixtureRequests?: string[] }).__fixtureRequests?.push(`${method} ${path}`)
+
     if (fixture.fails?.includes(key)) {
         return new Response(JSON.stringify({ error: 'fixture failure' }), { status: 500, headers: JSON_HEADERS })
     }
