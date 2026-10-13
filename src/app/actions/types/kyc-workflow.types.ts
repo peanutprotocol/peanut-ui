@@ -18,3 +18,4 @@ export type KycFeatureReport = {
     action?: string
 }
 export type KycFeatureReports = Record<keyof KycFeatures, KycFeatureReport>
+export type KycProfile = paths['/users/kyc/profile']['get']['responses'][200]['content']['application/json']

@@ -6,6 +6,7 @@ import type {
     KycDocumentChoice,
     KycFeatureReports,
     KycFeatures,
+    KycProfile,
 } from './types/kyc-workflow.types'
 
 async function read<T>(path: string, options?: RequestInit): Promise<T> {
@@ -106,4 +107,19 @@ export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefine
     )
         return status as SumsubKycStatus
     return undefined
+}
+
+/** The features saved on the document list when the current identity was verified through it; null for every other identity. */
+export async function findKycSetupFeatures(): Promise<KycFeatures | null> {
+    try {
+        const [profile, plan] = await Promise.all([read<KycProfile>('/users/kyc/profile'), getKycDocumentPlan()])
+        const identityId = profile.identity?.verificationId
+        const documentFirst = profile.attempts.some(
+            (attempt) =>
+                attempt.kind === 'IDENTITY' && attempt.verificationId === identityId && attempt.status !== 'SUPERSEDED'
+        )
+        return identityId && documentFirst ? plan.features : null
+    } catch {
+        return null
+    }
 }

@@ -6,7 +6,8 @@ import { KycProcessing } from './states/KycProcessing'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import { findKycSetupFeatures } from '@/app/actions/kyc-workflow'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -26,7 +27,7 @@ interface KycStatusDrawerProps {
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
     const { identity, status, isRegionRestricted, isTerminalFailure, isEmailCollision, needsDocumentRestart } =
         useIdentityVerification()
-    const { logoutUser } = useAuth()
+    const { logoutUser, user } = useAuth()
     const t = useTranslations('kyc')
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -40,6 +41,26 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         onKycSuccess: handleFlowDone,
         onManualClose: handleFlowDone,
     })
+
+    // An identity verified through the document list shows its setup status
+    // instead: this drawer steps aside for it and stays mounted under it.
+    const handoffRef = useRef({ onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus })
+    handoffRef.current = { onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus }
+    const checksSetup = isOpen && !!user?.user?.userId && (status === 'processing' || status === 'verified')
+    useEffect(() => {
+        if (!checksSetup) return
+        let cancelled = false
+        void findKycSetupFeatures().then((features) => {
+            if (cancelled || !features) return
+            const handoff = handoffRef.current
+            handoff.onKeepMounted?.(true)
+            handoff.onClose()
+            handoff.openSetupStatus(features)
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [checksSetup])
 
     // close drawer but keep mounted so SumsubKycModals persists, then start kyc
     const resumeKyc = useCallback(async () => {
