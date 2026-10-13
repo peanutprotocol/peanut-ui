@@ -70,6 +70,7 @@ import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
+import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
@@ -174,6 +175,41 @@ function AppPageSurface({ children }: { children: React.ReactNode }) {
                 {children}
             </div>
         </div>
+    )
+}
+
+function WithdrawReviewSurface({
+    isProcessing = false,
+    alreadySpent = false,
+}: {
+    isProcessing?: boolean
+    alreadySpent?: boolean
+}) {
+    return (
+        <AppPageSurface>
+            <ConfirmWithdrawView
+                amount="50"
+                token={
+                    {
+                        address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+                        symbol: 'USDC',
+                        decimals: 6,
+                        price: 1,
+                    } as React.ComponentProps<typeof ConfirmWithdrawView>['token']
+                }
+                chain={
+                    { chainId: 'solana', networkName: 'Solana' } as React.ComponentProps<
+                        typeof ConfirmWithdrawView
+                    >['chain']
+                }
+                toAddress="11111111111111111111111111111111"
+                onConfirm={noop}
+                onBack={noop}
+                insufficientBalance
+                isProcessing={isProcessing}
+                alreadySpent={alreadySpent}
+            />
+        </AppPageSurface>
     )
 }
 
@@ -789,6 +825,20 @@ export const SURFACES: Record<string, Surface> = {
             </AppPageSurface>
         ),
     },
+    '82-f-choice-card-needs-review': {
+        ...SURFACE_META['82-f-choice-card-needs-review'],
+        render: () => (
+            <AppPageSurface>
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonCode="card_needs_review"
+                    onUploadProofOfAddress={noop}
+                    onUploadIdentity={noop}
+                    onContactSupport={noop}
+                />
+            </AppPageSurface>
+        ),
+    },
     '83-f-choice-residence-restricted': {
         ...SURFACE_META['83-f-choice-residence-restricted'],
         render: () => <SetupScreen screenId="payment-plan" residenceCountry="RU" />,
@@ -862,6 +912,18 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '89-f-withdraw-review-insufficient': {
+        ...SURFACE_META['89-f-withdraw-review-insufficient'],
+        render: () => <WithdrawReviewSurface />,
+    },
+    '90-f-withdraw-review-processing': {
+        ...SURFACE_META['90-f-withdraw-review-processing'],
+        render: () => <WithdrawReviewSurface isProcessing />,
+    },
+    '91-f-withdraw-review-spent': {
+        ...SURFACE_META['91-f-withdraw-review-spent'],
+        render: () => <WithdrawReviewSurface alreadySpent />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

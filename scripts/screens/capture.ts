@@ -175,6 +175,7 @@ async function main() {
                 name: screen.name,
                 flow: screen.flow,
                 kind: screen.kind,
+                defaultScreen: screen.defaultScreen,
                 order: screen.order,
                 ...(screen.journey ? { journey: screen.journey } : {}),
             }

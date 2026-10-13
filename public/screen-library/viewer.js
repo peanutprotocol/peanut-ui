@@ -136,6 +136,7 @@ let rows = [],
     active,
     activeMode = 'screen',
     viewMode = 'all',
+    showVariations = true,
     indexEntries = [],
     reportLocaleEntries = [],
     reportSourceEntries = [],
@@ -184,6 +185,39 @@ const orderRows = (values) =>
         const rightOrder = Number.isSafeInteger(right.order) ? right.order : Number.MAX_SAFE_INTEGER
         return leftOrder - rightOrder
     })
+const legacyVariationPageIds = new Set([
+    'p02-backup-lose-phone',
+    'p03-backup-change-phone',
+    'p04-backup-export-keys',
+    'p35-home-ctas',
+    'p36-add-money-bank-list',
+    'p37-add-money-crypto',
+    'p38-kyc-action-required',
+    'p39-language',
+    'p40-withdraw',
+    'p41-home-add-drawer',
+    'p42-home-send-drawer',
+    'p57-qr-code',
+    'p59-receipt',
+    'p68-invite',
+    'p71-accounts-held',
+    'p72-accounts-held-open',
+    'p73-token-selector-drawer',
+    'p74-network-selector-drawer',
+    'p75-residence-country-dropdown',
+    'p76-exchange-currency-dropdown',
+    'p77-base-select-dropdown',
+])
+function isDefaultScreen(row) {
+    if (Object.hasOwn(row, 'defaultScreen')) return row.defaultScreen === true
+    // Older immutable reports have no classification. Only known page IDs
+    // qualify; interaction names and unknown IDs remain variations.
+    return (
+        /^p\d+-[a-z0-9-]+$/.test(row.id) &&
+        !legacyVariationPageIds.has(row.id) &&
+        !/(?:modal|drawer|toggle|fixture)/i.test(row.id)
+    )
+}
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
@@ -207,7 +241,10 @@ function shareableParams(overrides = {}) {
         if (query) params.set('q', query)
         if (flow) params.set('flow', flow)
         if (status) params.set('status', status)
-        if (report.type === 'comparison') params.set('view', overrides.view ?? viewMode)
+        if (report.type === 'comparison') {
+            params.set('view', overrides.view ?? viewMode)
+            if ((overrides.scope ?? (showVariations ? 'all' : 'default')) === 'default') params.set('scope', 'default')
+        }
     }
     return params
 }
@@ -350,6 +387,7 @@ function filteredScreenRows() {
     return rows.filter(
         (r) =>
             (report?.type === 'collection' || availableScreen(r)) &&
+            (report?.type !== 'comparison' || showVariations || isDefaultScreen(r)) &&
             (!q || `${r.name} ${r.id} ${r.flow}`.toLowerCase().includes(q)) &&
             (!flow || flow === r.flow) &&
             (!changedMode || VISUAL_CHANGE_STATUSES.has(r.status)) &&
@@ -852,7 +890,9 @@ async function start() {
     const before = activeComparison?.before ?? report.before,
         after = activeComparison?.after ?? (report.type === 'comparison' ? report.after : report)
     viewMode = report.type === 'comparison' ? 'changed' : 'all'
+    showVariations = report.type !== 'comparison' || requestedFilter('scope') !== 'default'
     $('view-mode').checked = viewMode === 'all'
+    $('variations-mode').checked = showVariations
     $('title').textContent =
         report.type === 'collection'
             ? report.title
@@ -962,7 +1002,9 @@ async function start() {
     render()
     if (location.hash) {
         viewMode = 'all'
+        showVariations = true
         $('view-mode').checked = true
+        $('variations-mode').checked = true
         $('status').value = ''
         render()
         while (!document.getElementById(location.hash.slice(1)) && renderedCount < filteredRows.length) appendNextPage()
@@ -1033,6 +1075,11 @@ $('branch').addEventListener('change', renderLanding)
 $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''
+    render()
+    syncShareableUrl()
+})
+$('variations-mode').addEventListener('change', () => {
+    showVariations = $('variations-mode').checked
     render()
     syncShareableUrl()
 })

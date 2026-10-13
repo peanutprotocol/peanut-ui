@@ -14,6 +14,8 @@ export type PageCapture = {
     clicks?: string[]
     /** Scroll to the bottom first — some notifications sit below the fold. */
     toBottom?: boolean
+    /** Canonical page after navigation, even when navigation needs setup actions. */
+    defaultScreen?: boolean
 }
 
 export const PAGE_CAPTURES: PageCapture[] = [
@@ -122,6 +124,7 @@ PAGE_CAPTURES.push(
         id: 'p64-withdraw-europe',
         name: 'Withdraw — European bank',
         route: '/withdraw/spain/bank',
+        defaultScreen: true,
         entryRoute: '/withdraw?amount=50',
         actions: [
             { click: '0802' },

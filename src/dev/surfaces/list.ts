@@ -10,6 +10,10 @@
 export type SurfaceMeta = {
     name: string
     path: string
+    /** Human-readable state inputs used by this deterministic capture. */
+    captureState?: string[]
+    /** A visible element owned by the mounted component, not just the gallery shell. */
+    expectSelector?: string
     blocked?: string
     /** Fixture the shot spec must load instead of its default — for surfaces
      *  whose open state depends on an API answer the demo baseline lacks. */
@@ -211,6 +215,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Card application — more information required',
         path: 'Card/ApplicationStatusScreen.tsx',
     },
+    '82-f-choice-card-needs-review': {
+        name: 'Card application — card partner needs review',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'reasonCode=card_needs_review'],
+        expectSelector: '[data-testid="app-page-surface-content"] h1',
+    },
     '83-f-choice-residence-restricted': {
         name: 'Setup payment plan — restricted residence',
         path: 'Setup/Views/PaymentPlan.tsx',
@@ -232,6 +242,24 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request link — bank currency chooser',
         path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
         shotClickTestId: 'bank-transfer-chooser',
+    },
+    '89-f-withdraw-review-insufficient': {
+        name: 'Withdrawal review — insufficient balance before confirmation',
+        path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
+        captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '90-f-withdraw-review-processing': {
+        name: 'Withdrawal review — processing after balance refresh',
+        path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
+        captureState: ['insufficientBalance=true', 'processing=true', 'alreadySpent=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '91-f-withdraw-review-spent': {
+        name: 'Withdrawal review — already spent after balance refresh',
+        path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
+        captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=true'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',
