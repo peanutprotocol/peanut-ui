@@ -481,6 +481,52 @@ const BLOCKED_BANK_CAPABILITIES = {
 }
 
 /**
+ * The setup status of an identity verified through the document list
+ * (api#1816): /users/kyc/profile holds its identity attempt and
+ * /users/kyc/plan the saved features. Open the identity row on Activity.
+ */
+const SETUP_PROFILE = {
+    identity: {
+        verificationId: 'fixture-identity',
+        applicantId: null,
+        canonicalStatus: 'APPROVED',
+        status: 'verified',
+    },
+    attempts: [
+        {
+            id: 'fixture-attempt',
+            verificationId: 'fixture-identity',
+            provider: 'SUMSUB',
+            kind: 'IDENTITY',
+            status: 'APPROVED',
+        },
+    ],
+}
+const setupPlan = (features: { qr: boolean; local: boolean; bank: boolean; card: boolean }) => ({
+    available: false,
+    activeAttemptId: null,
+    policyVersion: 'fixture',
+    features,
+    routes: [],
+})
+const SETUP_PIX_RAIL = {
+    id: 'manteca.pix_br',
+    provider: 'manteca',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status: 'enabled',
+    operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' },
+}
+const SETUP_ACCOUNT_RAILS = BRIDGE_BANK_RAILS.slice(0, 2)
+const SETUP_SUPPLEMENT = { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }
+const setupMe = (rails: unknown[], nextActions: unknown[] = []) => ({
+    residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null },
+    capabilities: { rails, nextActions, restrictions: [] },
+})
+
+/**
  * QR pay closed for this user: the one case the Home checklist has no payment
  * row (QR pay is open to every verified user unless the capabilities block it).
  */
@@ -1436,6 +1482,111 @@ export const FIXTURES: Record<string, Fixture> = {
                     restrictions: [],
                 },
             },
+        },
+    },
+
+    'kyc-setup-all-available': {
+        route: '/history',
+        about: 'Setup status after a document-first identity check: every saved feature is available, so it reads all set.',
+        responses: {
+            'GET /users/me': setupMe([
+                SETUP_PIX_RAIL,
+                ...SETUP_ACCOUNT_RAILS.map((rail) => ({ ...rail, status: 'enabled' })),
+                {
+                    id: 'rain.card_rain',
+                    provider: 'rain',
+                    method: 'CARD_RAIN',
+                    channel: 'card',
+                    country: 'GLOBAL',
+                    currency: 'USD',
+                    status: 'enabled',
+                    operations: { pay: 'enabled' },
+                },
+            ]),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: true, card: true }),
+        },
+    },
+    'kyc-setup-bank-document-needed': {
+        route: '/history',
+        about: 'Setup status: QR pays, the accounts wait for a proof of address on the supplement action.',
+        responses: {
+            'GET /users/me': setupMe(
+                [
+                    SETUP_PIX_RAIL,
+                    ...SETUP_ACCOUNT_RAILS.map((rail) => ({
+                        ...rail,
+                        status: 'blocked',
+                        reason: {
+                            code: 'requirements_missing',
+                            userMessage: 'We need one more document to finish setting this up.',
+                        },
+                        blockingActions: ['supplement:bridge'],
+                        resolved: {
+                            status: 'fixable',
+                            blocking: {
+                                code: 'requirements_missing',
+                                userMessage: 'We need one more document to finish setting this up.',
+                                selfHealable: true,
+                                selfHealKind: 'document-resubmit',
+                            },
+                            nextAction: SETUP_SUPPLEMENT,
+                        },
+                    })),
+                ],
+                [SETUP_SUPPLEMENT]
+            ),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: true, card: false }),
+        },
+    },
+    'kyc-setup-bank-address-review': {
+        route: '/history',
+        about: 'Setup status: the proof of address is under review, so the accounts read under review with no button.',
+        responses: {
+            'GET /users/me': setupMe([
+                SETUP_PIX_RAIL,
+                ...SETUP_ACCOUNT_RAILS.map((rail) => ({
+                    ...rail,
+                    status: 'pending',
+                    reason: {
+                        code: 'requirements_in_review',
+                        userMessage: "We're checking your proof of address. Bank accounts open once it's approved.",
+                    },
+                    blockingActions: [],
+                    resolved: { status: 'pending' },
+                })),
+            ]),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: true, card: false }),
+        },
+    },
+    'kyc-setup-card-agreements-needed': {
+        route: '/history',
+        about: 'Setup status: QR pays, the card has no application yet, so its agreements wait on the card page.',
+        responses: {
+            'GET /users/me': setupMe([SETUP_PIX_RAIL]),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: false, card: true }),
+        },
+    },
+    'kyc-setup-local-id-refused': {
+        route: '/history',
+        about: 'Setup status: the plan refused Manteca for the document country, so QR and local transfers need an ID issued by Brazil while the accounts work.',
+        responses: {
+            'GET /users/me': setupMe(
+                SETUP_ACCOUNT_RAILS.map((rail) => ({ ...rail, status: 'enabled' })),
+                [
+                    {
+                        key: 'restart-identity',
+                        kind: 'restart-identity',
+                        purpose: 'document_country_unsupported',
+                        refused: [{ provider: 'manteca', reason: 'document_country_unsupported' }],
+                    },
+                ]
+            ),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: true, card: false }),
         },
     },
 
