@@ -33,6 +33,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                     onClose={flow.dismissDocumentPlan}
                     onFeatures={flow.updateDocumentFeatures}
                     onConfirm={flow.confirmDocumentPlan}
+                    onVerifyAgain={flow.documentRestartOffered ? () => void flow.handleRestartIdentity() : undefined}
                 />
             )}
             <ActionModal

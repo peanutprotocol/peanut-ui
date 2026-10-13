@@ -1742,10 +1742,11 @@ describe('document-first verification', () => {
                 "USD, EUR, MXN and GBP accounts: we can't finish setting this up in the app. Contact support and we'll complete it for you."
             )
             expect(result.current.documentPlan).toEqual(saved)
+            expect(result.current.documentRestartOffered).toBe(false)
             expect(result.current.isLoading).toBe(false)
         })
 
-        it('a feature that needs a different ID document asks for support and never restarts identity', async () => {
+        it('a feature that needs a different ID document offers a new identity check, started only on request', async () => {
             const onKycSuccess = jest.fn()
             const { result } = await openFeatures({ onKycSuccess })
 
@@ -1755,9 +1756,19 @@ describe('document-first verification', () => {
             expect(mockRestart).not.toHaveBeenCalled()
             expect(mockStartAction).not.toHaveBeenCalled()
             expect(result.current.error).toBe(
-                "USD, EUR, MXN and GBP accounts: this needs a different ID document than the one you verified with. Contact support and we'll help you verify with another one."
+                'USD, EUR, MXN and GBP accounts: this needs a different ID document than the one you verified with.'
             )
+            expect(result.current.documentRestartOffered).toBe(true)
             expect(result.current.documentPlan).toEqual(saved)
+
+            await act(async () => {
+                await result.current.handleRestartIdentity()
+            })
+            expect(getKycDocumentPlan).toHaveBeenLastCalledWith(true)
+            expect(result.current.documentRestartOffered).toBe(false)
+            expect(result.current.documentPreferencesOnly).toBe(false)
+            expect(result.current.documentPlan).toEqual(plan)
+            expect(result.current.error).toBeNull()
         })
     })
     it('a feature toggle before identity shows the plan the save returned', async () => {

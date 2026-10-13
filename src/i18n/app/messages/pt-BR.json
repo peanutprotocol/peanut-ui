@@ -3346,7 +3346,7 @@
             "proofOfAddressCta": "Adicionar comprovante de endereço",
             "later": "Fazer isso depois",
             "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
-            "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação. Fale com o suporte e ajudamos você a se verificar com outro."
+            "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação."
         }
     },
     "identity": {

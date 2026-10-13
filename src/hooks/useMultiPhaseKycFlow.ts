@@ -383,6 +383,7 @@ export const useMultiPhaseKycFlow = ({
         isMultiLevel,
         documentPlan,
         documentPreferencesOnly,
+        documentRestartOffered,
         documentConfig,
         documentAttemptId,
         confirmDocumentPlan,
@@ -952,6 +953,7 @@ export const useMultiPhaseKycFlow = ({
 
         documentPlan,
         documentPreferencesOnly,
+        documentRestartOffered,
         documentConfig,
         documentAttemptId,
         confirmDocumentPlan,

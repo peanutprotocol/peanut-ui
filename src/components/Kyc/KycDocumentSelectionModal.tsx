@@ -17,6 +17,7 @@ export function KycDocumentSelectionModal({
     onClose,
     onFeatures,
     onConfirm,
+    onVerifyAgain,
 }: {
     plan: KycDocumentPlan
     preferencesOnly?: boolean
@@ -25,8 +26,11 @@ export function KycDocumentSelectionModal({
     onClose: () => void
     onFeatures: (features: KycFeatures) => Promise<void>
     onConfirm: (routeId: string, documents: KycDocumentChoice[], features?: KycFeatures) => Promise<void>
+    /** A saved feature the verified document cannot open: the same new identity check the setup status offers. */
+    onVerifyAgain?: () => void
 }) {
     const t = useTranslations('kyc.documents')
+    const tRejection = useTranslations('profile.regions.providerRejection')
     const locale = useLocale()
     const [routeId, setRouteId] = useState(plan.routes[0]?.id ?? '')
     const [choices, setChoices] = useState<KycDocumentChoice[]>([])
@@ -200,6 +204,17 @@ export function KycDocumentSelectionModal({
                 <Button type="submit" disabled={busy || !ready} data-testid="kyc-documents-continue">
                     {t(preferencesOnly ? 'preferencesContinue' : 'continue')}
                 </Button>
+                {onVerifyAgain && (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={onVerifyAgain}
+                        data-testid="kyc-documents-verify-again"
+                    >
+                        {tRejection('restartTitle')}
+                    </Button>
+                )}
             </form>
         </Modal>
     )

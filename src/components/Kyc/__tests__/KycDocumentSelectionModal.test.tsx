@@ -304,3 +304,39 @@ describe('document labels', () => {
         expect(names).toEqual(['Germany', 'Switzerland', 'United Kingdom'])
     })
 })
+
+it('a feature the verified document cannot open offers the same new identity check as the setup status', () => {
+    const onVerifyAgain = jest.fn()
+    const error = 'USD, EUR, MXN and GBP accounts: this needs a different ID document than the one you verified with.'
+    renderWithIntl(
+        <KycDocumentSelectionModal
+            plan={plan}
+            preferencesOnly
+            busy={false}
+            error={error}
+            onClose={jest.fn()}
+            onFeatures={jest.fn()}
+            onConfirm={jest.fn()}
+            onVerifyAgain={onVerifyAgain}
+        />
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(error)
+    expect(screen.queryByText(/support/i)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Verify with a different document' }))
+    expect(onVerifyAgain).toHaveBeenCalledTimes(1)
+})
+
+it('offers no new identity check for any other error', () => {
+    renderWithIntl(
+        <KycDocumentSelectionModal
+            plan={plan}
+            preferencesOnly
+            busy={false}
+            error="Something went wrong."
+            onClose={jest.fn()}
+            onFeatures={jest.fn()}
+            onConfirm={jest.fn()}
+        />
+    )
+    expect(screen.queryByRole('button', { name: 'Verify with a different document' })).toBeNull()
+})

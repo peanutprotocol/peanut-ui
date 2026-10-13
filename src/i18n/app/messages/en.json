@@ -3346,7 +3346,7 @@
             "proofOfAddressCta": "Add proof of address",
             "later": "Do this later",
             "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
-            "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with. Contact support and we'll help you verify with another one."
+            "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with."
         }
     },
     "identity": {

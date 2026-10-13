@@ -185,6 +185,8 @@ export const useSumsubKycFlow = ({
     const [documentPlan, setDocumentPlan] = useState<KycDocumentPlan | null>(null)
     const [documentPreferencesOnly, setDocumentPreferencesOnly] = useState(false)
     const [documentConfig, setDocumentConfig] = useState<KycAttemptSession['sdkConfig']>()
+    // A saved feature the verified document cannot open: the list offers a new identity check.
+    const [documentRestartOffered, setDocumentRestartOffered] = useState(false)
     // called synchronously: the caller decides on it before the next render
     const onSetupFeaturesRef = useRef(onSetupFeatures)
     onSetupFeaturesRef.current = onSetupFeatures
@@ -464,6 +466,7 @@ export const useSumsubKycFlow = ({
     const dismissDocumentPlan = useCallback(() => {
         if (documentBusyRef.current) return
         setDocumentPlan(null)
+        setDocumentRestartOffered(false)
         userInitiatedRef.current = false
         onManualClose?.()
     }, [onManualClose])
@@ -491,6 +494,7 @@ export const useSumsubKycFlow = ({
             documentBusyRef.current = true
             setIsLoading(true)
             setError(null)
+            setDocumentRestartOffered(false)
             let handOffToLegacy = false
             if (documentPreferencesOnly) {
                 const changed =
@@ -508,6 +512,7 @@ export const useSumsubKycFlow = ({
                     if (saved && outcome && 'copy' in outcome) {
                         setDocumentPlan(saved.plan)
                         setError(t(outcome.copy, { feature: t(`documents.${outcome.feature}`) }))
+                        setDocumentRestartOffered(outcome.copy === 'supplement.identityDocumentInsufficient')
                         return
                     }
                     supplementAction = outcome && 'action' in outcome ? outcome.action : undefined
@@ -996,6 +1001,7 @@ export const useSumsubKycFlow = ({
             verificationSessionRef.current = null
             setVerificationSession(null)
             setShowCorrection(false)
+            setDocumentRestartOffered(false)
             setIsLoading(true)
             setError(null)
             setIsTerminalError(false)
@@ -1309,6 +1315,7 @@ export const useSumsubKycFlow = ({
     return {
         documentPlan,
         documentPreferencesOnly,
+        documentRestartOffered,
         documentConfig,
         documentAttemptId: documentAttemptRef.current,
         confirmDocumentPlan,
