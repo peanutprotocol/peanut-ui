@@ -1567,7 +1567,8 @@
                 "description": "The payment has not been confirmed yet. Check Activity before trying again."
             }
         },
-        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "pixKeySavedAs": "Saved as {name}"
     },
     "card": {
         "navAddCard": "Add card",

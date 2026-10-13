@@ -1567,7 +1567,8 @@
                 "description": "O pagamento ainda não foi confirmado. Confira Atividade antes de tentar novamente."
             }
         },
-        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "pixKeySavedAs": "Salva como {name}"
     },
     "card": {
         "navAddCard": "Adicionar cartão",
