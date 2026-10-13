@@ -338,6 +338,11 @@ h1 {
 .mode-row {
     padding: 20px 0 10px;
 }
+.mode-row:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+}
 .filters-row {
     display: flex;
     align-items: flex-end;

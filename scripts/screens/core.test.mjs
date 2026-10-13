@@ -74,6 +74,15 @@ test('same pixels remain unchanged; changed pixels get a diff', () => {
     assert.ok(r.screens[0].diff)
     assert.equal(compare(capture([screen('home')]), capture([screen('home')]), dir).screens[0].status, 'unchanged')
 })
+test('default-screen classification is validated and carried into comparisons', () => {
+    const before = capture([{ ...screen('home'), defaultScreen: true }])
+    const after = capture([{ ...screen('home'), defaultScreen: false }])
+    assert.equal(compare(before, after, dir).screens[0].defaultScreen, false)
+    assert.throws(
+        () => validateCapture(capture([{ ...screen('home'), defaultScreen: 'yes' }])),
+        /default-screen classification/
+    )
+})
 test('four-pixel rendering noise stays unchanged and the first visible percentage still changes', () => {
     for (const [profile, { width, height }] of Object.entries(CAPTURE_PROFILES)) {
         const image = new PNG({ width, height })

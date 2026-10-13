@@ -1,8 +1,11 @@
 const supportedLocales = new Set(['en', 'es-419', 'es-AR', 'pt-BR'])
 const reviewableStatuses = new Set(['unchanged', 'changed', 'added', 'new', 'removed', 'excluded', 'absent'])
-const visualSource =
-    /^(?:src\/(?:app|assets|components|features|content|hooks|i18n|utils|constants|styles)\/|public\/|(?:tailwind|postcss)\.config\.)/
-const testSource = /(?:^|\/)(?:__tests__|__mocks__|test-utils)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/
+const settledCaptureStatuses = new Set(['captured', 'excluded', 'absent'])
+const missingComponentHarnessReason =
+    'This revision has no compatible scenario harness for this component; no newer product code was copied'
+const visualSource = /^(?:src\/|public\/|(?:tailwind|postcss)\.config\.)/
+const testSource =
+    /^(?:src\/dev\/)|(?:^|\/)(?:__tests__|__mocks__|test-utils)\/|\.(?:test|spec)\.[cm]?[jt]sx?$|\.d\.ts$/
 const exceptionLine = /^Screen Library exception:[ \t]*(\S[^\r\n]*)$/gm
 
 const hasExceptionReason = (body) => {
@@ -15,12 +18,29 @@ const hasExceptionReason = (body) => {
 
 /** A newly registered state may lack a baseline without making the review partial. */
 export function reviewableComparison(comparison) {
-    return (
-        comparison?.after?.complete === true &&
-        Array.isArray(comparison?.screens) &&
-        comparison.screens.length > 0 &&
-        comparison.screens.every((screen) => reviewableStatuses.has(screen.status))
-    )
+    const { before, after, screens } = comparison ?? {}
+    if (after?.complete !== true || !Array.isArray(screens) || !screens.length) return false
+    if (!screens.every((screen) => reviewableStatuses.has(screen.status))) return false
+    if (!Array.isArray(before?.inventory) || !before.inventory.length) return false
+    if (!before.inventory.every((entry) => ['catalogued', 'excluded'].includes(entry.status))) return false
+    if (!Array.isArray(before.screens) || !before.screens.length) return false
+
+    const comparedById = new Map(screens.map((screen) => [screen.id, screen]))
+    const hasCapturedBaseline = before.screens.some((screen) => screen.status === 'captured')
+    let hasNewHarnessGap = false
+    const onlyKnownGaps = before.screens.every((screen) => {
+        if (settledCaptureStatuses.has(screen.status)) return true
+        const current = comparedById.get(screen.id)
+        const newHarnessGap =
+            screen.kind === 'component' &&
+            screen.status === 'unavailable' &&
+            screen.reason === missingComponentHarnessReason &&
+            current?.status === 'new' &&
+            (current.after?.status === undefined || current.after.status === 'captured')
+        hasNewHarnessGap ||= newHarnessGap
+        return newHarnessGap
+    })
+    return hasCapturedBaseline && onlyKnownGaps && (before.complete === true || hasNewHarnessGap)
 }
 
 /** Decide whether an exact-head PR review has enough visual coverage to pass. */

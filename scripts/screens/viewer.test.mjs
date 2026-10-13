@@ -11,6 +11,7 @@ const elementIds = [
     'view-mode',
     'view-mode-control',
     'view-mode-row',
+    'variations-mode',
     'source',
     'source-control',
     'branch',
@@ -964,6 +965,189 @@ test('report filters restore from and continuously update the shareable URL', as
         elements.location.search,
         '?source=synthetic&locale=en&q=Changed+screen&flow=Home&status=changed&view=all'
     )
+})
+
+const comparisonScreen = ({ id, name = id, flow = 'Home', status = 'changed', defaultScreen }) => {
+    const image = 'a'.repeat(64) + '.png'
+    return {
+        id,
+        name,
+        flow,
+        kind: 'route',
+        status,
+        ...(defaultScreen === undefined ? {} : { defaultScreen }),
+        before: { status: 'captured', image, thumbnail: image },
+        after: { status: 'captured', image, thumbnail: image },
+    }
+}
+
+const comparisonReportWith = (screens, locale = 'en') => ({
+    schema: 1,
+    type: 'comparison',
+    locale,
+    complete: true,
+    before: { commit: 'a'.repeat(40), capturedAt: 'now', environment: 'test' },
+    after: { commit: 'b'.repeat(40), capturedAt: 'now', environment: 'test' },
+    screens,
+})
+
+test('PR galleries start with all variations and default mode excludes every explicitly special route state', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'p01-home', name: 'Home', defaultScreen: true }),
+        comparisonScreen({ id: 'p01-home-modal', name: 'Home modal', defaultScreen: false }),
+        comparisonScreen({ id: 'p01-home-drawer', name: 'Home drawer', defaultScreen: false }),
+        comparisonScreen({ id: 'p01-home-toggle-on', name: 'Home toggle enabled', defaultScreen: false }),
+        comparisonScreen({ id: 'p01-home-special-fixture', name: 'Home special fixture', defaultScreen: false }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, { report })
+
+    assert.equal(elements.get('variations-mode').checked, true)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home', 'p01-home-modal', 'p01-home-drawer', 'p01-home-toggle-on', 'p01-home-special-fixture']
+    )
+
+    elements.get('variations-mode').checked = false
+    elements.get('variations-mode').dispatch('change')
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home']
+    )
+    assert.equal(new URLSearchParams(elements.location.search).get('scope'), 'default')
+})
+
+test('default screens compose with search, flow and status and restore from a shareable URL', async () => {
+    const path = `2026-10-13/pr-3700/en/${'b'.repeat(40)}`
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'home-default', name: 'Home review', flow: 'Home', defaultScreen: true }),
+        comparisonScreen({ id: 'home-modal', name: 'Home review modal', flow: 'Home', defaultScreen: false }),
+        comparisonScreen({
+            id: 'home-unchanged',
+            name: 'Home review unchanged',
+            flow: 'Home',
+            status: 'unchanged',
+            defaultScreen: true,
+        }),
+        comparisonScreen({ id: 'send-default', name: 'Send review', flow: 'Send', defaultScreen: true }),
+    ])
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'synthetic' }],
+        report,
+        search: '?source=synthetic&locale=en&q=review&flow=Home&status=changed&view=all&scope=default',
+    })
+
+    assert.equal(elements.get('variations-mode').checked, false)
+    assert.equal(elements.get('search').value, 'review')
+    assert.equal(elements.get('flow').value, 'Home')
+    assert.equal(elements.get('status').value, 'changed')
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['home-default']
+    )
+
+    elements.get('search').value = 'Home review'
+    elements.get('search').dispatch('input')
+    assert.equal(new URLSearchParams(elements.location.search).get('scope'), 'default')
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['home-default']
+    )
+})
+
+test('default-screen scope survives locale navigation on the same PR report', async () => {
+    const commit = 'b'.repeat(40)
+    const englishPath = `2026-10-13/pr-3700/en/${commit}`
+    const spanishPath = `2026-10-13/pr-3700/es-419/${commit}`
+    const elements = await loadLanding(`/screens/${englishPath}/`, {
+        index: [
+            { path: englishPath, locale: 'en', source: 'synthetic' },
+            { path: spanishPath, locale: 'es-419', source: 'synthetic' },
+        ],
+        report: comparisonReportWith([comparisonScreen({ id: 'home', defaultScreen: true })]),
+        search: '?source=synthetic&locale=en&scope=default',
+    })
+
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    const destination = new URL(elements.location.href, 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${spanishPath}/`)
+    assert.equal(destination.searchParams.get('locale'), 'es-419')
+    assert.equal(destination.searchParams.get('scope'), 'default')
+})
+
+test('unknown gallery scope fails open to all variations', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'home', defaultScreen: true }),
+        comparisonScreen({ id: 'home-modal', defaultScreen: false }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report,
+        search: '?scope=surprise',
+    })
+
+    assert.equal(elements.get('variations-mode').checked, true)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['home', 'home-modal']
+    )
+})
+
+test('legacy manifests use the documented conservative ID fallback in default mode', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'p01-home' }),
+        comparisonScreen({ id: 'p01-home-modal' }),
+        comparisonScreen({ id: 'p01-home-drawer' }),
+        comparisonScreen({ id: 'p01-home-toggle-on' }),
+        comparisonScreen({ id: 'p01-home-special-fixture' }),
+        comparisonScreen({ id: 'legacy-unknown-route' }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report,
+        search: '?scope=default',
+    })
+
+    assert.equal(elements.get('variations-mode').checked, false)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home']
+    )
+})
+
+test('a screen anchor reveals a variation even when the shared scope is default-only', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'p01-home', defaultScreen: true }),
+        comparisonScreen({ id: 'p41-home-add-drawer', defaultScreen: false }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report,
+        search: '?scope=default',
+        hash: '#p41-home-add-drawer',
+    })
+    assert.equal(elements.get('variations-mode').checked, true)
+    assert.equal(new URLSearchParams(elements.location.search).has('scope'), false)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home', 'p41-home-add-drawer']
+    )
+})
+
+test('default-only mode filters a bounded 2,000-screen comparison without losing the target', async () => {
+    const screens = Array.from({ length: 2000 }, (_, index) =>
+        comparisonScreen({
+            id: `screen-${index}`,
+            name: `Screen ${index}`,
+            defaultScreen: index % 10 === 0,
+        })
+    )
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report: comparisonReportWith(screens),
+        search: '?scope=default&q=Screen%201990',
+    })
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['screen-1990']
+    )
+    assert.equal(elements.get('screen-load-more').hidden, true)
 })
 
 test('report navigation drops status filters that belong to a different source', async () => {

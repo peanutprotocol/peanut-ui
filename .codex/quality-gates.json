@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "timeout_seconds": 420,
+  "checks": [
+    {
+      "name": "tests",
+      "argv": [
+        "node",
+        "--test",
+        "scripts/screens/catalogue.test.mjs",
+        "scripts/screens/state-coverage.test.mjs",
+        "scripts/screens/viewer.test.mjs",
+        "scripts/screens/zero-difference-gate-properties.test.mjs",
+        "scripts/screens/zero-difference-gate.test.mjs"
+      ],
+      "cwd": "."
+    },
+    {
+      "name": "lint",
+      "argv": ["node_modules/.bin/eslint", "src/dev/screens/catalogue.ts", "src/dev/screens/pages.ts"],
+      "cwd": "."
+    },
+    {
+      "name": "format",
+      "argv": [
+        "node_modules/.bin/prettier",
+        "--check",
+        "src/dev/screens/catalogue.ts",
+        "src/dev/screens/pages.ts",
+        "scripts/screens/capture.ts",
+        "scripts/screens/core.mjs",
+        "scripts/screens/zero-difference-gate.mjs",
+        "public/screen-library/viewer.js",
+        "public/screen-library/viewer.css",
+        "public/screen-library/index.html"
+      ],
+      "cwd": "."
+    }
+  ]
+}

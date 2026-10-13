@@ -75,6 +75,10 @@ test('gate applies to supported UI paths and ignores tests and capture harness c
         'src/features/withdraw/review.tsx',
         'src/app/[locale]/page.tsx',
         'src/content/card-copy.ts',
+        'src/context/ClaimBankFlowContext.tsx',
+        'src/config/AppStateProviders.tsx',
+        'src/providers/SessionProvider.tsx',
+        'src/store/withdraw.ts',
     ])
         assert.equal(evaluate({ changedFiles: [file] }).ok, false, `${file} must be gated`)
 
@@ -83,9 +87,30 @@ test('gate applies to supported UI paths and ignores tests and capture harness c
         'scripts/screens/report.mjs',
         'src/components/Card.test.tsx',
         'src/features/withdraw/review.spec.ts',
+        'src/context/ClaimBankFlowContext.test.tsx',
+        'src/config/AppStateProviders.spec.tsx',
+        'src/types/navigation.d.ts',
         'src/dev/screens/catalogue.ts',
     ])
         assert.equal(evaluate({ changedFiles: [file] }).ok, true, `${file} must not trigger the UI gate`)
+})
+
+test('all-zero changes in runtime UI context and configuration modules require differences or an exception', () => {
+    for (const changedFiles of [
+        ['src/context/ClaimBankFlowContext.tsx'],
+        ['src/config/AppStateProviders.tsx'],
+        ['README.md', 'src/context/ClaimBankFlowContext.tsx', 'src/config/AppStateProviders.tsx'],
+    ]) {
+        assert.equal(evaluate({ changedFiles }).ok, false, `${changedFiles.join(', ')} must be gated`)
+        assert.equal(
+            evaluate({
+                changedFiles,
+                exception: 'Screen Library exception: runtime provider refactor preserves rendered output',
+            }).ok,
+            true,
+            `${changedFiles.join(', ')} must accept a valid exception after triggering the gate`
+        )
+    }
 })
 
 test('push and workflow dispatch runs are integration runs and do not apply the PR exception gate', () => {

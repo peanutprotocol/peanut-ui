@@ -7,5 +7,6 @@
 - Reliability: retain immutable reports and source-verified publication; a gate failure must be visible after report creation and must not block index repair.
 - Resources: avoid extra capture matrices and deployment runs for policy checks; use existing comparison manifests.
 - Verification: run focused acceptance, Screen Library suite, affected lint/format/type checks, and required hosted CI. Report local checks separately from hosted capture and deployment.
+- Local hook: `.codex/quality-gates.json` runs a bounded Screen Library acceptance set plus affected ESLint and Prettier checks before direct commits. The full Screen Library suite and typecheck remain required in hosted CI; the local hook is an additional guardrail.
 
 Undecided: whether future UI changes that do not alter pixels should use a standardized exception taxonomy; a free-text reason is accepted for this fix.
