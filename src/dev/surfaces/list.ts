@@ -28,10 +28,6 @@ export type SurfaceMeta = {
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
-    '01-b-first-launch-intro': {
-        name: 'First launch — animated Peanut intro',
-        path: 'Setup/components/SetupWrapper.tsx',
-    },
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '03-c-residence-congrats': {
         name: 'Payment plan',

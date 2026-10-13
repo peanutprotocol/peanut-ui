@@ -87,14 +87,12 @@ import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-
 function SetupScreen({
     screenId,
     children,
-    firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
-    firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
@@ -103,7 +101,6 @@ function SetupScreen({
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
             <SetupScreenBody
                 screenId={screenId}
-                firstLaunchIntroPreview={firstLaunchIntroPreview}
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
@@ -116,14 +113,12 @@ function SetupScreen({
 function SetupScreenBody({
     screenId,
     children,
-    firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
-    firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
@@ -142,7 +137,6 @@ function SetupScreenBody({
             fullScreen={forceFullScreen || step.fullScreen}
             showProgress={showProgress}
             layoutType={step.layoutType}
-            firstLaunchIntroPreview={firstLaunchIntroPreview}
             screenId={step.screenId}
             image={step.image}
             {...stepCopy}
@@ -241,10 +235,6 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
-    '01-b-first-launch-intro': {
-        ...SURFACE_META['01-b-first-launch-intro'],
-        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="still" />,
-    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -961,10 +951,6 @@ export const SURFACES: Record<string, Surface> = {
 
 /** The open reworks, one render per option, so a choice can be made by eye. */
 export const OPTION_SURFACES: Record<string, { name: string; render: () => React.ReactNode }> = {
-    'opt-first-launch-play': {
-        name: 'First launch — play five-second handoff',
-        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="play" />,
-    },
     'opt-passkey-a': { name: 'PasskeySetupHelpDrawer — A', render: () => <PasskeyHelpA /> },
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },

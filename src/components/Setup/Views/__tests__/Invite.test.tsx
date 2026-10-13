@@ -64,7 +64,7 @@ beforeEach(() => {
 describe('Invited by a friend?', () => {
     it('shows an @-prefixed username field, Continue disabled until a verified inviter, and Skip below it', () => {
         renderInvite()
-        expect(field()).toHaveAttribute('placeholder', 'Username')
+        expect(field()).toHaveAttribute('placeholder', 'batman')
         expect(screen.getByText('@')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
         const skip = screen.getByRole('button', { name: 'Skip' })

@@ -11,6 +11,7 @@ const MARKER = '[ota-floors: android=1.6.0 ios=1.5.0]'
 const env = {
     CAPGO_APP_ID: 'me.peanut.wallet',
     CAPGO_API_KEY: 'test-key',
+    CAPGO_RETRY_DELAY_MS: '0',
     VERSION: '1.6.3-ios',
     PLATFORM: 'ios',
     FLOOR_ANDROID: '1.6.0',
@@ -325,6 +326,51 @@ it('never sends credentials to an unexpected configuration host', () => {
 it('accepts validated metadata routing and fails closed on API failure', () => {
     expect(invoke('verify-promotion', policyResponses()).status).toBe(0)
     expect(invoke('verify-promotion', [{ body: app }, { body: config }, { status: 503 }]).status).toBe(1)
+})
+it('retries a network error, 429 or 5xx, then continues with the same request', () => {
+    for (const failure of [{ networkError: true }, { status: 429 }, { status: 502 }]) {
+        const result = invoke('verify-promotion', [{ body: app }, failure, { body: config }, { body: channels }])
+        expect(result.status).toBe(0)
+        expect(result.requests[1].url).toBe(result.requests[2].url)
+    }
+})
+it('gives up after three attempts and never retries a client error', () => {
+    const exhausted = invoke('verify-promotion', [{ body: app }, { status: 503 }, { status: 503 }, { status: 503 }])
+    expect(exhausted.status).toBe(1)
+    expect(exhausted.requests).toHaveLength(4)
+    const unauthorized = invoke('verify-promotion', [{ status: 401 }, { body: app }])
+    expect(unauthorized.status).toBe(1)
+    expect(unauthorized.requests).toHaveLength(1)
+})
+it('reserves an untagged native .0 record for the next store build only', () => {
+    const bundles = {
+        body: [{ name: '1.9.1-ios' }, { name: '1.11.0' }, { name: '1.9.12000' }, { name: '1.5.1003-ios' }],
+    }
+    const rows = [channelPolicy('ios', '1.10.0'), channelPolicy('android', '1.9.1-android')]
+    expect(invoke('reserved-release', [...policyResponses(rows), bundles]).result).toBe('1.11.0')
+    expect(invoke('current-release', [...policyResponses(rows), bundles]).result).toBe('1.10.0')
+    expect(invoke('reserved-release', [...policyResponses(), { body: [] }]).result).toBe('builtin')
+})
+it('restores one platform channel to its previous bundle and reads it back', () => {
+    const overrides = { PREVIOUS_VERSION: '1.9.1-ios' }
+    const restored = [channelPolicy('ios', '1.9.1-ios'), channels[1]]
+    const result = invoke(
+        'restore-production',
+        [...policyResponses(), { body: { status: 'success' } }, ...policyResponses(restored)],
+        overrides
+    )
+    expect(result.status).toBe(0)
+    expect(result.requests[3]).toMatchObject({
+        method: 'POST',
+        body: { channel: 'ios-mobile-release', version: '1.9.1-ios', rolloutEnabled: false },
+    })
+    const unchanged = invoke(
+        'restore-production',
+        [...policyResponses(), { body: { status: 'success' } }, ...policyResponses()],
+        overrides
+    )
+    expect(unchanged.status).toBe(1)
+    expect(invoke('restore-production', [], { PREVIOUS_VERSION: 'not a version' }).status).toBe(1)
 })
 it('keeps a partial or deleted upload reserved, and ignores the staging counter', () => {
     const result = invoke('current-release', [
@@ -727,6 +773,7 @@ function publishNative({
     iosFloor = '1.7.0',
     sharedFloor = '1.7.0',
     isRebuild = false,
+    stage = 'upload',
 } = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'native-ota-publish-'))
     const log = path.join(dir, 'calls')
@@ -764,6 +811,7 @@ function publishNative({
             printf '%s\\n' "$*" >> "$CALL_LOG"
             [ "$FAILURE" != upload ] || return 1
           }
+          sleep() { :; }
           source "$PUBLISH_SCRIPT"
         `,
             ],
@@ -780,6 +828,7 @@ function publishNative({
                     IOS_FLOOR: iosFloor,
                     SHARED_FLOOR: sharedFloor,
                     IS_REBUILD: isRebuild ? 'true' : 'false',
+                    PUBLISH_STAGE: stage,
                     CALL_LOG: log,
                     EXISTING: existing,
                     RACE_WINNER: raceWinner,
@@ -788,21 +837,44 @@ function publishNative({
                 },
             }
         )
-        return { status: result.status, calls: fs.readFileSync(log, 'utf8').trim().split('\n') }
+        const calls = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n') : []
+        return { status: result.status, calls }
     } finally {
         fs.rmSync(dir, { recursive: true, force: true })
     }
 }
-it.each(['ios', 'android'])('native publisher verifies before promoting %s', (platform) => {
+it.each(['ios', 'android'])('native publisher uploads and verifies %s without moving a channel', (platform) => {
     const { status, calls } = publishNative({ platform })
     expect(status).toBe(0)
     const upload = calls.findIndex((line) => line.includes('bundle upload'))
-    const promote = calls.indexOf('promote-production')
     expect(upload).toBeGreaterThan(calls.indexOf('existing-native'))
+    expect(calls[upload]).toContain('--channel ota-candidate')
+    expect(calls[upload]).toContain('--key-data-v2 test-private-key')
     expect(calls[upload]).toContain('--min-update-version 1.7.0')
     expect(calls[upload]).toContain('[ota-floors: android=1.7.0 ios=1.7.0]')
-    expect(promote).toBeGreaterThan(calls.indexOf('verify-bundle'))
-    expect(calls.at(-1)).toBe('verify-production')
+    expect(calls.at(-1)).toBe('verify-bundle')
+    expect(calls).not.toContain('promote-production')
+})
+it.each(['ios', 'android'])('native publisher promotes %s only an uploaded, verified record', (platform) => {
+    const promoted = publishNative({ platform, stage: 'promote', existing: '1.8.0' })
+    expect(promoted.status).toBe(0)
+    expect(promoted.calls.some((line) => line.includes('bundle upload'))).toBe(false)
+    expect(promoted.calls).not.toContain('prepare-candidate')
+    expect(promoted.calls.indexOf('existing-native')).toBeLessThan(promoted.calls.indexOf('promote-production'))
+    expect(promoted.calls.at(-1)).toBe('verify-production')
+
+    const missing = publishNative({ platform, stage: 'promote', existing: 'missing' })
+    expect(missing.status).toBe(1)
+    expect(missing.calls).not.toContain('promote-production')
+})
+it('native publisher refuses to run without an explicit stage', () => {
+    expect(publishNative({ stage: '' }).status).toBe(1)
+})
+it('native publisher retries a failed upload once when Capgo stored nothing', () => {
+    const { status, calls } = publishNative({ failure: 'upload' })
+    expect(status).toBe(1)
+    expect(calls.filter((line) => line.includes('bundle upload'))).toHaveLength(2)
+    expect(calls).not.toContain('verify-bundle')
 })
 it('native publisher uses the stricter compatible floor when platform floors differ', () => {
     const { status, calls } = publishNative({ androidFloor: '1.8.0', iosFloor: '1.7.0', sharedFloor: '1.8.0' })
@@ -838,7 +910,8 @@ it('native publisher recovers only when a concurrent upload verifies exactly', (
     const { status, calls } = publishNative({ failure: 'upload', raceWinner: '1.8.0' })
     expect(status).toBe(0)
     expect(calls.filter((line) => line === 'existing-native')).toHaveLength(2)
-    expect(calls.indexOf('verify-bundle')).toBeLessThan(calls.indexOf('promote-production'))
+    expect(calls.filter((line) => line.includes('bundle upload'))).toHaveLength(1)
+    expect(calls.at(-1)).toBe('verify-bundle')
 })
 it.each([
     'floor-android',
@@ -848,10 +921,18 @@ it.each([
     'upload',
     'verify-bundle',
     'verify-promotion',
-    'promote-production',
-])('native publisher cannot promote after %s fails', (failure) => {
+])('native publisher upload stage fails closed after %s fails', (failure) => {
     const { status, calls } = publishNative({ failure })
     expect(status).toBe(1)
-    if (failure !== 'promote-production') expect(calls).not.toContain('promote-production')
+    expect(calls).not.toContain('promote-production')
     expect(calls).not.toContain('verify-production')
 })
+it.each(['floor-android', 'floor-ios', 'floor-shared', 'existing-native', 'verify-promotion', 'promote-production'])(
+    'native publisher promote stage cannot promote after %s fails',
+    (failure) => {
+        const { status, calls } = publishNative({ failure, stage: 'promote', existing: '1.8.0' })
+        expect(status).toBe(1)
+        if (failure !== 'promote-production') expect(calls).not.toContain('promote-production')
+        expect(calls).not.toContain('verify-production')
+    }
+)

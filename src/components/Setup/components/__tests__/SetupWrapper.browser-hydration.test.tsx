@@ -12,15 +12,6 @@ const mockMount = jest.fn()
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
-jest.mock('@/hooks/useFirstLaunchIntro', () => ({
-    useFirstLaunchIntro: () => ({
-        active: false,
-        phase: 'done',
-        played: false,
-        greetingVisible: false,
-        onMascotReady: jest.fn(),
-    }),
-}))
 jest.mock('@capacitor/status-bar', () => ({ StatusBar: { setBackgroundColor: jest.fn() } }))
 jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
