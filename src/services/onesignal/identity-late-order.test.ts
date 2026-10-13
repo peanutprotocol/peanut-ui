@@ -120,3 +120,5 @@ describe('same-turn SDK identity completion order', () => {
         await Promise.all([expiredRequest.done, logout.done, latestRequest.done])
     })
 })
+
+export {}

@@ -116,3 +116,5 @@ describe('notification identity timeout recovery public contract', () => {
         await Promise.all([oldLogin.done, logout.done, retry.done])
     })
 })
+
+export {}

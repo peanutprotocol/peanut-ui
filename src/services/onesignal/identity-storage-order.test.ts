@@ -72,3 +72,5 @@ describe('queued logout storage event after a newer authenticated login', () => 
         expect(mockSdkIdentity).toBe('account-B')
     })
 })
+
+export {}

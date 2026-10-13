@@ -137,3 +137,5 @@ describe('notification identity facade public contract', () => {
     })
 
 })
+
+export {}

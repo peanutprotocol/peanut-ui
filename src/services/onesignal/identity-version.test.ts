@@ -95,3 +95,5 @@ describe('public notification logout version', () => {
     })
 
 })
+
+export {}
