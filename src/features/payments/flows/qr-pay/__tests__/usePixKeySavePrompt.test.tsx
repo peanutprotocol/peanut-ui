@@ -4,7 +4,9 @@ import { mantecaApi } from '@/services/manteca'
 
 jest.mock('@/services/manteca', () => ({ mantecaApi: { savePixKey: jest.fn() } }))
 const mockFetchUser = jest.fn()
-let mockAccounts: Array<{ type: string; identifier: string }> | undefined = []
+let mockAccounts:
+    | Array<{ type: string; identifier: string; label?: string | null; details?: { countryName: string } }>
+    | undefined = []
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockAccounts ? { accounts: mockAccounts } : null, fetchUser: mockFetchUser }),
 }))
@@ -19,11 +21,38 @@ beforeEach(() => {
 })
 
 describe('usePixKeySavePrompt', () => {
-    it('offers to save a key the user has not saved, named after its owner', () => {
+    it('offers to save a key the user has not saved, ticked and named after its owner', () => {
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
 
         expect(result.current.isOffered).toBe(true)
+        expect(result.current.checked).toBe(true)
         expect(result.current.nickname).toBe('MARIA DA SILVA')
+        expect(result.current.savedName).toBeNull()
+    })
+
+    it('starts unticked when the owner lookup gave no name, so Pay is not held for one', () => {
+        const { result } = renderHook(() => usePixKeySavePrompt(KEY, undefined))
+
+        expect(result.current.isOffered).toBe(true)
+        expect(result.current.checked).toBe(false)
+        expect(result.current.blocksPay).toBe(false)
+    })
+
+    it('names a key the user already saved instead of offering it again', () => {
+        mockAccounts = [
+            { type: 'manteca', identifier: 'Maria@Silva.com.br', label: 'Maria', details: { countryName: 'brazil' } },
+        ]
+        const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
+
+        expect(result.current.isOffered).toBe(false)
+        expect(result.current.savedName).toBe('Maria')
+    })
+
+    it('names a saved key the user never named after the key itself', () => {
+        mockAccounts = [{ type: 'manteca', identifier: KEY, label: null, details: { countryName: 'brazil' } }]
+        const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
+
+        expect(result.current.savedName).toMatch(/^PIX · /)
     })
 
     it('shortens a long owner name to the first name', () => {
@@ -32,10 +61,12 @@ describe('usePixKeySavePrompt', () => {
         expect(result.current.nickname).toBe('Arthur')
     })
 
-    it('is not offered for a key already in the address book, or for a merchant QR', () => {
-        mockAccounts = [{ type: 'manteca', identifier: 'Maria@Silva.com.br' }]
-        expect(renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA')).result.current.isOffered).toBe(false)
-        expect(renderHook(() => usePixKeySavePrompt(null, undefined)).result.current.isOffered).toBe(false)
+    it('is neither offered nor named for a merchant QR', () => {
+        mockAccounts = [{ type: 'manteca', identifier: 'Maria@Silva.com.br', label: 'Maria' }]
+        const { result } = renderHook(() => usePixKeySavePrompt(null, undefined))
+
+        expect(result.current.isOffered).toBe(false)
+        expect(result.current.savedName).toBeNull()
     })
 
     it('is not offered until the account list has loaded', () => {
@@ -45,7 +76,6 @@ describe('usePixKeySavePrompt', () => {
 
     it('saves once, however often a success is reported', () => {
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
-        act(() => result.current.setChecked(true))
 
         act(() => result.current.saveAfterPayment())
         act(() => result.current.saveAfterPayment())
@@ -63,16 +93,19 @@ describe('usePixKeySavePrompt', () => {
         expect(result.current.blocksPay).toBe(false)
     })
 
-    it('saves the key with the trimmed name only when the box is ticked, then refreshes the account list', async () => {
+    it('saves nothing once the user unticks the box', () => {
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
 
+        act(() => result.current.setChecked(false))
         act(() => result.current.saveAfterPayment())
-        expect(mockSavePixKey).not.toHaveBeenCalled()
 
-        act(() => {
-            result.current.setChecked(true)
-            result.current.setNickname('  Maria  ')
-        })
+        expect(mockSavePixKey).not.toHaveBeenCalled()
+    })
+
+    it('saves the key with the trimmed name, then refreshes the account list', async () => {
+        const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
+
+        act(() => result.current.setNickname('  Maria  '))
         act(() => result.current.saveAfterPayment())
 
         expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Maria')
@@ -83,7 +116,6 @@ describe('usePixKeySavePrompt', () => {
         mockSavePixKey.mockRejectedValue(new Error('network'))
         const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
-        act(() => result.current.setChecked(true))
 
         expect(() => act(() => result.current.saveAfterPayment())).not.toThrow()
         await waitFor(() => expect(consoleError).toHaveBeenCalled())
