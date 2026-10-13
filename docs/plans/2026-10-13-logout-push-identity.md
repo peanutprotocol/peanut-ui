@@ -59,4 +59,8 @@ Full repository TypeScript passed with Node 20.19.0, matching CI major version, 
 
 The aggregate Stop event also passed (exit 0, empty JSON result) in 31.32 seconds with its original configuration/checks/300-second budget unchanged. Its prior timeout came from recursively fingerprinting independent checkouts. Exact aggregate-only Git ignore entries now separate 99 physical independent roots; five independent scope tests and a verifier confirmed all 24 KYC inputs still hashed and ordinary source changes remain detected. No installed hook/trust scripts were edited. See aggregate `docs/plans/2026-10-13-validation-boundary.md` for local setup evidence.
 
-Publication remains awaiting explicit user authorization after automatic approval review rejected source-code push. Provider/device behavior and hosted CI remain separate from these local passing results.
+Publication was initially blocked by automatic approval review. The user explicitly authorized publishing a PR targeting dev and creating a current-sprint Notion task on 2026-10-13. Provider/device behavior and hosted CI remain separate from local validation.
+
+## Retargeting to dev
+
+Rebased only the two task commits onto fresh origin/dev, excluding unrelated main release changes. The independent acceptance author adapted the new auth integration fixture to dev's existing native-platform and first-launch-intro dependencies. All 14 focused tests passed; all original test bodies and 27 assertion lines stayed byte-for-byte unchanged. No production behavior changed during retargeting. Full tests, lint, and TypeScript are being rerun for this base before handback.
