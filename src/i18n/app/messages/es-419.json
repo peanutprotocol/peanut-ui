@@ -1426,7 +1426,6 @@
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Procesando el pago",
-        "processingPaymentBody": "Estamos confirmando tu pago.",
         "waitingForMerchant": "Esperando a que el comercio ingrese el monto",
         "havingTrouble": "¿Tienes problemas?",
         "orderNotReady": {
@@ -1568,7 +1567,8 @@
                 "description": "El pago todavía no se ha confirmado. Revisa Actividad antes de volver a intentarlo."
             }
         },
-        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "pixKeySavedAs": "Guardada como {name}"
     },
     "card": {
         "navAddCard": "Agregar tarjeta",
