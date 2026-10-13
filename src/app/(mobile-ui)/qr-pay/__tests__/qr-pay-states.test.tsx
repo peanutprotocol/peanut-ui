@@ -12,6 +12,7 @@ import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { parseUnits } from 'viem'
@@ -22,6 +23,21 @@ import {
     SpendRecoveryAbortedError,
     SpendRecoveryQuoteReviewError,
 } from '@/hooks/wallet/signSpendRetry'
+
+/** Every caption the processing screen can show under its title. */
+const PAYMENT_LOADING_CAPTIONS = PAYMENT_LOADING_WORD_KEYS.map((key) => `${en.paymentLoading[key]}...`)
+
+/** A PIX payment Manteca accepted and is still settling. */
+const SETTLING_PIX_PAYMENT = {
+    id: 'qp1',
+    externalId: 'ext1',
+    sessionId: 's1',
+    status: 'ACTIVE',
+    currentStage: 'processing',
+    stages: [],
+    type: 'PIX_PAYMENT',
+    details: { depositAddress: '0x123', merchant: { name: 'MARIA@SILVA.COM.BR' } },
+}
 
 /** Fixtures that intend a LIVE quote: the flow now refuses to sign or submit
  *  against an expired lock, so a fixed past date would be a different case. */
@@ -1028,7 +1044,7 @@ describe('GROUP 2: Payment Form States', () => {
         await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
     })
 
-    test('a PIX-key payment offers to save the key, named after its owner; Pay waits for a name', async () => {
+    test('a new PIX key starts ticked to save, named after its owner; Pay waits for a name', async () => {
         setupMantecaPayment()
         mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
         const { pixKeyToBRCode } = require('@/utils/pix.utils')
@@ -1036,34 +1052,79 @@ describe('GROUP 2: Payment Form States', () => {
         renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
 
         await screen.findByText('MARIA DA SILVA')
-        fireEvent.click(screen.getByLabelText('Save to address book'))
+        await waitFor(() => expect(screen.getByLabelText('Save to address book')).toBeChecked())
         const name = screen.getByDisplayValue('MARIA DA SILVA')
+        // A box ticked for the user does not pull the keyboard up over the amount.
+        expect(name).not.toHaveFocus()
+        expect(screen.queryByTestId('pix-key-saved-as')).not.toBeInTheDocument()
         await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
 
         fireEvent.change(name, { target: { value: '' } })
         expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
     })
 
-    test('a PIX-key payment still settling saves the key the user asked to keep', async () => {
+    test('a PIX key the user unticks is not saved after the payment', async () => {
         setupMantecaPayment()
         mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
-        mockMantecaApi.savePixKey.mockResolvedValue(undefined)
-        mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue({
-            id: 'qp1',
-            externalId: 'ext1',
-            sessionId: 's1',
-            status: 'ACTIVE',
-            currentStage: 'processing',
-            stages: [],
-            type: 'PIX_PAYMENT',
-            details: { depositAddress: '0x123', merchant: { name: 'MARIA@SILVA.COM.BR' } },
-        })
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue(SETTLING_PIX_PAYMENT)
         const { pixKeyToBRCode } = require('@/utils/pix.utils')
         const pixKey = 'maria@silva.com.br'
         renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
 
         await screen.findByText('MARIA DA SILVA')
+        await waitFor(() => expect(screen.getByLabelText('Save to address book')).toBeChecked())
         fireEvent.click(screen.getByLabelText('Save to address book'))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        expect(mockMantecaApi.savePixKey).not.toHaveBeenCalled()
+    })
+
+    test('a PIX key the user already saved shows its saved name instead of the save box', async () => {
+        setupMantecaPayment()
+        mockUseAuth.mockReturnValue({
+            user: {
+                user: { username: 'test-user' },
+                accounts: [
+                    {
+                        id: 'acc-pix',
+                        type: 'manteca',
+                        identifier: 'maria@silva.com.br',
+                        label: 'Maria',
+                        details: { countryCode: 'BRA', countryName: 'brazil' },
+                        createdAt: '2026-10-13T10:32:04.000Z',
+                    },
+                ],
+            },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        const savedAs = screen.getByTestId('pix-key-saved-as')
+        expect(savedAs).toHaveTextContent('Saved as Maria')
+        expect(savedAs).toHaveClass('ph-mask', 'ph-no-capture')
+        expect(screen.queryByLabelText('Save to address book')).not.toBeInTheDocument()
+    })
+
+    test('a PIX-key payment still settling saves the key ticked by default', async () => {
+        setupMantecaPayment()
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        mockMantecaApi.savePixKey.mockResolvedValue(undefined)
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue(SETTLING_PIX_PAYMENT)
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        await waitFor(() => expect(screen.getByLabelText('Save to address book')).toBeChecked())
         await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
@@ -1073,11 +1134,12 @@ describe('GROUP 2: Payment Form States', () => {
         expect(mockMantecaApi.savePixKey).toHaveBeenCalledWith(pixKey, 'MARIA DA SILVA')
     })
 
-    test('a scanned merchant QR offers no address-book save', async () => {
+    test('a scanned merchant QR offers no address-book save and names no saved key', async () => {
         setupMantecaPayment()
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
         await screen.findByText('PIX Merchant')
         expect(screen.queryByLabelText('Save to address book')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('pix-key-saved-as')).not.toBeInTheDocument()
     })
 
     test('a scanned merchant QR never looks up a PIX key owner', async () => {
@@ -1261,9 +1323,10 @@ describe('GROUP 3: Processing States', () => {
             fireEvent.click(payButton)
         })
 
+        // The title says what is happening; under it a playful word rotates.
         await waitFor(() => {
             expect(screen.getByText(en.qrPay.processingPaymentTitle)).toBeInTheDocument()
-            expect(screen.getByText(en.qrPay.processingPaymentBody)).toBeInTheDocument()
+            expect(screen.getByText((text) => PAYMENT_LOADING_CAPTIONS.includes(text))).toBeInTheDocument()
         })
     })
 
