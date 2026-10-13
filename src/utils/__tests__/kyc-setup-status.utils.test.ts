@@ -473,26 +473,23 @@ describe('setupRows — the reasons of api#1816', () => {
             resolved: verdictOf('fixable', 'bridge_tos_required', tos),
         })
 
-        it.each(['bridge_tos_required', 'bridge_tos_v2_required'])(
-            '%s: Agreements needed on the terms step',
-            (code) => {
-                const row = bankState(
-                    accounts({
-                        status: 'requires-info',
-                        reason: { code, userMessage: '' },
-                        blockingActions: ['accept-tos'],
-                        resolved: verdictOf('fixable', code, tos),
-                    }),
-                    [tos]
-                )
-                expect(row).toEqual({
-                    key: 'bank',
-                    state: 'agreements-needed',
-                    reason: code,
-                    step: { provider: 'bridge', action: tos },
-                })
-            }
-        )
+        it.each(['bridge_tos_required', 'bridge_tos_v2_required'])('%s: Terms needed on the terms step', (code) => {
+            const row = bankState(
+                accounts({
+                    status: 'requires-info',
+                    reason: { code, userMessage: '' },
+                    blockingActions: ['accept-tos'],
+                    resolved: verdictOf('fixable', code, tos),
+                }),
+                [tos]
+            )
+            expect(row).toEqual({
+                key: 'bank',
+                state: 'terms-needed',
+                reason: code,
+                step: { provider: 'bridge', action: tos },
+            })
+        })
 
         it('terms accepted in this flow read setting up before the rails catch up', () => {
             expect(bankState(parkedOnTerms, [tos], { terms: true }).state).toBe('setting-up')

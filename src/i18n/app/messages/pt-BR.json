@@ -2955,7 +2955,7 @@
             "available": "Disponível",
             "underReview": "Em análise",
             "documentNeeded": "Falta um documento",
-            "agreementsNeeded": "Faltam os termos",
+            "agreementsNeeded": "Faltam os acordos",
             "verifyId": "Verificar ID",
             "notAvailable": "Não disponível",
             "verifyAgain": "Verificar de novo com documento de {country}",
@@ -2963,7 +2963,8 @@
             "uploadNow": "Enviar agora",
             "later": "Depois",
             "continueCard": "Continuar com o cartão",
-            "reviewTerms": "Revisar termos"
+            "reviewTerms": "Revisar termos",
+            "termsNeeded": "Faltam os termos"
         },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",

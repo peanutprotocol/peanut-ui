@@ -2963,7 +2963,8 @@
             "uploadNow": "Subir ahora",
             "later": "Más tarde",
             "continueCard": "Continuar con la tarjeta",
-            "reviewTerms": "Revisar términos"
+            "reviewTerms": "Revisar términos",
+            "termsNeeded": "Faltan los términos"
         },
         "bridgeTos": {
             "description": "Acepta los términos del proveedor para activar las transferencias bancarias.",

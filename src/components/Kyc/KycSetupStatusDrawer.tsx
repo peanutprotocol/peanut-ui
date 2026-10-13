@@ -47,6 +47,7 @@ type BadgeLabel =
     | 'available'
     | 'underReview'
     | 'documentNeeded'
+    | 'termsNeeded'
     | 'agreementsNeeded'
     | 'verifyId'
     | 'notAvailable'
@@ -59,6 +60,7 @@ const STATE_BADGE: Record<SetupRowState, { status: StatusType; label: BadgeLabel
     'under-review': { status: 'pending', label: 'underReview' },
     available: { status: 'completed', label: 'available' },
     'document-needed': { status: 'pending', label: 'documentNeeded' },
+    'terms-needed': { status: 'pending', label: 'termsNeeded' },
     'agreements-needed': { status: 'pending', label: 'agreementsNeeded' },
     'needs-local-id': { status: 'pending', label: 'verifyId' },
     'verify-again': { status: 'pending', label: 'verifyId' },
@@ -78,9 +80,7 @@ type PrimaryStep =
  * starts over, and support is the last way out.
  */
 function primaryStep(rows: SetupRow[]): PrimaryStep | null {
-    if (rows.some((row) => row.state === 'agreements-needed' && row.step?.provider === 'bridge')) {
-        return { kind: 'terms' }
-    }
+    if (rows.some((row) => row.state === 'terms-needed')) return { kind: 'terms' }
     const document = rows.find((row) => row.state === 'document-needed' && row.step)
     if (document?.step) return { kind: 'document', step: document.step }
     if (rows.some((row) => row.state === 'agreements-needed')) return { kind: 'card' }

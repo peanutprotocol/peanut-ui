@@ -275,7 +275,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
         jest.mocked(confirmBridgeTos).mockResolvedValue({ data: { accepted: true } } as never)
         const view = await submitOnDocumentList()
         await approve(view, onTerms)
-        expect(view.result.current.setupStatus?.rows[1].state).toBe('agreements-needed')
+        expect(view.result.current.setupStatus?.rows[1].state).toBe('terms-needed')
 
         act(() => view.result.current.handleSetupTerms())
         expect(view.result.current.modalPhase).toBe('bridge_tos')
@@ -299,7 +299,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
             await view.result.current.handleTosIframeClose()
         })
         expect(view.result.current.modalPhase).toBe('verifying')
-        expect(view.result.current.setupStatus?.rows[1].state).toBe('agreements-needed')
+        expect(view.result.current.setupStatus?.rows[1].state).toBe('terms-needed')
 
         act(() => view.result.current.handleSetupTerms())
         act(() => view.result.current.handleSetupBack())

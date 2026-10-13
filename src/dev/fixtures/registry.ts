@@ -1570,6 +1570,38 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: false, card: true }),
         },
     },
+    'kyc-setup-bank-terms-needed': {
+        route: '/history',
+        about: 'Setup status: QR pays, the accounts wait for Bridge terms and the card for its agreements, two different badges.',
+        responses: {
+            'GET /users/me': setupMe(
+                [
+                    SETUP_PIX_RAIL,
+                    ...SETUP_ACCOUNT_RAILS.map((rail) => ({
+                        ...rail,
+                        status: 'requires-info',
+                        reason: {
+                            code: 'bridge_tos_required',
+                            userMessage: 'Accept the Bridge terms of service to continue.',
+                        },
+                        blockingActions: ['accept-tos'],
+                        resolved: {
+                            status: 'fixable',
+                            blocking: {
+                                code: 'bridge_tos_required',
+                                userMessage: 'Accept the Bridge terms of service to continue.',
+                                selfHealable: true,
+                            },
+                            nextAction: { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' },
+                        },
+                    })),
+                ],
+                [{ key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }]
+            ),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: true, card: true }),
+        },
+    },
     'kyc-setup-bank-local-id-refused': {
         route: '/history',
         about: 'Setup status: the plan refused Bridge for the document country, so the accounts need an ID issued by Brazil while QR and local transfers work.',

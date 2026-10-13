@@ -119,12 +119,12 @@ describe('KycSetupStatusDrawer', () => {
             expect(screen.getByRole('button', { name: 'Go to Home' })).toBeInTheDocument()
         })
 
-        it('the bank terms: Agreements needed, "Review terms" opens the terms step', () => {
+        it('the bank terms: Terms needed, "Review terms" opens the terms step', () => {
             const tos: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
             const { onReviewTerms } = renderDrawer([
-                { key: 'bank', state: 'agreements-needed', step: { provider: 'bridge', action: tos } },
+                { key: 'bank', state: 'terms-needed', step: { provider: 'bridge', action: tos } },
             ])
-            expect(row('bank').getByText('Agreements needed')).toBeInTheDocument()
+            expect(row('bank').getByText('Terms needed')).toBeInTheDocument()
             fireEvent.click(screen.getByRole('button', { name: 'Review terms' }))
             expect(onReviewTerms).toHaveBeenCalledTimes(1)
         })
@@ -135,6 +135,19 @@ describe('KycSetupStatusDrawer', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Continue card setup' }))
             expect(onClose).toHaveBeenCalledTimes(1)
             expect(push).toHaveBeenCalledWith('/card')
+        })
+
+        it('the bank terms and the card agreements read different badges', () => {
+            const tos: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
+            renderDrawer([
+                { key: 'bank', state: 'terms-needed', step: { provider: 'bridge', action: tos } },
+                { key: 'card', state: 'agreements-needed', step: { provider: 'rain' } },
+            ])
+            expect(row('bank').getByText('Terms needed')).toBeInTheDocument()
+            expect(row('bank').queryByText('Agreements needed')).not.toBeInTheDocument()
+            expect(row('card').getByText('Agreements needed')).toBeInTheDocument()
+            expect(row('card').queryByText('Terms needed')).not.toBeInTheDocument()
+            expect(screen.getByTestId('kyc-setup-step')).toHaveTextContent('Review terms')
         })
 
         it('a document the card portal asks for continues on the card page too', () => {

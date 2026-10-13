@@ -60,6 +60,14 @@ describe('setup status fixtures', () => {
             ],
         ],
         [
+            'kyc-setup-bank-terms-needed',
+            [
+                ['qr', 'available'],
+                ['bank', 'terms-needed'],
+                ['card', 'agreements-needed'],
+            ],
+        ],
+        [
             'kyc-setup-bank-local-id-refused',
             [
                 ['qr', 'available'],

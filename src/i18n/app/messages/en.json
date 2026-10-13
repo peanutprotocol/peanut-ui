@@ -2963,7 +2963,8 @@
             "uploadNow": "Upload now",
             "later": "Later",
             "continueCard": "Continue card setup",
-            "reviewTerms": "Review terms"
+            "reviewTerms": "Review terms",
+            "termsNeeded": "Terms needed"
         },
         "bridgeTos": {
             "title": "Accept terms",

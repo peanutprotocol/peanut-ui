@@ -11,7 +11,8 @@ export type KycFeatureKey = keyof KycFeatures
  * the drawer and, for the states with a step, one button.
  *
  * - `document-needed`: a provider asks for one more document
- * - `agreements-needed`: the bank terms or the card agreements are still open
+ * - `terms-needed`: the bank terms are still open
+ * - `agreements-needed`: the card agreements are still open
  * - `needs-local-id`: the document's issuing country closes this feature; an ID issued by the residence country opens it
  * - `verify-again`: the verified document cannot open this feature; a new identity check with another document can
  * - `not-available`: refused for a reason the user cannot change here
@@ -21,6 +22,7 @@ export type SetupRowState =
     | 'available'
     | 'under-review'
     | 'document-needed'
+    | 'terms-needed'
     | 'agreements-needed'
     | 'needs-local-id'
     | 'verify-again'
@@ -109,6 +111,7 @@ const MANTECA_ACCOUNT_REASONS: ReadonlySet<string> = new Set([
 const RANK: Record<SetupRowState, number> = {
     'needs-local-id': 7,
     'verify-again': 6,
+    'terms-needed': 5,
     'agreements-needed': 5,
     'document-needed': 4,
     'not-available': 3,
@@ -143,7 +146,7 @@ function railOutcome(
     if (action?.kind === 'accept-tos') {
         return submitted.terms
             ? { state: 'setting-up' }
-            : { state: 'agreements-needed', step: { provider: rail.provider, action }, reason }
+            : { state: 'terms-needed', step: { provider: rail.provider, action }, reason }
     }
     if (verdict.status === 'fixable' && verdict.blocking?.selfHealKind === 'document-resubmit') {
         return { state: 'document-needed', step: { provider: rail.provider, action, reasonCode: reason }, reason }
