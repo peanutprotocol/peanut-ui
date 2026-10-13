@@ -1,6 +1,7 @@
 import { FIXTURES } from '@/dev/fixtures/registry'
 import type { UserCapabilities } from '@/types/capabilities'
-import { setupRows } from '@/utils/kyc-setup-status.utils'
+import type { KycProfile } from '@/app/actions/types/kyc-workflow.types'
+import { providerRefusalsOf, setupRows } from '@/utils/kyc-setup-status.utils'
 
 // The setup status fixtures read through the same mapping the drawer uses, so
 // each one shows the state its name promises.
@@ -16,14 +17,14 @@ const rowsOf = (name: string) => {
         me: responses['GET /users/me'],
         plan: responses['GET /users/kyc/plan'],
     } as SetupFixture
-    expect(responses['GET /users/kyc/profile']).toEqual(
-        expect.objectContaining({ attempts: [expect.objectContaining({ kind: 'IDENTITY' })] })
-    )
+    const profile = responses['GET /users/kyc/profile'] as KycProfile
+    expect(profile.attempts).toContainEqual(expect.objectContaining({ kind: 'IDENTITY' }))
     return setupRows({
         features: plan.features,
         residence: me.residence.verified,
         capabilities: me.capabilities,
         identityVerified: true,
+        refusals: providerRefusalsOf(profile).refusals,
     }).map((row) => [row.key, row.state])
 }
 

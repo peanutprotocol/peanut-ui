@@ -499,6 +499,7 @@ const SETUP_PROFILE = {
             provider: 'SUMSUB',
             kind: 'IDENTITY',
             status: 'APPROVED',
+            createdAt: '2026-10-01T10:00:00.000Z',
         },
     ],
 }
@@ -1624,47 +1625,46 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'kyc-setup-local-account-refused': {
         route: '/history',
-        about: 'Setup status: the plan refused the personal Manteca account for a missing tax ID, so local transfers are not available while QR pays on the pool.',
+        about: 'Setup status after a first approval for a passport user in Brazil with no CPF: the plan refused the personal Manteca account, so local transfers are not available while QR pays on the pool.',
         responses: {
+            // what the first approval leaves: no Manteca bank rail, the Pix pool
+            // rail ENABLED with its first-party operations locked behind the upgrade
             'GET /users/me': setupMe(
                 [
                     {
-                        id: 'manteca.mercadopago_qr_ar',
-                        provider: 'manteca',
-                        method: 'MERCADOPAGO_QR_AR',
-                        channel: 'qr-only',
-                        country: 'AR',
-                        currency: 'ARS',
-                        status: 'enabled',
-                        operations: { pay: 'enabled' },
-                    },
-                    // parked by the send gate (PROVIDER_NOT_IN_PLAN) with the plan's reason
-                    {
-                        id: 'manteca.bank_transfer_ar',
-                        provider: 'manteca',
-                        method: 'BANK_TRANSFER_AR',
-                        channel: 'bank',
-                        country: 'AR',
-                        currency: 'ARS',
-                        status: 'blocked',
-                        reason: {
-                            code: 'local_tax_id_missing',
-                            userMessage: 'This is not available for your account.',
-                        },
-                        resolved: {
-                            status: 'blocked',
-                            blocking: {
-                                code: 'local_tax_id_missing',
-                                userMessage: 'This is not available for your account.',
-                                selfHealable: false,
-                            },
-                        },
+                        ...SETUP_PIX_RAIL,
+                        operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+                        blockingActions: ['manteca-full-account'],
+                        resolved: { status: 'enabled' },
                     },
                 ],
-                [],
-                'AR'
+                [
+                    {
+                        key: 'manteca-full-account',
+                        kind: 'sumsub',
+                        purpose: 'unlock-manteca-bank',
+                        levelKey: 'manteca',
+                    },
+                ]
             ),
-            'GET /users/kyc/profile': SETUP_PROFILE,
+            // the refusal reaches the app only as the provider's onboarding attempt
+            'GET /users/kyc/profile': {
+                ...SETUP_PROFILE,
+                attempts: [
+                    {
+                        id: 'fixture-manteca-onboarding',
+                        verificationId: 'fixture-manteca',
+                        provider: 'MANTECA',
+                        kind: 'ONBOARDING',
+                        status: 'REJECTED',
+                        decisionSource: 'POLICY',
+                        reasonCode: 'local_tax_id_missing',
+                        sourceAttemptId: 'fixture-attempt',
+                        createdAt: '2026-10-01T10:01:00.000Z',
+                    },
+                    ...SETUP_PROFILE.attempts,
+                ],
+            },
             'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: false, card: false }),
         },
     },
