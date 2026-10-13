@@ -3,9 +3,15 @@ let mockSdkIdentity: string | null = 'persisted-account'
 let mockPushEnabled = true
 const mockAdapter = {
     init: jest.fn(async (): Promise<void> => undefined),
-    login: jest.fn(async (id: string) => { mockSdkIdentity = id }),
-    logout: jest.fn(async () => { mockSdkIdentity = null }),
-    optOut: jest.fn(async () => { mockPushEnabled = false }),
+    login: jest.fn(async (id: string) => {
+        mockSdkIdentity = id
+    }),
+    logout: jest.fn(async () => {
+        mockSdkIdentity = null
+    }),
+    optOut: jest.fn(async () => {
+        mockPushEnabled = false
+    }),
     revokePermission: jest.fn(),
 }
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: async () => mockAdapter }))
@@ -22,8 +28,12 @@ describe('public notification logout version', () => {
         mockSdkIdentity = 'persisted-account'
         mockPushEnabled = true
         mockAdapter.init.mockReset().mockResolvedValue(undefined)
-        mockAdapter.login.mockReset().mockImplementation(async (id) => { mockSdkIdentity = id })
-        mockAdapter.logout.mockReset().mockImplementation(async () => { mockSdkIdentity = null })
+        mockAdapter.login.mockReset().mockImplementation(async (id) => {
+            mockSdkIdentity = id
+        })
+        mockAdapter.logout.mockReset().mockImplementation(async () => {
+            mockSdkIdentity = null
+        })
         mockAdapter.optOut.mockClear()
         mockAdapter.revokePermission.mockClear()
         facade = await import('@/services/onesignal/identity')
@@ -93,7 +103,6 @@ describe('public notification logout version', () => {
         await otherTab.syncNotificationIdentity('fresh-account-B')
         expect(mockSdkIdentity).toBe('fresh-account-B')
     })
-
 })
 
 export {}

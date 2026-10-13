@@ -41,7 +41,9 @@ jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => mockLocked }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
-jest.mock('@/utils/login-session', () => ({ recoverLoginSession: (...args: unknown[]) => mockRecoverLoginSession(...args) }))
+jest.mock('@/utils/login-session', () => ({
+    recoverLoginSession: (...args: unknown[]) => mockRecoverLoginSession(...args),
+}))
 jest.mock('@/utils/cache.utils', () => ({ purgeCaches: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/crisp', () => ({ resetCrispProxySessions: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
@@ -72,7 +74,9 @@ jest.mock('posthog-js', () => ({
     default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
 }))
 
-jest.mock('@/services/account-setup', () => ({ completeAccountSetup: (...args: unknown[]) => mockCompleteAccountSetup(...args) }))
+jest.mock('@/services/account-setup', () => ({
+    completeAccountSetup: (...args: unknown[]) => mockCompleteAccountSetup(...args),
+}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => mockDemo, disableDemoMode: jest.fn() }))
 jest.mock('@/services/onesignal/identity', () => ({
     getNotificationLogoutVersion: () => mockLogoutVersion,
@@ -91,7 +95,9 @@ const mockNavigate = jest.fn()
 
 function deferred() {
     let resolve!: () => void
-    const promise = new Promise<void>((done) => { resolve = done })
+    const promise = new Promise<void>((done) => {
+        resolve = done
+    })
     return { promise, resolve }
 }
 
@@ -116,7 +122,15 @@ describe('AuthProvider push identity public integration contract', () => {
         clearSessionHeld()
         Object.defineProperty(window, 'location', {
             configurable: true,
-            value: { ...originalLocation, get href() { return originalLocation.href }, set href(_value: string) { mockNavigate() } },
+            value: {
+                ...originalLocation,
+                get href() {
+                    return originalLocation.href
+                },
+                set href(_value: string) {
+                    mockNavigate()
+                },
+            },
         })
     })
     afterEach(() => {
@@ -142,41 +156,57 @@ describe('AuthProvider push identity public integration contract', () => {
         mockLoading = false
         mockQueryError = null
         renderHook(() => useAuth(), { wrapper })
-        await act(async () => { for (let i = 0; i < 20; i += 1) await Promise.resolve() })
+        await act(async () => {
+            for (let i = 0; i < 20; i += 1) await Promise.resolve()
+        })
         expect(mockSyncIdentity).not.toHaveBeenCalled()
         expect(mockResumeIdentity).not.toHaveBeenCalled()
         expect(mockLogoutIdentity).not.toHaveBeenCalled()
     })
 
-    it.each(['hydration', 'app lock', 'API error', 'demo'])('does not change push identity during %s', async (condition) => {
-        if (condition === 'hydration') { mockUserData = undefined; mockLoading = true }
-        if (condition === 'app lock') mockLocked = true
-        if (condition === 'API error') mockQueryError = new Error('API unavailable')
-        if (condition === 'demo') mockDemo = true
-        renderHook(() => useAuth(), { wrapper })
-        await act(async () => { for (let i = 0; i < 20; i += 1) await Promise.resolve() })
-        expect(mockSyncIdentity).not.toHaveBeenCalled()
-        expect(mockResumeIdentity).not.toHaveBeenCalled()
-        expect(mockLogoutIdentity).not.toHaveBeenCalled()
-    })
+    it.each(['hydration', 'app lock', 'API error', 'demo'])(
+        'does not change push identity during %s',
+        async (condition) => {
+            if (condition === 'hydration') {
+                mockUserData = undefined
+                mockLoading = true
+            }
+            if (condition === 'app lock') mockLocked = true
+            if (condition === 'API error') mockQueryError = new Error('API unavailable')
+            if (condition === 'demo') mockDemo = true
+            renderHook(() => useAuth(), { wrapper })
+            await act(async () => {
+                for (let i = 0; i < 20; i += 1) await Promise.resolve()
+            })
+            expect(mockSyncIdentity).not.toHaveBeenCalled()
+            expect(mockResumeIdentity).not.toHaveBeenCalled()
+            expect(mockLogoutIdentity).not.toHaveBeenCalled()
+        }
+    )
 
     it('explicit logout awaits identity unlink before reload with no notification hook mounted', async () => {
         const gate = deferred()
         mockLogoutIdentity.mockReturnValueOnce(gate.promise)
         const { result } = renderHook(() => useAuth(), { wrapper })
         let logout!: Promise<void>
-        act(() => { logout = result.current.logoutUser({ skipBackendCall: true }) })
+        act(() => {
+            logout = result.current.logoutUser({ skipBackendCall: true })
+        })
         await waitFor(() => expect(mockLogoutIdentity).toHaveBeenCalledTimes(1))
         expect(mockNavigate).not.toHaveBeenCalled()
         gate.resolve()
-        await act(async () => { await logout })
+        await act(async () => {
+            await logout
+        })
         expect(mockNavigate).toHaveBeenCalledTimes(1)
     })
 
     it('unlink rejection cannot trap auth logout', async () => {
         mockLogoutIdentity.mockRejectedValueOnce(new Error('push unavailable'))
         const { result } = renderHook(() => useAuth(), { wrapper })
-        await act(async () => { await result.current.logoutUser({ skipBackendCall: true }) })
+        await act(async () => {
+            await result.current.logoutUser({ skipBackendCall: true })
+        })
         expect(mockLogoutIdentity).toHaveBeenCalledTimes(1)
         expect(mockClear).toHaveBeenCalled()
         expect(mockNavigate).toHaveBeenCalledTimes(1)
@@ -188,73 +218,113 @@ describe('AuthProvider push identity public integration contract', () => {
         const { result } = renderHook(() => useAuth(), { wrapper })
         let first!: Promise<void>
         let second!: Promise<void>
-        act(() => { first = result.current.logoutUser({ skipBackendCall: true }); second = result.current.logoutUser({ skipBackendCall: true }) })
+        act(() => {
+            first = result.current.logoutUser({ skipBackendCall: true })
+            second = result.current.logoutUser({ skipBackendCall: true })
+        })
         await waitFor(() => expect(mockLogoutIdentity).toHaveBeenCalledTimes(1))
         gate.resolve()
-        await act(async () => { await Promise.all([first, second]) })
+        await act(async () => {
+            await Promise.all([first, second])
+        })
         expect(mockLogoutIdentity).toHaveBeenCalledTimes(1)
         expect(mockNavigate).toHaveBeenCalledTimes(1)
     })
     it('login hydration started before logout cannot release the later logout boundary', async () => {
         let finishHydration!: (profile: unknown) => void
-        mockRecoverLoginSession.mockReturnValueOnce(new Promise((resolve) => { finishHydration = resolve }))
+        mockRecoverLoginSession.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishHydration = resolve
+            })
+        )
         const { result } = renderHook(() => useAuth(), { wrapper })
         let hydration!: Promise<unknown>
-        act(() => { hydration = result.current.hydrateLoginSession() })
+        act(() => {
+            hydration = result.current.hydrateLoginSession()
+        })
         await waitFor(() => expect(mockRecoverLoginSession).toHaveBeenCalledTimes(1))
-        await act(async () => { await result.current.logoutUser({ skipBackendCall: true }) })
+        await act(async () => {
+            await result.current.logoutUser({ skipBackendCall: true })
+        })
         expect(mockLogoutIdentity).toHaveBeenCalledTimes(1)
         finishHydration({ user: { userId: 'late-login', username: 'late' }, accounts: [] })
-        await act(async () => { await hydration.catch(() => undefined) })
+        await act(async () => {
+            await hydration.catch(() => undefined)
+        })
         expect(mockResumeIdentity).not.toHaveBeenCalled()
     })
 
     it('account setup started before logout cannot release the later logout boundary', async () => {
         let finishSetup!: (result: unknown) => void
-        mockCompleteAccountSetup.mockReturnValueOnce(new Promise((resolve) => { finishSetup = resolve }))
+        mockCompleteAccountSetup.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishSetup = resolve
+            })
+        )
         const { result } = renderHook(() => useAuth(), { wrapper })
         let setup!: Promise<unknown>
-        act(() => { setup = result.current.addAccount({
-            accountIdentifier: '0x0000000000000000000000000000000000000001',
-            accountType: 'PEANUT' as Parameters<typeof result.current.addAccount>[0]['accountType'],
-            userId: 'account-A',
-        }) })
+        act(() => {
+            setup = result.current.addAccount({
+                accountIdentifier: '0x0000000000000000000000000000000000000001',
+                accountType: 'PEANUT' as Parameters<typeof result.current.addAccount>[0]['accountType'],
+                userId: 'account-A',
+            })
+        })
         await waitFor(() => expect(mockCompleteAccountSetup).toHaveBeenCalledTimes(1))
-        await act(async () => { await result.current.logoutUser({ skipBackendCall: true }) })
+        await act(async () => {
+            await result.current.logoutUser({ skipBackendCall: true })
+        })
         expect(mockLogoutIdentity).toHaveBeenCalledTimes(1)
         finishSetup({ status: 'created', requestAttempts: 1 })
-        await act(async () => { await setup.catch(() => undefined) })
+        await act(async () => {
+            await setup.catch(() => undefined)
+        })
         expect(mockResumeIdentity).not.toHaveBeenCalled()
     })
 
     it('hydration begun before another tab logout cannot resume its stale account', async () => {
         let finishHydration!: (profile: unknown) => void
-        mockRecoverLoginSession.mockReturnValueOnce(new Promise((resolve) => { finishHydration = resolve }))
+        mockRecoverLoginSession.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishHydration = resolve
+            })
+        )
         const { result } = renderHook(() => useAuth(), { wrapper })
         let hydration!: Promise<unknown>
-        act(() => { hydration = result.current.hydrateLoginSession() })
+        act(() => {
+            hydration = result.current.hydrateLoginSession()
+        })
         await waitFor(() => expect(mockRecoverLoginSession).toHaveBeenCalledTimes(1))
         mockLogoutVersion = 'logout-in-other-tab-receipt'
         finishHydration({ user: { userId: 'stale-cross-tab-login', username: 'late' }, accounts: [] })
-        await act(async () => { await hydration.catch(() => undefined) })
+        await act(async () => {
+            await hydration.catch(() => undefined)
+        })
         expect(mockResumeIdentity).not.toHaveBeenCalled()
     })
 
     it('account setup begun before another tab logout cannot resume its stale account', async () => {
         let finishSetup!: (result: unknown) => void
-        mockCompleteAccountSetup.mockReturnValueOnce(new Promise((resolve) => { finishSetup = resolve }))
+        mockCompleteAccountSetup.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishSetup = resolve
+            })
+        )
         const { result } = renderHook(() => useAuth(), { wrapper })
         let setup!: Promise<unknown>
-        act(() => { setup = result.current.addAccount({
-            accountIdentifier: '0x0000000000000000000000000000000000000001',
-            accountType: 'PEANUT' as Parameters<typeof result.current.addAccount>[0]['accountType'],
-            userId: 'account-A',
-        }) })
+        act(() => {
+            setup = result.current.addAccount({
+                accountIdentifier: '0x0000000000000000000000000000000000000001',
+                accountType: 'PEANUT' as Parameters<typeof result.current.addAccount>[0]['accountType'],
+                userId: 'account-A',
+            })
+        })
         await waitFor(() => expect(mockCompleteAccountSetup).toHaveBeenCalledTimes(1))
         mockLogoutVersion = 'logout-in-other-tab-receipt'
         finishSetup({ status: 'created', requestAttempts: 1 })
-        await act(async () => { await setup.catch(() => undefined) })
+        await act(async () => {
+            await setup.catch(() => undefined)
+        })
         expect(mockResumeIdentity).not.toHaveBeenCalled()
     })
-
 })

@@ -3,9 +3,15 @@ let mockSdkIdentity: string | null = 'persisted-account'
 let mockPushEnabled = true
 const mockAdapter = {
     init: jest.fn(async (): Promise<void> => undefined),
-    login: jest.fn(async (id: string) => { mockSdkIdentity = id }),
-    logout: jest.fn(async () => { mockSdkIdentity = null }),
-    optOut: jest.fn(async () => { mockPushEnabled = false }),
+    login: jest.fn(async (id: string) => {
+        mockSdkIdentity = id
+    }),
+    logout: jest.fn(async () => {
+        mockSdkIdentity = null
+    }),
+    optOut: jest.fn(async () => {
+        mockPushEnabled = false
+    }),
     revokePermission: jest.fn(),
 }
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: async () => mockAdapter }))
@@ -16,7 +22,9 @@ let mockListenerRegistrations: jest.SpyInstance
 
 function deferred() {
     let resolve!: () => void
-    const promise = new Promise<void>((done) => { resolve = done })
+    const promise = new Promise<void>((done) => {
+        resolve = done
+    })
     return { promise, resolve }
 }
 
@@ -27,8 +35,13 @@ async function microtasks() {
 function observe(promise: Promise<void>) {
     const outcome = { settled: false, rejected: false }
     const done = promise.then(
-        () => { outcome.settled = true },
-        () => { outcome.settled = true; outcome.rejected = true },
+        () => {
+            outcome.settled = true
+        },
+        () => {
+            outcome.settled = true
+            outcome.rejected = true
+        }
     )
     return { outcome, done }
 }
@@ -42,8 +55,12 @@ describe('notification identity timeout recovery public contract', () => {
         mockSdkIdentity = 'persisted-account'
         mockPushEnabled = true
         mockAdapter.init.mockReset().mockResolvedValue(undefined)
-        mockAdapter.login.mockReset().mockImplementation(async (id) => { mockSdkIdentity = id })
-        mockAdapter.logout.mockReset().mockImplementation(async () => { mockSdkIdentity = null })
+        mockAdapter.login.mockReset().mockImplementation(async (id) => {
+            mockSdkIdentity = id
+        })
+        mockAdapter.logout.mockReset().mockImplementation(async () => {
+            mockSdkIdentity = null
+        })
         mockAdapter.optOut.mockClear()
         mockAdapter.revokePermission.mockClear()
         facade = await import('@/services/onesignal/identity')

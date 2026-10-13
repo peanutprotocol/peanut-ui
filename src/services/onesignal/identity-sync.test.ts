@@ -15,10 +15,18 @@ function fixture(initialIdentity: string | null = 'persisted-account') {
     const state = { identity: initialIdentity, pushEnabled: true, permission: 'granted' }
     const adapter = {
         init: jest.fn(async (): Promise<void> => undefined),
-        login: jest.fn(async (id: string) => { state.identity = id }),
-        logout: jest.fn(async () => { state.identity = null }),
-        optOut: jest.fn(async () => { state.pushEnabled = false }),
-        revokePermission: jest.fn(async () => { state.permission = 'denied' }),
+        login: jest.fn(async (id: string) => {
+            state.identity = id
+        }),
+        logout: jest.fn(async () => {
+            state.identity = null
+        }),
+        optOut: jest.fn(async () => {
+            state.pushEnabled = false
+        }),
+        revokePermission: jest.fn(async () => {
+            state.permission = 'denied'
+        }),
     }
     const getAdapter = jest.fn(async () => adapter)
     const sync = createPushIdentitySync(getAdapter)
@@ -65,7 +73,11 @@ describe('push identity accepted contract', () => {
     test.each([null, 'account-A'])('successful duplicates are idempotent: %s', async (id) => {
         const f = fixture()
         await f.sync.setExternalId(id)
-        const calls = { init: f.adapter.init.mock.calls.length, login: f.adapter.login.mock.calls.length, logout: f.adapter.logout.mock.calls.length }
+        const calls = {
+            init: f.adapter.init.mock.calls.length,
+            login: f.adapter.login.mock.calls.length,
+            logout: f.adapter.logout.mock.calls.length,
+        }
         await f.sync.setExternalId(id)
         expect(f.state.identity).toBe(id)
         expect(f.adapter.init).toHaveBeenCalledTimes(calls.init)
@@ -78,13 +90,19 @@ describe('push identity accepted contract', () => {
         const f = fixture()
         const gate = deferred()
         const started = deferred()
-        const operation = async () => { started.resolve(); await gate.promise; f.state.identity = id }
+        const operation = async () => {
+            started.resolve()
+            await gate.promise
+            f.state.identity = id
+        }
         if (id === null) f.adapter.logout.mockImplementationOnce(operation)
         else f.adapter.login.mockImplementationOnce(operation)
         const first = f.sync.setExternalId(id)
         await started.promise
         let secondSettled = false
-        const second = f.sync.setExternalId(id).then(() => { secondSettled = true })
+        const second = f.sync.setExternalId(id).then(() => {
+            secondSettled = true
+        })
         for (let i = 0; i < 20; i += 1) await Promise.resolve()
         expect(secondSettled).toBe(false)
         gate.resolve()
@@ -144,7 +162,10 @@ describe('push identity accepted contract', () => {
     test.each([null, 'account-B'])('latest identity %s wins over an in-flight login', async (latest) => {
         const f = fixture()
         const gate = deferred()
-        f.adapter.login.mockImplementationOnce(async (id) => { await gate.promise; f.state.identity = id })
+        f.adapter.login.mockImplementationOnce(async (id) => {
+            await gate.promise
+            f.state.identity = id
+        })
         const first = f.sync.setExternalId('account-A')
         await until(() => f.adapter.login.mock.calls.length === 1)
         const next = f.sync.setExternalId(latest)
@@ -158,7 +179,10 @@ describe('push identity accepted contract', () => {
         const f = fixture(null)
         await f.sync.setExternalId('account-A')
         const gate = deferred()
-        f.adapter.logout.mockImplementationOnce(async () => { await gate.promise; f.state.identity = null })
+        f.adapter.logout.mockImplementationOnce(async () => {
+            await gate.promise
+            f.state.identity = null
+        })
         const logout = f.sync.setExternalId(null)
         await until(() => f.adapter.logout.mock.calls.length === 1)
         const login = f.sync.setExternalId('account-A')
