@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "timeout_seconds": 300,
+  "checks": [
+    {
+      "name": "tests",
+      "argv": [
+        "node",
+        "node_modules/jest/bin/jest.js",
+        "--runInBand",
+        "--silent",
+        "--testPathPattern=useNotifications|authContext|login-session.test|account-setup.test|useAccountSetup|useForegroundPushRefresh|onesignal/identity"
+      ],
+      "cwd": "."
+    },
+    {
+      "name": "lint",
+      "argv": ["node", "node_modules/eslint/bin/eslint.js", "."],
+      "cwd": "."
+    }
+  ]
+}

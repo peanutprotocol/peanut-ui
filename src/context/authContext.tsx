@@ -23,10 +23,16 @@ import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
-import { disableDemoMode } from '@/utils/demo'
+import { disableDemoMode, isDemoMode } from '@/utils/demo'
+import {
+    getNotificationLogoutVersion,
+    logoutNotificationIdentity,
+    resumeNotificationIdentity,
+    syncNotificationIdentity,
+} from '@/services/onesignal/identity'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
-import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { captureException, setUser as setSentryUser } from '@/utils/sentry-lazy'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
@@ -84,6 +90,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const logoutGeneration = useRef(0)
     const toast = useToast()
     const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
@@ -223,16 +230,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     )
 
     const hydrateLoginSession = useCallback(async () => {
+        const generation = logoutGeneration.current
+        const pushLogoutVersion = getNotificationLogoutVersion()
         const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
         await cancel()
-        return recoverLoginSession(async () => {
+        const profile = await recoverLoginSession(async () => {
             const result = await fetchUser()
             if (result.error) throw result.error
             return result.data ?? null
         }, cancel)
+        if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
+            void resumeNotificationIdentity(profile.user.userId).catch(() => {
+                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            })
+        }
+        return profile
     }, [fetchUser, queryClient])
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const loggingOut = useRef(false)
+
+    useEffect(() => {
+        // A locked/hydrating session or failed profile read is not confirmed logout.
+        if (user === undefined || appLocked || isFetchingUser || userFetchError || isLoggingOut || isDemoMode()) return
+        const reconcile = () => {
+            if (loggingOut.current || document.visibilityState === 'hidden') return
+            void syncNotificationIdentity(user?.user.userId ?? null).catch(() => {
+                captureException(new Error('Push identity reconciliation failed'), {
+                    tags: { source: 'push_identity_reconcile' },
+                })
+            })
+        }
+        reconcile()
+        window.addEventListener('online', reconcile)
+        document.addEventListener('visibilitychange', reconcile)
+        return () => {
+            window.removeEventListener('online', reconcile)
+            document.removeEventListener('visibilitychange', reconcile)
+        }
+    }, [appLocked, isFetchingUser, userFetchError, isLoggingOut, user])
 
     const addAccount = async ({
         accountIdentifier,
@@ -254,7 +290,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         telegramHandle?: string
         signupPreferences?: SignupPreferences
     }) => {
-        return completeAccountSetup({
+        const generation = logoutGeneration.current
+        const pushLogoutVersion = getNotificationLogoutVersion()
+        const outcome = await completeAccountSetup({
             accountIdentifier,
             accountType,
             fetchProfile: legacy_fetchUser,
@@ -273,6 +311,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     }),
                 }),
         })
+        if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
+            void resumeNotificationIdentity(userId).catch(() => {
+                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            })
+        }
+        return outcome
     }
 
     /**
@@ -364,12 +408,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      */
     const logoutUser = useCallback(
         async (options?: { skipBackendCall?: boolean }) => {
-            if (isLoggingOut) return
+            if (loggingOut.current) return
 
+            loggingOut.current = true
+            logoutGeneration.current += 1
             setIsLoggingOut(true)
             // Before anything empties the user cache: the auth gate reacts to
             // that by storing the current path as the post-auth destination.
             beginIntentionalLogout()
+            // Start before any auth await; SDK events cannot relink the old user.
+            const pushLogout = logoutNotificationIdentity().catch(() => {
+                captureException(new Error('Push identity logout failed or timed out'), {
+                    tags: { source: 'push_identity_logout' },
+                })
+            })
             try {
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
@@ -386,6 +438,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     }
                 }
 
+                await pushLogout
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor
@@ -409,10 +462,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // TODO: remove debug info after native testing
                 toast.error(tErrors('logoutFailed'))
             } finally {
+                loggingOut.current = false
                 setIsLoggingOut(false)
             }
         },
-        [clearLocalAuthState, fetchUser, isLoggingOut, toast, tErrors]
+        [clearLocalAuthState, fetchUser, toast, tErrors]
     )
 
     return (
