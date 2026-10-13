@@ -1,5 +1,6 @@
 import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
 import type {
     KycAttemptSession,
     KycDocumentPlan,
@@ -109,8 +110,12 @@ export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefine
     return undefined
 }
 
-/** The features saved on the document list when the current identity was verified through it; null for every other identity. */
-export async function findKycSetupFeatures(): Promise<KycFeatures | null> {
+/**
+ * The setup of an identity verified through the document list: its saved
+ * features and the plan's refusals. Null for every other identity, and when
+ * a read fails (the identity status then shows as before).
+ */
+export async function findKycSetup(): Promise<{ features: KycFeatures; refusals: SetupRefusals } | null> {
     try {
         const [profile, plan] = await Promise.all([read<KycProfile>('/users/kyc/profile'), getKycDocumentPlan()])
         const identityId = profile.identity?.verificationId
@@ -118,7 +123,18 @@ export async function findKycSetupFeatures(): Promise<KycFeatures | null> {
             (attempt) =>
                 attempt.kind === 'IDENTITY' && attempt.verificationId === identityId && attempt.status !== 'SUPERSEDED'
         )
-        return identityId && documentFirst ? plan.features : null
+        return identityId && documentFirst
+            ? { features: plan.features, refusals: providerRefusalsOf(profile).refusals }
+            : null
+    } catch {
+        return null
+    }
+}
+
+/** The plan's refusals of the current identity's providers; null when the profile cannot be read. */
+export async function findKycProviderRefusals(): Promise<ReturnType<typeof providerRefusalsOf> | null> {
+    try {
+        return providerRefusalsOf(await read<KycProfile>('/users/kyc/profile'))
     } catch {
         return null
     }

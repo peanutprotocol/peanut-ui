@@ -2,7 +2,7 @@ import { render as rtlRender, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { KycStatusDrawer } from '../KycStatusDrawer'
 import type { UseIdentityVerificationResult } from '@/hooks/useIdentityVerification'
-import { findKycSetupFeatures } from '@/app/actions/kyc-workflow'
+import { findKycSetup } from '@/app/actions/kyc-workflow'
 
 // The way back to the setup status: a returning user whose identity was
 // verified through the document list opens the identity status and gets the
@@ -24,7 +24,7 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         error: null,
     }),
 }))
-jest.mock('@/app/actions/kyc-workflow', () => ({ findKycSetupFeatures: jest.fn() }))
+jest.mock('@/app/actions/kyc-workflow', () => ({ findKycSetup: jest.fn() }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
@@ -42,7 +42,8 @@ jest.mock('@/hooks/useLongPress', () => ({
 }))
 
 const features = { qr: true, local: false, bank: true, card: false }
-const mockFind = findKycSetupFeatures as jest.MockedFunction<typeof findKycSetupFeatures>
+const mockFind = findKycSetup as jest.MockedFunction<typeof findKycSetup>
+const refusals = { manteca: 'local_tax_id_missing' }
 const identity = (status: 'verified' | 'processing' | 'action_required') => {
     mockIdentity = {
         status,
@@ -64,9 +65,9 @@ beforeEach(() => jest.clearAllMocks())
 describe('KycStatusDrawer — the setup status of a document-first identity', () => {
     it.each(['verified', 'processing'] as const)('a %s identity hands over to the setup status', async (status) => {
         identity(status)
-        mockFind.mockResolvedValue(features)
+        mockFind.mockResolvedValue({ features, refusals })
         const { onClose, onKeepMounted } = open()
-        await waitFor(() => expect(mockOpenSetupStatus).toHaveBeenCalledWith(features))
+        await waitFor(() => expect(mockOpenSetupStatus).toHaveBeenCalledWith(features, refusals))
         expect(onKeepMounted).toHaveBeenCalledWith(true)
         expect(onClose).toHaveBeenCalled()
     })

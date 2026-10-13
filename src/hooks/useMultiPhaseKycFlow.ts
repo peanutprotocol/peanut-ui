@@ -15,11 +15,14 @@ import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
-import { setupRows, type SetupRowStep } from '@/utils/kyc-setup-status.utils'
+import { setupRows, type SetupRefusals, type SetupRowStep } from '@/utils/kyc-setup-status.utils'
+import { findKycProviderRefusals } from '@/app/actions/kyc-workflow'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const PREPARING_TIMEOUT_MS = 30000
+const REFUSAL_READS = 5
+const REFUSAL_READ_DELAY_MS = 4000
 
 const EMPTY_CAPABILITIES: UserCapabilities = { rails: [], nextActions: [], restrictions: [] }
 
@@ -209,6 +212,8 @@ export const useMultiPhaseKycFlow = ({
     // Opened from the identity status (a returning user) rather than by a submission in this flow.
     const setupOriginRef = useRef<'submission' | 'status'>('submission')
     const [termsAccepted, setTermsAccepted] = useState(false)
+    // The plan's refusals no rail carries; read from the profile once the identity is approved.
+    const [setupRefusals, setSetupRefusals] = useState<SetupRefusals>({})
 
     // rail tracking — sourced from the backend capability model.
     // MIGRATION-REVIEW: replaces useRailStatusTracking. `allSettled` / `needsTos`
@@ -555,6 +560,7 @@ export const useMultiPhaseKycFlow = ({
             clearPreparingTimer()
             setupOriginRef.current = 'submission'
             setTermsAccepted(false)
+            setSetupRefusals({})
 
             return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
         },
@@ -841,8 +847,9 @@ export const useMultiPhaseKycFlow = ({
 
     // A returning user's setup status, opened from the identity status.
     const openSetupStatus = useCallback(
-        (features: KycFeatures) => {
+        (features: KycFeatures, refusals: SetupRefusals = {}) => {
             setupOriginRef.current = 'status'
+            setSetupRefusals(refusals)
             latchSetupFeatures(features)
             setModalPhase('verifying')
             setForceShowModal(true)
@@ -917,6 +924,35 @@ export const useMultiPhaseKycFlow = ({
     const depositBlocked =
         !verificationSession && !showWrapper && allBlocked && !supplementKey && modalPhase === 'preparing'
 
+    const identityVerified = user?.identityVerification?.status === 'verified'
+    // Only a provider attempt can be refused, and the approval records the
+    // attempts after the identity status changes: read until they are there.
+    const readsRefusals =
+        !!setupFeatures && identityVerified && (setupFeatures.local || setupFeatures.bank || setupFeatures.card)
+    useEffect(() => {
+        if (!readsRefusals) return
+        let cancelled = false
+        let timer: ReturnType<typeof setTimeout> | undefined
+        let reads = 0
+        const read = async () => {
+            reads++
+            let answer: Awaited<ReturnType<typeof findKycProviderRefusals>> = null
+            try {
+                answer = await findKycProviderRefusals()
+            } catch {
+                // a failed read keeps what the rails say
+            }
+            if (cancelled) return
+            if (answer) setSetupRefusals(answer.refusals)
+            if (!answer?.recorded && reads < REFUSAL_READS) timer = setTimeout(read, REFUSAL_READ_DELAY_MS)
+        }
+        void read()
+        return () => {
+            cancelled = true
+            clearTimeout(timer)
+        }
+    }, [readsRefusals])
+
     const residence = user?.residence?.verified ?? user?.residence?.declared ?? null
     const setupStatus = setupFeatures
         ? {
@@ -927,8 +963,9 @@ export const useMultiPhaseKycFlow = ({
                   features: setupFeatures,
                   residence,
                   capabilities,
-                  identityVerified: user?.identityVerification?.status === 'verified',
+                  identityVerified,
                   submitted: { supplements: submittedSupplementsRef.current, terms: termsAccepted },
+                  refusals: setupRefusals,
               }),
           }
         : null

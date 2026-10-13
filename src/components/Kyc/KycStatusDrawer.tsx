@@ -7,7 +7,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useCallback, useEffect, useRef } from 'react'
-import { findKycSetupFeatures } from '@/app/actions/kyc-workflow'
+import { findKycSetup } from '@/app/actions/kyc-workflow'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -50,12 +50,12 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     useEffect(() => {
         if (!checksSetup) return
         let cancelled = false
-        void findKycSetupFeatures().then((features) => {
-            if (cancelled || !features) return
+        void findKycSetup().then((setup) => {
+            if (cancelled || !setup) return
             const handoff = handoffRef.current
             handoff.onKeepMounted?.(true)
             handoff.onClose()
-            handoff.openSetupStatus(features)
+            handoff.openSetupStatus(setup.features, setup.refusals)
         })
         return () => {
             cancelled = true

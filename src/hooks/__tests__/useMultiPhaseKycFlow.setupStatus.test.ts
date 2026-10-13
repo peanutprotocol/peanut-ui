@@ -12,6 +12,7 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     startKycDocumentAttempt: jest.fn(),
     startKycDocumentReplacement: jest.fn(),
     saveKycFeatures: jest.fn(),
+    findKycProviderRefusals: jest.fn(async () => ({ refusals: {}, recorded: true })),
 }))
 import { act } from '@testing-library/react'
 import posthog from 'posthog-js'
@@ -19,6 +20,7 @@ import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import {
     findKycDocumentPlan,
+    findKycProviderRefusals,
     getKycDocumentStatus,
     saveKycFeatures,
     startKycDocumentAttempt,
@@ -192,6 +194,7 @@ beforeEach(() => {
     jest.mocked(startKycAction).mockResolvedValue({
         data: { token: 'poa-token', levelName: 'provider-rfi-proof-of-address' },
     })
+    jest.mocked(findKycProviderRefusals).mockResolvedValue({ refusals: {}, recorded: true })
 })
 
 describe('useMultiPhaseKycFlow — the setup status of a document-first flow', () => {
@@ -410,5 +413,81 @@ describe('useMultiPhaseKycFlow — every other flow keeps the phases', () => {
             await view.result.current.handleInitiateKyc('EU')
         })
         expect(view.result.current.setupStatus).toBeNull()
+    })
+})
+
+describe('useMultiPhaseKycFlow — the plan refusals no rail carries', () => {
+    // a passport user in Brazil with no CPF: the approval promotes the Pix pool
+    // rail and enrols no bank rail, so only the profile says local was refused
+    const upgrade = {
+        key: 'manteca-full-account',
+        kind: 'sumsub' as const,
+        purpose: 'unlock-manteca-bank',
+        levelKey: 'manteca',
+    }
+    const pixPool: UserCapabilities = {
+        rails: [
+            {
+                ...qrRail,
+                operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+                blockingActions: [upgrade.key],
+                resolved: { status: 'enabled' },
+            },
+        ],
+        nextActions: [upgrade],
+        restrictions: [],
+    }
+    beforeEach(() => {
+        jest.mocked(findKycDocumentPlan).mockResolvedValue({
+            ...plan,
+            features: { qr: true, local: true, bank: false, card: false },
+        })
+    })
+
+    it('reads them from the profile once the identity is approved', async () => {
+        jest.mocked(findKycProviderRefusals).mockResolvedValue({
+            refusals: { manteca: 'local_tax_id_missing' },
+            recorded: true,
+        })
+        const view = await submitOnDocumentList()
+        expect(findKycProviderRefusals).not.toHaveBeenCalled()
+        await approve(view, pixPool)
+
+        expect(findKycProviderRefusals).toHaveBeenCalledTimes(1)
+        expect(view.result.current.setupStatus?.rows).toEqual([
+            { key: 'qr', state: 'available' },
+            { key: 'local', state: 'not-available', reason: 'local_tax_id_missing' },
+        ])
+    })
+
+    it('a failed read falls back to the rails and keeps the status open', async () => {
+        jest.mocked(findKycProviderRefusals).mockResolvedValue(null)
+        const view = await submitOnDocumentList()
+        await approve(view, pixPool)
+
+        expect(findKycProviderRefusals).toHaveBeenCalled()
+        expect(view.result.current.setupStatus?.open).toBe(true)
+        expect(view.result.current.setupStatus?.rows).toEqual([
+            { key: 'qr', state: 'available' },
+            { key: 'local', state: 'setting-up' },
+        ])
+    })
+
+    it('a returning user gets the refusals the identity status read, before any read of its own', () => {
+        jest.mocked(findKycProviderRefusals).mockReturnValue(new Promise(() => {}))
+        mockUser = verifiedUser(pixPool)
+        mockCapabilities = pixPool
+        const view = renderHook(() => useMultiPhaseKycFlow({}))
+        act(() =>
+            view.result.current.openSetupStatus(
+                { qr: true, local: true, bank: false, card: false },
+                { manteca: 'local_tax_id_missing' }
+            )
+        )
+        expect(view.result.current.setupStatus?.rows[1]).toEqual({
+            key: 'local',
+            state: 'not-available',
+            reason: 'local_tax_id_missing',
+        })
     })
 })
