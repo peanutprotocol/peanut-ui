@@ -2953,7 +2953,17 @@
         "setup": {
             "settingUp": "Configurando",
             "available": "Disponível",
-            "underReview": "Em análise"
+            "underReview": "Em análise",
+            "documentNeeded": "Falta um documento",
+            "agreementsNeeded": "Faltam os termos",
+            "verifyId": "Verificar ID",
+            "notAvailable": "Não disponível",
+            "verifyAgain": "Verificar de novo com documento de {country}",
+            "verifyAgainNote": "Inicia uma nova verificação de identidade.",
+            "uploadNow": "Enviar agora",
+            "later": "Depois",
+            "continueCard": "Continuar com o cartão",
+            "reviewTerms": "Revisar termos"
         },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
@@ -3409,7 +3419,10 @@
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "residence_bank_restricted": "Transferências bancárias não estão disponíveis para residentes do seu país. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
-            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação."
+            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação.",
+            "document_country_unsupported": "Precisa de um documento de identidade do país: {country}",
+            "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
+            "under_minimum_age": "Somente a partir de 18 anos"
         }
     },
     "recoverFunds": {

@@ -184,6 +184,12 @@ export interface NextAction {
      * "bank transfers". Absent when no single rail scopes the action.
      */
     currency?: string
+    /**
+     * `restart-identity` after a plan refusal only: the providers the plan
+     * closed, each with its reason code. A refused provider was never
+     * enrolled, so no rail names it.
+     */
+    refused?: { provider: ProviderCode; reason: string }[]
 }
 
 export interface CapabilityRestriction {

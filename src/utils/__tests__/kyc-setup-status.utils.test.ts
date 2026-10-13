@@ -125,4 +125,528 @@ describe('setupRows', () => {
             { key: 'local', state: 'setting-up' },
         ])
     })
+
+    it('verified with no rail yet, the card waits for its agreements on the card page', () => {
+        expect(stateOf(capabilities([]), 'card')).toBe('agreements-needed')
+        expect(verified(capabilities([]), ONLY('card'))[0].step).toEqual({ provider: 'rain' })
+    })
+})
+
+/**
+ * Every reason the capability resolver of api#1816 emits on these rails, as
+ * the resolver emits it (status, reason, actions and its `resolved` verdict).
+ */
+describe('setupRows — the reasons of api#1816', () => {
+    const support: NextAction = { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' }
+    const restart = (purpose: string, refused?: NextAction['refused']): NextAction => ({
+        key: 'restart-identity',
+        kind: 'restart-identity',
+        purpose,
+        ...(refused ? { refused } : {}),
+    })
+    const supplement: NextAction = { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }
+    const verdictOf = (
+        status: NonNullable<RailCapability['resolved']>['status'],
+        code: string,
+        nextAction?: NextAction,
+        selfHealKind?: 'document-resubmit' | 'restart-identity' | 'provide-email' | 'contact-support'
+    ): RailCapability['resolved'] => ({
+        status,
+        blocking: {
+            code,
+            userMessage: '',
+            selfHealable: status === 'fixable' || selfHealKind === 'restart-identity',
+            ...(selfHealKind ? { selfHealKind } : {}),
+        },
+        ...(nextAction ? { nextAction } : {}),
+    })
+    /** Both accounts parked the same way. */
+    const accounts = (overrides: Partial<RailCapability>) => [ach(overrides), sepa(overrides)]
+    const bankState = (
+        rails: RailCapability[],
+        nextActions: NextAction[],
+        submitted?: Parameters<typeof setupRows>[0]['submitted']
+    ) =>
+        setupRows({
+            features: ONLY('bank'),
+            residence: 'BR',
+            capabilities: capabilities(rails, nextActions),
+            identityVerified: true,
+            submitted,
+        })[0]
+
+    it('requirements_missing on its supplement: Document needed, the step is the supplement action', () => {
+        const row = bankState(
+            accounts({
+                status: 'blocked',
+                reason: { code: 'requirements_missing', userMessage: '' },
+                blockingActions: ['supplement:bridge'],
+                resolved: verdictOf('fixable', 'requirements_missing', supplement, 'document-resubmit'),
+            }),
+            [supplement]
+        )
+        expect(row).toEqual({
+            key: 'bank',
+            state: 'document-needed',
+            reason: 'requirements_missing',
+            step: { provider: 'bridge', action: supplement, reasonCode: 'requirements_missing' },
+        })
+    })
+
+    it('requirements_in_review: Under review, with the proof of address line', () => {
+        const row = bankState(
+            accounts({
+                status: 'pending',
+                reason: { code: 'requirements_in_review', userMessage: '' },
+                blockingActions: [],
+                resolved: { status: 'pending' },
+            }),
+            []
+        )
+        expect(row).toEqual({ key: 'bank', state: 'under-review', reason: 'requirements_in_review' })
+    })
+
+    it('a proof of address sent in this flow reads under review before the rail catches up', () => {
+        const row = bankState(
+            accounts({
+                status: 'blocked',
+                reason: { code: 'requirements_missing', userMessage: '' },
+                blockingActions: ['supplement:bridge'],
+                resolved: verdictOf('fixable', 'requirements_missing', supplement, 'document-resubmit'),
+            }),
+            [supplement],
+            { supplements: new Set(['supplement:bridge']) }
+        )
+        expect(row).toEqual({ key: 'bank', state: 'under-review', reason: 'requirements_in_review' })
+    })
+
+    it('identity_document_insufficient: Verify ID, through a new identity check', () => {
+        const action = restart('identity_document_insufficient', [
+            { provider: 'bridge', reason: 'identity_document_insufficient' },
+        ])
+        const row = bankState(
+            accounts({
+                status: 'blocked',
+                reason: { code: 'identity_document_insufficient', userMessage: '' },
+                blockingActions: ['restart-identity'],
+                resolved: verdictOf('blocked', 'identity_document_insufficient', action, 'restart-identity'),
+            }),
+            [action]
+        )
+        expect(row).toEqual({ key: 'bank', state: 'verify-again', reason: 'identity_document_insufficient' })
+    })
+
+    it('requirements_uncollectable: Not available, and support can finish it', () => {
+        const row = bankState(
+            accounts({
+                status: 'blocked',
+                reason: { code: 'requirements_uncollectable', userMessage: '' },
+                blockingActions: ['contact-support'],
+                resolved: verdictOf('blocked', 'requirements_uncollectable', support, 'contact-support'),
+            }),
+            [support]
+        )
+        expect(row).toEqual({
+            key: 'bank',
+            state: 'not-available',
+            reason: 'requirements_uncollectable',
+            support: true,
+        })
+    })
+
+    describe('plan refusals (PROVIDER_NOT_IN_PLAN)', () => {
+        it('document_country_unsupported on a parked rail: needs an ID issued by the residence', () => {
+            const action = restart('document_country_unsupported', [
+                { provider: 'bridge', reason: 'document_country_unsupported' },
+            ])
+            const row = bankState(
+                accounts({
+                    status: 'blocked',
+                    reason: { code: 'document_country_unsupported', userMessage: '' },
+                    blockingActions: ['restart-identity'],
+                    resolved: verdictOf('blocked', 'document_country_unsupported', action, 'restart-identity'),
+                }),
+                [action]
+            )
+            expect(row).toEqual({ key: 'bank', state: 'needs-local-id', reason: 'document_country_unsupported' })
+        })
+
+        it('the orphan restart names the refused provider: only its features ask for a local ID', () => {
+            const action = restart('document_country_unsupported', [
+                { provider: 'manteca', reason: 'document_country_unsupported' },
+            ])
+            const rows = setupRows({
+                features: ALL,
+                residence: 'BR',
+                capabilities: capabilities([ach({ status: 'enabled' }), sepa({ status: 'enabled' })], [action]),
+                identityVerified: true,
+            })
+            expect(rows).toEqual([
+                { key: 'qr', state: 'needs-local-id', reason: 'document_country_unsupported' },
+                { key: 'local', state: 'needs-local-id', reason: 'document_country_unsupported' },
+                { key: 'bank', state: 'available' },
+                { key: 'card', state: 'agreements-needed', step: { provider: 'rain' } },
+            ])
+        })
+
+        it('an API that names no refused provider: a feature with no rail of its own asks for a local ID', () => {
+            const rows = setupRows({
+                features: { qr: true, local: false, bank: true, card: false },
+                residence: 'BR',
+                capabilities: capabilities(
+                    [ach({ status: 'enabled' }), sepa({ status: 'enabled' })],
+                    [restart('document_country_unsupported')]
+                ),
+                identityVerified: true,
+            })
+            expect(rows.map((row) => row.state)).toEqual(['needs-local-id', 'available'])
+        })
+
+        it.each([
+            'under_minimum_age',
+            'residence_unknown',
+            'residence_sanctioned',
+            'uk_resident_blocked',
+            'residence_bank_restricted',
+            'us_state_unsupported',
+            'geo-blocked',
+            'local_residence_unsupported',
+            'manteca_us_nationality_restricted',
+            'local_tax_id_missing',
+        ])('%s: Not available, with the reason and no support (support cannot change a plan)', (code) => {
+            const row = bankState(
+                accounts({
+                    status: 'blocked',
+                    reason: { code, userMessage: '' },
+                    resolved: verdictOf('blocked', code),
+                }),
+                []
+            )
+            expect(row).toEqual({ key: 'bank', state: 'not-available', reason: code })
+        })
+
+        it('not_requested on a feature the user did save: setting up, the next save of the set sends it', () => {
+            const row = bankState(
+                accounts({
+                    status: 'blocked',
+                    reason: { code: 'not_requested', userMessage: '' },
+                    resolved: verdictOf('blocked', 'not_requested'),
+                }),
+                []
+            )
+            expect(row.state).toBe('setting-up')
+        })
+    })
+
+    describe('the bank terms', () => {
+        const tos: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
+        const parkedOnTerms = accounts({
+            status: 'requires-info',
+            reason: { code: 'bridge_tos_required', userMessage: '' },
+            blockingActions: ['accept-tos'],
+            resolved: verdictOf('fixable', 'bridge_tos_required', tos),
+        })
+
+        it.each(['bridge_tos_required', 'bridge_tos_v2_required'])(
+            '%s: Agreements needed on the terms step',
+            (code) => {
+                const row = bankState(
+                    accounts({
+                        status: 'requires-info',
+                        reason: { code, userMessage: '' },
+                        blockingActions: ['accept-tos'],
+                        resolved: verdictOf('fixable', code, tos),
+                    }),
+                    [tos]
+                )
+                expect(row).toEqual({
+                    key: 'bank',
+                    state: 'agreements-needed',
+                    reason: code,
+                    step: { provider: 'bridge', action: tos },
+                })
+            }
+        )
+
+        it('terms accepted in this flow read setting up before the rails catch up', () => {
+            expect(bankState(parkedOnTerms, [tos], { terms: true }).state).toBe('setting-up')
+        })
+    })
+
+    it.each([
+        ['bridge_processing', 'bridge-review'],
+        ['identity_reverification_pending', 'identity-reverification'],
+    ])('%s: Under review while a provider or the identity check decides', (code, purpose) => {
+        const wait: NextAction = { key: `wait:${purpose}`, kind: 'wait', purpose }
+        const row = bankState(
+            accounts({
+                status: 'requires-info',
+                reason: { code, userMessage: '' },
+                blockingActions: [wait.key],
+                resolved: { status: 'pending', nextAction: wait },
+            }),
+            [wait]
+        )
+        expect(row).toEqual({ key: 'bank', state: 'under-review', reason: code })
+    })
+
+    it.each([
+        ['residence_unresolved', 'sumsub:address_of_residence'],
+        ['proof_of_address', 'sumsub:proof_of_address'],
+        ['tax_identification_number', 'sumsub:tax_identification_number'],
+        ['eea_uplift_with_tin', 'sumsub:eea_uplift_with_tin'],
+    ])('%s: Document needed, on its own action', (code, key) => {
+        const action: NextAction = { key, kind: 'sumsub', purpose: 'unlock-bridge' }
+        const row = bankState(
+            accounts({
+                status: code === 'residence_unresolved' ? 'blocked' : 'requires-info',
+                reason: { code, userMessage: '' },
+                blockingActions: [key],
+                resolved: verdictOf('fixable', code, action, 'document-resubmit'),
+            }),
+            [action]
+        )
+        expect(row).toEqual({
+            key: 'bank',
+            state: 'document-needed',
+            reason: code,
+            step: { provider: 'bridge', action, reasonCode: code },
+        })
+    })
+
+    it('document_rejected with no action: Document needed, on the resubmit route', () => {
+        const row = bankState(
+            accounts({
+                status: 'requires-info',
+                reason: { code: 'document_rejected', userMessage: '' },
+                resolved: verdictOf('fixable', 'document_rejected', undefined, 'document-resubmit'),
+            }),
+            []
+        )
+        expect(row).toEqual({
+            key: 'bank',
+            state: 'document-needed',
+            reason: 'document_rejected',
+            step: { provider: 'bridge', reasonCode: 'document_rejected' },
+        })
+    })
+
+    it.each(['manteca_action_expired', 'manteca_action_correction_required'])(
+        '%s: Document needed on the Manteca action of the residence',
+        (code) => {
+            const action: NextAction = { key: 'manteca-kyc-action:BR', kind: 'sumsub', purpose: 'unlock-manteca-bank' }
+            const row = setupRows({
+                features: ONLY('local'),
+                residence: 'BR',
+                capabilities: capabilities(
+                    [
+                        rail({
+                            status: 'requires-info',
+                            operations: { pay: 'enabled', deposit: 'pending', withdraw: 'pending' },
+                            reason: { code, userMessage: '' },
+                            blockingActions: [action.key],
+                            resolved: verdictOf('fixable', code, action, 'document-resubmit'),
+                        }),
+                    ],
+                    [action]
+                ),
+                identityVerified: true,
+            })[0]
+            expect(row).toEqual({
+                key: 'local',
+                state: 'document-needed',
+                reason: code,
+                step: { provider: 'manteca', action, reasonCode: code },
+            })
+        }
+    )
+
+    it.each(['tax_id_unresolved', 'country_not_supported', 'identity_missing'])(
+        '%s: Verify ID, through a new identity check',
+        (code) => {
+            const action = restart(code)
+            const row = setupRows({
+                features: ONLY('local'),
+                residence: 'BR',
+                capabilities: capabilities(
+                    [
+                        rail({
+                            status: 'blocked',
+                            reason: { code, userMessage: '' },
+                            blockingActions: ['restart-identity'],
+                            resolved: verdictOf('blocked', code, action, 'restart-identity'),
+                        }),
+                    ],
+                    [action]
+                ),
+                identityVerified: true,
+            })[0]
+            expect(row).toEqual({ key: 'local', state: 'verify-again', reason: code })
+        }
+    )
+
+    it.each([
+        'submission_failed',
+        'verification_blocked',
+        'terminal_rejection',
+        'bridge_terminal_rejection',
+        'duplicate_customer_detected',
+        'residence_bank_restricted',
+    ])('%s with a support action: Not available, support can open it', (code) => {
+        const row = bankState(
+            accounts({
+                status: 'blocked',
+                reason: { code, userMessage: '' },
+                blockingActions: ['contact-support'],
+                resolved: verdictOf('blocked', code, support, 'contact-support'),
+            }),
+            [support]
+        )
+        expect(row).toEqual({ key: 'bank', state: 'not-available', reason: code, support: true })
+    })
+
+    it.each(['uk_resident_blocked', 'residence_bank_restricted'])(
+        '%s from the residence gate: Not available, no support',
+        (code) => {
+            const row = bankState(
+                accounts({
+                    status: 'blocked',
+                    reason: { code, userMessage: '' },
+                    resolved: verdictOf('blocked', code),
+                }),
+                []
+            )
+            expect(row).toEqual({ key: 'bank', state: 'not-available', reason: code })
+        }
+    )
+
+    it('manteca_us_nationality: QR stays available, local transfers are not available', () => {
+        const restricted = rail({
+            status: 'enabled',
+            operations: { pay: 'enabled', deposit: 'blocked', withdraw: 'blocked' },
+            reason: { code: 'manteca_us_nationality', userMessage: '' },
+            resolved: { status: 'enabled' },
+        })
+        expect(verified(capabilities([restricted]), { qr: true, local: true, bank: false, card: false })).toEqual([
+            { key: 'qr', state: 'available' },
+            { key: 'local', state: 'not-available', reason: 'manteca_us_nationality' },
+        ])
+    })
+
+    it('email_required has no drawer state: it reads setting up (Home asks for the email)', () => {
+        const email: NextAction = { key: 'provide-email', kind: 'provide-email', purpose: 'submission-failed-no-email' }
+        const row = bankState(
+            accounts({
+                status: 'blocked',
+                reason: { code: 'email_required', userMessage: '' },
+                blockingActions: ['provide-email'],
+                resolved: verdictOf('fixable', 'email_required', email, 'provide-email'),
+            }),
+            [email]
+        )
+        expect(row.state).toBe('setting-up')
+    })
+
+    it('a step on one account outranks a refusal on the other', () => {
+        const row = bankState(
+            [
+                ach({
+                    status: 'blocked',
+                    reason: { code: 'requirements_missing', userMessage: '' },
+                    blockingActions: ['supplement:bridge'],
+                    resolved: verdictOf('fixable', 'requirements_missing', supplement, 'document-resubmit'),
+                }),
+                sepa({
+                    status: 'blocked',
+                    reason: { code: 'bridge_terminal_rejection', userMessage: '' },
+                    blockingActions: ['contact-support'],
+                    resolved: verdictOf('blocked', 'bridge_terminal_rejection', support, 'contact-support'),
+                }),
+            ],
+            [supplement, support]
+        )
+        expect(row.state).toBe('document-needed')
+    })
+
+    it('reads a rail with no verdict of its own the same way (an API before `resolved`)', () => {
+        const row = bankState(
+            accounts({
+                status: 'blocked',
+                reason: { code: 'requirements_uncollectable', userMessage: '' },
+                blockingActions: ['contact-support'],
+            }),
+            [support]
+        )
+        expect(row).toEqual({
+            key: 'bank',
+            state: 'not-available',
+            reason: 'requirements_uncollectable',
+            support: true,
+        })
+    })
+
+    describe('the card', () => {
+        const cardState = (rails: RailCapability[], nextActions: NextAction[] = []) =>
+            verified(capabilities(rails, nextActions), ONLY('card'))[0]
+
+        it('an application under review reads setting up, a card still being issued too', () => {
+            expect(cardState([card({ status: 'pending', operations: { pay: 'blocked' } })]).state).toBe('setting-up')
+            expect(
+                cardState([
+                    card({ status: 'enabled', operations: { pay: 'blocked' }, resolved: { status: 'enabled' } }),
+                ]).state
+            ).toBe('setting-up')
+        })
+
+        it('proof_of_address_review: Under review', () => {
+            const wait: NextAction = { key: 'wait:rain-poa-review', kind: 'wait', purpose: 'rain-poa-review' }
+            const row = cardState(
+                [
+                    card({
+                        status: 'requires-info',
+                        operations: { pay: 'blocked' },
+                        reason: { code: 'proof_of_address_review', userMessage: '' },
+                        blockingActions: [wait.key],
+                        resolved: { status: 'pending', nextAction: wait },
+                    }),
+                ],
+                [wait]
+            )
+            expect(row).toEqual({ key: 'card', state: 'under-review', reason: 'proof_of_address_review' })
+        })
+
+        it('document_rejected on the card portal: Document needed, the card page owns the upload', () => {
+            const portal: NextAction = { key: 'rain-hosted', kind: 'rain-hosted', purpose: 'rain-card' }
+            const row = cardState(
+                [
+                    card({
+                        status: 'requires-info',
+                        operations: { pay: 'blocked' },
+                        reason: { code: 'document_rejected', userMessage: '' },
+                        blockingActions: ['rain-hosted'],
+                        resolved: verdictOf('fixable', 'document_rejected', portal, 'document-resubmit'),
+                    }),
+                ],
+                [portal]
+            )
+            expect(row.state).toBe('document-needed')
+            expect(row.step?.provider).toBe('rain')
+        })
+
+        it.each(['region_block', 'compliance_block', 'card_rejected'])('%s: Not available, with support', (code) => {
+            const row = cardState(
+                [
+                    card({
+                        status: 'blocked',
+                        operations: { pay: 'blocked' },
+                        reason: { code, userMessage: '' },
+                        blockingActions: ['contact-support'],
+                        resolved: verdictOf('blocked', code, support, 'contact-support'),
+                    }),
+                ],
+                [support]
+            )
+            expect(row).toEqual({ key: 'card', state: 'not-available', reason: code, support: true })
+        })
+    })
 })
