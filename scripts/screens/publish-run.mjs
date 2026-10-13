@@ -283,9 +283,14 @@ recordPublished(true)
 
 let coverageGate
 if (run.event === 'pull_request' && pr) {
-    const changedFiles = execFileSync('git', ['diff', '--name-only', '-z', expectedBase, expectedHead, '--'], {
-        encoding: 'utf8',
-    })
+    // Include both sides of a rename so moving a UI file outside src cannot hide its removal.
+    const changedFiles = execFileSync(
+        'git',
+        ['diff', '--name-only', '--no-renames', '-z', expectedBase, expectedHead, '--'],
+        {
+            encoding: 'utf8',
+        }
+    )
         .split('\0')
         .filter(Boolean)
     coverageGate = evaluateZeroDifferenceGate({
