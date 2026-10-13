@@ -14,6 +14,8 @@ import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
+import { setupRows, type SetupRowStep } from '@/utils/kyc-setup-status.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -195,6 +197,19 @@ export const useMultiPhaseKycFlow = ({
     // ref for closeVerificationProgressModal (avoids circular dep with completeFlow)
     const closeVerificationModalRef = useRef<() => void>(() => {})
 
+    // A flow started on the document list shows the setup status instead of
+    // the phases. The ref answers callbacks that run before the next render
+    // (an approval reported in the same turn the features were saved).
+    const [setupFeatures, setSetupFeatures] = useState<KycFeatures | null>(null)
+    const setupFlowRef = useRef(false)
+    const latchSetupFeatures = useCallback((features: KycFeatures | null) => {
+        setupFlowRef.current = !!features
+        setSetupFeatures(features)
+    }, [])
+    // Opened from the identity status (a returning user) rather than by a submission in this flow.
+    const setupOriginRef = useRef<'submission' | 'status'>('submission')
+    const [termsAccepted, setTermsAccepted] = useState(false)
+
     // rail tracking — sourced from the backend capability model.
     // MIGRATION-REVIEW: replaces useRailStatusTracking. `allSettled` / `needsTos`
     // are now derived reactively from `useCapabilities()` (its rails update as the
@@ -265,6 +280,12 @@ export const useMultiPhaseKycFlow = ({
         // user's side. Fire here (not in completeFlow) so a "completed" signal
         // survives a drop during the post-approval ToS / preparing steps.
         onKycApproved?.()
+
+        if (setupFlowRef.current) {
+            setForceShowModal(true)
+            await fetchUser()
+            return
+        }
 
         // for real-time flow, optimistically show "Identity verified!" while we check rails
         if (isRealtimeFlowRef.current) {
@@ -371,7 +392,12 @@ export const useMultiPhaseKycFlow = ({
         showCorrection,
         correctVerificationData,
         dismissCorrection,
-    } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
+    } = useSumsubKycFlow({
+        onKycSuccess: handleSumsubApproved,
+        onManualClose,
+        regionIntent,
+        onSetupFeatures: latchSetupFeatures,
+    })
 
     const [submissionAttempt, setSubmissionAttempt] = useState(() => ({
         id: 0,
@@ -456,6 +482,7 @@ export const useMultiPhaseKycFlow = ({
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         reportedRejectionRef.current = null
+        if (!isActionFlow && !isResidenceChangeFlow) setupOriginRef.current = 'submission'
         if (!isResidenceChangeFlow) {
             captureSubmission('sdk_complete')
             isRealtimeFlowRef.current = true
@@ -525,6 +552,8 @@ export const useMultiPhaseKycFlow = ({
             setTosError(null)
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
+            setupOriginRef.current = 'submission'
+            setTermsAccepted(false)
 
             return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
         },
@@ -616,7 +645,7 @@ export const useMultiPhaseKycFlow = ({
 
     // phase transitions driven by rail tracking
     useEffect(() => {
-        if (verificationSession) return
+        if (verificationSession || setupFeatures) return
         if (modalPhase === 'preparing') {
             if (supplementInReview && !supplementKey) {
                 clearPreparingTimer()
@@ -663,6 +692,7 @@ export const useMultiPhaseKycFlow = ({
         clearPreparingTimer,
         stopTracking,
         verificationSession,
+        setupFeatures,
         closeVerificationProgressModal,
     ])
 
@@ -694,6 +724,38 @@ export const useMultiPhaseKycFlow = ({
     const handleTosIframeClose = useCallback(
         async (source?: IframeCloseSource) => {
             setShowTosIframe(false)
+
+            // The setup status asked for the terms: back to it, which reads the rails.
+            if (setupFlowRef.current) {
+                setModalPhase('verifying')
+                if (source !== 'tos_accepted' && source !== 'returned') return
+                if (source === 'tos_accepted') {
+                    posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
+                    setTermsAccepted(true)
+                }
+                setIsLoadingTos(true)
+                try {
+                    const accepted = await confirmBridgeTosAndAwaitRails(fetchUser, {
+                        observedAcceptance: source === 'tos_accepted',
+                    })
+                    if (source === 'returned') {
+                        if (!accepted) {
+                            setModalPhase('bridge_tos')
+                            setTosError(
+                                "The terms weren't accepted. You can accept them later from your activity feed."
+                            )
+                            return
+                        }
+                        posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
+                        setTermsAccepted(true)
+                    }
+                } catch {
+                    // the rails still say where the terms stand
+                } finally {
+                    setIsLoadingTos(false)
+                }
+                return
+            }
 
             if (source === 'tos_accepted' || source === 'returned') {
                 if (source === 'tos_accepted') posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
@@ -776,6 +838,64 @@ export const useMultiPhaseKycFlow = ({
         setModalPhase('verifying')
     }, [handleModalClose])
 
+    // A returning user's setup status, opened from the identity status.
+    const openSetupStatus = useCallback(
+        (features: KycFeatures) => {
+            setupOriginRef.current = 'status'
+            latchSetupFeatures(features)
+            setModalPhase('verifying')
+            setForceShowModal(true)
+        },
+        [latchSetupFeatures]
+    )
+
+    // Leaving after a submission is the progress modal's way out; leaving a
+    // status the user only looked at reports no abandonment.
+    const handleSetupClose = useCallback(() => {
+        if (setupOriginRef.current === 'submission') return handleModalClose()
+        setForceShowModal(false)
+        closeVerificationProgressModal()
+        onManualClose?.()
+    }, [handleModalClose, closeVerificationProgressModal, onManualClose])
+
+    const handleSetupContinue = useCallback(() => {
+        if (setupOriginRef.current === 'submission') completeFlow()
+        else handleSetupClose()
+    }, [completeFlow, handleSetupClose])
+
+    // The status stays open under the SDK and shows again when it closes.
+    const handleSetupDocument = useCallback(
+        async (step: SetupRowStep) => {
+            setForceShowModal(true)
+            const actionKey = step.action?.key
+            if (actionKey?.startsWith('supplement:')) return handleStartAction(actionKey)
+            if (step.provider === 'rain') return
+            await handleFixableGate(step.provider === 'bridge' ? 'BRIDGE' : 'MANTECA', {
+                actionKey,
+                reason: { code: step.reasonCode },
+            })
+        },
+        [handleStartAction, handleFixableGate]
+    )
+
+    // The terms step names and links the documents before Bridge's own page.
+    const handleSetupTerms = useCallback(() => {
+        setTosError(null)
+        setModalPhase('bridge_tos')
+        setForceShowModal(true)
+    }, [])
+
+    const handleSetupBack = useCallback(() => {
+        setTosError(null)
+        setModalPhase('verifying')
+    }, [])
+
+    const handleSetupRestart = useCallback(async () => {
+        setForceShowModal(false)
+        closeVerificationProgressModal()
+        await handleRestartIdentity()
+    }, [closeVerificationProgressModal, handleRestartIdentity])
+
     // cleanup on unmount
     useEffect(() => {
         return () => {
@@ -795,6 +915,22 @@ export const useMultiPhaseKycFlow = ({
 
     const depositBlocked =
         !verificationSession && !showWrapper && allBlocked && !supplementKey && modalPhase === 'preparing'
+
+    const residence = user?.residence?.verified ?? user?.residence?.declared ?? null
+    const setupStatus = setupFeatures
+        ? {
+              // the SDK, the document list and the terms take the screen; the status waits under them
+              open: isModalOpen && modalPhase !== 'bridge_tos' && !showWrapper && !documentPlan && !showTosIframe,
+              residence,
+              rows: setupRows({
+                  features: setupFeatures,
+                  residence,
+                  capabilities,
+                  identityVerified: user?.identityVerification?.status === 'verified',
+                  submitted: { supplements: submittedSupplementsRef.current, terms: termsAccepted },
+              }),
+          }
+        : null
 
     return {
         // initiation
@@ -852,5 +988,15 @@ export const useMultiPhaseKycFlow = ({
         tosLink,
         showTosIframe,
         handleTosIframeClose,
+
+        // setup status, for a flow started on the document list
+        setupStatus,
+        openSetupStatus,
+        handleSetupClose,
+        handleSetupContinue,
+        handleSetupDocument,
+        handleSetupTerms,
+        handleSetupBack,
+        handleSetupRestart,
     }
 }

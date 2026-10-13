@@ -45,6 +45,8 @@ interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
     onManualClose?: () => void
     regionIntent?: KYCRegionIntent
+    /** The features saved on the document list once a session it started opens; null when a flow starts that is not one. */
+    onSetupFeatures?: (features: KycFeatures | null) => void
 }
 
 // Time-escalating schedule for the verification-progress-modal status poll.
@@ -147,7 +149,12 @@ const getKycPollDelayMs = (elapsedMs: number): number => {
     return KYC_POLL_MAX_DELAY_MS
 }
 
-export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
+export const useSumsubKycFlow = ({
+    onKycSuccess,
+    onManualClose,
+    regionIntent,
+    onSetupFeatures,
+}: UseSumsubKycFlowOptions = {}) => {
     const { user } = useAuth()
     const router = useRouter()
     const t = useTranslations('kyc')
@@ -178,6 +185,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [documentPlan, setDocumentPlan] = useState<KycDocumentPlan | null>(null)
     const [documentPreferencesOnly, setDocumentPreferencesOnly] = useState(false)
     const [documentConfig, setDocumentConfig] = useState<KycAttemptSession['sdkConfig']>()
+    // called synchronously: the caller decides on it before the next render
+    const onSetupFeaturesRef = useRef(onSetupFeatures)
+    onSetupFeaturesRef.current = onSetupFeatures
     const documentRestartRef = useRef(false)
     const documentAttemptRef = useRef<string | null>(null)
     // Set when the plan could not be read: the legacy session this starts must not announce the picker.
@@ -435,8 +445,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
     }, [isVerificationProgressModalOpen, sessionId])
 
-    const acceptDocumentSession = useCallback((session: KycAttemptSession) => {
+    const acceptDocumentSession = useCallback((session: KycAttemptSession, features: KycFeatures | null) => {
         documentAttemptRef.current = session.attemptId
+        onSetupFeaturesRef.current?.(features)
         setDocumentConfig(session.sdkConfig)
         setDocumentPlan(null)
         setDocumentPreferencesOnly(false)
@@ -500,6 +511,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         return
                     }
                     supplementAction = outcome && 'action' in outcome ? outcome.action : undefined
+                    if (changed) onSetupFeaturesRef.current?.(features ?? null)
                     setDocumentPlan(null)
                     userInitiatedRef.current = false
                     if (!supplementAction) {
@@ -528,13 +540,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         policyVersion: documentPlan.policyVersion,
                         routeId,
                         documents: documents.filter((d) => identityKeys.has(d.key)),
-                    })
+                    }),
+                    documentPlan.features
                 )
             } catch {
                 try {
                     const latest = await getKycDocumentPlan(documentRestartRef.current)
                     if (latest.activeAttemptId)
-                        acceptDocumentSession(await resumeKycDocumentAttempt(latest.activeAttemptId))
+                        acceptDocumentSession(await resumeKycDocumentAttempt(latest.activeAttemptId), latest.features)
                     else if (!latest.available && !documentRestartRef.current) {
                         // The backend handed this user back to the flow they had already started.
                         setDocumentPlan(null)
@@ -598,17 +611,22 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             if (crossRegion) {
                 prevStatusRef.current = 'APPROVED'
             }
+            onSetupFeaturesRef.current?.(null)
+            let plan: KycDocumentPlan | null = null
 
             try {
                 if (!correctSession && !levelName) {
                     documentRestartRef.current = false
                     setDocumentPreferencesOnly(false)
-                    const plan = await findKycDocumentPlan()
+                    plan = await findKycDocumentPlan()
                     planUnreadableRef.current = plan === null
                     if (plan?.available) {
                         if (plan.activeAttemptId) {
                             try {
-                                acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
+                                acceptDocumentSession(
+                                    await resumeKycDocumentAttempt(plan.activeAttemptId),
+                                    plan.features
+                                )
                             } catch {
                                 userInitiatedRef.current = false
                                 if (crossRegion) prevStatusRef.current = savedPrevStatus
@@ -649,14 +667,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 })
 
                 if (response.data?.attemptId && response.data.token && response.data.sdkConfig) {
-                    acceptDocumentSession({
-                        ...response.data,
-                        attemptId: response.data.attemptId,
-                        token: response.data.token,
-                        applicantId: response.data.applicantId!,
-                        levelName: levelName ?? '',
-                        sdkConfig: response.data.sdkConfig,
-                    })
+                    acceptDocumentSession(
+                        {
+                            ...response.data,
+                            attemptId: response.data.attemptId,
+                            token: response.data.token,
+                            applicantId: response.data.applicantId!,
+                            levelName: levelName ?? '',
+                            sdkConfig: response.data.sdkConfig,
+                        },
+                        plan?.features ?? null
+                    )
                     return false
                 }
                 if (response.data?.session) {
@@ -998,7 +1019,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setDocumentPreferencesOnly(false)
                     if (plan.activeAttemptId) {
                         try {
-                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
+                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId), plan.features)
                         } catch {
                             userInitiatedRef.current = false
                             setError(t('errorRestartFailed'))
