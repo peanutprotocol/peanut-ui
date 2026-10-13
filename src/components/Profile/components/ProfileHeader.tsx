@@ -1,3 +1,4 @@
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -44,6 +45,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     onChangeAvatar,
     avatarKey,
 }) => {
+    const origin = useAppOrigin()
     const { user: authenticatedUser } = useAuth()
     const tAvatar = useTranslations('avatar')
     const tGlobal = useTranslations('global')
@@ -60,7 +62,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const ownAvatar = (size: 'm' | 'xl') => <UserAvatar name={username} avatarKey={ownAvatarKey} size={size} />
 
     // Preview and staging links use their own origin.
-    const profileUrl = shareableUrl(`/${username}`)
+    const profileUrl = shareableUrl(`/${username}`, origin)
     // Write within the click handler to retain clipboard user activation.
     const copyProfileUrl = async () => {
         if (!(await copyTextToClipboard(profileUrl))) {

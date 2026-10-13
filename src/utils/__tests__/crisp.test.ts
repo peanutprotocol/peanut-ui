@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * ensureNativeCrispConfigured — the Capacitor plugin-proxy thenable trap.
  *

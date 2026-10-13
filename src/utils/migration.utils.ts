@@ -114,8 +114,8 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
  * Pair with onStoreAnchorClick for tracking and the iOS clipboard handoff.
  * Keep the anchor's default navigation so it works when popups are blocked.
  */
-export function storeAnchorHref(store: StoreKind): string {
-    if (!isCapacitor() && store === 'android') {
+export function storeAnchorHref(store: StoreKind, native = isCapacitor(), includeDeferredContext = true): string {
+    if (!native && store === 'android' && includeDeferredContext) {
         try {
             return playStoreUrlWithReferrer(buildDeferredPayload(undefined, undefined, 'android'))
         } catch {

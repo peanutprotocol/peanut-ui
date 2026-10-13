@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, render as rtlRender, screen, waitFor, type RenderOptions } from '@testing-library/react'
 import { type ReactElement, type ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'

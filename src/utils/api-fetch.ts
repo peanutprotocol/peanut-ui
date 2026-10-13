@@ -28,6 +28,8 @@ type FetchOptions = RequestInit & {
     callerReportsFailures?: boolean
     /** Hide sensitive URL, request, response and error data in fetch telemetry. */
     redactTelemetry?: boolean
+    /** See `FetchWithSentryOptions.idempotent`. Rides through on the spread. */
+    idempotent?: boolean
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {

@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The carousel's "Unlock QR code payments" slide reads the shared QR-pay gate
  * (TASK-23054). A region-refused user who hides the region card lands on the

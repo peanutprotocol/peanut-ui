@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // integration test: action functions include Content-Type headers and route correctly
 
 import { fetchWithSentry } from '@/utils/sentry.utils'

@@ -11,6 +11,7 @@ import type { IntentKind } from '@/components/TransactionDetails/strategies/regi
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { completeHistoryEntry } from '@/utils/history.utils'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 /**
  * The receipt page, with one client-side read for the signed-in owner.
@@ -50,10 +51,11 @@ export function OwnerReceiptView({
     serverDetails: TransactionDetails
 }) {
     const { userId } = useAuth()
+    const ownerReadEnabled = !!userId && kind === 'CRYPTO_DEPOSIT'
 
     const { data } = useQuery({
         queryKey: [TRANSACTIONS, 'entry', entryId, kind, 'owner', userId],
-        enabled: !!userId && kind === 'CRYPTO_DEPOSIT',
+        enabled: ownerReadEnabled,
         retry: false,
         staleTime: Infinity,
         refetchOnWindowFocus: false,
@@ -66,5 +68,10 @@ export function OwnerReceiptView({
         },
     })
 
-    return <TransactionDetailsReceipt className="w-full" transaction={data ?? serverDetails} isPublic />
+    const details = useHydrationSnapshot(
+        () => (ownerReadEnabled ? (data ?? serverDetails) : serverDetails),
+        () => serverDetails
+    )
+
+    return <TransactionDetailsReceipt className="w-full" transaction={details} isPublic />
 }

@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 import ActionModal from '@/components/Global/ActionModal'
 import ShareButton from '@/components/Global/ShareButton'
@@ -24,8 +25,9 @@ interface InviteFriendsModalProps {
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
+    const origin = useAppOrigin()
     const t = useAppTranslations('global')
-    const { inviteLink } = generateInviteCodeLink(username)
+    const { inviteLink } = generateInviteCodeLink(username, REFERRAL_SOURCES.INVITE_MODAL, origin)
 
     const hasTrackedShow = useRef(false)
 

@@ -4,6 +4,7 @@
 // build/copy payloads on web, read the raw android referrer, and simulate a
 // restore from any raw string (the android dev loop — real referrer data only
 // exists for play-delivered installs).
+import { useNativePlatform } from '@/utils/native-platform'
 import { useCallback, useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
 import {
@@ -18,7 +19,7 @@ import {
     CONSUMED_KEY,
 } from '@/utils/deferred-link'
 import { getFromCookie } from '@/utils/general.utils'
-import { getPlatform, isCapacitor } from '@/utils/capacitor'
+import { getPlatform } from '@/utils/capacitor'
 import { BASE_URL } from '@/constants/general.consts'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -29,6 +30,8 @@ import { Section } from '@/components/0_Bruddle/Section'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 
 export default function DeferredLinkDevPage() {
+    const nativePlatform = useNativePlatform()
+
     const [state, setState] = useState<Record<string, string>>({})
     const [payload, setPayload] = useState('')
     const [rawReferrer, setRawReferrer] = useState('(not read)')
@@ -69,7 +72,8 @@ export default function DeferredLinkDevPage() {
     // capacitor build ships with BASE_URL=peanut.me but needs this page for
     // on-device verification. web prod stays blocked. (after hooks — throwing
     // before them would break the rules of hooks.)
-    if (BASE_URL === 'https://peanut.me' && !isCapacitor()) notFound()
+    if (!nativePlatform.isHydrated) return null
+    if (BASE_URL === 'https://peanut.me' && !nativePlatform.isCapacitor) notFound()
 
     return (
         <DevPageShell

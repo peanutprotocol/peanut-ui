@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // tests for the biometric-guarded token store wrapper (error mapping + silent-write window)
 
 import { isAndroidNative, isCapacitor } from '@/utils/capacitor'

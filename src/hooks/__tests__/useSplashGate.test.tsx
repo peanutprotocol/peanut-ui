@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // PEANUT-UI-SVN: hiding the splash while the activity is backgrounded runs the
 // Android splash teardown against a window that is released by the time the app
 // resumes and draws, crashing the process. The hide must park until active.

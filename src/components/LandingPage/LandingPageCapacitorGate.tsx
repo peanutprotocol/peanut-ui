@@ -7,14 +7,28 @@
 // Split out so the parent route can be a server component (reads landing
 // singleton via fs) while the Capacitor branch stays client-only.
 
-import { useEffect, type ReactNode } from 'react'
+import { useNativePlatform } from '@/utils/native-platform'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { hasNativeSession } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import { hasDeepLinkNavigated } from '@/utils/deep-link-state'
 import { isDemoMode } from '@/utils/demo'
 
+const webChildren = { default: ({ children }: { children: ReactNode }) => <>{children}</> }
+
 export function LandingPageCapacitorGate({ children }: { children: ReactNode }) {
+    const nativePlatform = useNativePlatform()
+    // Preserve web SSR while native leaves the web subtree dehydrated until the platform snapshot removes it.
+    const [WebChildren] = useState(() =>
+        lazy(() => {
+            if (isCapacitor()) return new Promise<typeof webChildren>(() => {})
+            return { then: (resolve: (value: typeof webChildren) => unknown) => resolve(webChildren) } as Promise<
+                typeof webChildren
+            >
+        })
+    )
+
     const router = useRouter()
 
     useEffect(() => {
@@ -38,6 +52,10 @@ export function LandingPageCapacitorGate({ children }: { children: ReactNode }) 
         }
     }, [router])
 
-    if (isCapacitor()) return null
-    return <>{children}</>
+    if (nativePlatform.isCapacitor) return null
+    return (
+        <Suspense fallback={null}>
+            <WebChildren>{children}</WebChildren>
+        </Suspense>
+    )
 }

@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The Pay CTA on a received request used to assign the absolute peanut.me
  * request link to window.location. Inside the Capacitor WebView that is an

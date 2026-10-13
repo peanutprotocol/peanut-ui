@@ -7,6 +7,8 @@ import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
 import { LinkButton } from './LinkButton'
+import { SupportAskText } from './SupportAskText'
+import { ASKS_FOR_SUPPORT, SupportAskContext } from './supportAsk.utils'
 
 export type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
 
@@ -30,6 +32,9 @@ interface CalloutBaseProps {
      *  its own: on its timer, or (a `persistent` toast) when its caller clears
      *  it as the condition ends. So `floating` never draws one. */
     onDismiss?: () => void
+    /** Offer the "Contact support" CTA even when the copy does not ask for it:
+     *  an error whose line is kept short, with the ask living in the link. */
+    offerSupport?: boolean
     /** ms the callout has left on screen. Draws the tone-colored countdown
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
@@ -95,20 +100,6 @@ const PRIORITY_STYLES: Record<
     },
 }
 
-// Asks the user to contact support, in en / es / pt. The bare word is not
-// enough: "Peanut doesn't support recurring PIX" needs a new QR code, not support.
-const ASKS_FOR_SUPPORT = new RegExp(
-    [
-        String.raw`\b(?:contact|talk to|chat with|ask|reach|message|write to)\s+(?:our\s+)?support\b`,
-        String.raw`\bsupport\s+(?:can|team)\b`,
-        String.raw`\b(?:contact[aá]r?|habla(?:r)? con|chatear con|escr[ií]bele a|escribirle a|escribe a|ped[ií] a)\s+(?:(?:a|al|con)\s+)?(?:nuestro\s+)?soporte\b`,
-        String.raw`\bsoporte\s+puede\b|\bequipo\s+de\s+soporte\b`,
-        String.raw`\b(?:fal(?:e|ar)\s+com|contato\s+com|contat(?:e|ar)|pe[cç]a\s+ao)\s+(?:o\s+|nosso\s+)?suporte\b`,
-        String.raw`\bsuporte\s+pode\b`,
-    ].join('|'),
-    'i'
-)
-
 /**
  * Inline callout banner from the figma notification board (17802:61535):
  * priority (info/success/attention/helper/error) sets the tone and icon;
@@ -149,7 +140,9 @@ const ASKS_FOR_SUPPORT = new RegExp(
  * messages, friendly-error codes, flow hooks), and most callers passed no
  * CTA, so users read "contact support" with nothing to tap (2026-10-11). The
  * check reads the rendered text, so it covers every caller and locale.
- * Callers that pass their own `ctas` keep them.
+ * Callers that pass their own `ctas` keep them. When the message is a string
+ * (or renders `SupportAskText`), its own "contact support" words become the
+ * link instead, so the callout never says "Contact support" twice (2026-10-12).
  */
 export const Callout = ({
     priority = 'info',
@@ -159,6 +152,7 @@ export const Callout = ({
     children,
     items,
     onDismiss,
+    offerSupport = false,
     progressMs,
     ctas,
     className,
@@ -169,21 +163,26 @@ export const Callout = ({
     const isFloating = variant === 'floating'
     const modals = useModalsContextOptional()
     const contentRef = useRef<HTMLDivElement>(null)
-    const [supportErrorText, setSupportErrorText] = useState<string | null>(null)
+    const [needsSupportCta, setNeedsSupportCta] = useState(false)
     const offersSupport = priority === 'error' && !isFloating && !ctas?.length && !!modals
-    // no deps: the text can change on any render, and an unchanged string
-    // bails out of the re-render
+    const openSupport =
+        offersSupport && modals
+            ? () =>
+                  modals.openSupportWithMessage(
+                      t('supportErrorPrefill', { error: contentRef.current?.textContent?.trim() ?? '' })
+                  )
+            : null
+    // no deps: the text can change on any render, and an unchanged boolean
+    // bails out of the re-render. A message whose own words already link to
+    // support gets no second link.
     useLayoutEffect(() => {
-        const text = offersSupport ? (contentRef.current?.textContent?.trim() ?? '') : ''
-        setSupportErrorText(ASKS_FOR_SUPPORT.test(text) ? text : null)
+        const content = contentRef.current
+        const text = offersSupport ? (content?.textContent?.trim() ?? '') : ''
+        const asks = !!text && (offerSupport || ASKS_FOR_SUPPORT.test(text))
+        setNeedsSupportCta(asks && !content?.querySelector('[data-support-ask]'))
     })
     const supportCta: CalloutCta | undefined =
-        supportErrorText && modals
-            ? {
-                  label: t('contactSupport'),
-                  onClick: () => modals.openSupportWithMessage(t('supportErrorPrefill', { error: supportErrorText })),
-              }
-            : undefined
+        needsSupportCta && openSupport ? { label: t('contactSupport'), onClick: openSupport } : undefined
     const visibleCtas = isFloating ? undefined : (ctas ?? (supportCta ? [supportCta] : undefined))
     const handleDismiss = isFloating ? undefined : onDismiss
     // `items` wins whenever it is passed at all — an explicit [] means "no rows",
@@ -207,6 +206,12 @@ export const Callout = ({
               </ul>
           )
         : children
+    // a string body's own "contact support" words open the support drawer
+    const linkedBody = (
+        <SupportAskContext.Provider value={openSupport}>
+            {typeof body === 'string' ? <SupportAskText text={body} /> : body}
+        </SupportAskContext.Provider>
+    )
     // a checklist carries its own check marks — no leading priority icon
     const showIcon = !items && !hideIcon
     // the title body and the ctas line up under the title, which the leading
@@ -272,10 +277,10 @@ export const Callout = ({
                         {title ? (
                             <span className="text-body-s font-semibold">{title}</span>
                         ) : (
-                            <div className="min-w-0 flex-1 text-body-s break-words">{body}</div>
+                            <div className="min-w-0 flex-1 text-body-s break-words">{linkedBody}</div>
                         )}
                     </div>
-                    {title && <div className={twMerge('text-body-s break-words', indent)}>{body}</div>}
+                    {title && <div className={twMerge('text-body-s break-words', indent)}>{linkedBody}</div>}
                 </div>
                 {!!visibleCtas?.length && (
                     <div className={twMerge('flex flex-wrap gap-6', indent)}>

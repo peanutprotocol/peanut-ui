@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 jest.mock('@/app/actions/kyc-workflow', () => ({
     getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
     findKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),

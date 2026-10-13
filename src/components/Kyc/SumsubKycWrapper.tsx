@@ -1,6 +1,7 @@
 'use client'
 
-import { isCapacitor } from '@/utils/capacitor'
+import { useNativePlatform } from '@/utils/native-platform'
+
 import { SumsubNativeSdk } from './SumsubNativeSdk'
 import { SumsubWebSdkModal } from './SumsubWebSdkModal'
 import type { SumsubSdkProps } from './sumsubSdk.types'
@@ -14,8 +15,11 @@ import { useAuth } from '@/context/authContext'
  * every handler and every reporter we have.
  */
 export const SumsubKycWrapper = (props: SumsubSdkProps) => {
+    const nativePlatform = useNativePlatform()
+
     const { user } = useAuth()
     const email = (props.email ?? user?.user.email)?.trim() || undefined
-    if (isCapacitor()) return <SumsubNativeSdk {...props} email={email} />
+    if (!nativePlatform.isHydrated) return null
+    if (nativePlatform.isCapacitor) return <SumsubNativeSdk {...props} email={email} />
     return <SumsubWebSdkModal {...props} email={email} />
 }

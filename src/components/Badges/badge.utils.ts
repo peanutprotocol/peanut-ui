@@ -1,5 +1,5 @@
 import { PEANUTMAN } from '@/assets/mascot'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, type ReferralSource } from '@/constants/analytics.consts'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
@@ -119,8 +119,12 @@ export function getBadgeDescription(description?: string | null): string | null 
 
 // The sharer's own invite link, so a guest signup credits them.
 // `generateInviteCodeLink` has no null guard — the ternary is load-bearing.
-export function getBadgeShareLink(username: string | null | undefined): string {
-    return username ? generateInviteCodeLink(username).inviteLink : appBaseUrl()
+export function getBadgeShareLink(
+    username: string | null | undefined,
+    source: ReferralSource,
+    origin?: string
+): string {
+    return username ? generateInviteCodeLink(username, source, origin).inviteLink : appBaseUrl(origin)
 }
 
 // link_type reports what the share ACTUALLY carried: without a username the

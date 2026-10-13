@@ -1,3 +1,4 @@
+import { useNativePlatform } from '@/utils/native-platform'
 import OnboardingAnimation from './OnboardingAnimation'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import SetupTitleBlock from './SetupTitleBlock'
@@ -25,6 +26,7 @@ import {
     useLayoutEffect,
     useRef,
     useState,
+    useSyncExternalStore,
 } from 'react'
 import { twMerge } from '@/utils/tw'
 
@@ -59,11 +61,8 @@ interface SetupWrapperProps {
     titleClassName?: HTMLDivElement['className']
     showBackButton?: boolean
     showSkipButton?: boolean
-    showLogoutButton?: boolean
     onBack?: () => void
     onSkip?: () => void
-    onLogout?: () => void
-    isLoggingOut?: boolean
     step?: number
     direction?: number
     /** Isolated Screen Library presentation; never reads or writes install state. */
@@ -80,6 +79,15 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
+
+const landingPanelQuery = '(max-width: 767px)'
+const subscribeLandingPanelViewport = (onChange: () => void) => {
+    const media = window.matchMedia(landingPanelQuery)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+}
+const mobileLandingPanelViewport = () => window.matchMedia(landingPanelQuery).matches
+const serverLandingPanelViewport = () => false
 
 /** The older Android OS status bar needs the blue token as a hex value. */
 const setupHeroNativeHex = (fullScreen: boolean): string | null => {
@@ -140,27 +148,24 @@ const TransitioningContent = ({
 }
 
 /**
- * The top bar: back on the left; skip, logout and the language switcher on the
- * right. It sits outside the sliding step content, so nothing in it moves when
+ * The top bar: back on the left; skip and the language switcher on the right.
+ * Log out is not here: one control top right (Release 164 smoke test), and the
+ * finish step that needs it shows it as a link under its primary. It sits outside the sliding step content, so nothing in it moves when
  * the user changes step, and the back slot keeps its width when a step has no
  * back button.
  */
 const Navigation = memo(function Navigation({
     showBackButton,
     showSkipButton,
-    showLogoutButton,
     showLanguageSwitcher,
     onBack,
     onSkip,
-    onLogout,
-    isLoggingOut,
-}: Pick<
-    SetupWrapperProps,
-    'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
-> & { showLanguageSwitcher: boolean }) {
+}: Pick<SetupWrapperProps, 'showBackButton' | 'showSkipButton' | 'onBack' | 'onSkip'> & {
+    showLanguageSwitcher: boolean
+}) {
     const t = useTranslations('setup.navigation')
 
-    if (!showBackButton && !showSkipButton && !showLogoutButton && !showLanguageSwitcher) return null
+    if (!showBackButton && !showSkipButton && !showLanguageSwitcher) return null
 
     // Icons inherit currentColor: the circle fills on hover/active, and a
     // hard-coded fill vanished into the fill colour.
@@ -192,18 +197,6 @@ const Navigation = memo(function Navigation({
                         className="relative h-auto w-fit p-0 after:absolute after:-inset-3"
                     >
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
-                    </Button>
-                )}
-                {showLogoutButton && (
-                    <Button
-                        onClick={onLogout}
-                        loading={isLoggingOut}
-                        variant="ghost"
-                        className={NAV_CIRCLE_BUTTON_CLASSES}
-                        aria-label={t('logout')}
-                        disabled={isLoggingOut}
-                    >
-                        <Icon name="logout" size={20} />
                     </Button>
                 )}
                 {showLanguageSwitcher && <SetupLanguageSwitcher />}
@@ -452,11 +445,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     contentClassName,
     showBackButton,
     showSkipButton,
-    showLogoutButton,
     onBack,
     onSkip,
-    onLogout,
-    isLoggingOut,
     screenId,
     imageClassName,
     titleClassName,
@@ -466,6 +456,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     fullScreen: fullScreenProp = false,
     showProgress = true,
 }: SetupWrapperProps) {
+    const nativePlatform = useNativePlatform()
+
     const [fullScreenOverride, setFullScreenOverride] = useState<ScreenId | null>(null)
     const setFullScreenForScreen = useCallback(
         (enabled: boolean) =>
@@ -514,13 +506,16 @@ export const SetupWrapper = memo(function SetupWrapper({
     // migration notice window's download-only landing: drop the fixed-height
     // title block (it left a big gap above the QR) and center the copy on
     // desktop to match the centered store content. legacy landing untouched.
-    const sunsetLanding = screenId === 'landing' && migrationOn && !isCapacitor() && !hasKeepWebBypass
+    const sunsetLanding = screenId === 'landing' && migrationOn && !nativePlatform.isCapacitor && !hasKeepWebBypass
 
-    // Slide the white panel up on first paint for a native bottom-sheet feel.
-    // Mobile + landing only; read synchronously so the offset is correct on mount.
-    const [slideUpPanel] = useState(
-        () => screenId === 'landing' && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    // Match the server panel first, then start the mobile landing rise after hydration.
+    const mountedOnLanding = useRef(screenId === 'landing').current
+    const mobilePanel = useSyncExternalStore(
+        subscribeLandingPanelViewport,
+        mobileLandingPanelViewport,
+        serverLandingPanelViewport
     )
+    const slideUpPanel = mountedOnLanding && mobilePanel
     const animatePanelIn = slideUpPanel && screenId === 'landing' && !prefersReducedMotion
 
     return (
@@ -539,13 +534,10 @@ export const SetupWrapper = memo(function SetupWrapper({
             <Navigation
                 showBackButton={showBackButton}
                 showSkipButton={showSkipButton}
-                showLogoutButton={showLogoutButton}
                 // Hidden during the first-launch intro, and on a full-page step without progress (the celebration).
                 showLanguageSwitcher={!intro.active && (!fullScreen || showProgress)}
                 onBack={onBack}
                 onSkip={onSkip}
-                onLogout={onLogout}
-                isLoggingOut={isLoggingOut}
             />
 
             {/* The hero stays put between steps (its art crossfades); only the white
@@ -584,7 +576,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             {/* content section */}
                             <motion.div
                                 initial={animatePanelIn ? { y: '100%' } : false}
-                                animate={intro.active ? { y: '100%' } : { y: 0 }}
+                                animate={intro.active ? { y: '100%' } : animatePanelIn ? { y: ['100%', 0] } : { y: 0 }}
                                 transition={
                                     prefersReducedMotion
                                         ? { duration: 0 }

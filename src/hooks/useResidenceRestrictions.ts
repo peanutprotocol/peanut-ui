@@ -5,6 +5,7 @@ import {
     type ResidenceRestrictionSets,
 } from '@/hooks/useResidenceRestrictionSets'
 import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useMemo } from 'react'
 import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
 
@@ -60,21 +61,26 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
     const residenceCountry = useOptionalSetupFlow()?.residenceCountry ?? ''
     const sets = useResidenceRestrictionSets()
 
+    const userId = user?.user?.userId
+    const localDeclared = useHydrationSnapshot(
+        () => readDeclaredResidence(userId),
+        () => null
+    )
+    const localSecond = useHydrationSnapshot(
+        () => readSecondResidence(userId),
+        () => null
+    )
     return useMemo(() => {
-        const userId = user?.user?.userId
         const primary =
             user?.residenceRestrictions ??
-            deriveResidenceRestrictionsFrom(
-                sets,
-                user?.residence?.declared || residenceCountry || readDeclaredResidence(userId)
-            )
+            deriveResidenceRestrictionsFrom(sets, user?.residence?.declared || residenceCountry || localDeclared)
         // Same rule as the change modal: the server's answer wins whenever it
         // sends the field, `null` included. The device mirror is only for an
         // API that predates `declaredSecond`, and on a fresh device it is
         // absent — which silently skipped the intersection and kept offers
         // hidden from a dual-resident whose second country is unrestricted.
         const serverSecond = user?.residence?.declaredSecond
-        const second = serverSecond === undefined ? readSecondResidence(userId) : serverSecond
+        const second = serverSecond === undefined ? localSecond : serverSecond
         if (!second) return primary
         const secondary = deriveResidenceRestrictionsFrom(sets, second)
         return { banking: primary.banking && secondary.banking, card: primary.card && secondary.card }
@@ -82,8 +88,9 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
         user?.residenceRestrictions,
         user?.residence?.declared,
         user?.residence?.declaredSecond,
-        user?.user?.userId,
         residenceCountry,
         sets,
+        localDeclared,
+        localSecond,
     ])
 }
