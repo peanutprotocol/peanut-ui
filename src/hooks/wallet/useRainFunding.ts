@@ -57,13 +57,13 @@ const RETURN_FAILURES: Record<CollateralReturnFailure, RainFundingError> = {
 
 /**
  * Managed card funding: the one scoped permission that lets Peanut's backend
- * keep a finite allowance for the card provider's operator on the user's
+ * keep a finite allowance for the user's Rain collateral proxy on the user's
  * wallet.
  *
  * `grant` signs that permission with the user's passkey and hands it to the
  * backend, which enables it and sets the first allowance. This hook never sends
  * an approve UserOp itself and never signs an unlimited approval. The
- * permission is approve-only: exact token, exact operator, and an amount
+ * permission is approve-only: exact token, exact spender, and an amount
  * ceiling that is part of what the user signs. It is distinct from the
  * withdrawal grant (`useGrantSessionKey`); both can exist on one kernel.
  *
@@ -73,7 +73,7 @@ const RETURN_FAILURES: Record<CollateralReturnFailure, RainFundingError> = {
  * authorization and the exact statement the backend records, nothing is signed.
  *
  * Fail closed throughout: a funding read that fails is "unknown", never "not
- * granted", so no prompt follows from it. Chain, token, operator, signer and
+ * granted", so no prompt follows from it. Chain, token, spender, signer and
  * ceiling come from `GET /rain/cards/funding`; this hook holds no addresses of
  * its own. The query is keyed by user so one account's state can never answer
  * for another, and a grant already in flight stops (nothing is sent) if the
@@ -325,7 +325,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
 
                     // Exactly two policies, in this order, and nothing else.
                     // 1. approve on the exact token, spender pinned to the exact
-                    //    operator, amount capped at the ceiling, zero ETH.
+                    //    spender, amount capped at the ceiling, zero ETH.
                     // 2. a signature-caller policy with NO allowed callers
                     //    (default flag: for all validation), which denies every
                     //    ERC-1271 signature. The validator-level
@@ -340,7 +340,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                                 functionName: 'approve',
                                 valueLimit: 0n,
                                 args: [
-                                    { condition: ParamCondition.EQUAL, value: toSign.operatorAddress as Address },
+                                    { condition: ParamCondition.EQUAL, value: toSign.spenderAddress as Address },
                                     {
                                         condition: ParamCondition.LESS_THAN_OR_EQUAL,
                                         value: BigInt(toSign.permission.ceiling),

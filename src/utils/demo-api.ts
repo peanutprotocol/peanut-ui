@@ -856,14 +856,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // Managed card funding state, read by the Home prompt for any ACTIVE card.
     // The demo card's permission is ready, so no consent modal covers the
     // screens that show a card; a fixture overrides `management` (and the
-    // rest) to show the prompt. Fake operator and signer: nothing is signed here.
+    // rest) to show the prompt. Fake spender and signer: nothing is signed here.
     {
         method: 'GET',
         pattern: '/rain/cards/funding',
         handler: (): RainCardFunding => ({
             chainId: CHAIN_ID,
             tokenAddress: PEANUT_WALLET_TOKEN,
-            operatorAddress: '0x0000000000000000000000000000000000000001',
+            spenderAddress: '0x0000000000000000000000000000000000000001',
             walletAddress: DEMO_ADDRESS,
             allowance: '150000000',
             sessionKeyAddress: '0x0000000000000000000000000000000000000002',

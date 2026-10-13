@@ -48,7 +48,7 @@ export interface RainCardBalance {
 
 /**
  * Managed card funding state from `GET /rain/cards/funding`, taken from the API
- * schema. Peanut's backend keeps a finite allowance for the provider's operator
+ * schema. Peanut's backend keeps a finite allowance for the user's Rain collateral proxy
  * on `walletAddress` under one scoped, approve-only permission the user signs
  * once. The client signs that permission; it never sends an approve UserOp
  * itself.
@@ -599,9 +599,9 @@ export const rainApi = {
 
     /**
      * Managed funding config + backend-confirmed status. The backend owns the
-     * chain/token/operator addresses, the signed ceiling and the terms text;
-     * a 409 means the connected smart wallet is not the wallet the provider
-     * pulls from.
+     * chain/token/spender addresses, the signed ceiling and the terms text;
+     * a 409 means the wallet does not match or Rain has no usable collateral
+     * proxy on the configured chain.
      */
     getCardFunding: async (): Promise<RainCardFunding> => {
         return rainRequest<RainCardFunding>({ method: 'GET', path: '/rain/cards/funding', noStore: true })

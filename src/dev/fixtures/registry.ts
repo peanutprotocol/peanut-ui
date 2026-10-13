@@ -654,7 +654,7 @@ const CARD_HOLDER_COLLATERAL = {
     balanceDue: 0,
 }
 
-// `GET /rain/cards/funding` for managed card funding. Fake operator, wallet and
+// `GET /rain/cards/funding` for managed card funding. Fake spender, wallet and
 // session signer — a fixture never signs. `allowance` is informational only:
 // every fixture gives a large one on purpose, because readiness is the
 // backend's `management.status` and never the allowance.
@@ -666,7 +666,7 @@ const cardFunding = (
 ): RainCardFunding => ({
     chainId: '42161',
     tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-    operatorAddress: '0x0000000000000000000000000000000000000001',
+    spenderAddress: '0x0000000000000000000000000000000000000001',
     walletAddress: '0x1111111111111111111111111111111111111111',
     allowance: '150000000',
     sessionKeyAddress: '0x4300F803a281e257F3C1de001512e68972f8d022',

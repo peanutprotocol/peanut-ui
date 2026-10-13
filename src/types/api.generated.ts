@@ -7432,7 +7432,6 @@ export interface paths {
                                     state: "pending" | "confirmed" | "unavailable";
                                 } | null;
                             };
-                            operatorAddress: string;
                             permission: {
                                 authorizationText: string;
                                 ceiling: string;
@@ -7440,6 +7439,7 @@ export interface paths {
                                 termsVersion: string;
                             };
                             sessionKeyAddress: string;
+                            spenderAddress: string;
                             tokenAddress: string;
                             walletAddress: string;
                         };
@@ -7544,7 +7544,6 @@ export interface paths {
                                     state: "pending" | "confirmed" | "unavailable";
                                 } | null;
                             };
-                            operatorAddress: string;
                             permission: {
                                 authorizationText: string;
                                 ceiling: string;
@@ -7552,6 +7551,7 @@ export interface paths {
                                 termsVersion: string;
                             };
                             sessionKeyAddress: string;
+                            spenderAddress: string;
                             tokenAddress: string;
                             walletAddress: string;
                         };

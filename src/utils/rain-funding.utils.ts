@@ -19,7 +19,7 @@ export type RainFundingError =
     | { kind: 'no-account' }
     /** Connected account is not the wallet the provider pulls from. */
     | { kind: 'wallet-mismatch' }
-    /** Backend chain/token/operator/ceiling/signer are not a config this app can sign for. */
+    /** Backend chain/token/spender/ceiling/signer are not a config this app can sign for. */
     | { kind: 'config-mismatch' }
     /** The signed-in account or the connected wallet changed mid-flow. Nothing was sent. */
     | { kind: 'account-changed' }
@@ -78,7 +78,7 @@ export const isFundingWithdrawalInFlight = (funding: Pick<RainCardFunding, 'mana
 
 /**
  * The backend funding config must be the chain and token this app's wallet
- * runs on, with a real operator, a real session signer, a positive signed
+ * runs on, with a real spender, a real session signer, a positive signed
  * ceiling and a scope this app understands. Checked BEFORE any kernel client
  * is built, so an unexpected config can never pick the chain we sign on.
  */
@@ -88,9 +88,9 @@ export const isRainFundingConfigValid = (funding: RainCardFunding): boolean => {
             funding.chainId === PEANUT_WALLET_CHAIN.id.toString() &&
             isAddress(funding.tokenAddress) &&
             isAddressEqual(funding.tokenAddress, PEANUT_WALLET_TOKEN as Address) &&
-            isAddress(funding.operatorAddress) &&
-            !isAddressEqual(funding.operatorAddress, zeroAddress) &&
-            !isAddressEqual(funding.operatorAddress, funding.tokenAddress) &&
+            isAddress(funding.spenderAddress) &&
+            !isAddressEqual(funding.spenderAddress, zeroAddress) &&
+            !isAddressEqual(funding.spenderAddress, funding.tokenAddress) &&
             isAddress(funding.walletAddress) &&
             isAddress(funding.sessionKeyAddress) &&
             !isAddressEqual(funding.sessionKeyAddress, zeroAddress) &&

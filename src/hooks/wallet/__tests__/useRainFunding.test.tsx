@@ -1,15 +1,15 @@
 /**
  * Contract tests for useRainFunding — managed card funding. One scoped,
  * approve-only permission is signed by the user and handed to the backend,
- * which enables it and keeps a finite allowance for the provider's operator.
+ * which enables it and keeps a finite allowance for the user's Rain collateral proxy.
  *
  * Locked down:
  *  1. consent is a hard gate: both boxes and the exact statement, or nothing is
  *     read, signed or sent
  *  2. the signed permission is one approve-only policy: exact token, exact
- *     operator, amount capped at the backend's ceiling — never maxUint256, and
+ *     spender (the user's collateral proxy), amount capped at the backend's ceiling — never maxUint256, and
  *     the client never sends an approve UserOp itself
- *  3. wrong chain / token / operator / wallet / ceiling / scope never builds a
+ *  3. wrong chain / token / spender / wallet / ceiling / scope never builds a
  *     client or signs
  *  4. readiness is only the backend's word: an allowance is never consent, an
  *     accepted POST is not "ready", a state that still asks for a grant means
@@ -30,7 +30,8 @@ import { ApiError } from '@/services/api-error'
 
 const WALLET = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const OTHER_WALLET = '0x1111111111111111111111111111111111111111'
-const OPERATOR = '0x5a6E6b0d5Ea051CfFF9b3dcC2Aa8Dac226458f29'
+const SPENDER = '0x5a6E6b0d5Ea051CfFF9b3dcC2Aa8Dac226458f29'
+const OTHER_SPENDER = '0x3333333333333333333333333333333333333333'
 const TOKEN = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
 const SESSION_KEY = '0x4300F803a281e257F3C1de001512e68972f8d022'
 const AUTHORIZATION = 'I authorize transfers according to the Real-Time Funding Terms.'
@@ -95,7 +96,7 @@ type Status = 'required' | 'migration_required' | 'pending' | 'ready' | 'tempora
 const funding = (status: Status = 'required', overrides: Record<string, unknown> = {}, migration: unknown = null) => ({
     chainId: '42161',
     tokenAddress: TOKEN,
-    operatorAddress: OPERATOR,
+    spenderAddress: SPENDER,
     walletAddress: WALLET,
     allowance: '0',
     sessionKeyAddress: SESSION_KEY,
@@ -172,7 +173,7 @@ describe('useRainFunding.grant — the signed permission', () => {
             expect.objectContaining({ target: TOKEN, functionName: 'approve', valueLimit: 0n })
         )
         expect(permissions[0].args).toEqual([
-            { condition: 'EQUAL', value: OPERATOR },
+            { condition: 'EQUAL', value: SPENDER },
             { condition: 'LESS_THAN_OR_EQUAL', value: 300_000_000n },
         ])
         expect(mockSignKernelPermission).toHaveBeenCalledWith(
@@ -228,6 +229,15 @@ describe('useRainFunding.grant — the signed permission', () => {
         })
         const second = mockToCallPolicy.mock.calls[1][0].permissions[0].args[1]
         expect(second.value).toBe(250_000_000n)
+    })
+
+    it("pins the approve spender to the current user's spender from the fresh read", async () => {
+        mockGetCardFunding.mockResolvedValue(funding('required', { spenderAddress: OTHER_SPENDER }))
+        await runGrant()
+        expect(mockToCallPolicy.mock.calls[0][0].permissions[0].args[0]).toEqual({
+            condition: 'EQUAL',
+            value: OTHER_SPENDER,
+        })
     })
 
     it('a positive allowance is not consent: a required state still asks for a grant', async () => {
@@ -303,13 +313,14 @@ describe('useRainFunding.grant — consent gates', () => {
     })
 })
 
-describe('useRainFunding.grant — wrong chain, token, operator, wallet or bounds', () => {
+describe('useRainFunding.grant — wrong chain, token, spender, wallet or bounds', () => {
     it.each([
         ['chain', { chainId: '1' }],
         ['token', { tokenAddress: '0x2222222222222222222222222222222222222222' }],
-        ['zero operator', { operatorAddress: '0x0000000000000000000000000000000000000000' }],
-        ['operator equal to the token', { operatorAddress: TOKEN }],
-        ['malformed operator', { operatorAddress: 'operator' }],
+        ['zero spender', { spenderAddress: '0x0000000000000000000000000000000000000000' }],
+        ['spender equal to the token', { spenderAddress: TOKEN }],
+        ['malformed spender', { spenderAddress: 'spender' }],
+        ['missing spender', { spenderAddress: '' }],
         ['zero session signer', { sessionKeyAddress: '0x0000000000000000000000000000000000000000' }],
         ['missing session signer', { sessionKeyAddress: '' }],
     ])('a wrong %s builds no kernel client and signs nothing', async (_name, overrides) => {

@@ -12909,9 +12909,6 @@
                                             ],
                                             "type": "object"
                                         },
-                                        "operatorAddress": {
-                                            "type": "string"
-                                        },
                                         "permission": {
                                             "properties": {
                                                 "authorizationText": {
@@ -12938,6 +12935,9 @@
                                         "sessionKeyAddress": {
                                             "type": "string"
                                         },
+                                        "spenderAddress": {
+                                            "type": "string"
+                                        },
                                         "tokenAddress": {
                                             "type": "string"
                                         },
@@ -12948,7 +12948,7 @@
                                     "required": [
                                         "chainId",
                                         "tokenAddress",
-                                        "operatorAddress",
+                                        "spenderAddress",
                                         "walletAddress",
                                         "allowance",
                                         "sessionKeyAddress",
@@ -13241,9 +13241,6 @@
                                             ],
                                             "type": "object"
                                         },
-                                        "operatorAddress": {
-                                            "type": "string"
-                                        },
                                         "permission": {
                                             "properties": {
                                                 "authorizationText": {
@@ -13270,6 +13267,9 @@
                                         "sessionKeyAddress": {
                                             "type": "string"
                                         },
+                                        "spenderAddress": {
+                                            "type": "string"
+                                        },
                                         "tokenAddress": {
                                             "type": "string"
                                         },
@@ -13280,7 +13280,7 @@
                                     "required": [
                                         "chainId",
                                         "tokenAddress",
-                                        "operatorAddress",
+                                        "spenderAddress",
                                         "walletAddress",
                                         "allowance",
                                         "sessionKeyAddress",
