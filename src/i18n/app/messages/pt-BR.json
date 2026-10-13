@@ -2950,6 +2950,11 @@
             "stillLoading": "Ainda estamos carregando sua conta — tente novamente em instantes.",
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
+        "setup": {
+            "settingUp": "Configurando",
+            "available": "Disponível",
+            "underReview": "Em análise"
+        },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
             "lastStepDescription": "Último passo: aceite os termos de serviço para ativar as transferências bancárias nos EUA, na Europa e no México.",

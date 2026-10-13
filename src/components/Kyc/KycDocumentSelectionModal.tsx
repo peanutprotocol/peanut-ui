@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { KycDocumentChoice, KycDocumentPlan, KycFeatures } from '@/app/actions/types/kyc-workflow.types'
-import { identityDocuments } from '@/utils/kyc-document-plan.utils'
+import { identityDocuments, KYC_FEATURE_KEYS } from '@/utils/kyc-document-plan.utils'
 
 type KycRoute = KycDocumentPlan['routes'][number]
 
@@ -113,7 +113,7 @@ export function KycDocumentSelectionModal({
                 <p>{t(preferencesOnly ? 'preferencesDescription' : 'description')}</p>
                 <fieldset aria-busy={busy} className="flex flex-col gap-2">
                     <legend className="mb-2 font-semibold">{t('features')}</legend>
-                    {(['qr', 'local', 'bank', 'card'] as const).map((feature) => (
+                    {KYC_FEATURE_KEYS.map((feature) => (
                         <label className="flex min-h-11 items-center gap-3" key={feature}>
                             <input
                                 type="checkbox"

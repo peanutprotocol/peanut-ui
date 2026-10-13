@@ -2950,6 +2950,11 @@
             "stillLoading": "Still loading your account — please try again in a moment.",
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
+        "setup": {
+            "settingUp": "Setting up",
+            "available": "Available",
+            "underReview": "Under review"
+        },
         "bridgeTos": {
             "title": "Accept terms",
             "description": "Accept the provider's terms to turn on bank transfers.",
