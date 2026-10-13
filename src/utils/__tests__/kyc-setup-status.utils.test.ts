@@ -4,7 +4,8 @@
  * check comes first. Ported from the one-shot setup rows (#3581).
  */
 import type { NextAction, RailCapability, UserCapabilities } from '@/types/capabilities'
-import { setupRows } from '@/utils/kyc-setup-status.utils'
+import type { KycProfile } from '@/app/actions/types/kyc-workflow.types'
+import { providerRefusalsOf, setupRows } from '@/utils/kyc-setup-status.utils'
 
 const ALL = { qr: true, local: true, bank: true, card: true }
 const ONLY = (key: keyof typeof ALL) => ({ qr: false, local: false, bank: false, card: false, [key]: true })
@@ -770,6 +771,184 @@ describe('setupRows — the reasons of api#1816', () => {
                 [support]
             )
             expect(row).toEqual({ key: 'card', state: 'not-available', reason: code, support: true })
+        })
+    })
+})
+
+/**
+ * A first approval enrols no provider the plan refused, so the refusal often
+ * reaches the app only as the provider's onboarding attempt on the profile:
+ * REJECTED by POLICY with the plan's reason.
+ */
+describe('plan refusals from the profile', () => {
+    type Attempt = KycProfile['attempts'][number]
+    const attempt = (overrides: Partial<Attempt>): Attempt =>
+        ({
+            id: 'identity-attempt',
+            verificationId: 'identity',
+            provider: 'SUMSUB',
+            kind: 'IDENTITY',
+            status: 'APPROVED',
+            decisionSource: 'PROVIDER',
+            reasonCode: null,
+            sourceAttemptId: null,
+            createdAt: '2026-10-01T10:00:00.000Z',
+            ...overrides,
+        }) as Attempt
+    const identity = attempt({})
+    const onboarding = (provider: string, overrides: Partial<Attempt> = {}) =>
+        attempt({
+            id: `${provider}-onboarding`,
+            verificationId: `${provider}-verification`,
+            provider: provider as Attempt['provider'],
+            kind: 'ONBOARDING',
+            status: 'REJECTED',
+            decisionSource: 'POLICY',
+            reasonCode: 'local_tax_id_missing',
+            sourceAttemptId: 'identity-attempt',
+            createdAt: '2026-10-01T10:01:00.000Z',
+            ...overrides,
+        })
+    const profile = (attempts: Attempt[]) =>
+        ({ identity: { verificationId: 'identity' }, attempts }) as unknown as Pick<KycProfile, 'identity' | 'attempts'>
+
+    describe('providerRefusalsOf', () => {
+        it('a POLICY rejection with a reason is a refusal of its provider', () => {
+            expect(providerRefusalsOf(profile([onboarding('MANTECA'), identity]))).toEqual({
+                refusals: { manteca: 'local_tax_id_missing' },
+                recorded: true,
+            })
+        })
+
+        it('a newer attempt for the same provider that is not rejected clears an older rejection', () => {
+            const approved = onboarding('MANTECA', {
+                id: 'manteca-onboarding-2',
+                status: 'APPROVED',
+                decisionSource: 'PROVIDER',
+                reasonCode: null,
+                createdAt: '2026-10-02T10:00:00.000Z',
+            })
+            expect(providerRefusalsOf(profile([approved, onboarding('MANTECA'), identity])).refusals).toEqual({})
+        })
+
+        it('reads only POLICY decisions with a reason, of the current identity, and skips replaced attempts', () => {
+            const rows = [
+                onboarding('BRIDGE', { decisionSource: 'PROVIDER' }),
+                onboarding('RAIN', { reasonCode: null }),
+                onboarding('MANTECA', { status: 'SUPERSEDED' }),
+                onboarding('MANTECA', { id: 'old', sourceAttemptId: 'older-identity-attempt' }),
+                identity,
+            ]
+            expect(providerRefusalsOf(profile(rows)).refusals).toEqual({})
+        })
+
+        it('says the plan is not recorded yet while no onboarding attempt exists', () => {
+            expect(providerRefusalsOf(profile([identity]))).toEqual({ refusals: {}, recorded: false })
+        })
+    })
+
+    describe('a passport user in Brazil with no CPF', () => {
+        // the first approval: no Manteca bank rail, the Pix pool rail ENABLED
+        // with its first-party operations locked behind the account upgrade
+        const upgrade: NextAction = {
+            key: 'manteca-full-account',
+            kind: 'sumsub',
+            purpose: 'unlock-manteca-bank',
+            levelKey: 'manteca',
+        }
+        const pixPool = rail({
+            status: 'enabled',
+            operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+            blockingActions: [upgrade.key],
+            resolved: { status: 'enabled' },
+        })
+        const rowsWith = (refusals: Parameters<typeof setupRows>[0]['refusals']) =>
+            setupRows({
+                features: { qr: true, local: true, bank: false, card: false },
+                residence: 'BR',
+                capabilities: capabilities([pixPool], [upgrade]),
+                identityVerified: true,
+                refusals,
+            })
+
+        it('reads QR available and local transfers not available, with the tax ID line', () => {
+            const { refusals } = providerRefusalsOf(profile([onboarding('MANTECA'), identity]))
+            expect(rowsWith(refusals)).toEqual([
+                { key: 'qr', state: 'available' },
+                { key: 'local', state: 'not-available', reason: 'local_tax_id_missing' },
+            ])
+        })
+
+        it('with a newer approved attempt, local transfers read their rail again', () => {
+            const approved = onboarding('MANTECA', {
+                id: 'manteca-onboarding-2',
+                status: 'COLLECTING',
+                decisionSource: null,
+                reasonCode: null,
+                createdAt: '2026-10-02T10:00:00.000Z',
+            })
+            const { refusals } = providerRefusalsOf(profile([approved, onboarding('MANTECA'), identity]))
+            expect(rowsWith(refusals)).toEqual([
+                { key: 'qr', state: 'available' },
+                { key: 'local', state: 'setting-up' },
+            ])
+        })
+
+        it('without the profile, the rails alone read setting up, as before', () => {
+            expect(rowsWith(undefined)[1]).toEqual({ key: 'local', state: 'setting-up' })
+        })
+    })
+
+    describe('the same row rules as a refusal on a rail', () => {
+        const rowsOf = (refusals: Record<string, string>, rails: RailCapability[] = []) =>
+            setupRows({
+                features: ALL,
+                residence: 'BR',
+                capabilities: capabilities(rails),
+                identityVerified: true,
+                refusals,
+            }).map((row) => [row.key, row.state, row.reason])
+
+        it('a pool reason closes QR too, but never while QR pays', () => {
+            expect(rowsOf({ manteca: 'under_minimum_age' }).slice(0, 2)).toEqual([
+                ['qr', 'not-available', 'under_minimum_age'],
+                ['local', 'not-available', 'under_minimum_age'],
+            ])
+            expect(
+                rowsOf({ manteca: 'under_minimum_age' }, [
+                    rail({ status: 'enabled', operations: { pay: 'enabled' } }),
+                ])[0]
+            ).toEqual(['qr', 'available', undefined])
+        })
+
+        it('document_country_unsupported asks for a local ID on the accounts and the card only', () => {
+            expect(
+                rowsOf({
+                    bridge: 'document_country_unsupported',
+                    rain: 'document_country_unsupported',
+                    manteca: 'document_country_unsupported',
+                })
+            ).toEqual([
+                ['qr', 'setting-up', undefined],
+                ['local', 'setting-up', undefined],
+                ['bank', 'needs-local-id', 'document_country_unsupported'],
+                ['card', 'needs-local-id', 'document_country_unsupported'],
+            ])
+        })
+
+        it('enabled rails still win', () => {
+            const enabled = [
+                rail({ status: 'enabled', operations: { pay: 'enabled', deposit: 'enabled' } }),
+                ach({ status: 'enabled' }),
+                sepa({ status: 'enabled' }),
+                card({ status: 'enabled', operations: { pay: 'enabled' } }),
+            ]
+            expect(
+                rowsOf(
+                    { manteca: 'local_tax_id_missing', bridge: 'document_country_unsupported', rain: 'geo-blocked' },
+                    enabled
+                ).map(([, state]) => state)
+            ).toEqual(['available', 'available', 'available', 'available'])
         })
     })
 })

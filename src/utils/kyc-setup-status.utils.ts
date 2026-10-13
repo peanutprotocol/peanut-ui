@@ -1,4 +1,4 @@
-import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
+import type { KycFeatures, KycProfile } from '@/app/actions/types/kyc-workflow.types'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import type { NextAction, ProviderCode, RailCapability, RailOperation, UserCapabilities } from '@/types/capabilities'
 import { railVerdict } from '@/utils/capability-gate'
@@ -44,6 +44,9 @@ export interface SetupRow {
     /** Not available, and only support can open it. */
     support?: boolean
 }
+
+/** The plan's refusal reason per provider, from the profile's onboarding attempts (`providerRefusalsOf`). */
+export type SetupRefusals = Partial<Record<ProviderCode, string>>
 
 /** What this flow already sent, while the rails still show the step it answered. */
 export interface SetupSubmitted {
@@ -100,6 +103,7 @@ const REFUSES_DOCUMENT_COUNTRY: ReadonlySet<ProviderCode> = new Set(['bridge', '
  * Peanut's pool, so they close the local bank transfers only; the pool
  * reasons (`under_minimum_age`, `residence_sanctioned`) close QR as well.
  */
+const MANTECA_POOL_REASONS: ReadonlySet<string> = new Set(['under_minimum_age', 'residence_sanctioned'])
 const MANTECA_ACCOUNT_REASONS: ReadonlySet<string> = new Set([
     'residence_unknown',
     'local_residence_unsupported',
@@ -164,12 +168,25 @@ function railOutcome(
     return { state: 'setting-up' }
 }
 
+/** A plan refusal of the row's provider, scoped by the same rules as a refusal on a rail. */
+function refusalOutcome(key: KycFeatureKey, refusals: SetupRefusals): Outcome | null {
+    const provider = FEATURE_PROVIDER[key]
+    const reason = refusals[provider]
+    if (!reason || reason === PLAN_NOT_REQUESTED) return null
+    if (key === 'qr' && !MANTECA_POOL_REASONS.has(reason)) return null
+    if (reason === DOCUMENT_COUNTRY_UNSUPPORTED) {
+        return REFUSES_DOCUMENT_COUNTRY.has(provider) ? { state: 'needs-local-id', reason } : null
+    }
+    return { state: 'not-available', reason }
+}
+
 function featureOutcome(
     key: KycFeatureKey,
     rails: RailCapability[],
     actions: Map<string, NextAction>,
     residence: string | null,
-    submitted: SetupSubmitted
+    submitted: SetupSubmitted,
+    refusals: SetupRefusals
 ): Outcome {
     const needs = featureNeeds(key, residence)
     const works = (rail: RailCapability) => (rail.operations?.[needs.operation] ?? rail.status) === 'enabled'
@@ -190,8 +207,9 @@ function featureOutcome(
         return { state: 'needs-local-id', reason: DOCUMENT_COUNTRY_UNSUPPORTED }
     }
 
+    const refusal = refusalOutcome(key, refusals)
     // the card has no rail until the card page applies, after its agreements
-    if (key === 'card' && own.length === 0) return { state: 'agreements-needed', step: { provider: 'rain' } }
+    if (key === 'card' && own.length === 0) return refusal ?? { state: 'agreements-needed', step: { provider: 'rain' } }
 
     return own
         .map((rail) => railOutcome(rail, needs.operation, actions, submitted))
@@ -200,6 +218,7 @@ function featureOutcome(
                 ? { state: 'setting-up' as const }
                 : outcome
         )
+        .concat(refusal ? [refusal] : [])
         .reduce<Outcome>((best, next) => (RANK[next.state] > RANK[best.state] ? next : best), { state: 'setting-up' })
 }
 
@@ -210,6 +229,7 @@ function featureOutcome(
  *
  * @param input.residence ISO-2 residence: the country of the local bank transfers
  * @param input.submitted what this flow already sent and the rails do not show yet
+ * @param input.refusals the plan's refusals no rail carries (a provider the approval never enrolled)
  */
 export function setupRows(input: {
     features: KycFeatures
@@ -217,12 +237,16 @@ export function setupRows(input: {
     capabilities: UserCapabilities | undefined
     identityVerified: boolean
     submitted?: SetupSubmitted
+    refusals?: SetupRefusals
 }): SetupRow[] {
     const { rails = [], nextActions = [] } = input.capabilities ?? {}
     const actions = new Map(nextActions.map((action) => [action.key, action]))
     return KYC_FEATURE_KEYS.filter((key) => input.features[key]).map((key) =>
         input.identityVerified
-            ? { key, ...featureOutcome(key, rails, actions, input.residence, input.submitted ?? {}) }
+            ? {
+                  key,
+                  ...featureOutcome(key, rails, actions, input.residence, input.submitted ?? {}, input.refusals ?? {}),
+              }
             : { key, state: 'under-review' }
     )
 }
@@ -240,3 +264,47 @@ const PLAN_REASON_KEYS = {
 export const setupReasonKey = (reason: string | undefined) =>
     reasonCodeKey(reason) ??
     (reason && reason in PLAN_REASON_KEYS ? PLAN_REASON_KEYS[reason as keyof typeof PLAN_REASON_KEYS] : undefined)
+
+const PROFILE_PROVIDERS: Record<string, ProviderCode | undefined> = {
+    BRIDGE: 'bridge',
+    MANTECA: 'manteca',
+    RAIN: 'rain',
+}
+
+/**
+ * The plan's refusals of the current identity's providers. The approval
+ * records one onboarding attempt per requested provider; a refused one is
+ * REJECTED by POLICY with the plan's reason, and is often the only trace (a
+ * provider the plan refused is never enrolled, so no rail names it). The
+ * latest attempt per provider decides, so a later plan that sends to it
+ * clears an older refusal.
+ *
+ * @returns the refusals, and whether the plan has been recorded yet (the
+ *     approval records it after the identity status changes)
+ */
+export function providerRefusalsOf(profile: Pick<KycProfile, 'identity' | 'attempts'>): {
+    refusals: SetupRefusals
+    recorded: boolean
+} {
+    const identityId = profile.identity?.verificationId
+    const sources = new Set(
+        profile.attempts
+            .filter((a) => a.kind === 'IDENTITY' && a.verificationId === identityId && a.status !== 'SUPERSEDED')
+            .map((a) => a.id)
+    )
+    const latest = new Map<ProviderCode, KycProfile['attempts'][number]>()
+    for (const attempt of profile.attempts) {
+        const provider = PROFILE_PROVIDERS[attempt.provider]
+        if (attempt.kind !== 'ONBOARDING' || !provider || attempt.status === 'SUPERSEDED') continue
+        if (!attempt.sourceAttemptId || !sources.has(attempt.sourceAttemptId)) continue
+        const seen = latest.get(provider)
+        if (!seen || attempt.createdAt > seen.createdAt) latest.set(provider, attempt)
+    }
+    const refusals: SetupRefusals = {}
+    for (const [provider, attempt] of latest) {
+        if (attempt.status === 'REJECTED' && attempt.decisionSource === 'POLICY' && attempt.reasonCode) {
+            refusals[provider] = attempt.reasonCode
+        }
+    }
+    return { refusals, recorded: latest.size > 0 }
+}
