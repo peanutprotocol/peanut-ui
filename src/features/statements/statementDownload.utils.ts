@@ -1,5 +1,6 @@
 import { serverFetch } from '@/utils/api-fetch'
-import { isCapacitor } from '@/utils/capacitor'
+import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
+import { saveToDocuments } from '@/utils/native-file.utils'
 import { authReady, getAuthHeaders } from '@/utils/auth-token'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
@@ -214,4 +215,17 @@ export async function saveStatement(file: StatementFile): Promise<'saved' | 'can
         throw error
     }
     return 'saved'
+}
+
+/**
+ * The app's Download. Android writes the file into the public Documents
+ * folder. iOS has no folder the Files app shows for this app without native
+ * settings, so there, and wherever the Documents write fails, Download opens
+ * the share sheet as Share does.
+ */
+export async function downloadStatement(file: StatementFile): Promise<'documents' | 'saved' | 'cancelled'> {
+    // only Android awaits before the share sheet: its WebView has no web share
+    // sheet whose tap activation the await could use up
+    if (isAndroidNativeBridge() && (await saveToDocuments(file)) === 'saved') return 'documents'
+    return saveStatement(file)
 }

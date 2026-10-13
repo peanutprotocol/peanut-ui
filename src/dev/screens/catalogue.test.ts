@@ -41,7 +41,6 @@ describe('screen catalogue', () => {
         const setupIds = SCREENS.filter(({ flow }) => flow === 'Setup and login').map(({ id }) => id)
         expect(setupIds).toEqual(
             expect.arrayContaining([
-                '01-b-first-launch-intro',
                 '01-a-landing',
                 '06-b-invite',
                 '06-a-signup',

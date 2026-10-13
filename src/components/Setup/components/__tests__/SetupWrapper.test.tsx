@@ -43,7 +43,6 @@ jest.mock('framer-motion', () => ({
             variants,
             custom = 0,
             transition,
-            animate,
             'aria-hidden': ariaHidden,
             inert,
         }: {
@@ -57,7 +56,6 @@ jest.mock('framer-motion', () => ({
             }
             custom?: number
             transition?: { duration?: number }
-            animate?: { y?: string | number }
         }) => (
             <div
                 className={className}
@@ -66,7 +64,6 @@ jest.mock('framer-motion', () => ({
                 data-enter-x={typeof variants?.enter === 'function' ? variants.enter(custom).x : undefined}
                 data-exit-x={typeof variants?.exit === 'function' ? variants.exit(custom).x : undefined}
                 data-transition-duration={transition?.duration}
-                data-animate-y={animate?.y}
             >
                 {children}
             </div>
@@ -472,54 +469,5 @@ describe('SetupWrapper transitions', () => {
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
             'var(--color-background-setup-hero)'
         )
-    })
-})
-
-describe('First-launch landing handoff', () => {
-    it('returns the white panel to the viewport when a web landing skips the intro with reduced motion', () => {
-        mockReducedMotion.value = true
-        renderWrapper({ screenId: 'landing' })
-        expect(screen.getByTestId('step').closest('.bg-white')).toHaveAttribute('data-animate-y', '0')
-    })
-
-    it('keeps one mascot mounted while the greeting gives way to accessible setup controls', async () => {
-        jest.useFakeTimers()
-        try {
-            const { container } = renderWithIntl(
-                <SetupWrapper
-                    layoutType="signup"
-                    screenId="landing"
-                    image={{ pose: 'waving-chill' }}
-                    firstLaunchIntroPreview="play"
-                >
-                    <button type="button">Sign up</button>
-                </SetupWrapper>
-            )
-            const mascot = screen.getByTestId('mascot')
-            expect(screen.queryByRole('button', { name: 'Sign up' })).not.toBeInTheDocument()
-            await act(async () => {
-                await Promise.resolve()
-            })
-            await act(async () => {
-                jest.advanceTimersByTime(1500)
-            })
-            await act(async () => {
-                jest.advanceTimersByTime(700)
-            })
-            expect(screen.getByText('Hey, I’m Peanut')).toBeInTheDocument()
-            expect(container.querySelector('[data-first-launch-intro]')).toHaveAttribute(
-                'data-first-launch-intro',
-                'intro'
-            )
-            await act(async () => {
-                jest.advanceTimersByTime(4300)
-            })
-            expect(screen.queryByText('Hey, I’m Peanut')).not.toBeInTheDocument()
-            expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
-            expect(screen.getByTestId('mascot')).toBe(mascot)
-            expect(container.querySelector('[data-first-launch-intro]')).toBeNull()
-        } finally {
-            jest.useRealTimers()
-        }
     })
 })

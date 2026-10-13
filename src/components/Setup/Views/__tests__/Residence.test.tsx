@@ -184,20 +184,15 @@ describe('ResidenceStep', () => {
         expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
     })
 
-    it('shows the per-country availability comparison with document guidance', () => {
+    // The dual path shows two fields and no per-country comparison or guidance:
+    // the "Select <country>" buttons are the whole choice (Release 164 smoke test).
+    it('shows two fields and no comparison for two countries', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
-        expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
-        expect(screen.getByText('Available with Germany')).toBeInTheDocument()
-        // BR rides Manteca only — no Bridge rail exists for it, so the card must not claim one
-        expect(screen.getByText('PIX payments & transfers')).toBeInTheDocument()
-        // DE is Bridge-served: one verification opens every Bridge virtual-account rail
-        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
-        expect(screen.getByText('British pound bank transfers')).toBeInTheDocument()
-        expect(screen.getByText('US dollar bank transfers')).toBeInTheDocument()
-        expect(screen.getAllByText('Peanut to Peanut')).toHaveLength(2)
-        expect(screen.getByText(en.setup.residenceStep.compare.guideTitle)).toBeInTheDocument()
-        expect(screen.getByText(en.setup.residenceStep.compare.guideDeclaration)).toBeInTheDocument()
+        expect(screen.getAllByRole('combobox')).toHaveLength(2)
+        expect(screen.queryByText(/Available with/)).not.toBeInTheDocument()
+        expect(screen.queryByText('Peanut to Peanut')).not.toBeInTheDocument()
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 
     it('replaces Next with one main-residence button per declared country', () => {
@@ -250,7 +245,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
         expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
-        expect(screen.queryByText('Available with Brazil')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
     })
 
     it('stops attributing a promoted country to the geo suggestion', () => {
@@ -279,7 +274,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Remove Germany' }))
         expect(mockSetResidenceCountry).not.toHaveBeenCalledWith('DE')
         expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
-        expect(screen.queryByText('Available with Germany')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
     })
 
     it('reports the congrats outcome for an unrestricted residence and advances to the plan', () => {

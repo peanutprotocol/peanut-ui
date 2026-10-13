@@ -1,15 +1,18 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-import { downloadFailure, prepareStatement, saveStatement } from '../statementDownload.utils'
+import { downloadFailure, downloadStatement, prepareStatement, saveStatement } from '../statementDownload.utils'
 import { serverFetch } from '@/utils/api-fetch'
-import { isCapacitor } from '@/utils/capacitor'
+import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
+import { saveToDocuments } from '@/utils/native-file.utils'
 import { CapacitorHttp } from '@capacitor/core'
 import { Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn() }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(), isAndroidNativeBridge: jest.fn() }))
+// the Documents write itself is covered in native-file.utils.test.ts
+jest.mock('@/utils/native-file.utils', () => ({ saveToDocuments: jest.fn() }))
 const mockAuthHeaders = jest.fn((): Record<string, string> => ({ Authorization: 'Bearer owner-token' }))
 jest.mock('@/utils/auth-token', () => ({
     authReady: jest.fn().mockResolvedValue(undefined),
@@ -25,6 +28,8 @@ jest.mock('@capacitor/share', () => ({ Share: { share: jest.fn() } }))
 jest.mock('@/components/Card/share-asset/captureShareAsset', () => ({ downloadBlob: jest.fn() }))
 const fetchMock = serverFetch as jest.Mock
 const native = isCapacitor as jest.Mock
+const android = isAndroidNativeBridge as jest.Mock
+const toDocuments = saveToDocuments as jest.Mock
 /** An app binary with (or without) the Filesystem and Share plugins. */
 const appShipsFilePlugins = (available: boolean) => {
     window.Capacitor = { getPlatform: () => 'android', isPluginAvailable: () => available }
@@ -42,6 +47,8 @@ const pdfResponse = (disposition: string | null = null) => fileResponse('applica
 beforeEach(() => {
     jest.clearAllMocks()
     native.mockReturnValue(false)
+    android.mockReturnValue(false)
+    toDocuments.mockResolvedValue('saved')
     delete window.Capacitor
     ;(Filesystem.readdir as jest.Mock).mockRejectedValue(new Error('Directory does not exist'))
     ;(Filesystem.writeFile as jest.Mock).mockResolvedValue({ uri: 'file:///cache/statements/activity.csv' })
@@ -328,6 +335,41 @@ describe('statement downloads', () => {
         await expect(
             saveStatement({ blob: new Blob(['file']), fileName: 'activity.csv', byYear: false })
         ).rejects.toThrow('EXPORT_SAVE_UNAVAILABLE')
+    })
+})
+
+describe('the app’s Download', () => {
+    const FILE = { blob: new Blob(['file']), fileName: 'activity.pdf', byYear: false }
+    beforeEach(() => {
+        native.mockReturnValue(true)
+        appShipsFilePlugins(true)
+    })
+
+    it('puts the file in Documents on Android, with no share sheet', async () => {
+        android.mockReturnValue(true)
+        expect(await downloadStatement(FILE)).toBe('documents')
+        expect(toDocuments).toHaveBeenCalledWith(FILE)
+        expect(Share.share).not.toHaveBeenCalled()
+    })
+
+    it('opens the share sheet when Android cannot write to Documents, and does not call it a Documents save', async () => {
+        android.mockReturnValue(true)
+        toDocuments.mockResolvedValue('unavailable')
+        expect(await downloadStatement(FILE)).toBe('saved')
+        expect(Share.share).toHaveBeenCalledTimes(1)
+    })
+
+    it('opens the share sheet on iOS without trying Documents', async () => {
+        expect(await downloadStatement(FILE)).toBe('saved')
+        expect(toDocuments).not.toHaveBeenCalled()
+        expect(Share.share).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports a dismissed fallback share sheet as cancelled', async () => {
+        android.mockReturnValue(true)
+        toDocuments.mockResolvedValue('unavailable')
+        ;(Share.share as jest.Mock).mockRejectedValue(new Error('Share canceled'))
+        expect(await downloadStatement(FILE)).toBe('cancelled')
     })
 })
 
