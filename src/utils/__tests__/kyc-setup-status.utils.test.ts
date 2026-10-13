@@ -271,35 +271,161 @@ describe('setupRows — the reasons of api#1816', () => {
             expect(row).toEqual({ key: 'bank', state: 'needs-local-id', reason: 'document_country_unsupported' })
         })
 
-        it('the orphan restart names the refused provider: only its features ask for a local ID', () => {
+        it('the orphan restart names the refused provider: Bridge refused, the accounts ask for a local ID', () => {
             const action = restart('document_country_unsupported', [
-                { provider: 'manteca', reason: 'document_country_unsupported' },
+                { provider: 'bridge', reason: 'document_country_unsupported' },
             ])
+            const pix = rail({ status: 'enabled', operations: { pay: 'enabled', deposit: 'enabled' } })
             const rows = setupRows({
                 features: ALL,
                 residence: 'BR',
-                capabilities: capabilities([ach({ status: 'enabled' }), sepa({ status: 'enabled' })], [action]),
+                capabilities: capabilities([pix], [action]),
                 identityVerified: true,
             })
             expect(rows).toEqual([
-                { key: 'qr', state: 'needs-local-id', reason: 'document_country_unsupported' },
-                { key: 'local', state: 'needs-local-id', reason: 'document_country_unsupported' },
-                { key: 'bank', state: 'available' },
+                { key: 'qr', state: 'available' },
+                { key: 'local', state: 'available' },
+                { key: 'bank', state: 'needs-local-id', reason: 'document_country_unsupported' },
                 { key: 'card', state: 'agreements-needed', step: { provider: 'rain' } },
             ])
         })
 
-        it('an API that names no refused provider: a feature with no rail of its own asks for a local ID', () => {
+        it('Rain refused for the document country: the card asks for a local ID', () => {
+            const action = restart('document_country_unsupported', [
+                { provider: 'rain', reason: 'document_country_unsupported' },
+            ])
+            expect(stateOf(capabilities([], [action]), 'card')).toBe('needs-local-id')
+        })
+
+        it('an API that names no refused provider: the accounts or card with no rail of their own ask for a local ID', () => {
             const rows = setupRows({
                 features: { qr: true, local: false, bank: true, card: false },
                 residence: 'BR',
                 capabilities: capabilities(
-                    [ach({ status: 'enabled' }), sepa({ status: 'enabled' })],
+                    [rail({ status: 'enabled', operations: { pay: 'enabled' } })],
                     [restart('document_country_unsupported')]
                 ),
                 identityVerified: true,
             })
-            expect(rows.map((row) => row.state)).toEqual(['needs-local-id', 'available'])
+            expect(rows.map((row) => row.state)).toEqual(['available', 'needs-local-id'])
+        })
+
+        describe('a row whose own operation is enabled reads Available, whatever a provider-wide answer says', () => {
+            it.each([
+                ['bank', 'bridge', [ach({ status: 'enabled' }), sepa({ status: 'enabled' })]],
+                ['card', 'rain', [card({ status: 'enabled', operations: { pay: 'enabled' } })]],
+                ['qr', 'manteca', [rail({ status: 'enabled', operations: { pay: 'enabled', deposit: 'pending' } })]],
+            ] as const)('%s with %s refused provider-wide', (key, provider, rails) => {
+                const action = restart('document_country_unsupported', [
+                    { provider, reason: 'document_country_unsupported' },
+                ])
+                expect(stateOf(capabilities([...rails], [action]), key)).toBe('available')
+            })
+        })
+
+        describe('document_country_unsupported only where it can occur: the accounts and the card', () => {
+            it('a refused Manteca named by the restart action closes neither QR nor local transfers', () => {
+                const action = restart('document_country_unsupported', [
+                    { provider: 'manteca', reason: 'document_country_unsupported' },
+                ])
+                const rows = setupRows({
+                    features: { qr: true, local: true, bank: false, card: false },
+                    residence: 'BR',
+                    capabilities: capabilities([], [action]),
+                    identityVerified: true,
+                })
+                expect(rows.map((row) => row.state)).toEqual(['setting-up', 'setting-up'])
+            })
+
+            it('the reason on a Manteca rail is a plain new identity check, with no local-ID line', () => {
+                const action = restart('document_country_unsupported')
+                const row = setupRows({
+                    features: ONLY('local'),
+                    residence: 'BR',
+                    capabilities: capabilities(
+                        [
+                            rail({
+                                status: 'blocked',
+                                reason: { code: 'document_country_unsupported', userMessage: '' },
+                                blockingActions: ['restart-identity'],
+                                resolved: verdictOf(
+                                    'blocked',
+                                    'document_country_unsupported',
+                                    action,
+                                    'restart-identity'
+                                ),
+                            }),
+                        ],
+                        [action]
+                    ),
+                    identityVerified: true,
+                })[0]
+                expect(row).toEqual({ key: 'local', state: 'verify-again' })
+            })
+        })
+
+        describe('a refused Manteca account closes local transfers; only the pool reasons close QR', () => {
+            const parkedBank = (code: string) =>
+                rail({
+                    id: 'manteca.bank_transfer_ar',
+                    method: 'BANK_TRANSFER_AR',
+                    country: 'AR',
+                    currency: 'ARS',
+                    status: 'blocked',
+                    reason: { code, userMessage: '' },
+                    resolved: verdictOf('blocked', code),
+                })
+            const qrPool = rail({
+                id: 'manteca.mercadopago_qr_ar',
+                method: 'MERCADOPAGO_QR_AR',
+                channel: 'qr-only',
+                country: 'AR',
+                currency: 'ARS',
+                status: 'enabled',
+                operations: { pay: 'enabled' },
+            })
+            const rowsFor = (rails: RailCapability[]) =>
+                setupRows({
+                    features: { qr: true, local: true, bank: false, card: false },
+                    residence: 'AR',
+                    capabilities: capabilities(rails),
+                    identityVerified: true,
+                })
+
+            it.each([
+                'local_tax_id_missing',
+                'manteca_us_nationality_restricted',
+                'local_residence_unsupported',
+                'residence_unknown',
+            ])('%s: QR available on the pool, local transfers not available', (code) => {
+                expect(rowsFor([qrPool, parkedBank(code)])).toEqual([
+                    { key: 'qr', state: 'available' },
+                    { key: 'local', state: 'not-available', reason: code },
+                ])
+            })
+
+            it('the same refusal on the only Manteca rail leaves QR setting up, never closed', () => {
+                const pix = rail({
+                    status: 'blocked',
+                    reason: { code: 'local_tax_id_missing', userMessage: '' },
+                    resolved: verdictOf('blocked', 'local_tax_id_missing'),
+                })
+                expect(verified(capabilities([pix]), { qr: true, local: true, bank: false, card: false })).toEqual([
+                    { key: 'qr', state: 'setting-up' },
+                    { key: 'local', state: 'not-available', reason: 'local_tax_id_missing' },
+                ])
+            })
+
+            it.each(['under_minimum_age', 'residence_sanctioned'])('%s closes QR as well', (code) => {
+                expect(rowsFor([parkedBank(code)])).toEqual([
+                    { key: 'qr', state: 'not-available', reason: code },
+                    { key: 'local', state: 'not-available', reason: code },
+                ])
+            })
+
+            it('a pool reason never closes QR while a QR rail pays', () => {
+                expect(rowsFor([qrPool, parkedBank('under_minimum_age')])[0]).toEqual({ key: 'qr', state: 'available' })
+            })
         })
 
         it.each([

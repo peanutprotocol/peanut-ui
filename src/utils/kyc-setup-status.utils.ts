@@ -91,6 +91,19 @@ const REQUIREMENTS_IN_REVIEW = 'requirements_in_review'
 /** The send gate parks a provider no ticked feature asked for; the next save of the set sends to it. */
 const PLAN_NOT_REQUESTED = 'not_requested'
 const RESTART_IDENTITY_ACTION_KEY = 'restart-identity'
+/** Only Bridge and Rain refuse a document for its issuing country (api#1816 `providersFor`). */
+const REFUSES_DOCUMENT_COUNTRY: ReadonlySet<ProviderCode> = new Set(['bridge', 'rain'])
+/**
+ * The plan's refusals of a first-party Manteca account. They leave QR on
+ * Peanut's pool, so they close the local bank transfers only; the pool
+ * reasons (`under_minimum_age`, `residence_sanctioned`) close QR as well.
+ */
+const MANTECA_ACCOUNT_REASONS: ReadonlySet<string> = new Set([
+    'residence_unknown',
+    'local_residence_unsupported',
+    'manteca_us_nationality_restricted',
+    'local_tax_id_missing',
+])
 
 // a step the user takes outranks a refusal on a sibling rail, a refusal outranks a wait
 const RANK: Record<SetupRowState, number> = {
@@ -104,10 +117,10 @@ const RANK: Record<SetupRowState, number> = {
     available: 0,
 }
 
-const restartOutcome = (reason: string | undefined): Outcome =>
-    reason === DOCUMENT_COUNTRY_UNSUPPORTED
+const restartOutcome = (reason: string | undefined, provider: ProviderCode): Outcome =>
+    reason === DOCUMENT_COUNTRY_UNSUPPORTED && REFUSES_DOCUMENT_COUNTRY.has(provider)
         ? { state: 'needs-local-id', reason }
-        : { state: 'verify-again', ...(reason ? { reason } : {}) }
+        : { state: 'verify-again', ...(reason && reason !== DOCUMENT_COUNTRY_UNSUPPORTED ? { reason } : {}) }
 
 function railOutcome(
     rail: RailCapability,
@@ -125,7 +138,7 @@ function railOutcome(
         return { state: 'under-review', reason: REQUIREMENTS_IN_REVIEW }
     }
     if (action?.kind === 'restart-identity' || verdict.blocking?.selfHealKind === 'restart-identity') {
-        return restartOutcome(action?.kind === 'restart-identity' ? (reason ?? action.purpose) : reason)
+        return restartOutcome(action?.kind === 'restart-identity' ? (reason ?? action.purpose) : reason, rail.provider)
     }
     if (action?.kind === 'accept-tos') {
         return submitted.terms
@@ -157,6 +170,7 @@ function featureOutcome(
 ): Outcome {
     const needs = featureNeeds(key, residence)
     const works = (rail: RailCapability) => (rail.operations?.[needs.operation] ?? rail.status) === 'enabled'
+    // an enabled rail outranks every answer about its provider
     if (needs.rails.every((serves) => rails.some((rail) => serves(rail) && works(rail)))) return { state: 'available' }
 
     // A provider the plan refused for the document's country was never
@@ -169,13 +183,20 @@ function featureOutcome(
     const refused = orphan?.refused
         ? orphan.refused.some((entry) => entry.provider === FEATURE_PROVIDER[key])
         : serving.length === 0
-    if (asksForLocalId && refused) return { state: 'needs-local-id', reason: DOCUMENT_COUNTRY_UNSUPPORTED }
+    if (asksForLocalId && refused && REFUSES_DOCUMENT_COUNTRY.has(FEATURE_PROVIDER[key])) {
+        return { state: 'needs-local-id', reason: DOCUMENT_COUNTRY_UNSUPPORTED }
+    }
 
     // the card has no rail until the card page applies, after its agreements
     if (key === 'card' && own.length === 0) return { state: 'agreements-needed', step: { provider: 'rain' } }
 
     return own
         .map((rail) => railOutcome(rail, needs.operation, actions, submitted))
+        .map((outcome) =>
+            key === 'qr' && outcome.reason && MANTECA_ACCOUNT_REASONS.has(outcome.reason)
+                ? { state: 'setting-up' as const }
+                : outcome
+        )
         .reduce<Outcome>((best, next) => (RANK[next.state] > RANK[best.state] ? next : best), { state: 'setting-up' })
 }
 

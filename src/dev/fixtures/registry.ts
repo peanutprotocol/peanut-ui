@@ -521,8 +521,8 @@ const SETUP_PIX_RAIL = {
 }
 const SETUP_ACCOUNT_RAILS = BRIDGE_BANK_RAILS.slice(0, 2)
 const SETUP_SUPPLEMENT = { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }
-const setupMe = (rails: unknown[], nextActions: unknown[] = []) => ({
-    residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null },
+const setupMe = (rails: unknown[], nextActions: unknown[] = [], residence = 'BR') => ({
+    residence: { declared: residence, verified: residence, pending: null, declaredSecond: null },
     capabilities: { rails, nextActions, restrictions: [] },
 })
 
@@ -1570,23 +1570,70 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: false, card: true }),
         },
     },
-    'kyc-setup-local-id-refused': {
+    'kyc-setup-bank-local-id-refused': {
         route: '/history',
-        about: 'Setup status: the plan refused Manteca for the document country, so QR and local transfers need an ID issued by Brazil while the accounts work.',
+        about: 'Setup status: the plan refused Bridge for the document country, so the accounts need an ID issued by Brazil while QR and local transfers work.',
         responses: {
+            // a refused provider was never enrolled: no Bridge rail, only the top-level restart action names it
             'GET /users/me': setupMe(
-                SETUP_ACCOUNT_RAILS.map((rail) => ({ ...rail, status: 'enabled' })),
+                [SETUP_PIX_RAIL],
                 [
                     {
                         key: 'restart-identity',
                         kind: 'restart-identity',
                         purpose: 'document_country_unsupported',
-                        refused: [{ provider: 'manteca', reason: 'document_country_unsupported' }],
+                        refused: [{ provider: 'bridge', reason: 'document_country_unsupported' }],
                     },
                 ]
             ),
             'GET /users/kyc/profile': SETUP_PROFILE,
             'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: true, card: false }),
+        },
+    },
+    'kyc-setup-local-account-refused': {
+        route: '/history',
+        about: 'Setup status: the plan refused the personal Manteca account for a missing tax ID, so local transfers are not available while QR pays on the pool.',
+        responses: {
+            'GET /users/me': setupMe(
+                [
+                    {
+                        id: 'manteca.mercadopago_qr_ar',
+                        provider: 'manteca',
+                        method: 'MERCADOPAGO_QR_AR',
+                        channel: 'qr-only',
+                        country: 'AR',
+                        currency: 'ARS',
+                        status: 'enabled',
+                        operations: { pay: 'enabled' },
+                    },
+                    // parked by the send gate (PROVIDER_NOT_IN_PLAN) with the plan's reason
+                    {
+                        id: 'manteca.bank_transfer_ar',
+                        provider: 'manteca',
+                        method: 'BANK_TRANSFER_AR',
+                        channel: 'bank',
+                        country: 'AR',
+                        currency: 'ARS',
+                        status: 'blocked',
+                        reason: {
+                            code: 'local_tax_id_missing',
+                            userMessage: 'This is not available for your account.',
+                        },
+                        resolved: {
+                            status: 'blocked',
+                            blocking: {
+                                code: 'local_tax_id_missing',
+                                userMessage: 'This is not available for your account.',
+                                selfHealable: false,
+                            },
+                        },
+                    },
+                ],
+                [],
+                'AR'
+            ),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: false, card: false }),
         },
     },
 

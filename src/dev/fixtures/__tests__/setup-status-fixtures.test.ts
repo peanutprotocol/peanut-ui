@@ -60,11 +60,18 @@ describe('setup status fixtures', () => {
             ],
         ],
         [
-            'kyc-setup-local-id-refused',
+            'kyc-setup-bank-local-id-refused',
             [
-                ['qr', 'needs-local-id'],
-                ['local', 'needs-local-id'],
-                ['bank', 'available'],
+                ['qr', 'available'],
+                ['local', 'available'],
+                ['bank', 'needs-local-id'],
+            ],
+        ],
+        [
+            'kyc-setup-local-account-refused',
+            [
+                ['qr', 'available'],
+                ['local', 'not-available'],
             ],
         ],
     ])('%s', (name, rows) => {
