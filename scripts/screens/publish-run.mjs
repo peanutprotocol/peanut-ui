@@ -12,6 +12,7 @@ import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
 import { existingAssetPaths, publishReport } from './publish.mjs'
 import { repositoryApiPath } from './repository-api.mjs'
+import { evaluateZeroDifferenceGate, reviewableComparison } from './zero-difference-gate.mjs'
 const LOCALES = {
     en: 'English',
     'es-419': 'Español',
@@ -214,7 +215,14 @@ for (const capturePair of capturePairs) {
         CHANGED_SCREENS: String(changedScreens),
     }
     publications.push({ inputDir: reportDir, reportPath: path, env })
-    reports.push({ locale: after.locale, path, before, after })
+    reports.push({
+        locale: after.locale,
+        path,
+        before,
+        after,
+        complete: reviewableComparison(comparison),
+        changedScreens,
+    })
     // Historical reports retain both full source libraries as well as their comparison.
     const libraries = mainRelease
         ? [[after, dirs[1], 'main']]
@@ -273,6 +281,22 @@ await mapBounded(publications, ({ inputDir, reportPath, env }) =>
 )
 recordPublished(true)
 
+let coverageGate
+if (run.event === 'pull_request' && pr) {
+    const changedFiles = execFileSync('git', ['diff', '--name-only', '-z', expectedBase, expectedHead, '--'], {
+        encoding: 'utf8',
+    })
+        .split('\0')
+        .filter(Boolean)
+    coverageGate = evaluateZeroDifferenceGate({
+        event: run.event,
+        changedFiles,
+        reports,
+        exception: pr.body ?? '',
+    })
+    console.log(`Screen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}`)
+}
+
 if (pr) {
     const marker = '<!-- screen-library -->'
     const publicOrigin = normalizePublicOrigin(process.env.SCREEN_LIBRARY_PUBLIC_URL)
@@ -280,7 +304,7 @@ if (pr) {
         .map(({ locale, path }) => `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/)`)
         .join(
             ' · '
-        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${reports.every(({ before, after }) => before.complete && after.complete) ? 'Capture complete in all locales.' : 'Incomplete capture; unavailable states are listed in the report.'}`
+        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${reports.every(({ complete }) => complete) ? 'Reviewable capture in all locales; newly registered states are marked in the report.' : 'Incomplete capture; unavailable states are listed in the report.'}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}`
     const comments = JSON.parse(
         execFileSync(
             'gh',
@@ -302,3 +326,4 @@ if (pr) {
         { input: JSON.stringify({ body }), stdio: ['pipe', 'ignore', 'inherit'] }
     )
 }
+if (coverageGate && !coverageGate.ok) throw new Error(coverageGate.reason)

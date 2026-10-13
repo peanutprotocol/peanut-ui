@@ -20,6 +20,7 @@ export type Screen = {
     clicks: string[]
     clickTestIds?: string[]
     source?: string
+    captureState?: string[]
     exclusion?: string
     unavailable?: string
     toBottom?: boolean
@@ -51,6 +52,7 @@ const readiness: Record<string, string> = {
     'fixture-reconsent': 'A small update to our terms',
     '18-a-reconsentmodal': 'A small update to our terms',
     '67-e-provideemailstep': 'Add email to continue',
+    '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
 const routeOverrides: Record<
     string,
@@ -103,6 +105,8 @@ const definitions: Screen[] = [
         clicks: s.shotClick ? [s.shotClick] : [],
         clickTestIds: s.shotClickTestId ? [s.shotClickTestId] : [],
         source: s.path,
+        captureState: s.captureState,
+        expectSelector: s.expectSelector,
         expectsLoading: id === '24-b-kycverificationinprogressmodal',
         event: routeOverrides[id]?.event,
         storage: routeOverrides[id]?.storage,
