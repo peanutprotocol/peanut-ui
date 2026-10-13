@@ -28,6 +28,10 @@ on:
                 description: 'Resolved <major>.<build>.0 version to ship'
                 required: true
                 type: string
+            sourceSha:
+                description: 'Main commit to build: the commit the OTA shipped, which can trail the main tip by content publishes'
+                required: true
+                type: string
             pushDebug:
                 description: 'Enable OneSignal verbose logging in this build'
                 required: false
@@ -67,6 +71,7 @@ jobs:
         steps:
             - uses: actions/checkout@v7
               with:
+                  ref: ${{ inputs.sourceSha }}
                   # TASK-21683 profile builds resolve the current native tag, so
                   # release-version.mjs needs the complete tag history.
                   fetch-depth: 0
@@ -514,6 +519,7 @@ jobs:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: ios
                   PUBLISH_STAGE: upload
+                  OTA_SOURCE_SHA: ${{ inputs.sourceSha }}
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}

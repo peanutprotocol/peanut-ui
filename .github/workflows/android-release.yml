@@ -24,6 +24,10 @@ on:
                 description: 'Resolved <major>.<build>.0 version to ship'
                 required: true
                 type: string
+            sourceSha:
+                description: 'Main commit to build: the commit the OTA shipped, which can trail the main tip by content publishes'
+                required: true
+                type: string
             track:
                 description: 'Play track'
                 required: false
@@ -70,6 +74,7 @@ jobs:
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
               with:
+                  ref: ${{ inputs.sourceSha }}
                   # Direct replacement builds resolve and compare against the
                   # current native tag, so a shallow checkout is not sufficient.
                   fetch-depth: 0
@@ -432,6 +437,7 @@ jobs:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: android
                   PUBLISH_STAGE: upload
+                  OTA_SOURCE_SHA: ${{ inputs.sourceSha }}
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
@@ -459,6 +465,7 @@ jobs:
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
               with:
+                  ref: ${{ inputs.sourceSha }}
                   fetch-depth: 0
 
             - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -468,25 +475,26 @@ jobs:
             - name: Record attested Android replacement
               env:
                   VERSION: ${{ needs.release.outputs.version }}
+                  SOURCE_SHA: ${{ inputs.sourceSha }}
               run: |
-                  node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$GITHUB_SHA"
-                  FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$GITHUB_SHA")"
-                  TAG="android-v${VERSION}-replacement-${GITHUB_SHA:0:12}"
+                  node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$SOURCE_SHA"
+                  FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$SOURCE_SHA")"
+                  TAG="android-v${VERSION}-replacement-${SOURCE_SHA:0:12}"
                   ATTESTATION="peanut-native-replacement-v3: platform=android base=v$VERSION native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=$FINGERPRINT"
 
                   if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
                       EXISTING_COMMIT="$(git rev-parse "$TAG^{commit}")"
-                      if [ "$EXISTING_COMMIT" != "$GITHUB_SHA" ]; then
-                          echo "::error::$TAG points at $EXISTING_COMMIT, expected $GITHUB_SHA" >&2
+                      if [ "$EXISTING_COMMIT" != "$SOURCE_SHA" ]; then
+                          echo "::error::$TAG points at $EXISTING_COMMIT, expected $SOURCE_SHA" >&2
                           exit 1
                       fi
-                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$SOURCE_SHA"
                       echo "$TAG already records this replacement"
                   else
                       git config user.name "github-actions[bot]"
                       git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                      git tag -a "$TAG" "$GITHUB_SHA" -m "Android $VERSION replacement" -m "$ATTESTATION"
-                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      git tag -a "$TAG" "$SOURCE_SHA" -m "Android $VERSION replacement" -m "$ATTESTATION"
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$SOURCE_SHA"
                       git push origin "$TAG"
-                      echo "Recorded $TAG at ${GITHUB_SHA:0:12}"
+                      echo "Recorded $TAG at ${SOURCE_SHA:0:12}"
                   fi

@@ -4,7 +4,10 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 
+const { makeRepo } = require('./fixtures/content-publish-repo')
+
 const workflowsDir = path.join(__dirname, '..', '..', '.github', 'workflows')
+const SOURCE_GUARD = path.join(__dirname, '..', 'release-source-guard.mjs')
 
 // Execute only the branch guard, never the version resolver or deployment steps.
 function guardOf(file) {
@@ -176,18 +179,22 @@ function runFloors(bridgeActive, androidBridgeActive = false) {
     return { status: result.status, floors }
 }
 
+// The main-tip guard runs the real release-source-guard.mjs. Pass `repo` to run
+// it inside a repository with real commits; otherwise it runs where no git
+// repository exists, so only an unchanged main passes.
 function runPromotion({
     firstMainSha,
     staleAfterFirst = false,
     bootstrap = false,
     migration = false,
     iosAlreadyCutOver = false,
+    expectedMainSha = 'a'.repeat(40),
+    staleMainSha = 'b'.repeat(40),
+    repo,
 }) {
     const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-guard-'))
     const gitCalls = path.join(dir, 'git-calls')
     const nodeCalls = path.join(dir, 'node-calls')
-    const expectedMainSha = 'a'.repeat(40)
-    const staleMainSha = 'b'.repeat(40)
     const script = `
         git() {
             if [ "$1" = "ls-remote" ]; then
@@ -207,14 +214,17 @@ function runPromotion({
             fi
         }
         node() {
+            case "$1" in *release-source-guard.mjs) command node "$SOURCE_GUARD" "$2" "$3"; return;; esac
             printf '%s\\n' "$*" >> "$NODE_CALLS_FILE"
             case "$*" in *current-version*) printf 'previous-%s\\n' "$PLATFORM";; esac
         }
         ${promotionShell()}
     `
     const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
+        cwd: repo ?? dir,
         encoding: 'utf8',
         env: {
+            SOURCE_GUARD,
             ...process.env,
             RELEASE_VERSION: '1.6.4',
             RELEASE_VERSION_IOS: '1.6.4-ios',
@@ -283,6 +293,10 @@ describe('release-ota.yml publishes main source', () => {
     it('runs on every main push using that exact main commit for tooling and app source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
+        // A content publish moves only the submodule pointer and starts no release.
+        expect(workflow).toMatch(/branches: \[main\]\n(?:\s+#.*\n)*\s+paths-ignore: \['src\/content'\]\n/)
+        const gitmodules = fs.readFileSync(path.join(__dirname, '..', '..', '.gitmodules'), 'utf8')
+        expect(gitmodules).toContain('path = src/content\n')
         expect(workflow).toMatch(/workflow_dispatch:\n\s+inputs:\n\s+sha:/)
         expect(workflow).toContain('required: true')
         expect(workflow.match(/github.run_attempt == 1/g)).toHaveLength(3)
@@ -343,6 +357,47 @@ describe('release-ota.yml publishes main source', () => {
         expect(workflow.match(/git ls-remote origin refs\/heads\/main/g)).toHaveLength(3)
         expect(workflow).toContain('EXPECTED_MAIN_SHA: ${{ needs.resolve.outputs.source_sha }}')
         expect(workflow).toContain('guard_current_main\n                    # Bundle selection and rollout disablement')
+    })
+
+    it('runs every main-tip guard through release-source-guard.mjs and keeps the error messages', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+        expect(workflow.match(/node \.\.\/release-tooling\/scripts\/release-source-guard\.mjs/g)).toHaveLength(3)
+        expect(workflow).not.toContain('"$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA"')
+        expect(workflow).toContain('main advanced while the OTA source was selected')
+        expect(workflow).toContain('main advanced during the build')
+        expect(workflow).toContain('main advanced before production promotion')
+    })
+
+    it('keeps promoting when main moved by a content publish only', () => {
+        const repo = makeRepo()
+        try {
+            const result = runPromotion({
+                expectedMainSha: repo.source,
+                firstMainSha: repo.content,
+                staleMainSha: repo.secondContent,
+                staleAfterFirst: true,
+                repo: repo.dir,
+            })
+            expect(result.status).toBe(0)
+            expect(result.calls.filter((call) => call.includes('promote-production'))).toHaveLength(2)
+            expect(result.calls.filter((call) => call.includes('restore-production'))).toHaveLength(0)
+        } finally {
+            fs.rmSync(repo.dir, { recursive: true, force: true })
+        }
+    })
+
+    it('stops before any Capgo mutation when main moved by code, with or without content', () => {
+        const repo = makeRepo()
+        try {
+            for (const tip of [repo.code, repo.mixed, repo.contentThenCode]) {
+                const result = runPromotion({ expectedMainSha: repo.source, firstMainSha: tip, repo: repo.dir })
+                expect(result.status).toBe(1)
+                expect(result.calls).toEqual([])
+                expect(result.stderr).toContain('main advanced before production promotion')
+            }
+        } finally {
+            fs.rmSync(repo.dir, { recursive: true, force: true })
+        }
     })
 
     it('stops before any Capgo mutation when main advanced before the first platform', () => {
@@ -434,6 +489,45 @@ function runNative(
     return { ...result, outputs }
 }
 
+function nativeMainGuardShell() {
+    const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+    const step = workflow.indexOf('- name: Guard current main')
+    const runStart = workflow.indexOf('run: |', step)
+    const nextStep = workflow.indexOf('\n            - name:', runStart)
+    return workflow
+        .slice(runStart + 'run: |\n'.length, nextStep)
+        .split('\n')
+        .map((line) => line.replace(/^ {18}/, ''))
+        .join('\n')
+}
+
+function runNativeMainGuard(repo, { workflowSha, mainTip }) {
+    const script = `
+        git() {
+            if [ "$1" = "ls-remote" ]; then
+                printf '%s\\trefs/heads/main\\n' "$MAIN_TIP"
+            else command git "$@"; fi
+        }
+        node() {
+            [ "$1" = scripts/release-source-guard.mjs ] || return 1
+            shift
+            command node "$SOURCE_GUARD" "$@"
+        }
+        ${nativeMainGuardShell()}
+    `
+    return spawnSync('bash', ['-eu', '-c', script], {
+        cwd: repo.dir,
+        env: {
+            ...process.env,
+            GITHUB_SHA: workflowSha,
+            SOURCE_SHA: repo.source,
+            MAIN_TIP: mainTip,
+            SOURCE_GUARD,
+        },
+        encoding: 'utf8',
+    })
+}
+
 function runNativeFloor(platform, bridgeStatus) {
     const workflow = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
     const step = workflow.slice(workflow.indexOf('- name: Check production OTA floor'))
@@ -478,7 +572,7 @@ describe('native release source branch', () => {
     it('accepts only the first main-push OTA completion', () => {
         const result = runNative(guard, 'main', 'workflow_run')
         expect(result.status).toBe(0)
-        expect(result.outputs).toBe('')
+        expect(result.outputs).toBe(`sha=${'a'.repeat(40)}\n`)
     })
 
     it('accepts a dispatched OTA and a guarded dispatch of the current main tip', () => {
@@ -493,22 +587,50 @@ describe('native release source branch', () => {
         ['OTA from another event', 'main', 'workflow_run', { otaEvent: 'schedule' }],
         ['dispatch without the sha input', 'main', 'workflow_dispatch', {}],
         ['dispatch naming another sha', 'main', 'workflow_dispatch', { inputSha: 'b'.repeat(40) }],
-        [
-            'dispatch while main moved',
-            'main',
-            'workflow_dispatch',
-            { inputSha: 'a'.repeat(40), mainTip: 'b'.repeat(40) },
-        ],
         ['rerun of a dispatch', 'main', 'workflow_dispatch', { inputSha: 'a'.repeat(40), runAttempt: '2' }],
     ])('refuses %s', (_case, branch, event, options) => {
         expect(runNative(guard, branch, event, options).status).toBe(1)
     })
 
-    it('refuses a superseded main commit or an OTA run from another commit', () => {
-        expect(runNative(guard, 'main', 'workflow_run', { otaSha: 'b'.repeat(40) }).status).toBe(1)
-        const staleMain = runNative(guard, 'main', 'workflow_run', { mainTip: 'b'.repeat(40) })
-        expect(staleMain.status).toBe(1)
-        expect(staleMain.stderr).toContain('main advanced')
+    // In a workflow_run, GITHUB_SHA is the main tip when the OTA finished. The
+    // OTA's own commit is the release; the next step checks how main moved.
+    it('selects the commit the OTA shipped, or the dispatched main tip', () => {
+        const fromOta = runNative(guard, 'main', 'workflow_run', { otaSha: 'b'.repeat(40) })
+        expect(fromOta.status).toBe(0)
+        expect(fromOta.outputs).toBe(`sha=${'b'.repeat(40)}\n`)
+        const dispatched = runNative(guard, 'main', 'workflow_dispatch', { inputSha: 'a'.repeat(40) })
+        expect(dispatched.outputs).toBe(`sha=${'a'.repeat(40)}\n`)
+    })
+
+    describe('when main moved after the OTA started', () => {
+        let repo
+        beforeAll(() => {
+            repo = makeRepo()
+        })
+        afterAll(() => {
+            fs.rmSync(repo.dir, { recursive: true, force: true })
+        })
+
+        it('builds the OTA commit when main is unchanged or moved by content publishes only', () => {
+            expect(runNativeMainGuard(repo, { workflowSha: repo.source, mainTip: repo.source }).status).toBe(0)
+            expect(runNativeMainGuard(repo, { workflowSha: repo.content, mainTip: repo.content }).status).toBe(0)
+            expect(runNativeMainGuard(repo, { workflowSha: repo.content, mainTip: repo.secondContent }).status).toBe(0)
+        })
+
+        it.each(['code', 'mixed', 'contentThenCode'])(
+            'stops when main moved by %s before the workflow started',
+            (tip) => {
+                const result = runNativeMainGuard(repo, { workflowSha: repo[tip], mainTip: repo[tip] })
+                expect(result.status).toBe(1)
+                expect(result.stderr).toContain('main advanced between OTA and native workflow start')
+            }
+        )
+
+        it.each(['code', 'mixed', 'contentThenCode'])('stops when main moved by %s after the handoff', (tip) => {
+            const result = runNativeMainGuard(repo, { workflowSha: repo.content, mainTip: repo[tip] })
+            expect(result.status).toBe(1)
+            expect(result.stderr).toContain('main advanced after the OTA handoff')
+        })
     })
 
     it.each(['dev', 'release/android-kyc', 'feature/kyc'])('refuses %s', (branch) => {
@@ -555,7 +677,24 @@ describe('native release source branch', () => {
 
     it('uses one native version and the Play internal track after a permitted main-push OTA', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
-        expect(workflow).toContain('"$GITHUB_SHA" != "$OTA_SOURCE_SHA"')
+        // Every job builds, promotes and tags the selected commit, not the main tip.
+        expect(workflow).toContain('sha: ${{ steps.guard.outputs.sha }}')
+        expect(workflow).toContain('ref: ${{ steps.guard.outputs.sha }}')
+        expect(workflow.match(/ref: \$\{\{ needs.resolve.outputs.sha \}\}/g)).toHaveLength(2)
+        expect(workflow.match(/sourceSha: \$\{\{ needs.resolve.outputs.sha \}\}/g)).toHaveLength(2)
+        expect(workflow).toContain('OTA_SOURCE_SHA: ${{ needs.resolve.outputs.sha }}')
+        // Only the failure alert reads the main tip, for its alert script.
+        expect(workflow.match(/ref: \$\{\{ github.sha \}\}/g)).toHaveLength(1)
+        for (const platform of ['ios', 'android']) {
+            const callee = fs.readFileSync(path.join(workflowsDir, `${platform}-release.yml`), 'utf8')
+            expect(callee).toMatch(/sourceSha:\n\s+description: .*\n\s+required: true/)
+            expect(callee).toContain('ref: ${{ inputs.sourceSha }}')
+            expect(callee).toContain('OTA_SOURCE_SHA: ${{ inputs.sourceSha }}')
+            expect(callee).not.toContain('GITHUB_SHA')
+            expect(callee.match(/actions\/checkout@/g)).toHaveLength(
+                callee.match(/ref: \$\{\{ inputs.sourceSha \}\}/g).length
+            )
+        }
         expect(workflow).toContain('queue: max')
         expect(workflow).not.toContain('Require compatible production OTA lanes before either store upload')
         expect(workflow).not.toContain('nativeFirst')

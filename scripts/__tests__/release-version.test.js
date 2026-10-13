@@ -361,7 +361,12 @@ describe('release version resolver', () => {
         const execute = (dir) =>
             spawnSync('bash', ['-euo', 'pipefail', '-c', guard], {
                 cwd: dir,
-                env: { ...process.env, GITHUB_REF_NAME: 'main', GITHUB_SHA: 'a'.repeat(40) },
+                env: {
+                    ...process.env,
+                    GITHUB_REF_NAME: 'main',
+                    GITHUB_SHA: 'a'.repeat(40),
+                    SOURCE_SHA: 'a'.repeat(40),
+                },
                 encoding: 'utf8',
             })
         it('accepts a verified empty release registry for the first native release', () => {
