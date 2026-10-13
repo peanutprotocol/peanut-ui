@@ -1,10 +1,6 @@
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import SetupFooter from '../components/SetupFooter'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
-import { BulletList } from '@/components/0_Bruddle/BulletList'
-import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -12,7 +8,6 @@ import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { residenceAvailability } from '@/utils/residence-availability'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { SETUP_FEATURE_SCREENS, setupFeatureScreensForResidence } from '@/features/setup/filterSetupSteps'
 import posthog from 'posthog-js'
@@ -122,8 +117,8 @@ const ResidenceStep = () => {
 
     const onContinue = () => continueWith(residenceCountry, secondResidenceCountry)
 
-    // Picking a main residence from the compare cards promotes it and demotes
-    // the other; the pair itself is unchanged, only its order.
+    // Picking a main residence with its "Select <country>" button promotes it
+    // and demotes the other; the pair itself is unchanged, only its order.
     const onSelectPrimary = (primary: string) => {
         const second = primary === residenceCountry ? secondResidenceCountry : residenceCountry
         if (primary !== residenceCountry) {
@@ -184,57 +179,6 @@ const ResidenceStep = () => {
                         />
                     )}
                 </div>
-                {/* Availability is client-derived from restriction tiers and
-                    the same rail map as Unlock payments. The guidance helps
-                    users pick the country they can verify with documents. */}
-                {hasPair && (
-                    <div className="mt-2 flex flex-col gap-3">
-                        <div className="grid grid-cols-2 gap-2">
-                            {[residenceCountry, secondResidenceCountry].map((iso2) => {
-                                const summary = residenceAvailability(restrictionSets, iso2)
-                                const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
-                                return (
-                                    <div key={iso2} className={`${CARD_SURFACE} p-3`}>
-                                        <p className="mb-1 text-label-m">
-                                            {t('residenceStep.compare.cardTitle', { country: label })}
-                                        </p>
-                                        <BulletList
-                                            size="xs"
-                                            items={[
-                                                ...summary.available
-                                                    .filter((item) => item !== 'p2p')
-                                                    .map((item) => t(`residenceStep.compare.items.${item}`)),
-                                                ...summary.unavailable.map((item) => (
-                                                    <span key={item} className="line-through">
-                                                        {t(`residenceStep.compare.missing.${item}`)}
-                                                    </span>
-                                                )),
-                                                t('residenceStep.compare.items.p2p'),
-                                            ]}
-                                        />
-                                        {/* One verification enrols every rail in the region's
-                                                set, but a rail in another currency only pays out
-                                                into an account on that network — so it is stated
-                                                as a condition, not as a benefit of living here. */}
-                                        {summary.multiCurrency && (
-                                            <p className="mt-2 text-body-xs text-foreground-secondary">
-                                                {t('residenceStep.compare.multiCurrencyNote')}
-                                            </p>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                        {/* The title slot is a sentence-case Body/S line; this guidance
-                                labels a block of prose, so it takes the mini-header step. */}
-                        <Callout priority="info" hideIcon>
-                            <MiniHeader className="mb-1 text-inherit">
-                                {t('residenceStep.compare.guideTitle')}
-                            </MiniHeader>
-                            <p>{t('residenceStep.compare.guideDeclaration')}</p>
-                        </Callout>
-                    </div>
-                )}
             </div>
             {/* One button per declared country: the tap IS the main-residence
                 declaration, so there is no separate order control to get wrong. */}

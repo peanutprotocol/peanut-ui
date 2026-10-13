@@ -20,7 +20,7 @@
 // be the auto-bumped source of truth. Only its major is load-bearing here.
 //
 // Usage:
-//   node scripts/release-version.mjs native
+//   node scripts/release-version.mjs native [--reserved <version>]
 //   node scripts/release-version.mjs ota --current <version>
 //   node scripts/release-version.mjs staging
 //   node scripts/release-version.mjs native-floor
@@ -37,6 +37,11 @@ import { fileURLToPath } from 'node:url'
 
 const PLAIN_SEMVER = /^(\d+)\.(\d+)\.(\d+)$/
 const CHANNEL_SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?$/
+// A half-release leaves Capgo holding a build number that has no tag: one
+// platform published its `.0` and the run stopped before the tag job. Such a
+// number is reserved, never reused, and later releases count past it. More
+// untagged builds than this means the Capgo read is wrong, not a half-release.
+const MAX_UNTAGGED_BUILDS = 3
 
 let repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -78,7 +83,7 @@ function main(argv) {
 
     switch (mode) {
         case 'native':
-            return `${major}.${latestBuild(major) + 1}.0`
+            return nextNative(major, flag(rest, '--reserved'))
         case 'ota':
             return nextOta(major, flag(rest, '--current'))
         case 'staging':
@@ -96,23 +101,50 @@ function main(argv) {
     }
 }
 
+// The highest version Capgo holds (channels plus reserved uploads) can sit up to
+// MAX_UNTAGGED_BUILDS builds above the newest tag after a half-release. Returns
+// the build band that version reserves, or `build` when it reserves nothing new.
+function reservedBuild(major, build, reserved, label) {
+    if (reserved === undefined || reserved === 'builtin') return build
+    const match = CHANNEL_SEMVER.exec(reserved)
+    if (!match) throw new Error(`${label} must be X.Y.Z or X.Y.Z-<prerelease>, got "${reserved}"`)
+    const [, reservedMajor, reservedBuildNumber] = match.map(Number)
+    if (reservedMajor < major) return build
+    if (reservedMajor > major || reservedBuildNumber > build + MAX_UNTAGGED_BUILDS) {
+        throw new Error(
+            `${label} ${reserved} is ahead of the newest native build ${major}.${build}.0 by more than ` +
+                `${MAX_UNTAGGED_BUILDS} untagged builds — refusing to guess a version that devices would refuse`
+        )
+    }
+    return Math.max(build, reservedBuildNumber)
+}
+
+// The next store build counts past every build number already used: the tags,
+// and any untagged `.0` a half-release left in Capgo. Reusing such a number
+// collides with the existing Capgo record after both store uploads succeed.
+function nextNative(major, reserved) {
+    return `${major}.${reservedBuild(major, latestBuild(major), reserved, '--reserved') + 1}.0`
+}
+
 // The production OTA lane hangs off the newest native build, not off whatever the
 // channel happens to serve: a channel left behind by a fresh binary must jump to
 // that binary's build number rather than keep counting under the old one.
+// A channel ahead of the newest tag by an untagged half-release keeps counting in
+// that band: its bundle still sorts above every shipped binary.
 function nextOta(major, current) {
-    const build = latestBuild(major)
-    if (build === 0) throw new Error(`no v${major}.<build>.0 tag exists yet — cut a native release before an OTA`)
+    const taggedBuild = latestBuild(major)
+    if (taggedBuild === 0) throw new Error(`no v${major}.<build>.0 tag exists yet — cut a native release before an OTA`)
 
-    const match = CHANNEL_SEMVER.exec(current === 'builtin' ? `${major}.${build}.0` : (current ?? ''))
+    const match = CHANNEL_SEMVER.exec(current === 'builtin' ? `${major}.${taggedBuild}.0` : (current ?? ''))
     if (!match) throw new Error(`--current must be X.Y.Z or X.Y.Z-<prerelease>, got "${current}"`)
     const [, currentMajor, currentBuild, currentOta] = match.map(Number)
 
-    if (currentMajor !== major || currentBuild > build) {
+    if (currentMajor !== major) {
         throw new Error(
-            `channel serves ${current}, which is ahead of the newest native build ${major}.${build}.0 — ` +
-                `refusing to guess a version that devices would refuse`
+            `channel serves ${current}, which is not in major ${major} — refusing to guess a version that devices would refuse`
         )
     }
+    const build = reservedBuild(major, taggedBuild, current === 'builtin' ? undefined : current, '--current')
     // A rollback to builtin must not reuse a version already shipped and tagged.
     const shipped = execFileSync('git', ['tag', '--list', `ota-${major}.${build}.*`], {
         cwd: repoRoot,

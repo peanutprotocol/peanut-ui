@@ -16,6 +16,7 @@
         "somethingWentWrong": "Algo deu errado",
         "genericError": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "copiedToClipboard": "Copiado para a área de transferência",
+        "savedToDocuments": "Salvo em Documentos",
         "maybeLater": "Talvez depois",
         "tryAgain": "Tentar de novo",
         "skipForNow": "Pular por enquanto",
@@ -715,7 +716,7 @@
             },
             "residence": {
                 "title": "País de residência legal",
-                "description": "Onde você tem residência legal. Não onde nasceu nem para onde está viajando."
+                "description": "Onde você tem residência legal. Não necessariamente onde nasceu nem para onde está viajando."
             },
             "advantage-rewards": {
                 "title": "Coisas boas são melhores em companhia.",
@@ -726,8 +727,7 @@
                 "description": "Só você pode usar sua digital ou Face ID para controlar sua conta. O Peanut nunca pode mover nem congelar seu dinheiro. Experimente agora."
             },
             "sign-test-transaction": {
-                "title": "Conta pronta",
-                "description": "É só confirmar que é você — um toque e pronto."
+                "title": "Conta pronta"
             },
             "advantage-card": {
                 "title": "Um cartão Visa Platinum emitido nos EUA.",
@@ -753,8 +753,8 @@
                 "description": "Sua conta da Peanut está pronta."
             },
             "invite": {
-                "title": "Convite de um amigo?",
-                "description": "Digite o usuário da pessoa para que ela ganhe recompensas quando você usar o Peanut."
+                "title": "Alguém te convidou?",
+                "description": "Digite o @ de quem te convidou. Essa pessoa ganha recompensas quando você usa o Peanut."
             }
         },
         "existingSession": {
@@ -768,8 +768,7 @@
             "skip": "Pular"
         },
         "wrapper": {
-            "illustrationAlt": "Ilustração da seção",
-            "introGreeting": "Oi, eu sou o Peanut"
+            "illustrationAlt": "Ilustração da seção"
         },
         "next": "Avançar",
         "logIn": "Entrar",
@@ -790,9 +789,10 @@
             "loginUnexpectedError": "Ocorreu um erro inesperado ao fazer login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Usuário",
+            "usernameLabel": "Usuário",
+            "usernamePlaceholder": "batman",
             "inviterUsernameLabel": "Usuário de quem convidou você",
-            "inviterUsernamePlaceholder": "Usuário",
+            "inviterUsernamePlaceholder": "batman",
             "inviterNotFound": "Não encontramos esse usuário.",
             "inviterCheckFailed": "Não conseguimos verificar esse usuário. Tente de novo.",
             "errors": {
@@ -854,25 +854,6 @@
                 "changeCountry": "Escolher outro país"
             },
             "compare": {
-                "cardTitle": "Disponível com {country}",
-                "items": {
-                    "p2p": "Peanut para Peanut",
-                    "pix": "Pagamentos e transferências PIX",
-                    "arQr": "Pagamentos QR e transferências próprias",
-                    "spei": "Transferências bancárias em pesos mexicanos",
-                    "usdAch": "Transferências bancárias em dólares americanos",
-                    "eurSepa": "Transferências bancárias em euros",
-                    "gbpFps": "Transferências bancárias em libras esterlinas",
-                    "bank": "Transferências bancárias onde houver suporte",
-                    "card": "Cartão Peanut"
-                },
-                "missing": {
-                    "banking": "Transferências bancárias",
-                    "card": "Cartão Peanut"
-                },
-                "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
-                "guideTitle": "Qual país você deve selecionar?",
-                "guideDeclaration": "Se você tem uma autorização de residência de um dos dois países, escolha esse país. Caso contrário, escolha o país que emitiu seu documento de identidade, como um passaporte ou uma carteira de motorista.",
                 "selectCountry": "Escolher {country}"
             }
         },
@@ -956,7 +937,7 @@
             }
         },
         "finish": {
-            "title": "Assine uma transação de teste",
+            "title": "Confirme sua conta",
             "description": "Vamos garantir que sua passkey está funcionando e que está tudo configurado direitinho."
         },
         "accountReady": {
@@ -2530,8 +2511,9 @@
         "customPeriod": {
             "description": "Escolha o primeiro e o último dia."
         },
+        "generate": "Gerar",
+        "share": "Compartilhar",
         "download": "Baixar",
-        "save": "Salvar arquivo",
         "downloaded": "Extrato baixado",
         "downloadedByYear": "Um arquivo por ano",
         "errors": {
