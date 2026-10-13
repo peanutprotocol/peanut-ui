@@ -12,6 +12,7 @@ import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { parseUnits } from 'viem'
@@ -22,6 +23,9 @@ import {
     SpendRecoveryAbortedError,
     SpendRecoveryQuoteReviewError,
 } from '@/hooks/wallet/signSpendRetry'
+
+/** Every caption the processing screen can show under its title. */
+const PAYMENT_LOADING_CAPTIONS = PAYMENT_LOADING_WORD_KEYS.map((key) => `${en.paymentLoading[key]}...`)
 
 /** Fixtures that intend a LIVE quote: the flow now refuses to sign or submit
  *  against an expired lock, so a fixed past date would be a different case. */
@@ -1261,9 +1265,10 @@ describe('GROUP 3: Processing States', () => {
             fireEvent.click(payButton)
         })
 
+        // The title says what is happening; under it a playful word rotates.
         await waitFor(() => {
             expect(screen.getByText(en.qrPay.processingPaymentTitle)).toBeInTheDocument()
-            expect(screen.getByText(en.qrPay.processingPaymentBody)).toBeInTheDocument()
+            expect(screen.getByText((text) => PAYMENT_LOADING_CAPTIONS.includes(text))).toBeInTheDocument()
         })
     })
 

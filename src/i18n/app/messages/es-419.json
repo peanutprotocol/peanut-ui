@@ -1426,7 +1426,6 @@
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Procesando el pago",
-        "processingPaymentBody": "Estamos confirmando tu pago.",
         "waitingForMerchant": "Esperando a que el comercio ingrese el monto",
         "havingTrouble": "¿Tienes problemas?",
         "orderNotReady": {
