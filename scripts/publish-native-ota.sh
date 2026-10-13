@@ -54,12 +54,15 @@ if [ "$PUBLISH_STAGE" = promote ]; then
 fi
 test -f out/index.html
 node scripts/capgo-release-guard.mjs prepare-candidate
+# The commit this release builds. capgo-release-guard.mjs binds the record to
+# the same one; the main tip (GITHUB_SHA) can be a later content publish.
+SOURCE_SHA="${OTA_SOURCE_SHA:-$GITHUB_SHA}"
 upload_native() {
   npx @capgo/cli@8.42.4 bundle upload \
     --channel ota-candidate --apikey "$CAPGO_API_KEY" --key-data-v2 "$CAPGO_PRIVATE_KEY" \
     --path ./out --bundle "$VERSION" --min-update-version "$NATIVE_FLOOR" \
-    --comment "${GITHUB_SHA:0:7} — native release $VERSION [ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]" \
-    --link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"
+    --comment "${SOURCE_SHA:0:7} — native release $VERSION [ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]" \
+    --link "https://github.com/peanutprotocol/peanut-ui/commit/$SOURCE_SHA"
 }
 # iOS and Android publish the same .0 identity in parallel. Both can see it
 # missing before one wins creation, and a network error can fail an upload that

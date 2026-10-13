@@ -1,7 +1,8 @@
 name: App Release OTA
 
 # Every compatible main push publishes an OTA from that exact main commit,
-# independently of the native store build. A changed native contract stops at
+# independently of the native store build. A push that only moves the
+# src/content pointer starts no release. A changed native contract stops at
 # the floor guard; completion still triggers the native build, while the later
 # OTA cutover waits until the new binaries are available.
 # Only the first run from a main push may publish a production OTA.
@@ -23,6 +24,12 @@ name: App Release OTA
 on:
     push:
         branches: [main]
+        # A content publish (content-publish-automerge.yml) only moves this
+        # submodule pointer. It reaches the web through Vercel and needs no OTA
+        # and no store build: each one used a version number and replaced the
+        # release candidate (Release 164). The main-tip guards below let a
+        # running release continue past such a push.
+        paths-ignore: ['src/content']
     # Retry a failed OTA without a new main push. The run publishes the current
     # main tip only; the SHA input makes the operator name it.
     workflow_dispatch:
@@ -110,7 +117,7 @@ jobs:
               run: |
                   SOURCE_SHA="$(git rev-parse HEAD)"
                   LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-                  if [ "$SOURCE_SHA" != "$LATEST_MAIN_SHA" ]; then
+                  if ! node ../release-tooling/scripts/release-source-guard.mjs "$SOURCE_SHA" "$LATEST_MAIN_SHA"; then
                       echo "::error::main advanced while the OTA source was selected ($SOURCE_SHA -> $LATEST_MAIN_SHA)" >&2
                       exit 1
                   fi
@@ -359,17 +366,17 @@ jobs:
 
             # A queued run can finish building after a newer commit lands on
             # main. Re-read the remote ref after the expensive build so a stale
-            # bundle cannot advance into the candidate/promotion sequence.
+            # bundle cannot advance into the candidate/promotion sequence. A
+            # main that moved by the content pointer only keeps this release.
             - name: Guard current main after build
               env:
                   EXPECTED_MAIN_SHA: ${{ needs.resolve.outputs.source_sha }}
               run: |
                   LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-                  if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
+                  if ! node ../release-tooling/scripts/release-source-guard.mjs "$EXPECTED_MAIN_SHA" "$LATEST_MAIN_SHA"; then
                       echo "::error::main advanced during the build ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to publish a stale OTA" >&2
                       exit 1
                   fi
-                  echo "main is still ${EXPECTED_MAIN_SHA:0:7} after the build"
 
             - name: Verify build output
               run: |
@@ -494,11 +501,10 @@ jobs:
               run: |
                   guard_current_main() {
                     LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-                    if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
+                    if ! node ../release-tooling/scripts/release-source-guard.mjs "$EXPECTED_MAIN_SHA" "$LATEST_MAIN_SHA"; then
                       echo "::error::main advanced before production promotion ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to promote a stale OTA" >&2
                       exit 1
                     fi
-                    echo "main is still ${EXPECTED_MAIN_SHA:0:7} before production promotion"
                   }
 
                   # If a later step fails, return every channel this step moved with
