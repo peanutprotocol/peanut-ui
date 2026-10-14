@@ -61,10 +61,14 @@ jest.mock('@/components/Notifications/SetupNotificationsModal', () => ({
     default: () => <div>push-prompt</div>,
 }))
 let mockEarlyUserOpen = false
+// false: the lazy drawer has not loaded yet, so it has not reported
+let mockEarlyUserReported = true
 jest.mock('@/components/Global/EarlyUserDrawer', () => ({
     __esModule: true,
     default: ({ onVisibilityChange }: { onVisibilityChange: (visible: boolean) => void }) => {
-        jest.requireActual<typeof React>('react').useEffect(() => onVisibilityChange(mockEarlyUserOpen), [])
+        jest.requireActual<typeof React>('react').useEffect(() => {
+            if (mockEarlyUserReported) onVisibilityChange(mockEarlyUserOpen)
+        }, [])
         return null
     },
 }))
@@ -92,6 +96,7 @@ beforeEach(() => {
     mockScannerOpen = false
     mockShowEarlyUser = false
     mockEarlyUserOpen = false
+    mockEarlyUserReported = true
 })
 
 it('shows the arrival prompt, and holds the balance warning while it is pending', async () => {
@@ -123,6 +128,14 @@ it('never opens the balance warning over the scanner the arrival CTA opened', as
     render(<HomeModals />)
     await flush()
     expect(screen.queryByText('balance-warning')).not.toBeInTheDocument()
+})
+
+it('waits while the early-user drawer is due and has not loaded yet (Home remount)', async () => {
+    mockShowEarlyUser = true
+    mockEarlyUserReported = false
+    render(<HomeModals />)
+    await flush()
+    expect(await screen.findByText('arrival-waiting')).toBeInTheDocument()
 })
 
 it('shows when the early-user flag stays set but its drawer is closed', async () => {

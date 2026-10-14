@@ -45,7 +45,8 @@ export function HomeModals() {
 
     const [showBalanceWarningDrawer, setShowBalanceWarningDrawer] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
-    const [isEarlyUserDrawerVisible, setIsEarlyUserDrawerVisible] = useState(false)
+    // null until the lazy early-user drawer has reported once
+    const [isEarlyUserDrawerVisible, setIsEarlyUserDrawerVisible] = useState<boolean | null>(null)
     // migration download prompt outranks every other home modal (self-gating,
     // only during the native-migration notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
@@ -145,12 +146,13 @@ export function HomeModals() {
                             arrival={arrival}
                             // the early-user drawer goes first: both yield to any open overlay,
                             // so without a fixed order two opening together would both back off.
-                            // Its last report is stale while it is unmounted, hence the mount check.
+                            // Before it has reported (it loads lazily), the server flag says
+                            // whether it is due; its report is stale while it is unmounted.
                             blocked={
                                 showMigrationModal ||
                                 showPermissionModal ||
                                 isPostSignupActionModalVisible ||
-                                (isEarlyUserDrawerVisible && !showBalanceWarningDrawer)
+                                (!showBalanceWarningDrawer && (isEarlyUserDrawerVisible ?? !!user?.showEarlyUserModal))
                             }
                             onDismiss={dismissArrival}
                         />

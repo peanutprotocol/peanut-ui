@@ -169,24 +169,28 @@ it('a renewed session clears the last prompt, and a no-prompt answer keeps it cl
     expect(result.current.checked).toBe(true)
 })
 
-it('a resume while the check runs starts no second request, and keeps its answer', async () => {
+it('a resume while a check runs supersedes it: the new check runs, the late old answer is dropped', async () => {
     mockNative = true
     let now = Date.parse('2026-10-14T12:00:00Z')
     jest.spyOn(Date, 'now').mockImplementation(() => now)
-    let answer!: (prompt: string | null) => void
-    mockReportArrival.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)))
+    let answerInAr!: (prompt: string | null) => void
+    mockReportArrival
+        .mockImplementationOnce(() => new Promise((resolve) => (answerInAr = resolve)))
+        .mockResolvedValueOnce('pix_br')
     const { result } = renderHook(() => useArrivalPrompt())
     await flush()
 
     act(() => mockAppStateChange!({ isActive: false }))
     now += HOUR
+    mockFetchEdgeCountry.mockResolvedValue('BR')
     act(() => mockAppStateChange!({ isActive: true }))
     await flush()
-    expect(mockReportArrival).toHaveBeenCalledTimes(1)
+    expect(mockReportArrival).toHaveBeenNthCalledWith(2, 'BR')
+    expect(result.current.arrival).toEqual({ userId: 'u1', country: 'BR', prompt: 'pix_br' })
 
-    await act(async () => answer('qr_ar'))
-    expect(result.current.arrival?.prompt).toBe('qr_ar')
-    expect(mockReportArrival).toHaveBeenCalledTimes(1)
+    await act(async () => answerInAr('qr_ar'))
+    expect(result.current.arrival).toEqual({ userId: 'u1', country: 'BR', prompt: 'pix_br' })
+    expect(result.current.checked).toBe(true)
 })
 
 it("checks for the next account that signs in, and never shows it the last account's prompt", async () => {
