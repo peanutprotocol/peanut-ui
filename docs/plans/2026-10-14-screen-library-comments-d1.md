@@ -103,7 +103,7 @@ required protections or unrelated source/tests are weakened.
   `empty-hall-158a.cloudflareaccess.com`. Reused the existing trusted repository
   Access audience. Configured the existing `screen-library-deploy` environment
   with the dedicated database, team issuer, existing EU R2 bucket and public URL.
-- Full screen suite: 268 passed; configured identity suite: 132 passed in 23
+- Full screen suite: 269 passed; configured identity suite: 132 passed in 23
   suites. Full lint: zero errors, 64 existing warnings. Explicit lint of public
   viewer/client with `--no-ignore` passed. Formatting passes after final edits.
 - Actual local workerd/D1/R2 smoke: 22 checks passed, including signed JWTs,
@@ -129,3 +129,22 @@ credentials need D1 Edit (live CI token scope cannot be read from GitHub).
 Not handled: merge, live Worker activation and authenticated live comment writes
 remain behind PR review/CI. The existing gallery was not redeployed. No hook code
 or required branch protection was changed.
+
+## Hosted CI follow-up
+
+On commit `d1999a9b3`, hosted format, ESLint and full application typecheck passed.
+Screen tests exposed an environment gap: that job still used Node 20, which has
+no `node:sqlite`, and did not install the isolated `jose` dependency. The follow-up
+moves only `screen-tests` to Node 22, installs the committed deploy lockfile with
+scripts disabled, and resolves the Worker dependencies before running the same
+full test command. An independent workflow regression reproduced the gap and
+verifies the corrected order/runtime. Other app jobs retain their existing Node
+version. The screen-test job has a 10-minute budget.
+
+The backdoor scan reported clean, but its separate guard deliberately remains red
+for workflow changes and requires independent review before merge. That guard
+was not edited or bypassed. The full unit job also reported three failures in the
+unchanged `sentry-timeout-reporting.test.ts`, with recursion in source-map quick
+sort under the Math.random mock. The focused suite passes 14/14 locally; this is
+not evidence that the full hosted unit failure is resolved. No Sentry source or
+assertion was changed as part of the comments feature.

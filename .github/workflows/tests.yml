@@ -86,6 +86,7 @@ jobs:
     screen-tests:
         needs: backdoor-scan
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v4
               with:
@@ -97,11 +98,17 @@ jobs:
 
             - uses: actions/setup-node@v4
               with:
-                  node-version: '20'
+                  node-version: '22'
                   cache: 'pnpm'
 
             - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
-            - run: pnpm screens:test
+            - name: Install isolated Worker dependencies
+              working-directory: scripts/screens/deploy
+              run: npm ci --ignore-scripts --no-audit --no-fund
+            - name: Resolve the locked Worker JWT verifier
+              run: ln -s ../deploy/node_modules scripts/screens/worker/node_modules
+            - name: Run the full screen-library suite
+              run: pnpm screens:test
 
     # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
     # --check against the committed baseline: debt counts (raw hex, inline
