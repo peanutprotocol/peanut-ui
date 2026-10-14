@@ -80,7 +80,7 @@ describe('Android replacement release workflow', () => {
         )
         expect(workflow).toContain('peanut-native-replacement-v3: platform=android')
         expect(workflow).toContain('js-guard=android-capacitor-permissions-v1')
-        expect(workflow).toContain('android-v${VERSION}-replacement-${GITHUB_SHA:0:12}')
+        expect(workflow).toContain('android-v${VERSION}-replacement-${SOURCE_SHA:0:12}')
         expect(workflow.slice(baselineJob)).toContain('contents: write')
     })
 

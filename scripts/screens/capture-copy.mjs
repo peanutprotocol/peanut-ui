@@ -15,6 +15,7 @@ const COPY_PATHS = new Map([
     ['Open new account', 'depositAccounts.list.openTitle'],
     ['More networks', 'global.tokenSelector.moreNetworksTitle'],
     ['See all contributors', 'payment.contributors.seeAll'],
+    ['Not enough balance. Add funds to continue.', 'errors.notEnoughBalanceAddFunds'],
 ])
 
 const read = (source, locale) =>

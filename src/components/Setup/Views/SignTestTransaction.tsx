@@ -77,9 +77,6 @@ export function SetupConfirmationView({
         <PageStack className="flex-1">
             <PageStack.Center>
                 {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
-                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
-                    {t('steps.sign-test-transaction.description')}
-                </p>
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
             <SetupFooter actions={button} secondary={secondary}>

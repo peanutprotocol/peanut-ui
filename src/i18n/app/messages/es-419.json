@@ -16,6 +16,7 @@
         "somethingWentWrong": "Algo salió mal",
         "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
         "copiedToClipboard": "Copiado al portapapeles",
+        "savedToDocuments": "Guardado en Documentos",
         "maybeLater": "Quizás más tarde",
         "tryAgain": "Intentar de nuevo",
         "skipForNow": "Omitir por ahora",
@@ -715,7 +716,7 @@
             },
             "residence": {
                 "title": "País de residencia legal",
-                "description": "Donde tienes residencia legal. No donde naciste ni adonde viajas."
+                "description": "Donde tienes residencia legal. No necesariamente donde naciste ni adonde viajas."
             },
             "advantage-rewards": {
                 "title": "Lo bueno se disfruta en compañía.",
@@ -726,8 +727,7 @@
                 "description": "Solo tú puedes usar tu huella o Face ID para controlar tu cuenta. Peanut nunca puede mover ni congelar tu dinero. Pruébalo ahora."
             },
             "sign-test-transaction": {
-                "title": "Cuenta lista",
-                "description": "Solo confirma que eres tú: un toque y listo."
+                "title": "Cuenta lista"
             },
             "advantage-card": {
                 "title": "Una tarjeta Visa Platinum emitida en EE. UU.",
@@ -768,8 +768,7 @@
             "skip": "Omitir"
         },
         "wrapper": {
-            "illustrationAlt": "Ilustración de la sección",
-            "introGreeting": "¡Hola! Soy Peanut"
+            "illustrationAlt": "Ilustración de la sección"
         },
         "next": "Siguiente",
         "logIn": "Iniciar sesión",
@@ -790,9 +789,10 @@
             "loginUnexpectedError": "Ocurrió un error inesperado al iniciar sesión."
         },
         "signupStep": {
-            "usernamePlaceholder": "Usuario",
+            "usernameLabel": "Usuario",
+            "usernamePlaceholder": "batman",
             "inviterUsernameLabel": "Usuario de quien te invitó",
-            "inviterUsernamePlaceholder": "Usuario",
+            "inviterUsernamePlaceholder": "batman",
             "inviterNotFound": "No encontramos a este usuario.",
             "inviterCheckFailed": "No pudimos revisar este usuario. Inténtalo de nuevo.",
             "errors": {
@@ -854,25 +854,6 @@
                 "changeCountry": "Elegir otro país"
             },
             "compare": {
-                "cardTitle": "Disponible con {country}",
-                "items": {
-                    "p2p": "Peanut a Peanut",
-                    "pix": "Pagos y transferencias PIX",
-                    "arQr": "Pagos QR y transferencias propias",
-                    "spei": "Transferencias bancarias en pesos mexicanos",
-                    "usdAch": "Transferencias bancarias en dólares estadounidenses",
-                    "eurSepa": "Transferencias bancarias en euros",
-                    "gbpFps": "Transferencias bancarias en libras esterlinas",
-                    "bank": "Transferencias bancarias donde haya soporte",
-                    "card": "Tarjeta Peanut"
-                },
-                "missing": {
-                    "banking": "Transferencias bancarias",
-                    "card": "Tarjeta Peanut"
-                },
-                "multiCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
-                "guideTitle": "¿Qué país debes seleccionar?",
-                "guideDeclaration": "Si tienes un permiso de residencia de alguno de los dos países, elige ese país. Si no, elige el país que emitió tu documento de identidad, como un pasaporte o una licencia de conducir.",
                 "selectCountry": "Elegir {country}"
             }
         },
@@ -956,7 +937,7 @@
             }
         },
         "finish": {
-            "title": "Firma una transacción de prueba",
+            "title": "Confirma tu cuenta",
             "description": "Asegurémonos de que tu passkey funciona y de que todo está configurado correctamente."
         },
         "accountReady": {
@@ -1445,7 +1426,6 @@
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Procesando el pago",
-        "processingPaymentBody": "Estamos confirmando tu pago.",
         "waitingForMerchant": "Esperando a que el comercio ingrese el monto",
         "havingTrouble": "¿Tienes problemas?",
         "orderNotReady": {
@@ -1587,7 +1567,8 @@
                 "description": "El pago todavía no se ha confirmado. Revisa Actividad antes de volver a intentarlo."
             }
         },
-        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}"
+        "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "pixKeySavedAs": "Guardada como {name}"
     },
     "card": {
         "navAddCard": "Agregar tarjeta",
@@ -2530,8 +2511,9 @@
         "customPeriod": {
             "description": "Elige el primer y el último día."
         },
+        "generate": "Generar",
+        "share": "Compartir",
         "download": "Descargar",
-        "save": "Guardar archivo",
         "downloaded": "Estado de cuenta descargado",
         "downloadedByYear": "Un archivo por año",
         "errors": {

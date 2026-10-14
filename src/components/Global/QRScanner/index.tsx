@@ -12,6 +12,7 @@ import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import Loading from '../Loading'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
+import { useBackHandler } from '@/hooks/useBackHandler'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionDrawer from './CameraPermissionDrawer'
 import { Clipboard } from '@capacitor/clipboard'
@@ -299,6 +300,11 @@ function ErrorView({
 export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    // The scanner is an overlay, not a route: unhandled, Android back falls through to minimizeApp on Home.
+    useBackHandler(() => {
+        close()
+        return true
+    }, isScanning)
     useEffect(() => {
         onPermissionDenied?.(isPermissionDenied)
         return () => onPermissionDenied?.(false)

@@ -20,9 +20,7 @@ const mockRefetch = jest.fn().mockResolvedValue({ data: null })
 const mockApiFetch = jest.fn().mockResolvedValue(undefined)
 const mockToastError = jest.fn()
 const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
-const mockMarkIntroSeen = jest.fn().mockResolvedValue(undefined)
 
-jest.mock('@/utils/first-launch-intro', () => ({ markFirstLaunchIntroSeen: () => mockMarkIntroSeen() }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 const mockQueryClient = { clear: mockClear, cancelQueries: mockCancelQueries, getQueryData: () => mockUserData }
@@ -107,7 +105,6 @@ function deferred() {
 describe('AuthProvider push identity public integration contract', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockMarkIntroSeen.mockReset().mockResolvedValue(undefined)
         mockUserData = { user: { userId: 'u1', username: 'probe' }, accounts: [] }
         mockLogoutVersion = null
         mockLoading = false

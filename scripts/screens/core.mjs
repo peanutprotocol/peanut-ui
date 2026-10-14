@@ -45,6 +45,10 @@ export function validateCapture(input) {
         assert(['captured', 'failed', 'excluded', 'unavailable', 'absent'].includes(s.status), 'Invalid capture status')
         assert(['route', 'component'].includes(s.kind), 'Invalid screen kind')
         const out = { id: s.id, name: text(s.name), flow: text(s.flow), kind: s.kind, status: s.status }
+        if (s.defaultScreen !== undefined) {
+            assert(typeof s.defaultScreen === 'boolean', 'Invalid default-screen classification')
+            out.defaultScreen = s.defaultScreen
+        }
         if (s.order !== undefined) {
             assert(Number.isInteger(s.order) && s.order >= 0 && s.order <= 1_000_000, 'Invalid screen order')
             out.order = s.order
@@ -267,6 +271,7 @@ export function compare(beforeInput, afterInput, assetsDir) {
             name: metadata.name,
             flow: metadata.flow,
             kind: metadata.kind,
+            ...(metadata.defaultScreen !== undefined ? { defaultScreen: metadata.defaultScreen } : {}),
             ...(metadata.order !== undefined ? { order: metadata.order } : {}),
             ...(metadata.journey !== undefined ? { journey: metadata.journey } : {}),
             before: a,
@@ -335,6 +340,7 @@ export function materializeCatalogue(catalogue, results) {
                 name: s.name,
                 flow: s.flow,
                 kind: s.kind,
+                ...(s.defaultScreen !== undefined ? { defaultScreen: s.defaultScreen } : {}),
                 ...(s.order !== undefined ? { order: s.order } : {}),
                 ...(s.journey !== undefined ? { journey: s.journey } : {}),
                 status: 'unavailable',

@@ -209,7 +209,7 @@ const SignupStep = () => {
                             }}
                         >
                             <ValidatedInput
-                                aria-label={t('signupStep.usernamePlaceholder')}
+                                aria-label={t('signupStep.usernameLabel')}
                                 placeholder={suggestionIndex < 0 ? t('signupStep.usernamePlaceholder') : ''}
                                 value={username}
                                 debounceTime={750}

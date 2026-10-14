@@ -12,9 +12,28 @@ complete visual baseline; Nutcracker supplies integration evidence for the subse
 of states reachable through real journeys. Native system dialogs remain outside
 the library.
 
+Capture completeness applies to registered states. A PR that changes UI source
+but has zero visual differences in all four locale reports fails the Screen
+Library check, since the changed state may be absent from the catalogue. Add a
+deterministic scenario for that state. For an intentional nonvisual change, put
+`Screen Library exception: <reason>` on its own line in the PR description and
+rerun the check. Missing baseline images for newly registered states are marked
+as New only when the historical component harness is explicitly absent and the
+current capture succeeds. Missing historical route inventory or an unrelated
+capture failure still makes the comparison incomplete. The publisher keeps the
+report links visible when this coverage check fails.
+
 Gallery filters are URL-backed. Source, locale, search, flow, status, and
 all/changed mode are restored from the query string, so copying the browser URL
-shares the exact visible view.
+shares the exact visible view. PR comparison pages also offer **Show all
+variations**, initially on. Turn it off to show canonical page captures only;
+modal, drawer, toggle, special-fixture, and isolated component states stay in
+the all-variations view. This choice is shared as `scope=default`. New reports
+carry explicit `defaultScreen` classification. For immutable older reports,
+default-only mode includes recognized `pNN-*` page IDs except known variant IDs
+and names containing `modal`, `drawer`, `toggle`, or `fixture`; unknown IDs remain
+in all-variations mode. A direct screen anchor reveals its target even if the
+shared URL requested default-only mode.
 
 Opening a page does not cover its closed selectors. The catalogue includes
 separate open checkpoints for token and network drawers, residence countries,

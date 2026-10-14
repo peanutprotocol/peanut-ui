@@ -12,9 +12,7 @@ let mockDemo = false
 const mockApiFetch = jest.fn().mockResolvedValue(undefined)
 const mockToastError = jest.fn()
 const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
-const mockMarkIntroSeen = jest.fn().mockResolvedValue(undefined)
 
-jest.mock('@/utils/first-launch-intro', () => ({ markFirstLaunchIntroSeen: () => mockMarkIntroSeen() }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 const mockServer = jest.fn()
