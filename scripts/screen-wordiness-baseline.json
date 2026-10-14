@@ -70,10 +70,10 @@
         "features/payments/flows/qr-pay/views/QrPaySuccessView.tsx": 74,
         "features/payments/flows/semantic-request/views/SemanticRequestInputView.tsx": 69,
         "features/payments/flows/semantic-request/views/SemanticRequestReceiptView.tsx": 553,
+        "features/shake-to-pay/ShakeToPayView.tsx": 135,
         "features/withdraw/views/ConfirmWithdrawView.tsx": 137,
         "features/withdraw/views/WithdrawAmountView.tsx": 98,
         "features/withdraw/views/WithdrawBankReviewView.tsx": 214,
-        "features/withdraw/views/WithdrawMethodView.tsx": 105,
-        "features/shake-to-pay/ShakeToPayView.tsx": 132
+        "features/withdraw/views/WithdrawMethodView.tsx": 105
     }
 }
