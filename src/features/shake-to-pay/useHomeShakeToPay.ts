@@ -60,7 +60,12 @@ export function useHomeShakeToPay(): void {
             document.addEventListener('visibilitychange', onVisibility)
             onVisibility()
         }
-        const onPointerDown = () => {
+        const armPermissionRequest = () => {
+            if (!active) return
+            requested = false
+            document.addEventListener('click', onClick, { capture: true, passive: true, once: true })
+        }
+        const onClick = () => {
             if (!active || requested) return
             requested = true
             try {
@@ -72,22 +77,20 @@ export function useHomeShakeToPay(): void {
                         if (permission === 'granted') startListening()
                         else if (permission === 'denied') forgetMotionGrant()
                     })
-                    .catch(() => {
-                        if (active) forgetMotionGrant()
-                    })
+                    .catch(armPermissionRequest)
             } catch {
-                if (active) forgetMotionGrant()
+                armPermissionRequest()
             }
         }
 
         if (needsPermission) {
-            document.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true, once: true })
+            armPermissionRequest()
         } else {
             startListening()
         }
         return () => {
             active = false
-            document.removeEventListener('pointerdown', onPointerDown, true)
+            document.removeEventListener('click', onClick, true)
             stopListening()
             document.removeEventListener('visibilitychange', onVisibility)
             detector.reset()

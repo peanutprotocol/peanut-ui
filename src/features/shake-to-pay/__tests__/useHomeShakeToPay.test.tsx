@@ -1,5 +1,5 @@
 import React, { StrictMode } from 'react'
-import { act, cleanup, render, renderHook, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
 import Home from '@/app/(mobile-ui)/home/page'
 import { useHomeShakeToPay } from '../useHomeShakeToPay'
 
@@ -395,7 +395,69 @@ describe('Home route integration', () => {
 const grantKey = 'peanut.shakeMotionGranted'
 const originalStorageDescriptor = Object.getOwnPropertyDescriptor(window, 'localStorage')
 
-function installPermissionApi(remembered = false): void {
+type MotionPermissionState = 'prompt' | 'granted' | 'denied'
+type Registration = {
+    target: EventTarget
+    type: string
+    handler: EventListenerOrEventListenerObject
+    capture: boolean
+    once: boolean
+    removed: boolean
+    consumed: boolean
+}
+type ListenerTracker = {
+    registrations: Registration[]
+    live: (types: ReadonlySet<string>) => Registration[]
+    onceListeners: (type: string) => Registration[]
+}
+
+const armingTypes: ReadonlySet<string> = new Set([
+    'pointerdown',
+    'pointerup',
+    'pointercancel',
+    'click',
+    'touchstart',
+    'touchend',
+    'mousedown',
+    'mouseup',
+])
+const motionTypes: ReadonlySet<string> = new Set(['devicemotion'])
+const visibilityTypes: ReadonlySet<string> = new Set(['visibilitychange'])
+
+// WKWebView model: a prompt-state requestPermission() rejects unless it is called synchronously
+// inside an activating event (click / pointerup); once decided it resolves without activation.
+let motionPermissionState: MotionPermissionState = 'prompt'
+let userAnswer: 'granted' | 'denied' = 'granted'
+let inActivation = false
+const permissionCalls: boolean[] = []
+let tracker: ListenerTracker | null = null
+
+function requestMotionPermission(): Promise<'granted' | 'denied'> {
+    const activated = inActivation
+    permissionCalls.push(activated)
+    if (motionPermissionState === 'prompt') {
+        if (!activated) {
+            return Promise.reject(
+                new DOMException(
+                    'Requesting device orientation or motion access requires a user gesture to prompt',
+                    'NotAllowedError'
+                )
+            )
+        }
+        motionPermissionState = userAnswer
+    }
+    return Promise.resolve(motionPermissionState as 'granted' | 'denied')
+}
+
+function installPermissionApi({
+    remembered = false,
+    state = 'prompt',
+    answer = 'granted',
+}: { remembered?: boolean; state?: MotionPermissionState; answer?: 'granted' | 'denied' } = {}): void {
+    motionPermissionState = state
+    userAnswer = answer
+    permissionCalls.length = 0
+    mockRequestPermission.mockImplementation(requestMotionPermission)
     Object.defineProperty(window, 'DeviceMotionEvent', {
         configurable: true,
         value: Object.assign(function DeviceMotionEvent() {}, { requestPermission: mockRequestPermission }),
@@ -403,31 +465,183 @@ function installPermissionApi(remembered = false): void {
     if (remembered) window.localStorage.setItem(grantKey, '1')
 }
 
-function tap(): void {
-    act(() => {
-        document.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+const instrumentedTargets: EventTarget[] = [window, EventTarget.prototype]
+const nativeListenerMethods = new Map(
+    instrumentedTargets.map((target) => [target, { add: target.addEventListener, remove: target.removeEventListener }])
+)
+
+function captureOf(options?: boolean | AddEventListenerOptions): boolean {
+    return typeof options === 'boolean' ? options : Boolean(options?.capture)
+}
+
+function eventPath(): EventTarget[] {
+    return [window, document, document.documentElement, document.body]
+}
+
+function trackListeners(): ListenerTracker {
+    const registrations: Registration[] = []
+    const find = (target: EventTarget, type: string, handler: unknown, capture: boolean) =>
+        registrations.find(
+            (entry) =>
+                !entry.removed &&
+                !entry.consumed &&
+                entry.target === target &&
+                entry.type === type &&
+                entry.handler === handler &&
+                entry.capture === capture
+        )
+    instrumentedTargets.forEach((owner) => {
+        const native = nativeListenerMethods.get(owner)!
+        jest.spyOn(owner, 'addEventListener').mockImplementation(function (
+            this: EventTarget,
+            type: string,
+            handler: EventListenerOrEventListenerObject | null,
+            options?: boolean | AddEventListenerOptions
+        ) {
+            if (handler && !find(this, type, handler, captureOf(options))) {
+                registrations.push({
+                    target: this,
+                    type,
+                    handler,
+                    capture: captureOf(options),
+                    once: typeof options === 'object' && Boolean(options?.once),
+                    removed: false,
+                    consumed: false,
+                })
+            }
+            return native.add.call(this, type, handler, options)
+        })
+        jest.spyOn(owner, 'removeEventListener').mockImplementation(function (
+            this: EventTarget,
+            type: string,
+            handler: EventListenerOrEventListenerObject | null,
+            options?: boolean | EventListenerOptions
+        ) {
+            const hit = handler ? find(this, type, handler, captureOf(options)) : undefined
+            if (hit) hit.removed = true
+            return native.remove.call(this, type, handler, options)
+        })
     })
+    tracker = {
+        registrations,
+        live: (types) =>
+            registrations.filter(
+                (entry) =>
+                    !entry.removed && !entry.consumed && types.has(entry.type) && eventPath().includes(entry.target)
+            ),
+        onceListeners: (type) =>
+            registrations.filter(
+                (entry) =>
+                    entry.once &&
+                    !entry.removed &&
+                    !entry.consumed &&
+                    entry.type === type &&
+                    eventPath().includes(entry.target)
+            ),
+    }
+    return tracker
+}
+
+function liveArming(): number {
+    return tracker ? tracker.live(armingTypes).length : 0
+}
+
+function liveMotion(): number {
+    return tracker ? tracker.live(motionTypes).length : 0
+}
+
+function liveVisibility(): number {
+    return tracker ? tracker.live(visibilityTypes).length : 0
+}
+
+function fire(type: string, { activated = true }: { activated?: boolean } = {}): void {
+    const event = new Event(type, { bubbles: true, cancelable: true })
+    if (type.startsWith('pointer')) {
+        Object.defineProperties(event, { pointerType: { value: 'touch' }, isPrimary: { value: true } })
+    }
+    const onceBefore = tracker ? tracker.onceListeners(type) : []
+    inActivation = activated && (type === 'click' || type === 'pointerup')
+    try {
+        fireEvent(document.body, event)
+    } finally {
+        inActivation = false
+    }
+    onceBefore.forEach((entry) => {
+        entry.consumed = true
+    })
+}
+
+function tap(options: { activated?: boolean } = {}): void {
+    fire('pointerdown', options)
+    fire('pointerup', options)
+    fire('click', options)
+}
+
+function callHandler(handler: EventListenerOrEventListenerObject, event: Event): void {
+    if (typeof handler === 'function') handler(event)
+    else handler.handleEvent(event)
 }
 
 async function settlePermission(): Promise<void> {
     await act(async () => {
-        await Promise.resolve()
+        for (let tick = 0; tick < 5; tick++) await Promise.resolve()
     })
 }
 
-function deferredPermission(): { promise: Promise<string>; resolve: (value: string) => void } {
+function deferredPermission(): {
+    promise: Promise<string>
+    resolve: (value: string) => void
+    reject: (e: Error) => void
+} {
     let resolve!: (value: string) => void
-    const promise = new Promise<string>((done) => {
+    let reject!: (e: Error) => void
+    const promise = new Promise<string>((done, fail) => {
         resolve = done
+        reject = fail
     })
-    return { promise, resolve }
+    return { promise, resolve, reject }
+}
+
+function deferRequest(): ReturnType<typeof deferredPermission> {
+    const pending = deferredPermission()
+    mockRequestPermission.mockImplementation(() => {
+        permissionCalls.push(inActivation)
+        return pending.promise
+    })
+    return pending
 }
 
 function laterGesture(offset = 10000): Event[] {
-    return gesture(60, 'vigorous').map((event) =>
-        motionEvent(event.timeStamp + offset, event as unknown as SensorFields)
-    )
+    return gesture(60, 'vigorous').map((event) => {
+        const { accelerationIncludingGravity, acceleration, rotationRate } = event as unknown as SensorFields
+        return motionEvent(event.timeStamp + offset, { accelerationIncludingGravity, acceleration, rotationRate })
+    })
 }
+
+function expectNoNavigation(): void {
+    expect(mockPush).not.toHaveBeenCalled()
+    expect(mockHaptic).not.toHaveBeenCalled()
+}
+
+function stopHook(
+    stop: 'unmount' | 'flag-off' | 'router-change',
+    handles: { unmount: () => void; rerender: () => void }
+): void {
+    if (stop === 'unmount') handles.unmount()
+    else {
+        if (stop === 'flag-off') mockFlagEnabled = false
+        else mockRouter = { push: jest.fn() }
+        handles.rerender()
+    }
+}
+
+beforeEach(() => {
+    tracker = null
+    inActivation = false
+    motionPermissionState = 'prompt'
+    userAnswer = 'granted'
+    permissionCalls.length = 0
+})
 
 describe('Home remembered iOS motion consent', () => {
     it.each([null, '', '0', 'true', 'granted', ' 1', '1 '])(
@@ -435,7 +649,7 @@ describe('Home remembered iOS motion consent', () => {
         async (value) => {
             installPermissionApi()
             if (value !== null) window.localStorage.setItem(grantKey, value)
-            const add = jest.spyOn(window, 'addEventListener')
+            trackListeners()
             renderHook(() => useHomeShakeToPay())
             tap()
             changeVisibility(false)
@@ -443,160 +657,302 @@ describe('Home remembered iOS motion consent', () => {
             tap()
             await settlePermission()
             dispatch(gesture(60, 'vigorous'))
-            expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
-            expectNoEffects()
+            expect(liveMotion()).toBe(0)
+            expect(permissionCalls).toEqual([])
+            expectNoNavigation()
         }
     )
 
-    it('does not request permission or listen before the first gesture despite a remembered grant', () => {
-        installPermissionApi(true)
-        const add = jest.spyOn(window, 'addEventListener')
+    it('does not listen before the first activating tap despite a remembered grant', async () => {
+        installPermissionApi({ remembered: true })
+        trackListeners()
         renderHook(() => useHomeShakeToPay())
         changeVisibility(false)
         changeVisibility(true)
+        await settlePermission()
         dispatch(gesture(60, 'vigorous'))
-        expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
-        expectNoEffects()
+        expect(liveMotion()).toBe(0)
+        expectNoNavigation()
+        expect(window.localStorage.getItem(grantKey)).toBe('1')
     })
 
-    it('requests synchronously on the first passive capture pointerdown and listens only after grant', async () => {
-        installPermissionApi(true)
-        const pending = deferredPermission()
-        mockRequestPermission.mockReturnValue(pending.promise)
-        const addMotion = jest.spyOn(window, 'addEventListener')
-        const addPointer = jest.spyOn(document, 'addEventListener')
+    it('30a: asks inside the first activating tap of a new iOS session and starts listening once granted', async () => {
+        installPermissionApi({ remembered: true })
+        trackListeners()
         renderHook(() => useHomeShakeToPay())
-        const pointer = addPointer.mock.calls.find(([type]) => type === 'pointerdown')
-        expect(pointer).toBeDefined()
-        expect(pointer?.[2]).toEqual(expect.objectContaining({ capture: true, passive: true, once: true }))
-        let duringDispatch = false
-        mockRequestPermission.mockImplementation(() => {
-            duringDispatch = true
-            return pending.promise
-        })
         tap()
-        expect(duringDispatch).toBe(true)
-        expect(mockRequestPermission).toHaveBeenCalledTimes(1)
-        tap()
-        expect(mockRequestPermission).toHaveBeenCalledTimes(1)
-        expect(addMotion.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
-        dispatch(gesture(60, 'vigorous'))
-        expect(mockPush).not.toHaveBeenCalled()
-        await act(async () => pending.resolve('granted'))
+        await settlePermission()
+        expect(permissionCalls.filter(Boolean)).toHaveLength(1)
+        expect(liveMotion()).toBe(1)
         dispatch(gesture(60, 'vigorous'))
         expectNavigation()
+        expect(window.localStorage.getItem(grantKey)).toBe('1')
+    })
+
+    it('30a: stays unresolved until the activated request settles, then listens only after grant', async () => {
+        installPermissionApi({ remembered: true })
+        const pending = deferRequest()
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
         tap()
-        changeVisibility(false)
-        changeVisibility(true)
+        expect(permissionCalls.filter(Boolean)).toHaveLength(1)
+        expect(liveMotion()).toBe(0)
+        dispatch(gesture(60, 'vigorous'))
+        expectNoNavigation()
+        await act(async () => pending.resolve('granted'))
+        expect(liveMotion()).toBe(1)
         dispatch(laterGesture())
         expectNavigation()
-        expect(mockRequestPermission).toHaveBeenCalledTimes(1)
+        tap()
+        changeVisibility(false)
+        changeVisibility(true)
+        expect(permissionCalls.filter(Boolean)).toHaveLength(1)
     })
 
-    it.each(['denied', 'default', 'reject', 'throw'])(
-        'remains off without retry when permission is %s',
-        async (response) => {
-            installPermissionApi(true)
-            if (response === 'reject') mockRequestPermission.mockRejectedValue(new Error('Permission unavailable'))
-            else if (response === 'throw')
-                mockRequestPermission.mockImplementation(() => {
-                    throw new Error('Gesture rejected')
-                })
-            else mockRequestPermission.mockResolvedValue(response)
-            const add = jest.spyOn(window, 'addEventListener')
-            renderHook(() => useHomeShakeToPay())
-            tap()
+    it.each([
+        ['an unactivated tap sequence', () => tap({ activated: false })],
+        ['a bare pointerdown', () => fire('pointerdown')],
+    ])('30b: %s keeps the remembered grant and re-arms for the next activating tap', async (_label, gestureFn) => {
+        installPermissionApi({ remembered: true })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        const armed = liveArming()
+        expect(armed).toBeGreaterThan(0)
+        gestureFn()
+        await settlePermission()
+        expect(window.localStorage.getItem(grantKey)).toBe('1')
+        expect(liveMotion()).toBe(0)
+        expect(liveArming()).toBe(armed)
+        dispatch(gesture(60, 'vigorous'))
+        expectNoNavigation()
+        tap()
+        await settlePermission()
+        expect(liveMotion()).toBe(1)
+        dispatch(laterGesture())
+        expectNavigation()
+        expect(window.localStorage.getItem(grantKey)).toBe('1')
+    })
+
+    it('30b: survives repeated unactivated taps and visibility cycles without stacking handlers or prompts', async () => {
+        installPermissionApi({ remembered: true })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        const armed = liveArming()
+        for (let attempt = 0; attempt < 3; attempt++) {
+            tap({ activated: false })
             await settlePermission()
+            changeVisibility(false)
+            changeVisibility(true)
+            expect(window.localStorage.getItem(grantKey)).toBe('1')
+            expect(liveArming()).toBe(armed)
+        }
+        expect(liveMotion()).toBe(0)
+        const activatedBefore = permissionCalls.filter(Boolean).length
+        tap()
+        await settlePermission()
+        expect(permissionCalls.filter(Boolean).length - activatedBefore).toBe(1)
+        expect(liveMotion()).toBe(1)
+        dispatch(gesture(60, 'vigorous'))
+        expectNavigation()
+    })
+
+    it.each(['unmount', 'flag-off'] as const)(
+        '30b: a rejection settling after %s neither re-arms handlers nor forgets the grant',
+        async (stop) => {
+            installPermissionApi({ remembered: true })
+            const pending = deferRequest()
+            trackListeners()
+            const handles = renderHook(() => useHomeShakeToPay())
+            tap()
+            stopHook(stop, handles)
+            await act(async () => pending.reject(new Error('requires a user gesture')))
+            await settlePermission()
+            expect(liveArming()).toBe(0)
+            expect(liveMotion()).toBe(0)
+            expect(window.localStorage.getItem(grantKey)).toBe('1')
             tap()
             changeVisibility(false)
             changeVisibility(true)
-            tap()
-            dispatch(gesture(60, 'vigorous'))
-            expect(mockRequestPermission).toHaveBeenCalledTimes(1)
-            expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
-            expect(mockPush).not.toHaveBeenCalled()
-            expect(mockHaptic).not.toHaveBeenCalled()
-            if (response !== 'default') expect(window.localStorage.getItem(grantKey)).toBeNull()
+            expect(permissionCalls).toHaveLength(1)
+            expectNoNavigation()
         }
     )
 
+    it('30c: an explicit denial clears the stored grant, never listens and never prompts again', async () => {
+        installPermissionApi({ remembered: true, answer: 'denied' })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        tap()
+        await settlePermission()
+        expect(permissionCalls.filter(Boolean)).toHaveLength(1)
+        expect(window.localStorage.getItem(grantKey)).toBeNull()
+        expect(liveMotion()).toBe(0)
+        const calls = permissionCalls.length
+        tap()
+        tap({ activated: false })
+        changeVisibility(false)
+        changeVisibility(true)
+        tap()
+        await settlePermission()
+        dispatch(gesture(60, 'vigorous'))
+        expect(permissionCalls).toHaveLength(calls)
+        expect(liveMotion()).toBe(0)
+        expect(window.localStorage.getItem(grantKey)).toBeNull()
+        expectNoNavigation()
+    })
+
+    it('30c: a denial already in force is honoured and the stale remembered grant is cleared', async () => {
+        installPermissionApi({ remembered: true, state: 'denied' })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        tap()
+        await settlePermission()
+        const calls = permissionCalls.length
+        expect(window.localStorage.getItem(grantKey)).toBeNull()
+        tap()
+        changeVisibility(false)
+        changeVisibility(true)
+        tap()
+        await settlePermission()
+        dispatch(gesture(60, 'vigorous'))
+        expect(permissionCalls).toHaveLength(calls)
+        expect(liveMotion()).toBe(0)
+        expectNoNavigation()
+    })
+
+    it('remains off without retry when the prompt is dismissed with default', async () => {
+        installPermissionApi({ remembered: true })
+        mockRequestPermission.mockImplementation(() => {
+            permissionCalls.push(inActivation)
+            return Promise.resolve('default')
+        })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        tap()
+        await settlePermission()
+        tap()
+        changeVisibility(false)
+        changeVisibility(true)
+        tap()
+        dispatch(gesture(60, 'vigorous'))
+        expect(permissionCalls).toHaveLength(1)
+        expect(liveMotion()).toBe(0)
+        expectNoNavigation()
+        expect(window.localStorage.getItem(grantKey)).toBe('1')
+    })
+
+    it('30d: with permission already granted, listening is on after the first tap and nothing prompts again', async () => {
+        installPermissionApi({ remembered: true, state: 'granted' })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        tap()
+        await settlePermission()
+        expect(liveMotion()).toBe(1)
+        dispatch(gesture(60, 'vigorous'))
+        expectNavigation()
+        const calls = permissionCalls.length
+        tap()
+        changeVisibility(false)
+        changeVisibility(true)
+        tap()
+        await settlePermission()
+        dispatch(laterGesture())
+        expect(permissionCalls).toHaveLength(calls)
+        expect(liveMotion()).toBe(1)
+        expect(window.localStorage.getItem(grantKey)).toBe('1')
+    })
+
+    it('30d: with permission already granted and no remembered grant, Home stays off', async () => {
+        installPermissionApi({ state: 'granted' })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        tap()
+        await settlePermission()
+        dispatch(gesture(60, 'vigorous'))
+        expect(permissionCalls).toEqual([])
+        expect(liveMotion()).toBe(0)
+        expectNoNavigation()
+    })
+
     it.each(['unmount', 'flag-off', 'router-change'] as const)(
-        'removes the unused pointerdown handler on %s and leaves its stale callback inert',
+        '30e: removes every arming handler on %s, including after a re-arm, and stale callbacks stay inert',
         async (stop) => {
-            installPermissionApi(true)
-            const add = jest.spyOn(document, 'addEventListener')
-            const remove = jest.spyOn(document, 'removeEventListener')
-            const { unmount, rerender } = renderHook(() => useHomeShakeToPay())
-            const pointer = add.mock.calls.find(([type]) => type === 'pointerdown')
-            expect(pointer).toBeDefined()
-            if (stop === 'unmount') unmount()
-            else {
-                if (stop === 'flag-off') mockFlagEnabled = false
-                else mockRouter = { push: jest.fn() }
-                rerender()
-            }
-            const removal = remove.mock.calls.find(
-                ([type, handler]) => type === 'pointerdown' && handler === pointer?.[1]
-            )
-            expect(removal).toBeDefined()
-            const options = removal?.[2]
-            expect(options === true || (typeof options === 'object' && options?.capture === true)).toBe(true)
-            act(() => (pointer?.[1] as EventListener)(new Event('pointerdown')))
+            installPermissionApi({ remembered: true })
+            const handlesTracker = trackListeners()
+            const handles = renderHook(() => useHomeShakeToPay())
+            tap({ activated: false })
             await settlePermission()
-            expectNoEffects()
+            const before = handlesTracker.registrations.filter(
+                (entry) => armingTypes.has(entry.type) && eventPath().includes(entry.target)
+            )
+            expect(before.length).toBeGreaterThan(0)
+            const calls = permissionCalls.length
+            stopHook(stop, handles)
+            const stale = before.filter((entry) => !entry.removed && !entry.consumed)
+            expect(stale).toEqual([])
+            if (stop !== 'router-change') expect(liveArming()).toBe(0)
+            act(() => {
+                inActivation = true
+                try {
+                    before.forEach((entry) => callHandler(entry.handler, new Event(entry.type)))
+                } finally {
+                    inActivation = false
+                }
+            })
+            await settlePermission()
+            expect(permissionCalls).toHaveLength(calls)
+            expect(liveMotion()).toBe(0)
+            expectNoNavigation()
         }
     )
 
     it.each(['unmount', 'flag-off', 'router-change'] as const)(
         'ignores a deferred grant resolving after %s',
         async (stop) => {
-            installPermissionApi(true)
-            const pending = deferredPermission()
-            mockRequestPermission.mockReturnValue(pending.promise)
-            const add = jest.spyOn(window, 'addEventListener')
-            const { unmount, rerender } = renderHook(() => useHomeShakeToPay())
+            installPermissionApi({ remembered: true })
+            const pending = deferRequest()
+            trackListeners()
+            const handles = renderHook(() => useHomeShakeToPay())
             tap()
-            expect(mockRequestPermission).toHaveBeenCalledTimes(1)
-            if (stop === 'unmount') unmount()
-            else {
-                if (stop === 'flag-off') mockFlagEnabled = false
-                else mockRouter = { push: jest.fn() }
-                rerender()
-            }
+            expect(permissionCalls).toEqual([true])
+            const firstRouter = mockRouter
+            stopHook(stop, handles)
             await act(async () => pending.resolve('granted'))
             changeVisibility(false)
             changeVisibility(true)
             dispatch(gesture(60, 'vigorous'))
-            expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
-            expect(mockPush).not.toHaveBeenCalled()
+            expect(liveMotion()).toBe(0)
+            expect(firstRouter.push).not.toHaveBeenCalled()
             expect(mockRouter.push).not.toHaveBeenCalled()
             expect(mockHaptic).not.toHaveBeenCalled()
-            expect(mockRequestPermission).toHaveBeenCalledTimes(1)
+            expect(permissionCalls).toEqual([true])
         }
     )
 
     it('does not attach when a grant resolves while hidden and attaches on the next visible event', async () => {
-        installPermissionApi(true)
-        const pending = deferredPermission()
-        mockRequestPermission.mockReturnValue(pending.promise)
-        const add = jest.spyOn(window, 'addEventListener')
+        installPermissionApi({ remembered: true })
+        const pending = deferRequest()
+        trackListeners()
         renderHook(() => useHomeShakeToPay())
         tap()
         changeVisibility(false)
         await act(async () => pending.resolve('granted'))
-        expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
+        expect(liveMotion()).toBe(0)
         dispatch(gesture(60, 'vigorous'))
         expect(mockPush).not.toHaveBeenCalled()
         changeVisibility(true)
         dispatch(gesture(60, 'vigorous'))
         expectNavigation()
-        expect(mockRequestPermission).toHaveBeenCalledTimes(1)
+        expect(permissionCalls).toHaveLength(1)
     })
 
-    it('keeps a pending request off through repeated taps and visibility cycles', () => {
-        installPermissionApi(true)
-        mockRequestPermission.mockReturnValue(new Promise(() => {}))
-        const add = jest.spyOn(window, 'addEventListener')
+    it('keeps a pending request single through repeated taps and visibility cycles', () => {
+        installPermissionApi({ remembered: true })
+        mockRequestPermission.mockImplementation(() => {
+            permissionCalls.push(inActivation)
+            return new Promise(() => {})
+        })
+        trackListeners()
         renderHook(() => useHomeShakeToPay())
         tap()
         for (let index = 0; index < 5; index++) {
@@ -605,62 +961,57 @@ describe('Home remembered iOS motion consent', () => {
             tap()
             dispatch(laterGesture(index * 10000))
         }
-        expect(mockRequestPermission).toHaveBeenCalledTimes(1)
-        expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
-        expect(mockPush).not.toHaveBeenCalled()
-        expect(mockHaptic).not.toHaveBeenCalled()
+        expect(permissionCalls).toEqual([true])
+        expect(liveMotion()).toBe(0)
+        expectNoNavigation()
     })
 
-    it('removes granted motion and visibility handlers on unmount', async () => {
-        installPermissionApi(true)
-        const addMotion = jest.spyOn(window, 'addEventListener')
-        const removeMotion = jest.spyOn(window, 'removeEventListener')
-        const addDocument = jest.spyOn(document, 'addEventListener')
-        const removeDocument = jest.spyOn(document, 'removeEventListener')
+    it('30e: removes granted motion and visibility handlers on unmount', async () => {
+        installPermissionApi({ remembered: true })
+        const handlesTracker = trackListeners()
         const { unmount } = renderHook(() => useHomeShakeToPay())
         tap()
         await settlePermission()
-        const motion = addMotion.mock.calls.find(([type]) => type === 'devicemotion')
-        const visibility = addDocument.mock.calls.find(([type]) => type === 'visibilitychange')
+        const motion = handlesTracker.registrations.find((entry) => entry.type === 'devicemotion')
+        const visibility = handlesTracker.registrations.find(
+            (entry) => entry.type === 'visibilitychange' && entry.target === document
+        )
         expect(motion).toBeDefined()
         expect(visibility).toBeDefined()
         unmount()
-        expect(
-            removeMotion.mock.calls.some(([type, handler]) => type === 'devicemotion' && handler === motion?.[1])
-        ).toBe(true)
-        expect(
-            removeDocument.mock.calls.some(
-                ([type, handler]) => type === 'visibilitychange' && handler === visibility?.[1]
-            )
-        ).toBe(true)
+        expect(liveMotion()).toBe(0)
+        expect(liveVisibility()).toBe(0)
+        expect(liveArming()).toBe(0)
         act(() => {
-            gesture(60, 'vigorous').forEach((event) => (motion?.[1] as EventListener)(event))
-            ;(visibility?.[1] as EventListener)(new Event('visibilitychange'))
+            gesture(60, 'vigorous').forEach((event) => callHandler(motion!.handler, event))
+            callHandler(visibility!.handler, new Event('visibilitychange'))
         })
-        expect(mockPush).not.toHaveBeenCalled()
-        expect(mockHaptic).not.toHaveBeenCalled()
-        expect(addMotion.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(1)
+        expectNoNavigation()
+        expect(handlesTracker.registrations.filter((entry) => entry.type === 'devicemotion')).toHaveLength(1)
     })
 
-    it('keeps one live gesture handler under StrictMode and makes one request', async () => {
-        installPermissionApi(true)
-        const add = jest.spyOn(document, 'addEventListener')
-        const remove = jest.spyOn(document, 'removeEventListener')
+    it('30e: StrictMode keeps the same live handler set as a normal mount and one tap makes one request', async () => {
+        installPermissionApi({ remembered: true })
+        trackListeners()
+        const plain = renderHook(() => useHomeShakeToPay())
+        const plainArming = liveArming()
+        plain.unmount()
+        tracker = null
+        trackListeners()
         renderHook(() => useHomeShakeToPay(), { wrapper: ({ children }) => <StrictMode>{children}</StrictMode> })
-        expect(
-            add.mock.calls.filter(([type]) => type === 'pointerdown').length -
-                remove.mock.calls.filter(([type]) => type === 'pointerdown').length
-        ).toBe(1)
+        expect(plainArming).toBeGreaterThan(0)
+        expect(liveArming()).toBe(plainArming)
         tap()
         tap()
         await settlePermission()
+        expect(permissionCalls.filter(Boolean)).toHaveLength(1)
+        expect(liveMotion()).toBe(1)
         dispatch(gesture(60, 'vigorous'))
         expectNavigation()
-        expect(mockRequestPermission).toHaveBeenCalledTimes(1)
     })
 
-    it.each(['getter', 'getItem'] as const)('fails closed when the storage %s throws', (fault) => {
-        installPermissionApi(true)
+    it.each(['getter', 'getItem'] as const)('fails closed when the storage %s throws', async (fault) => {
+        installPermissionApi({ remembered: true })
         if (fault === 'getter')
             Object.defineProperty(window, 'localStorage', {
                 configurable: true,
@@ -672,43 +1023,77 @@ describe('Home remembered iOS motion consent', () => {
             jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
                 throw new Error('Storage read failed')
             })
-        const add = jest.spyOn(window, 'addEventListener')
+        trackListeners()
         expect(() => renderHook(() => useHomeShakeToPay())).not.toThrow()
         tap()
         changeVisibility(false)
         changeVisibility(true)
+        await settlePermission()
         dispatch(gesture(60, 'vigorous'))
-        expectNoEffects()
-        expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
+        expectNoNavigation()
+        expect(permissionCalls).toEqual([])
+        expect(liveMotion()).toBe(0)
     })
 
     it('stays off if forgetting denied consent cannot write storage', async () => {
-        installPermissionApi(true)
-        mockRequestPermission.mockResolvedValue('denied')
+        installPermissionApi({ remembered: true, answer: 'denied' })
         jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
             throw new Error('Storage removal failed')
         })
-        const add = jest.spyOn(window, 'addEventListener')
+        trackListeners()
         renderHook(() => useHomeShakeToPay())
         tap()
         await settlePermission()
+        const calls = permissionCalls.length
+        expect(calls).toBeGreaterThan(0)
         tap()
         changeVisibility(false)
         changeVisibility(true)
+        tap()
+        await settlePermission()
         dispatch(gesture(60, 'vigorous'))
-        expect(mockRequestPermission).toHaveBeenCalledTimes(1)
-        expect(add.mock.calls.filter(([type]) => type === 'devicemotion')).toHaveLength(0)
-        expect(mockPush).not.toHaveBeenCalled()
-        expect(mockHaptic).not.toHaveBeenCalled()
+        expect(permissionCalls).toHaveLength(calls)
+        expect(liveMotion()).toBe(0)
+        expectNoNavigation()
     })
 
-    it('does not install a remembered-grant pointerdown handler when the flag is disabled', () => {
-        installPermissionApi(true)
+    it('does not install arming handlers or request permission when the flag is disabled', async () => {
+        installPermissionApi({ remembered: true })
         mockFlagEnabled = false
-        const add = jest.spyOn(document, 'addEventListener')
+        trackListeners()
         renderHook(() => useHomeShakeToPay())
-        expect(add.mock.calls.filter(([type]) => type === 'pointerdown')).toHaveLength(0)
+        expect(liveArming()).toBe(0)
         tap()
-        expectNoEffects()
+        await settlePermission()
+        expect(permissionCalls).toEqual([])
+        expectNoNavigation()
     })
+})
+
+describe('30f: Home without an iOS motion permission API', () => {
+    it.each([
+        ['no DeviceMotionEvent permission API', undefined],
+        ['a non-function requestPermission', 'granted'],
+    ])(
+        'with %s, taps never request permission, install no arming handlers and shaking works at once',
+        (_label, api) => {
+            Object.defineProperty(window, 'DeviceMotionEvent', {
+                configurable: true,
+                value: Object.assign(function DeviceMotionEvent() {}, { requestPermission: api }),
+            })
+            window.localStorage.setItem(grantKey, '1')
+            trackListeners()
+            renderHook(() => useHomeShakeToPay())
+            expect(liveArming()).toBe(0)
+            expect(liveMotion()).toBe(1)
+            tap()
+            changeVisibility(false)
+            changeVisibility(true)
+            tap()
+            dispatch(gesture(60, 'vigorous'))
+            expectNavigation()
+            expect(mockRequestPermission).not.toHaveBeenCalled()
+            expect(permissionCalls).toEqual([])
+        }
+    )
 })
