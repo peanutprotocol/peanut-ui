@@ -14,6 +14,7 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
  */
 
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
@@ -71,6 +72,7 @@ import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
+import { WithdrawAmountView } from '@/features/withdraw/views/WithdrawAmountView'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
@@ -208,6 +210,51 @@ function WithdrawReviewSurface({
                 insufficientBalance
                 isProcessing={isProcessing}
                 alreadySpent={alreadySpent}
+            />
+        </AppPageSurface>
+    )
+}
+
+function CardInformationSurface({
+    actions,
+    failed = false,
+}: {
+    actions: Array<'provideTaxId' | 'provideBirthDate'>
+    failed?: boolean
+}) {
+    const t = useTranslations('card')
+    const tKyc = useTranslations('kyc')
+    return (
+        <AppPageSurface>
+            <ApplicationStatusScreen
+                variant="requires-info"
+                informationActions={actions.map((key) => ({ key, label: t(key), onClick: noop }))}
+                uploadError={failed ? tKyc('errorStartActionFailed') : undefined}
+                onContactSupport={noop}
+                onPrev={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+function WithdrawAmountErrorSurface() {
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    return (
+        <AppPageSurface>
+            <WithdrawAmountView
+                pageTitle={tNav('withdraw')}
+                heading={t('amountToWithdraw')}
+                initialAmount="0.01"
+                walletBalance="50.00"
+                balanceFillAmount={50}
+                onBalanceFilled={noop}
+                onAmountChange={noop}
+                onBack={noop}
+                onContinue={noop}
+                continueDisabled
+                error={{ showError: true, errorMessage: t('errors.minWithdrawAmount', { amount: 2 }) }}
+                isCryptoWithdraw={false}
             />
         </AppPageSurface>
     )
@@ -838,6 +885,26 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </AppPageSurface>
         ),
+    },
+    '82-g-card-tax-id': {
+        ...SURFACE_META['82-g-card-tax-id'],
+        render: () => <CardInformationSurface actions={['provideTaxId']} />,
+    },
+    '82-h-card-birth-date': {
+        ...SURFACE_META['82-h-card-birth-date'],
+        render: () => <CardInformationSurface actions={['provideBirthDate']} />,
+    },
+    '82-i-card-information-both': {
+        ...SURFACE_META['82-i-card-information-both'],
+        render: () => <CardInformationSurface actions={['provideTaxId', 'provideBirthDate']} />,
+    },
+    '82-j-card-information-error': {
+        ...SURFACE_META['82-j-card-information-error'],
+        render: () => <CardInformationSurface actions={['provideTaxId']} failed />,
+    },
+    '92-f-withdraw-amount-error': {
+        ...SURFACE_META['92-f-withdraw-amount-error'],
+        render: () => <WithdrawAmountErrorSurface />,
     },
     '83-f-choice-residence-restricted': {
         ...SURFACE_META['83-f-choice-residence-restricted'],
