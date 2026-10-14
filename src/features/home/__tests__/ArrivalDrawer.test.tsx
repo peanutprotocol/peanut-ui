@@ -63,7 +63,8 @@ it('a QR prompt opens the scanner and closes itself', () => {
     fireEvent.click(screen.getByRole('button', { name: 'home.arrival.pix_br.cta' }))
     expect(mockSetScannerOpen).toHaveBeenCalledWith(true)
     expect(mockPush).not.toHaveBeenCalled()
-    expect(onDismiss).toHaveBeenCalled()
+    // the scanner opens first, so Home never sees a cleared prompt with the scanner shut
+    expect(mockSetScannerOpen.mock.invocationCallOrder[0]).toBeLessThan(onDismiss.mock.invocationCallOrder[0])
     expect(mockCapture).toHaveBeenCalledWith('arrival_prompt_cta_clicked', { country: 'BR', prompt: 'pix_br' })
 })
 

@@ -13,6 +13,7 @@ export const ARRIVAL_RECHECK_AFTER_MS = 60 * 60 * 1000
 // session, and its answer must survive a Home remount (React strict mode runs
 // effects twice), because the backend answers a prompt only once.
 let checkedFor: string | null = null
+let inFlightFor: string | null = null
 let settledFor: string | null = null
 let arrival: Arrival | null = null
 let generation = 0
@@ -40,10 +41,16 @@ export function subscribeArrival(listener: () => void) {
  * first (uncached); the ipapi answer is the fallback. No country, no call.
  */
 export async function checkArrival(userId: string, ipCountry: string | null): Promise<void> {
-    if (checkedFor === userId) return
-    checkedFor = userId
+    // Never a second request while one runs for this user, e.g. after a resume.
+    if (checkedFor === userId || inFlightFor === userId) return
+    checkedFor = inFlightFor = userId
     const country = (await fetchEdgeCountry()) ?? normalizeCountrySignal(ipCountry)
     const prompt = country ? await reportArrival(country).catch(() => null) : null
+    if (inFlightFor === userId) inFlightFor = null
+    // Another account signed in while this ran: the answer is not theirs.
+    if (checkedFor !== null && checkedFor !== userId) return
+    // A resume while this ran renewed the session: this answer is its check.
+    checkedFor = userId
     if (country && prompt) arrival = { userId, country, prompt }
     settledFor = userId
     emit()
@@ -82,6 +89,7 @@ function listenForResume() {
 
 export function resetArrivalSessionForTests() {
     checkedFor = null
+    inFlightFor = null
     settledFor = null
     arrival = null
     generation = 0

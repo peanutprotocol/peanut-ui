@@ -38,7 +38,7 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
  */
 export function HomeModals() {
     const { showPermissionModal, oneSignalInitialized } = useNotifications()
-    const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
+    const { isGetAppModalOpen, setIsGetAppModalOpen, isQRScannerOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user } = useAuth()
     const { arrival, checked: arrivalChecked, dismiss: dismissArrival } = useArrivalPrompt()
@@ -81,7 +81,9 @@ export function HomeModals() {
             !isPostSignupActionModalVisible &&
             // the arrival prompt outranks it: wait for its check, then for its dismissal
             arrivalChecked &&
-            !arrival
+            !arrival &&
+            // it cannot be dismissed, so never over the scanner the arrival CTA opens
+            !isQRScannerOpen
         ) {
             setShowBalanceWarningDrawer(true)
         }
@@ -93,6 +95,7 @@ export function HomeModals() {
         isPostSignupActionModalVisible,
         arrivalChecked,
         arrival,
+        isQRScannerOpen,
         user,
     ])
 
@@ -139,7 +142,14 @@ export function HomeModals() {
                     <Suspense fallback={null}>
                         <ArrivalDrawer
                             arrival={arrival}
-                            blocked={showMigrationModal || showPermissionModal || isPostSignupActionModalVisible}
+                            // the early-user drawer goes first: both yield to any open overlay,
+                            // so without a fixed order two opening together would both back off
+                            blocked={
+                                showMigrationModal ||
+                                showPermissionModal ||
+                                isPostSignupActionModalVisible ||
+                                !!user?.showEarlyUserModal
+                            }
                             onDismiss={dismissArrival}
                         />
                     </Suspense>

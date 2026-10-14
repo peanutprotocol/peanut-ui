@@ -11,14 +11,22 @@ jest.mock('@/hooks/useNotifications', () => ({
     useNotifications: () => ({ showPermissionModal: mockShowPermissionModal, oneSignalInitialized: false }),
     offerPushPrompt: jest.fn(),
 }))
+let mockScannerOpen = false
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ isGetAppModalOpen: false, setIsGetAppModalOpen: jest.fn() }),
+    useModalsContext: () => ({
+        isGetAppModalOpen: false,
+        setIsGetAppModalOpen: jest.fn(),
+        isQRScannerOpen: mockScannerOpen,
+    }),
 }))
 // 1,000 USDC: above the balance-warning threshold
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ balance: 1_000_000_000n, isFetchingBalance: false }),
 }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+let mockShowEarlyUser = false
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'u1' }, showEarlyUserModal: mockShowEarlyUser } }),
+}))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: () => undefined, updateUserPreferences: jest.fn() }))
 let mockArrival: Arrival | null = null
 let mockArrivalChecked = true
@@ -74,6 +82,8 @@ beforeEach(() => {
     mockPostSignupVisible = false
     mockArrival = IN_BRAZIL
     mockArrivalChecked = true
+    mockScannerOpen = false
+    mockShowEarlyUser = false
 })
 
 it('shows the arrival prompt, and holds the balance warning while it is pending', async () => {
@@ -99,7 +109,16 @@ it('holds the balance warning until the arrival check has answered', async () =>
     expect(screen.queryByText('balance-warning')).not.toBeInTheDocument()
 })
 
+it('never opens the balance warning over the scanner the arrival CTA opened', async () => {
+    mockArrival = null
+    mockScannerOpen = true
+    render(<HomeModals />)
+    await flush()
+    expect(screen.queryByText('balance-warning')).not.toBeInTheDocument()
+})
+
 it.each([
+    ['the early-user drawer', () => (mockShowEarlyUser = true)],
     ['the push prompt', () => (mockShowPermissionModal = true)],
     ['the migration prompt', () => (mockMigrationVisible = true)],
     ['a post-signup prompt', () => (mockPostSignupVisible = true)],

@@ -128,6 +128,43 @@ it('checks again after a native resume from 1 h in the background, not after a s
     expect(mockReportArrival).toHaveBeenCalledTimes(2)
 })
 
+it('drops an answer that lands after another account signed in, and settles for the new one', async () => {
+    let answerForU1!: (prompt: string | null) => void
+    mockReportArrival.mockImplementationOnce(() => new Promise((resolve) => (answerForU1 = resolve)))
+    mockReportArrival.mockResolvedValueOnce(null)
+    const { result, rerender } = renderHook(() => useArrivalPrompt())
+    await flush()
+
+    mockUserId = 'u2'
+    rerender()
+    await flush()
+    expect(result.current.checked).toBe(true)
+
+    await act(async () => answerForU1('qr_ar'))
+    expect(result.current.arrival).toBeNull()
+    expect(result.current.checked).toBe(true)
+})
+
+it('a resume while the check runs starts no second request, and keeps its answer', async () => {
+    mockNative = true
+    let now = Date.parse('2026-10-14T12:00:00Z')
+    jest.spyOn(Date, 'now').mockImplementation(() => now)
+    let answer!: (prompt: string | null) => void
+    mockReportArrival.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)))
+    const { result } = renderHook(() => useArrivalPrompt())
+    await flush()
+
+    act(() => mockAppStateChange!({ isActive: false }))
+    now += HOUR
+    act(() => mockAppStateChange!({ isActive: true }))
+    await flush()
+    expect(mockReportArrival).toHaveBeenCalledTimes(1)
+
+    await act(async () => answer('qr_ar'))
+    expect(result.current.arrival?.prompt).toBe('qr_ar')
+    expect(mockReportArrival).toHaveBeenCalledTimes(1)
+})
+
 it("checks for the next account that signs in, and never shows it the last account's prompt", async () => {
     const { result, rerender } = renderHook(() => useArrivalPrompt())
     await waitFor(() => expect(result.current.arrival).not.toBeNull())

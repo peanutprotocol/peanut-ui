@@ -50,10 +50,11 @@ export default function ArrivalDrawer({ arrival, blocked, onDismiss }: ArrivalDr
             country: arrival.country,
             prompt: arrival.prompt,
         })
-        onDismiss()
         // The scanner has no route of its own: it opens over the current screen.
+        // Open it first, so Home sees it open in the same render the prompt clears.
         if (isQr) setIsQRScannerOpen(true)
         else router.push('/card')
+        onDismiss()
     }
 
     return (
