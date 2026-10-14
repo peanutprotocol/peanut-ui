@@ -1,7 +1,12 @@
 import { StrictMode } from 'react'
 import { act, renderHook } from '@testing-library/react'
 import { ApiError } from '@/services/api-error'
-import { SHAKE_MAX_POLL_FAILURES, SHAKE_POLL_INTERVAL_MS, useShakeSession } from '../useShakeSession'
+import {
+    SHAKE_LOOK_WINDOW_MS,
+    SHAKE_MAX_POLL_FAILURES,
+    SHAKE_POLL_INTERVAL_MS,
+    useShakeSession,
+} from '../useShakeSession'
 import type { ShakeCandidate, ShakeLocation, ShakeSessionResponse, ShakeSessionStatus } from '../shakeApi'
 
 const mockCreateSession = jest.fn()
@@ -162,6 +167,7 @@ afterEach(() => {
 
 describe('useShakeSession: constants and initial state', () => {
     it('polls every 1500 ms and gives up after 3 consecutive failures', () => {
+        expect(SHAKE_LOOK_WINDOW_MS).toBe(15000)
         expect(SHAKE_POLL_INTERVAL_MS).toBe(1500)
         expect(SHAKE_MAX_POLL_FAILURES).toBe(3)
     })
@@ -332,7 +338,7 @@ describe('useShakeSession: polling', () => {
         const hook = setup()
         await shakeNow(hook)
 
-        await advance(SHAKE_POLL_INTERVAL_MS * 10)
+        await advance(SHAKE_POLL_INTERVAL_MS * 9)
         expect(mockGetSession.mock.calls.length).toBeLessThanOrEqual(1)
 
         mockGetSession.mockImplementation(async (id: string) => makeSession(id, [ANA, BOB]))
@@ -1280,4 +1286,243 @@ describe('useShakeSession: under React.StrictMode (effects set up, torn down and
         hook.unmount()
         expect(mockCancelSession).toHaveBeenLastCalledWith('s2')
     })
+})
+
+// Follow-up 3: the client look window is measured from the create request send.
+describe('useShakeSession: the 15 second look window', () => {
+    it.each([
+        { people: [BOB, CARL], state: 'done' },
+        { people: [], state: 'no-match' },
+    ])('applies the boundary response before entering $state', async ({ people, state }) => {
+        const hook = setup()
+        await shakeNow(hook)
+        await advance(14999)
+        expect(hook.result.current.state).toBe('searching')
+        expect(mockGetSession).toHaveBeenCalledTimes(9)
+        mockGetSession.mockResolvedValue(makeSession('s1', people))
+
+        await advance(1)
+        expect(hook.result.current.state).toBe(state)
+        expect(hook.result.current.candidates).toEqual(people)
+        expect(mockGetSession).toHaveBeenCalledTimes(10)
+        expect(mockCancelSession.mock.calls).toEqual(state === 'no-match' ? [['s1']] : [])
+        await advance(30000)
+        expect(mockGetSession).toHaveBeenCalledTimes(10)
+        expect(hook.result.current.state).toBe(state)
+    })
+
+    it('waits for a pre-deadline poll response and includes people arriving after the deadline', async () => {
+        mockCreateSession.mockResolvedValue(makeSession('s1', []))
+        const late = deferred<ShakeSessionResponse>()
+        mockGetSession.mockReturnValue(late.promise)
+        const hook = setup()
+        await shakeNow(hook)
+        await advance(16000)
+        expect(hook.result.current.state).toBe('searching')
+        expect(mockGetSession).toHaveBeenCalledTimes(1)
+        await act(async () => late.resolve(makeSession('s1', [BOB])))
+        expect(hook.result.current.state).toBe('done')
+        expect(hook.result.current.candidates).toEqual([BOB])
+        expect(mockCancelSession).not.toHaveBeenCalled()
+        await advance(3000)
+        expect(mockGetSession).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([6000, 16000])(
+        'counts the %ims create delay against the window, while polling only after create',
+        async (delay) => {
+            const create = deferred<ShakeSessionResponse>()
+            mockCreateSession.mockReturnValue(create.promise)
+            const hook = setup()
+            const pending = await startShake(hook)
+            expect(mockCreateSession).toHaveBeenCalledTimes(1)
+            await advance(delay)
+            expect(mockGetSession).not.toHaveBeenCalled()
+            await act(async () => {
+                create.resolve(makeSession('s1', [ANA]))
+                await pending.done
+            })
+            expect(hook.result.current.state).toBe('searching')
+            await advance(1499)
+            expect(mockGetSession).not.toHaveBeenCalled()
+            await advance(1)
+            if (delay < 15000) {
+                expect(hook.result.current.state).toBe('searching')
+                await advance(15000 - delay - 1500)
+            }
+            expect(hook.result.current.state).toBe('done')
+            expect(hook.result.current.candidates).toEqual([ANA])
+        }
+    )
+
+    it('gives a queued create a full window starting when its request is actually sent', async () => {
+        const first = deferred<ShakeSessionResponse>()
+        mockCreateSession.mockReturnValueOnce(first.promise).mockResolvedValueOnce(makeSession('s2', [BOB]))
+        mockGetSession.mockImplementation(async (id: string) => makeSession(id, [BOB]))
+        const hook = setup()
+        const oldShake = await startShake(hook)
+        await advance(1000)
+        const newShake = await startShake(hook)
+        expect(mockCreateSession).toHaveBeenCalledTimes(1)
+        await advance(19000)
+        await act(async () => {
+            first.resolve(makeSession('s1', [ANA]))
+            await Promise.all([oldShake.done, newShake.done])
+        })
+        expect(mockCreateSession).toHaveBeenCalledTimes(2)
+        expect(hook.result.current.state).toBe('searching')
+        expect(mockCancelSession.mock.calls).toEqual([['s1']])
+        await advance(14999)
+        expect(hook.result.current.state).toBe('searching')
+        await advance(1)
+        expect(hook.result.current.state).toBe('done')
+        expect(hook.result.current.candidates).toEqual([BOB])
+    })
+
+    it.each<ShakeSessionStatus>(['expired', 'cancelled'])(
+        'an inactive server response (%s) after the deadline remains expired',
+        async (status) => {
+            const poll = deferred<ShakeSessionResponse>()
+            mockGetSession.mockReturnValue(poll.promise)
+            const hook = setup()
+            await shakeNow(hook)
+            await advance(16000)
+            await act(async () => poll.resolve(makeSession('s1', [BOB], status)))
+            expect(hook.result.current.state).toBe('expired')
+            expect(hook.result.current.candidates).toEqual([])
+            await advance(3000)
+            expect(mockGetSession).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it.each([
+        { displayed: [BOB], state: 'done' },
+        { displayed: [], state: 'no-match' },
+    ])('a boundary failure uses the most recently displayed list: $state', async ({ displayed, state }) => {
+        const hook = setup()
+        await shakeNow(hook)
+        mockGetSession.mockResolvedValue(makeSession('s1', displayed))
+        await advance(13500)
+        expect(hook.result.current.candidates).toEqual(displayed)
+        mockGetSession.mockRejectedValue(new Error('deadline network failure'))
+        await advance(1500)
+        expect(hook.result.current.state).toBe(state)
+        expect(hook.result.current.candidates).toEqual(displayed)
+        expect(mockCancelSession.mock.calls).toEqual(state === 'no-match' ? [['s1']] : [])
+        await advance(6000)
+        expect(mockGetSession).toHaveBeenCalledTimes(10)
+    })
+
+    it('a pre-deadline failure keeps searching but its retry failing at the deadline finishes', async () => {
+        const hook = setup()
+        await shakeNow(hook)
+        await advance(12000)
+        mockGetSession.mockRejectedValue(new Error('network'))
+        await advance(1500)
+        expect(hook.result.current.state).toBe('searching')
+        await advance(1500)
+        expect(hook.result.current.state).toBe('done')
+        expect(hook.result.current.candidates).toEqual([ANA])
+    })
+
+    it.each(['stop', 'unmount', 'new shake'] as const)(
+        'done retains ownership until %s cancels it once',
+        async (action) => {
+            const hook = setup()
+            await shakeNow(hook)
+            await advance(15000)
+            expect(hook.result.current.state).toBe('done')
+            expect(mockCancelSession).not.toHaveBeenCalled()
+            if (action === 'stop') act(() => hook.result.current.stop())
+            else if (action === 'unmount') hook.unmount()
+            else await shakeNow(hook)
+            expect(mockCancelSession.mock.calls).toEqual([['s1']])
+            if (action === 'stop') {
+                expect(hook.result.current.state).toBe('idle')
+                hook.unmount()
+                expect(mockCancelSession.mock.calls).toEqual([['s1']])
+            }
+        }
+    )
+
+    it('no-match releases ownership once, even if stop and unmount follow', async () => {
+        mockGetSession.mockResolvedValue(makeSession('s1', []))
+        const hook = setup()
+        await shakeNow(hook)
+        await advance(15000)
+        expect(hook.result.current.state).toBe('no-match')
+        expect(mockCancelSession.mock.calls).toEqual([['s1']])
+        act(() => hook.result.current.stop())
+        hook.unmount()
+        expect(mockCancelSession.mock.calls).toEqual([['s1']])
+    })
+
+    it.each(['done', 'no-match'] as const)('a fresh shake from %s gets its own full window', async (state) => {
+        mockGetSession.mockResolvedValue(makeSession('s1', state === 'done' ? [ANA] : []))
+        const hook = setup()
+        await shakeNow(hook)
+        await advance(15000)
+        expect(hook.result.current.state).toBe(state)
+        await advance(7000)
+        mockGetSession.mockResolvedValue(makeSession('s2', [BOB]))
+        await shakeNow(hook)
+        await advance(14999)
+        expect(hook.result.current.state).toBe('searching')
+        await advance(1)
+        expect(hook.result.current.state).toBe('done')
+        expect(hook.result.current.candidates).toEqual([BOB])
+        expect(mockCancelSession.mock.calls).toEqual([['s1']])
+    })
+
+    it.each(['response', 'failure'] as const)(
+        'a stale %s after the old deadline cannot end or cancel a newer generation',
+        async (outcome) => {
+            const oldPoll = deferred<ShakeSessionResponse>()
+            mockGetSession.mockReturnValueOnce(oldPoll.promise)
+            const hook = setup()
+            await shakeNow(hook)
+            await advance(14000)
+            await shakeNow(hook)
+            mockGetSession.mockResolvedValue(makeSession('s2', [BOB]))
+            await advance(2000)
+            expect(hook.result.current.candidates).toEqual([BOB])
+            await act(async () => {
+                if (outcome === 'failure') oldPoll.reject(new Error('old network failure'))
+                else oldPoll.resolve(makeSession('s1', []))
+            })
+            expect(hook.result.current.state).toBe('searching')
+            expect(hook.result.current.candidates).toEqual([BOB])
+            expect(mockCancelSession.mock.calls).toEqual([['s1']])
+            const calls = pollsFor('s2')
+            await advance(1500)
+            expect(pollsFor('s2')).toBeGreaterThan(calls)
+            await advance(11500)
+            expect(hook.result.current.state).toBe('done')
+        }
+    )
+
+    it.each(['stop', 'hidden', 'unmount'] as const)(
+        'a poll crossing the deadline cannot undo %s',
+        async (interruption) => {
+            const poll = deferred<ShakeSessionResponse>()
+            mockGetSession.mockReturnValue(poll.promise)
+            const hook = setup()
+            await shakeNow(hook)
+            await advance(1500)
+            if (interruption === 'stop') act(() => hook.result.current.stop())
+            else if (interruption === 'unmount') hook.unmount()
+            else {
+                setVisibility('hidden')
+                await fireVisibilityChange()
+            }
+            await advance(15000)
+            history = []
+            await act(async () => poll.resolve(makeSession('s1', [BOB])))
+            expect(everShowed('bob')).toBe(false)
+            if (interruption !== 'unmount') expect(hook.result.current.state).toBe('idle')
+            expect(mockCancelSession.mock.calls).toEqual([['s1']])
+            await advance(3000)
+            expect(mockGetSession).toHaveBeenCalledTimes(1)
+        }
+    )
 })

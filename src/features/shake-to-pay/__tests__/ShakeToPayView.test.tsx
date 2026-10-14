@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { act, fireEvent, screen, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { sendUrl } from '@/utils/native-routes'
@@ -20,6 +21,12 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams('view=shake'),
 }))
 
+let mockShookValue: string | null = null
+jest.mock('nuqs', () => ({
+    ...jest.requireActual('nuqs'),
+    useQueryState: (key: string) => [key === 'shook' ? mockShookValue : null, jest.fn()],
+}))
+
 let mockSession: {
     state: ShakeSearchState
     candidates: ShakeCandidate[]
@@ -27,7 +34,21 @@ let mockSession: {
     shake: jest.Mock
     stop: jest.Mock
 }
-jest.mock('../useShakeSession', () => ({ useShakeSession: () => mockSession }))
+let mockUseRealSession = false
+const mockEntryCreate = jest.fn()
+const mockEntryGet = jest.fn()
+const mockEntryCancel = jest.fn()
+jest.mock('../shakeApi', () => ({
+    shakeApi: {
+        createSession: (...args: unknown[]) => mockEntryCreate(...args),
+        getSession: (...args: unknown[]) => mockEntryGet(...args),
+        cancelSession: (...args: unknown[]) => mockEntryCancel(...args),
+    },
+}))
+jest.mock('../useShakeSession', () => ({
+    useShakeSession: () =>
+        mockUseRealSession ? jest.requireActual('../useShakeSession').useShakeSession() : mockSession,
+}))
 
 let mockMotion: { status: MotionStatus; requestPermission: jest.Mock }
 let motionOptions: { onShake: () => void } | undefined
@@ -82,7 +103,7 @@ const BOB = candidate('bob')
 const CARL = candidate('carl', { displayName: 'Carl Jones' })
 
 const MOTION_STATUSES: MotionStatus[] = ['unsupported', 'needs-permission', 'denied', 'listening']
-const SESSION_STATES: ShakeSearchState[] = ['idle', 'searching', 'expired', 'error', 'rate-limited']
+const SESSION_STATES: ShakeSearchState[] = ['idle', 'searching', 'done', 'no-match', 'expired', 'error', 'rate-limited']
 
 const onPrev = jest.fn()
 const renderView = () => renderWithIntl(<ShakeToPayView onPrev={onPrev} />)
@@ -98,8 +119,10 @@ const COPY = {
     tap: 'Tap to find people',
     start: 'Start shaking',
     motionDenied: 'Motion access is off. Tap the button instead.',
+    motionUnavailable: "This phone isn't reporting motion. Tap the button instead.",
     searching: 'Looking nearby…',
     empty: 'No one yet. Ask them to shake too.',
+    noMatch: "No one found. Shake at the same moment as the person you're paying, then try again.",
     expired: 'Search ended. Shake again to look for people.',
     error: "Couldn't reach Peanut. Check your connection and try again.",
     locationHint: 'Turn on location to find people near you more easily.',
@@ -118,6 +141,7 @@ function shownStateMessages(): string[] {
     const shown: string[] = []
     if (byText(COPY.searching)) shown.push('searching')
     if (byText(COPY.empty)) shown.push('empty')
+    if (byText(COPY.noMatch)) shown.push('no-match')
     if (byText(COPY.expired)) shown.push('expired')
     if (byText(COPY.error)) shown.push('error')
     if (screen.queryByText(/^Too many shakes/)) shown.push('rate-limited')
@@ -143,6 +167,19 @@ const triggerShake = () =>
     })
 
 beforeEach(() => {
+    jest.useFakeTimers()
+    mockShookValue = null
+    mockUseRealSession = false
+    const response = {
+        sessionId: 'entry-session',
+        shakenAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 90000).toISOString(),
+        status: 'active',
+        candidates: [],
+    }
+    mockEntryCreate.mockReset().mockResolvedValue(response)
+    mockEntryGet.mockReset().mockResolvedValue(response)
+    mockEntryCancel.mockReset().mockResolvedValue(undefined)
     mockPush.mockReset()
     mockCapture.mockReset()
     onPrev.mockReset()
@@ -154,6 +191,10 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+    jest.clearAllTimers()
+    jest.useRealTimers()
+    Reflect.deleteProperty(document, 'visibilityState')
+    Reflect.deleteProperty(document, 'hidden')
     Reflect.deleteProperty(window, 'Capacitor')
 })
 
@@ -175,7 +216,7 @@ describe('ShakeToPayView: header and instruction', () => {
         expect(screen.getAllByText(COPY.title).length).toBeGreaterThanOrEqual(1)
     })
 
-    it.each(MOTION_STATUSES)('does not start a search by itself (motion %s)', (status) => {
+    it.each(MOTION_STATUSES)('waits for pending location before automatic entry search (motion %s)', (status) => {
         mockMotion.status = status
         renderView()
 
@@ -196,26 +237,29 @@ describe('ShakeToPayView: the tap fallback', () => {
         expect(tapButton()).toBeInTheDocument()
     })
 
-    it('starts a search with the current location', () => {
+    it('starts a search with the current location', async () => {
         mockLocation = { location: LOCATION, status: 'granted' }
         renderView()
+        await advanceEntry(0)
 
         fireEvent.click(tapButton())
 
-        expect(mockSession.shake).toHaveBeenCalledTimes(1)
-        expect(mockSession.shake).toHaveBeenCalledWith(LOCATION)
+        expect(mockSession.shake).toHaveBeenCalledTimes(2)
+        expect(mockSession.shake).toHaveBeenNthCalledWith(1, LOCATION)
+        expect(mockSession.shake).toHaveBeenNthCalledWith(2, LOCATION)
     })
 
     it.each<LocationStatus>(['pending', 'denied', 'unavailable'])(
         'starts a search with null when there is no location (location %s)',
-        (status) => {
+        async (status) => {
             mockLocation = { location: null, status }
             renderView()
+            await advanceEntry(0)
 
             fireEvent.click(tapButton())
 
-            expect(mockSession.shake).toHaveBeenCalledTimes(1)
-            expect(mockSession.shake).toHaveBeenCalledWith(null)
+            expect(mockSession.shake).toHaveBeenCalledTimes(status === 'pending' ? 1 : 2)
+            expect(mockSession.shake).toHaveBeenLastCalledWith(null)
         }
     )
 
@@ -319,14 +363,16 @@ describe('ShakeToPayView: a detected shake', () => {
         expect(typeof motionOptions!.onShake).toBe('function')
     })
 
-    it('starts a search with the current location, like the tap', () => {
+    it('starts a search with the current location, like the tap', async () => {
         mockLocation = { location: LOCATION, status: 'granted' }
         renderView()
+        await advanceEntry(0)
 
         triggerShake()
 
-        expect(mockSession.shake).toHaveBeenCalledTimes(1)
-        expect(mockSession.shake).toHaveBeenCalledWith(LOCATION)
+        expect(mockSession.shake).toHaveBeenCalledTimes(2)
+        expect(mockSession.shake).toHaveBeenNthCalledWith(1, LOCATION)
+        expect(mockSession.shake).toHaveBeenNthCalledWith(2, LOCATION)
     })
 
     it('starts a search with null when there is no location', () => {
@@ -378,10 +424,10 @@ describe('ShakeToPayView: a detected shake', () => {
 })
 
 describe('ShakeToPayView: search states', () => {
-    it('idle: no status message and no list', () => {
+    it('idle on first paint: shows searching while the entry search waits for location', () => {
         renderView()
 
-        expect(shownStateMessages()).toEqual([])
+        expect(byText(COPY.searching)).toBeInTheDocument()
         expect(byText(COPY.listTitle)).not.toBeInTheDocument()
         expect(payButtons()).toHaveLength(0)
     })
@@ -462,24 +508,27 @@ describe('ShakeToPayView: search states', () => {
 })
 
 describe('ShakeToPayView: location hint', () => {
-    it.each<LocationStatus>(['denied', 'unavailable'])('shows the hint when location is %s', (status) => {
+    it.each<LocationStatus>(['denied', 'unavailable'])('shows the hint when location is %s', async (status) => {
         mockLocation = { location: null, status }
         renderView()
+        await advanceEntry(0)
 
         expect(byText(COPY.locationHint)).toBeInTheDocument()
     })
 
-    it.each<LocationStatus>(['pending', 'granted'])('does not show the hint when location is %s', (status) => {
+    it.each<LocationStatus>(['pending', 'granted'])('does not show the hint when location is %s', async (status) => {
         mockLocation = { location: status === 'granted' ? LOCATION : null, status }
         renderView()
+        await advanceEntry(0)
 
         expect(byText(COPY.locationHint)).not.toBeInTheDocument()
     })
 
-    it.each<ShakeSearchState>(['searching', 'expired', 'error'])('keeps showing the hint while %s', (state) => {
+    it.each<ShakeSearchState>(['searching', 'expired', 'error'])('keeps showing the hint while %s', async (state) => {
         mockLocation = { location: null, status: 'denied' }
         mockSession.state = state
         renderView()
+        await advanceEntry(0)
 
         expect(byText(COPY.locationHint)).toBeInTheDocument()
     })
@@ -493,11 +542,12 @@ describe('ShakeToPayView: location hint', () => {
         expect(mockSession.shake).toHaveBeenCalledWith(null)
     })
 
-    it('never prints the coordinates', () => {
+    it('never prints the coordinates', async () => {
         mockLocation = { location: LOCATION, status: 'granted' }
         mockSession.state = 'searching'
         mockSession.candidates = [ANA]
         const { container } = renderView()
+        await advanceEntry(0)
 
         expect(container.textContent).not.toContain('52.37')
         expect(container.textContent).not.toContain('4.895')
@@ -739,11 +789,12 @@ describe('ShakeToPayView: privacy', () => {
         }
     })
 
-    it('does not put the coordinates anywhere in the page', () => {
+    it('does not put the coordinates anywhere in the page', async () => {
         mockLocation = { location: LOCATION, status: 'granted' }
         mockSession.state = 'searching'
         mockSession.candidates = [PRIVATE]
         const { container } = renderView()
+        await advanceEntry(0)
 
         expect(container.innerHTML).not.toContain('52.37')
         expect(container.innerHTML).not.toContain('4.895')
@@ -766,4 +817,327 @@ describe('ShakeToPayView: confirming the recipient', () => {
         renderView()
         expect(byText(COPY.confirmRecipient)).not.toBeInTheDocument()
     })
+})
+
+// a phone that never delivers motion events must say so instead of silently ignoring shakes
+describe('ShakeToPayView: no motion sensor', () => {
+    it('points to the tap button when the phone reports no motion', () => {
+        mockMotion.status = 'unsupported'
+        renderView()
+        expect(byText(COPY.motionUnavailable)).toBeInTheDocument()
+        expect(tapButton()).toBeInTheDocument()
+    })
+
+    it.each(['listening', 'needs-permission', 'denied'] as const)(
+        'does not show the hint while motion is %s',
+        (status) => {
+            mockMotion.status = status
+            renderView()
+            expect(byText(COPY.motionUnavailable)).not.toBeInTheDocument()
+        }
+    )
+})
+
+const advanceEntry = (ms: number) =>
+    act(async () => {
+        await jest.advanceTimersByTimeAsync(ms)
+    })
+const shakeEvents = () => mockCapture.mock.calls.filter(([event]) => event === 'shake_to_pay_shake')
+const matchedEvents = () => mockCapture.mock.calls.filter(([event]) => event === 'shake_to_pay_matched')
+
+describe('ShakeToPayView: automatic entry search', () => {
+    it.each<LocationStatus>(['granted', 'denied', 'unavailable'])(
+        'starts once immediately when location is already %s',
+        async (status) => {
+            mockLocation = { status, location: status === 'granted' ? LOCATION : null }
+            const { rerender } = renderView()
+            await advanceEntry(0)
+            expect(mockSession.shake.mock.calls).toEqual([[mockLocation.location]])
+            expect(shakeEvents()).toEqual([
+                ['shake_to_pay_shake', { method: 'entry', has_location: status === 'granted' }],
+            ])
+            rerender(<ShakeToPayView onPrev={onPrev} />)
+            await advanceEntry(5000)
+            expect(mockSession.shake).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('shows searching and waits exactly 2000ms when location remains pending', async () => {
+        renderView()
+        expect(byText(COPY.searching)).toBeInTheDocument()
+        expect(mockSession.shake).not.toHaveBeenCalled()
+        await advanceEntry(1999)
+        expect(mockSession.shake).not.toHaveBeenCalled()
+        await advanceEntry(1)
+        expect(mockSession.shake.mock.calls).toEqual([[null]])
+        expect(shakeEvents()).toEqual([['shake_to_pay_shake', { method: 'entry', has_location: false }]])
+    })
+
+    it.each<LocationStatus>(['granted', 'denied', 'unavailable'])(
+        'uses location settling as %s before the timeout, once',
+        async (status) => {
+            const { rerender } = renderView()
+            await advanceEntry(1000)
+            mockLocation = { status, location: status === 'granted' ? LOCATION : null }
+            rerender(<ShakeToPayView onPrev={onPrev} />)
+            await advanceEntry(0)
+            expect(mockSession.shake.mock.calls).toEqual([[mockLocation.location]])
+            await advanceEntry(3000)
+            expect(mockSession.shake).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('does not reset the mount timeout when a pending location object changes', async () => {
+        const { rerender } = renderView()
+        await advanceEntry(1500)
+        mockLocation = { status: 'pending', location: null }
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        await advanceEntry(499)
+        expect(mockSession.shake).not.toHaveBeenCalled()
+        await advanceEntry(1)
+        expect(mockSession.shake.mock.calls).toEqual([[null]])
+    })
+
+    it('uses the current coarse location at timeout even if status is still pending', async () => {
+        const { rerender } = renderView()
+        await advanceEntry(1000)
+        mockLocation = { status: 'pending', location: LOCATION }
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        await advanceEntry(1000)
+        expect(mockSession.shake.mock.calls).toEqual([[LOCATION]])
+        expect(shakeEvents()).toEqual([['shake_to_pay_shake', { method: 'entry', has_location: true }]])
+    })
+
+    it('never duplicates an entry search when location settles after timeout', async () => {
+        const { rerender } = renderView()
+        await advanceEntry(2000)
+        expect(mockSession.shake.mock.calls).toEqual([[null]])
+        mockLocation = { status: 'granted', location: LOCATION }
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        await advanceEntry(5000)
+        expect(mockSession.shake).toHaveBeenCalledTimes(1)
+        expect(shakeEvents()).toHaveLength(1)
+    })
+
+    it.each(['settlement first', 'timeout first'] as const)(
+        'starts once if location and timeout are ready at the boundary: %s',
+        async (order) => {
+            const { rerender } = renderView()
+            await advanceEntry(1999)
+            if (order === 'timeout first') await advanceEntry(1)
+            else jest.setSystemTime(Date.now() + 1)
+            mockLocation = { status: 'granted', location: LOCATION }
+            rerender(<ShakeToPayView onPrev={onPrev} />)
+            await advanceEntry(1)
+            expect(mockSession.shake.mock.calls).toEqual([[order === 'timeout first' ? null : LOCATION]])
+            expect(shakeEvents()).toHaveLength(1)
+        }
+    )
+
+    it.each(['pending', 'granted'] as const)('StrictMode starts once when location is %s', async (status) => {
+        mockLocation = { status, location: status === 'granted' ? LOCATION : null }
+        renderWithIntl(
+            <StrictMode>
+                <ShakeToPayView onPrev={onPrev} />
+            </StrictMode>
+        )
+        await advanceEntry(5000)
+        expect(mockSession.shake.mock.calls).toEqual([[mockLocation.location]])
+        expect(shakeEvents()).toHaveLength(1)
+    })
+
+    it('a new mount gets a new automatic entry search', async () => {
+        mockLocation = { status: 'granted', location: LOCATION }
+        const first = renderView()
+        await advanceEntry(0)
+        expect(mockSession.shake).toHaveBeenCalledTimes(1)
+        first.unmount()
+        renderView()
+        await advanceEntry(0)
+        expect(mockSession.shake).toHaveBeenCalledTimes(2)
+    })
+
+    it.each(['tap', 'motion'] as const)(
+        'a manual %s while waiting consumes pending automatic entry',
+        async (method) => {
+            const { rerender } = renderView()
+            await advanceEntry(500)
+            if (method === 'tap') fireEvent.click(tapButton())
+            else triggerShake()
+            expect(mockSession.shake.mock.calls).toEqual([[null]])
+            mockLocation = { status: 'granted', location: LOCATION }
+            rerender(<ShakeToPayView onPrev={onPrev} />)
+            await advanceEntry(5000)
+            expect(mockSession.shake).toHaveBeenCalledTimes(1)
+            expect(shakeEvents()).toEqual([['shake_to_pay_shake', { method, has_location: false }]])
+        }
+    )
+
+    it.each(['unmount', 'back', 'select'] as const)('cancels pending entry on %s', async (action) => {
+        if (action === 'select') {
+            mockSession.state = 'done'
+            mockSession.candidates = [ANA]
+        }
+        const { unmount, rerender } = renderView()
+        if (action === 'unmount') unmount()
+        else if (action === 'back') fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+        else fireEvent.click(payButton('Ana Gomez'))
+        await advanceEntry(5000)
+        if (action !== 'unmount') {
+            mockLocation = { status: 'granted', location: LOCATION }
+            rerender(<ShakeToPayView onPrev={onPrev} />)
+        }
+        expect(mockSession.shake).not.toHaveBeenCalled()
+        expect(shakeEvents()).toHaveLength(0)
+    })
+
+    it('backgrounding while entry is pending prevents a hidden search and automatic resumption', async () => {
+        const { rerender } = renderView()
+        Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+        Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+        act(() => document.dispatchEvent(new Event('visibilitychange')))
+        await advanceEntry(2000)
+        expect(mockSession.shake).not.toHaveBeenCalled()
+        mockLocation = { status: 'granted', location: LOCATION }
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        expect(mockSession.shake).not.toHaveBeenCalled()
+        Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+        Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+        act(() => document.dispatchEvent(new Event('visibilitychange')))
+        await advanceEntry(3000)
+        expect(mockSession.shake).not.toHaveBeenCalled()
+        expect(shakeEvents()).toHaveLength(0)
+    })
+
+    it.each([
+        { query: '1', method: 'home_shake' },
+        { query: null, method: 'entry' },
+        { query: '0', method: 'entry' },
+        { query: 'true', method: 'entry' },
+        { query: '', method: 'entry' },
+    ])('attributes automatic entry with shook=$query to $method', async ({ query, method }) => {
+        mockShookValue = query
+        mockLocation = { status: 'granted', location: LOCATION }
+        renderView()
+        await advanceEntry(0)
+        expect(shakeEvents()).toEqual([['shake_to_pay_shake', { method, has_location: true }]])
+    })
+
+    it('keeps later tap and motion analytics distinct from home shake entry and uses current location', async () => {
+        mockShookValue = '1'
+        mockLocation = { status: 'granted', location: LOCATION }
+        const { rerender } = renderView()
+        await advanceEntry(0)
+        fireEvent.click(tapButton())
+        mockLocation = { status: 'denied', location: null }
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        triggerShake()
+        expect(shakeEvents()).toEqual([
+            ['shake_to_pay_shake', { method: 'home_shake', has_location: true }],
+            ['shake_to_pay_shake', { method: 'tap', has_location: true }],
+            ['shake_to_pay_shake', { method: 'motion', has_location: false }],
+        ])
+    })
+})
+
+describe('ShakeToPayView: finished look window', () => {
+    it('done keeps candidates tappable without searching copy or a spinner', () => {
+        mockSession.state = 'done'
+        mockSession.candidates = [ANA, BOB]
+        const { container } = renderView()
+        expect(shownStateMessages()).toEqual([])
+        expect(byText(COPY.listTitle)).toBeInTheDocument()
+        expect(byText(COPY.confirmRecipient)).toBeInTheDocument()
+        expect(payButtons()).toHaveLength(2)
+        expect(container.querySelector('[class*="animate-spin"]')).not.toBeInTheDocument()
+        fireEvent.click(payButton('@bob'))
+        expect(mockSession.stop).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith(sendUrl('bob'))
+        expect(mockSession.stop.mock.invocationCallOrder[0]).toBeLessThan(mockPush.mock.invocationCallOrder[0])
+    })
+
+    it('no-match displays the retry guidance, without candidates or spinner', () => {
+        mockSession.state = 'no-match'
+        const { container } = renderView()
+        expect(shownStateMessages()).toEqual(['no-match'])
+        expect(byText(COPY.noMatch)).toBeInTheDocument()
+        expect(payButtons()).toHaveLength(0)
+        expect(byText(COPY.listTitle)).not.toBeInTheDocument()
+        expect(container.querySelector('[class*="animate-spin"]')).not.toBeInTheDocument()
+        expect(tapButton()).toBeEnabled()
+    })
+
+    it('records first candidates arriving with done exactly once for that search', () => {
+        mockSession.state = 'searching'
+        const { rerender } = renderView()
+        fireEvent.click(tapButton())
+        expect(matchedEvents()).toEqual([])
+        mockSession.state = 'done'
+        mockSession.candidates = [ANA, BOB]
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        expect(matchedEvents()).toEqual([['shake_to_pay_matched', { count: 2 }]])
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        mockSession.candidates = [ANA]
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        expect(matchedEvents()).toHaveLength(1)
+    })
+
+    it('does not double count candidates already matched while searching when done arrives', () => {
+        mockSession.state = 'searching'
+        const { rerender } = renderView()
+        fireEvent.click(tapButton())
+        mockSession.candidates = [ANA]
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        expect(matchedEvents()).toEqual([['shake_to_pay_matched', { count: 1 }]])
+        mockSession.state = 'done'
+        mockSession.candidates = [ANA, BOB]
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        expect(matchedEvents()).toHaveLength(1)
+    })
+
+    it('a fresh manual search can record its own first done candidates', () => {
+        const { rerender } = renderView()
+        fireEvent.click(tapButton())
+        mockSession.state = 'done'
+        mockSession.candidates = [ANA]
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        expect(matchedEvents()).toEqual([['shake_to_pay_matched', { count: 1 }]])
+        fireEvent.click(tapButton())
+        mockSession.state = 'searching'
+        mockSession.candidates = []
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        mockSession.state = 'done'
+        mockSession.candidates = [BOB, CARL]
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        expect(matchedEvents()).toEqual([
+            ['shake_to_pay_matched', { count: 1 }],
+            ['shake_to_pay_matched', { count: 2 }],
+        ])
+    })
+})
+
+describe('ShakeToPayView: StrictMode with the real session hook', () => {
+    it.each(['pending', 'granted'] as const)(
+        'sends exactly one create and retains its live session when location is %s',
+        async (status) => {
+            mockUseRealSession = true
+            mockLocation = { status, location: status === 'granted' ? LOCATION : null }
+            const { unmount } = renderWithIntl(
+                <StrictMode>
+                    <ShakeToPayView onPrev={onPrev} />
+                </StrictMode>
+            )
+            await advanceEntry(status === 'pending' ? 2000 : 0)
+            expect(mockEntryCreate.mock.calls).toEqual([[mockLocation.location]])
+            expect(mockEntryCancel).not.toHaveBeenCalled()
+            expect(shakeEvents()).toHaveLength(1)
+            expect(byText(COPY.searching)).toBeInTheDocument()
+            await advanceEntry(1500)
+            expect(mockEntryGet.mock.calls).toEqual([['entry-session']])
+            expect(mockEntryCreate).toHaveBeenCalledTimes(1)
+            unmount()
+            expect(mockEntryCancel.mock.calls).toEqual([['entry-session']])
+        }
+    )
 })

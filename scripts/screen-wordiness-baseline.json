@@ -74,6 +74,6 @@
         "features/withdraw/views/WithdrawAmountView.tsx": 98,
         "features/withdraw/views/WithdrawBankReviewView.tsx": 214,
         "features/withdraw/views/WithdrawMethodView.tsx": 105,
-        "features/shake-to-pay/ShakeToPayView.tsx": 91
+        "features/shake-to-pay/ShakeToPayView.tsx": 116
     }
 }

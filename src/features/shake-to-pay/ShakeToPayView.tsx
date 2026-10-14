@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { parseAsString, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
@@ -28,6 +29,7 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
     const router = useRouter()
     const { state, candidates, retryAfterSeconds, shake, stop } = useShakeSession()
     const { location, status: locationStatus } = useApproxLocation()
+    const [shook] = useQueryState('shook', parseAsString)
     const { contacts } = useContacts({ limit: 100 })
     const contactUsernames = useMemo(
         () => new Set((contacts ?? []).map((contact) => contact.username.toLowerCase())),
@@ -36,16 +38,62 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
 
     const shakeCount = useRef(0)
     const matchedShake = useRef(0)
+    const [entryPending, setEntryPending] = useState(true)
+    const pendingEntry = useRef(true)
+    const entryDeadline = useRef(Date.now() + 2000)
+    const entryMethod = useRef<'entry' | 'home_shake'>(shook === '1' ? 'home_shake' : 'entry')
+    const entryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const cancelEntry = useCallback(() => {
+        pendingEntry.current = false
+        if (entryTimer.current !== null) clearTimeout(entryTimer.current)
+        entryTimer.current = null
+        setEntryPending(false)
+    }, [])
 
     const search = useCallback(
-        (method: 'motion' | 'tap') => {
+        (method: 'motion' | 'tap' | 'entry' | 'home_shake') => {
+            cancelEntry()
             shakeCount.current += 1
             if (method === 'motion') impactHaptic()
             posthog.capture(ANALYTICS_EVENTS.SHAKE_TO_PAY_SHAKE, { method, has_location: location !== null })
             void shake(location)
         },
-        [shake, location]
+        [shake, location, cancelEntry]
     )
+    const latestSearch = useRef(search)
+    latestSearch.current = search
+
+    useEffect(() => {
+        let active = true
+        const onVisibility = () => {
+            if (document.visibilityState === 'hidden') cancelEntry()
+        }
+        const startEntry = () => {
+            if (!active || !pendingEntry.current) return
+            if (document.visibilityState === 'hidden') {
+                cancelEntry()
+                return
+            }
+            latestSearch.current(entryMethod.current)
+        }
+        document.addEventListener('visibilitychange', onVisibility)
+        onVisibility()
+        if (pendingEntry.current) {
+            if (locationStatus !== 'pending') {
+                // Defer until effect replay completes so StrictMode keeps the real create.
+                void Promise.resolve().then(startEntry)
+            } else {
+                entryTimer.current = setTimeout(startEntry, Math.max(0, entryDeadline.current - Date.now()))
+            }
+        }
+        return () => {
+            active = false
+            document.removeEventListener('visibilitychange', onVisibility)
+            if (entryTimer.current !== null) clearTimeout(entryTimer.current)
+            entryTimer.current = null
+        }
+    }, [locationStatus, cancelEntry])
 
     const { status: motionStatus, requestPermission } = useShakeMotion({ onShake: () => search('motion') })
 
@@ -64,17 +112,24 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
     }, [motionStatus])
 
     useEffect(() => {
-        if (state !== 'searching' || candidates.length === 0 || matchedShake.current === shakeCount.current) return
+        if (
+            (state !== 'searching' && state !== 'done') ||
+            candidates.length === 0 ||
+            matchedShake.current === shakeCount.current
+        )
+            return
         matchedShake.current = shakeCount.current
         posthog.capture(ANALYTICS_EVENTS.SHAKE_TO_PAY_MATCHED, { count: candidates.length })
     }, [state, candidates.length])
 
     const handleBack = () => {
+        cancelEntry()
         stop()
         onPrev()
     }
 
     const handleSelect = (candidate: ShakeCandidate, rank: number) => {
+        cancelEntry()
         posthog.capture(ANALYTICS_EVENTS.SHAKE_TO_PAY_SELECTED, {
             rank,
             candidate_count: candidates.length,
@@ -86,7 +141,7 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
     }
 
     const statusLine = (() => {
-        switch (state) {
+        switch (state === 'idle' && entryPending ? 'searching' : state) {
             case 'searching':
                 return (
                     <span className="flex items-center gap-2">
@@ -96,6 +151,8 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
                 )
             case 'expired':
                 return t('expired')
+            case 'no-match':
+                return t('noMatch')
             case 'error':
                 return t('error')
             case 'rate-limited':
@@ -131,12 +188,15 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
                 {motionStatus === 'denied' && (
                     <p className="text-center text-body-s text-foreground-secondary">{t('motionDenied')}</p>
                 )}
+                {motionStatus === 'unsupported' && (
+                    <p className="text-center text-body-s text-foreground-secondary">{t('motionUnavailable')}</p>
+                )}
                 {(locationStatus === 'denied' || locationStatus === 'unavailable') && (
                     <p className="text-center text-body-s text-foreground-secondary">{t('locationHint')}</p>
                 )}
             </div>
 
-            {state === 'searching' && (
+            {(state === 'searching' || state === 'done') && (
                 <Section title={t('peopleNearby')}>
                     {candidates.length === 0 ? (
                         <p className="text-body-s text-foreground-secondary">{t('empty')}</p>

@@ -1,681 +1,1273 @@
-import { createShakeDetector, SHAKE_DETECTOR_DEFAULTS } from '../shakeDetector'
-import type { MotionSample, ShakeDetectorOptions } from '../shakeDetector'
+import { act, renderHook } from '@testing-library/react'
+import { useShakeMotion } from '../useShakeMotion'
+import {
+    createShakeDetector as createDetector,
+    SHAKE_DETECTOR_DEFAULTS,
+    type MotionSample,
+    type ShakeDetectorOptions,
+    type ShakeMode,
+} from '../shakeDetector'
 
-type Vec = [number, number, number]
+type Vector = [number, number, number]
+type Axis = 0 | 1 | 2
+type Shake = { start: number; duration: number; amplitude: number; frequency: number; axis: Axis }
 
-const GRAVITY = 9.81
+const rates = [30, 60, 100]
+const axes: { name: string; axis: Axis }[] = [
+    { name: 'x', axis: 0 },
+    { name: 'y', axis: 1 },
+    { name: 'gravity z', axis: 2 },
+]
+const gravity: Vector = [0, 0, 9.81]
+const stableGravity = { gravityTauMs: 1e12 }
+const onlyVigorousOptions: ShakeDetectorOptions = {
+    gentle: { threshold: Infinity },
+    twist: { threshold: Infinity },
+    bump: { threshold: Infinity },
+    circular: { threshold: Infinity },
+}
+const createShakeDetector = createDetector
+const createVigorousDetector = (options?: ShakeDetectorOptions) =>
+    createDetector({ ...onlyVigorousOptions, ...options })
 
-// ---------------------------------------------------------------------------
-// deterministic randomness
-// ---------------------------------------------------------------------------
-
-/** mulberry32: small seeded PRNG so a failing run can be replayed from its seed. */
-function seeded(seed: number): () => number {
-    let a = seed >>> 0
+function seededRandom(seed: number): () => number {
+    let state = seed >>> 0
     return () => {
-        a = (a + 0x6d2b79f5) >>> 0
-        let t = a
-        t = Math.imul(t ^ (t >>> 15), t | 1)
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        state = (Math.imul(state, 1664525) + 1013904223) >>> 0
+        return state / 0x100000000
     }
 }
 
-const between = (rng: () => number, min: number, max: number) => min + rng() * (max - min)
-const intBetween = (rng: () => number, min: number, max: number) => Math.floor(between(rng, min, max + 1))
-
-function randomUnitVector(rng: () => number): Vec {
-    for (;;) {
-        const v: Vec = [between(rng, -1, 1), between(rng, -1, 1), between(rng, -1, 1)]
-        const norm = Math.hypot(...v)
-        if (norm > 0.1) return [v[0] / norm, v[1] / norm, v[2] / norm]
-    }
+function sample(t: number, x = 0, y = 0, z = 9.81): MotionSample {
+    return { t, x, y, z }
 }
 
-// ---------------------------------------------------------------------------
-// synthetic motion traces (accelerationIncludingGravity, m/s^2, t in ms)
-// ---------------------------------------------------------------------------
-
-const sampleAt = (t: number, [x, y, z]: Vec): MotionSample => ({ x, y, z, t })
-
-function stillPhone({
-    startMs = 0,
-    durationMs,
-    hz = 60,
-    noise = 0.3,
-    gravity = [0, 0, GRAVITY],
-    rng = seeded(7),
-}: {
-    startMs?: number
-    durationMs: number
-    hz?: number
-    noise?: number
-    gravity?: Vec
-    rng?: () => number
-}): MotionSample[] {
-    const dt = 1000 / hz
-    const count = Math.floor(durationMs / dt)
-    return Array.from({ length: count }, (_, i) =>
-        sampleAt(startMs + i * dt, [
-            gravity[0] + between(rng, -noise, noise),
-            gravity[1] + between(rng, -noise, noise),
-            gravity[2] + between(rng, -noise, noise),
-        ])
-    )
-}
-
-/** Gravity on z plus a periodic swing of `amplitude` on the chosen axes. */
-function periodic({
-    startMs = 0,
-    durationMs,
-    hz = 60,
-    amplitude,
-    freqHz,
-    axes,
-    wave = 'sine',
-}: {
-    startMs?: number
-    durationMs: number
-    hz?: number
-    amplitude: number
-    freqHz: number
-    axes: Array<0 | 1 | 2>
-    wave?: 'sine' | 'square'
-}): MotionSample[] {
-    const dt = 1000 / hz
-    const count = Math.floor(durationMs / dt)
-    return Array.from({ length: count }, (_, i) => {
-        const elapsedMs = i * dt
-        const phase = 2 * Math.PI * freqHz * (elapsedMs / 1000)
-        // square: flip sign every half period, so the swing is an instantaneous jump of 2 * amplitude
-        const swing = wave === 'sine' ? amplitude * Math.sin(phase) : amplitude * (Math.sin(phase) >= 0 ? 1 : -1)
-        const v: Vec = [0, 0, GRAVITY]
-        for (const axis of axes) v[axis] += swing
-        return sampleAt(startMs + elapsedMs, v)
-    })
-}
-
-const walking = (opts: { startMs?: number; durationMs: number; hz?: number; wave?: 'sine' | 'square' }) =>
-    periodic({ amplitude: 3, freqHz: 2, axes: opts.wave === 'square' ? [2] : [0, 1, 2], ...opts })
-
-/** A vigorous shake: alternating +/-amplitude at ~10 Hz for ~0.6 s. */
-const vigorousShake = (opts: {
-    startMs: number
-    durationMs?: number
-    hz?: number
-    amplitude?: number
-    freqHz?: number
-    axis?: 0 | 1 | 2
-    wave?: 'sine' | 'square'
-}) =>
-    periodic({
-        durationMs: 600,
-        amplitude: 17,
-        freqHz: 10,
-        ...opts,
-        axes: [opts.axis ?? 0],
-    })
-
-/**
- * One qualifying peak at each of `peakTimes` and nothing else: the phone sits
- * at 0 / 0 / g and toggles x between 0 and `amplitude` exactly at those ticks,
- * so every toggle is a single jump of exactly `amplitude`. Times must be
- * positive multiples of `tickMs`.
- */
-function peaksAt(
-    peakTimes: number[],
-    { amplitude = 15, tickMs = 50, tailMs = 300 }: { amplitude?: number; tickMs?: number; tailMs?: number } = {}
+function trace(
+    rate: number,
+    duration: number,
+    acceleration: (seconds: number, index: number) => Vector,
+    noise = 0,
+    seed = 42
 ): MotionSample[] {
-    const peaks = new Set(peakTimes)
-    const end = Math.max(...peakTimes) + tailMs
-    const samples: MotionSample[] = []
-    let high = false
-    for (let t = 0; t <= end; t += tickMs) {
-        if (peaks.has(t)) high = !high
-        samples.push({ x: high ? amplitude : 0, y: 0, z: GRAVITY, t })
-    }
-    return samples
+    const random = seededRandom(seed)
+    return Array.from({ length: Math.floor(duration * rate) + 1 }, (_, index) => {
+        const seconds = index / rate
+        const vector = acceleration(seconds, index).map((value) => value + (random() * 2 - 1) * noise)
+        return sample(seconds * 1000, vector[0], vector[1], vector[2])
+    })
 }
 
-const concat = (...parts: MotionSample[][]) => parts.flat()
+function shakeTrace(rate: number, shakes: Shake[]): MotionSample[] {
+    const end = Math.max(...shakes.map((shake) => shake.start + shake.duration)) + 2
+    return trace(rate, end, (seconds) => {
+        const vector: Vector = [...gravity]
+        for (const shake of shakes) {
+            if (seconds >= shake.start && seconds <= shake.start + shake.duration) {
+                vector[shake.axis] +=
+                    shake.amplitude * Math.sin(2 * Math.PI * shake.frequency * (seconds - shake.start))
+            }
+        }
+        return vector
+    })
+}
 
-/** Pushes every sample and returns the timestamps of the samples that reported a shake. */
-function run(samples: readonly MotionSample[], options?: ShakeDetectorOptions): number[] {
+type Fire = { index: number; t: number; mode: ShakeMode | null }
+
+function withLinear(samples: MotionSample[]): MotionSample[] {
+    return samples.map((value) => ({
+        ...value,
+        linear: { x: value.x, y: value.y, z: (value.z ?? 9.81) - 9.81 },
+    }))
+}
+
+function fires(samples: MotionSample[], options?: ShakeDetectorOptions): Fire[] {
     const detector = createShakeDetector(options)
-    const fired: number[] = []
-    for (const sample of samples) if (detector.push(sample)) fired.push(sample.t)
-    return fired
+    return samples.flatMap((value, index) =>
+        detector.push(value) ? [{ index, t: value.t, mode: detector.lastMode() }] : []
+    )
 }
 
-const stillThenShake = (startMs: number, shakeOpts: Partial<Parameters<typeof vigorousShake>[0]> = {}) =>
-    concat(
-        stillPhone({ durationMs: startMs }),
-        vigorousShake({ startMs, ...shakeOpts }),
-        stillPhone({ startMs: startMs + 600, durationMs: 2500 })
-    )
+function vigorousFires(samples: MotionSample[], options?: ShakeDetectorOptions): Fire[] {
+    return fires(samples, { ...onlyVigorousOptions, ...options })
+}
 
-// ---------------------------------------------------------------------------
+function expectInside(
+    events: { index: number; t: number }[],
+    samples: MotionSample[],
+    intervals: { start: number; duration: number }[]
+): void {
+    expect(events).toHaveLength(intervals.length)
+    for (const [index, interval] of intervals.entries()) {
+        const event = events[index]
+        expect(event.index).toBeGreaterThan(0)
+        expect(event.index).toBeLessThan(samples.length - 1)
+        expect(event.t).toBe(samples[event.index].t)
+        expect(event.t).toBeGreaterThanOrEqual(interval.start * 1000)
+        expect(event.t).toBeLessThanOrEqual((interval.start + interval.duration) * 1000)
+    }
+}
 
-describe('SHAKE_DETECTOR_DEFAULTS', () => {
-    it('are the documented values', () => {
-        expect(SHAKE_DETECTOR_DEFAULTS).toEqual({ threshold: 12, minPeaks: 3, windowMs: 1000, cooldownMs: 2000 })
-    })
-})
-
-describe('createShakeDetector: motion that must not count as a shake', () => {
-    it.each<[string, Vec]>([
-        ['flat, face up', [0, 0, GRAVITY]],
-        ['flat, face down', [0, 0, -GRAVITY]],
-        ['upright in a hand', [0, GRAVITY, 0]],
-        ['upside down', [0, -GRAVITY, 0]],
-        ['on its side', [GRAVITY, 0, 0]],
-        ['on its other side', [-GRAVITY, 0, 0]],
-    ])('a phone lying still (%s, noise +/-0.3) never fires in 30 s', (_label, gravity) => {
-        expect(run(stillPhone({ durationMs: 30_000, gravity }))).toEqual([])
-    })
-
-    it.each([20, 50, 100, 200])('a still phone never fires at %i Hz sampling', (hz) => {
-        expect(run(stillPhone({ durationMs: 15_000, hz }))).toEqual([])
-    })
-
-    it.each([10, 20, 50, 60, 100])('walking (+/-3 m/s2 at ~2 Hz on every axis) never fires at %i Hz sampling', (hz) => {
-        expect(run(walking({ durationMs: 20_000, hz }))).toEqual([])
-    })
-
-    it('walking with instantaneous +/-3 swings (the worst case for a sampled swing) never fires', () => {
-        expect(run(walking({ durationMs: 20_000, wave: 'square' }))).toEqual([])
-    })
-
-    it('walking on top of sensor noise never fires', () => {
-        const rng = seeded(11)
-        const trace = walking({ durationMs: 20_000 }).map((s) => ({
-            ...s,
-            x: (s.x as number) + between(rng, -0.3, 0.3),
-            y: (s.y as number) + between(rng, -0.3, 0.3),
-            z: (s.z as number) + between(rng, -0.3, 0.3),
-        }))
-        expect(run(trace)).toEqual([])
-    })
-
-    it.each([15, 30, 60, 200])('a single bump (one %i m/s2 spike, then calm) never fires', (magnitude) => {
-        const trace = stillPhone({ durationMs: 4000 })
-        trace[120] = { ...trace[120], z: (trace[120].z as number) + magnitude }
-        expect(run(trace)).toEqual([])
-    })
-
-    it('a single bump that lasts a few samples never fires', () => {
-        const trace = stillPhone({ durationMs: 4000 })
-        for (const i of [120, 121, 122, 123]) trace[i] = { ...trace[i], z: (trace[i].z as number) + 30 }
-        expect(run(trace)).toEqual([])
-    })
-
-    it('a sudden step to a new resting orientation (one jump) never fires', () => {
-        const trace = stillPhone({ durationMs: 4000 }).map((s, i) =>
-            i < 120 ? s : { ...s, x: (s.x as number) + 25, z: (s.z as number) - 9 }
-        )
-        expect(run(trace)).toEqual([])
-    })
-
-    it('a lone bump every 2 s for 20 s never fires (a bump is at most two peaks in any window)', () => {
-        const trace = stillPhone({ durationMs: 20_000 })
-        for (let i = 120; i < trace.length; i += 120) trace[i] = { ...trace[i], z: (trace[i].z as number) + 30 }
-        expect(run(trace)).toEqual([])
-    })
-
-    it('slow big movements, one every 600 ms (only two fit in the window), never fire', () => {
-        expect(run(peaksAt([200, 800, 1400, 2000, 2600, 3200, 3800, 4400]))).toEqual([])
-    })
-})
-
-describe('createShakeDetector: a vigorous shake', () => {
-    it.each<[string, 'square' | 'sine', number, number, 0 | 1 | 2]>([
-        ['square wave, 60 Hz sampling, 15', 'square', 60, 15, 0],
-        ['square wave, 60 Hz sampling, 17', 'square', 60, 17, 1],
-        ['square wave, 60 Hz sampling, 20', 'square', 60, 20, 2],
-        ['square wave, 50 Hz sampling, 15', 'square', 50, 15, 0],
-        ['square wave, 50 Hz sampling, 20', 'square', 50, 20, 1],
-        ['sine, 60 Hz sampling, 15', 'sine', 60, 15, 0],
-        ['sine, 60 Hz sampling, 20', 'sine', 60, 20, 1],
-        ['sine, 60 Hz sampling, 20 on z', 'sine', 60, 20, 2],
-    ])('(%s) fires exactly once, soon after it starts', (_label, wave, hz, amplitude, axis) => {
-        const startMs = 1500
-        const fired = run(stillThenShake(startMs, { wave, hz, amplitude, axis }))
-
-        expect(fired).toHaveLength(1)
-        expect(fired[0]).toBeGreaterThanOrEqual(startMs)
-        expect(fired[0]).toBeLessThanOrEqual(startMs + 400)
-    })
-
-    it('fires exactly once when a shake starts at the very beginning of the stream', () => {
-        const fired = run(concat(vigorousShake({ startMs: 0 }), stillPhone({ startMs: 600, durationMs: 3000 })))
-        expect(fired).toHaveLength(1)
-    })
-
-    it('fires exactly once when the shake runs a second longer than the usual 0.6 s', () => {
-        const fired = run(
-            concat(
-                stillPhone({ durationMs: 1000 }),
-                vigorousShake({ startMs: 1000, durationMs: 1600 }),
-                stillPhone({ startMs: 2600, durationMs: 3000 })
-            )
-        )
-        expect(fired).toHaveLength(1)
-    })
-
-    it('fires once per shake for two shakes 3 s apart', () => {
-        const trace = concat(
-            stillPhone({ durationMs: 1000 }),
-            vigorousShake({ startMs: 1000 }),
-            stillPhone({ startMs: 1600, durationMs: 2400 }),
-            vigorousShake({ startMs: 4000 }),
-            stillPhone({ startMs: 4600, durationMs: 2000 })
-        )
-        const fired = run(trace)
-
-        expect(fired).toHaveLength(2)
-        expect(fired[0]).toBeGreaterThanOrEqual(1000)
-        expect(fired[0]).toBeLessThanOrEqual(1400)
-        expect(fired[1]).toBeGreaterThanOrEqual(4000)
-        expect(fired[1]).toBeLessThanOrEqual(4400)
-    })
-
-    it('fires once per shake for two shakes 2.5 s apart (the 2 s cooldown has elapsed)', () => {
-        const trace = concat(
-            stillPhone({ durationMs: 1000 }),
-            vigorousShake({ startMs: 1000 }),
-            stillPhone({ startMs: 1600, durationMs: 1900 }),
-            vigorousShake({ startMs: 3500 }),
-            stillPhone({ startMs: 4100, durationMs: 2000 })
-        )
-        expect(run(trace)).toHaveLength(2)
-    })
-
-    it('fires only once for two shakes 1 s apart: the second falls inside the cooldown', () => {
-        const trace = concat(
-            stillPhone({ durationMs: 1000 }),
-            vigorousShake({ startMs: 1000 }),
-            stillPhone({ startMs: 1600, durationMs: 400 }),
-            vigorousShake({ startMs: 2000 }),
-            stillPhone({ startMs: 2600, durationMs: 3000 })
-        )
-        expect(run(trace)).toHaveLength(1)
-    })
-
-    it('a shake right after a long calm spell still fires', () => {
-        expect(run(stillThenShake(60_000))).toHaveLength(1)
-    })
-})
-
-describe('createShakeDetector: peak counting', () => {
-    it('reports on the very sample that brings the peak count in the window to minPeaks', () => {
-        expect(run(peaksAt([200, 650, 1100]))).toEqual([1100])
-    })
-
-    it('does not report while fewer than minPeaks peaks are in the window', () => {
-        expect(run(peaksAt([200, 650]))).toEqual([])
-    })
-
-    it('counts an irregular burst whose peaks all fit inside the window', () => {
-        expect(run(peaksAt([200, 900, 1100]))).toEqual([1100])
-    })
-
-    it('drops peaks that have left the trailing window before counting', () => {
-        // 200 has expired by 1500; the first time three peaks coexist is 1300 / 1500 / 1700
-        expect(run(peaksAt([200, 1300, 1500, 1700]))).toEqual([1700])
-    })
-
-    it('never fires when no three peaks ever fit in one window, however long it goes on', () => {
-        expect(run(peaksAt(Array.from({ length: 30 }, (_, i) => 200 + i * 600)))).toEqual([])
-    })
-
-    it('a jump of exactly the threshold is a peak (jerk >= threshold)', () => {
-        expect(run(peaksAt([100, 200, 300], { amplitude: SHAKE_DETECTOR_DEFAULTS.threshold }))).toEqual([300])
-    })
-
-    it('a jump just under the threshold is not a peak', () => {
-        expect(run(peaksAt([100, 200, 300], { amplitude: SHAKE_DETECTOR_DEFAULTS.threshold - 0.01 }))).toEqual([])
-    })
-
-    it('measures the jump as the Euclidean distance over all three axes', () => {
-        // each step is (7, 7, 7) = 12.12 m/s2 in 3D, but only 7 along any single axis
-        const toggle = (high: boolean): Vec => (high ? [7, 7, GRAVITY + 7] : [0, 0, GRAVITY])
-        const samples = [0, 100, 200, 300, 400].map((t, i) => sampleAt(t, toggle(i % 2 === 1)))
-        // prime, then four jumps: the third jump (t = 300) completes the burst
-        expect(run(samples)).toEqual([300])
-    })
-
-    it('measures jerk against the previous sample, not against gravity or a baseline', () => {
-        // a phone held at a steep tilt (large constant offset) has zero jerk
-        const tilted = Array.from({ length: 300 }, (_, i) => sampleAt(i * 20, [8, 5, 3]))
-        expect(run(tilted)).toEqual([])
-    })
-})
-
-describe('createShakeDetector: cooldown', () => {
-    it('stays quiet for cooldownMs after a report, then reports again', () => {
-        const fired = run(peaksAt([1000, 1300, 1700, 2500, 3500]), { minPeaks: 1 })
-        expect(fired).toEqual([1000, 3500])
-    })
-
-    it('a custom cooldownMs is honoured', () => {
-        const fired = run(peaksAt([1000, 1300, 1700]), { minPeaks: 1, cooldownMs: 500 })
-        expect(fired).toEqual([1000, 1700])
-    })
-
-    it('clears the peak history when it reports: peaks that led to a report do not count towards the next one', () => {
-        // cooldown (300 ms) ends well inside the window (1000 ms), so stale peaks would still be in it
-        const fired = run(peaksAt([1000, 1100, 1200, 1600, 1700]), { cooldownMs: 300 })
-        expect(fired).toEqual([1200])
-    })
-
-    it('peaks during the cooldown are never reported, and the next burst after it is found', () => {
-        const fired = run(peaksAt([1000, 1200, 1400, 1600, 3300, 3400, 3500]), { minPeaks: 2, cooldownMs: 2000 })
-        expect(fired).toEqual([1200, 3400])
-    })
-})
-
-describe('createShakeDetector: options', () => {
-    it('minPeaks can be lowered: a spike up and back down (two peaks) fires with minPeaks 2 but not by default', () => {
-        const spike = [
-            sampleAt(0, [0, 0, GRAVITY]),
-            sampleAt(100, [0, 0, GRAVITY]),
-            sampleAt(200, [0, 0, GRAVITY + 30]),
-            sampleAt(300, [0, 0, GRAVITY]),
-            sampleAt(400, [0, 0, GRAVITY]),
-        ]
-        expect(run(spike)).toEqual([])
-        expect(run(spike, { minPeaks: 2 })).toEqual([300])
-    })
-
-    it('minPeaks 1 reports on the first jump', () => {
-        expect(run(peaksAt([200, 400]), { minPeaks: 1 })[0]).toBe(200)
-    })
-
-    it('threshold is configurable: motion below it does not count, motion above it does', () => {
-        const trace = peaksAt([100, 200, 300], { amplitude: 8 })
-        expect(run(trace)).toEqual([])
-        expect(run(trace, { threshold: 6 })).toEqual([300])
-    })
-
-    it('threshold can be set above a vigorous shake so nothing fires', () => {
-        expect(run(stillThenShake(1000), { threshold: 100 })).toEqual([])
-    })
-
-    it('windowMs can be shortened so slower bursts no longer count', () => {
-        const trace = peaksAt([200, 650, 1100])
-        expect(run(trace)).toEqual([1100])
-        expect(run(trace, { windowMs: 300 })).toEqual([])
-    })
-
-    it('windowMs can be lengthened so slower bursts count', () => {
-        const trace = peaksAt([200, 900, 1600])
-        expect(run(trace)).toEqual([])
-        expect(run(trace, { windowMs: 2000 })).toEqual([1600])
-    })
-})
-
-describe('createShakeDetector: samples it must ignore', () => {
-    const goodSample = sampleAt(0, [0, 0, GRAVITY])
-
-    // the other axes are huge, so a sample that was NOT ignored would register a peak
-    const badSamples: Array<[string, MotionSample]> = [
-        ['null x', { x: null, y: 80, z: 80, t: 10 }],
-        ['null y', { x: 80, y: null, z: 80, t: 10 }],
-        ['null z', { x: 80, y: 80, z: null, t: 10 }],
-        ['all axes null', { x: null, y: null, z: null, t: 10 }],
-        ['NaN x', { x: NaN, y: 80, z: 80, t: 10 }],
-        ['NaN y', { x: 80, y: NaN, z: 80, t: 10 }],
-        ['NaN z', { x: 80, y: 80, z: NaN, t: 10 }],
-        ['Infinity x', { x: Infinity, y: 80, z: 80, t: 10 }],
-        ['-Infinity y', { x: 80, y: -Infinity, z: 80, t: 10 }],
-        ['Infinity z', { x: 80, y: 80, z: Infinity, t: 10 }],
+describe('shake detector physical motion acceptance', () => {
+    const orientations: { name: string; vector: Vector }[] = [
+        { name: '+x', vector: [9.81, 0, 0] },
+        { name: '-x', vector: [-9.81, 0, 0] },
+        { name: '+y', vector: [0, 9.81, 0] },
+        { name: '-y', vector: [0, -9.81, 0] },
+        { name: '+z', vector: [0, 0, 9.81] },
+        { name: '-z', vector: [0, 0, -9.81] },
     ]
 
-    const pushOnce = (detector: ReturnType<typeof createShakeDetector>, sample: MotionSample) => {
-        let result: boolean | undefined
-        expect(() => {
-            result = detector.push(sample)
-        }).not.toThrow()
-        return result
-    }
-
-    it.each(badSamples)('%s: returns false without throwing and leaves the detector exactly as it was', (_l, bad) => {
-        const detector = createShakeDetector({ minPeaks: 1 })
-        detector.push(goodSample)
-
-        expect(pushOnce(detector, bad)).toBe(false)
-
-        // still primed on goodSample, so this 20 m/s2 jump counts
-        expect(detector.push(sampleAt(100, [20, 0, GRAVITY]))).toBe(true)
-    })
-
-    it.each(badSamples)(
-        '%s as the very first sample: ignored, so the next valid sample still only primes',
-        (_l, bad) => {
-            const detector = createShakeDetector({ minPeaks: 1 })
-
-            expect(pushOnce(detector, bad)).toBe(false)
-            expect(detector.push(goodSample)).toBe(false)
-            expect(detector.push(sampleAt(100, [20, 0, GRAVITY]))).toBe(true)
+    it.each(rates.flatMap((rate) => orientations.map((orientation) => ({ rate, ...orientation }))))(
+        'does not fire while still in $name orientation at $rate Hz with noise',
+        ({ rate, vector }) => {
+            expect(fires(trace(rate, 10, () => vector, 0.3))).toEqual([])
         }
     )
 
-    it('a non-finite timestamp is ignored too, without throwing or counting', () => {
-        const detector = createShakeDetector({ minPeaks: 1 })
-        detector.push(goodSample)
-
-        expect(pushOnce(detector, { x: 40, y: 0, z: GRAVITY, t: NaN })).toBe(false)
-        expect(pushOnce(detector, { x: 40, y: 0, z: GRAVITY, t: Infinity })).toBe(false)
-
-        expect(detector.push(sampleAt(100, [20, 0, GRAVITY]))).toBe(true)
-    })
-
-    it('does not reset the peak history: invalid samples in the middle of a burst are transparent', () => {
-        const clean = stillThenShake(1000)
-        const noisy = clean.flatMap((s, i) => {
-            const garbage: MotionSample[] = [
-                { x: null, y: 99, z: 99, t: s.t + 1 },
-                { x: NaN, y: NaN, z: NaN, t: s.t + 2 },
-                { x: Infinity, y: 0, z: 0, t: s.t + 3 },
-            ]
-            return i % 2 === 0 ? [s, ...garbage] : [s]
+    it.each(rates)('does not fire during a smooth 90 degree rotation at %i Hz', (rate) => {
+        const samples = trace(rate, 4.5, (seconds) => {
+            const angle = (Math.max(0, Math.min(1.5, seconds - 1)) / 1.5) * (Math.PI / 2)
+            return [9.81 * Math.sin(angle), 0, 9.81 * Math.cos(angle)]
         })
-
-        expect(run(noisy)).toEqual(run(clean))
-        expect(run(clean)).toHaveLength(1)
+        expect(fires(samples)).toEqual([])
     })
 
-    it('does not reset the previous sample: the next jump is measured against the last VALID sample', () => {
-        const detector = createShakeDetector({ minPeaks: 1 })
-        expect(detector.push(sampleAt(0, [0, 0, GRAVITY]))).toBe(false)
-        expect(detector.push({ x: null, y: null, z: null, t: 50 })).toBe(false)
-        expect(detector.push(sampleAt(100, [20, 0, GRAVITY]))).toBe(true)
+    it.each(rates)('does not fire during 10 seconds of noisy walking at %i Hz', (rate) => {
+        const samples = trace(rate, 10, (seconds) => [0, 0, 9.81 + 3 * Math.sin(4 * Math.PI * seconds)], 0.3)
+        expect(fires(samples)).toEqual([])
     })
 
-    it('an invalid sample does not prime the detector: the first VALID sample still only primes', () => {
-        const detector = createShakeDetector({ minPeaks: 1 })
-        expect(detector.push({ x: null, y: 0, z: 0, t: 0 })).toBe(false)
-        expect(detector.push({ x: NaN, y: 0, z: 0, t: 10 })).toBe(false)
-        // would be a huge jump if an invalid sample had been read as zeros
-        expect(detector.push(sampleAt(20, [50, 50, 50]))).toBe(false)
-        expect(detector.push(sampleAt(30, [0, 0, 0]))).toBe(true)
-    })
+    it.each(rates.flatMap((rate) => [1, 2].map((width) => ({ rate, width }))))(
+        'does not fire for a $width sample table-set-down spike and small rebound at $rate Hz',
+        ({ rate, width }) => {
+            const samples = trace(rate, 4, (_, index) => {
+                const offset = index - rate
+                const acceleration = offset >= 0 && offset < width ? 12 : offset === width ? -3 : 0
+                return [acceleration, 0, 9.81]
+            })
+            expect(fires(samples)).toEqual([])
+        }
+    )
 
-    it('an invalid sample inside the cooldown does not extend or end it', () => {
-        const detector = createShakeDetector({ minPeaks: 1, cooldownMs: 2000 })
-        detector.push(sampleAt(0, [0, 0, GRAVITY]))
-        expect(detector.push(sampleAt(100, [20, 0, GRAVITY]))).toBe(true)
-        expect(detector.push({ x: null, y: null, z: null, t: 1500 })).toBe(false)
-        expect(detector.push(sampleAt(1600, [0, 0, GRAVITY]))).toBe(false)
-        expect(detector.push(sampleAt(2300, [20, 0, GRAVITY]))).toBe(true)
-    })
-})
+    const vigorousCases = rates.flatMap((rate) =>
+        axes.flatMap(({ name, axis }) =>
+            [15, 20, 25].flatMap((amplitude) =>
+                [3, 4.5, 6].map((frequency) => ({ rate, name, axis, amplitude, frequency }))
+            )
+        )
+    )
 
-describe('createShakeDetector: reset()', () => {
-    it('clears the cooldown: the shake that is still going on is reported again right after reset()', () => {
-        const trace = stillThenShake(1000)
+    it.each(vigorousCases)(
+        'fires exactly once for amplitude $amplitude at $frequency Hz on $name sampled at $rate Hz',
+        ({ rate, axis, amplitude, frequency }) => {
+            const shake = { start: 1, duration: 0.8, axis, amplitude, frequency }
+            const samples = shakeTrace(rate, [shake])
+            const events = fires(samples)
+            expectInside(events, samples, [shake])
+            expect(events.map((event) => event.mode)).toEqual(['vigorous'])
+        }
+    )
 
-        const withoutReset = createShakeDetector()
-        expect(trace.filter((s) => withoutReset.push(s))).toHaveLength(1)
+    it.each(rates.flatMap((rate) => axes.map((axis) => ({ rate, ...axis }))))(
+        'fires exactly once for a moderate shake on $name at $rate Hz',
+        ({ rate, axis }) => {
+            const shake = { start: 1, duration: 1, axis, amplitude: 12, frequency: 3 }
+            const samples = shakeTrace(rate, [shake])
+            const events = fires(samples)
+            expectInside(events, samples, [shake])
+            expect(events.map((event) => event.mode)).toEqual(['vigorous'])
+        }
+    )
 
+    it.each(rates.flatMap((rate) => [0.5, 3].map((separation) => ({ rate, separation }))))(
+        'counts bouts with $separation seconds between onsets at $rate Hz',
+        ({ rate, separation }) => {
+            const first: Shake = { start: 1, duration: 0.4, axis: 0, amplitude: 25, frequency: 6 }
+            const second = { ...first, start: first.start + separation }
+            const samples = shakeTrace(rate, [first, second])
+            expectInside(fires(samples), samples, separation === 3 ? [first, second] : [first])
+        }
+    )
+
+    it.each(rates)('reset during cooldown allows the next smooth shake at %i Hz', (rate) => {
+        const first: Shake = { start: 1, duration: 0.8, axis: 0, amplitude: 20, frequency: 4.5 }
+        const second = { ...first, start: 2 }
+        const samples = shakeTrace(rate, [first, second])
         const detector = createShakeDetector()
-        let resetDone = false
-        const fired: number[] = []
-        for (const s of trace) {
-            if (!detector.push(s)) continue
-            fired.push(s.t)
-            if (!resetDone) {
+        const events: { index: number; t: number }[] = []
+        let reset = false
+        for (const [index, value] of samples.entries()) {
+            if (!reset && value.t > (first.start + first.duration) * 1000) {
+                expectInside(events, samples, [first])
+                expect(value.t).toBeLessThan(events[0].t + 1500)
                 detector.reset()
-                resetDone = true
+                reset = true
             }
+            if (detector.push(value)) events.push({ index, t: value.t })
         }
-        expect(fired).toHaveLength(2)
-        expect(fired[0]).toBeLessThan(1600)
-        expect(fired[1]).toBeLessThan(1600)
+        expect(reset).toBe(true)
+        expectInside(events, samples, [first, second])
     })
 
-    it('clears the peak history', () => {
-        const sequence = [
-            sampleAt(0, [0, 0, GRAVITY]), // prime
-            sampleAt(100, [15, 0, GRAVITY]), // peak 1
-            sampleAt(200, [0, 0, GRAVITY]), // peak 2
-        ]
+    it.each(rates)('never fires for 200 seeded still-phone traces with noise below 2 at %i Hz', (rate) => {
+        for (let seed = 1; seed <= 200; seed++) {
+            const samples = trace(rate, 10, () => gravity, 1.99, seed)
+            expect({ seed, rate, events: fires(samples) }).toEqual({ seed, rate, events: [] })
+        }
+    })
+})
 
-        const control = createShakeDetector()
-        sequence.forEach((s) => control.push(s))
-        control.push(sampleAt(300, [0, 0, GRAVITY]))
-        expect(control.push(sampleAt(400, [15, 0, GRAVITY]))).toBe(true) // peak 3, history intact
+describe('all five motion modes at every supported sample rate', () => {
+    const sources = ['OS linear', 'gravity fallback'] as const
 
-        const detector = createShakeDetector()
-        sequence.forEach((s) => detector.push(s))
-        detector.reset()
-        detector.push(sampleAt(300, [0, 0, GRAVITY]))
-        expect(detector.push(sampleAt(400, [15, 0, GRAVITY]))).toBe(false) // only peak 1 since reset
+    it.each(
+        rates.flatMap((rate) =>
+            sources.flatMap((source) =>
+                [5, 6, 7].flatMap((amplitude) =>
+                    [2, 2.5, 3].map((frequency) => ({ rate, source, amplitude, frequency }))
+                )
+            )
+        )
+    )('detects gentle $amplitude at $frequency Hz using $source sampled at $rate Hz', (value) => {
+        const { rate, source, amplitude, frequency } = value
+        const shake: Shake = { start: 1, duration: 2, axis: 0, amplitude, frequency }
+        const fallback = shakeTrace(rate, [shake])
+        const samples = source === 'OS linear' ? withLinear(fallback) : fallback
+        const events = fires(samples)
+        expectInside(events, samples, [shake])
+        expect(events.map((event) => event.mode)).toEqual(['gentle'])
     })
 
-    it('clears the previous sample: the first sample after reset only primes', () => {
+    it.each(
+        rates.flatMap((rate) =>
+            (['alpha', 'beta', 'gamma'] as const).flatMap((axis) =>
+                [false, true].map((noise) => ({ rate, axis, noise }))
+            )
+        )
+    )('detects twist about $axis with linear noise $noise at $rate Hz', ({ rate, axis, noise }) => {
+        const samples = trace(rate, 4, () => gravity, noise ? 0.3 : 0).map((value) => ({
+            ...value,
+            rotation: {
+                alpha: 0,
+                beta: 0,
+                gamma: 0,
+                [axis]: value.t >= 1000 && value.t <= 2000 ? 300 * Math.sin((6 * Math.PI * value.t) / 1000) : 0,
+            },
+        }))
+        const events = fires(samples)
+        expectInside(events, samples, [{ start: 1, duration: 1 }])
+        expect(events.map((event) => event.mode)).toEqual(['twist'])
+    })
+
+    it.each(
+        rates.flatMap((rate) =>
+            [30, 35, 40].flatMap((amplitude) => [1, 2, 3].map((width) => ({ rate, amplitude, width })))
+        )
+    )('detects a $width sample OS bump of $amplitude at $rate Hz only on release', ({ rate, amplitude, width }) => {
+        const samples = withLinear(
+            trace(rate, 4, (_, index) => [index >= rate && index < rate + width ? amplitude : 0, 0, 9.81])
+        )
+        expect(fires(samples)).toEqual([{ index: rate + width, t: samples[rate + width].t, mode: 'bump' }])
+    })
+
+    it.each(rates)('detects a one sample 30-unit bump from gravity fallback at %i Hz', (rate) => {
+        const samples = trace(rate, 4, (_, index) => [index === rate ? 30 : 0, 0, 9.81])
+        expect(fires(samples)).toEqual([{ index: rate + 1, t: samples[rate + 1].t, mode: 'bump' }])
+    })
+
+    it.each(
+        rates.flatMap((rate) => sources.flatMap((source) => [-1, 1].map((direction) => ({ rate, source, direction }))))
+    )('reserves smooth $direction circular motion for circular using $source at $rate Hz', (value) => {
+        const { rate, source, direction } = value
+        const fallback = trace(rate, 4, (seconds) => {
+            if (seconds < 1 || seconds > 2.2) return gravity
+            const angle = direction * 3 * Math.PI * (seconds - 1)
+            return [7 * Math.cos(angle), 7 * Math.sin(angle), 9.81]
+        })
+        const samples = source === 'OS linear' ? withLinear(fallback) : fallback
+        const events = fires(samples)
+        expectInside(events, samples, [{ start: 1, duration: 1.2 }])
+        expect(events.map((event) => event.mode)).toEqual(['circular'])
+        expect(events[0].t).toBeGreaterThanOrEqual(1950)
+    })
+
+    it.each(rates)('does not fire for walking while carrying the phone with gentle sway at %i Hz', (rate) => {
+        const samples = trace(
+            rate,
+            10,
+            (seconds) => [1.5 * Math.sin(Math.PI * seconds), 0, 9.81 + 3 * Math.sin(4 * Math.PI * seconds)],
+            0.3
+        )
+        expect(fires(samples)).toEqual([])
+        expect(fires(withLinear(samples))).toEqual([])
+    })
+})
+
+describe('shake detector state and boundaries', () => {
+    const createShakeDetector = createVigorousDetector
+    it('publishes the accepted defaults', () => {
+        expect(SHAKE_DETECTOR_DEFAULTS).toMatchObject({
+            threshold: 9,
+            minPeaks: 3,
+            windowMs: 1000,
+            cooldownMs: 1500,
+            minPeakGapMs: 80,
+            gravityTauMs: 250,
+            gentle: { threshold: 4.25, minPeaks: 5, windowMs: 2000, minPeakGapMs: 100 },
+            twist: { threshold: 200, minPeaks: 3, windowMs: 1200, minPeakGapMs: 80 },
+            bump: { threshold: 25, releaseThreshold: 8, maxDurationMs: 150 },
+            circular: { threshold: 5, minDegrees: 540, windowMs: 1500, maxStepDegrees: 90 },
+        })
+    })
+
+    it('initializes gravity from the first accepted sample', () => {
         const detector = createShakeDetector({ minPeaks: 1 })
-        detector.push(sampleAt(0, [0, 0, GRAVITY]))
-        detector.reset()
-        expect(detector.push(sampleAt(100, [40, 0, GRAVITY]))).toBe(false)
-        expect(detector.push(sampleAt(200, [0, 0, GRAVITY]))).toBe(true)
+        expect(detector.push(sample(0, 100, -80, 50))).toBe(false)
+        expect(detector.push(sample(100, 100, -80, 50))).toBe(false)
+        expect(detector.push(sample(200, 130, -80, 50))).toBe(true)
     })
 
-    it('is harmless on a fresh detector and when called repeatedly', () => {
+    it('counts alternating peaks rather than repeated high samples in one directional lobe', () => {
+        const detector = createShakeDetector(stableGravity)
+        const samples = [
+            sample(0),
+            sample(100, 20),
+            sample(180, 25),
+            sample(260, 30),
+            sample(340, 20),
+            sample(420, -20),
+            sample(500, 20),
+        ]
+        expect(samples.map((value) => detector.push(value))).toEqual([false, false, false, false, false, false, true])
+    })
+
+    it('requires a negative vector dot product rather than an axis change', () => {
+        const detector = createShakeDetector(stableGravity)
+        const samples = [sample(0), sample(100, 20), sample(180, 15, 20), sample(260, -20), sample(340, 20)]
+        expect(samples.map((value) => detector.push(value))).toEqual([false, false, false, false, true])
+    })
+
+    it('does not count an orthogonal finite vector when overflowing dot-product terms cancel', () => {
         const detector = createShakeDetector()
+        const vectors: Vector[] = [
+            [0, 0, 0],
+            [1e308, 1e308, 0],
+            [1e308, -1e308, 0],
+            [-1e308, -1e308, 0],
+            [1e308, 1e308, 0],
+        ]
+        const times = [0, 100, 180, 260, 340]
+        const samples = vectors.map(([x, y, z], index) => ({
+            ...sample(times[index]),
+            linear: { x, y, z },
+        }))
+        expect(samples.map((value) => detector.push(value))).toEqual([false, false, false, false, true])
+        expect(detector.lastMode()).toBe('vigorous')
+    })
+
+    it('accepts a reversal at the exact minimum peak gap and ignores earlier reversals', () => {
+        const detector = createShakeDetector(stableGravity)
+        const samples = [
+            sample(0),
+            sample(100, 20),
+            sample(179, -20),
+            sample(180, -20),
+            sample(259, 20),
+            sample(260, 20),
+        ]
+        expect(samples.map((value) => detector.push(value))).toEqual([false, false, false, false, false, true])
+    })
+
+    it.each([
+        { lastT: 1100, expected: true },
+        { lastT: 1100.001, expected: false },
+    ])('expires peaks strictly older than the window at $lastT ms', ({ lastT, expected }) => {
+        const detector = createShakeDetector(stableGravity)
+        expect(detector.push(sample(0))).toBe(false)
+        expect(detector.push(sample(100, 20))).toBe(false)
+        expect(detector.push(sample(180, -20))).toBe(false)
+        expect(detector.push(sample(lastT, 20))).toBe(expected)
+    })
+
+    it('clears expired history before starting a new peak sequence', () => {
+        const detector = createShakeDetector(stableGravity)
+        const samples = [
+            sample(0),
+            sample(100, 20),
+            sample(180, -20),
+            sample(1300, -20),
+            sample(1380, 20),
+            sample(1460, -20),
+        ]
+        expect(samples.map((value) => detector.push(value))).toEqual([false, false, false, false, false, true])
+    })
+
+    it('suppresses peaks through cooldown and resumes at the exact boundary', () => {
+        const detector = createShakeDetector({ ...stableGravity, minPeaks: 1 })
+        expect(detector.push(sample(0))).toBe(false)
+        expect(detector.push(sample(100, 20))).toBe(true)
+        expect(detector.push(sample(1599.999, -20))).toBe(false)
+        expect(detector.push(sample(1600, -20))).toBe(true)
+    })
+
+    it('clears triggering peaks and does not accumulate peaks during cooldown', () => {
+        const detector = createShakeDetector(stableGravity)
+        const samples = [
+            sample(0),
+            sample(100, 20),
+            sample(180, -20),
+            sample(260, 20),
+            sample(340, -20),
+            sample(420, 20),
+            sample(500, -20),
+            sample(1759, 20),
+            sample(1760, -20),
+            sample(1840, 20),
+            sample(1920, -20),
+        ]
+        expect(samples.map((value) => detector.push(value))).toEqual([
+            false,
+            false,
+            false,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            true,
+        ])
+    })
+
+    it('continues adapting gravity during cooldown', () => {
+        const detector = createShakeDetector()
+        for (const value of [sample(0), sample(100, 30), sample(180, -30)]) expect(detector.push(value)).toBe(false)
+        expect(detector.push(sample(260, 30))).toBe(true)
+        for (let t = 280; t < 1760; t += 20) expect(detector.push(sample(t, 30))).toBe(false)
+        expect(detector.push(sample(1760, 30))).toBe(false)
+        expect(detector.push(sample(1840, -20))).toBe(false)
+        expect(detector.push(sample(1920, 60))).toBe(false)
+        expect(detector.push(sample(2000, -20))).toBe(true)
+    })
+
+    it('clamps sub-millisecond integration intervals to 1 ms', () => {
+        const detector = createShakeDetector({ gravityTauMs: 1, threshold: 2, minPeakGapMs: 0.2 })
+        const samples = [sample(0), sample(0.25, 20), sample(0.5, 5), sample(0.75, 20)]
+        expect(samples.map((value) => detector.push(value))).toEqual([false, false, false, true])
+    })
+
+    it('clamps long integration intervals to 200 ms', () => {
+        const detector = createShakeDetector({ threshold: 2, minPeakGapMs: 1 })
+        const samples = [
+            sample(0),
+            sample(1000, 20),
+            sample(1001, 8),
+            sample(1002, 20),
+            sample(1003, 0),
+            sample(1004, 20),
+        ]
+        expect(samples.map((value) => detector.push(value))).toEqual([false, false, false, false, false, true])
+    })
+
+    it.each(['partial peaks', 'cooldown'])('reset removes %s, gravity, and timestamp history', (phase) => {
+        const detector = createShakeDetector()
+        detector.push(sample(10000, 50, -20, 30))
+        detector.push(sample(10100, 80, -20, 30))
+        detector.push(sample(10180, 20, -20, 30))
+        if (phase === 'cooldown') expect(detector.push(sample(10260, 80, -20, 30))).toBe(true)
+        detector.reset()
+        const fresh = createShakeDetector()
+        const next = [sample(0), sample(100, 30), sample(180, -30), sample(260, 30)]
+        const expected = next.map((value) => fresh.push(value))
+        expect(expected).toEqual([false, false, false, true])
+        expect(next.map((value) => detector.push(value))).toEqual(expected)
+    })
+})
+
+describe('shake detector rejects invalid samples without changing any state', () => {
+    const createShakeDetector = createVigorousDetector
+    const invalidValues = [
+        { label: 'null', value: null },
+        { label: 'NaN', value: Number.NaN },
+        { label: '+Infinity', value: Number.POSITIVE_INFINITY },
+        { label: '-Infinity', value: Number.NEGATIVE_INFINITY },
+    ]
+    const invalidSamples = (['x', 'y', 'z', 't'] as const).flatMap((field) =>
+        invalidValues.map(({ label, value }) => ({
+            name: `${field} ${label}`,
+            make: (_lastT: number): MotionSample =>
+                ({ ...sample(1e6, 1e15, -1e15, 1e15), [field]: value }) as MotionSample,
+        }))
+    )
+    const replayedSamples = [0, -1, -100].map((offset) => ({
+        name: `timestamp offset ${offset}`,
+        make: (lastT: number): MotionSample => sample(lastT + offset, 1e15, -1e15, 1e15),
+    }))
+
+    it.each(
+        ['partial peaks', 'cooldown'].flatMap((phase) =>
+            [...invalidSamples, ...replayedSamples].map((invalid) => ({ phase, ...invalid }))
+        )
+    )('ignores $name during $phase without throwing or altering subsequent output', ({ phase, make }) => {
+        const baseline = createShakeDetector(stableGravity)
+        const actual = createShakeDetector(stableGravity)
+        const all = [
+            sample(0),
+            sample(100, 20),
+            sample(180, -20),
+            sample(260, 20),
+            sample(500, -20),
+            sample(1760, -20),
+            sample(1840, 20),
+            sample(1920, -20),
+        ]
+        const split = phase === 'partial peaks' ? 2 : 4
+        for (const value of all.slice(0, split)) expect(actual.push(value)).toBe(baseline.push(value))
+        let invalidResult: boolean | undefined
         expect(() => {
-            detector.reset()
-            detector.reset()
+            invalidResult = actual.push(make(all[split - 1].t))
         }).not.toThrow()
-        const fired = stillThenShake(1000).filter((s) => detector.push(s))
-        expect(fired).toHaveLength(1)
+        expect(invalidResult).toBe(false)
+        const expected = all.slice(split).map((value) => baseline.push(value))
+        expect(expected.filter(Boolean)).toHaveLength(phase === 'partial peaks' ? 2 : 1)
+        expect(all.slice(split).map((value) => actual.push(value))).toEqual(expected)
+    })
+
+    it('does not initialize gravity or timestamp history from an invalid first sample', () => {
+        const detector = createShakeDetector({ minPeaks: 1 })
+        expect(detector.push({ ...sample(1e6, 1e15), y: null })).toBe(false)
+        expect(detector.push(sample(0, 20))).toBe(false)
+        expect(detector.push(sample(100, 20))).toBe(false)
+        expect(detector.push(sample(200, -20))).toBe(true)
     })
 })
 
-describe('createShakeDetector: instances', () => {
-    it('keep independent state', () => {
-        const a = createShakeDetector({ minPeaks: 1 })
-        const b = createShakeDetector({ minPeaks: 1 })
-        a.push(sampleAt(0, [0, 0, GRAVITY]))
-        // b has seen nothing: its first sample only primes, even though a is primed and cooled down
-        expect(b.push(sampleAt(100, [40, 0, GRAVITY]))).toBe(false)
-        expect(a.push(sampleAt(100, [40, 0, GRAVITY]))).toBe(true)
-        expect(b.push(sampleAt(200, [0, 0, GRAVITY]))).toBe(true)
+describe('all shake detector options are behaviorally overrideable', () => {
+    const fires = vigorousFires
+
+    it.each(rates)('raising vigorous threshold suppresses a moderate vigorous shake at %i Hz', (rate) => {
+        const shake: Shake = { start: 1, duration: 1, axis: 0, amplitude: 12, frequency: 3 }
+        const samples = shakeTrace(rate, [shake])
+        expectInside(fires(samples), samples, [shake])
+        expect(fires(samples, { threshold: 100 })).toEqual([])
     })
 
-    it('does not use wall-clock time: only the sample timestamps matter', () => {
-        const base = 9_000_000_000_000
-        const shifted = stillThenShake(1000).map((s) => ({ ...s, t: s.t + base }))
-        expect(run(shifted)).toHaveLength(1)
+    it('allows a different minimum peak count', () => {
+        const samples = [sample(0), sample(100, 20), sample(180, -20), sample(260, 20), sample(340, -20)]
+        expect(fires(samples, stableGravity).map((event) => event.index)).toEqual([3])
+        expect(fires(samples, { ...stableGravity, minPeaks: 4 }).map((event) => event.index)).toEqual([4])
+    })
+
+    it('allows a shorter peak window', () => {
+        const samples = [sample(0), sample(100, 20), sample(250, -20), sample(340, 20), sample(420, -20)]
+        expect(fires(samples, stableGravity).map((event) => event.index)).toEqual([3])
+        expect(fires(samples, { ...stableGravity, windowMs: 200 }).map((event) => event.index)).toEqual([4])
+    })
+
+    it('allows a shorter cooldown', () => {
+        const samples = [
+            sample(0),
+            sample(100, 20),
+            sample(180, -20),
+            sample(260, 20),
+            sample(500, -20),
+            sample(580, 20),
+            sample(660, -20),
+        ]
+        expect(fires(samples, stableGravity).map((event) => event.index)).toEqual([3])
+        expect(fires(samples, { ...stableGravity, cooldownMs: 200 }).map((event) => event.index)).toEqual([3, 6])
+    })
+
+    it('allows zero cooldown', () => {
+        const samples = [sample(0), sample(100, 20), sample(101, -20), sample(102, 20)]
+        const options = { ...stableGravity, minPeaks: 1, cooldownMs: 0 }
+        expect(fires(samples, options).map((event) => event.index)).toEqual([1, 2, 3])
+    })
+
+    it('allows a shorter minimum peak gap', () => {
+        const samples = [sample(0), sample(100, 20), sample(140, -20), sample(180, 20)]
+        expect(fires(samples, stableGravity)).toEqual([])
+        expect(fires(samples, { ...stableGravity, minPeakGapMs: 40 }).map((event) => event.index)).toEqual([3])
+    })
+
+    it('allows a different gravity time constant', () => {
+        const samples = [sample(0), sample(100, 20), sample(101, 10), sample(102, 20)]
+        const options = { threshold: 1, minPeakGapMs: 1 }
+        expect(fires(samples, options)).toEqual([])
+        expect(fires(samples, { ...options, gravityTauMs: 10 }).map((event) => event.index)).toEqual([3])
     })
 })
 
-describe('createShakeDetector: randomized checks (seeded)', () => {
-    it('low-amplitude noise never fires: jerk is always below the threshold (200 seeded runs)', () => {
-        for (let seed = 1; seed <= 200; seed++) {
-            const rng = seeded(seed)
-            const threshold = between(rng, 4, 20)
-            const options: ShakeDetectorOptions = {
-                threshold,
-                minPeaks: intBetween(rng, 1, 4),
-                windowMs: intBetween(rng, 200, 2000),
-                cooldownMs: intBetween(rng, 100, 3000),
-            }
+describe('multimode sensor and shared state contracts', () => {
+    const linear = (t: number, x: number, y = 0): MotionSample => ({
+        t,
+        x: null,
+        y: null,
+        z: null,
+        linear: { x, y, z: 0 },
+    })
+    const rotation = (t: number, alpha: number): MotionSample => ({
+        t,
+        x: null,
+        y: null,
+        z: null,
+        rotation: { alpha, beta: 0, gamma: 0 },
+    })
 
-            let v: Vec = [between(rng, -20, 20), between(rng, -20, 20), between(rng, -20, 20)]
-            let t = intBetween(rng, 0, 1_000_000)
-            const samples: MotionSample[] = [sampleAt(t, v)]
-            for (let i = 0; i < 300; i++) {
-                const direction = randomUnitVector(rng)
-                const magnitude = rng() < 0.1 ? 0 : between(rng, 0, 0.95 * threshold)
-                v = [v[0] + direction[0] * magnitude, v[1] + direction[1] * magnitude, v[2] + direction[2] * magnitude]
-                t += intBetween(rng, 5, 60)
-                samples.push(sampleAt(t, v))
-            }
+    it('retains lastMode through quiet and ignored samples and clears it on reset', () => {
+        const detector = createShakeDetector()
+        expect(detector.lastMode()).toBeNull()
+        for (const value of [linear(0, 0), linear(100, 30)]) expect(detector.push(value)).toBe(false)
+        expect(detector.push(linear(150, 0))).toBe(true)
+        expect(detector.lastMode()).toBe('bump')
+        for (const value of [linear(200, 0), sample(1e6, NaN), rotation(199, 300)]) {
+            expect(detector.push(value)).toBe(false)
+            expect(detector.lastMode()).toBe('bump')
+        }
+        detector.reset()
+        expect(detector.lastMode()).toBeNull()
+        expect(detector.push(rotation(0, 300))).toBe(false)
+        expect(detector.push(rotation(100, -300))).toBe(false)
+        expect(detector.push(rotation(200, 300))).toBe(true)
+        expect(detector.lastMode()).toBe('twist')
+    })
 
-            expect({ seed, options, fired: run(samples, options) }).toEqual({ seed, options, fired: [] })
+    it('uses valid OS linear acceleration in preference to conflicting gravity measurements', () => {
+        const samples = [0, 100, 200, 300, 400, 500, 600].map((t, index) => ({
+            ...sample(t, index % 2 ? 40 : -40),
+            linear: { x: 0, y: 0, z: 0 },
+        }))
+        expect(fires(samples)).toEqual([])
+        const active = samples.map((value, index) => ({
+            ...sample(value.t),
+            linear: { x: index === 0 ? 0 : index % 2 ? 20 : -20, y: 0, z: 0 },
+        }))
+        expect(fires(active).map((event) => event.mode)).toEqual(['vigorous'])
+    })
+
+    it.each([null, undefined, { x: null, y: 0, z: 0 }, { x: 0, y: NaN, z: 0 }, { x: 0, y: 0, z: Infinity }])(
+        'falls back safely when optional linear acceleration is %p',
+        (invalid) => {
+            const samples = shakeTrace(60, [{ start: 1, duration: 0.8, axis: 0, amplitude: 20, frequency: 4.5 }])
+            const actual = samples.map((value) => ({ ...value, linear: invalid }))
+            expect(fires(actual)).toEqual(fires(samples))
+        }
+    )
+
+    it.each([null, undefined, { alpha: null, beta: 0, gamma: 0 }, { alpha: 0, beta: NaN, gamma: Infinity }])(
+        'invalid optional rotation %p never blocks valid linear motion',
+        (invalid) => {
+            const samples = [linear(0, 0), linear(100, 30), linear(150, 0)]
+            expect(fires(samples.map((value) => ({ ...value, rotation: invalid })))).toEqual(fires(samples))
+        }
+    )
+
+    it('shares the timestamp guard across linear-only and rotation-only sensors', () => {
+        const detector = createShakeDetector()
+        expect(detector.push(rotation(100, 300))).toBe(false)
+        expect(detector.push(linear(100, 30))).toBe(false)
+        expect(detector.push(rotation(200, -300))).toBe(false)
+        expect(detector.push(linear(199, 30))).toBe(false)
+        expect(detector.push(rotation(300, 300))).toBe(true)
+        expect(detector.lastMode()).toBe('twist')
+    })
+
+    it('integrates gravity from the last gravity sample even across rotation-only samples', () => {
+        const detector = createVigorousDetector({ minPeaks: 1, threshold: 15 })
+        expect(detector.push(sample(0))).toBe(false)
+        expect(detector.push(rotation(999, 0))).toBe(false)
+        expect(detector.push(sample(1000, 20))).toBe(false)
+        expect(detector.push(sample(1100, -20))).toBe(true)
+    })
+
+    it.each([NaN, Infinity, -Infinity, 100, 99])('ignores invalid or replayed time %p with valid sensors', (t) => {
+        const detector = createShakeDetector()
+        expect(detector.push(rotation(0, 300))).toBe(false)
+        expect(detector.push(rotation(100, -300))).toBe(false)
+        expect(detector.push({ ...linear(t, 30), rotation: { alpha: 300, beta: 0, gamma: 0 } })).toBe(false)
+        expect(detector.push(rotation(200, 300))).toBe(true)
+        expect(detector.lastMode()).toBe('twist')
+    })
+
+    it('fires once and starts shared cooldown when linear and twist modes qualify on one sample', () => {
+        const samples = [0, 100, 200, 300, 400, 500].map((t, index) => ({
+            ...linear(t, index === 0 ? 0 : index % 2 ? 20 : -20),
+            rotation: { alpha: index === 0 ? 0 : index % 2 ? 300 : -300, beta: 0, gamma: 0 },
+        }))
+        const events = fires(samples)
+        expect(events).toHaveLength(1)
+        expect(events[0].t).toBe(300)
+        expect(['vigorous', 'twist']).toContain(events[0].mode)
+    })
+
+    it.each([
+        { mode: 'vigorous', magnitude: 20, count: 3 },
+        { mode: 'gentle', magnitude: 6, count: 5 },
+    ])('clears partial $mode history when twist fires', ({ mode, magnitude, count }) => {
+        const detector = createShakeDetector({ cooldownMs: 0 })
+        expect(detector.push(linear(0, 0))).toBe(false)
+        for (let index = 0; index < count - 1; index++) {
+            expect(detector.push(linear(100 + index * 120, index % 2 ? -magnitude : magnitude))).toBe(false)
+        }
+        expect(detector.push(rotation(600, 300))).toBe(false)
+        expect(detector.push(rotation(700, -300))).toBe(false)
+        expect(detector.push(rotation(800, 300))).toBe(true)
+        expect(detector.lastMode()).toBe('twist')
+        for (let index = 0; index < count; index++) {
+            expect(detector.push(linear(900 + index * 120, index % 2 ? magnitude : -magnitude))).toBe(
+                index === count - 1
+            )
+        }
+        expect(detector.lastMode()).toBe(mode)
+    })
+
+    it('clears a pending bump when a different mode fires', () => {
+        const detector = createShakeDetector({ cooldownMs: 0 })
+        expect(detector.push(rotation(0, 300))).toBe(false)
+        expect(detector.push(rotation(100, -300))).toBe(false)
+        expect(detector.push(linear(150, 30))).toBe(false)
+        expect(detector.push(rotation(200, 300))).toBe(true)
+        expect(detector.push(linear(250, 0))).toBe(false)
+        expect(detector.lastMode()).toBe('twist')
+    })
+
+    it('clears partial twist history when bump fires', () => {
+        const detector = createShakeDetector({ cooldownMs: 0 })
+        for (const value of [rotation(100, 300), rotation(200, -300), linear(250, 30)]) {
+            expect(detector.push(value)).toBe(false)
+        }
+        expect(detector.push(linear(300, 0))).toBe(true)
+        expect(detector.lastMode()).toBe('bump')
+        expect(detector.push(rotation(400, 300))).toBe(false)
+        expect(detector.push(rotation(500, -300))).toBe(false)
+        expect(detector.push(rotation(600, 300))).toBe(true)
+    })
+
+    it('clears accumulated circular angle when twist fires', () => {
+        const detector = createShakeDetector({ cooldownMs: 0 })
+        for (let index = 0; index <= 8; index++) {
+            const angle = (index * Math.PI) / 4
+            expect(detector.push(linear(index * 100, 7 * Math.cos(angle), 7 * Math.sin(angle)))).toBe(false)
+        }
+        expect(detector.push(rotation(850, 300))).toBe(false)
+        expect(detector.push(rotation(950, -300))).toBe(false)
+        expect(detector.push(rotation(1050, 300))).toBe(true)
+        for (let index = 1; index <= 5; index++) {
+            const angle = (index * Math.PI) / 4
+            expect(detector.push(linear(1000 + index * 100, 7 * Math.cos(angle), 7 * Math.sin(angle)))).toBe(false)
+        }
+        expect(detector.lastMode()).toBe('twist')
+    })
+
+    it('shared cooldown suppresses other modes without carrying their partial histories forward', () => {
+        const detector = createShakeDetector()
+        expect(detector.push(linear(0, 0))).toBe(false)
+        expect(detector.push(linear(100, 30))).toBe(false)
+        expect(detector.push(linear(150, 0))).toBe(true)
+        for (const value of [rotation(1400, 300), rotation(1500, -300), rotation(1600, 300)]) {
+            expect(detector.push(value)).toBe(false)
+        }
+        expect(detector.push(rotation(1650, -300))).toBe(false)
+        expect(detector.push(rotation(1750, 300))).toBe(false)
+        expect(detector.push(rotation(1850, -300))).toBe(true)
+        expect(detector.lastMode()).toBe('twist')
+    })
+
+    it('raising the vigorous threshold leaves gentle detection active', () => {
+        const samples = shakeTrace(60, [{ start: 1, duration: 1, axis: 0, amplitude: 12, frequency: 3 }])
+        expect(fires(samples, { threshold: 100 }).map((event) => event.mode)).toEqual(['gentle'])
+    })
+})
+
+describe('motion sensor availability probe', () => {
+    const emptyVector = { x: null, y: null, z: null }
+    const emptyRotation = { alpha: null, beta: null, gamma: null }
+    let originalDeviceMotion: PropertyDescriptor | undefined
+
+    const emit = (fields: Record<string, unknown>) => {
+        const event = new Event('devicemotion')
+        Object.defineProperties(
+            event,
+            Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, { value, configurable: true }]))
+        )
+        window.dispatchEvent(event)
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        originalDeviceMotion = Object.getOwnPropertyDescriptor(window, 'DeviceMotionEvent')
+        Object.defineProperty(window, 'DeviceMotionEvent', { configurable: true, value: class {} })
+    })
+
+    afterEach(() => {
+        if (originalDeviceMotion) Object.defineProperty(window, 'DeviceMotionEvent', originalDeviceMotion)
+        else Reflect.deleteProperty(window, 'DeviceMotionEvent')
+        jest.useRealTimers()
+    })
+
+    it.each([
+        { field: 'accelerationIncludingGravity', vector: { x: 0, y: 0, z: 9.81 } },
+        { field: 'acceleration', vector: { x: 0, y: 0, z: 0 } },
+        { field: 'rotationRate', vector: { alpha: 0, beta: 0, gamma: 0 } },
+    ])('treats finite $field as an available sensor', ({ field, vector }) => {
+        const { result, unmount } = renderHook(() => useShakeMotion({ onShake: jest.fn() }))
+        expect(result.current.status).toBe('listening')
+        act(() => {
+            emit({
+                accelerationIncludingGravity: emptyVector,
+                acceleration: emptyVector,
+                rotationRate: emptyRotation,
+                [field]: vector,
+                timeStamp: 100,
+            })
+            jest.advanceTimersByTime(1500)
+        })
+        expect(result.current.status).toBe('listening')
+        unmount()
+    })
+
+    it.each([
+        { accelerationIncludingGravity: emptyVector, acceleration: emptyVector, rotationRate: emptyRotation },
+        { accelerationIncludingGravity: null, acceleration: null, rotationRate: null },
+        {
+            accelerationIncludingGravity: { x: Infinity, y: 0, z: 0 },
+            acceleration: { x: 0, y: NaN, z: 0 },
+            rotationRate: { alpha: 0, beta: 0, gamma: Infinity },
+        },
+    ])('marks the probe unsupported when no complete finite vector arrives: %p', (fields) => {
+        const { result, unmount } = renderHook(() => useShakeMotion({ onShake: jest.fn() }))
+        act(() => {
+            emit({ ...fields, timeStamp: 100 })
+            jest.advanceTimersByTime(1500)
+        })
+        expect(result.current.status).toBe('unsupported')
+        unmount()
+    })
+
+    it.each(['linear', 'rotation'])(
+        'forwards %s-only events to the real detector without requiring gravity',
+        (sensor) => {
+            const onShake = jest.fn()
+            const { unmount } = renderHook(() => useShakeMotion({ onShake }))
+            act(() => {
+                const values = sensor === 'linear' ? [0, 30, 0] : [0, 300, -300, 300]
+                values.forEach((value, index) => {
+                    emit({
+                        accelerationIncludingGravity: null,
+                        acceleration: sensor === 'linear' ? { x: value, y: 0, z: 0 } : null,
+                        rotationRate: sensor === 'rotation' ? { alpha: value, beta: 0, gamma: 0 } : null,
+                        timeStamp: index * 100,
+                    })
+                })
+            })
+            expect(onShake).toHaveBeenCalledTimes(1)
+            unmount()
+        }
+    )
+
+    it('reports unsupported when DeviceMotionEvent is unavailable', () => {
+        Reflect.deleteProperty(window, 'DeviceMotionEvent')
+        const { result, unmount } = renderHook(() => useShakeMotion({ onShake: jest.fn() }))
+        expect(result.current.status).toBe('unsupported')
+        unmount()
+    })
+
+    it('requests permission only after explicit user action and listens after a grant', async () => {
+        const requestPermission = jest.fn().mockResolvedValue('granted')
+        Object.defineProperty(window, 'DeviceMotionEvent', {
+            configurable: true,
+            value: Object.assign(class {}, { requestPermission }),
+        })
+        const onShake = jest.fn()
+        const { result, unmount } = renderHook(() => useShakeMotion({ onShake }))
+        expect(result.current.status).toBe('needs-permission')
+        act(() => {
+            jest.advanceTimersByTime(2000)
+            for (const [index, x] of [0, 30, 0].entries()) {
+                emit({ acceleration: { x, y: 0, z: 0 }, timeStamp: index * 100 })
+            }
+        })
+        expect(requestPermission).not.toHaveBeenCalled()
+        expect(onShake).not.toHaveBeenCalled()
+        expect(result.current.status).toBe('needs-permission')
+
+        await act(async () => {
+            await result.current.requestPermission()
+        })
+        expect(requestPermission).toHaveBeenCalledTimes(1)
+        expect(result.current.status).toBe('listening')
+        act(() => {
+            for (const [index, x] of [0, 30, 0].entries()) {
+                emit({ acceleration: { x, y: 0, z: 0 }, timeStamp: 300 + index * 100 })
+            }
+        })
+        expect(onShake).toHaveBeenCalledTimes(1)
+        unmount()
+    })
+
+    it.each(['denied', 'default', 'reject'])('reports denied when the permission result is %s', async (response) => {
+        const requestPermission = jest.fn()
+        if (response === 'reject') requestPermission.mockRejectedValue(new Error('Permission unavailable'))
+        else requestPermission.mockResolvedValue(response)
+        Object.defineProperty(window, 'DeviceMotionEvent', {
+            configurable: true,
+            value: Object.assign(class {}, { requestPermission }),
+        })
+        const onShake = jest.fn()
+        const { result, unmount } = renderHook(() => useShakeMotion({ onShake }))
+        expect(result.current.status).toBe('needs-permission')
+        expect(requestPermission).not.toHaveBeenCalled()
+        await act(async () => {
+            await result.current.requestPermission()
+        })
+        expect(requestPermission).toHaveBeenCalledTimes(1)
+        expect(result.current.status).toBe('denied')
+        act(() => {
+            for (const [index, x] of [0, 30, 0].entries()) {
+                emit({ acceleration: { x, y: 0, z: 0 }, timeStamp: index * 100 })
+            }
+            jest.advanceTimersByTime(1500)
+        })
+        expect(onShake).not.toHaveBeenCalled()
+        expect(result.current.status).toBe('denied')
+        unmount()
+    })
+
+    it('resets pending motion when hidden and accepts a fresh gesture after becoming visible', () => {
+        const originalHidden = Object.getOwnPropertyDescriptor(document, 'hidden')
+        const originalVisibility = Object.getOwnPropertyDescriptor(document, 'visibilityState')
+        const setVisibility = (hidden: boolean) => {
+            Object.defineProperty(document, 'hidden', { configurable: true, value: hidden })
+            Object.defineProperty(document, 'visibilityState', {
+                configurable: true,
+                value: hidden ? 'hidden' : 'visible',
+            })
+            document.dispatchEvent(new Event('visibilitychange'))
+        }
+        setVisibility(false)
+        const onShake = jest.fn()
+        const { unmount } = renderHook(() => useShakeMotion({ onShake }))
+        try {
+            act(() => {
+                emit({ acceleration: { x: 0, y: 0, z: 0 }, timeStamp: 0 })
+                emit({ acceleration: { x: 30, y: 0, z: 0 }, timeStamp: 100 })
+                setVisibility(true)
+                setVisibility(false)
+                emit({ acceleration: { x: 0, y: 0, z: 0 }, timeStamp: 150 })
+            })
+            expect(onShake).not.toHaveBeenCalled()
+            act(() => {
+                emit({ acceleration: { x: 30, y: 0, z: 0 }, timeStamp: 200 })
+                emit({ acceleration: { x: 0, y: 0, z: 0 }, timeStamp: 250 })
+            })
+            expect(onShake).toHaveBeenCalledTimes(1)
+        } finally {
+            unmount()
+            if (originalHidden) Object.defineProperty(document, 'hidden', originalHidden)
+            else Reflect.deleteProperty(document, 'hidden')
+            if (originalVisibility) Object.defineProperty(document, 'visibilityState', originalVisibility)
+            else Reflect.deleteProperty(document, 'visibilityState')
         }
     })
 
-    it('reports exactly on the minPeaks-th qualifying peak and never before (200 seeded runs)', () => {
-        for (let seed = 1; seed <= 200; seed++) {
-            const rng = seeded(seed * 7919)
-            const threshold = between(rng, 4, 20)
-            const minPeaks = intBetween(rng, 1, 5)
-            const windowMs = intBetween(rng, 300, 2000)
-            const options: ShakeDetectorOptions = { threshold, minPeaks, windowMs, cooldownMs: 2000 }
-
-            // plan: prime, then `minPeaks` peaks with 0-3 quiet samples between them, then a quiet tail
-            const plan: Array<'peak' | 'quiet'> = []
-            for (let p = 0; p < minPeaks; p++) {
-                plan.push('peak')
-                if (p < minPeaks - 1) for (let q = intBetween(rng, 0, 3); q > 0; q--) plan.push('quiet')
+    it('cleans up the sensor probe and motion listener when unmounted', () => {
+        const timerCount = jest.getTimerCount()
+        const onShake = jest.fn()
+        const { result, unmount } = renderHook(() => useShakeMotion({ onShake }))
+        expect(result.current.status).toBe('listening')
+        unmount()
+        expect(jest.getTimerCount()).toBe(timerCount)
+        act(() => {
+            jest.advanceTimersByTime(1500)
+            for (const [index, x] of [0, 30, 0].entries()) {
+                emit({ acceleration: { x, y: 0, z: 0 }, timeStamp: index * 100 })
             }
-            const spanSteps = Math.max(plan.length - 1, 1)
-            // every peak lands within 0.7 of the window of the first one
-            const dt = (0.7 * windowMs) / spanSteps
-            const lastPeakIndex = plan.length // index in `samples` (prime is 0)
-            for (let q = 0; q < 4; q++) plan.push('quiet')
+        })
+        expect(onShake).not.toHaveBeenCalled()
+    })
+})
 
-            let v: Vec = [between(rng, -20, 20), between(rng, -20, 20), between(rng, -20, 20)]
-            let t = intBetween(rng, 0, 1_000_000)
-            const samples: MotionSample[] = [sampleAt(t, v)]
-            for (const kind of plan) {
-                const direction = randomUnitVector(rng)
-                const magnitude =
-                    kind === 'peak' ? between(rng, 1.1 * threshold, 3 * threshold) : between(rng, 0, 0.5 * threshold)
-                v = [v[0] + direction[0] * magnitude, v[1] + direction[1] * magnitude, v[2] + direction[2] * magnitude]
-                t += dt
-                samples.push(sampleAt(t, v))
-            }
+describe('circular continuity and direction protections', () => {
+    const circularOnly: ShakeDetectorOptions = {
+        threshold: Infinity,
+        gentle: { threshold: Infinity },
+        twist: { threshold: Infinity },
+        bump: { threshold: Infinity },
+    }
+    const vector = (angle: number): Vector => [7 * Math.cos(angle), 7 * Math.sin(angle), 9.81]
 
-            const detector = createShakeDetector(options)
-            const results = samples.map((s) => detector.push(s))
-            const expected = samples.map((_, i) => i === lastPeakIndex)
-
-            expect({ seed, options, results }).toEqual({ seed, options, results: expected })
-        }
+    it.each([
+        { endT: 1000, expected: true },
+        { endT: 1000.001, expected: false },
+    ])('counts only complete angular intervals inside the window ending at $endT ms', ({ endT, expected }) => {
+        const samples = withLinear(
+            Array.from({ length: 9 }, (_, index) => {
+                const [x, y, z] = vector((index * Math.PI) / 4)
+                return sample(index === 8 ? endT : index * 125, x, y, z)
+            })
+        )
+        const events = fires(samples, { ...circularOnly, circular: { minDegrees: 360, windowMs: 1000 } })
+        expect(events).toEqual(expected ? [{ index: 8, t: endT, mode: 'circular' }] : [])
     })
 
-    it('arbitrary garbage samples never throw and always return a boolean (200 seeded runs)', () => {
-        const awkward = [null, NaN, Infinity, -Infinity, 0, -0, 1e308, -1e308, 5e-324, 9.81, -9.81, 123456.789]
-        for (let seed = 1; seed <= 200; seed++) {
-            const rng = seeded(seed * 104729)
-            const detector = createShakeDetector({ minPeaks: intBetween(rng, 1, 4) })
-            const pick = () => awkward[intBetween(rng, 0, awkward.length - 1)]
-            for (let i = 0; i < 100; i++) {
-                const sample = {
-                    x: pick(),
-                    y: pick(),
-                    z: pick(),
-                    t: rng() < 0.9 ? i * 16 : (pick() as number),
-                } as MotionSample
-                let result: unknown
-                expect(() => {
-                    result = detector.push(sample)
-                }).not.toThrow()
-                expect(typeof result).toBe('boolean')
-            }
+    const cases: { name: string; duration: number; acceleration: (seconds: number) => Vector }[] = [
+        {
+            name: 'one complete revolution below the required 540 degrees',
+            duration: 3,
+            acceleration: (seconds) => {
+                const elapsed = seconds - 1
+                return elapsed >= 0 && elapsed <= 2 / 3 ? vector(3 * Math.PI * elapsed) : gravity
+            },
+        },
+        {
+            name: 'slow rotation that cannot complete 540 degrees inside the window',
+            duration: 5,
+            acceleration: (seconds) => {
+                const elapsed = seconds - 1
+                return elapsed >= 0 && elapsed <= 3 ? vector(Math.PI * elapsed) : gravity
+            },
+        },
+        {
+            name: 'smooth forward then reverse movement with 720 degrees of total travel but no 540 degree turn',
+            duration: 4,
+            acceleration: (seconds) => {
+                const elapsed = seconds - 1
+                return elapsed >= 0 && elapsed <= 1.2
+                    ? vector(2 * Math.PI * Math.sin((Math.PI * elapsed) / 1.2))
+                    : gravity
+            },
+        },
+        {
+            name: 'two incomplete circular bursts separated by 500 ms without qualifying movement',
+            duration: 4,
+            acceleration: (seconds) => {
+                const elapsed = seconds - 1
+                if (elapsed >= 0 && elapsed <= 0.6) return vector((2 * Math.PI * elapsed) / 0.6)
+                if (elapsed >= 1.1 && elapsed <= 1.7) return vector((2 * Math.PI * (elapsed - 1.1)) / 0.6)
+                return gravity
+            },
+        },
+        {
+            name: 'abrupt 180 degree flips exceeding the maximum smooth step',
+            duration: 4,
+            acceleration: (seconds) => {
+                const elapsed = seconds - 1
+                return elapsed >= 0 && elapsed <= 1.5 ? vector(Math.floor(elapsed * 5) * Math.PI) : gravity
+            },
+        },
+    ]
+
+    it.each(rates.flatMap((rate) => cases.map((scenario) => ({ rate, ...scenario }))))(
+        'does not report circular for $name at $rate Hz',
+        ({ rate, duration, acceleration }) => {
+            const samples = withLinear(trace(rate, duration, acceleration))
+            expect(fires(samples, circularOnly)).toEqual([])
         }
+    )
+})
+
+describe('mode-specific options and boundaries', () => {
+    const linear = (t: number, x: number, y = 0): MotionSample => ({ ...sample(t), linear: { x, y, z: 0 } })
+    const rotation = (t: number, alpha: number): MotionSample => ({
+        ...sample(t),
+        rotation: { alpha, beta: 0, gamma: 0 },
+    })
+
+    it('does not detect a bump when a sustained 30-unit plateau outlasts the release deadline', () => {
+        const samples = [
+            linear(0, 0),
+            ...Array.from({ length: 6 }, (_, index) => linear(100 + index * 50, 30)),
+            linear(400, 0),
+            linear(500, 0),
+        ]
+        expect(fires(samples)).toEqual([])
+    })
+
+    it.each([
+        { options: { threshold: 7 }, expected: [] },
+        { options: { minPeaks: 3 }, expected: [340] },
+        { options: { windowMs: 400 }, expected: [] },
+        { options: { minPeakGapMs: 150 }, expected: [] },
+    ])('honors gentle options $options', ({ options, expected }) => {
+        const samples = [linear(0, 0), ...[6, -6, 6, -6, 6].map((x, index) => linear(100 + index * 120, x))]
+        expect(fires(samples).map((event) => event.t)).toEqual([580])
+        expect(fires(samples, { gentle: options }).map((event) => event.t)).toEqual(expected)
+    })
+
+    it.each([
+        { options: { threshold: 350 }, expected: [] },
+        { options: { minPeaks: 2 }, expected: [200] },
+        { options: { windowMs: 150 }, expected: [] },
+        { options: { minPeakGapMs: 150 }, expected: [] },
+    ])('honors twist options $options', ({ options, expected }) => {
+        const samples = [rotation(0, 0), rotation(100, 300), rotation(200, -300), rotation(300, 300)]
+        expect(fires(samples).map((event) => event.t)).toEqual([300])
+        expect(fires(samples, { twist: options }).map((event) => event.t)).toEqual(expected)
+    })
+
+    it.each([
+        { options: { threshold: 35 }, expected: [] },
+        { options: { releaseThreshold: 4 }, expected: [220] },
+        { options: { maxDurationMs: 80 }, expected: [] },
+    ])('honors bump options $options', ({ options, expected }) => {
+        const samples = [linear(0, 0), linear(100, 30), linear(200, 5), linear(220, 0)]
+        expect(fires(samples).map((event) => event.t)).toEqual([200])
+        expect(fires(samples, { bump: options }).map((event) => event.t)).toEqual(expected)
+    })
+
+    it.each([
+        { releaseT: 250, expected: true },
+        { releaseT: 250.001, expected: false },
+    ])('bump release deadline is inclusive at $releaseT ms', ({ releaseT, expected }) => {
+        const detector = createShakeDetector()
+        expect(detector.push(linear(0, 0))).toBe(false)
+        expect(detector.push(linear(100, 25))).toBe(false)
+        expect(detector.push(linear(200, 8))).toBe(false)
+        expect(detector.push(linear(releaseT, 7.99))).toBe(expected)
+    })
+
+    it.each([
+        { options: { threshold: 8 }, expected: [] },
+        { options: { minDegrees: 360 }, expected: [900] },
+        { options: { windowMs: 1000 }, expected: [] },
+        { options: { maxStepDegrees: 30 }, expected: [] },
+    ])('honors circular options $options', ({ options, expected }) => {
+        const samples = [
+            linear(0, 0),
+            ...Array.from({ length: 13 }, (_, index) => {
+                const angle = (index * Math.PI) / 4
+                return linear(100 + index * 100, 7 * Math.cos(angle), 7 * Math.sin(angle))
+            }),
+        ]
+        expect(fires(samples).map((event) => event.t)).toEqual([1300])
+        expect(
+            fires(samples, { ...onlyVigorousOptions, threshold: Infinity, circular: options }).map((event) => event.t)
+        ).toEqual(expected)
+    })
+})
+
+// FOLLOWUP2: public mode selection is independent of threshold configuration.
+describe('explicit motion mode selection', () => {
+    const restricted: ShakeMode[] = ['vigorous', 'twist']
+    const modes: ShakeMode[] = ['vigorous', 'gentle', 'twist', 'bump', 'circular']
+
+    function modeSamples(mode: ShakeMode, rate: number): MotionSample[] {
+        if (mode === 'vigorous' || mode === 'gentle') {
+            return withLinear(
+                shakeTrace(rate, [
+                    {
+                        start: 1,
+                        duration: mode === 'vigorous' ? 0.8 : 2,
+                        amplitude: mode === 'vigorous' ? 20 : 6,
+                        frequency: mode === 'vigorous' ? 4.5 : 2.5,
+                        axis: 0,
+                    },
+                ])
+            )
+        }
+        if (mode === 'twist') {
+            return trace(rate, 4, () => gravity).map((value) => ({
+                ...value,
+                rotation: {
+                    alpha: value.t >= 1000 && value.t <= 2000 ? 300 * Math.sin((6 * Math.PI * value.t) / 1000) : 0,
+                    beta: 0,
+                    gamma: 0,
+                },
+            }))
+        }
+        if (mode === 'bump') {
+            return withLinear(trace(rate, 4, (_, index) => [index === rate ? 30 : 0, 0, 9.81]))
+        }
+        return withLinear(
+            trace(rate, 4, (seconds) => {
+                if (seconds < 1 || seconds > 2.2) return gravity
+                const angle = 3 * Math.PI * (seconds - 1)
+                return [7 * Math.cos(angle), 7 * Math.sin(angle), 9.81]
+            })
+        )
+    }
+
+    it.each(rates)('excludes ordinary gentle motion at %i Hz for Home modes', (rate) => {
+        expect(fires(modeSamples('gentle', rate), { modes: restricted })).toEqual([])
+    })
+
+    it.each(rates.flatMap((rate) => (['vigorous', 'twist'] as const).map((mode) => ({ rate, mode }))))(
+        'retains $mode at $rate Hz for Home modes',
+        ({ rate, mode }) => {
+            expect(fires(modeSamples(mode, rate), { modes: restricted }).map((event) => event.mode)).toEqual([mode])
+        }
+    )
+
+    it.each(rates.flatMap((rate) => modes.map((mode) => ({ rate, mode }))))(
+        'retains default $mode at $rate Hz when modes is omitted',
+        ({ rate, mode }) => {
+            expect(fires(modeSamples(mode, rate)).map((event) => event.mode)).toEqual([mode])
+        }
+    )
+
+    it.each(rates.flatMap((rate) => modes.map((mode) => ({ rate, mode }))))(
+        'allows singleton $mode at $rate Hz',
+        ({ rate, mode }) => {
+            expect(fires(modeSamples(mode, rate), { modes: [mode] }).map((event) => event.mode)).toEqual([mode])
+        }
+    )
+
+    it.each(rates.flatMap((rate) => modes.map((mode) => ({ rate, mode }))))(
+        'empty modes disables $mode at $rate Hz',
+        ({ rate, mode }) => {
+            const detector = createShakeDetector({ modes: [] })
+            for (const value of modeSamples(mode, rate)) expect(detector.push(value)).toBe(false)
+            expect(detector.lastMode()).toBeNull()
+        }
+    )
+
+    const exclusiveCases = modes.flatMap((enabled) =>
+        modes
+            .filter(
+                (disabled) =>
+                    disabled !== enabled && !(enabled === 'gentle' && ['vigorous', 'circular'].includes(disabled))
+            )
+            .map((disabled) => ({ enabled, disabled }))
+    )
+    it.each(exclusiveCases)(
+        'singleton $enabled ignores a $disabled gesture that cannot satisfy it',
+        ({ enabled, disabled }) => {
+            expect(fires(modeSamples(disabled, 60), { modes: [enabled] })).toEqual([])
+        }
+    )
+
+    it.each(rates)('does not reserve circular motion when circular is disabled at %i Hz', (rate) => {
+        const samples = withLinear(
+            trace(rate, 2.4, (seconds) => {
+                if (seconds < 1 || seconds > 2.2) return gravity
+                const angle = 3 * Math.PI * (seconds - 1)
+                return [20 * Math.cos(angle), 20 * Math.sin(angle), 9.81]
+            })
+        )
+        expect(fires(samples, { modes: ['vigorous'] }).map((event) => event.mode)).toEqual(['vigorous'])
+    })
+
+    it('shares cooldown between the enabled modes and resets its last reported mode', () => {
+        const detector = createShakeDetector({ modes: restricted })
+        const linear = (t: number, x: number): MotionSample => ({ ...sample(t), linear: { x, y: 0, z: 0 } })
+        const rotation = (t: number, alpha: number): MotionSample => ({
+            ...sample(t),
+            rotation: { alpha, beta: 0, gamma: 0 },
+        })
+        expect(detector.push(linear(0, 0))).toBe(false)
+        expect(detector.push(linear(100, 20))).toBe(false)
+        expect(detector.push(linear(200, -20))).toBe(false)
+        expect(detector.push(linear(300, 20))).toBe(true)
+        expect(detector.lastMode()).toBe('vigorous')
+        for (const value of [rotation(400, 300), rotation(500, -300), rotation(600, 300)]) {
+            expect(detector.push(value)).toBe(false)
+        }
+        detector.reset()
+        expect(detector.lastMode()).toBeNull()
+        expect(detector.push(rotation(0, 300))).toBe(false)
+        expect(detector.push(rotation(100, -300))).toBe(false)
+        expect(detector.push(rotation(200, 300))).toBe(true)
+        expect(detector.lastMode()).toBe('twist')
     })
 })

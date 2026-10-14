@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createShakeDetector } from './shakeDetector'
+import { createShakeDetector, type MotionSample } from './shakeDetector'
 
 export type ShakeMotionStatus = 'unsupported' | 'needs-permission' | 'denied' | 'listening'
 
@@ -13,6 +13,29 @@ type MotionPermissionApi = { requestPermission?: () => Promise<'granted' | 'deni
 function motionApi(): MotionPermissionApi | null {
     if (typeof window === 'undefined' || typeof window.DeviceMotionEvent === 'undefined') return null
     return window.DeviceMotionEvent as unknown as MotionPermissionApi
+}
+
+export function motionSampleFromEvent(event: DeviceMotionEvent): MotionSample | null {
+    const gravity = event.accelerationIncludingGravity
+    const linear = event.acceleration
+    const rotation = event.rotationRate
+    const finiteVector = (values: (number | null | undefined)[]) =>
+        values.every((value) => typeof value === 'number' && Number.isFinite(value))
+    if (
+        !finiteVector([gravity?.x, gravity?.y, gravity?.z]) &&
+        !finiteVector([linear?.x, linear?.y, linear?.z]) &&
+        !finiteVector([rotation?.alpha, rotation?.beta, rotation?.gamma])
+    ) {
+        return null
+    }
+    return {
+        x: gravity?.x ?? null,
+        y: gravity?.y ?? null,
+        z: gravity?.z ?? null,
+        linear: linear ?? null,
+        rotation: rotation ?? null,
+        t: event.timeStamp,
+    }
 }
 
 /**
@@ -38,10 +61,10 @@ export function useShakeMotion({ onShake }: { onShake: () => void }) {
         }, MOTION_PROBE_MS)
 
         const onMotion = (event: DeviceMotionEvent) => {
-            const a = event.accelerationIncludingGravity
-            if (!a || a.x === null || a.y === null || a.z === null) return
+            const sample = motionSampleFromEvent(event)
+            if (!sample) return
             sawMotion = true
-            if (detector.push({ x: a.x, y: a.y, z: a.z, t: event.timeStamp })) onShakeRef.current()
+            if (detector.push(sample)) onShakeRef.current()
         }
         const onVisibility = () => {
             if (document.visibilityState === 'hidden') detector.reset()

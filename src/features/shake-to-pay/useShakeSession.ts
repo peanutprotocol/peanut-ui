@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiErrorStatus } from '@/services/api-error'
 import { shakeApi, type ShakeCandidate, type ShakeLocation } from './shakeApi'
 
-export type ShakeSearchState = 'idle' | 'searching' | 'expired' | 'error' | 'rate-limited'
+export type ShakeSearchState = 'idle' | 'searching' | 'done' | 'no-match' | 'expired' | 'error' | 'rate-limited'
 
 export const SHAKE_POLL_INTERVAL_MS = 1500
 export const SHAKE_MAX_POLL_FAILURES = 3
+export const SHAKE_LOOK_WINDOW_MS = 15_000
 
 function retryAfterOf(error: unknown): number | null {
     const value = (error as { retryAfterSec?: unknown } | null)?.retryAfterSec
@@ -31,6 +32,7 @@ export function useShakeSession() {
 
     const generation = useRef(0)
     const sessionId = useRef<string | null>(null)
+    const displayedCandidates = useRef<ShakeCandidate[]>([])
     const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     // Creates run one at a time so the server sees them in the order the user shook;
     // otherwise an older create landing last would cancel the newer session.
@@ -50,31 +52,55 @@ export function useShakeSession() {
 
     const isCurrent = useCallback((gen: number) => mounted.current && gen === generation.current, [])
 
+    const finishSearch = useCallback(
+        (gen: number) => {
+            if (!isCurrent(gen)) return
+            clearPoll()
+            if (displayedCandidates.current.length > 0) {
+                setState('done')
+            } else {
+                releaseSession()
+                setState('no-match')
+            }
+        },
+        [isCurrent, clearPoll, releaseSession]
+    )
+
     const schedulePoll = useCallback(
-        (gen: number, id: string, failures: number) => {
+        (gen: number, id: string, failures: number, deadline: number) => {
             pollTimer.current = setTimeout(async () => {
                 try {
                     const session = await shakeApi.getSession(id)
                     if (!isCurrent(gen)) return
                     if (session.status !== 'active') {
                         sessionId.current = null
+                        displayedCandidates.current = []
                         setCandidates([])
                         setState('expired')
                         return
                     }
+                    displayedCandidates.current = session.candidates
                     setCandidates(session.candidates)
-                    schedulePoll(gen, id, 0)
+                    if (Date.now() >= deadline) {
+                        finishSearch(gen)
+                        return
+                    }
+                    schedulePoll(gen, id, 0, deadline)
                 } catch {
                     if (!isCurrent(gen)) return
+                    if (Date.now() >= deadline) {
+                        finishSearch(gen)
+                        return
+                    }
                     if (failures + 1 >= SHAKE_MAX_POLL_FAILURES) {
                         setState('error')
                         return
                     }
-                    schedulePoll(gen, id, failures + 1)
+                    schedulePoll(gen, id, failures + 1, deadline)
                 }
             }, SHAKE_POLL_INTERVAL_MS)
         },
-        [isCurrent]
+        [isCurrent, finishSearch]
     )
 
     const stop = useCallback(() => {
@@ -82,6 +108,7 @@ export function useShakeSession() {
         clearPoll()
         releaseSession()
         if (!mounted.current) return
+        displayedCandidates.current = []
         setCandidates([])
         setRetryAfterSeconds(null)
         setState('idle')
@@ -93,6 +120,7 @@ export function useShakeSession() {
             clearPoll()
             releaseSession()
             // the previous shake's people must not stay tappable while this one is in flight
+            displayedCandidates.current = []
             setCandidates([])
             setRetryAfterSeconds(null)
             setState('searching')
@@ -101,6 +129,7 @@ export function useShakeSession() {
             const attempt = previous.then(async () => {
                 if (!isCurrent(gen)) return
                 try {
+                    const deadline = Date.now() + SHAKE_LOOK_WINDOW_MS
                     const session = await shakeApi.createSession(location)
                     if (!isCurrent(gen)) {
                         cancelQuietly(session.sessionId)
@@ -113,8 +142,9 @@ export function useShakeSession() {
                         setState('expired')
                         return
                     }
+                    displayedCandidates.current = session.candidates
                     setCandidates(session.candidates)
-                    schedulePoll(gen, session.sessionId, 0)
+                    schedulePoll(gen, session.sessionId, 0, deadline)
                 } catch (error) {
                     if (!isCurrent(gen)) return
                     setCandidates([])
