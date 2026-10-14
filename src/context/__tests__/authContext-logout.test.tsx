@@ -23,12 +23,14 @@ const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
+const mockUserData = { user: { userId: 'u1', username: 'probe' }, accounts: [] }
+const mockQueryClient = { clear: mockClear, cancelQueries: mockCancelQueries, getQueryData: () => mockUserData }
 jest.mock('@tanstack/react-query', () => ({
-    useQueryClient: () => ({ clear: mockClear, cancelQueries: mockCancelQueries }),
+    useQueryClient: () => mockQueryClient,
 }))
 jest.mock('@/hooks/query/user', () => ({
     useUserQuery: () => ({
-        data: { user: { userId: 'u1', username: 'probe' }, accounts: [] },
+        data: mockUserData,
         isLoading: false,
         refetch: mockRefetch,
         error: null,

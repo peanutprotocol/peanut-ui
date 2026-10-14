@@ -14,3 +14,16 @@
 - Local hook: `.codex/quality-gates.json` runs a bounded Screen Library acceptance set plus affected ESLint and Prettier checks before direct commits. The full Screen Library suite and typecheck remain required in hosted CI; the local hook is an additional guardrail.
 
 Undecided: whether future UI changes that do not alter pixels should use a standardized exception taxonomy; a free-text reason is accepted for this fix. Merge/release ownership and device release acceptance remain with the maintainers.
+
+## Push identity checklist
+
+- Explicit logout detaches this device from the account; generic push remains enabled.
+- Latest identity wins; duplicate requests must not create duplicate subscriptions.
+- SDK failures are unknown and retryable; startup reconciles after auth resolution.
+- Bound the push wait during logout; no unbounded retries or batch work.
+- No account IDs, push tokens, or notification bodies in new telemetry.
+- Web and Capacitor retain existing OneSignal interfaces; no schema change.
+- Verify Jest notification/auth tests, lint, TypeScript, concurrency/fault cases.
+- Local `.codex/quality-gates.json` runs the relevant auth/notification Jest suites and full ESLint alongside the upstream Screen Library and formatting checks within the existing dev 420-second budget. Full repository Jest/TypeScript and hosted branch protections remain the CI merge boundary; local focused checks are not a replacement.
+
+Undecided: production rollout owner and provider-level suppression for account payloads already queued before logout. Device/provider delivery is separate evidence.

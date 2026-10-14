@@ -16,14 +16,26 @@
             "cwd": "."
         },
         {
+            "name": "push-identity-tests",
+            "argv": [
+                "node",
+                "node_modules/jest/bin/jest.js",
+                "--runInBand",
+                "--silent",
+                "--testPathPattern=useNotifications|authContext|login-session.test|account-setup.test|useAccountSetup|useForegroundPushRefresh|onesignal/identity"
+            ],
+            "cwd": "."
+        },
+        {
             "name": "lint",
-            "argv": ["node_modules/.bin/eslint", "src/dev/screens/catalogue.ts", "src/dev/screens/pages.ts"],
+            "argv": ["node", "node_modules/eslint/bin/eslint.js", "."],
             "cwd": "."
         },
         {
             "name": "format",
             "argv": [
-                "node_modules/.bin/prettier",
+                "node",
+                "node_modules/prettier/bin/prettier.cjs",
                 "--check",
                 ".codex/quality-gates.json",
                 "src/dev/screens/catalogue.ts",
@@ -33,7 +45,17 @@
                 "scripts/screens/zero-difference-gate.mjs",
                 "public/screen-library/viewer.js",
                 "public/screen-library/viewer.css",
-                "public/screen-library/index.html"
+                "public/screen-library/index.html",
+                "src/context/authContext.tsx",
+                "src/hooks/useNotifications.ts",
+                "src/services/onesignal/identity.ts",
+                "src/services/onesignal/identity-cross-tab-login.test.ts",
+                "src/context/__tests__/authContext-push-identity.test.tsx",
+                "src/context/__tests__/authContext-logout.test.tsx",
+                "src/context/__tests__/authContext-fetchUser.test.tsx",
+                "src/context/__tests__/authContext-cross-tab-login.test.tsx",
+                "src/context/__tests__/authContext-cross-tab-hook-race.test.tsx",
+                "src/context/__tests__/authContext-cross-tab-lifecycle-race.test.tsx"
             ],
             "cwd": "."
         }

@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
+import { initializeNotificationIdentity, syncNotificationIdentityFromHook } from '@/services/onesignal/identity'
 import { isPermanentOneSignalInitError } from '@/services/onesignal/errors'
 import { isChunkLoadError } from '@/utils/chunk-error-recovery'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
@@ -11,6 +12,7 @@ import { isDemoMode } from '@/utils/demo'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { onForegroundPushDelivered } from '@/utils/notifications-events'
 import { useAuth } from '@/context/authContext'
+import { useAppLocked } from '@/hooks/useAppLocked'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
@@ -81,11 +83,7 @@ const getSnapshot = () => state
 export const getNotificationPermissionSnapshot = (): NotificationPermissionState => state.permissionState
 const getServerSnapshot = () => INITIAL_STATE
 
-let currentExternalId: string | null = null
-let lastLinkedExternalId: string | null = null
-// the login in flight, so a second sync for the same id joins it instead of
-// starting another login() (the double-record race behind TASK-22209)
-let loginInFlight: { id: string; token: object; promise: Promise<void> } | null = null
+let currentExternalId: string | null | undefined
 let disableExternalIdLogin = false
 // A session is one app load. One pre-prompt per session at most, and the
 // session count gates the Home fallback.
@@ -129,44 +127,22 @@ function handleLoginError(err: unknown) {
 
 // link/unlink the OneSignal subscription to the logged-in user
 async function syncExternalIdLink() {
-    if (!state.oneSignalInitialized) return
+    // AuthProvider owns null reconciliation: this hook sees null both while
+    // the profile is unresolved and after a confirmed sign-out.
+    if (!state.oneSignalInitialized || !currentExternalId) return
     const id = currentExternalId
-    if (id && lastLinkedExternalId !== id) {
-        if (disableExternalIdLogin) return
-        if (loginInFlight?.id === id) {
-            // join it rather than start a second login for the same id, then
-            // check the outcome: a joined caller that never retries would leave
-            // the device unlinked whenever the login it joined failed
-            await loginInFlight.promise
-            if (currentExternalId === id && lastLinkedExternalId !== id) return syncExternalIdLink()
-            return
-        }
-        const token = {}
-        const promise = (async () => {
+    if (disableExternalIdLogin) return
+    try {
+        await syncNotificationIdentityFromHook(id)
+    } catch (err) {
+        handleLoginError(err)
+        // One bounded retry also recovers callers that joined a failed login.
+        if (currentExternalId === id && !disableExternalIdLogin) {
             try {
-                const adapter = await getOneSignalAdapter()
-                await adapter.login(id)
-                // commit only on success so transient failures retry on the next
-                // sync, and only while this call still owns the tracker — an
-                // older login settling late must not name an account we left
-                if (loginInFlight?.token === token) lastLinkedExternalId = id
-            } catch (err: unknown) {
-                handleLoginError(err)
-            } finally {
-                // a switch to another external id may own the tracker by now —
-                // clearing it here would drop that newer login's guard
-                if (loginInFlight?.token === token) loginInFlight = null
+                await syncNotificationIdentityFromHook(id)
+            } catch (retryError) {
+                handleLoginError(retryError)
             }
-        })()
-        loginInFlight = { id, token, promise }
-        return promise
-    } else if (!id && lastLinkedExternalId !== null) {
-        lastLinkedExternalId = null
-        try {
-            const adapter = await getOneSignalAdapter()
-            await adapter.logout()
-        } catch (err) {
-            addBreadcrumb({ category: 'onesignal', message: 'logout failed', data: { error: String(err) } })
         }
     }
 }
@@ -296,8 +272,7 @@ async function initializeNotifications() {
 
     let initSucceeded = false
     try {
-        const adapter = await getOneSignalAdapter()
-        await adapter.init()
+        const adapter = await initializeNotificationIdentity()
         initSucceeded = true
 
         // Web half of the foreground-push badge refresh (the Set dedupes the
@@ -523,7 +498,8 @@ export function resetPushPromptForTests() {
 }
 
 export function useNotifications() {
-    const { user } = useAuth()
+    const { user, isFetchingUser, userFetchError, isLoggingOut } = useAuth()
+    const appLocked = useAppLocked()
     const externalId = user?.user.userId
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
@@ -532,8 +508,9 @@ export function useNotifications() {
     }, [])
 
     useEffect(() => {
+        if (appLocked || isFetchingUser || userFetchError || isLoggingOut) return
         setExternalId(externalId ?? null)
-    }, [externalId])
+    }, [externalId, appLocked, isFetchingUser, userFetchError, isLoggingOut])
 
     return {
         showPermissionModal: snapshot.showPermissionModal,
