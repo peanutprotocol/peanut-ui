@@ -1493,6 +1493,8 @@
             "cardAuthNeeded": "One-time card authorization needed. You'll be asked to confirm once.",
             "confirmTransaction": "Please confirm the transaction.",
             "signFailed": "Could not sign the transaction.",
+            "preparationFailed": "We couldn't prepare this payment. Nothing was charged. Try again.",
+            "passkeyBusy": "Another passkey request is still open. Close it, then try again. Nothing was charged.",
             "accountStateChanged": "Transaction failed due to account state change. Please try again. If the problem persists, contact support.",
             "sessionExpired": "Payment session expired. Please scan the QR code again.",
             "restartScan": "We couldn't start this payment. Please scan the QR code again.",

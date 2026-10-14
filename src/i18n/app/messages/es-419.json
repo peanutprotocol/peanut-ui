@@ -1493,6 +1493,8 @@
             "cardAuthNeeded": "Se necesita una autorización única de la tarjeta. Se te pedirá confirmar una vez.",
             "confirmTransaction": "Confirma la transacción.",
             "signFailed": "No se pudo firmar la transacción.",
+            "preparationFailed": "No pudimos preparar este pago. No se cobró nada. Inténtalo de nuevo.",
+            "passkeyBusy": "Hay otra solicitud de passkey abierta. Ciérrala e inténtalo de nuevo. No se cobró nada.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Inténtalo de nuevo. Si el problema persiste, contacta a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escanea el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escanea el código QR de nuevo.",

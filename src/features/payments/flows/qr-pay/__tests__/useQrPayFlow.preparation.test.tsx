@@ -20,6 +20,7 @@ import posthog from 'posthog-js'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 
 // Keep the real page selector and rate recovery UI; unrelated screens need no
 // providers in this payment-controller integration test.
@@ -848,5 +849,50 @@ describe('single-flight Pay', () => {
         expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(2)
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
         await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+})
+
+// A signSpend failure is not always a signing failure: routing, the Rain draft
+// and the UserOp build all run before the passkey. Those must say nothing was
+// charged and leave Pay enabled for a retry.
+describe('honest Pay failure copy', () => {
+    const copy = en.qrPay.errors
+
+    test('the Rain draft fails before any signature: preparation copy, Pay stays enabled', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 5_000_000n })
+        mockPrepareWithdrawal.mockRejectedValue(new Error('rain prepare unavailable'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.preparationFailed)
+        expect(surface?.isBlockingError).toBe(false)
+    })
+
+    test('the passkey ceremony itself fails: signing copy, Pay stays enabled', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+        mockPrepareWithdrawal.mockResolvedValue({ ...RAIN_PREP, directTransfer: true })
+        fakeClient.account.signTypedData.mockRejectedValue(new Error('ceremony dismissed'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.signFailed)
+        expect(surface?.isBlockingError).toBe(false)
+    })
+
+    test('another passkey request still open (iOS InvalidStateError): busy copy, Pay stays enabled', async () => {
+        const busy = new Error('Another passkey request is already in progress')
+        busy.name = 'InvalidStateError'
+        fakeClient.account.signUserOperation.mockRejectedValue(busy)
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.passkeyBusy)
+        expect(surface?.isBlockingError).toBe(false)
     })
 })

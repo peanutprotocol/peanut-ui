@@ -80,6 +80,19 @@ export enum WebAuthnErrorName {
     NotSupported = 'NotSupportedError',
 }
 
+/**
+ * true when an earlier passkey prompt still owns the authenticator: iOS throws
+ * InvalidStateError "another passkey request is already in progress", chromium
+ * "a request is already pending", and our own CeremonyConflictError all say
+ * so in the message. the sdk may wrap it, so one level of `cause` is read too.
+ */
+export function isPasskeyBusyError(error: unknown): boolean {
+    for (let e: unknown = error, depth = 0; e instanceof Error && depth < 2; e = e.cause, depth++) {
+        if (/already (in progress|pending)/i.test(e.message)) return true
+    }
+    return false
+}
+
 export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: string }
 
 // Curated copy keyed by code. Never surface raw error.message / server bodies to

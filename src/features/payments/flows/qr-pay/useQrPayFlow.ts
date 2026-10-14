@@ -31,6 +31,7 @@ import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError, type SpendStrategy } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
+import { isPasskeyBusyError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
@@ -350,7 +351,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             errorCode !== 'confirmTransaction' &&
             errorCode !== 'balanceSettling' &&
             // A rejection the user can clear by typing a different amount.
-            errorCode !== 'amountRetryable'
+            errorCode !== 'amountRetryable' &&
+            // Nothing was signed or sent; tapping Pay again is safe.
+            errorCode !== 'signRetryable'
         )
     }, [errorMessage, errorCode, requoteFailed])
 
@@ -863,13 +866,18 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // Looser than the classifier's 'not allowed by the user agent';
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
+            } else if (isPasskeyBusyError(error)) {
+                // an earlier passkey prompt still owns the authenticator; nothing was signed
+                setErrorMessage(t('errors.passkeyBusy'), 'signRetryable')
             } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                 // Keep the flow-specific fallback — "couldn't sign" beats the
                 // generic support copy on a signing failure — and the Sentry report.
                 void captureNetworkTriagedFailure(error, {
                     tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign' },
                 })
-                setErrorMessage(t('errors.signFailed'))
+                // before the passkey, the failure was routing, the rain draft or
+                // the op build; nothing was signed or sent either way, so retry is safe
+                setErrorMessage(t(signingStarted ? 'errors.signFailed' : 'errors.preparationFailed'), 'signRetryable')
             } else {
                 // A classified error is normally a deliberate non-report (backend
                 // wire code, or a user action). Network-layer failures are the
