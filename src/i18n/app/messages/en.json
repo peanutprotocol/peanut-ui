@@ -255,12 +255,12 @@
         "arrival": {
             "qr_ar": {
                 "title": "Welcome to Argentina",
-                "description": "Pay Mercado Pago QR codes from your balance.",
+                "description": "Pay like a local. Mercado Pago QR codes, straight from your balance.",
                 "cta": "Scan QR"
             },
             "pix_br": {
                 "title": "Welcome to Brazil",
-                "description": "Pay Pix QR codes from your balance.",
+                "description": "Pay like a local. Pix QR codes, straight from your balance.",
                 "cta": "Scan QR"
             },
             "card": {

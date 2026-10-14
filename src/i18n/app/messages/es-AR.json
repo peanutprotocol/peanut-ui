@@ -105,10 +105,10 @@
         },
         "arrival": {
             "qr_ar": {
-                "description": "Pagá códigos QR de Mercado Pago con tu saldo."
+                "description": "Pagá con QR de Mercado Pago, directo desde tu saldo."
             },
             "pix_br": {
-                "description": "Pagá códigos QR de Pix con tu saldo."
+                "description": "Pagá como un local. QR de Pix, directo desde tu saldo."
             },
             "card": {
                 "title": "La tarjeta funciona acá",

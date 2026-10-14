@@ -255,12 +255,12 @@
         "arrival": {
             "qr_ar": {
                 "title": "Boas-vindas à Argentina",
-                "description": "Pague códigos QR do Mercado Pago com seu saldo.",
+                "description": "Pague como os argentinos. QR do Mercado Pago, direto do seu saldo.",
                 "cta": "Escanear QR"
             },
             "pix_br": {
                 "title": "Boas-vindas ao Brasil",
-                "description": "Pague códigos QR do Pix com seu saldo.",
+                "description": "Pague com Pix, direto do seu saldo.",
                 "cta": "Escanear QR"
             },
             "card": {
