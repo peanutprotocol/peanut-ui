@@ -18,7 +18,7 @@ and publishes immutable objects. It builds offline HTML from trusted viewer code
 it never executes downloaded scripts or HTML. Failed captures remain visible;
 cancelled runs do not publish. Public index updates are queued and serialized.
 
-Validate with Node 20 and the pinned publisher dependencies:
+Validate with Node 22 or later and the pinned publisher/deployment dependencies:
 
 ```sh
 node --test scripts/screens/*.test.mjs
@@ -35,7 +35,8 @@ repository/branch/head binding; a changed fallback merge base requires a rerun.
 The gallery deploys independently to Cloudflare Workers from the trusted
 publisher workflow after a successful dev publication and index refresh. No
 Next.js build or Vercel deployment is involved. Worker Static Assets
-serves the viewer; only `/screen-data/*` invokes the read-only R2 handler.
+serves the viewer; `/screen-data/*` invokes the private R2 handler and the optional
+comments API at `/screen-data/comments/*`.
 The R2 bucket remains private. Cloudflare Access protects `/screens/*` and
 `/screen-data/*`; the public root is a sign-in shell that shows a blurred gallery
 and sends users to Google authentication. The Access policy allows only verified
@@ -95,6 +96,70 @@ DevOps setup:
 The existing Vercel app preview workflow remains independent. Neither the Blob
 secret nor `SCREEN_LIBRARY_STORE_URL` is used by the gallery anymore.
 
+## D1 screen comments
+
+The gallery uses one dedicated D1 database for comment threads, messages and
+actor-scoped idempotency receipts. Screenshots remain in private R2. Discussions
+belong to an exact report, screen, locale, viewport, image and before/after side;
+new screenshot versions have separate discussions. Authors can edit their own
+messages, and any signed-in teammate can resolve or reopen a thread. Resolved
+messages and replies remain readable and included in image counts. The homepage
+feed spans the library and a PR's feed includes only that PR.
+
+To enable comments, provision `peanut-screen-library-comments` in the existing
+Cloudflare account, using EU jurisdiction to match the screenshot bucket. Record
+its database UUID, then configure these GitHub Actions variables together in the
+deployment environment or repository:
+
+| Variable | Value |
+| --- | --- |
+| `SCREEN_LIBRARY_COMMENTS_DATABASE_NAME` | `peanut-screen-library-comments` |
+| `SCREEN_LIBRARY_COMMENTS_DATABASE_ID` | The dedicated D1 database UUID |
+| `SCREEN_LIBRARY_ACCESS_AUD` | The audience tag from the gallery's Access application |
+| `SCREEN_LIBRARY_ACCESS_TEAM_DOMAIN` | The configured Zero Trust team hostname, such as `peanut.cloudflareaccess.com`, without scheme or path |
+
+Read the audience and team hostname from trusted Cloudflare settings. The Worker
+pins both when validating signed Access JWTs; it does not trust the email header.
+The Static Assets router does not propagate `ctx.access`, so JWT validation is
+required on that production path. Keep `/screen-data/*` protected by the existing
+Access application. The deployment token also needs D1 Edit in the same account;
+the separate capture/publisher token does not gain comments database access.
+
+The prepared Worker binds D1 as `COMMENTS` and includes the committed migration
+directory plus the locked `jose` dependency. `prepare.mjs` rejects partial D1 or
+auth configuration before writing the deployment artifact. Leaving both database
+variables unset preserves the R2-only deployment and omits the comments client
+from both gallery entry pages, so no comments sign-in prompt appears. Shared
+Access variables alone do not enable comments. Install dependencies before
+preparing or bundling:
+
+```sh
+npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/deploy
+node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
+scripts/screens/deploy/node_modules/.bin/wrangler d1 migrations apply COMMENTS --remote --config /tmp/screen-gallery/wrangler.json
+scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
+```
+
+Supply account credentials through the existing environment, never command-line
+arguments. The workflow applies only pending additive migrations before deploying
+the exact trusted revision. It does not recapture, backfill, delete or reupload
+screenshots. A migration failure stops deployment; already applied additive
+schema remains compatible with the previous gallery. Normal rollout has a
+10-minute deployment-job budget, a 5-minute limit for each remote operation, a
+270-second command deadline and sanitized progress every 45 seconds. No automatic
+deployment retry is configured. Inspect active runs, the revision and recent
+timings before dispatching another deployment.
+
+After rollout, read back the `COMMENTS` binding and applied migrations, then verify
+an authenticated comment, reply, author-only edit, teammate resolution and reload
+persistence in the gallery. Local SQL/API tests, Worker bundling, hosted CI and
+this authenticated live check are separate evidence. Offline exports retain their
+existing viewer and do not contact the comments API.
+
+For rollback, remove both database variables and redeploy the previous verified
+gallery artifact. Retain the D1 database and migrations; do not drop tables or
+delete discussions. Comment retention follows retained reports indefinitely.
+
 Hosted Images is not part of the current storage path. Normal publication never
 deletes retained objects or scans historical reports for migration work. The
 publisher lists existing content-addressed R2 assets once per run, uploads only
@@ -128,4 +193,19 @@ Dev pushes publish the matching `dev` and `compare-dev` pair with the same
 original-push-boundary rule; feature PR previews continue to use `pr-<number>`.
 
 
-References: [Cloudflare Access for Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/), [R2 bindings](https://developers.cloudflare.com/r2/api/workers/workers-api-usage/).
+References: [Cloudflare Access for Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/), [R2 bindings](https://developers.cloudflare.com/r2/api/workers/workers-api-usage/), [D1 migrations](https://developers.cloudflare.com/d1/reference/migrations/).
+
+Comments can also be verified entirely locally after preparing the Worker:
+
+```sh
+scripts/screens/deploy/node_modules/.bin/wrangler deploy --dry-run --config /tmp/screen-gallery/wrangler.json --outdir /tmp/screen-gallery/dist
+node scripts/screens/comments-runtime.cjs /tmp/screen-gallery/dist/index.js
+```
+
+This smoke uses actual local workerd, D1 and R2 bindings with synthetic signed
+identities, an outbound mock limited to the pinned JWKS URL, and a temporary
+persistent database that is removed afterward. It does not contact live comments
+storage. `node scripts/screens/comments-browser.mjs` independently exercises the
+viewer against a localhost Worker/SQLite fixture; install Playwright and set
+`PLAYWRIGHT_EXECUTABLE_PATH` when using an existing browser binary. The browser
+check requires Node with `node:sqlite` (Node 22.13 or newer).

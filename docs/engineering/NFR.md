@@ -27,3 +27,16 @@ Undecided: whether future UI changes that do not alter pixels should use a stand
 - Local `.codex/quality-gates.json` runs the relevant auth/notification Jest suites and full ESLint alongside the upstream Screen Library and formatting checks within the existing dev 420-second budget. Full repository Jest/TypeScript and hosted branch protections remain the CI merge boundary; local focused checks are not a replacement.
 
 Undecided: production rollout owner and provider-level suppression for account payloads already queued before logout. Device/provider delivery is separate evidence.
+
+## Screen Library comments checklist
+
+- Identity: verify signed Access tokens against the pinned team issuer and gallery audience on Static Assets Worker requests. Spoofed headers and service tokens cannot author comments. Keep comment bodies, user emails and tokens out of logs.
+- Ownership: authors alone edit messages; any signed-in teammate can resolve or reopen. Discussions stay attached to the exact validated screenshot version, locale, viewport and comparison side.
+- Integrity: use actor-scoped request UUIDs and atomic D1 batches for durable replay protection. Conditional versions reject stale edits/resolutions without partial writes or misleading success.
+- Failure recovery: missing auth/storage is unavailable, never an empty discussion. Bound external waits, preserve failed drafts, and reuse request IDs when retrying uncertain saves. Clear private caches when identity changes.
+- Limits: plain text is limited to 4000 Unicode code points; JSON bodies to 32768 UTF-8 bytes. Use bounded, stable cursors and batches of at most 100 image-count scopes.
+- Migration: comments use a dedicated D1 binding with additive migrations; screenshots remain in private R2. An unconfigured comments database preserves the R2-only gallery. Rollback retains discussion data.
+- Deployment: use the exact trusted artifact, serialized deployments, a 10-minute job budget and 5-minute remote-operation limits with progress at least once per minute. No automatic retries or bulk screenshot migration in deployment runners.
+- Verification: run the Screen Library Node suite, independent SQLite-backed API acceptance, local Worker/D1 smoke, browser interactions and affected lint/format checks. Report local SQL, Worker bundling, hosted CI, remote binding/schema and authenticated live behavior separately.
+
+Undecided: a future discussion deletion or shorter retention policy needs an explicit product decision; current discussions are retained with their reports. Maintainers retain merge and deployment ownership. No additional local hook is installed by this feature.

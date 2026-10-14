@@ -6,6 +6,7 @@
         <meta name="robots" content="noindex,nofollow" />
         <title>Peanut · Screen library</title>
         <link rel="stylesheet" href="/screen-library/viewer.css" />
+        <script defer src="/screen-library/comments.js"></script>
         <script defer src="/screen-library/viewer.js"></script>
     </head>
     <body>
@@ -131,9 +132,16 @@
                     </div>
                 </section>
             </div>
-            <section id="versions" aria-label="Versions"></section>
-            <section id="screens" aria-label="Screens"></section>
-            <div id="screen-load-more" class="load-more" hidden aria-live="polite">Scroll to load more screens</div>
+            <div class="library-layout">
+                <div class="library-content">
+                    <section id="versions" aria-label="Versions"></section>
+                    <section id="screens" aria-label="Screens"></section>
+                    <div id="screen-load-more" class="load-more" hidden aria-live="polite">
+                        Scroll to load more screens
+                    </div>
+                </div>
+                <aside id="comment-feed" class="comment-feed" aria-label="Latest screen comments" hidden></aside>
+            </div>
         </main>
         <dialog id="zoom" aria-labelledby="zoom-title">
             <div class="dialog-head">
@@ -150,10 +158,13 @@
                     >Before / after<input id="slider" type="range" min="0" max="100" value="50"
                 /></label>
             </div>
-            <div class="preview-stage">
-                <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
-                <div id="zoom-images"></div>
-                <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
+            <div class="zoom-body">
+                <div class="preview-stage">
+                    <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
+                    <div id="zoom-images"></div>
+                    <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
+                </div>
+                <aside id="comment-panel" class="comment-panel" aria-label="Screen discussion" hidden></aside>
             </div>
             <p class="preview-help"><kbd>←</kbd><kbd>→</kbd> Navigate <kbd>Esc</kbd> Close</p>
         </dialog>

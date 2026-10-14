@@ -124,6 +124,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         environment: screen-library-deploy
         runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        concurrency:
+            group: screen-library-deploy
+            queue: max
+            cancel-in-progress: false
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -134,24 +139,66 @@ jobs:
             - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
               with:
                   node-version: '22'
-            - name: Install isolated deployment tool from the committed lockfile
-              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/deploy
-            - name: Prepare migrated gallery and R2 binding
-              env:
-                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
-                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
-                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
-              run: node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
-            - name: Deploy private gallery after publication
+            - name: Prepare bounded deployment progress helper
+              run: |
+                  cat > /tmp/screen-deploy-operation <<'BASH'
+                  #!/usr/bin/env bash
+                  set -euo pipefail
+                  phase=$1
+                  shift
+                  started=$SECONDS
+                  printf 'phase=%s completed=0/1 elapsed=0s retry=0\n' "$phase"
+                  timeout --signal=TERM --kill-after=10s 270s "$@" &
+                  operation_pid=$!
+                  (
+                      while sleep 45; do
+                          printf 'phase=%s completed=0/1 elapsed=%ss retry=0\n' "$phase" "$((SECONDS - started))"
+                      done
+                  ) &
+                  progress_pid=$!
+                  cleanup() {
+                      kill "$progress_pid" 2>/dev/null || true
+                      kill "$operation_pid" 2>/dev/null || true
+                  }
+                  trap cleanup EXIT
+                  trap 'exit 143' TERM
+                  trap 'exit 130' INT
+                  wait "$operation_pid"
+                  printf 'phase=%s completed=1/1 elapsed=%ss retry=0\n' "$phase" "$((SECONDS - started))"
+                  BASH
+            - name: Verify deployment credentials
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
-                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
               run: |
                   if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
                       echo 'CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher.' >&2
                       exit 1
                   fi
-                  scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
+            - name: Install isolated deployment tool from the committed lockfile
+              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/deploy
+            - name: Prepare gallery, R2 and optional D1 comments binding
+              env:
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+                  SCREEN_LIBRARY_COMMENTS_DATABASE_ID: ${{ vars.SCREEN_LIBRARY_COMMENTS_DATABASE_ID }}
+                  SCREEN_LIBRARY_COMMENTS_DATABASE_NAME: ${{ vars.SCREEN_LIBRARY_COMMENTS_DATABASE_NAME }}
+                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
+                  SCREEN_LIBRARY_ACCESS_TEAM_DOMAIN: ${{ vars.SCREEN_LIBRARY_ACCESS_TEAM_DOMAIN }}
+              run: node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
+            - name: Apply additive comments migrations
+              if: vars.SCREEN_LIBRARY_COMMENTS_DATABASE_ID != ''
+              timeout-minutes: 5
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+              run: bash /tmp/screen-deploy-operation comments-migrate scripts/screens/deploy/node_modules/.bin/wrangler d1 migrations apply COMMENTS --remote --config /tmp/screen-gallery/wrangler.json
+            - name: Deploy private gallery after publication
+              timeout-minutes: 5
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+              run: bash /tmp/screen-deploy-operation gallery-deploy scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
             - name: Prepare collection API Worker
               if: vars.SCREEN_LIBRARY_COLLECTION_API_URL != ''
               env:
@@ -164,10 +211,11 @@ jobs:
               run: node scripts/screens/collection-worker/prepare.mjs /tmp/screen-collections
             - name: Deploy collection API Worker
               if: vars.SCREEN_LIBRARY_COLLECTION_API_URL != ''
+              timeout-minutes: 5
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-              run: scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-collections/wrangler.json
+              run: bash /tmp/screen-deploy-operation collections-deploy scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-collections/wrangler.json
             - name: Install isolated MCP deployment dependencies
               if: vars.SCREEN_LIBRARY_MCP_URL != ''
               run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/mcp
@@ -181,7 +229,8 @@ jobs:
                   ln -s "$GITHUB_WORKSPACE/scripts/screens/mcp/node_modules" /tmp/screen-library-mcp/node_modules
             - name: Deploy MCP Worker
               if: vars.SCREEN_LIBRARY_MCP_URL != ''
+              timeout-minutes: 5
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-              run: scripts/screens/mcp/node_modules/.bin/wrangler deploy --config /tmp/screen-library-mcp/wrangler.json
+              run: bash /tmp/screen-deploy-operation mcp-deploy scripts/screens/mcp/node_modules/.bin/wrangler deploy --config /tmp/screen-library-mcp/wrangler.json

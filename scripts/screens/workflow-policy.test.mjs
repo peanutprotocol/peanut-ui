@@ -67,14 +67,28 @@ test('publisher and deploy reuse one Cloudflare API token during the secret-name
     assert.match(declaredInputs, /CLOUDFLARE_PUBLISH_TOKEN:\n\s+required: false/)
     assert.match(declaredInputs, /CLOUDFLARE_API_TOKEN:\n\s+required: false/)
     assert.match(publisher, /environment: screen-library-deploy/)
-    assert.equal(
-        (
-            publisher.match(
-                /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/g
-            ) ?? []
-        ).length,
-        5
-    )
+    // Scope credentials to each operation, so adding a migration/deployment
+    // cannot pass because an unrelated step happens to contain the fallback.
+    const steps = publisher.split(/^ {12}- /m).slice(1)
+    const token =
+        /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/
+    const operations = [
+        'node scripts/screens/publish-run.mjs',
+        'node scripts/screens/rebuild-index.mjs',
+        'wrangler d1 migrations apply COMMENTS --remote',
+        'wrangler deploy --config /tmp/screen-gallery/wrangler.json',
+        'wrangler deploy --config /tmp/screen-collections/wrangler.json',
+        'wrangler deploy --config /tmp/screen-library-mcp/wrangler.json',
+    ]
+    for (const operation of operations) {
+        const matching = steps.filter((step) => step.includes(operation))
+        assert.equal(matching.length, 1, `${operation} must have one explicit workflow step`)
+        assert.match(matching[0], token, `${operation} must receive the token fallback`)
+    }
+    for (const step of steps.filter((value) => /\bwrangler (?:deploy|d1 migrations apply)\b/.test(value)))
+        assert.match(step, token, 'every remote deployment or migration must receive the token fallback')
+    for (const declaration of steps.flatMap((value) => value.match(/^\s+CLOUDFLARE_API_TOKEN:[^\n]*/gm) ?? []))
+        assert.match(declaration, token, 'every declared Cloudflare token must use the same fallback')
     assert.match(publisher, /CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher/)
 })
 

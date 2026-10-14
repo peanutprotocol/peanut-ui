@@ -991,6 +991,85 @@ const comparisonReportWith = (screens, locale = 'en') => ({
     screens,
 })
 
+test('comment thread permalink survives filter changes within the same report', async () => {
+    const path = `2026-10-13/pr-3700/en/${'b'.repeat(40)}`
+    const threadId = '11111111-1111-4111-8111-111111111111'
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'synthetic' }],
+        report: comparisonReportWith([comparisonScreen({ id: 'home', name: 'Home review' })]),
+        search: `?source=synthetic&locale=en&comments=${threadId}&q=Home`,
+    })
+
+    elements.get('search').value = 'Home review'
+    elements.get('search').dispatch('input')
+    const destination = new URL(elements.historyCalls.at(-1), 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${path}/`)
+    assert.equal(destination.searchParams.get('locale'), 'en')
+    assert.equal(destination.searchParams.get('q'), 'Home review')
+    assert.equal(destination.searchParams.get('comments'), threadId)
+})
+
+test('comment thread permalink is dropped when locale navigation changes report path', async () => {
+    const commit = 'b'.repeat(40)
+    const englishPath = `2026-10-13/pr-3700/en/${commit}`
+    const spanishPath = `2026-10-13/pr-3700/es-419/${commit}`
+    const threadId = '22222222-2222-4222-8222-222222222222'
+    const elements = await loadLanding(`/screens/${englishPath}/`, {
+        index: [
+            { path: englishPath, locale: 'en', source: 'synthetic' },
+            { path: spanishPath, locale: 'es-419', source: 'synthetic' },
+        ],
+        report: comparisonReportWith([comparisonScreen({ id: 'home', defaultScreen: true })]),
+        search: `?source=synthetic&locale=en&comments=${threadId}&scope=default`,
+    })
+
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    const destination = new URL(elements.location.href, 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${spanishPath}/`)
+    assert.equal(destination.searchParams.get('locale'), 'es-419')
+    assert.equal(destination.searchParams.get('scope'), 'default')
+    assert.equal(destination.searchParams.has('comments'), false)
+})
+
+test('comment thread permalink is dropped when source navigation changes report', async () => {
+    const journeyPath = `2026-09-14/nutcracker/en/${'c'.repeat(40)}`
+    const syntheticPath = `2026-09-14/dev/en/${'d'.repeat(40)}`
+    const threadId = '33333333-3333-4333-8333-333333333333'
+    const report = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: 'c'.repeat(40),
+        uiCommit: 'd'.repeat(40),
+        apiCommit: 'e'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T08:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        complete: true,
+        screens: [],
+    }
+    const elements = await loadLanding(`/screens/${journeyPath}/`, {
+        index: [
+            { path: journeyPath, locale: 'en', source: 'nutcracker' },
+            { path: syntheticPath, locale: 'en', source: 'synthetic' },
+        ],
+        report,
+        search: `?source=nutcracker&locale=en&comments=${threadId}&status=passed`,
+    })
+
+    elements.get('source').value = 'synthetic'
+    elements.get('source').dispatch('change')
+    const destination = new URL(elements.location.href, 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${syntheticPath}/`)
+    assert.equal(destination.searchParams.get('source'), 'synthetic')
+    assert.equal(destination.searchParams.get('locale'), 'en')
+    assert.equal(destination.searchParams.has('comments'), false)
+})
+
 test('PR galleries start with all variations and default mode excludes every explicitly special route state', async () => {
     const report = comparisonReportWith([
         comparisonScreen({ id: 'p01-home', name: 'Home', defaultScreen: true }),

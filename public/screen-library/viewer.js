@@ -142,6 +142,81 @@ let rows = [],
     reportSourceEntries = [],
     filteredRows = [],
     renderedCount = 0
+let commentsReportPath = ''
+const comments =
+    !offline && window.ScreenComments
+        ? window.ScreenComments.create({
+              feed: $('comment-feed'),
+              panel: $('comment-panel'),
+              dialog: $('zoom'),
+              onNavigate: navigateComment,
+          })
+        : null
+function commentScopes(row) {
+    if (!comments || !commentsReportPath) return []
+    const manifest = activeComparison ?? report
+    return ['before', 'after'].flatMap((side) => {
+        const capture = manifest?.type === 'comparison' ? manifest[side] : manifest
+        const screenshot = row[side]
+        if (!screenshot?.image || (manifest?.type !== 'comparison' && side !== 'after')) return []
+        return [
+            {
+                reportPath: commentsReportPath,
+                screenId: row.id,
+                name: row.name,
+                locale: capture?.locale ?? manifest?.locale ?? $('locale').value ?? 'en',
+                profile:
+                    Number.isInteger(capture?.width) && Number.isInteger(capture?.height)
+                        ? `${capture.width}x${capture.height}`
+                        : (capture?.profile ?? '393x852'),
+                image: screenshot.image,
+                side,
+            },
+        ]
+    })
+}
+function openComments(row, scope, threadId) {
+    zoom(row, 'screen')
+    $('zoom-images').replaceChildren(
+        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    )
+    comments?.open(scope, threadId, commentScopes(row))
+}
+function navigateComment(scope, threadId) {
+    if (!/^(?:reports\/[a-z0-9/-]+|collections\/[a-z0-9-]+)$/.test(scope.reportPath)) return
+    if (scope.reportPath !== commentsReportPath || !rows.some((row) => row.id === scope.screenId)) {
+        const path = scope.reportPath.startsWith('reports/')
+            ? `/screens/${scope.reportPath.slice(8)}/`
+            : `/${scope.reportPath}/`
+        location.href = `${path}?${new URLSearchParams({ locale: scope.locale, comments: threadId, view: 'all' })}#${encodeURIComponent(scope.screenId)}`
+        return
+    }
+    viewMode = 'all'
+    showVariations = true
+    $('view-mode').checked = true
+    $('variations-mode').checked = true
+    $('search').value = ''
+    $('flow').value = ''
+    $('status').value = ''
+    render()
+    let row = rows.find((value) => value.id === scope.screenId)
+    if (row[scope.side]?.image !== scope.image)
+        row = {
+            ...row,
+            name: `${row.name} · Commented version`,
+            [scope.side]: { image: scope.image, status: 'captured' },
+        }
+    zoom(row, scope.side === 'before' ? 'side' : 'screen')
+    if (scope.side === 'before')
+        $('zoom-images').replaceChildren(
+            phonePreview(image(scope.image, row.name, { preview: false }), 'Before · Commented version')
+        )
+    comments.open(scope, threadId, [scope])
+    const url = new URL(location.href)
+    url.searchParams.set('comments', threadId)
+    url.hash = scope.screenId
+    history.replaceState(null, '', url.pathname + url.search + url.hash)
+}
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
 const newScreen = (row) => ['added', 'new'].includes(row.status) && unavailable(row.before) && !unavailable(row.after)
@@ -221,6 +296,7 @@ function isDefaultScreen(row) {
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
+    if (requestedFilter('comments')) params.set('comments', requestedFilter('comments'))
     const source = overrides.source ?? $('source').value
     const locale = overrides.locale ?? $('locale').value
     const profile = overrides.profile ?? $('profile').value
@@ -249,7 +325,9 @@ function shareableParams(overrides = {}) {
     return params
 }
 function shareableHref(pathname = location.pathname, overrides, hash = location.hash ?? '') {
-    const query = shareableParams(overrides).toString()
+    const params = shareableParams(overrides)
+    if (pathname !== location.pathname) params.delete('comments')
+    const query = params.toString()
     return `${pathname}${query ? `?${query}` : ''}${hash}`
 }
 function syncShareableUrl() {
@@ -367,6 +445,18 @@ function zoom(row, mode = 'side') {
                 $('zoom-images').append(fig)
             }
     }
+    const scopes = commentScopes(row)
+    const primary = scopes.find((scope) => scope.side === 'after') ?? scopes[0]
+    if (comments && primary) {
+        let toggle = $('zoom-comments')
+        if (!toggle) {
+            toggle = el('button', 'Comments')
+            toggle.id = 'zoom-comments'
+            $('zoom-controls').after(toggle)
+        }
+        toggle.onclick = () => (comments.isOpen() ? comments.close() : comments.open(primary, undefined, scopes))
+        if (comments.isOpen()) comments.open(primary, undefined, scopes)
+    }
     updatePreviewPosition()
     if (!$('zoom').open) {
         $('zoom').showModal()
@@ -427,6 +517,10 @@ function renderTile(row) {
             b.append(image(s.image, row.name))
             b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
             fig.append(b)
+            const side =
+                label === 'Before' ? 'before' : label === 'After' ? 'after' : s === row.before ? 'before' : 'after'
+            const scope = commentScopes(row).find((value) => value.side === side)
+            if (scope) fig.append(comments.badge(scope, () => openComments(row, scope)))
         } else
             fig.append(
                 label === 'Before' && newScreen(row)
@@ -822,6 +916,10 @@ async function start() {
         pathname === '/screen-library/index.html'
     const collectionMatch = /^\/collections\/([a-z0-9][a-z0-9-]{0,119})\/?$/.exec(pathname)
     const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
+    if (comments) {
+        $('comment-feed').hidden = false
+        comments.setContext({ prNumber: Number(/^\d{4}-\d{2}-\d{2}\/pr-([1-9]\d*)\//.exec(path)?.[1]) || undefined })
+    }
     if (!offline && !path) {
         const index = await loadJSON('/screen-data/index.json')
         if (!index.length) {
@@ -871,6 +969,11 @@ async function start() {
             throw new Error('Unsupported comparison for this collection')
         activeComparison = normalizeComparison(comparison)
     }
+    commentsReportPath = activeComparison
+        ? `reports/${comparisonPath}`
+        : collectionMatch
+          ? `collections/${collectionMatch[1]}`
+          : `reports/${reportPath}`
     if (report.type === 'comparison') report = normalizeComparison(report)
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
@@ -1011,6 +1114,8 @@ async function start() {
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
     }
     syncShareableUrl()
+    const threadId = requestedFilter('comments')
+    if (comments && /^[a-f0-9-]{36}$/.test(threadId)) comments.navigateThread(threadId)
 }
 for (const name of ['search', 'flow'])
     $(name).addEventListener('input', () => {
@@ -1084,6 +1189,7 @@ $('variations-mode').addEventListener('change', () => {
     syncShareableUrl()
 })
 $('close').onclick = () => $('zoom').close()
+$('zoom').addEventListener('close', () => comments?.close())
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
@@ -1094,7 +1200,11 @@ $('zoom').addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         event.preventDefault()
         $('zoom').close()
-    } else if (event.target !== $('slider') && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    } else if (
+        event.target !== $('slider') &&
+        !event.target?.matches?.('input,textarea,select,[contenteditable]') &&
+        (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+    ) {
         event.preventDefault()
         navigatePreview(event.key === 'ArrowLeft' ? -1 : 1)
     }
