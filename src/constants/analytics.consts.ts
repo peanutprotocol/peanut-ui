@@ -202,6 +202,10 @@ export const ANALYTICS_EVENTS = {
     MODAL_DISMISSED: 'modal_dismissed',
     MODAL_CTA_CLICKED: 'modal_cta_clicked',
 
+    // ── Arrival prompt (TASK-23251): props country, prompt ──
+    ARRIVAL_PROMPT_SHOWN: 'arrival_prompt_shown',
+    ARRIVAL_PROMPT_CTA_CLICKED: 'arrival_prompt_cta_clicked',
+
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
