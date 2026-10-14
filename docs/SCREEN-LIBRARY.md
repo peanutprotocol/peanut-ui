@@ -49,6 +49,46 @@ threshold or masking the drawer. Harness changes require both revisions to be
 recaptured with the same capture code; immutable older reports retain their
 original images and comparisons.
 
+## Capture decisions and reuse
+
+The workflow classifies the immutable changed-file list before installing capture
+dependencies or a browser. Known documentation, test-only, unrelated workflow and
+gallery-viewer changes skip app screenshots. Capture code, fixtures, rendering
+configuration, global styles, fonts, assets, translations and the content
+submodule remain visual inputs. Unknown influence requires a full capture.
+
+For a PR with a provable local impact, the planner follows dependencies in both
+revisions and captures every registered state in the affected flows across all
+four locales. The trusted publisher recomputes this selection from the exact
+review revisions. The report declares its scope and remains globally incomplete;
+success in the selected scope does not claim that omitted screens were tested.
+Omitted states do not appear as removals. Missing states/locales still fail, and
+zero visual differences still need the existing explicit exception.
+
+Dev and main visual updates retain full after libraries. The before capture can
+be reused only from a trusted retained run at the exact previous revision, with
+compatible harness, fixtures, renderer, locale, viewport, adapter, origin and
+device and verified image hashes. Reuse preserves the original provenance. If a
+candidate is missing, expired, incomplete or incompatible, the workflow makes at
+most one fresh before capture per locale and records the reason. API failures
+remain visible unknown outcomes. A targeted PR capture cannot become a full
+integration baseline or move the full-library latest pointer.
+
+Harness identity uses tracked capture and stored-font inputs, excluding installed
+tools and generated files. Fixture identity follows the transitive local imports
+of the fixture registry, demo API and residence constants. A fixture dependency
+change invalidates reuse even when the registry itself did not change.
+
+Scoped execution activates only after the trusted dev publisher supports it;
+pre-merge callers retain a full-capture compatibility path. The additional
+viewport baseline schedule is unchanged. Manual captures remain a full-coverage
+escape hatch.
+
+Gallery-only dev updates use the same trusted, environment-bound gallery workflow
+without app captures. Index-only maintenance refreshes indexes without redeploying
+the gallery. Deployment is serialized; a newer docs-only commit does not suppress
+a queued viewer update, while newer gallery inputs prevent a stale deployment.
+
 ## Curated, on-demand collections
 
 A collection is a first-class, ordered manifest over the same content-addressed

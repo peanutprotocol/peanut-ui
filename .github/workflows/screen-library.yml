@@ -36,10 +36,13 @@ jobs:
         needs: backdoor-scan
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-24.04
+        timeout-minutes: 5
         outputs:
             before: ${{ steps.refs.outputs.before }}
             after: ${{ steps.refs.outputs.after }}
-            capture_before: ${{ steps.refs.outputs.capture_before }}
+            mode: ${{ steps.impact.outputs.mode || steps.plan.outputs.mode }}
+            only: ${{ steps.impact.outputs.only }}
+            gallery: ${{ steps.plan.outputs.gallery }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -61,7 +64,6 @@ jobs:
                   set -euo pipefail
                   if [ "$EVENT" = push ] || { [ "$GITHUB_REF" = refs/heads/main ] && [ "$EVENT" = workflow_dispatch ]; }; then
                     node scripts/screens/capture-revisions.mjs >> "$GITHUB_OUTPUT"
-                    echo "capture_before=true" >> "$GITHUB_OUTPUT"
                     exit 0
                   fi
                   after="${PR_HEAD:-$PUSH_HEAD}"
@@ -75,26 +77,29 @@ jobs:
                   [[ "$before" =~ ^[a-f0-9]{40}$ ]]
                   echo "before=$before" >> "$GITHUB_OUTPUT"
                   echo "after=$after" >> "$GITHUB_OUTPUT"
-                  capture_before=true
-                  if [ "$EVENT" = pull_request ]; then
-                    capture_before=false
-                    if ! git diff --quiet "$before...$after" -- \
-                      scripts/screens \
-                      src/dev/screens \
-                      src/dev/surfaces \
-                      src/dev/fixtures \
-                      src/utils/demo-api.ts \
-                      src/constants/demo-data.ts \
-                      src/constants/residence.consts.ts \
-                      pnpm-lock.yaml; then
-                      capture_before=true
-                    fi
-                  fi
-                  echo "capture_before=$capture_before" >> "$GITHUB_OUTPUT"
+            - name: Decide before installing capture dependencies
+              id: plan
+              env:
+                  BEFORE: ${{ steps.refs.outputs.before }}
+                  AFTER: ${{ steps.refs.outputs.after }}
+                  EVENT: ${{ github.event_name }}
+                  BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
+              run: node scripts/screens/decide-capture.mjs
+            - name: Install isolated impact parser
+              if: steps.plan.outputs.mode != 'skip' && github.event_name == 'pull_request'
+              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - name: Resolve trusted compatible screen scope
+              id: impact
+              if: steps.plan.outputs.mode != 'skip' && github.event_name == 'pull_request'
+              env:
+                  BEFORE: ${{ steps.refs.outputs.before }}
+                  AFTER: ${{ steps.refs.outputs.after }}
+                  EVENT: ${{ github.event_name }}
+                  BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
+              run: node scripts/screens/decide-capture.mjs --impact
     capture_after:
         needs: refs
-        # PR commits capture the changed revision. Product-only PRs reuse the
-        # verified baseline; harness-changing PRs also run capture_before.
+        if: needs.refs.outputs.mode != 'skip'
         runs-on: ubuntu-24.04
         timeout-minutes: 60
         strategy:
@@ -132,10 +137,12 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.after }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
-            - name: Record required baseline mode
-              if: github.event_name == 'pull_request' && needs.refs.outputs.capture_before == 'true'
-              run: echo '{"requireSameRunBaseline":true}' > capture/screen-library-requirement.json
+                  CAPTURE_ONLY: ${{ needs.refs.outputs.only }}
+              shell: bash
+              run: |
+                  args=()
+                  if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
+                  node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}" ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
@@ -155,11 +162,12 @@ jobs:
                   retention-days: 14
 
     capture_before:
-        needs: refs
-        # Pushes and historical dispatch keep same-run pairs. A PR only needs
-        # this expensive job when its harness/fixture identity can differ from
-        # the verified baseline; ordinary product-only PRs reuse that baseline.
-        if: github.event_name != 'pull_request' || needs.refs.outputs.capture_before == 'true'
+        needs: [refs, capture_after]
+        # Verify the actual after environment before app/browser installation.
+        if: needs.refs.outputs.mode != 'skip' && needs.capture_after.result == 'success'
+        permissions:
+            contents: read
+            actions: read
         runs-on: ubuntu-24.04
         timeout-minutes: 60
         strategy:
@@ -187,37 +195,90 @@ jobs:
             - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
               with:
                   node-version: '22'
-            - name: Install capture tools
+            - name: Download this locale's completed after capture
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              with:
+                  name: screen-library-after-${{ matrix.locale }}-${{ github.run_attempt }}
+                  path: after
+            - name: Install isolated baseline verifier
               working-directory: harness
-              run: pnpm install --frozen-lockfile
+              run: |
+                  npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+                  ln -s scripts/screens/publisher/node_modules node_modules
+            - name: Select verified exact-before capture
+              id: reuse
+              working-directory: harness
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPOSITORY: ${{ github.repository }}
+                  BEFORE: ${{ needs.refs.outputs.before }}
+                  LOCALE: ${{ matrix.locale }}
+              run: node scripts/screens/select-before.mjs ../after ../capture
+            - name: Check current PR before fresh fallback
+              id: current
+              working-directory: harness
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  EVENT: ${{ github.event_name }}
+                  REPOSITORY: ${{ github.repository }}
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+                  PR_HEAD: ${{ github.event.pull_request.head.sha }}
+                  PR_BASE: ${{ github.event.pull_request.base.sha }}
+              run: node scripts/screens/check-review-current.mjs
+            - name: Install capture tools
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'
+              working-directory: harness
+              run: |
+                  rm node_modules
+                  pnpm install --frozen-lockfile
             - name: Install pinned browser
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'
               working-directory: harness
               run: pnpm exec playwright install --with-deps --no-shell chromium
             - name: Build and capture exact revision
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.before }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+                  CAPTURE_ONLY: ${{ needs.refs.outputs.only }}
+              shell: bash
+              run: |
+                  args=()
+                  if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
+                  node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}" ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-              if: always()
+              if: always() && steps.current.outputs.current != 'false'
               with:
                   name: screen-library-before-${{ matrix.locale }}-${{ github.run_attempt }}
                   path: capture/
                   if-no-files-found: error
                   retention-days: 14
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-              if: always() && matrix.locale == 'en'
+              if: always() && steps.current.outputs.current != 'false' && matrix.locale == 'en'
               with:
                   name: screen-library-before-${{ github.run_attempt }}
                   path: capture/
                   if-no-files-found: error
                   retention-days: 14
 
+    gallery:
+        needs: refs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.refs.outputs.mode == 'skip' && needs.refs.outputs.gallery == 'true'
+        permissions:
+            contents: read
+            actions: read
+            pull-requests: write
+        # This reusable path already exists on dev before this PR merges.
+        # Trusted code derives maintenance flags from the exact push event.
+        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
+        secrets:
+            CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
     publish:
         needs: [refs, capture_after, capture_before]
         if: >-
             always() && !cancelled() && needs.refs.result == 'success' &&
-            needs.capture_after.result != 'skipped' &&
+            needs.refs.outputs.mode != 'skip' && needs.capture_after.result != 'skipped' &&
             (github.event_name == 'pull_request' || needs.capture_before.result != 'skipped')
         permissions:
             contents: read
