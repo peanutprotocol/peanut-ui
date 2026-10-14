@@ -1443,35 +1443,34 @@ summary {
     box-shadow: 0 2px 8px #0002;
 }
 .screen-feedback {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
-    gap: 3px;
-    flex-wrap: wrap;
-    background: #fff;
-    color: #47324f;
-    border: 1px solid #e4d7e7;
-    border-radius: 12px;
-    padding: 3px;
+    gap: 8px;
+    width: 196px;
+    max-width: 100%;
+    background: #1b181f;
+    color: #fff;
+    border: 1px solid #ffffff38;
+    border-radius: 18px;
+    padding: 8px;
     box-shadow: 0 2px 8px #0002;
 }
 .shot > .screen-feedback {
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    z-index: 1;
-    max-width: calc(100% - 16px);
+    margin: 10px auto 0;
 }
 .screen-feedback .comment-count {
     position: static;
+    grid-column: 2;
+    grid-row: 2;
     border: 0 !important;
+    background: transparent !important;
+    color: #fff !important;
     box-shadow: none;
     padding: 4px 7px !important;
 }
 .screen-votes {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 2px;
+    display: contents;
 }
 .screen-feedback svg,
 .comment-refresh svg {
@@ -1489,7 +1488,7 @@ summary {
     border: 0;
     border-radius: 8px;
     padding: 4px 6px;
-    color: #47324f;
+    color: #fff;
     background: transparent;
     font-family: inherit;
     font-size: 12px;
@@ -1497,22 +1496,45 @@ summary {
     line-height: 1.2;
     cursor: pointer;
 }
+.screen-feedback .screen-votes [data-vote] {
+    flex-direction: column;
+    min-width: 0;
+    min-height: 104px;
+    padding: 8px;
+    border: 1px solid #ffffff80;
+    border-radius: 12px;
+    font-size: 18px;
+}
+.screen-votes [data-vote] svg {
+    width: 64px;
+    height: 64px;
+}
+.screen-votes [data-vote-refresh] {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: center;
+}
+.screen-votes [data-vote-status]:empty {
+    display: none;
+}
+.screen-votes [data-vote-retry] {
+    grid-column: 1 / -1;
+}
 .screen-votes button[aria-pressed='true'] {
-    background: #eddcf4;
-    color: #692590;
-    box-shadow: inset 0 0 0 1px #bd8ed2;
+    background: #ffffff26;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px #fff;
 }
 .screen-votes button:disabled {
     cursor: default;
     opacity: 0.55;
 }
 .screen-votes button:focus-visible {
-    outline: 2px solid #8d4da7;
+    outline: 2px solid #fff;
     outline-offset: 2px;
 }
 .screen-votes [data-vote-status]:not(:empty) {
-    flex-basis: 100%;
-    max-width: 180px;
+    grid-column: 1 / -1;
     padding: 2px 4px;
     font-size: 11px;
 }
@@ -1535,6 +1557,10 @@ summary {
 #zoom-next {
     grid-column: 3;
     grid-row: 1;
+}
+.preview-stage:has(#zoom-feedback:not(:empty)) .device-frame {
+    height: min(53vh, calc(100vh - 320px), 600px);
+    height: min(53dvh, calc(100dvh - 320px), 600px);
 }
 .feedback-side {
     padding: 0 5px;
