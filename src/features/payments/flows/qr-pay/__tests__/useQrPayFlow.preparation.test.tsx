@@ -206,6 +206,7 @@ import { LoadingStateContextProvider } from '@/context/loadingStates.context'
 import { QrPayFlowProvider, useQrPayFlow } from '../QrPayFlowContext'
 import { QrPayPage } from '../QrPayPage'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import type { QrPayFlowSurface } from '../useQrPayFlow'
 
 const mockResolveSpendStrategy = resolveSpendStrategy as jest.Mock
@@ -850,6 +851,33 @@ describe('single-flight Pay', () => {
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
         await waitFor(() => expect(surface?.isSuccess).toBe(true))
     })
+
+    test('the latch holds while a re-quote is in flight: a tap in that window never signs the old lock', async () => {
+        fakeClient.account.signUserOperation.mockRejectedValueOnce(
+            new SpendRecoveryQuoteReviewError(new Error('controller rotated'))
+        )
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+
+        let releaseRequote!: (lock: unknown) => void
+        mockMantecaApi.initiateQrPayment.mockImplementationOnce(
+            () => new Promise((resolve) => (releaseRequote = resolve))
+        )
+        // the closure a tap made before the re-quote state renders
+        const payQR = surface!.payQR
+        await act(async () => {
+            const first = payQR()
+            await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+            const second = payQR()
+            releaseRequote(lockFixture({ code: 'LOCK456' }))
+            await Promise.all([first, second])
+        })
+
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        await waitFor(() => expect(surface?.paymentLock?.code).toBe('LOCK456'))
+    })
 })
 
 // A signSpend failure is not always a signing failure: routing, the Rain draft
@@ -894,5 +922,9 @@ describe('honest Pay failure copy', () => {
 
         expect(surface?.errorMessage).toBe(copy.passkeyBusy)
         expect(surface?.isBlockingError).toBe(false)
+        // still reported, so the busy rate stays visible after the fix ships
+        expect(mockCaptureNetworkTriagedFailure).toHaveBeenCalledWith(busy, {
+            tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_busy' }),
+        })
     })
 })

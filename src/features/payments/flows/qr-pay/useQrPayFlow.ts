@@ -831,7 +831,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
          */
         const quoteExpired = () => isLockExpired(finalPaymentLock)
         if (quoteExpired()) {
-            void handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
+            await handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
             return
         }
 
@@ -844,7 +844,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // back to the same review screen, with a refreshed quote when the
             // replacement could not be prepared inside the current lock.
             if (error instanceof SpendRecoveryQuoteReviewError) {
-                void handleQuoteRecovery(error)
+                await handleQuoteRecovery(error)
                 return
             }
             if (error instanceof SpendRecoveryAbortedError) {
@@ -867,7 +867,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
             } else if (isPasskeyBusyError(error)) {
-                // an earlier passkey prompt still owns the authenticator; nothing was signed
+                // an earlier passkey prompt still owns the authenticator; nothing was signed.
+                // still reported, tagged apart, so the busy rate stays visible
+                void captureNetworkTriagedFailure(error, {
+                    tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign', qr_pay_failure: 'passkey_busy' },
+                })
                 setErrorMessage(t('errors.passkeyBusy'), 'signRetryable')
             } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                 // Keep the flow-specific fallback — "couldn't sign" beats the
@@ -898,7 +902,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
 
         if (quoteExpired()) {
-            void handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
+            await handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
             return
         }
 
@@ -1003,7 +1007,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
              * Nothing is submitted under refreshed terms without that tap.
              */
             if (error instanceof SpendRecoveryQuoteReviewError) {
-                void handleQuoteRecovery(error)
+                await handleQuoteRecovery(error)
                 return
             }
             if (error instanceof SpendRecoveryAbortedError) {
@@ -1083,6 +1087,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     // before the loading state renders, and two attempts mean two passkey
     // prompts and two rain drafts (TASK-22518). a new scan remounts the
     // provider, so it starts unlocked.
+    // a re-quote is awaited inside the attempt, so the latch also covers it
     const payInFlightRef = useRef(false)
     const payQR = useCallback(async () => {
         if (paymentProcessor !== 'MANTECA' || payInFlightRef.current) return
