@@ -1,5 +1,6 @@
 'use client'
 
+import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -201,13 +202,7 @@ export default function DevToolsPage() {
                     <Section
                         key={group.title}
                         title={group.title}
-                        trailing={
-                            group.wip && (
-                                <span className="rounded-full border border-border-default bg-background-badge-attention px-2 py-0.5 text-xs font-bold">
-                                    WIP
-                                </span>
-                            )
-                        }
+                        trailing={group.wip && <Badge status="pending" customText="WIP" />}
                     >
                         {group.wip && (
                             <Callout priority="attention" title="Work in progress. Do not use as a source of truth.">
