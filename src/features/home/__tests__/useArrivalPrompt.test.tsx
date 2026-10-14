@@ -145,6 +145,30 @@ it('drops an answer that lands after another account signed in, and settles for 
     expect(result.current.checked).toBe(true)
 })
 
+it('a renewed session clears the last prompt, and a no-prompt answer keeps it cleared', async () => {
+    mockNative = true
+    let now = Date.parse('2026-10-14T12:00:00Z')
+    jest.spyOn(Date, 'now').mockImplementation(() => now)
+    let secondAnswer!: (prompt: string | null) => void
+    mockReportArrival
+        .mockResolvedValueOnce('qr_ar')
+        .mockImplementationOnce(() => new Promise((resolve) => (secondAnswer = resolve)))
+    const { result } = renderHook(() => useArrivalPrompt())
+    await waitFor(() => expect(result.current.arrival?.prompt).toBe('qr_ar'))
+
+    act(() => mockAppStateChange!({ isActive: false }))
+    now += HOUR
+    act(() => mockAppStateChange!({ isActive: true }))
+    expect(result.current.arrival).toBeNull()
+    expect(result.current.checked).toBe(false)
+    await flush()
+    expect(mockReportArrival).toHaveBeenCalledTimes(2)
+
+    await act(async () => secondAnswer(null))
+    expect(result.current.arrival).toBeNull()
+    expect(result.current.checked).toBe(true)
+})
+
 it('a resume while the check runs starts no second request, and keeps its answer', async () => {
     mockNative = true
     let now = Date.parse('2026-10-14T12:00:00Z')

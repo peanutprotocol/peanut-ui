@@ -112,7 +112,7 @@
             },
             "card": {
                 "title": "La tarjeta funciona acá",
-                "description": "Pagá en línea y en comercios con Apple Pay o Google Pay."
+                "description": "Pagá en línea y en comercios con Apple Pay o Google Pay donde estén disponibles."
             }
         }
     },

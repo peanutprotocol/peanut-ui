@@ -265,7 +265,7 @@
             },
             "card": {
                 "title": "Peanut Card works here",
-                "description": "Pay online, and in shops with Apple Pay or Google Pay.",
+                "description": "Pay online, and in shops with Apple Pay or Google Pay where supported.",
                 "cta": "View card"
             },
             "notNow": "Not now"

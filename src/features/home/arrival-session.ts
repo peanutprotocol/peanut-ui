@@ -51,7 +51,7 @@ export async function checkArrival(userId: string, ipCountry: string | null): Pr
     if (checkedFor !== null && checkedFor !== userId) return
     // A resume while this ran renewed the session: this answer is its check.
     checkedFor = userId
-    if (country && prompt) arrival = { userId, country, prompt }
+    arrival = country && prompt ? { userId, country, prompt } : null
     settledFor = userId
     emit()
 }
@@ -75,8 +75,10 @@ function listenForResume() {
                 const since = backgroundedAt
                 backgroundedAt = null
                 if (since !== null && Date.now() - since >= ARRIVAL_RECHECK_AFTER_MS) {
+                    // A new session: the last prompt was about where the user was then.
                     checkedFor = null
                     settledFor = null
+                    arrival = null
                     generation += 1
                     emit()
                 }
