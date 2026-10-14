@@ -1071,9 +1071,18 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         setQrPayment,
     ])
 
+    // set before the first await: a same-tick double tap reaches here twice
+    // before the loading state renders, and two attempts mean two passkey
+    // prompts and two rain drafts (TASK-22518). a new scan remounts the
+    // provider, so it starts unlocked.
+    const payInFlightRef = useRef(false)
     const payQR = useCallback(async () => {
-        if (paymentProcessor === 'MANTECA') {
+        if (paymentProcessor !== 'MANTECA' || payInFlightRef.current) return
+        payInFlightRef.current = true
+        try {
             await handleMantecaPayment()
+        } finally {
+            payInFlightRef.current = false
         }
     }, [paymentProcessor, handleMantecaPayment])
 

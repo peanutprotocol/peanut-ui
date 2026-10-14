@@ -775,3 +775,78 @@ describe('open-amount QR (no lock until Pay)', () => {
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
     })
 })
+
+// TASK-22518: a same-tick double tap reaches payQR twice before the loading
+// state renders. Only one attempt may run: one Rain draft, one signature, one
+// completion. The latch is released once the attempt ends, so a retry works.
+describe('single-flight Pay', () => {
+    const payTwiceInOneTick = async () => {
+        await act(async () => {
+            await Promise.all([surface!.payQR(), surface!.payQR()])
+        })
+    }
+
+    test('two taps in one tick on a locked amount: one Rain draft, one signature, one completion', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 5_000_000n })
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await payTwiceInOneTick()
+
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(fakeClient.account.signTypedData).toHaveBeenCalledTimes(1)
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        expect(stages().filter((s) => s.stage === 'pay_clicked')).toHaveLength(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('two taps in one tick on an open amount: one amount init, one signature, one completion', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow()
+        await waitFor(() => expect(surface?.paymentLock).not.toBeNull())
+        await act(async () => {
+            surface!.handleCurrencyAmountChange('5000')
+        })
+        await waitFor(() => expect(surface?.currencyAmount).toBe('5000'))
+
+        mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ paymentAgainstAmount: '4.17' }))
+        await payTwiceInOneTick()
+
+        // the scan's init plus ONE amount init
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('the latch is released after a failure: the next tap runs a new attempt', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 5_000_000n })
+        mockPrepareWithdrawal.mockRejectedValueOnce(new Error('rain prepare unavailable'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+        expect(surface?.isSuccess).toBe(false)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+
+        await pay()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('the latch is released after a dismissed passkey: the next tap signs again', async () => {
+        fakeClient.account.signUserOperation.mockRejectedValueOnce(new Error('User action is not allowed'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+        expect(surface?.isSuccess).toBe(false)
+
+        await pay()
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(2)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+})
