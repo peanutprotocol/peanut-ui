@@ -13,6 +13,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
 
 export const CardPage: FC = () => {
@@ -310,6 +311,7 @@ export const CardPage: FC = () => {
                 accessToken={informationSession?.token ?? null}
                 onClose={() => setInformationSession(null)}
                 onComplete={() => {
+                    markSubmitted()
                     setInformationSession(null)
                     invalidateOverview()
                     void fetchUser()
