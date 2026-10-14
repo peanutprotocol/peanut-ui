@@ -101,6 +101,273 @@ const shortDateParts = (value) => {
     const date = parseIsoDate(value)
     return date ? { day: String(date.getUTCDate()), month: MONTHS[date.getUTCMonth()] } : { day: value, month: '' }
 }
+// History reads published observations only; gaps never establish product absence.
+function historyTimestamp(value) {
+    if (
+        typeof value !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2}))?$/.test(value)
+    )
+        return null
+    if (!parseIsoDate(value.slice(0, 10))) return null
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
+}
+function screenHistoryDate(value, now = new Date()) {
+    const date = historyTimestamp(value)
+    return date
+        ? {
+              day: String(date.getUTCDate()),
+              month: MONTHS[date.getUTCMonth()],
+              year: date.getUTCFullYear() === now.getUTCFullYear() ? '' : String(date.getUTCFullYear()),
+          }
+        : { day: '?', month: 'Unknown', year: '' }
+}
+function historyReportPath(path) {
+    return (
+        typeof path === 'string' &&
+        path.length <= 300 &&
+        /^\d{4}-\d{2}-\d{2}\/(?:(?:dev|main)-[a-f0-9]{40}|(?:dev|main|compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:[a-z]{2}(?:-[a-z0-9]{2,3})?\/)?(?:\d{3,4}x\d{3,4}\/)?[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/.test(
+            path
+        ) &&
+        !!parseIsoDate(path.slice(0, 10))
+    )
+}
+function screenHistoryScope(entry, manifest) {
+    if (typeof entry?.path !== 'string' || !/^[a-z0-9/-]+$/.test(entry.path) || !parseIsoDate(entry.path.slice(0, 10)))
+        return null
+    if (manifest && !['capture', 'comparison'].includes(manifest.type)) return null
+    const channel = entry.path.split('/')[1]
+    const canonical = /^(?:compare-)?(dev|main)(?:-[a-f0-9]{40})?$/.exec(channel)
+    const mainDaily = /^compare-main-(\d{4}-\d{2}-\d{2})$/.exec(channel)
+    const scopeChannel =
+        canonical?.[1] ??
+        (mainDaily && parseIsoDate(mainDaily[1]) ? 'main' : /^pr-[1-9][0-9]*$/.test(channel) ? channel : null)
+    if (!scopeChannel) return null
+    const capture = manifest?.type === 'comparison' ? manifest.after : manifest
+    const source = entry.source ?? manifest?.source ?? 'synthetic'
+    if (source !== 'synthetic') return null
+    const profileOf = (value) =>
+        value?.width && value?.height
+            ? `${value.width}x${value.height}`
+            : /(\d{3,4}x\d{3,4})$/.exec(value?.profile ?? '')?.[1]
+    const locale = entry.locale ?? capture?.locale ?? manifest?.locale ?? 'en'
+    const profile = entry.profile ?? profileOf(capture) ?? '393x852'
+    if (
+        [manifest, capture].some(
+            (value) =>
+                value &&
+                ((value.source !== undefined && value.source !== source) ||
+                    (value.locale !== undefined && value.locale !== locale) ||
+                    (profileOf(value) !== undefined && profileOf(value) !== profile))
+        )
+    )
+        return null
+    return { source, channel: scopeChannel, locale, profile }
+}
+function sameHistoryScope(a, b) {
+    return !!a && !!b && ['source', 'channel', 'locale', 'profile'].every((key) => a[key] === b[key])
+}
+function historyEntryOrder(a, b) {
+    const leftPath = typeof a?.path === 'string' ? a.path : ''
+    const rightPath = typeof b?.path === 'string' ? b.path : ''
+    return (
+        String(b?.date ?? rightPath.slice(0, 10)).localeCompare(String(a?.date ?? leftPath.slice(0, 10))) ||
+        (Number(b?.sequence) || 0) - (Number(a?.sequence) || 0) ||
+        (Number(b?.attempt) || 0) - (Number(a?.attempt) || 0) ||
+        leftPath.localeCompare(rightPath)
+    )
+}
+function screenHistoryEntries(index, scope) {
+    const seen = new Set()
+    return (Array.isArray(index) ? index : [])
+        .filter((entry) => historyReportPath(entry?.path) && sameHistoryScope(screenHistoryScope(entry), scope))
+        .slice()
+        .sort(historyEntryOrder)
+        .filter((entry) => {
+            if (seen.has(entry.path)) return false
+            seen.add(entry.path)
+            return true
+        })
+}
+function buildScreenHistory(records, { id, scope } = {}) {
+    const versions = [],
+        gaps = []
+    if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9-]{0,119}$/.test(id)) return { versions, gaps }
+    const matching = (Array.isArray(records) ? records : []).filter(
+        (record) =>
+            record && historyReportPath(record.entry?.path) && sameHistoryScope(screenHistoryScope(record.entry), scope)
+    )
+    const time = ({ entry, report: manifest }) =>
+        (
+            historyTimestamp((manifest?.type === 'comparison' ? manifest.after : manifest)?.capturedAt) ??
+            historyTimestamp(entry.date ?? entry.path.slice(0, 10))
+        )?.getTime() ?? 0
+    // A paired library and comparison describe the same after observation.
+    // Process the comparison first so its trusted hint is considered before emission.
+    matching.sort(
+        (a, b) =>
+            time(a) - time(b) ||
+            Number(b.report?.type === 'comparison') - Number(a.report?.type === 'comparison') ||
+            -historyEntryOrder(a.entry, b.entry)
+    )
+    let observed
+    let initialRecord = true
+    const snapshots = new Set()
+    const observe = (screen, capture, entry, row, baseline = false) => {
+        const gap = (reason) => gaps.push({ reportPath: entry.path, reason })
+        if (capture && !sameHistoryScope(screenHistoryScope(entry, capture), scope)) {
+            gap('Comparison baseline conflicts with history context')
+            return
+        }
+        if (!screen) {
+            gap('Screen not present in this capture')
+            return
+        }
+        if (!['captured', 'absent'].includes(screen.status)) {
+            gap(screen.reason || `Capture ${screen.status || 'unknown'}`)
+            return
+        }
+        if (screen.status === 'captured' && !asset(screen.image)) {
+            gap('Invalid or missing screenshot asset')
+            return
+        }
+        const captured = historyTimestamp(capture?.capturedAt)
+        const date = captured
+            ? capture.capturedAt
+            : historyTimestamp(entry.date ?? entry.path.slice(0, 10))
+              ? (entry.date ?? entry.path.slice(0, 10))
+              : null
+        const visual = screen.status === 'absent' ? null : screen.image
+        const snapshot = `${capture?.commit ?? entry.commit ?? entry.path}|${date}|${screen.status}|${visual}`
+        if (snapshots.has(snapshot)) return
+        snapshots.add(snapshot)
+        const tiny =
+            row &&
+            (row.belowThreshold === true ||
+                (Number.isFinite(row.percent) && row.percent >= 0 && Number(row.percent.toFixed(2)) === 0))
+        const trustedNoise =
+            tiny &&
+            observed?.image &&
+            row.before?.status === 'captured' &&
+            row.before.image === observed.image &&
+            visual !== null
+        const previous = versions.at(-1)
+        if ((!previous || visual !== previous.image) && !trustedNoise)
+            versions.push({
+                image: visual,
+                status: screen.status,
+                capturedAt: date,
+                timeKnown: !!captured,
+                commit: capture?.commit ?? entry.commit ?? '',
+                reportPath: entry.path,
+                name: screen.name ?? row?.name ?? id,
+                baseline,
+                device: capture,
+            })
+        observed = { image: visual }
+    }
+    for (const { entry, report: manifest } of matching) {
+        const initial = initialRecord
+        initialRecord = false
+        if (
+            manifest?.schema !== 1 ||
+            !['capture', 'comparison'].includes(manifest?.type) ||
+            !Array.isArray(manifest.screens)
+        ) {
+            gaps.push({ reportPath: entry.path, reason: 'Unsupported or malformed capture' })
+            continue
+        }
+        if (!sameHistoryScope(screenHistoryScope(entry, manifest), scope)) {
+            gaps.push({
+                reportPath: entry.path,
+                reason: 'Capture source, locale or viewport conflicts with publication context',
+            })
+            continue
+        }
+        if (manifest.type === 'comparison') {
+            const row = manifest.screens.find((screen) => screen?.id === id)
+            if (initial && row?.before) observe(row.before, manifest.before, entry, null, true)
+            observe(row?.after, manifest.after, entry, row)
+        } else
+            observe(
+                manifest.screens.find((screen) => screen?.id === id),
+                manifest,
+                entry
+            )
+    }
+    return { versions, gaps }
+}
+function historyAbortError() {
+    return new DOMException('History request cancelled', 'AbortError')
+}
+// Abort and timeout settle even when a reader ignores its AbortSignal.
+async function historyRead(load, path, signal) {
+    if (signal?.aborted) throw historyAbortError()
+    const controller = new AbortController()
+    let timer, abort
+    const boundary = new Promise((_, reject) => {
+        abort = () => {
+            controller.abort()
+            reject(historyAbortError())
+        }
+        signal?.addEventListener('abort', abort, { once: true })
+        timer = setTimeout(() => {
+            controller.abort()
+            reject(new Error('History read timed out after 8 seconds'))
+        }, 8000)
+    })
+    try {
+        return await Promise.race([Promise.resolve().then(() => load(path, { signal: controller.signal })), boundary])
+    } finally {
+        clearTimeout(timer)
+        signal?.removeEventListener('abort', abort)
+    }
+}
+async function loadScreenHistoryPage(entries, { offset = 0, load, signal, onProgress } = {}) {
+    if (signal?.aborted) throw historyAbortError()
+    const start = Number.isSafeInteger(offset) && offset >= 0 ? Math.min(offset, entries.length) : 0
+    const end = Math.min(start + 12, entries.length)
+    const records = [],
+        failures = []
+    let cursor = start,
+        completed = 0
+    await Promise.all(
+        Array.from({ length: Math.min(4, end - start) }, async () => {
+            while (cursor < end) {
+                if (signal?.aborted) throw historyAbortError()
+                const entry = entries[cursor++]
+                try {
+                    if (!historyReportPath(entry?.path)) throw new Error('Invalid immutable report path')
+                    const manifest = await historyRead(load, `/screen-data/reports/${entry.path}/manifest.json`, signal)
+                    if (signal?.aborted) throw historyAbortError()
+                    records.push({ entry, report: manifest })
+                } catch (error) {
+                    if (signal?.aborted) throw historyAbortError()
+                    failures.push({ entry, error })
+                }
+                completed++
+                onProgress?.({
+                    completed,
+                    total: end - start,
+                    scanned: start + completed,
+                    remaining: entries.length - end,
+                })
+            }
+        })
+    )
+    records.sort((a, b) => historyEntryOrder(a.entry, b.entry))
+    failures.sort((a, b) => historyEntryOrder(a.entry, b.entry))
+    return { records, failures, nextOffset: end, done: end >= entries.length }
+}
+function dateTile(value) {
+    const parts = screenHistoryDate(value)
+    const button = el('button', undefined, `date-tile${parts.year ? ' has-year' : ''}`)
+    button.type = 'button'
+    button.append(el('strong', parts.day), el('span', parts.month))
+    if (parts.year) button.append(el('span', parts.year, 'tile-year'))
+    return button
+}
+
 const versionDetails = (entry) => {
     const channel = entry.path.split('/')[1] ?? ''
     const pathPr = /^pr-([1-9][0-9]*)$/.exec(channel)
@@ -142,6 +409,346 @@ let rows = [],
     reportSourceEntries = [],
     filteredRows = [],
     renderedCount = 0
+let historyState = null
+let historyGeneration = 0
+let currentReportPath = ''
+function historyEligible(row) {
+    return (
+        !offline &&
+        !!row &&
+        /^[a-z0-9][a-z0-9-]{0,119}$/.test(row.id ?? '') &&
+        !!screenHistoryScope(
+            indexEntries.find((entry) => entry.path === currentReportPath) ?? { path: currentReportPath },
+            report
+        )
+    )
+}
+function closeScreenHistory(updateUrl = true) {
+    const old = historyState
+    historyGeneration++
+    old?.controller.abort()
+    historyState = null
+    if ($('screen-history')) $('screen-history').hidden = true
+    document.body.classList.remove('history-open')
+    document.title = `${$('title').textContent} · Peanut Screen library`
+    if (updateUrl && !offline && typeof history.replaceState === 'function')
+        history.replaceState(null, '', shareableHref(location.pathname, { history: '' }))
+    if (old) document.getElementById(old.id)?.querySelector('button')?.focus?.()
+}
+async function openScreenHistory(row, push = true) {
+    if (!$('screen-history')) return
+    closeScreenHistory(false)
+    const scope = screenHistoryScope(
+        indexEntries.find((entry) => entry.path === currentReportPath) ?? { path: currentReportPath },
+        report
+    )
+    const state = {
+        id: row.id,
+        row,
+        scope,
+        generation: ++historyGeneration,
+        controller: new AbortController(),
+        entries: [],
+        records: new Map(),
+        failures: new Map(),
+        offset: 0,
+        indexed: false,
+        loading: false,
+        selected: null,
+        mode: 'side',
+        versions: [],
+        gaps: [],
+    }
+    historyState = state
+    if ($('zoom').open) $('zoom').close()
+    document.body.classList.add('history-open')
+    $('screen-history').hidden = false
+    $('history-title').textContent = row.name
+    $('history-context').textContent = scope
+        ? `${scope.channel} · ${localeLabel(scope.locale)} · ${scope.profile.replace('x', ' × ')} · App states`
+        : 'History is unavailable for this report context.'
+    document.title = `${row.name} history · Peanut Screen library`
+    const href = shareableHref(location.pathname, { history: row.id })
+    if (push && typeof history.pushState === 'function') history.pushState(null, '', href)
+    else if (!offline && typeof history.replaceState === 'function') history.replaceState(null, '', href)
+    $('history-close').focus?.()
+    if (!historyEligible(row)) {
+        $('history-status').textContent = offline
+            ? 'History is unavailable in offline reports. Open the published report to browse real history.'
+            : 'History is available for published app-state reports only.'
+        $('history-grid').replaceChildren()
+        $('history-detail').hidden = true
+        $('history-load-more').hidden = true
+        $('history-retry').hidden = true
+        return
+    }
+    await loadHistory(state)
+}
+function historyCurrent(state) {
+    return historyState === state && state.generation === historyGeneration && !state.controller.signal.aborted
+}
+function mergeHistoryReads(state, result) {
+    for (const record of result.records) {
+        state.records.set(record.entry.path, record)
+        state.failures.delete(record.entry.path)
+    }
+    for (const failure of result.failures) {
+        // Move attempted failures to the tail so persistent failures cannot starve
+        // the next retry page. Successful immutable reads remain in place.
+        state.failures.delete(failure.entry.path)
+        state.failures.set(failure.entry.path, failure)
+    }
+}
+function renderHistoryAvailability() {
+    const message = $('history-unavailable')
+    if (!message) return
+    const supported = !offline && !!screenHistoryScope({ path: currentReportPath }, report)
+    message.hidden = supported
+    message.textContent = offline
+        ? 'History is unavailable in offline reports. Open the published app-state report to browse real history.'
+        : report?.type === 'journeys'
+          ? 'Screen history is unavailable for real journey runs. Browse a published app-state report to see visual history.'
+          : report?.type === 'collection'
+            ? 'Screen history is unavailable for curated collections. Open a published app-state report to browse its history.'
+            : 'Screen history is available for published main, dev and exact PR app-state reports.'
+}
+async function loadHistory(state, retry = false) {
+    if (!historyCurrent(state) || state.loading) return
+    state.loading = true
+    state.error = ''
+    renderHistory(state)
+    try {
+        if (!state.indexed) {
+            const index = await historyRead(loadJSON, '/screen-data/index.json', state.controller.signal)
+            if (!historyCurrent(state)) return
+            if (!Array.isArray(index)) throw new Error('Unsupported history index')
+            state.entries = screenHistoryEntries(index, state.scope)
+            state.indexed = true
+        }
+        const entries = retry ? [...state.failures.values()].map(({ entry }) => entry) : state.entries
+        const result = await loadScreenHistoryPage(entries, {
+            offset: retry ? 0 : state.offset,
+            load: loadJSON,
+            signal: state.controller.signal,
+            onProgress: ({ completed, total }) => {
+                if (historyCurrent(state))
+                    $('history-status').textContent =
+                        `Loading ${completed} of ${total} reports · ${state.offset} of ${state.entries.length} scanned`
+            },
+        })
+        if (!historyCurrent(state)) return
+        mergeHistoryReads(state, result)
+        if (!retry) state.offset = result.nextOffset
+        if (result.failures.some(({ error }) => error.authRequired)) {
+            state.controller.abort()
+            showAuthGate()
+            return
+        }
+    } catch (error) {
+        if (!historyCurrent(state) || error.name === 'AbortError') return
+        if (error.authRequired) {
+            state.controller.abort()
+            showAuthGate()
+            return
+        }
+        state.error = error.message || 'History could not be loaded'
+    } finally {
+        if (historyCurrent(state)) {
+            state.loading = false
+            renderHistory(state)
+        }
+    }
+}
+function historyVersionKey(version) {
+    return `${version.reportPath}|${version.commit}|${version.image}|${version.baseline}`
+}
+function renderHistory(state) {
+    const model = buildScreenHistory([...state.records.values()], { id: state.id, scope: state.scope })
+    state.versions = model.versions
+    state.gaps = model.gaps
+    const remaining = state.entries.length - state.offset
+    const gaps = state.gaps.length + state.failures.size
+    $('history-status').textContent = state.loading
+        ? 'Loading real capture history…'
+        : state.error
+          ? `History incomplete: ${state.error}. Retry to continue.`
+          : `${state.offset} of ${state.entries.length} reports scanned · ${state.versions.length} visual ${state.versions.length === 1 ? 'version' : 'versions'} · ${gaps} ${gaps === 1 ? 'gap' : 'gaps'} · ${remaining ? `${remaining} reports remaining` : gaps ? 'Scan complete; history has gaps' : 'History complete'}`
+    $('history-load-more').hidden = !remaining || !state.indexed
+    $('history-load-more').disabled = state.loading
+    $('history-load-more').textContent = `Load older history (${remaining} reports remaining)`
+    $('history-retry').hidden = !state.error && !state.failures.size
+    $('history-retry').disabled = state.loading
+    $('history-retry').textContent = state.failures.size
+        ? `Retry next ${Math.min(12, state.failures.size)} of ${state.failures.size} failed reports`
+        : 'Retry history index'
+    $('history-grid').replaceChildren()
+    if (!state.versions.length)
+        $('history-grid').append(
+            el(
+                'p',
+                state.loading
+                    ? 'Looking for captured versions…'
+                    : gaps
+                      ? 'No captured versions available in the scanned reports. Review the gaps below.'
+                      : remaining
+                        ? 'No visual versions in this page. Load older history to continue.'
+                        : 'No captured history is available for this screen.'
+            )
+        )
+    const selected =
+        state.versions.find((version) => historyVersionKey(version) === state.selected) ?? state.versions.at(-1)
+    state.selected = selected ? historyVersionKey(selected) : null
+    state.versions.forEach((version, index) => {
+        const item = el('article', undefined, 'history-version')
+        const chosen = historyVersionKey(version) === state.selected
+        item.dataset.current = String(chosen)
+        const track = el('div', undefined, 'history-track')
+        const tile = dateTile(version.capturedAt)
+        if (chosen) tile.classList.add('active')
+        tile.setAttribute('aria-pressed', String(chosen))
+        const dateLabel = formatCaptureDate(version.capturedAt) || 'Unknown date'
+        const provenance = version.timeKnown ? 'Capture date' : 'Publication date; capture time unknown'
+        const label = version.baseline
+            ? 'Initial comparison baseline'
+            : index === 0
+              ? 'First available captured version'
+              : version.status === 'absent'
+                ? 'Screen removed'
+                : `Visual version ${index + 1}`
+        tile.setAttribute('aria-label', `${label}, ${dateLabel}. ${provenance}. Compare with previous visual version`)
+        const choose = (selector) => {
+            state.selected = historyVersionKey(version)
+            renderHistory(state)
+            $('history-grid').querySelector(`[data-current="true"] ${selector}`)?.focus?.()
+        }
+        tile.onclick = () => choose('.date-tile')
+        track.append(tile)
+        const thumbnail = el('button', undefined, 'history-thumbnail')
+        thumbnail.type = 'button'
+        thumbnail.setAttribute('aria-label', `Inspect ${label}, ${dateLabel}`)
+        thumbnail.setAttribute('aria-pressed', String(chosen))
+        thumbnail.onclick = () => choose('.history-thumbnail')
+        thumbnail.append(
+            version.image
+                ? phonePreview(image(version.image, version.name), '')
+                : el('div', 'Confirmed absence in this revision', 'missing')
+        )
+        const reportLink = el('a', (version.commit || 'Report').slice(0, 8), 'history-report-link')
+        reportLink.href = shareableHref(`/screens/${version.reportPath}/`, { history: '' }, `#${state.id}`)
+        item.append(track, thumbnail, el('h3', label), el('p', provenance, 'history-meta'), reportLink)
+        $('history-grid').append(item)
+    })
+    const gapList = $('history-gaps')
+    gapList.replaceChildren()
+    for (const gap of [
+        ...state.gaps,
+        ...[...state.failures.values()].map(({ entry, error }) => ({ reportPath: entry.path, reason: error.message })),
+    ]) {
+        const item = el('li', undefined)
+        item.append(el('span', `${gap.reportPath}: ${gap.reason}`))
+        gapList.append(item)
+    }
+    $('history-gap-details').hidden = !gaps
+    $('history-gap-summary').textContent = `${gaps} ${gaps === 1 ? 'gap' : 'gaps'} in capture history`
+    renderHistoryDetail(state)
+}
+function historyFrame(version, label) {
+    if (!version.image) return el('div', 'Confirmed absence in this revision', 'missing')
+    return phonePreview(image(version.image, version.name), label)
+}
+function renderHistoryDetail(state) {
+    const index = state.versions.findIndex((version) => historyVersionKey(version) === state.selected)
+    const version = state.versions[index],
+        previous = state.versions[index - 1]
+    $('history-detail').hidden = !version
+    if (!version) return
+    $('history-detail-title').textContent = previous
+        ? `Visual version ${index + 1} compared with previous version`
+        : version.baseline
+          ? 'Initial comparison baseline'
+          : 'First available captured version'
+    $('history-detail-note').textContent =
+        state.offset < state.entries.length
+            ? 'Older reports remain unscanned; the preceding version may change as history loads.'
+            : state.gaps.length || state.failures.size
+              ? 'Capture history has gaps. These are the available visual versions.'
+              : 'Consecutive identical captures and trusted pixel noise are omitted.'
+    const pair = !!previous && !!version.image && !!previous.image
+    const mode = !previous ? 'single' : state.mode === 'overlay' && !pair ? 'side' : state.mode
+    for (const name of ['side', 'overlay', 'single']) {
+        const button = $(`history-${name}`)
+        button.hidden = name === 'overlay' ? !pair : name === 'side' ? !previous : false
+        button.setAttribute('aria-pressed', String(name === mode))
+    }
+    $('history-slider-label').hidden = !pair || mode !== 'overlay'
+    const images = $('history-images')
+    images.replaceChildren()
+    images.className = previous && mode === 'side' ? 'history-images pair' : 'history-images single'
+    if (pair && mode === 'overlay') {
+        const overlay = el('div', undefined, 'overlay')
+        overlay.append(
+            image(previous.image, 'Previous visual version'),
+            image(version.image, 'Selected visual version')
+        )
+        images.append(phonePreview(overlay, 'Previous / selected version'))
+        $('history-slider').value = '50'
+    } else if (previous && mode !== 'single')
+        images.append(
+            historyFrame(previous, 'Previous visual version'),
+            historyFrame(version, 'Selected visual version')
+        )
+    else images.append(historyFrame(version, 'Selected visual version'))
+}
+if ($('history-close')) $('history-close').onclick = () => closeScreenHistory()
+if ($('history-load-more')) $('history-load-more').onclick = () => historyState && loadHistory(historyState)
+if ($('history-retry'))
+    $('history-retry').onclick = () =>
+        historyState && loadHistory(historyState, historyState.indexed && historyState.failures.size > 0)
+for (const mode of ['side', 'overlay', 'single'])
+    if ($(`history-${mode}`))
+        $(`history-${mode}`).onclick = () => {
+            if (historyState) {
+                historyState.mode = mode
+                renderHistoryDetail(historyState)
+            }
+        }
+if ($('history-slider'))
+    $('history-slider').oninput = () => {
+        const after = $('history-images').querySelector('.overlay img+img')
+        if (after) after.style.clipPath = `inset(0 ${100 - Number($('history-slider').value)}% 0 0)`
+    }
+if ($('screen-history'))
+    $('screen-history').addEventListener('keydown', (event) => {
+        if (!historyState) return
+        if (event.key === 'Escape') {
+            event.preventDefault()
+            closeScreenHistory()
+        }
+        if (event.target !== $('history-slider') && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+            const state = historyState
+            const index = state.versions.findIndex((version) => historyVersionKey(version) === state.selected)
+            const next = state.versions[index + (event.key === 'ArrowLeft' ? -1 : 1)]
+            if (next) {
+                event.preventDefault()
+                state.selected = historyVersionKey(next)
+                renderHistory(state)
+                $('history-grid').querySelector('[data-current="true"] .date-tile')?.focus?.()
+            }
+        }
+    })
+if (typeof window.addEventListener === 'function') {
+    window.addEventListener('popstate', () => {
+        const id = requestedFilter('history')
+        if (!id) closeScreenHistory(false)
+        else if (historyState?.id !== id) {
+            const row = rows.find((candidate) => candidate.id === id)
+            if (row) openScreenHistory(row, false)
+            else closeScreenHistory(false)
+        }
+    })
+    window.addEventListener('pagehide', () => historyState?.controller.abort())
+}
+
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
 const newScreen = (row) => ['added', 'new'].includes(row.status) && unavailable(row.before) && !unavailable(row.after)
@@ -246,6 +853,8 @@ function shareableParams(overrides = {}) {
             if ((overrides.scope ?? (showVariations ? 'all' : 'default')) === 'default') params.set('scope', 'default')
         }
     }
+    const historyId = overrides.history ?? historyState?.id ?? requestedFilter('history')
+    if (/^[a-z0-9][a-z0-9-]{0,119}$/.test(historyId)) params.set('history', historyId)
     return params
 }
 function shareableHref(pathname = location.pathname, overrides, hash = location.hash ?? '') {
@@ -331,6 +940,11 @@ function zoom(row, mode = 'side') {
     const single = mode === 'screen' || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all')
     if (single) mode = 'screen'
     activeMode = mode
+    const historyButton = $('zoom-history')
+    if (historyButton) {
+        historyButton.hidden = !historyEligible(row)
+        historyButton.onclick = () => openScreenHistory(row)
+    }
     $('zoom-title').textContent = row.name
     $('zoom-images').replaceChildren()
     $('slider-label').hidden = mode !== 'overlay'
@@ -440,6 +1054,13 @@ function renderTile(row) {
     const link = el('a', 'Link to screen')
     link.href = `#${row.id}`
     foot.append(link)
+    if (historyEligible(row)) {
+        const button = el('button', 'History', 'history-link')
+        button.type = 'button'
+        button.setAttribute('aria-label', `View history for ${row.name}`)
+        button.onclick = () => openScreenHistory(row)
+        foot.append(button)
+    }
     if (row.belowThreshold)
         foot.append(
             el(
@@ -482,21 +1103,28 @@ function render() {
     }
     appendNextPage()
 }
-async function loadJSON(url) {
-    const r = await fetch(url, offline ? undefined : { redirect: 'manual', cache: 'no-store' })
-    if (r.type === 'opaqueredirect' || r.status === 0) {
-        const error = new Error('Authentication required')
-        error.authRequired = true
-        throw error
+async function loadJSON(url, { signal } = {}) {
+    const read = async (path, { signal: readSignal }) => {
+        const r = await fetch(path, {
+            ...(offline ? {} : { redirect: 'manual', cache: 'no-store' }),
+            signal: readSignal,
+        })
+        if (r.type === 'opaqueredirect' || r.status === 0 || r.status === 401 || r.status === 403) {
+            const error = new Error('Authentication required')
+            error.authRequired = true
+            throw error
+        }
+        if (!r.ok) {
+            const error = new Error(`Report unavailable (${r.status})`)
+            error.status = r.status
+            throw error
+        }
+        return r.json()
     }
-    if (!r.ok) {
-        const error = new Error(`Report unavailable (${r.status})`)
-        error.status = r.status
-        throw error
-    }
-    return r.json()
+    return read(url, { signal })
 }
 function showAuthGate() {
+    if ($('screen-history')) $('screen-history').hidden = true
     const returnPath = `${location.pathname}${location.search ?? ''}${location.hash ?? ''}`
     $('google-sign-in').href = `/screen-data/auth/continue?return=${encodeURIComponent(returnPath)}`
     document.body?.classList?.add('auth-required')
@@ -640,13 +1268,8 @@ function renderDateStrip(availableEntries) {
         for (let cursor = new Date(end); cursor >= start; cursor.setUTCDate(cursor.getUTCDate() - 1)) {
             const date = isoDate(cursor)
             const available = availableDates.has(date)
-            const button = el(
-                'button',
-                undefined,
-                `date-tile${available ? '' : ' unavailable'}${selected === date ? ' active' : ''}`
-            )
-            const label = shortDateParts(date)
-            button.append(el('strong', label.day), el('span', label.month))
+            const button = dateTile(date)
+            button.className += `${available ? '' : ' unavailable'}${selected === date ? ' active' : ''}`
             button.type = 'button'
             button.disabled = !available
             button.setAttribute(
@@ -847,6 +1470,7 @@ async function start() {
     }
     let reportPath = path
     if (path === 'latest') reportPath = (await loadJSON('/screen-data/latest.json')).path
+    currentReportPath = reportPath
     if (!offline && !collectionMatch && !/^[a-z0-9/-]+$/.test(reportPath)) throw new Error('Invalid report path')
     report = offline
         ? window.SCREEN_REPORT
@@ -972,6 +1596,7 @@ async function start() {
         $('flow').append(o)
     }
     await configureReportLocales(reportPath)
+    renderHistoryAvailability()
     if (!offline && ['capture', 'comparison'].includes(report.type)) {
         const entry = indexEntries.find((candidate) => candidate.path === reportPath) ?? { path: reportPath }
         const { branch, prNumber } = versionDetails(entry)
@@ -1015,6 +1640,8 @@ async function start() {
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
     }
     syncShareableUrl()
+    const historyRow = rows.find((row) => row.id === requestedFilter('history'))
+    if (historyRow) await openScreenHistory(historyRow, false)
 }
 for (const name of ['search', 'flow'])
     $(name).addEventListener('input', () => {

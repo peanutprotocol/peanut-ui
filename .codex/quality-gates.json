@@ -11,6 +11,8 @@
                 "scripts/screens/catalogue.test.mjs",
                 "scripts/screens/state-coverage.test.mjs",
                 "scripts/screens/viewer.test.mjs",
+                "scripts/screens/screen-history-acceptance.test.mjs",
+                "scripts/screens/screen-history-regressions.test.mjs",
                 "scripts/screens/zero-difference-gate-properties.test.mjs",
                 "scripts/screens/zero-difference-gate.test.mjs"
             ],
@@ -33,6 +35,22 @@
             "cwd": "."
         },
         {
+            "name": "history-lint",
+            "argv": [
+                "node",
+                "node_modules/eslint/bin/eslint.js",
+                "--no-ignore",
+                "public/screen-library/viewer.js",
+                "scripts/screens/screen-history-regressions.test.mjs"
+            ],
+            "cwd": "."
+        },
+        {
+            "name": "history-syntax",
+            "argv": ["node", "--check", "public/screen-library/viewer.js"],
+            "cwd": "."
+        },
+        {
             "name": "format",
             "argv": [
                 "node",
@@ -47,6 +65,9 @@
                 "public/screen-library/viewer.js",
                 "public/screen-library/viewer.css",
                 "public/screen-library/index.html",
+                "scripts/screens/screen-history-acceptance.test.mjs",
+                "docs/plans/2026-10-14-screen-visual-history.md",
+                "docs/engineering/NFR.md",
                 "src/context/authContext.tsx",
                 "src/hooks/useNotifications.ts",
                 "src/services/onesignal/identity.ts",
@@ -56,7 +77,9 @@
                 "src/context/__tests__/authContext-fetchUser.test.tsx",
                 "src/context/__tests__/authContext-cross-tab-login.test.tsx",
                 "src/context/__tests__/authContext-cross-tab-hook-race.test.tsx",
-                "src/context/__tests__/authContext-cross-tab-lifecycle-race.test.tsx"
+                "src/context/__tests__/authContext-cross-tab-lifecycle-race.test.tsx",
+                "scripts/screens/screen-history-regressions.test.mjs",
+                "docs/engineering/preflight.md"
             ],
             "cwd": "."
         }
