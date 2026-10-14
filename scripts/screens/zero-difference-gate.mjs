@@ -19,9 +19,16 @@ const hasExceptionReason = (body) => {
 /** A newly registered state may lack a baseline without making the review partial. */
 export function reviewableComparison(comparison) {
     const { before, after, screens } = comparison ?? {}
-    if (after?.complete !== true || !Array.isArray(screens) || !screens.length) return false
+    const scoped = comparison?.scope?.mode === 'targeted'
+    if (scoped && comparison.scopeComplete !== true) return false
+    if (
+        (scoped ? after?.scopeComplete !== true : after?.complete !== true) ||
+        !Array.isArray(screens) ||
+        !screens.length
+    )
+        return false
     if (!screens.every((screen) => reviewableStatuses.has(screen.status))) return false
-    if (!Array.isArray(before?.inventory) || !before.inventory.length) return false
+    if (!Array.isArray(before?.inventory) || (!scoped && !before.inventory.length)) return false
     if (!before.inventory.every((entry) => ['catalogued', 'excluded'].includes(entry.status))) return false
     if (!Array.isArray(before.screens) || !before.screens.length) return false
 
@@ -40,11 +47,15 @@ export function reviewableComparison(comparison) {
         hasNewHarnessGap ||= newHarnessGap
         return newHarnessGap
     })
-    return hasCapturedBaseline && onlyKnownGaps && (before.complete === true || hasNewHarnessGap)
+    return (
+        hasCapturedBaseline &&
+        onlyKnownGaps &&
+        (before.complete === true || before.scopeComplete === true || hasNewHarnessGap)
+    )
 }
 
 /** Decide whether an exact-head PR review has enough visual coverage to pass. */
-export function evaluateZeroDifferenceGate({ event, changedFiles, reports, exception }) {
+export function evaluateZeroDifferenceGate({ event, changedFiles, reports, exception, plan }) {
     if (event !== 'pull_request') return { ok: true, reason: 'No PR visual-coverage gate for integration runs.' }
     if (!Array.isArray(changedFiles) || !changedFiles.every((path) => typeof path === 'string'))
         return { ok: false, reason: 'Cannot verify the changed-file list for this PR.' }
@@ -52,6 +63,12 @@ export function evaluateZeroDifferenceGate({ event, changedFiles, reports, excep
     if (!uiFiles.length) return { ok: true, reason: 'No UI source files changed.' }
 
     const seen = new Set()
+    let target
+    try {
+        if (plan?.mode === 'targeted') target = canonicalScope(plan)
+    } catch {
+        return { ok: false, reason: 'Trusted capture plan has invalid scope.' }
+    }
     if (
         !Array.isArray(reports) ||
         reports.length !== supportedLocales.size ||
@@ -59,7 +76,7 @@ export function evaluateZeroDifferenceGate({ event, changedFiles, reports, excep
             if (
                 !supportedLocales.has(report?.locale) ||
                 seen.has(report.locale) ||
-                report.complete !== true ||
+                (target ? !validTarget(report, target) : report.complete !== true || report.scope !== undefined) ||
                 !Number.isInteger(report.changedScreens) ||
                 report.changedScreens < 0
             )
@@ -77,5 +94,18 @@ export function evaluateZeroDifferenceGate({ event, changedFiles, reports, excep
     return {
         ok: false,
         reason: 'UI source changed but all four Screen Library reports have zero visual differences. Add a deterministic capture state or put “Screen Library exception: <reason>” on its own line in the PR description, then rerun the check.',
+    }
+}
+import { canonicalScope } from './capture-scope.mjs'
+
+function validTarget(report, target) {
+    try {
+        return (
+            report.complete === false &&
+            report.scopeComplete === true &&
+            JSON.stringify(canonicalScope(report.scope)) === JSON.stringify(target)
+        )
+    } catch {
+        return false
     }
 }

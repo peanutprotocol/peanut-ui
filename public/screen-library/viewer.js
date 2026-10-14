@@ -725,7 +725,9 @@ function renderLanding() {
             const branch = el('strong', details.branch || 'Unknown branch', 'version-branch')
             const meta = el('div', undefined, 'version-meta')
             if (details.prNumber) meta.append(el('span', `PR #${details.prNumber}`, 'version-pr'))
-            if (!v.complete) meta.append(el('span', 'Incomplete', 'version-incomplete'))
+            if (v.scope?.mode === 'targeted')
+                meta.append(el('span', v.scopeComplete ? 'Targeted' : 'Targeted · incomplete', 'version-incomplete'))
+            else if (!v.complete) meta.append(el('span', 'Incomplete', 'version-incomplete'))
             const count = el('div', undefined, 'version-count')
             count.append(
                 el('strong', details.changedScreens === null ? '—' : String(details.changedScreens)),
@@ -756,9 +758,11 @@ function renderCoverage() {
               ? report.complete
                   ? 'Complete Nutcracker run'
                   : 'Incomplete Nutcracker run'
-              : report.complete
-                ? 'Complete capture'
-                : 'Incomplete capture — review gaps and failures'
+              : report.scope?.mode === 'targeted'
+                ? `${report.scopeComplete ? 'Complete targeted review' : 'Incomplete targeted review'} — ${[...new Set(rows.map((row) => row.flow))].join(', ')}; other flows were not captured`
+                : report.complete
+                  ? 'Complete capture'
+                  : 'Incomplete capture — review gaps and failures'
     } · ${rows.length} ${report.type === 'journeys' || report.type === 'collection' ? 'screenshots' : 'states'} · ${Object.entries(
         counts
     )

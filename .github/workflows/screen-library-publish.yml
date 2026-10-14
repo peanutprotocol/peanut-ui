@@ -13,9 +13,43 @@ permissions:
     actions: read
     pull-requests: write
 jobs:
-    publish:
-        if: github.repository == 'peanutprotocol/peanut-ui' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    route:
+        if: github.repository == 'peanutprotocol/peanut-ui' && github.event_name == 'push' && github.ref == 'refs/heads/dev'
         runs-on: ubuntu-24.04
+        timeout-minutes: 3
+        permissions:
+            contents: read
+        outputs:
+            mode: ${{ steps.route.outputs.mode }}
+            gallery: ${{ steps.route.outputs.gallery }}
+            refresh_indexes: ${{ steps.route.outputs.refresh_indexes }}
+            deploy_gallery: ${{ steps.route.outputs.deploy_gallery }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: dev
+                  persist-credentials: false
+                  fetch-depth: 0
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - name: Derive trusted delivery route from the exact push
+              id: route
+              env:
+                  BEFORE: ${{ github.event.before }}
+                  AFTER: ${{ github.sha }}
+                  EVENT: ${{ github.event_name }}
+                  BRANCH: ${{ github.ref_name }}
+              run: node scripts/screens/decide-capture.mjs
+
+    publish:
+        needs: route
+        if: >-
+            always() && !cancelled() && github.repository == 'peanutprotocol/peanut-ui' &&
+            (needs.route.result == 'skipped' || (needs.route.result == 'success' && needs.route.outputs.mode != 'skip')) &&
+            (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
         outputs:
             published: ${{ steps.publication.outputs.published }}
         steps:
@@ -88,6 +122,16 @@ jobs:
                   SCREEN_LIBRARY_BASELINE_ARTIFACT: ${{ steps.baseline.outputs.artifact_name }}
               run: node scripts/screens/publish-run.mjs
 
+    gallery:
+        needs: route
+        if: needs.route.result == 'success' && needs.route.outputs.mode == 'skip' && needs.route.outputs.gallery == 'true' && !cancelled()
+        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-gallery.yml@dev
+        with:
+            refresh_indexes: ${{ needs.route.outputs.mode == 'skip' && needs.route.outputs.refresh_indexes == 'true' }}
+            deploy_gallery: ${{ needs.route.outputs.deploy_gallery == 'true' }}
+        secrets:
+            CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+
     # Reports, entries and content-addressed assets are immutable and may upload
     # concurrently. Serialize only the short shared index/latest refresh so one
     # run cannot overwrite another run's catalogue update.
@@ -97,6 +141,7 @@ jobs:
         # update fails, so always reconcile the index after a completed batch.
         if: always() && needs.publish.outputs.published == 'true'
         runs-on: ubuntu-24.04
+        timeout-minutes: 10
         concurrency:
             group: screen-library-index
             queue: max
@@ -122,66 +167,9 @@ jobs:
     deploy:
         needs: index
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        environment: screen-library-deploy
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              with:
-                  # Deploy the same trusted dev revision whose publication
-                  # completed, not a newer branch tip that raced this run.
-                  ref: ${{ github.sha }}
-                  persist-credentials: false
-            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-              with:
-                  node-version: '22'
-            - name: Install isolated deployment tool from the committed lockfile
-              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/deploy
-            - name: Prepare migrated gallery and R2 binding
-              env:
-                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
-                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
-                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
-              run: node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
-            - name: Deploy private gallery after publication
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
-                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-              run: |
-                  if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
-                      echo 'CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher.' >&2
-                      exit 1
-                  fi
-                  scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
-            - name: Prepare collection API Worker
-              if: vars.SCREEN_LIBRARY_COLLECTION_API_URL != ''
-              env:
-                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
-                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
-                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
-                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
-                  SCREEN_LIBRARY_COLLECTION_API_URL: ${{ vars.SCREEN_LIBRARY_COLLECTION_API_URL }}
-                  GITHUB_REPOSITORY: ${{ github.repository }}
-              run: node scripts/screens/collection-worker/prepare.mjs /tmp/screen-collections
-            - name: Deploy collection API Worker
-              if: vars.SCREEN_LIBRARY_COLLECTION_API_URL != ''
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
-                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-              run: scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-collections/wrangler.json
-            - name: Install isolated MCP deployment dependencies
-              if: vars.SCREEN_LIBRARY_MCP_URL != ''
-              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/mcp
-            - name: Prepare MCP Worker
-              if: vars.SCREEN_LIBRARY_MCP_URL != ''
-              env:
-                  SCREEN_LIBRARY_MCP_URL: ${{ vars.SCREEN_LIBRARY_MCP_URL }}
-                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
-              run: |
-                  node scripts/screens/mcp/prepare.mjs /tmp/screen-library-mcp
-                  ln -s "$GITHUB_WORKSPACE/scripts/screens/mcp/node_modules" /tmp/screen-library-mcp/node_modules
-            - name: Deploy MCP Worker
-              if: vars.SCREEN_LIBRARY_MCP_URL != ''
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
-                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-              run: scripts/screens/mcp/node_modules/.bin/wrangler deploy --config /tmp/screen-library-mcp/wrangler.json
+        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-gallery.yml@dev
+        with:
+            refresh_indexes: false
+            deploy_gallery: true
+        secrets:
+            CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}

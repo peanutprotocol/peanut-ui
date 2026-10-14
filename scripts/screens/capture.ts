@@ -8,6 +8,10 @@ import { SCREENS } from '../../src/dev/screens/catalogue'
 import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
+import { canonicalScope, scopeCapture } from './capture-scope.mjs'
+import { fixtureIdentityFiles } from './capture-impact.mjs'
+import { knownNonvisual } from './capture-plan.mjs'
+import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
 import { installCaptureSafeArea } from './capture-safe-area.mjs'
@@ -79,13 +83,7 @@ async function main() {
         readdirSync(p, { withFileTypes: true }).flatMap((e) =>
             e.isDirectory() ? walk(join(p, e.name)) : [join(p, e.name)]
         )
-    const identity = (paths: string[]) =>
-        hash(
-            paths
-                .sort()
-                .map((p) => `${p}\0${readFileSync(p)}`)
-                .join('\0')
-        )
+    const identity = fileIdentity
     let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
     let launchError: unknown
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -127,22 +125,23 @@ async function main() {
     const results: Record<string, unknown>[] = []
     const selected = arg('only').split(',').filter(Boolean)
     const requireFullCatalogue = arg('full-catalogue') === 'true'
+    const scope =
+        arg('scope') === 'targeted'
+            ? canonicalScope({ mode: 'targeted', screenIds: selected }, new Set(SCREENS.map((screen) => screen.id)))
+            : undefined
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
     const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
-    const harness = identity([
-        ...walk('scripts/screens').filter((p) => !p.endsWith('.test.mjs')),
-        ...walk('src/dev/screens'),
-        ...walk('src/dev/surfaces'),
-        'pnpm-lock.yaml',
-    ])
-    const fixtures = identity([
-        ...walk('src/dev/fixtures'),
-        'src/utils/demo-api.ts',
-        'src/constants/demo-data.ts',
-        'src/constants/residence.consts.ts',
-    ])
-    const manifest = () =>
-        validateCapture({
+    const harness = identity(harnessIdentityFiles())
+    const fixtures = identity(
+        fixtureIdentityFiles([
+            ...walk('src/dev/fixtures').filter((path) => !knownNonvisual(path)),
+            'src/utils/demo-api.ts',
+            'src/constants/demo-data.ts',
+            'src/constants/residence.consts.ts',
+        ])
+    )
+    const manifest = () => {
+        const capture = {
             schema: 1,
             type: 'capture',
             commit,
@@ -167,7 +166,9 @@ async function main() {
                     : []),
                 ...assetOverlays.map(({ file, before, after }) => ({ path: file, before, after })),
             ],
-        })
+        }
+        return validateCapture(scope ? scopeCapture(capture, scope) : capture)
+    }
     try {
         for (const screen of SCREENS) {
             const metadata = {

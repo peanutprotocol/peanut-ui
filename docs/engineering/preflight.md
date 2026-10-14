@@ -1,5 +1,14 @@
 # UI incident preflight
 
+## 2026-10-14: full capture work before baseline and impact decisions
+
+- Trigger: a docs/test/viewer-only change starts app capture, or a PR finishes all four after captures before finding its baseline cannot be used. Example: run 38573524506 spent 84.4 capture runner-minutes before baseline resolution failed; successful dev run 38545091100 spent 164.13 runner-minutes capturing both sides.
+- Root cause: the capture workflow had no nonvisual decision, branch pairs always recaptured before, and PR compatibility was deferred to publication. The existing diagnostic `--only` output could not safely satisfy full coverage.
+- Preflight: `rg -n 'scopeComplete|complete|canReuseBaseline|verifiedExternalBaselineSource|capture_before|capture_after|changedFiles|timeout|catch' scripts/screens .github/workflows/screen-library*.yml`. Inspect source and callers; a match is not itself a defect.
+- Invariant: a safe skip needs a complete immutable diff; a scoped pass needs the publisher's trusted affected-flow decision and four complete locale scopes. A reused before image keeps its original provenance and must satisfy all compatibility and asset-integrity checks. A missing/incompatible baseline permits one bounded fresh capture, never a fabricated passing comparison.
+- Counterexample: a shared hook, translation, asset, fixture, capture harness or rendering dependency may affect screens indirectly and requires full capture when influence cannot be proven. Old complete reports remain valid; a targeted report remains globally incomplete even when every selected state passed.
+- Regression: frozen `capture-cost-acceptance.test.mjs` covers the pure contracts and 64 seeded cyclic graph/permutation cases (seed `0x51c0ffee`). Integration, workflow, stale/source provenance, parser, fault and disposable mutation evidence is recorded in the feature plan after execution.
+
 ## Balance validation after a withdrawal starts (2026-10-13)
 
 - Trigger: live balance decreases while the crypto withdrawal review remains mounted during execution or payment recording. The obsolete affordability warning flashes before success.
