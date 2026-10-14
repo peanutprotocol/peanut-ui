@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs'
 const screenLibrary = readFileSync('.github/workflows/screen-library.yml', 'utf8')
 const baseline = readFileSync('.github/workflows/screen-library-baseline.yml', 'utf8')
 const publisher = readFileSync('.github/workflows/screen-library-publish.yml', 'utf8')
+const gallery = readFileSync('.github/workflows/screen-library-gallery.yml', 'utf8')
 const collections = readFileSync('.github/workflows/screen-library-collection.yml', 'utf8')
 const publishRun = readFileSync('scripts/screens/publish-run.mjs', 'utf8')
 const baselinePublisher = readFileSync('scripts/screens/publish-baseline-viewports.mjs', 'utf8')
@@ -66,16 +67,29 @@ test('publisher and deploy reuse one Cloudflare API token during the secret-name
     assert.doesNotMatch(screenLibrary, /^\s+CLOUDFLARE_API_TOKEN:/m)
     assert.match(declaredInputs, /CLOUDFLARE_PUBLISH_TOKEN:\n\s+required: false/)
     assert.match(declaredInputs, /CLOUDFLARE_API_TOKEN:\n\s+required: false/)
-    assert.match(publisher, /environment: screen-library-deploy/)
+    assert.match(gallery, /environment: screen-library-deploy/)
+    assert.match(publisher, /uses: peanutprotocol\/peanut-ui\/\.github\/workflows\/screen-library-gallery.yml@dev/)
+    assert.match(
+        publisher,
+        /CLOUDFLARE_PUBLISH_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/
+    )
     assert.equal(
         (
             publisher.match(
                 /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/g
             ) ?? []
         ).length,
-        5
+        2
     )
-    assert.match(publisher, /CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher/)
+    assert.equal(
+        (
+            gallery.match(
+                /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/g
+            ) ?? []
+        ).length,
+        4
+    )
+    assert.match(gallery, /CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher/)
 })
 
 test('immutable uploads run outside the short serialized index refresh', () => {

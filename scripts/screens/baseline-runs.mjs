@@ -17,7 +17,7 @@ export function trustedIntegrationBaselineRun(run, jobs, repository, expectedCom
     if (
         run.path !== '.github/workflows/screen-library.yml' ||
         run.event !== 'push' ||
-        run.head_branch !== 'dev' ||
+        !['dev', 'main'].includes(run.head_branch) ||
         run.head_sha !== expectedCommit ||
         run.head_repository?.full_name !== repository ||
         run.status !== 'completed'

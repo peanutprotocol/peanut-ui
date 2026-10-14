@@ -1,5 +1,14 @@
 # UI incident preflight
 
+## 2026-10-14: full capture work before baseline and impact decisions
+
+- Trigger: a docs/test/viewer-only change starts app capture, or a PR finishes all four after captures before finding its baseline cannot be used. Example: run 38573524506 spent 84.4 capture runner-minutes before baseline resolution failed; successful dev run 38545091100 spent 164.13 runner-minutes capturing both sides.
+- Root cause: the capture workflow had no nonvisual decision, branch pairs always recaptured before, and PR compatibility was deferred to publication. The existing diagnostic `--only` output could not safely satisfy full coverage.
+- Preflight: `rg -n 'scopeComplete|complete|canReuseBaseline|verifiedExternalBaselineSource|capture_before|capture_after|changedFiles|timeout|catch' scripts/screens .github/workflows/screen-library*.yml`. Inspect source and callers; a match is not itself a defect.
+- Invariant: a safe skip needs a complete immutable diff; a scoped pass needs the publisher's trusted affected-flow decision and four complete locale scopes. A reused before image keeps its original provenance and must satisfy all compatibility and asset-integrity checks. A missing/incompatible baseline permits one bounded fresh capture, never a fabricated passing comparison.
+- Counterexample: a shared hook, translation, asset, fixture, capture harness or rendering dependency may affect screens indirectly and requires full capture when influence cannot be proven. Old complete reports remain valid; a targeted report remains globally incomplete even when every selected state passed.
+- Regression: frozen `capture-cost-acceptance.test.mjs` covers the pure contracts and 64 seeded cyclic graph/permutation cases (seed `0x51c0ffee`). Integration, workflow, stale/source provenance, parser, fault and disposable mutation evidence is recorded in the feature plan after execution.
+
 ## Balance validation after a withdrawal starts (2026-10-13)
 
 - Trigger: live balance decreases while the crypto withdrawal review remains mounted during execution or payment recording. The obsolete affordability warning flashes before success.
@@ -47,3 +56,12 @@ Regression evidence: `identity-cross-tab-login.test.ts` covers receipt/revision 
 Additional reachable race: the real provider/hook/QueryClient harness observed SDK B -> A -> B when login(B) emitted a subscription callback before React rendered profile B. Hook callbacks now use `syncNotificationIdentityFromHook`, retaining the last auth-selected identity. Authorized auth sync remains compatible. CT14/15 and `authContext-cross-tab-hook-race.test.tsx` forbid any transient former-account login; same-account metadata updates also cannot restart pending verification.
 
 A queued online task reproduced the same sequence without an SDK event: React had not rendered the updated cache yet. Provider lifecycle callbacks read current `QueryClient.getQueryData([USER])`, and skip unknown data. `authContext-cross-tab-lifecycle-race.test.tsx` freezes the actual TanStack event ordering; do not replace its real client with a synchronous cache stub.
+
+## 2026-10-14: visual history admitted or omitted the wrong observations
+
+- Trigger: a library and comparison publish the same tiny visual change; conflicting report metadata claims another viewport/locale; a failed initial PR baseline is followed by a refreshed base; or malformed manifests occur among valid captures.
+- Root cause: publication ordering could bypass a comparison noise hint, entry metadata masked manifest conflicts, later PR bases were treated as history, and malformed observations were silently filtered or crashed sorting. Independent VM repros confirmed these cases before correction.
+- Preflight: `rg -n 'screenHistoryScope|snapshots|trustedNoise|initialRecord|historyEntryOrder|failures|historyEligible' public/screen-library/viewer.js`. Inspect the observed ordering, every scope field, gap output and entry points; a match alone is not a defect.
+- Invariant: pair duplicate publications before emission, trust noise only against the immediately observed baseline, reject conflicting context with a visible gap, preserve A-B-A, and use only the initial PR baseline. Components share route history eligibility. Every explicit failed-read retry batch must eventually reach later failures while retaining successes.
+- Counterexample: matching asset identities in consecutive captures legitimately collapse; A-B-A remains three versions. A missing screen or failed read is a gap and cannot establish removal. Invalid public-helper paths must never reach the reader.
+- Regression: frozen `screen-history-acceptance.test.mjs` covers the accepted contract and seeded visual sequences. `screen-history-regressions.test.mjs` covers paired-noise permutations, scope conflicts, malformed observations, PR bases, components, persistent failure rotation, unavailable contexts, invalid path diagnostics and Escape with a focused slider. Browser geometry assertions separately check that phone frames fit each timeline/detail column at 320, 390, 768 and 1024 pixels.

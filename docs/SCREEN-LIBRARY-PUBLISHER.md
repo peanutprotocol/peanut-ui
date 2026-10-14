@@ -24,16 +24,40 @@ Validate with Node 20 and the pinned publisher dependencies:
 node --test scripts/screens/*.test.mjs
 ```
 
-The publisher installs pixelmatch 7.2.0, pngjs 7.0.0, @aws-sdk/client-s3 3.883.0 and sharp
-0.34.5 without app install scripts. Only complete dev libraries advance latest.
+The publisher installs pixelmatch 7.2.0, pngjs 7.0.0, @aws-sdk/client-s3 3.883.0, sharp
+0.34.5 and TypeScript 5.9.3 without app install scripts. TypeScript parses source
+dependencies as data; publication never executes PR product modules. Only
+complete dev libraries advance latest.
 Immutable uploads run concurrently across workflow runs. Only the short shared
 index refresh queues with `queue: max`. Missing event PR lists use a unique live
 repository/branch/head binding; a changed fallback merge base requires a rerun.
 
+Targeted PR reports declare the captured screen IDs and separate scope coverage
+from full-library completeness. The publisher recomputes the expected affected
+flows from the bound before/after revisions and its trusted catalogue, requires
+matching complete scopes in all four locales, and retains the zero-difference
+exception check. An artifact's own scope declaration cannot authorize less
+coverage. A full plan rejects a targeted report.
+
+Reused before artifacts preserve their source manifests and carry source-run
+provenance. Publication independently rechecks the source run, retained artifact,
+exact previous commit, renderer compatibility and content-addressed assets.
+Missing or incompatible captures cause one bounded fresh capture per locale;
+unavailable API evidence cannot be treated as a verified baseline or successful
+skip. Scoped PR reports cannot serve as full integration baselines.
+
 ## Private deployment
 
-The gallery deploys independently to Cloudflare Workers from the trusted
-publisher workflow after a successful dev publication and index refresh. No
+The gallery deploys independently to Cloudflare Workers through the trusted
+reusable `screen-library-gallery.yml` workflow after a successful dev publication
+and index refresh, or for gallery-only dev maintenance that skips app captures.
+Both caller paths use the existing dev-pinned publisher without new inputs; the
+trusted publisher derives maintenance from the exact push event. This keeps
+pre-merge callers compatible and credentials on trusted code. Index-only
+maintenance refreshes indexes without redeployment. Gallery
+deployments are serialized and compare deployment inputs with current dev before
+using their exact queued source: later docs-only commits are compatible, while a
+newer gallery change prevents rollback. No
 Next.js build or Vercel deployment is involved. Worker Static Assets
 serves the viewer; only `/screen-data/*` invokes the read-only R2 handler.
 The R2 bucket remains private. Cloudflare Access protects `/screens/*` and
