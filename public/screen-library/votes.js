@@ -1,6 +1,59 @@
 /* Screenshot votes share the verified comments session. No optimistic writes. */
 'use strict'
 window.ScreenVoting = {
+    // Lucide icon paths, ISC License. Copyright (c) 2026 Lucide Icons and Contributors.
+    // Permission to use, copy, modify, and/or distribute this software for any
+    // purpose with or without fee is hereby granted, provided that the above
+    // copyright notice and this permission notice appear in all copies.
+    // THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+    // WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+    // MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+    // ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+    // WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+    // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+    // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+    icon(name) {
+        const paths = {
+            up: [
+                'M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z',
+                'M7 10v12',
+            ],
+            down: [
+                'M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z',
+                'M17 14V2',
+            ],
+            refresh: [
+                'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8',
+                'M21 3v5h-5',
+                'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16',
+                'M8 16H3v5',
+            ],
+            message: [
+                'M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719',
+            ],
+        }
+        const ns = 'http://www.w3.org/2000/svg'
+        const svg = document.createElementNS(ns, 'svg')
+        for (const [key, value] of Object.entries({
+            viewBox: '0 0 24 24',
+            width: 14,
+            height: 14,
+            fill: 'none',
+            stroke: 'currentColor',
+            'stroke-width': 1.8,
+            'stroke-linecap': 'round',
+            'stroke-linejoin': 'round',
+            'aria-hidden': 'true',
+            focusable: 'false',
+        }))
+            svg.setAttribute(key, value)
+        for (const d of paths[name]) {
+            const path = document.createElementNS(ns, 'path')
+            path.setAttribute('d', d)
+            svg.append(path)
+        }
+        return svg
+    },
     create({ api, authenticate, getUser, getEpoch }) {
         const fields = ['reportPath', 'screenId', 'locale', 'profile', 'image', 'side']
         const widgets = new Set(),
@@ -165,9 +218,9 @@ window.ScreenVoting = {
             root.setAttribute('role', 'group')
             root.setAttribute('aria-label', `${scope.side === 'before' ? 'Before' : 'After'} screenshot votes`)
             const widget = { root, scope, key, controls: [] }
-            for (const [value, label, icon] of [
-                [1, 'up', '👍'],
-                [-1, 'down', '👎'],
+            for (const [value, label] of [
+                [1, 'up'],
+                [-1, 'down'],
             ]) {
                 const control = element('button'),
                     count = element('span', '—')
@@ -177,9 +230,7 @@ window.ScreenVoting = {
                 control.setAttribute('aria-pressed', 'false')
                 control.disabled = true
                 count.dataset.voteCount = label
-                const glyph = element('span', icon)
-                glyph.setAttribute('aria-hidden', 'true')
-                control.append(glyph, count)
+                control.append(window.ScreenVoting.icon(label), count)
                 control.onclick = () => save(widget, value)
                 root.append(control)
                 widget.controls.push([value, control, count])
@@ -192,7 +243,8 @@ window.ScreenVoting = {
             widget.retry.dataset.voteRetry = ''
             widget.retry.hidden = true
             widget.retry.onclick = () => save(widget, undefined, true)
-            widget.refresh = element('button', '↻')
+            widget.refresh = element('button')
+            widget.refresh.append(window.ScreenVoting.icon('refresh'))
             widget.refresh.type = 'button'
             widget.refresh.dataset.voteRefresh = ''
             widget.refresh.setAttribute('aria-label', `Refresh votes, ${scope.side} screenshot`)

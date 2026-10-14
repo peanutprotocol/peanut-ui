@@ -71,7 +71,7 @@ window.ScreenComments = {
                 const login = a.cloneNode(true)
                 panel.append(login, ...pendingForms)
             }
-            for (const b of badges) b.element.textContent = '◌ —'
+            for (const b of badges) b.countElement.textContent = '—'
         }
         async function api(path, options = {}) {
             const requestEpoch = epoch
@@ -142,7 +142,7 @@ window.ScreenComments = {
                         )
                         if (opened)
                             panel.replaceChildren(node('p', 'Loading discussion for your account…', 'comment-notice'))
-                        for (const b of badges) b.element.textContent = '◌ —'
+                        for (const b of badges) b.countElement.textContent = '—'
                     }
                 }
                 return next
@@ -187,10 +187,11 @@ window.ScreenComments = {
         }
         function renderFeed() {
             feed.replaceChildren(node('div', undefined, 'comment-feed-heading'))
-            feed.firstChild.append(
-                node('h2', 'Latest comments'),
-                button('↻', () => loadFeed(), 'comment-refresh')
-            )
+            const refresh = button('', () => loadFeed(), 'comment-refresh')
+            const icon = window.ScreenVoting?.icon?.('refresh')
+            if (icon) refresh.append(icon)
+            else refresh.textContent = 'Refresh'
+            feed.firstChild.append(node('h2', 'Latest comments'), refresh)
             feed.firstChild.lastChild.setAttribute('aria-label', 'Refresh comments')
             if (!feedItems.length) notice(feed, 'No comments yet. Start a discussion on a screen.')
             for (const item of feedItems) {
@@ -240,7 +241,7 @@ window.ScreenComments = {
             }
             for (const b of badges) {
                 const count = counts.get(key(b.scope))
-                b.element.textContent = `◌ ${count === undefined ? '—' : count}`
+                b.countElement.textContent = count === undefined ? '—' : count
                 b.element.setAttribute(
                     'aria-label',
                     `${count === undefined ? 'View' : count} comments, ${b.scope.side}`
@@ -248,10 +249,14 @@ window.ScreenComments = {
             }
         }
         function badge(scope, onOpen) {
-            const b = button(`◌ ${counts.get(key(scope)) ?? '—'}`, onOpen, 'comment-count')
+            const b = button('', onOpen, 'comment-count')
+            const countElement = node('span', counts.get(key(scope)) ?? '—')
+            const icon = window.ScreenVoting?.icon?.('message')
+            if (icon) b.append(icon)
+            b.append(countElement)
             b.dataset.commentSide = scope.side
             b.setAttribute('aria-label', `View comments, ${scope.side}`)
-            badges.add({ element: b, scope })
+            badges.add({ element: b, countElement, scope })
             scheduleCounts()
             return b
         }

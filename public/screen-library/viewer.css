@@ -1426,6 +1426,9 @@ summary {
     position: relative;
 }
 .comment-count {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
     position: absolute;
     right: 8px;
     bottom: 8px;
@@ -1469,6 +1472,11 @@ summary {
     align-items: center;
     flex-wrap: wrap;
     gap: 2px;
+}
+.screen-feedback svg,
+.comment-refresh svg {
+    flex: 0 0 auto;
+    vertical-align: middle;
 }
 .screen-feedback .screen-votes button {
     display: inline-flex;
