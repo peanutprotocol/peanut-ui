@@ -95,15 +95,18 @@ export function prepareWorker(targetArg = '.screen-worker', env = process.env) {
     )
         throw new Error('Deployment target node_modules must link to the isolated deployment dependencies')
     mkdirSync(join(target, 'assets', 'screen-library'), { recursive: true })
-    for (const file of ['viewer.js', 'viewer.css', 'comments.js'])
+    for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js'])
         copyFileSync(`public/screen-library/${file}`, join(target, 'assets', 'screen-library', file))
     const sourceHtml = readFileSync('public/screen-library/index.html', 'utf8')
     const entryHtml = configuration.d1_databases
         ? sourceHtml
-        : sourceHtml.replace(/\s*<script\b[^>]*\bsrc=(["'])\/screen-library\/comments\.js\1[^>]*>\s*<\/script>/g, '')
+        : sourceHtml.replace(
+              /\s*<script\b[^>]*\bsrc=(["'])\/screen-library\/(?:comments|votes)\.js\1[^>]*>\s*<\/script>/g,
+              ''
+          )
     writeFileSync(join(target, 'assets', 'screen-library', 'index.html'), entryHtml)
     writeFileSync(join(target, 'assets', 'index.html'), entryHtml)
-    for (const file of ['index.mjs', 'comments.mjs', 'comments-auth.mjs'])
+    for (const file of ['index.mjs', 'comments.mjs', 'comments-auth.mjs', 'comments-shared.mjs', 'votes.mjs'])
         copyFileSync(`scripts/screens/worker/${file}`, join(target, file))
     mkdirSync(join(target, 'migrations'), { recursive: true })
     for (const file of readdirSync('scripts/screens/worker/migrations').filter((name) => name.endsWith('.sql')))

@@ -180,6 +180,7 @@ function openComments(row, scope, threadId) {
     $('zoom-images').replaceChildren(
         phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
     )
+    previewFeedback([scope])
     comments?.open(scope, threadId, commentScopes(row))
 }
 function navigateComment(scope, threadId) {
@@ -212,6 +213,7 @@ function navigateComment(scope, threadId) {
             phonePreview(image(scope.image, row.name, { preview: false }), 'Before · Commented version')
         )
     comments.open(scope, threadId, [scope])
+    previewFeedback([scope])
     const url = new URL(location.href)
     url.searchParams.set('comments', threadId)
     url.hash = scope.screenId
@@ -404,6 +406,28 @@ function updatePreviewPosition() {
     $('zoom-prev').disabled = onlyOne
     $('zoom-next').disabled = onlyOne
 }
+function feedback(scope, action) {
+    const group = el('div', undefined, 'screen-feedback')
+    const votes = comments?.voteControls?.(scope)
+    if (votes) group.append(votes)
+    group.append(comments.badge(scope, action))
+    return group
+}
+function previewFeedback(scopes) {
+    if (!comments) return
+    let group = $('zoom-feedback')
+    if (!group) {
+        group = el('div')
+        group.id = 'zoom-feedback'
+        $('zoom-images').after(group)
+    }
+    group.replaceChildren()
+    for (const scope of scopes) {
+        const item = feedback(scope, () => comments.open(scope, undefined, scopes))
+        if (scopes.length > 1) item.prepend(el('span', scope.side === 'before' ? 'Before' : 'After', 'feedback-side'))
+        group.append(item)
+    }
+}
 function zoom(row, mode = 'side') {
     active = row
     const single = mode === 'screen' || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all')
@@ -447,6 +471,15 @@ function zoom(row, mode = 'side') {
     }
     const scopes = commentScopes(row)
     const primary = scopes.find((scope) => scope.side === 'after') ?? scopes[0]
+    previewFeedback(
+        mode === 'screen'
+            ? scopes.filter(
+                  (scope) =>
+                      scope.image === availableScreen(row)?.image &&
+                      scope.side === (availableScreen(row) === row.before ? 'before' : 'after')
+              )
+            : scopes
+    )
     if (comments && primary) {
         let toggle = $('zoom-comments')
         if (!toggle) {
@@ -520,7 +553,7 @@ function renderTile(row) {
             const side =
                 label === 'Before' ? 'before' : label === 'After' ? 'after' : s === row.before ? 'before' : 'after'
             const scope = commentScopes(row).find((value) => value.side === side)
-            if (scope) fig.append(comments.badge(scope, () => openComments(row, scope)))
+            if (scope) fig.append(feedback(scope, () => openComments(row, scope)))
         } else
             fig.append(
                 label === 'Before' && newScreen(row)

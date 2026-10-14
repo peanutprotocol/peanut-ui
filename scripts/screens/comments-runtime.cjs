@@ -1,7 +1,7 @@
 // Manual real-workerd/D1 smoke: install isolated deploy dependencies, prepare and
 // dry-run bundle the Worker, then pass its dist/index.js path. Synthetic data only.
 const assert = require('node:assert/strict')
-const { readFileSync, mkdtempSync, rmSync, writeFileSync } = require('node:fs')
+const { readFileSync, readdirSync, mkdtempSync, rmSync, writeFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const { join, resolve, dirname } = require('node:path')
 const { generateKeyPairSync, sign, randomUUID, createHash } = require('node:crypto')
@@ -89,7 +89,12 @@ async function call(path, { method = 'GET', body, email, assertion = token(email
     try {
         mf = start()
         const db = await mf.getD1Database('COMMENTS')
-        const migration = readFileSync(join(source, 'scripts/screens/worker/migrations/0001_comments.sql'), 'utf8')
+        const migrations = join(source, 'scripts/screens/worker/migrations')
+        const migration = readdirSync(migrations)
+            .filter((name) => name.endsWith('.sql'))
+            .sort()
+            .map((name) => readFileSync(join(migrations, name), 'utf8'))
+            .join('\n')
         await db.batch(
             migration
                 .replace(/^--.*$/gm, '')
@@ -209,6 +214,65 @@ async function call(path, { method = 'GET', body, email, assertion = token(email
             )
             .first()
         ok(rows, { threads: 1, messages: 2, receipts: 5 }, 'real D1 has no forbidden/partial side effects')
+        const voteRequest = { scope, value: 1, version: 0, requestId: randomUUID() }
+        const vote = await call('/votes', { method: 'POST', body: voteRequest })
+        ok([vote.status, vote.data.vote.mine, vote.data.vote.version], [200, 1, 1], 'actual D1 persists own upvote')
+        ok(
+            (await call('/votes', { method: 'POST', body: voteRequest })).data,
+            vote.data,
+            'vote receipt replays exact own state'
+        )
+        ok(
+            (await call('/votes', { method: 'POST', body: { ...voteRequest, value: -1 } })).status,
+            409,
+            'vote UUID cannot change payload'
+        )
+        ok(
+            (await call('/votes', { method: 'POST', body: { ...voteRequest, requestId: randomUUID() } })).status,
+            409,
+            'stale vote cannot replace own state'
+        )
+        const competing = await Promise.all(
+            [1, -1].map((value) =>
+                call('/votes', { method: 'POST', body: { scope, value, version: 1, requestId: randomUUID() } })
+            )
+        )
+        ok(
+            competing.map((response) => response.status).sort(),
+            [200, 409],
+            'real concurrent CAS has exactly one winner'
+        )
+        const winner = competing.find((response) => response.status === 200).data.vote
+        ok(
+            (
+                await call('/votes', {
+                    method: 'POST',
+                    body: { scope, value: 0, version: winner.version, requestId: randomUUID() },
+                })
+            ).data.vote.mine,
+            0,
+            'neutral clears vote but retains revision'
+        )
+        ok(
+            (
+                await call('/votes', {
+                    method: 'POST',
+                    email: 'bob@example.test',
+                    body: { scope, value: -1, version: 0, requestId: randomUUID() },
+                })
+            ).status,
+            200,
+            'another actor owns a separate vote'
+        )
+        const voteSummary = await call('/votes/summary', { method: 'POST', body: { scopes: [scope, scope] } })
+        ok(
+            voteSummary.data.votes.map(({ up, down, mine, version }) => ({ up, down, mine, version })),
+            [
+                { up: 0, down: 1, mine: 0, version: 3 },
+                { up: 0, down: 1, mine: 0, version: 3 },
+            ],
+            'actual D1 ordered duplicate summary has aggregate totals and only own choice'
+        )
         await mf.dispose()
         mf = start()
         const afterRestart = await call(`/threads/${root.id}`)
@@ -218,6 +282,11 @@ async function call(path, { method = 'GET', body, email, assertion = token(email
             'real D1 persistence survives Worker restart'
         )
         ok(jwksRequests, 2, 'each Worker instance fetches only the pinned synthetic issuer')
+        ok(
+            (await call('/votes/summary', { method: 'POST', body: { scopes: [scope] } })).data,
+            { votes: [voteSummary.data.votes[0]] },
+            'votes and neutral revision survive Worker restart'
+        )
         const result = {
             passed: true,
             checks,

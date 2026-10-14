@@ -30,6 +30,8 @@ Undecided: production rollout owner and provider-level suppression for account p
 
 ## Screen Library comments checklist
 
+Voting uses the same verified human identity and exact screenshot version scope. One signed-in actor may select up, down, or neutral per scope. Retain neutral rows and increasing personal revisions; atomically persist actor-scoped request receipts, newly trusted anchors, and vote changes. Reject stale writes and changed-payload replay without partial effects. Summaries batch at most 100 scopes within the 32 KiB body limit and expose totals plus only the requesting actor's choice. Client saves never claim optimistic success; uncertain requests require an explicit same-intent retry or confirmed refresh. Clear personal state on account changes and ignore late responses. The additive voting migration shares the dedicated comments database and preserves discussion data on rollback.
+
 - Identity: verify signed Access tokens against the pinned team issuer and gallery audience on Static Assets Worker requests. Spoofed headers and service tokens cannot author comments. Keep comment bodies, user emails and tokens out of logs.
 - Ownership: authors alone edit messages; any signed-in teammate can resolve or reopen. Discussions stay attached to the exact validated screenshot version, locale, viewport and comparison side.
 - Integrity: use actor-scoped request UUIDs and atomic D1 batches for durable replay protection. Conditional versions reject stale edits/resolutions without partial writes or misleading success.

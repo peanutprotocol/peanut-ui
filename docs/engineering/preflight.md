@@ -1,5 +1,31 @@
 # UI incident preflight
 
+## 2026-10-14: screenshot vote intent crossed a login switch
+
+Independent review reproduced a browser `/me` response verified as Alice followed
+by a vote POST authenticated as Bob after the session cookie changed. A frontend
+check alone cannot fence that interval. The browser now preserves the captured
+actorId with the request UUID; the server compares this optional rejection guard
+with verified identity before replay. Ownership still comes only from Access.
+Regression: mismatched-marker API requests leave no scope/vote/receipt, and a
+browser response barrier switches identity between verification and posting.
+
+Preflight: inspect `public/screen-library/votes.js` staged intents, account reset,
+summary sequence checks and `scripts/screens/worker/votes.mjs` before mutation.
+An actor-scoped receipt prevents replay duplication but alone cannot bind the
+intent to the identity that originally staged it.
+
+## 2026-10-14: vote refresh falsely settled an uncertain write
+
+A timed-out POST can still be awaiting its D1 batch when a summary refresh reads
+the old personal revision. Clearing the staged request at that revision hides
+Retry and allows a later original commit to surprise the UI. Retain the original
+UUID and disabled new actions until an explicit retry settles it or a newer
+personal revision proves the original committed or is fenced. A definitive
+400/403/404/409 rejection may clear on an authoritative refresh at the same revision.
+Independent browser regression holds the original server work before D1, refreshes
+the old version, then releases the commit and replays the exact request.
+
 ## Balance validation after a withdrawal starts (2026-10-13)
 
 - Trigger: live balance decreases while the crypto withdrawal review remains mounted during execution or payment recording. The obsolete affordability warning flashes before success.

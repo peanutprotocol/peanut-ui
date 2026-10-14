@@ -45,10 +45,12 @@ window.ScreenComments = {
             badges = new Set(),
             counts = new Map(),
             expanded = new Set()
+        const voting = window.ScreenVoting?.create({ api, authenticate, getUser: () => user, getEpoch: () => epoch })
         function requireLogin() {
             const pendingForms = [...panel.querySelectorAll('.comment-composer')]
             user = undefined
             epoch++
+            voting?.reset()
             feedSequence++
             panelSequence++
             counts.clear()
@@ -132,6 +134,7 @@ window.ScreenComments = {
                     feedItems = []
                     feedBusy = false
                     user = next
+                    voting?.reset({ forgetPending: Boolean(changedActor) })
                     if (changedActor) {
                         feed.replaceChildren(
                             node('h2', 'Latest comments'),
@@ -586,6 +589,7 @@ window.ScreenComments = {
                 await authenticate()
                 await loadFeed()
                 scheduleCounts()
+                voting?.refresh()
             } catch (error) {
                 if (error.status !== 401) {
                     feed.replaceChildren(node('h2', 'Latest comments'))
@@ -599,6 +603,7 @@ window.ScreenComments = {
                 await authenticate()
                 await loadFeed()
                 scheduleCounts()
+                voting?.refresh()
                 if (opened && user?.id !== previous) await loadPanel()
             } catch (error) {
                 if (error.status !== 401) {
@@ -619,6 +624,15 @@ window.ScreenComments = {
                 notice(feed, error.message, () => navigateThread(id))
             }
         }
-        return { setContext, badge, open, close, navigateThread, isOpen: () => opened, current: () => current }
+        return {
+            setContext,
+            badge,
+            open,
+            close,
+            navigateThread,
+            voteControls: (scope) => voting?.mount(scope),
+            isOpen: () => opened,
+            current: () => current,
+        }
     },
 }

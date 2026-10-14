@@ -96,7 +96,7 @@ DevOps setup:
 The existing Vercel app preview workflow remains independent. Neither the Blob
 secret nor `SCREEN_LIBRARY_STORE_URL` is used by the gallery anymore.
 
-## D1 screen comments
+## D1 screen comments and voting
 
 The gallery uses one dedicated D1 database for comment threads, messages and
 actor-scoped idempotency receipts. Screenshots remain in private R2. Discussions
@@ -105,6 +105,16 @@ new screenshot versions have separate discussions. Authors can edit their own
 messages, and any signed-in teammate can resolve or reopen a thread. Resolved
 messages and replies remain readable and included in image counts. The homepage
 feed spans the library and a PR's feed includes only that PR.
+
+Each screenshot also has compact thumbs up/down controls beside its comment count
+and in the enlarged preview. A signed-in teammate has one vote per exact screenshot
+version; choosing the selected thumb removes the vote, and the other thumb switches
+it. Totals are shared while the selected state belongs only to the current user.
+The additive `0002_votes.sql` migration uses the same `COMMENTS` database. Neutral
+rows retain personal revisions to reject stale votes after removal. Durable request
+receipts make an explicit retry safe after a lost response. Saving disables duplicate
+actions and preserves confirmed totals until the server confirms a new summary.
+Refresh reads the latest totals; an unavailable read displays an unknown count.
 
 To enable comments, provision `peanut-screen-library-comments` in the existing
 Cloudflare account, using EU jurisdiction to match the screenshot bucket. Record
@@ -128,7 +138,7 @@ the separate capture/publisher token does not gain comments database access.
 The prepared Worker binds D1 as `COMMENTS` and includes the committed migration
 directory plus the locked `jose` dependency. `prepare.mjs` rejects partial D1 or
 auth configuration before writing the deployment artifact. Leaving both database
-variables unset preserves the R2-only deployment and omits the comments client
+variables unset preserves the R2-only deployment and omits the comments and voting clients
 from both gallery entry pages, so no comments sign-in prompt appears. Shared
 Access variables alone do not enable comments. Install dependencies before
 preparing or bundling:
@@ -152,7 +162,8 @@ timings before dispatching another deployment.
 
 After rollout, read back the `COMMENTS` binding and applied migrations, then verify
 an authenticated comment, reply, author-only edit, teammate resolution and reload
-persistence in the gallery. Local SQL/API tests, Worker bundling, hosted CI and
+persistence in the gallery. Also check voting, switching, removal, separate users,
+and reload persistence. Local SQL/API tests, Worker bundling, hosted CI and
 this authenticated live check are separate evidence. Offline exports retain their
 existing viewer and do not contact the comments API.
 

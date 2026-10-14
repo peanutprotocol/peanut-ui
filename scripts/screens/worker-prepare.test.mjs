@@ -18,6 +18,7 @@ const comments = {
 }
 const entryHtml = `<!doctype html>
 <html><head>
+    <script defer src="/screen-library/votes.js"></script>
     <script defer src="/screen-library/comments.js"></script>
     <script defer src="/screen-library/viewer.js"></script>
 </head><body>fixture:index.html</body></html>
@@ -116,15 +117,19 @@ function packagingFixture(run) {
         ])
             mkdirSync(join(source, folder), { recursive: true })
         writeFileSync(join(source, 'public/screen-library/index.html'), entryHtml)
-        for (const file of ['viewer.js', 'viewer.css', 'comments.js'])
+        for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js'])
             writeFileSync(join(source, 'public/screen-library', file), `fixture:${file}`)
-        for (const file of ['index.mjs', 'comments.mjs', 'comments-auth.mjs'])
+        for (const file of ['index.mjs', 'comments.mjs', 'comments-auth.mjs', 'comments-shared.mjs', 'votes.mjs'])
             writeFileSync(join(source, 'scripts/screens/worker', file), `fixture:${file}`)
         writeFileSync(
             join(source, 'scripts/screens/worker/migrations/0001_comments.sql'),
             'CREATE TABLE comments (id TEXT PRIMARY KEY);'
         )
         writeFileSync(join(source, 'scripts/screens/deploy/node_modules/jose/package.json'), '{"name":"jose"}')
+        writeFileSync(
+            join(source, 'scripts/screens/worker/migrations/0002_votes.sql'),
+            'CREATE TABLE screen_votes (id TEXT PRIMARY KEY);'
+        )
         process.chdir(source)
         run({ source, target })
     } finally {
@@ -136,15 +141,16 @@ function packagingFixture(run) {
 test('prepared Worker includes comment assets, backend, additive migrations and isolated dependencies', () => {
     packagingFixture(({ source, target }) => {
         prepareWorker(target, { ...gallery, ...comments })
-        for (const file of ['viewer.js', 'viewer.css', 'comments.js'])
+        for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js'])
             assert.equal(readFileSync(join(target, 'assets/screen-library', file), 'utf8'), `fixture:${file}`)
         for (const file of ['assets/index.html', 'assets/screen-library/index.html']) {
             const html = readFileSync(join(target, file), 'utf8')
             assert.equal(html, entryHtml)
             assert.match(html, /<script defer src="\/screen-library\/comments\.js"><\/script>/)
+            assert.match(html, /<script defer src="\/screen-library\/votes\.js"><\/script>/)
             assert.match(html, /<script defer src="\/screen-library\/viewer\.js"><\/script>/)
         }
-        for (const file of ['index.mjs', 'comments.mjs', 'comments-auth.mjs'])
+        for (const file of ['index.mjs', 'comments.mjs', 'comments-auth.mjs', 'comments-shared.mjs', 'votes.mjs'])
             assert.equal(readFileSync(join(target, file), 'utf8'), `fixture:${file}`)
         assert.equal(
             readFileSync(join(target, 'migrations/0001_comments.sql'), 'utf8'),
@@ -153,6 +159,10 @@ test('prepared Worker includes comment assets, backend, additive migrations and 
         assert.deepEqual(
             JSON.parse(readFileSync(join(target, 'wrangler.json'), 'utf8')),
             workerConfiguration({ ...gallery, ...comments })
+        )
+        assert.equal(
+            readFileSync(join(target, 'migrations/0002_votes.sql'), 'utf8'),
+            'CREATE TABLE screen_votes (id TEXT PRIMARY KEY);'
         )
         assert.equal(
             realpathSync(join(target, 'node_modules')),
@@ -173,6 +183,7 @@ test('R2-only preparation removes the comments script from both entries, includi
         for (const file of ['assets/index.html', 'assets/screen-library/index.html']) {
             const html = readFileSync(join(target, file), 'utf8')
             assert.doesNotMatch(html, /comments\.js/)
+            assert.doesNotMatch(html, /votes\.js/)
             assert.match(html, /<script defer src="\/screen-library\/viewer\.js"><\/script>/)
             assert.match(html, /fixture:index\.html/)
         }

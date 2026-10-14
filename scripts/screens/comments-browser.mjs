@@ -3,7 +3,7 @@
 // It starts an isolated local server and uses only synthetic Alice/Bob identities.
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve, sep, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { once } from 'node:events'
@@ -29,7 +29,7 @@ for (const load of [
     } catch {}
 }
 if (!chromium) throw new Error('Playwright is unavailable; set PLAYWRIGHT_NODE_MODULES or PLAYWRIGHT_MODULE.')
-const migrationPath = resolve(here, 'worker/migrations/0001_comments.sql')
+const migrationsPath = resolve(here, 'worker/migrations')
 
 const reportRelativePath = `2026-10-14/pr-123/en/${'a'.repeat(40)}/run-1-1`
 const reportPath = `reports/${reportRelativePath}`
@@ -117,7 +117,10 @@ const tinyWebp = Buffer.from('UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEAAUAmJaQAA3
 
 const db = new DatabaseSync(':memory:')
 db.exec('PRAGMA foreign_keys = ON')
-db.exec(readFileSync(migrationPath, 'utf8'))
+for (const migrationName of readdirSync(migrationsPath)
+    .filter((name) => /^\d+_.*\.sql$/.test(name))
+    .sort())
+    db.exec(readFileSync(resolve(migrationsPath, migrationName), 'utf8'))
 const env = {
     COMMENTS: makeD1(db),
     SCREEN_LIBRARY_ACCESS_AUD: 'test-audience',
