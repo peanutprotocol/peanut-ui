@@ -634,7 +634,7 @@ function renderHistory(state) {
                 : el('div', 'Confirmed absence in this revision', 'missing')
         )
         const reportLink = el('a', (version.commit || 'Report').slice(0, 8), 'history-report-link')
-        reportLink.href = shareableHref(`/screens/${version.reportPath}/`, { history: state.id }, `#${state.id}`)
+        reportLink.href = shareableHref(`/screens/${version.reportPath}/`, { history: '' }, `#${state.id}`)
         item.append(track, thumbnail, el('h3', label), el('p', provenance, 'history-meta'), reportLink)
         $('history-grid').append(item)
     })

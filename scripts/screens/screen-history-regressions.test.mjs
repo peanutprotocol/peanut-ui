@@ -303,3 +303,37 @@ test('Escape closes history while the range slider retains native arrow behavior
     assert.equal(vm.runInContext('historyState', h.context), null)
     assert.equal(panel.hidden, true)
 })
+
+test('version report links land on the gallery card without reopening history', () => {
+    const h = harness()
+    h.context.location.search = '?history=example-component'
+    h.context.fixture = {
+        id: 'example-component',
+        scope,
+        records: new Map([
+            ['a', record(1)],
+            ['b', record(2)],
+        ]),
+        failures: new Map(),
+        entries: [entry(1), entry(2)],
+        offset: 2,
+        indexed: true,
+    }
+    vm.runInContext(
+        'report = fixture.records.get("b").report; historyState = { id: fixture.id, controller: new AbortController() }; renderHistory(fixture)',
+        h.context
+    )
+    const links = []
+    const walk = (node) => {
+        if (node?.className === 'history-report-link') links.push(node.href)
+        node?.children?.forEach(walk)
+    }
+    walk(h.context.document.getElementById('history-grid'))
+    assert.equal(links.length, 2)
+    for (const href of links) {
+        const url = new URL(href, 'https://screens.example')
+        assert.match(url.pathname, /^\/screens\/2026-10-0[12]\/dev\/en\/0+[12]\/$/)
+        assert.equal(url.searchParams.has('history'), false)
+        assert.equal(url.hash, '#example-component')
+    }
+})
