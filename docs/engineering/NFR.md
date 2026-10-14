@@ -10,6 +10,9 @@
 - Provenance: gate only exact, current PR head/base revisions and validated capture reports; a stale or partial run cannot pass as zero difference.
 - Reliability: retain immutable reports and source-verified publication; a gate failure must be visible after report creation and must not block index repair.
 - Resources: avoid extra capture matrices and deployment runs for policy checks; use existing comparison manifests.
+- Capture cost: classify known nonvisual diffs before capture dependency/browser installation. Unknown or unprovable impact requires full capture. A targeted PR runs every registered state in its affected flows across all four supported locales; dev/main after libraries remain full.
+- Scoped coverage: targeted reports retain `complete: false` for the whole library and separately prove `scopeComplete`. The publisher recomputes the expected scope from immutable revisions. Omitted states are not tested, removed or unchanged; scoped reports cannot become full baselines or advance the full-library latest pointer.
+- Baseline reuse: require a trusted exact-before source, retained full capture, valid image digests and compatible harness, fixtures, renderer, locale, viewport, adapter, origin and device. Missing, expired or incompatible evidence triggers at most one fresh-before capture per locale; API failures remain unknown and visible.
 - Verification: run focused acceptance and Jest regressions, the Screen Library suite, affected lint/format/type checks, and required hosted CI. Report local checks separately from native/device, hosted capture, and deployed behavior.
 - Local hook: `.codex/quality-gates.json` runs a bounded Screen Library acceptance set plus affected ESLint and Prettier checks before direct commits. The full Screen Library suite and typecheck remain required in hosted CI; the local hook is an additional guardrail.
 

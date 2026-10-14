@@ -7,6 +7,7 @@
             "argv": [
                 "node",
                 "--test",
+                "scripts/screens/capture-cost-acceptance.test.mjs",
                 "scripts/screens/catalogue.test.mjs",
                 "scripts/screens/state-coverage.test.mjs",
                 "scripts/screens/viewer.test.mjs",

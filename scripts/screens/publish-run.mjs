@@ -13,6 +13,9 @@ import { normalizePublicOrigin } from './public-origin.mjs'
 import { existingAssetPaths, publishReport } from './publish.mjs'
 import { repositoryApiPath } from './repository-api.mjs'
 import { evaluateZeroDifferenceGate, reviewableComparison } from './zero-difference-gate.mjs'
+import { planRevisionCapture } from './capture-impact.mjs'
+import { canonicalScope } from './capture-scope.mjs'
+import { verifyReusedBaseline } from './verify-reused-baseline.mjs'
 const LOCALES = {
     en: 'English',
     'es-419': 'Español',
@@ -44,7 +47,14 @@ const repo = process.env.REPOSITORY,
     attempt = process.env.RUN_ATTEMPT
 if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? '') || !/^\d+$/.test(attempt ?? ''))
     throw new Error('Invalid run identity')
-const api = (path) => JSON.parse(execFileSync('gh', ['api', repositoryApiPath(repo, path)], { encoding: 'utf8' }))
+const api = (path) =>
+    JSON.parse(
+        execFileSync('gh', ['api', repositoryApiPath(repo, path)], {
+            encoding: 'utf8',
+            timeout: 60000,
+            maxBuffer: 64 * 1024 * 1024,
+        })
+    )
 const run = api(`actions/runs/${runId}`)
 verifyRunIdentity(run, repo, Number(runId), Number(attempt))
 const mainRelease = run.head_branch === 'main' && ['push', 'workflow_dispatch'].includes(run.event)
@@ -178,6 +188,7 @@ if (capturePairs.length) {
 const date = run.created_at.slice(0, 10)
 const reports = []
 const publications = []
+let trustedPlan
 for (const capturePair of capturePairs) {
     const captureAttempt = capturePair.attempt
     const dirs = [capturePair.before, capturePair.after]
@@ -189,6 +200,37 @@ for (const capturePair of capturePairs) {
     if (after.commit !== expectedHead) throw new Error('Capture does not match triggering run head')
     if (before.commit !== expectedBase)
         throw new Error('Capture baseline does not match verified integration/review/history baseline')
+    if (after.scope || before.scope) {
+        if (run.event !== 'pull_request') throw new Error('Scoped captures cannot replace full integration libraries')
+        trustedPlan ??= planRevisionCapture({
+            event: run.event,
+            branch: pr.base.ref,
+            before: expectedBase,
+            after: expectedHead,
+        })
+        if (
+            trustedPlan.mode !== 'targeted' ||
+            !after.scope ||
+            JSON.stringify(canonicalScope(after.scope)) !== JSON.stringify(canonicalScope(trustedPlan))
+        )
+            throw new Error('Artifact scope does not match the trusted exact-revision impact plan')
+    }
+    const receiptPath = join(dirs[0], 'baseline-source.json')
+    if (existsSync(receiptPath))
+        verifyReusedBaseline({
+            receipt: JSON.parse(readFileSync(receiptPath, 'utf8')),
+            beforeBytes: readFileSync(join(dirs[0], 'capture.json')),
+            after,
+            expectedCommit: expectedBase,
+            repository: repo,
+            api,
+            download: (sourceRun, artifact, destination) =>
+                execFileSync(
+                    'gh',
+                    ['run', 'download', sourceRun, '--repo', repo, '--name', artifact, '--dir', destination],
+                    { stdio: 'inherit', timeout: 180000 }
+                ),
+        })
     const slug = localeSlug(after.locale)
     const canonicalPath = mainRelease
         ? `${date}/compare-main/${slug}/${after.commit}`
@@ -220,7 +262,8 @@ for (const capturePair of capturePairs) {
         path,
         before,
         after,
-        complete: reviewableComparison(comparison),
+        complete: comparison.scope ? false : reviewableComparison(comparison),
+        ...(comparison.scope ? { scope: comparison.scope, scopeComplete: reviewableComparison(comparison) } : {}),
         changedScreens,
     })
     // Historical reports retain both full source libraries as well as their comparison.
@@ -298,6 +341,7 @@ if (run.event === 'pull_request' && pr) {
         changedFiles,
         reports,
         exception: pr.body ?? '',
+        ...(trustedPlan ? { plan: trustedPlan } : {}),
     })
     console.log(`Screen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}`)
 }
@@ -305,11 +349,16 @@ if (run.event === 'pull_request' && pr) {
 if (pr) {
     const marker = '<!-- screen-library -->'
     const publicOrigin = normalizePublicOrigin(process.env.SCREEN_LIBRARY_PUBLIC_URL)
+    const coverageDescription = trustedPlan
+        ? `Targeted review: ${trustedPlan.screenIds.length} states across ${[...new Set(reports[0].after.screens.map((screen) => screen.flow))].sort().join(', ')} in all locales. Other flows were not captured. ${reports.every(({ scopeComplete }) => scopeComplete) ? 'Selected scope complete.' : 'Selected scope incomplete; review its gaps and failures.'}`
+        : reports.every(({ complete }) => complete)
+          ? 'Reviewable capture in all locales; newly registered states are marked in the report.'
+          : 'Incomplete capture; unavailable states are listed in the report.'
     const body = `${marker}\n${reports
         .map(({ locale, path }) => `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/)`)
         .join(
             ' · '
-        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${reports.every(({ complete }) => complete) ? 'Reviewable capture in all locales; newly registered states are marked in the report.' : 'Incomplete capture; unavailable states are listed in the report.'}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}`
+        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}`
     const comments = JSON.parse(
         execFileSync(
             'gh',
