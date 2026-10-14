@@ -3371,6 +3371,7 @@
             "region_block": "Os cartões Peanut ainda não estão disponíveis na sua região.",
             "compliance_block": "Não conseguimos aprovar sua solicitação de cartão após uma análise de conformidade.",
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
+            "card_needs_review": "Nosso parceiro de cartões precisa conferir mais alguns detalhes.",
             "manteca_us_nationality": "Pagamentos deste país não estão disponíveis para cidadãos dos EUA no momento.",
             "country_not_supported": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
             "manteca_action_expired": "A configuração da sua conta bancária expirou. Conclua a breve verificação para liberar depósitos e saques locais.",

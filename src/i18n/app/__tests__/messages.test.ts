@@ -250,3 +250,24 @@ describe('ENS badge copy is localized', () => {
         expect(messages.badges.catalog.ENS.description).not.toBe(en.badges.catalog.ENS.description)
     })
 })
+
+describe('card partner review reason copy', () => {
+    const key = 'identity.reasons.card_needs_review'
+
+    it('provides the approved English review copy', async () => {
+        expect(leafValue(await loadMessages('en'), key)).toBe('Our card partner needs to check a few more details.')
+    })
+
+    it.each(['es-419', 'pt-BR'] as const)('%s has its own translated review copy', async (locale) => {
+        const rawCopy = leafValue(CATALOGS[locale], key)
+        expect(typeof rawCopy).toBe('string')
+        expect(rawCopy.trim().length).toBeGreaterThan(0)
+        expect(rawCopy).not.toBe('Our card partner needs to check a few more details.')
+        expect(leafValue(await loadMessages(locale), key)).toBe(rawCopy)
+    })
+
+    it('lets Argentine Spanish inherit the Latin American Spanish review copy', async () => {
+        expect(leafPaths(esAR)).not.toContain(key)
+        expect(leafValue(await loadMessages('es-AR'), key)).toBe(leafValue(es419, key))
+    })
+})
