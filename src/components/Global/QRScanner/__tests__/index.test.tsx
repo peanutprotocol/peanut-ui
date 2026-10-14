@@ -17,6 +17,7 @@ import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { isAndroidNative } from '@/utils/capacitor'
 import { captureException } from '@sentry/nextjs'
+import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 
 const mockToastError = jest.fn()
 
@@ -49,13 +50,14 @@ jest.mock('../CameraPermissionDrawer', () => ({
     ),
 }))
 const cameraState = { error: null as string | null, isPermissionDenied: false }
+const mockClose = jest.fn()
 jest.mock('../useQRScanner', () => ({
     useQRScanner: () => ({
         ...cameraState,
         isScanning: true,
         isCameraReady: true,
         videoRef: { current: null },
-        close: jest.fn(),
+        close: mockClose,
         toggleCamera: jest.fn(),
         retryCamera: jest.fn(),
     }),
@@ -86,6 +88,7 @@ const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) 
 
 beforeEach(() => {
     jest.clearAllMocks()
+    resetBackHandlersForTests()
     cameraState.error = null
     cameraState.isPermissionDenied = false
 })
@@ -122,6 +125,19 @@ describe('camera permission denied: the modal keeps one primary + Dismiss', () =
         expect(await screen.findByText('Try again')).toBeInTheDocument()
         expect(screen.getByText('Dismiss')).toBeInTheDocument()
         expect(screen.queryByText('Click to paste')).toBeNull()
+    })
+})
+
+describe('Android hardware back', () => {
+    it('closes the scanner instead of falling through to minimizeApp', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        mockHasStrings.mockResolvedValue(false)
+
+        renderScanner()
+
+        expect(dispatchBackPress()).toBe(true)
+        expect(mockClose).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockHasStrings).toHaveBeenCalled())
     })
 })
 
