@@ -1154,7 +1154,7 @@
             "expiredTitle": "A busca terminou",
             "expired": "Agite de novo para procurar pessoas.",
             "errorTitle": "Não foi possível conectar ao Peanut",
-            "error": "Verifique sua conexão e tente novamente.",
+            "error": "Verifique sua conexão e tente de novo.",
             "rateLimitedTitle": "Muitas tentativas",
             "rateLimited": "Tente novamente em {seconds} s.",
             "shakeAgain": "Agitar de novo",
