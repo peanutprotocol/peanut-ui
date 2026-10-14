@@ -7,6 +7,12 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { impactHaptic } from '@/utils/haptics'
 import { createShakeDetector } from './shakeDetector'
 import { motionSampleFromEvent } from './useShakeMotion'
+import {
+    forgetMotionGrant,
+    hasRememberedMotionGrant,
+    motionNeedsPermission,
+    type MotionPermissionApi,
+} from './motionGrant'
 
 const serializeShakeRoute = createSerializer({ view: parseAsStringLiteral(['shake']), shook: parseAsInteger })
 
@@ -17,10 +23,13 @@ export function useHomeShakeToPay(): void {
 
     useEffect(() => {
         if (!enabled) return
+        const needsPermission = motionNeedsPermission()
+        if (needsPermission && !hasRememberedMotionGrant()) return
         const detector = createShakeDetector({ modes: ['vigorous', 'twist'] })
         let active = true
         let listening = false
         let navigating = false
+        let requested = false
 
         const onMotion = (event: DeviceMotionEvent) => {
             if (!active || !listening || navigating || document.visibilityState !== 'visible') return
@@ -46,10 +55,39 @@ export function useHomeShakeToPay(): void {
             }
         }
 
-        document.addEventListener('visibilitychange', onVisibility)
-        onVisibility()
+        const startListening = () => {
+            if (!active) return
+            document.addEventListener('visibilitychange', onVisibility)
+            onVisibility()
+        }
+        const onPointerDown = () => {
+            if (!active || requested) return
+            requested = true
+            try {
+                const api = window.DeviceMotionEvent as unknown as MotionPermissionApi
+                void api
+                    .requestPermission()
+                    .then((permission) => {
+                        if (!active) return
+                        if (permission === 'granted') startListening()
+                        else if (permission === 'denied') forgetMotionGrant()
+                    })
+                    .catch(() => {
+                        if (active) forgetMotionGrant()
+                    })
+            } catch {
+                if (active) forgetMotionGrant()
+            }
+        }
+
+        if (needsPermission) {
+            document.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true, once: true })
+        } else {
+            startListening()
+        }
         return () => {
             active = false
+            document.removeEventListener('pointerdown', onPointerDown, true)
             stopListening()
             document.removeEventListener('visibilitychange', onVisibility)
             detector.reset()

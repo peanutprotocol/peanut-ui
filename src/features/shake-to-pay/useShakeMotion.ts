@@ -2,18 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createShakeDetector, type MotionSample } from './shakeDetector'
+import { forgetMotionGrant, motionNeedsPermission, rememberMotionGrant, type MotionPermissionApi } from './motionGrant'
 
 export type ShakeMotionStatus = 'unsupported' | 'needs-permission' | 'denied' | 'listening'
 
 /** Desktop browsers define DeviceMotionEvent but never fire it; silence this long means no sensor. */
 export const MOTION_PROBE_MS = 1500
-
-type MotionPermissionApi = { requestPermission?: () => Promise<'granted' | 'denied' | 'default'> }
-
-function motionApi(): MotionPermissionApi | null {
-    if (typeof window === 'undefined' || typeof window.DeviceMotionEvent === 'undefined') return null
-    return window.DeviceMotionEvent as unknown as MotionPermissionApi
-}
 
 export function motionSampleFromEvent(event: DeviceMotionEvent): MotionSample | null {
     const gravity = event.accelerationIncludingGravity
@@ -38,16 +32,11 @@ export function motionSampleFromEvent(event: DeviceMotionEvent): MotionSample | 
     }
 }
 
-/**
- * Listens for a physical shake. iOS only delivers motion after
- * DeviceMotionEvent.requestPermission() resolves from a user gesture, so there the
- * hook waits in 'needs-permission' until `requestPermission` runs from a tap.
- */
+// iOS waits for an explicit permission request from a tap.
 export function useShakeMotion({ onShake }: { onShake: () => void }) {
     const [status, setStatus] = useState<ShakeMotionStatus>(() => {
-        const api = motionApi()
-        if (!api) return 'unsupported'
-        return typeof api.requestPermission === 'function' ? 'needs-permission' : 'listening'
+        if (typeof window === 'undefined' || typeof window.DeviceMotionEvent === 'undefined') return 'unsupported'
+        return motionNeedsPermission() ? 'needs-permission' : 'listening'
     })
     const onShakeRef = useRef(onShake)
     onShakeRef.current = onShake
@@ -80,10 +69,13 @@ export function useShakeMotion({ onShake }: { onShake: () => void }) {
     }, [status])
 
     const requestPermission = useCallback(async () => {
-        const api = motionApi()
-        if (!api?.requestPermission) return
+        if (!motionNeedsPermission()) return
+        const api = window.DeviceMotionEvent as unknown as MotionPermissionApi
         try {
-            setStatus((await api.requestPermission()) === 'granted' ? 'listening' : 'denied')
+            const permission = await api.requestPermission()
+            if (permission === 'granted') rememberMotionGrant()
+            else if (permission === 'denied') forgetMotionGrant()
+            setStatus(permission === 'granted' ? 'listening' : 'denied')
         } catch {
             // Rejects when not called from a gesture or when the WebView refuses outright.
             setStatus('denied')
