@@ -18,7 +18,14 @@ interface DevTool {
     static?: boolean
 }
 
-const groups: { title: string; tools: DevTool[] }[] = [
+interface DevToolGroup {
+    title: string
+    tools: DevTool[]
+    /** true → work-in-progress group: WIP badge on the title and a warning above the list */
+    wip?: boolean
+}
+
+const groups: DevToolGroup[] = [
     {
         title: 'Design system',
         tools: [
@@ -27,12 +34,6 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 description: 'Foundations, primitives, patterns, audit, and interactive playground',
                 path: '/dev/ds',
                 icon: 'docs',
-            },
-            {
-                name: 'Nav header centering',
-                description: 'Should the empty trailing track collapse? Real NavHeader, 3 widths, gaps measured live',
-                path: '/dev/nav-header-centering',
-                icon: 'switch',
             },
         ],
     },
@@ -138,7 +139,14 @@ const groups: { title: string; tools: DevTool[] }[] = [
     },
     {
         title: 'Experiments',
+        wip: true,
         tools: [
+            {
+                name: 'Nav header centering',
+                description: 'Should the empty trailing track collapse? Real NavHeader, 3 widths, gaps measured live',
+                path: '/dev/nav-header-centering',
+                icon: 'switch',
+            },
             {
                 name: 'Full Graph',
                 description: 'Force-directed graph of all users, invites, and P2P activity (admin only)',
@@ -190,7 +198,23 @@ export default function DevToolsPage() {
         >
             <div className="flex flex-col gap-4">
                 {groups.map((group) => (
-                    <Section key={group.title} title={group.title}>
+                    <Section
+                        key={group.title}
+                        title={group.title}
+                        trailing={
+                            group.wip && (
+                                <span className="rounded-full border border-border-default bg-background-badge-attention px-2 py-0.5 text-xs font-bold">
+                                    WIP
+                                </span>
+                            )
+                        }
+                    >
+                        {group.wip && (
+                            <Callout priority="attention" title="Work in progress. Do not use as a source of truth.">
+                                These pages are unfinished experiments. They can be wrong, out of date, or removed at
+                                any time. For the real components and rules, use the Design System.
+                            </Callout>
+                        )}
                         <div>
                             {group.tools.map((tool, i) => {
                                 const LinkComponent = tool.static ? 'a' : Link
