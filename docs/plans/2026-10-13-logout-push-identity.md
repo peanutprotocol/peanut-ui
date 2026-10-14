@@ -64,3 +64,34 @@ Publication was initially blocked by automatic approval review. The user explici
 ## Retargeting to dev
 
 Rebased only the two task commits onto fresh origin/dev, excluding unrelated main release changes. The independent acceptance author adapted the new auth integration fixture to dev's existing native-platform and first-launch-intro dependencies. All 14 focused tests passed; all original test bodies and 27 assertion lines stayed byte-for-byte unchanged. No production behavior changed during retargeting. Full tests, lint, and TypeScript are being rerun for this base before handback.
+
+## 2026-10-14: PR finding, cross-tab fresh login
+
+User request: fix findings in PR #3693. Formatting was corrected in 85215d1bc; current CI has no failed checks. Remaining finding: a tab that accepted another tab's logout retains its in-memory boundary after a trusted login removes the shared active marker.
+
+Accepted invariants remain: explicit logout blocks account push, fresh authenticated login may attach the current account, stale or uncertain authentication cannot release logout, and generic subscription stays enabled. Runtime Plan mode is unavailable; this persisted section is the equivalent plan.
+
+### What can go wrong
+
+- Invalid input/auth: a missing or malformed fresh identity, failed/offline profile check, locked/demo/unresolved session, or cached former-account identity cannot release the boundary.
+- Concurrency/idempotency: delayed marker removal, newer logout while verification is pending, logout/login ABA, duplicate events, and out-of-order verification completions must retain latest-account/anonymous state correctly.
+- Timeouts/retries/partial failure: profile or SDK failures stay observable; retry on the next lifecycle signal. Fresh identity verification has a 10-second wait budget so offline-paused queries cannot hold reconciliation forever; late verification cannot release logout. Existing network/SDK budgets remain. Storage denial keeps the in-memory logout boundary.
+- Data limits/migration: retain only existing opaque receipt/active marker, no account/token data; old bundles keep their behavior until updated. No schema migration or bulk/load workload.
+
+Acceptance before implementation: (C1) a tab observing logout and then a shared marker removal can link the freshly verified account B; (C2) removal or stale positive sync alone cannot release logout; (C3) fresh-check rejection/null/invalid identity and newer logout prevent relinking; (C4) stale/out-of-order events and checks cannot undo a newer logout/login; (C5) AuthProvider requests fresh profile verification on marker removal and later visible/online recovery, without a notification hook; (C6) permission/opt-in remain enabled.
+
+Plan: independent spec-only author adds frozen positive/negative tests; reproduce the current failure; implement narrow facade/provider reconciliation; independent verifier checks the finding and recovery; run regression tests, required gates, Prettier and full TypeScript; challenge the fix in a disposable copy; push to the same dev PR. No merge/deployment. Provider/device delivery remains separate evidence.
+
+Observed follow-up: the independent actual AuthProvider/useNotifications/QueryClient harness reproduced SDK login B -> A -> B when B's SDK login synchronously emits subscription opt-in before React renders its fresh profile. The hook still supplied cached A. Additional acceptance (same latest-auth-identity invariant): ordinary SDK/hook sync hints cannot override an identity selected by trusted resume or AuthProvider reconciliation. Initial sync compatibility remains before an auth selection; subsequent AuthProvider reconciliation can intentionally select C. Freeze regression before adding this protection.
+
+API fixture correction: the existing frozen trusted-resume test permits subsequent authorized `syncNotificationIdentity(C)`. Keep that contract and distinguish SDK hints using new `syncNotificationIdentityFromHook`, which respects the latest auth-selected identity. The independent author adapted only new CT14/15 API wiring, preserving all forbid-A/retain-B/select-C assertions; actual provider/hook/QueryClient regression C5-07 remains unchanged. No existing assertions weakened.
+
+The verifier also reproduced B -> A -> B from a queued online task before the query observer render, with no SDK subscription event. Provider callbacks now read the current QueryClient profile instead of a rendered snapshot; unknown cache state does not reconcile. Frozen C5-08 covers that ordering with real TanStack scheduling. Four query-client mocks were adapted independently to stable client identity and getQueryData backed by their existing profiles; hashes prove all existing describe/test bodies stayed unchanged.
+
+Verification receipts: final auth/identity regression batch passed 14 suites / 89 tests. Independent final-source review passed seven suites / 35 tests plus 11 two-context VM/fault scenarios. Mutations removing receipt, revision, fresh proof, or the hook guard reproduced forbidden identities. Test author used fresh gpt-6-astra context with no production-source access by instruction; shared filesystem isolation was not enforced. The separate verifier used real provider, hook and QueryClient scheduling.
+
+Full local formatting/TypeScript attempts during iteration exhausted their 300-second budgets without diagnostic completion; they were not counted as passes. Serial final checks follow. Yesterday's temporary Node20 binary was externally removed; the installed supported runtime is Node22.23.2. Commit gate remains required, and exact-head hosted CI remains separate. No physical provider/device acceptance, merge or deployment is authorized by this follow-up.
+
+Final full TypeScript passed in 195.06 seconds using supported Node22.23.2, unchanged project tsconfig/noEmit and 300-second timeout, on the host execution path. No source exclusions, compiler weakening, or budget increase. Supplemental independent current-source behavioral review passed its seven-suite / 35-test batch and 11-case VM harness; a later supported-runtime verifier turn was interrupted by a tool error and is not counted as passing. No task-owned verifier process remained in the process inspection.
+
+Final full repository Prettier check also passed on the host execution path in 204.47 seconds using Node22.23.2 and its unchanged 300-second budget. The earlier sandbox formatting timeout is recorded above, not treated as a pass. Production source and frozen assertions were stable for both final full checks.

@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
-import { initializeNotificationIdentity, syncNotificationIdentity } from '@/services/onesignal/identity'
+import { initializeNotificationIdentity, syncNotificationIdentityFromHook } from '@/services/onesignal/identity'
 import { isPermanentOneSignalInitError } from '@/services/onesignal/errors'
 import { isChunkLoadError } from '@/utils/chunk-error-recovery'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
@@ -133,13 +133,13 @@ async function syncExternalIdLink() {
     const id = currentExternalId
     if (disableExternalIdLogin) return
     try {
-        await syncNotificationIdentity(id)
+        await syncNotificationIdentityFromHook(id)
     } catch (err) {
         handleLoginError(err)
         // One bounded retry also recovers callers that joined a failed login.
         if (currentExternalId === id && !disableExternalIdLogin) {
             try {
-                await syncNotificationIdentity(id)
+                await syncNotificationIdentityFromHook(id)
             } catch (retryError) {
                 handleLoginError(retryError)
             }

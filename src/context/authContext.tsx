@@ -27,8 +27,9 @@ import { disableDemoMode, isDemoMode } from '@/utils/demo'
 import {
     getNotificationLogoutVersion,
     logoutNotificationIdentity,
+    onNotificationIdentityLoginAvailable,
+    reconcileNotificationIdentity,
     resumeNotificationIdentity,
-    syncNotificationIdentity,
 } from '@/services/onesignal/identity'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -249,26 +250,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const loggingOut = useRef(false)
+    const pushExternalId = user?.user.userId ?? null
+    const pushProfileResolved = user !== undefined
 
     useEffect(() => {
         // A locked/hydrating session or failed profile read is not confirmed logout.
-        if (user === undefined || appLocked || isFetchingUser || userFetchError || isLoggingOut || isDemoMode()) return
+        if (!pushProfileResolved || appLocked || isFetchingUser || userFetchError || isLoggingOut || isDemoMode())
+            return
+        let active = true
         const reconcile = () => {
-            if (loggingOut.current || document.visibilityState === 'hidden') return
-            void syncNotificationIdentity(user?.user.userId ?? null).catch(() => {
+            if (!active || loggingOut.current || isDemoMode() || document.visibilityState === 'hidden') return
+            // Query cache updates precede React's scheduled observer render.
+            // Queued lifecycle callbacks must not reuse the old rendered ID.
+            const currentProfile = queryClient.getQueryData<IUserProfile | null>([USER])
+            if (currentProfile === undefined) return
+            void reconcileNotificationIdentity(currentProfile?.user.userId ?? null, async () => {
+                if (!active || loggingOut.current || isDemoMode()) return null
+                const result = await fetchUser({ cancelRefetch: false })
+                if (!active || loggingOut.current || isDemoMode()) return null
+                if (result.error) throw result.error
+                return result.data?.user?.userId ?? null
+            }).catch(() => {
                 captureException(new Error('Push identity reconciliation failed'), {
                     tags: { source: 'push_identity_reconcile' },
                 })
             })
         }
+        const unsubscribe = onNotificationIdentityLoginAvailable(reconcile)
         reconcile()
         window.addEventListener('online', reconcile)
         document.addEventListener('visibilitychange', reconcile)
         return () => {
+            active = false
+            unsubscribe()
             window.removeEventListener('online', reconcile)
             document.removeEventListener('visibilitychange', reconcile)
         }
-    }, [appLocked, isFetchingUser, userFetchError, isLoggingOut, user])
+    }, [
+        appLocked,
+        isFetchingUser,
+        userFetchError,
+        isLoggingOut,
+        pushExternalId,
+        pushProfileResolved,
+        fetchUser,
+        queryClient,
+    ])
 
     const addAccount = async ({
         accountIdentifier,
