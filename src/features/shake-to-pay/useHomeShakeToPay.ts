@@ -84,7 +84,7 @@ export function useHomeShakeToPay(): void {
         }
 
         if (needsPermission) {
-            armPermissionRequest()
+            onClick()
         } else {
             startListening()
         }

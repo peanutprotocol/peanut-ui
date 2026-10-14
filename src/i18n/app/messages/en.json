@@ -1167,6 +1167,7 @@
             "contact": "Contact",
             "verified": "Verified",
             "payAria": "Pay {name}",
+            "payNamedAria": "Pay {name} (@{username})",
             "illustrationAlt": "Instant camera looking for people nearby"
         }
     },

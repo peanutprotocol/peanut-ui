@@ -202,7 +202,12 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
                                     isContact={contactUsernames.has(candidate.username.toLowerCase())}
                                     slotRef={slotRef}
                                     labels={{
-                                        pay: t('payAria', { name: candidate.displayName ?? `@${candidate.username}` }),
+                                        pay: candidate.displayName
+                                            ? t('payNamedAria', {
+                                                  name: candidate.displayName,
+                                                  username: candidate.username,
+                                              })
+                                            : t('payAria', { name: `@${candidate.username}` }),
                                         contact: t('contact'),
                                         verified: t('verified'),
                                     }}

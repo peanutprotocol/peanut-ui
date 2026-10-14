@@ -51,10 +51,13 @@ export function ShakePhoto({ candidate, index, isContact, slotRef, labels, onSel
 
     // a 4rem print fits a first name; the full name is in the button's label
     const name = (candidate.displayName ?? candidate.username).split(' ')[0]
+    const accessibleName = [labels.pay, isContact && labels.contact, candidate.isVerified && labels.verified]
+        .filter(Boolean)
+        .join(', ')
 
     return (
         <li ref={cellRef}>
-            <button type="button" aria-label={labels.pay} onClick={onSelect} className={styles.photo}>
+            <button type="button" aria-label={accessibleName} onClick={onSelect} className={styles.photo}>
                 {isContact && <span className={`${styles.contactTag} text-label-m`}>{labels.contact}</span>}
                 <span className={`${styles.shot} ${SHOT_BACKGROUNDS[index % SHOT_BACKGROUNDS.length]}`}>
                     <UserAvatar size="l" name={candidate.username} avatarKey={candidate.avatarKey} decorative />

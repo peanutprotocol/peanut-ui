@@ -1,4 +1,6 @@
 import { StrictMode } from 'react'
+import { NextIntlClientProvider } from 'next-intl'
+import { loadMessages } from '@/i18n/app/messages'
 import { act, fireEvent, screen, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { sendUrl } from '@/utils/native-routes'
@@ -144,7 +146,13 @@ const tapButton = () => screen.getByRole('button', { name: COPY.tap })
 /** Whichever control starts a fresh search in the current state: ready, ended, or people shown. */
 const RETRY_NAME = /^(Tap to find people|Shake again|Not here\? Shake again)$/
 const retryButton = () => screen.getByRole('button', { name: RETRY_NAME })
-const payButton = (name: string) => screen.getByRole('button', { name: `Pay ${name}` })
+const payButton = (name: string) => {
+    const person = mockSession.candidates.find((person) => (person.displayName ?? `@${person.username}`) === name)!
+    return screen.getByRole('button', {
+        name: (accessibleName) =>
+            accessibleName.startsWith(`Pay ${name}`) && accessibleName.includes(`@${person.username}`),
+    })
+}
 const payButtons = () => screen.queryAllByRole('button', { name: /^Pay / })
 
 /** Which of the state messages are on screen, so a state can be checked to show exactly its own. */
@@ -616,13 +624,13 @@ describe('ShakeToPayView: people nearby', () => {
         mockSession.state = 'searching'
     })
 
-    it('has one button per candidate, named "Pay <name>" with the display name when there is one', () => {
+    it('has one button per candidate, named with the full display name and @username when there is a display name', () => {
         mockSession.candidates = [ANA, CARL]
         renderView()
 
         expect(payButtons()).toHaveLength(2)
-        expect(payButton('Ana Gomez')).toBeInTheDocument()
-        expect(payButton('Carl Jones')).toBeInTheDocument()
+        expect(payButton('Ana Gomez')).toHaveAccessibleName(/Pay Ana Gomez.*@ana/)
+        expect(payButton('Carl Jones')).toHaveAccessibleName(/Pay Carl Jones.*@carl/)
     })
 
     it('falls back to "Pay @username" when the candidate has no display name', () => {
@@ -633,10 +641,11 @@ describe('ShakeToPayView: people nearby', () => {
         expect(screen.queryByRole('button', { name: 'Pay bob' })).not.toBeInTheDocument()
     })
 
-    it('does not use the @username in the name when a display name exists', () => {
+    it('retains the display name alongside @username instead of using the username alone', () => {
         mockSession.candidates = [ANA]
         renderView()
 
+        expect(payButton('Ana Gomez')).toHaveAccessibleName(/Pay Ana Gomez.*@ana/)
         expect(screen.queryByRole('button', { name: 'Pay @ana' })).not.toBeInTheDocument()
     })
 
@@ -644,11 +653,11 @@ describe('ShakeToPayView: people nearby', () => {
         mockSession.candidates = [CARL, BOB, ANA]
         renderView()
 
-        expect(payButtons().map((button) => button.getAttribute('aria-label') ?? button.textContent)).toEqual([
-            'Pay Carl Jones',
-            'Pay @bob',
-            'Pay Ana Gomez',
-        ])
+        const buttons = payButtons()
+        expect(buttons).toHaveLength(3)
+        expect(buttons[0]).toHaveAccessibleName(/Pay Carl Jones.*@carl/)
+        expect(buttons[1]).toHaveAccessibleName('Pay @bob')
+        expect(buttons[2]).toHaveAccessibleName(/Pay Ana Gomez.*@ana/)
     })
 
     it.each([ANA, BOB, CARL])('each card shows the @username ($username)', (person) => {
@@ -695,7 +704,8 @@ describe('ShakeToPayView: people nearby', () => {
         ]
         renderView()
 
-        const [verifiedCard, plainCard] = screen.getAllByRole('button', { name: 'Pay Same Name' })
+        const verifiedCard = screen.getByRole('button', { name: /Pay Same Name.*@amy/ })
+        const plainCard = screen.getByRole('button', { name: /Pay Same Name.*@ann/ })
         expect(elementCount(verifiedCard)).toBeGreaterThan(elementCount(plainCard))
     })
 
@@ -737,7 +747,59 @@ describe('ShakeToPayView: people nearby', () => {
         rerender(<ShakeToPayView onPrev={onPrev} />)
 
         expect(payButtons()).toHaveLength(1)
-        expect(screen.queryByRole('button', { name: 'Pay Ana Gomez' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Pay Ana Gomez.*@ana/ })).not.toBeInTheDocument()
+    })
+})
+
+describe('ShakeToPayView: localized recipient accessibility', () => {
+    it('distinguishes candidates sharing a display name by @username in their accessible names', () => {
+        mockSession.state = 'done'
+        mockSession.candidates = [
+            candidate('amy', { displayName: 'Same Name' }),
+            candidate('ann', { displayName: 'Same Name' }),
+        ]
+        renderView()
+        const amy = screen.getByRole('button', { name: /Pay Same Name.*@amy/ })
+        const ann = screen.getByRole('button', { name: /Pay Same Name.*@ann/ })
+        expect(amy).not.toBe(ann)
+        expect(amy).toHaveAccessibleName(/@amy/)
+        expect(amy).not.toHaveAccessibleName(/@ann/)
+        expect(ann).toHaveAccessibleName(/@ann/)
+        expect(ann).not.toHaveAccessibleName(/@amy/)
+    })
+
+    it.each([
+        ['en', 'Contact', 'Verified'],
+        ['es-419', 'Contacto', 'Verificado'],
+        ['pt-BR', 'Contato', 'Verificado'],
+        ['es-AR', 'Contacto', 'Verificado'],
+    ] as const)('announces accurate contact and verified statuses in %s', async (locale, contact, verified) => {
+        mockSession.state = 'done'
+        mockContacts = [{ username: 'both' }, { username: 'contactonly' }]
+        mockSession.candidates = [
+            candidate('both', { displayName: 'Person One', isVerified: true }),
+            candidate('contactonly', { displayName: 'Person Two' }),
+            candidate('verifiedonly', { displayName: 'Person Three', isVerified: true }),
+            candidate('neither', { displayName: 'Person Four' }),
+        ]
+        const messages = await loadMessages(locale)
+        renderWithIntl(
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <ShakeToPayView onPrev={onPrev} />
+            </NextIntlClientProvider>
+        )
+        const buttonFor = (username: string) =>
+            screen.getByRole('button', { name: new RegExp(`@${username}(?:[^a-z]|$)`) })
+        for (const person of mockSession.candidates) {
+            const button = buttonFor(person.username)
+            expect(button).toHaveAccessibleName(new RegExp(escapeRegExp(person.displayName!)))
+            expect(button).toHaveAccessibleName(new RegExp(`@${person.username}(?:[^a-z]|$)`))
+            if (mockContacts.some(({ username }) => username === person.username))
+                expect(button).toHaveAccessibleName(new RegExp(`\\b${contact}\\b`))
+            else expect(button).not.toHaveAccessibleName(new RegExp(`\\b${contact}\\b`))
+            if (person.isVerified) expect(button).toHaveAccessibleName(new RegExp(`\\b${verified}\\b`))
+            else expect(button).not.toHaveAccessibleName(new RegExp(`\\b${verified}\\b`))
+        }
     })
 })
 

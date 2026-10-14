@@ -1167,6 +1167,7 @@
             "contact": "Contacto",
             "verified": "Verificado",
             "payAria": "Pagar a {name}",
+            "payNamedAria": "Pagar a {name} (@{username})",
             "illustrationAlt": "Cámara instantánea buscando personas cerca"
         }
     },

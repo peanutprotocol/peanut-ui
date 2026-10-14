@@ -663,7 +663,7 @@ describe('Home remembered iOS motion consent', () => {
         }
     )
 
-    it('does not listen before the first activating tap despite a remembered grant', async () => {
+    it('a rejected mount probe preserves remembered consent and waits for an activating tap', async () => {
         installPermissionApi({ remembered: true })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
@@ -674,15 +674,19 @@ describe('Home remembered iOS motion consent', () => {
         expect(liveMotion()).toBe(0)
         expectNoNavigation()
         expect(window.localStorage.getItem(grantKey)).toBe('1')
+        expect(permissionCalls).toEqual([false])
+        expect(liveArming()).toBeGreaterThan(0)
     })
 
     it('30a: asks inside the first activating tap of a new iOS session and starts listening once granted', async () => {
         installPermissionApi({ remembered: true })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         tap()
         await settlePermission()
         expect(permissionCalls.filter(Boolean)).toHaveLength(1)
+        expect(permissionCalls).toEqual([false, true])
         expect(liveMotion()).toBe(1)
         dispatch(gesture(60, 'vigorous'))
         expectNavigation()
@@ -691,9 +695,10 @@ describe('Home remembered iOS motion consent', () => {
 
     it('30a: stays unresolved until the activated request settles, then listens only after grant', async () => {
         installPermissionApi({ remembered: true })
-        const pending = deferRequest()
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
+        const pending = deferRequest()
         tap()
         expect(permissionCalls.filter(Boolean)).toHaveLength(1)
         expect(liveMotion()).toBe(0)
@@ -716,6 +721,7 @@ describe('Home remembered iOS motion consent', () => {
         installPermissionApi({ remembered: true })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         const armed = liveArming()
         expect(armed).toBeGreaterThan(0)
         gestureFn()
@@ -737,6 +743,7 @@ describe('Home remembered iOS motion consent', () => {
         installPermissionApi({ remembered: true })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         const armed = liveArming()
         for (let attempt = 0; attempt < 3; attempt++) {
             tap({ activated: false })
@@ -760,9 +767,10 @@ describe('Home remembered iOS motion consent', () => {
         '30b: a rejection settling after %s neither re-arms handlers nor forgets the grant',
         async (stop) => {
             installPermissionApi({ remembered: true })
-            const pending = deferRequest()
             trackListeners()
             const handles = renderHook(() => useHomeShakeToPay())
+            await settlePermission()
+            const pending = deferRequest()
             tap()
             stopHook(stop, handles)
             await act(async () => pending.reject(new Error('requires a user gesture')))
@@ -773,7 +781,7 @@ describe('Home remembered iOS motion consent', () => {
             tap()
             changeVisibility(false)
             changeVisibility(true)
-            expect(permissionCalls).toHaveLength(1)
+            expect(permissionCalls).toEqual([false, true])
             expectNoNavigation()
         }
     )
@@ -782,6 +790,7 @@ describe('Home remembered iOS motion consent', () => {
         installPermissionApi({ remembered: true, answer: 'denied' })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         tap()
         await settlePermission()
         expect(permissionCalls.filter(Boolean)).toHaveLength(1)
@@ -805,8 +814,8 @@ describe('Home remembered iOS motion consent', () => {
         installPermissionApi({ remembered: true, state: 'denied' })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
-        tap()
         await settlePermission()
+        expect(permissionCalls).toEqual([false])
         const calls = permissionCalls.length
         expect(window.localStorage.getItem(grantKey)).toBeNull()
         tap()
@@ -828,6 +837,7 @@ describe('Home remembered iOS motion consent', () => {
         })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         tap()
         await settlePermission()
         tap()
@@ -841,12 +851,13 @@ describe('Home remembered iOS motion consent', () => {
         expect(window.localStorage.getItem(grantKey)).toBe('1')
     })
 
-    it('30d: with permission already granted, listening is on after the first tap and nothing prompts again', async () => {
+    it('30d: with permission already granted, listening is on after the mount probe and nothing prompts again', async () => {
         installPermissionApi({ remembered: true, state: 'granted' })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
-        tap()
         await settlePermission()
+        expect(permissionCalls).toEqual([false])
+        expect(liveArming()).toBe(0)
         expect(liveMotion()).toBe(1)
         dispatch(gesture(60, 'vigorous'))
         expectNavigation()
@@ -880,14 +891,16 @@ describe('Home remembered iOS motion consent', () => {
             installPermissionApi({ remembered: true })
             const handlesTracker = trackListeners()
             const handles = renderHook(() => useHomeShakeToPay())
+            await settlePermission()
             tap({ activated: false })
             await settlePermission()
             const before = handlesTracker.registrations.filter(
                 (entry) => armingTypes.has(entry.type) && eventPath().includes(entry.target)
             )
             expect(before.length).toBeGreaterThan(0)
-            const calls = permissionCalls.length
             stopHook(stop, handles)
+            await settlePermission()
+            const calls = permissionCalls.length
             const stale = before.filter((entry) => !entry.removed && !entry.consumed)
             expect(stale).toEqual([])
             if (stop !== 'router-change') expect(liveArming()).toBe(0)
@@ -910,12 +923,19 @@ describe('Home remembered iOS motion consent', () => {
         'ignores a deferred grant resolving after %s',
         async (stop) => {
             installPermissionApi({ remembered: true })
-            const pending = deferRequest()
             trackListeners()
             const handles = renderHook(() => useHomeShakeToPay())
+            await settlePermission()
+            const pending = deferRequest()
             tap()
-            expect(permissionCalls).toEqual([true])
+            expect(permissionCalls).toEqual([false, true])
             const firstRouter = mockRouter
+            if (stop === 'router-change') {
+                mockRequestPermission.mockImplementation(() => {
+                    permissionCalls.push(inActivation)
+                    return new Promise(() => {})
+                })
+            }
             stopHook(stop, handles)
             await act(async () => pending.resolve('granted'))
             changeVisibility(false)
@@ -925,15 +945,16 @@ describe('Home remembered iOS motion consent', () => {
             expect(firstRouter.push).not.toHaveBeenCalled()
             expect(mockRouter.push).not.toHaveBeenCalled()
             expect(mockHaptic).not.toHaveBeenCalled()
-            expect(permissionCalls).toEqual([true])
+            expect(permissionCalls).toEqual(stop === 'router-change' ? [false, true, false] : [false, true])
         }
     )
 
     it('does not attach when a grant resolves while hidden and attaches on the next visible event', async () => {
         installPermissionApi({ remembered: true })
-        const pending = deferRequest()
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
+        const pending = deferRequest()
         tap()
         changeVisibility(false)
         await act(async () => pending.resolve('granted'))
@@ -943,15 +964,34 @@ describe('Home remembered iOS motion consent', () => {
         changeVisibility(true)
         dispatch(gesture(60, 'vigorous'))
         expectNavigation()
-        expect(permissionCalls).toHaveLength(1)
+        expect(permissionCalls).toEqual([false, true])
     })
 
-    it('keeps a pending request single through repeated taps and visibility cycles', () => {
+    it('keeps a pending request single through repeated taps and visibility cycles', async () => {
+        installPermissionApi({ remembered: true })
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        await settlePermission()
+        deferRequest()
+        tap()
+        for (let index = 0; index < 5; index++) {
+            changeVisibility(false)
+            changeVisibility(true)
+            tap()
+            dispatch(laterGesture(index * 10000))
+        }
+        expect(permissionCalls).toEqual([false, true])
+        expect(liveMotion()).toBe(0)
+        expectNoNavigation()
+    })
+
+    it('keeps a pending mount probe single through repeated taps and visibility cycles without polling', () => {
         installPermissionApi({ remembered: true })
         mockRequestPermission.mockImplementation(() => {
             permissionCalls.push(inActivation)
             return new Promise(() => {})
         })
+        jest.useFakeTimers()
         trackListeners()
         renderHook(() => useHomeShakeToPay())
         tap()
@@ -961,15 +1001,79 @@ describe('Home remembered iOS motion consent', () => {
             tap()
             dispatch(laterGesture(index * 10000))
         }
-        expect(permissionCalls).toEqual([true])
+        act(() => jest.advanceTimersByTime(60000))
+        expect(permissionCalls).toEqual([false])
         expect(liveMotion()).toBe(0)
         expectNoNavigation()
     })
+
+    it('a pending mount probe starts listening after grant without a click', async () => {
+        installPermissionApi({ remembered: true, state: 'granted' })
+        const pending = deferRequest()
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        expect(permissionCalls).toEqual([false])
+        expect(liveMotion()).toBe(0)
+        dispatch(gesture(60, 'vigorous'))
+        expectNoNavigation()
+        await act(async () => pending.resolve('granted'))
+        expect(liveMotion()).toBe(1)
+        expect(liveArming()).toBe(0)
+        dispatch(laterGesture())
+        expectNavigation()
+        expect(permissionCalls).toEqual([false])
+    })
+
+    it('a rejected pending mount probe preserves consent and recovers with one activated request', async () => {
+        installPermissionApi({ remembered: true })
+        const pending = deferRequest()
+        trackListeners()
+        renderHook(() => useHomeShakeToPay())
+        tap()
+        expect(permissionCalls).toEqual([false])
+        expect(liveMotion()).toBe(0)
+        await act(async () => pending.reject(new Error('requires a user gesture')))
+        expect(window.localStorage.getItem(grantKey)).toBe('1')
+        expect(liveArming()).toBeGreaterThan(0)
+        mockRequestPermission.mockImplementation(requestMotionPermission)
+        tap()
+        await settlePermission()
+        expect(permissionCalls).toEqual([false, true])
+        expect(liveMotion()).toBe(1)
+        dispatch(laterGesture())
+        expectNavigation()
+    })
+
+    it.each(['granted', 'denied', 'rejected'] as const)(
+        'a mount probe settling with %s after unmount is inert',
+        async (outcome) => {
+            installPermissionApi({ remembered: true })
+            const pending = deferRequest()
+            trackListeners()
+            const { unmount } = renderHook(() => useHomeShakeToPay())
+            expect(permissionCalls).toEqual([false])
+            unmount()
+            if (outcome === 'rejected') await act(async () => pending.reject(new Error('requires a user gesture')))
+            else await act(async () => pending.resolve(outcome))
+            await settlePermission()
+            expect(liveMotion()).toBe(0)
+            expect(liveArming()).toBe(0)
+            expect(liveVisibility()).toBe(0)
+            expect(window.localStorage.getItem(grantKey)).toBe('1')
+            tap()
+            changeVisibility(false)
+            changeVisibility(true)
+            dispatch(gesture(60, 'vigorous'))
+            expect(permissionCalls).toEqual([false])
+            expectNoNavigation()
+        }
+    )
 
     it('30e: removes granted motion and visibility handlers on unmount', async () => {
         installPermissionApi({ remembered: true })
         const handlesTracker = trackListeners()
         const { unmount } = renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         tap()
         await settlePermission()
         const motion = handlesTracker.registrations.find((entry) => entry.type === 'devicemotion')
@@ -994,11 +1098,13 @@ describe('Home remembered iOS motion consent', () => {
         installPermissionApi({ remembered: true })
         trackListeners()
         const plain = renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         const plainArming = liveArming()
         plain.unmount()
         tracker = null
         trackListeners()
         renderHook(() => useHomeShakeToPay(), { wrapper: ({ children }) => <StrictMode>{children}</StrictMode> })
+        await settlePermission()
         expect(plainArming).toBeGreaterThan(0)
         expect(liveArming()).toBe(plainArming)
         tap()
@@ -1042,6 +1148,7 @@ describe('Home remembered iOS motion consent', () => {
         })
         trackListeners()
         renderHook(() => useHomeShakeToPay())
+        await settlePermission()
         tap()
         await settlePermission()
         const calls = permissionCalls.length
