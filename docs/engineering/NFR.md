@@ -30,3 +30,24 @@ Undecided: whether future UI changes that do not alter pixels should use a stand
 - Local `.codex/quality-gates.json` runs the relevant auth/notification Jest suites and full ESLint alongside the upstream Screen Library and formatting checks within the existing dev 420-second budget. Full repository Jest/TypeScript and hosted branch protections remain the CI merge boundary; local focused checks are not a replacement.
 
 Undecided: production rollout owner and provider-level suppression for account payloads already queued before logout. Device/provider delivery is separate evidence.
+
+## Screen visual history checklist
+
+- Read only immutable authorized report manifests; do not add publication, data
+  mutation, capture, deployment or backfill work.
+- Keep source, canonical branch or exact PR, locale and viewport independent.
+  Stable screen IDs define identity; missing screenshots are gaps, not removals.
+- Omit consecutive identical visuals; retain A-B-A and confirmed removal/restoration.
+  Trust normalized noise only against the immediately observed comparison baseline.
+- Reuse the 62px square date tile on the timeline line. Hide the current UTC year;
+  show other years inside the square. Unknown dates must never become today's date.
+- Bound reads to four concurrent manifests, 12 per page, eight seconds per read;
+  expose remaining history and retry failures explicitly, without background loops.
+- Cancel stale loads on close/change; retain successful reads and distinguish
+  authentication, partial failure, unknown capture state and complete empty history.
+- Preserve gallery/report/offline behavior, safe text and content-addressed assets.
+  Verify frozen history tests, full screen suite, configured gates and responsive
+  browser/fault cases. Hosted Access/deployment evidence remains separate.
+
+Undecided: None for the approved app-state history integration. Historical gaps
+cannot be reconstructed from reports that were never captured or retained.
