@@ -7,6 +7,7 @@ import {
     checkArrival,
     currentArrival,
     currentArrivalGeneration,
+    currentSettledFor,
     dismissArrival,
     subscribeArrival,
 } from './arrival-session'
@@ -21,10 +22,16 @@ export function useArrivalPrompt() {
     const { countryCode: ipCountry, isLoading: ipLoading } = useGeoLocation()
     const arrival = useSyncExternalStore(subscribeArrival, currentArrival, () => null)
     const generation = useSyncExternalStore(subscribeArrival, currentArrivalGeneration, () => 0)
+    const settledFor = useSyncExternalStore(subscribeArrival, currentSettledFor, () => null)
 
     useEffect(() => {
         if (userId && !ipLoading) void checkArrival(userId, ipCountry)
     }, [userId, ipLoading, ipCountry, generation])
 
-    return { arrival: arrival?.userId === userId ? arrival : null, dismiss: dismissArrival }
+    return {
+        arrival: arrival?.userId === userId ? arrival : null,
+        /** The check for this user finished, so a lower Home prompt may decide. */
+        checked: !!userId && settledFor === userId,
+        dismiss: dismissArrival,
+    }
 }

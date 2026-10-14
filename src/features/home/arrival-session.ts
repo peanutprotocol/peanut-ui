@@ -13,6 +13,7 @@ export const ARRIVAL_RECHECK_AFTER_MS = 60 * 60 * 1000
 // session, and its answer must survive a Home remount (React strict mode runs
 // effects twice), because the backend answers a prompt only once.
 let checkedFor: string | null = null
+let settledFor: string | null = null
 let arrival: Arrival | null = null
 let generation = 0
 let backgroundedAt: number | null = null
@@ -21,6 +22,8 @@ const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((listener) => listener())
 
 export const currentArrival = () => arrival
+/** The user whose check has finished this session, prompt or not. */
+export const currentSettledFor = () => settledFor
 /** Bumped when a resume renews the session, so a mounted Home checks again. */
 export const currentArrivalGeneration = () => generation
 
@@ -40,10 +43,9 @@ export async function checkArrival(userId: string, ipCountry: string | null): Pr
     if (checkedFor === userId) return
     checkedFor = userId
     const country = (await fetchEdgeCountry()) ?? normalizeCountrySignal(ipCountry)
-    if (!country) return
-    const prompt = await reportArrival(country).catch(() => null)
-    if (!prompt) return
-    arrival = { userId, country, prompt }
+    const prompt = country ? await reportArrival(country).catch(() => null) : null
+    if (country && prompt) arrival = { userId, country, prompt }
+    settledFor = userId
     emit()
 }
 
@@ -67,6 +69,7 @@ function listenForResume() {
                 backgroundedAt = null
                 if (since !== null && Date.now() - since >= ARRIVAL_RECHECK_AFTER_MS) {
                     checkedFor = null
+                    settledFor = null
                     generation += 1
                     emit()
                 }
@@ -79,6 +82,7 @@ function listenForResume() {
 
 export function resetArrivalSessionForTests() {
     checkedFor = null
+    settledFor = null
     arrival = null
     generation = 0
     backgroundedAt = null

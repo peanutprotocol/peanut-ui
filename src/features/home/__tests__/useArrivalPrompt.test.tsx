@@ -91,6 +91,15 @@ it('shows nothing when the backend answers no prompt, or fails', async () => {
     expect(retry.result.current.arrival).toBeNull()
 })
 
+it('reports the check as finished once it answered, with or without a prompt', async () => {
+    mockReportArrival.mockResolvedValueOnce(null)
+    const { result } = renderHook(() => useArrivalPrompt())
+    expect(result.current.checked).toBe(false)
+    await flush()
+    expect(result.current.checked).toBe(true)
+    expect(result.current.arrival).toBeNull()
+})
+
 it('dismiss clears the prompt for the rest of the session', async () => {
     const { result } = renderHook(() => useArrivalPrompt())
     await waitFor(() => expect(result.current.arrival).not.toBeNull())

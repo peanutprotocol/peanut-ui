@@ -21,7 +21,10 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: () => undefined, updateUserPreferences: jest.fn() }))
 let mockArrival: Arrival | null = null
-jest.mock('../useArrivalPrompt', () => ({ useArrivalPrompt: () => ({ arrival: mockArrival, dismiss: jest.fn() }) }))
+let mockArrivalChecked = true
+jest.mock('../useArrivalPrompt', () => ({
+    useArrivalPrompt: () => ({ arrival: mockArrival, checked: mockArrivalChecked, dismiss: jest.fn() }),
+}))
 
 let mockMigrationVisible = false
 jest.mock('@/components/Migration/MigrationDownloadModal', () => ({
@@ -70,6 +73,7 @@ beforeEach(() => {
     mockMigrationVisible = false
     mockPostSignupVisible = false
     mockArrival = IN_BRAZIL
+    mockArrivalChecked = true
 })
 
 it('shows the arrival prompt, and holds the balance warning while it is pending', async () => {
@@ -85,6 +89,14 @@ it('lets the balance warning through once there is no arrival prompt', async () 
     await flush()
     expect(await screen.findByText('balance-warning')).toBeInTheDocument()
     expect(screen.queryByText(/arrival/)).not.toBeInTheDocument()
+})
+
+it('holds the balance warning until the arrival check has answered', async () => {
+    mockArrival = null
+    mockArrivalChecked = false
+    render(<HomeModals />)
+    await flush()
+    expect(screen.queryByText('balance-warning')).not.toBeInTheDocument()
 })
 
 it.each([

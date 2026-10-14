@@ -41,7 +41,7 @@ export function HomeModals() {
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user } = useAuth()
-    const { arrival, dismiss: dismissArrival } = useArrivalPrompt()
+    const { arrival, checked: arrivalChecked, dismiss: dismissArrival } = useArrivalPrompt()
 
     const [showBalanceWarningDrawer, setShowBalanceWarningDrawer] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
@@ -79,7 +79,9 @@ export function HomeModals() {
             !showMigrationModal && // highest priority
             !showPermissionModal &&
             !isPostSignupActionModalVisible &&
-            !arrival // the arrival prompt outranks it
+            // the arrival prompt outranks it: wait for its check, then for its dismissal
+            arrivalChecked &&
+            !arrival
         ) {
             setShowBalanceWarningDrawer(true)
         }
@@ -89,6 +91,7 @@ export function HomeModals() {
         showMigrationModal,
         showPermissionModal,
         isPostSignupActionModalVisible,
+        arrivalChecked,
         arrival,
         user,
     ])

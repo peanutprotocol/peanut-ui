@@ -255,17 +255,17 @@
         "arrival": {
             "qr_ar": {
                 "title": "Boas-vindas à Argentina",
-                "description": "Pague códigos QR do Mercado Pago com o seu saldo.",
+                "description": "Pague códigos QR do Mercado Pago com seu saldo.",
                 "cta": "Escanear QR"
             },
             "pix_br": {
                 "title": "Boas-vindas ao Brasil",
-                "description": "Pague códigos QR do Pix com o seu saldo.",
+                "description": "Pague códigos QR do Pix com seu saldo.",
                 "cta": "Escanear QR"
             },
             "card": {
                 "title": "O cartão funciona aqui",
-                "description": "Pague em lojas e online.",
+                "description": "Pague online e em lojas com Apple Pay ou Google Pay.",
                 "cta": "Ver cartão"
             },
             "notNow": "Agora não"

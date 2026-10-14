@@ -265,7 +265,7 @@
             },
             "card": {
                 "title": "La tarjeta funciona aquí",
-                "description": "Paga en comercios y online.",
+                "description": "Paga en línea y en comercios con Apple Pay o Google Pay.",
                 "cta": "Ver tarjeta"
             },
             "notNow": "Ahora no"
