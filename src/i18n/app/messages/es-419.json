@@ -251,6 +251,24 @@
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
             "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
+        },
+        "arrival": {
+            "qr_ar": {
+                "title": "Llegaste a Argentina",
+                "description": "Paga códigos QR de Mercado Pago con tu saldo.",
+                "cta": "Escanear QR"
+            },
+            "pix_br": {
+                "title": "Llegaste a Brasil",
+                "description": "Paga códigos QR de Pix con tu saldo.",
+                "cta": "Escanear QR"
+            },
+            "card": {
+                "title": "La tarjeta funciona aquí",
+                "description": "Paga en comercios y online.",
+                "cta": "Ver tarjeta"
+            },
+            "notNow": "Ahora no"
         }
     },
     "profile": {

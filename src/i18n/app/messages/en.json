@@ -251,6 +251,24 @@
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
             "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
+        },
+        "arrival": {
+            "qr_ar": {
+                "title": "Welcome to Argentina",
+                "description": "Pay Mercado Pago QR codes from your balance.",
+                "cta": "Scan QR"
+            },
+            "pix_br": {
+                "title": "Welcome to Brazil",
+                "description": "Pay Pix QR codes from your balance.",
+                "cta": "Scan QR"
+            },
+            "card": {
+                "title": "Peanut Card works here",
+                "description": "Pay in shops and online.",
+                "cta": "Open card"
+            },
+            "notNow": "Not now"
         }
     },
     "profile": {

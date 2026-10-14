@@ -12,6 +12,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
+import { useArrivalPrompt } from '../useArrivalPrompt'
 
 // lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // components are only loaded when user triggers them
@@ -21,6 +22,7 @@ const SetupNotificationsModal = lazy(() => import('@/components/Notifications/Se
 const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
+const ArrivalDrawer = lazy(() => import('./ArrivalDrawer'))
 
 // guard against malformed env values — NaN would silently disable the
 // warning (threshold compare always false) or break dismissal expiry
@@ -32,13 +34,14 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
 /**
  * home modal orchestration — the priority chain the old home page carried
  * inline. migration download outranks everything, then notifications,
- * post-signup, and balance warning.
+ * post-signup, the arrival prompt, and balance warning.
  */
 export function HomeModals() {
     const { showPermissionModal, oneSignalInitialized } = useNotifications()
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user } = useAuth()
+    const { arrival, dismiss: dismissArrival } = useArrivalPrompt()
 
     const [showBalanceWarningDrawer, setShowBalanceWarningDrawer] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
@@ -75,11 +78,20 @@ export function HomeModals() {
             !hasSeenBalanceWarning &&
             !showMigrationModal && // highest priority
             !showPermissionModal &&
-            !isPostSignupActionModalVisible
+            !isPostSignupActionModalVisible &&
+            !arrival // the arrival prompt outranks it
         ) {
             setShowBalanceWarningDrawer(true)
         }
-    }, [balance, isFetchingBalance, showMigrationModal, showPermissionModal, isPostSignupActionModalVisible, user])
+    }, [
+        balance,
+        isFetchingBalance,
+        showMigrationModal,
+        showPermissionModal,
+        isPostSignupActionModalVisible,
+        arrival,
+        user,
+    ])
 
     return (
         <>
@@ -115,6 +127,18 @@ export function HomeModals() {
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
                         <EarlyUserDrawer />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
+            )}
+
+            {arrival && (
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <ArrivalDrawer
+                            arrival={arrival}
+                            blocked={showMigrationModal || showPermissionModal || isPostSignupActionModalVisible}
+                            onDismiss={dismissArrival}
+                        />
                     </Suspense>
                 </LazyLoadErrorBoundary>
             )}
