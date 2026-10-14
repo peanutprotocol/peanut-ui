@@ -1,51 +1,237 @@
-.phone {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: phone-rock calc(var(--transition-duration-slow) * 2) var(--ease-sharp) infinite alternate;
+.stage {
+    position: relative;
 }
 
-.ripple {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: ripple-pulse calc(var(--transition-duration-slow) * 3) ease-out infinite;
+/* lets the rings run on behind the header and the text below without widening the page;
+   z-index -1 relies on the view root being isolated */
+.rippleClip {
+    position: absolute;
+    top: -6rem;
+    right: 0;
+    bottom: -12rem;
+    left: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
 }
 
-.rippleMiddle {
-    animation-delay: calc(var(--transition-duration-slow) * -1);
+/* centred on the camera lens: clip offset (6rem) + camera top (1.5rem) + lens centre (4rem) */
+.ripples {
+    position: absolute;
+    top: 11.5rem;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-duration-slow) ease-out;
 }
 
-.rippleOuter {
-    animation-delay: calc(var(--transition-duration-slow) * -2);
+.ripplesIdle {
+    opacity: 0;
 }
 
-@keyframes phone-rock {
-    from {
-        transform: rotate(-6deg) translateX(-0.125rem);
+.ring {
+    position: absolute;
+    top: -25rem;
+    left: -25rem;
+    width: 50rem;
+    height: 50rem;
+    box-sizing: border-box;
+    border: 0.4375rem solid var(--color-action-primary);
+    border-radius: 9999px;
+    opacity: 0;
+    animation: ripple calc(var(--transition-duration-slow) * 8.4) cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+}
+
+.ring:nth-child(even) {
+    border-color: var(--color-action-secondary);
+}
+
+.ring:nth-child(2) {
+    animation-delay: calc(var(--transition-duration-slow) * 1.4);
+}
+
+.ring:nth-child(3) {
+    animation-delay: calc(var(--transition-duration-slow) * 2.8);
+}
+
+.ring:nth-child(4) {
+    animation-delay: calc(var(--transition-duration-slow) * 4.2);
+}
+
+.ring:nth-child(5) {
+    animation-delay: calc(var(--transition-duration-slow) * 5.6);
+}
+
+.ring:nth-child(6) {
+    animation-delay: calc(var(--transition-duration-slow) * 7);
+}
+
+.camera {
+    position: absolute;
+    top: 1.5rem;
+    left: 50%;
+    width: 7.5rem;
+    height: 7.5rem;
+    margin-left: -3.75rem;
+}
+
+.cameraClick {
+    animation: camera-click var(--transition-duration-moderate) ease-out;
+}
+
+.led {
+    fill: var(--color-foreground-secondary);
+}
+
+.ledOn {
+    animation: led-blink calc(var(--transition-duration-slow) * 2) steps(1) infinite;
+}
+
+/* below the camera: 1.5rem + 7.5rem + 1.25rem */
+.photos {
+    position: absolute;
+    inset: 10.25rem 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem 1rem;
+}
+
+/* four 4.75rem photos and three 0.75rem gaps per row */
+.grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    max-width: 21.25rem;
+}
+
+.photo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 4.75rem;
+    padding: 0.375rem 0.375rem 0;
+    box-sizing: border-box;
+    border: 2px solid var(--color-border-default);
+    background: var(--color-background-default);
+    box-shadow: 3px 3px 0 var(--color-border-default);
+    text-align: left;
+    transform: rotate(var(--tilt));
+    animation: photo-eject calc(var(--transition-duration-slow) * 1.6) cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+}
+
+.photo:active {
+    translate: 3px 3px;
+    box-shadow: none;
+}
+
+.photo:focus-visible {
+    outline: 3px solid var(--color-action-focus);
+    outline-offset: 2px;
+}
+
+.shot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    box-sizing: border-box;
+    border: 1.5px solid var(--color-border-default);
+    overflow: hidden;
+    animation: develop calc(var(--transition-duration-slow) * 4.8) var(--transition-duration-slow) ease-out both;
+}
+
+.blankPhoto {
+    --tilt: -3deg;
+}
+
+.blankShot {
+    background: var(--color-foreground-secondary);
+    color: var(--color-background-page);
+}
+
+.caption {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0.3125rem 0.0625rem 0.375rem;
+}
+
+.contactTag {
+    position: absolute;
+    top: -0.75rem;
+    left: 0.375rem;
+    padding: 0 0.3125rem;
+    border: 1.5px solid var(--color-border-default);
+    background: var(--color-action-secondary);
+    rotate: -3deg;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0.04);
+        opacity: 0.95;
     }
 
-    to {
-        transform: rotate(6deg) translateX(0.125rem);
-    }
-}
-
-@keyframes ripple-pulse {
-    0%,
     100% {
-        opacity: 0.3;
-        transform: scale(0.96);
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+@keyframes camera-click {
+    40% {
+        transform: translateY(3px) scale(0.96);
+    }
+}
+
+@keyframes led-blink {
+    0% {
+        fill: var(--color-action-primary);
     }
 
     50% {
+        fill: var(--color-foreground-secondary);
+    }
+}
+
+@keyframes photo-eject {
+    0% {
+        transform: translate(var(--from-x, 0), var(--from-y, -6rem)) scale(0.3);
+        opacity: 0;
+    }
+
+    15% {
         opacity: 1;
-        transform: scale(1.04);
+    }
+
+    100% {
+        transform: rotate(var(--tilt));
+    }
+}
+
+@keyframes develop {
+    0% {
+        filter: blur(5px) sepia(1) brightness(0.3);
+    }
+
+    100% {
+        filter: none;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .phone,
-    .ripple {
+    .ring {
+        animation-duration: calc(var(--transition-duration-slow) * 18);
+    }
+
+    .cameraClick,
+    .ledOn,
+    .photo,
+    .shot {
         animation: none;
-        opacity: 1;
-        transform: none;
     }
 }

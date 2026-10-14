@@ -6,20 +6,17 @@ import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
-import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Section } from '@/components/0_Bruddle/Section'
-import { UserAvatar } from '@/components/Avatar/UserAvatar'
-import { Icon } from '@/components/Global/Icons/Icon'
-import Loading from '@/components/Global/Loading'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useContacts } from '@/hooks/useContacts'
 import { impactHaptic } from '@/utils/haptics'
 import { sendUrl } from '@/utils/native-routes'
-import { NearbyPhoneIllustration } from './NearbyPhoneIllustration'
+import { InstantCamera } from './InstantCamera'
+import { ShakePhoto } from './ShakePhoto'
 import type { ShakeCandidate } from './shakeApi'
+import styles from './ShakeToPay.module.css'
 import { useApproxLocation } from './useApproxLocation'
 import { useShakeMotion } from './useShakeMotion'
 import { useShakeSession } from './useShakeSession'
@@ -43,6 +40,7 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
     const entryDeadline = useRef(Date.now() + 2000)
     const entryMethod = useRef<'entry' | 'home_shake'>(shook === '1' ? 'home_shake' : 'entry')
     const entryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const slotRef = useRef<SVGRectElement>(null)
 
     const cancelEntry = useCallback(() => {
         pendingEntry.current = false
@@ -140,119 +138,121 @@ export function ShakeToPayView({ onPrev }: { onPrev: () => void }) {
         router.push(sendUrl(candidate.username))
     }
 
-    const statusLine = (() => {
-        switch (state === 'idle' && entryPending ? 'searching' : state) {
-            case 'searching':
-                return (
-                    <span className="flex items-center gap-2">
-                        <Loading className="h-5 w-5" />
-                        {t('searching')}
-                    </span>
-                )
-            case 'expired':
-                return t('expired')
+    const count = candidates.length
+    const looking = state === 'searching' || (state === 'idle' && entryPending)
+    const ready = state === 'idle' && !entryPending
+    const ended = state === 'no-match' || state === 'expired' || state === 'error' || state === 'rate-limited'
+    const showPeople = (state === 'searching' || state === 'done') && count > 0
+
+    const heading = (() => {
+        if (looking) {
+            return count === 0
+                ? { title: t('searching'), description: t('empty') }
+                : { title: t('foundSearching', { count }), description: t('confirmRecipient') }
+        }
+        switch (state) {
+            case 'done':
+                return { title: t('nearbyCount', { count }), description: t('confirmRecipient') }
             case 'no-match':
-                return t('noMatch')
+                return { title: t('noMatchTitle'), description: t('noMatch') }
+            case 'expired':
+                return { title: t('expiredTitle'), description: t('expired') }
             case 'error':
-                return t('error')
+                return { title: t('errorTitle'), description: t('error') }
             case 'rate-limited':
-                return t('rateLimited', { seconds: retryAfterSeconds ?? 60 })
+                return {
+                    title: t('rateLimitedTitle'),
+                    description: t('rateLimited', { seconds: retryAfterSeconds ?? 60 }),
+                }
             default:
-                return null
+                return { title: t('instructions'), description: undefined }
         }
     })()
 
+    const hints = [
+        motionStatus === 'denied' && t('motionDenied'),
+        motionStatus === 'unsupported' && t('motionUnavailable'),
+        (locationStatus === 'denied' || locationStatus === 'unavailable') && t('locationHint'),
+    ].filter((hint): hint is string => !!hint)
+
     return (
-        <PageStack gap="6" className="min-h-0 flex-1">
+        <div className="isolate flex min-h-inherit flex-col gap-3">
             <NavHeader title={t('title')} onPrev={handleBack} />
 
-            <PageStack.Center className="my-0 flex-none gap-3">
-                <p className="text-center text-body-m text-foreground-secondary">{t('instructions')}</p>
-                <div className="flex justify-center px-4">
-                    <NearbyPhoneIllustration title={t('illustrationAlt')} />
+            <div className={`${styles.stage} -mx-4 min-h-96 flex-1`}>
+                <div className={styles.rippleClip} aria-hidden>
+                    <div className={looking ? styles.ripples : `${styles.ripples} ${styles.ripplesIdle}`}>
+                        {Array.from({ length: 6 }, (_, ring) => (
+                            <span key={ring} className={styles.ring} />
+                        ))}
+                    </div>
                 </div>
-                <div className="min-h-6 text-center text-body-s" aria-live="polite">
-                    {statusLine}
+                {/* re-keyed per print so the shutter click replays */}
+                <div key={count} className={count > 0 ? `${styles.camera} ${styles.cameraClick}` : styles.camera}>
+                    <InstantCamera title={t('illustrationAlt')} searching={looking} muted={ended} slotRef={slotRef} />
                 </div>
-            </PageStack.Center>
-
-            <div className="flex flex-col gap-3">
-                {motionStatus === 'needs-permission' && (
-                    <Button variant="primary" onClick={() => void requestPermission()}>
-                        {t('startShaking')}
-                    </Button>
-                )}
-                <Button variant="secondary" onClick={() => search('tap')}>
-                    {t('tapToFind')}
-                </Button>
-                {motionStatus === 'denied' && (
-                    <p className="text-center text-body-s text-foreground-secondary">{t('motionDenied')}</p>
-                )}
-                {motionStatus === 'unsupported' && (
-                    <p className="text-center text-body-s text-foreground-secondary">{t('motionUnavailable')}</p>
-                )}
-                {(locationStatus === 'denied' || locationStatus === 'unavailable') && (
-                    <p className="text-center text-body-s text-foreground-secondary">{t('locationHint')}</p>
-                )}
+                <div className={styles.photos}>
+                    {showPeople ? (
+                        <ul className={styles.grid}>
+                            {candidates.map((candidate, index) => (
+                                <ShakePhoto
+                                    key={candidate.username}
+                                    candidate={candidate}
+                                    index={index}
+                                    isContact={contactUsernames.has(candidate.username.toLowerCase())}
+                                    slotRef={slotRef}
+                                    labels={{
+                                        pay: t('payAria', { name: candidate.displayName ?? `@${candidate.username}` }),
+                                        contact: t('contact'),
+                                        verified: t('verified'),
+                                    }}
+                                    onSelect={() => handleSelect(candidate, index)}
+                                />
+                            ))}
+                        </ul>
+                    ) : (
+                        (state === 'no-match' || state === 'expired') && (
+                            <div className={`${styles.photo} ${styles.blankPhoto}`}>
+                                <span className={`${styles.shot} ${styles.blankShot} text-heading-s`} aria-hidden>
+                                    {'?'}
+                                </span>
+                                <span className={`${styles.caption} text-label-m text-foreground-secondary`}>
+                                    {t('nobodyYet')}
+                                </span>
+                            </div>
+                        )
+                    )}
+                </div>
             </div>
 
-            {(state === 'searching' || state === 'done') && (
-                <Section title={t('peopleNearby')}>
-                    {candidates.length === 0 ? (
-                        <p className="text-body-s text-foreground-secondary">{t('empty')}</p>
-                    ) : (
-                        <>
-                            <p className="text-body-s text-foreground-secondary">{t('confirmRecipient')}</p>
-                            <ListGroup>
-                                {candidates.map((candidate, index) => {
-                                    const name = candidate.displayName ?? candidate.username
-                                    const isContact = contactUsernames.has(candidate.username.toLowerCase())
-                                    return (
-                                        <ListItem
-                                            key={candidate.username}
-                                            aria-label={t('payAria', {
-                                                name: candidate.displayName ?? `@${candidate.username}`,
-                                            })}
-                                            leading={
-                                                <UserAvatar
-                                                    size="s"
-                                                    name={candidate.username}
-                                                    avatarKey={candidate.avatarKey}
-                                                    decorative
-                                                />
-                                            }
-                                            title={
-                                                <span className="flex min-w-0 items-center gap-1">
-                                                    <span className="truncate">{name}</span>
-                                                    {candidate.isVerified && (
-                                                        <Icon
-                                                            name="check"
-                                                            size={16}
-                                                            className="shrink-0 text-green-500"
-                                                            aria-label={t('verified')}
-                                                            role="img"
-                                                        />
-                                                    )}
-                                                </span>
-                                            }
-                                            body={`@${candidate.username}`}
-                                            trailing={
-                                                isContact ? (
-                                                    <span className="text-label-m text-foreground-secondary">
-                                                        {t('contact')}
-                                                    </span>
-                                                ) : undefined
-                                            }
-                                            chevron
-                                            onClick={() => handleSelect(candidate, index)}
-                                        />
-                                    )
-                                })}
-                            </ListGroup>
-                        </>
+            <div className="flex flex-col gap-6">
+                <TitleBlock
+                    align="center"
+                    size="s"
+                    title={heading.title}
+                    description={heading.description}
+                    aria-live="polite"
+                />
+                <div className="flex flex-col gap-4">
+                    {(ended || ready) && (
+                        <Button variant="primary" onClick={() => search('tap')}>
+                            {ready ? t('tapToFind') : t('shakeAgain')}
+                        </Button>
                     )}
-                </Section>
-            )}
-        </PageStack>
+                    <div className="flex flex-col items-center gap-8">
+                        {looking && count === 0 && <LinkButton onClick={handleBack}>{t('cancel')}</LinkButton>}
+                        {showPeople && <LinkButton onClick={() => search('tap')}>{t('notHere')}</LinkButton>}
+                        {motionStatus === 'needs-permission' && (
+                            <LinkButton onClick={() => void requestPermission()}>{t('startShaking')}</LinkButton>
+                        )}
+                    </div>
+                    {hints.map((hint) => (
+                        <p key={hint} className="text-center text-body-xs text-foreground-secondary">
+                            {hint}
+                        </p>
+                    ))}
+                </div>
+            </div>
+        </div>
     )
 }

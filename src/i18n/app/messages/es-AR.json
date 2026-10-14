@@ -682,12 +682,13 @@
         "shake": {
             "title": "Agitá para pagar",
             "tapToFind": "Tocá para buscar personas",
+            "confirmRecipient": "Tocá una foto para pagar. Primero revisá el @usuario.",
             "empty": "Todavía nadie. Pedile que también agite su teléfono.",
-            "confirmRecipient": "Revisá el @usuario antes de pagar.",
-            "expired": "La búsqueda terminó. Agitá de nuevo para buscar personas.",
-            "noMatch": "No encontramos a nadie. Agitá el teléfono al mismo tiempo que la persona a quien le pagás y volvé a intentarlo.",
-            "error": "No pudimos conectar con Peanut. Revisá tu conexión e intentá de nuevo.",
-            "rateLimited": "Demasiados intentos. Intentá de nuevo en {seconds} s.",
+            "noMatch": "Agitá el teléfono al mismo tiempo que la persona a quien le pagás y volvé a intentarlo.",
+            "expired": "Agitá de nuevo para buscar personas.",
+            "error": "Revisá tu conexión e intentá de nuevo.",
+            "rateLimited": "Intentá de nuevo en {seconds} s.",
+            "notHere": "¿No está acá? Agitá de nuevo",
             "motionDenied": "El acceso al movimiento está desactivado. Tocá el botón.",
             "motionUnavailable": "Este teléfono no detecta movimiento. Tocá el botón.",
             "locationHint": "Activá la ubicación para encontrar más fácil a personas cerca de vos."

@@ -117,22 +117,33 @@ const COPY = {
     title: 'Shake to pay',
     instruction: 'Shake your phones at the same time',
     tap: 'Tap to find people',
+    shakeAgain: 'Shake again',
+    notHere: 'Not here? Shake again',
+    cancel: 'Cancel',
     start: 'Start shaking',
     motionDenied: 'Motion access is off. Tap the button instead.',
     motionUnavailable: "This phone isn't reporting motion. Tap the button instead.",
     searching: 'Looking nearby…',
     empty: 'No one yet. Ask them to shake too.',
-    noMatch: "No one found. Shake at the same moment as the person you're paying, then try again.",
-    expired: 'Search ended. Shake again to look for people.',
-    error: "Couldn't reach Peanut. Check your connection and try again.",
+    noMatchTitle: 'No one found',
+    noMatch: "Shake at the same moment as the person you're paying, then try again.",
+    expiredTitle: 'Search ended',
+    expired: 'Shake again to look for people.',
+    errorTitle: "Couldn't reach Peanut",
+    error: 'Check your connection and try again.',
     locationHint: 'Turn on location to find people near you more easily.',
-    listTitle: 'People nearby',
-    confirmRecipient: 'Check the @username before you pay.',
+    confirmRecipient: 'Tap a photo to pay. Check the @username first.',
 }
-const rateLimitedCopy = (seconds: number) => `Too many shakes. Try again in ${seconds}s.`
+const rateLimitedCopy = (seconds: number) => `Try again in ${seconds}s.`
+const foundSearchingCopy = (count: number) => `${count} found, still looking`
+const nearbyCopy = (count: number) => (count === 1 ? '1 person nearby' : `${count} people nearby`)
+const ENDED_STATES: ShakeSearchState[] = ['no-match', 'expired', 'error', 'rate-limited']
 
 const byText = (text: string) => screen.queryByText(copy(text))
 const tapButton = () => screen.getByRole('button', { name: COPY.tap })
+/** Whichever control starts a fresh search in the current state: ready, ended, or people shown. */
+const RETRY_NAME = /^(Tap to find people|Shake again|Not here\? Shake again)$/
+const retryButton = () => screen.getByRole('button', { name: RETRY_NAME })
 const payButton = (name: string) => screen.getByRole('button', { name: `Pay ${name}` })
 const payButtons = () => screen.queryAllByRole('button', { name: /^Pay / })
 
@@ -141,10 +152,10 @@ function shownStateMessages(): string[] {
     const shown: string[] = []
     if (byText(COPY.searching)) shown.push('searching')
     if (byText(COPY.empty)) shown.push('empty')
-    if (byText(COPY.noMatch)) shown.push('no-match')
-    if (byText(COPY.expired)) shown.push('expired')
-    if (byText(COPY.error)) shown.push('error')
-    if (screen.queryByText(/^Too many shakes/)) shown.push('rate-limited')
+    if (byText(COPY.noMatchTitle)) shown.push('no-match')
+    if (byText(COPY.expiredTitle)) shown.push('expired')
+    if (byText(COPY.errorTitle)) shown.push('error')
+    if (screen.queryByText(/^Too many shakes$/)) shown.push('rate-limited')
     return shown
 }
 
@@ -201,11 +212,15 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('ShakeToPayView: header and instruction', () => {
-    it('shows the title and the instruction', () => {
+    it('shows the title, and the instruction only once the automatic search has run and nothing is going on', async () => {
+        mockLocation = { location: LOCATION, status: 'granted' }
         renderView()
 
         expect(screen.getAllByText(COPY.title).length).toBeGreaterThanOrEqual(1)
+        expect(byText(COPY.instruction)).not.toBeInTheDocument()
+        await advanceEntry(0)
         expect(byText(COPY.instruction)).toBeInTheDocument()
+        expect(tapButton()).toBeInTheDocument()
     })
 
     it.each(SESSION_STATES)('keeps the title in the %s state', (state) => {
@@ -226,15 +241,49 @@ describe('ShakeToPayView: header and instruction', () => {
 })
 
 describe('ShakeToPayView: the tap fallback', () => {
-    const matrix = MOTION_STATUSES.flatMap((motion) => SESSION_STATES.map((state) => [motion, state] as const))
+    const ended = MOTION_STATUSES.flatMap((motion) => ENDED_STATES.map((state) => [motion, state] as const))
+    const withPeople = MOTION_STATUSES.flatMap((motion) =>
+        (['searching', 'done'] as const).map((state) => [motion, state] as const)
+    )
 
-    it.each(matrix)('"Tap to find people" is always there (motion %s, search %s)', (motion, state) => {
+    it.each(ended)('"Shake again" is there once the search has ended (motion %s, search %s)', (motion, state) => {
         mockMotion.status = motion
         mockSession.state = state
         mockSession.retryAfterSeconds = state === 'rate-limited' ? 10 : null
         renderView()
 
-        expect(tapButton()).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: COPY.shakeAgain })).toBeEnabled()
+    })
+
+    it.each(withPeople)(
+        '"Not here? Shake again" is there while people are shown (motion %s, search %s)',
+        (motion, state) => {
+            mockMotion.status = motion
+            mockSession.state = state
+            mockSession.candidates = [ANA]
+            renderView()
+
+            expect(screen.getByRole('button', { name: COPY.notHere })).toBeInTheDocument()
+        }
+    )
+
+    it('while still looking with nobody yet, offers Cancel and no second search', () => {
+        mockSession.state = 'searching'
+        renderView()
+
+        expect(screen.getByRole('button', { name: COPY.cancel })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: RETRY_NAME })).not.toBeInTheDocument()
+    })
+
+    it('Cancel stops the search, then leaves', () => {
+        mockSession.state = 'searching'
+        renderView()
+
+        fireEvent.click(screen.getByRole('button', { name: COPY.cancel }))
+
+        expect(mockSession.stop).toHaveBeenCalledTimes(1)
+        expect(onPrev).toHaveBeenCalledTimes(1)
+        expect(mockSession.shake).not.toHaveBeenCalled()
     })
 
     it('starts a search with the current location', async () => {
@@ -253,10 +302,11 @@ describe('ShakeToPayView: the tap fallback', () => {
         'starts a search with null when there is no location (location %s)',
         async (status) => {
             mockLocation = { location: null, status }
+            mockSession.state = 'no-match'
             renderView()
             await advanceEntry(0)
 
-            fireEvent.click(tapButton())
+            fireEvent.click(retryButton())
 
             expect(mockSession.shake).toHaveBeenCalledTimes(status === 'pending' ? 1 : 2)
             expect(mockSession.shake).toHaveBeenLastCalledWith(null)
@@ -264,38 +314,42 @@ describe('ShakeToPayView: the tap fallback', () => {
     )
 
     it('uses the location as it is now, not as it was at first render', () => {
+        mockSession.state = 'no-match'
         const { rerender } = renderView()
         mockLocation = { location: LOCATION, status: 'granted' }
         rerender(<ShakeToPayView onPrev={onPrev} />)
 
-        fireEvent.click(tapButton())
+        fireEvent.click(retryButton())
 
         expect(mockSession.shake).toHaveBeenCalledWith(LOCATION)
     })
 
     it('works with no accelerometer at all', () => {
         mockMotion.status = 'unsupported'
+        mockSession.state = 'no-match'
         renderView()
 
-        fireEvent.click(tapButton())
+        fireEvent.click(retryButton())
 
         expect(mockSession.shake).toHaveBeenCalledTimes(1)
     })
 
-    it('can be tapped again while already searching', () => {
+    it('can search again and again while people are shown', () => {
         mockSession.state = 'searching'
+        mockSession.candidates = [ANA]
         renderView()
 
-        fireEvent.click(tapButton())
-        fireEvent.click(tapButton())
+        fireEvent.click(retryButton())
+        fireEvent.click(retryButton())
 
         expect(mockSession.shake).toHaveBeenCalledTimes(2)
     })
 
     it('does not leave the screen', () => {
+        mockSession.state = 'no-match'
         renderView()
 
-        fireEvent.click(tapButton())
+        fireEvent.click(retryButton())
 
         expect(onPrev).not.toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalled()
@@ -329,10 +383,11 @@ describe('ShakeToPayView: motion permission', () => {
 
     it('denied: says motion access is off and points at the button', () => {
         mockMotion.status = 'denied'
+        mockSession.state = 'no-match'
         renderView()
 
         expect(byText(COPY.motionDenied)).toBeInTheDocument()
-        expect(tapButton()).toBeInTheDocument()
+        expect(retryButton()).toBeInTheDocument()
     })
 
     it.each<MotionStatus>(['unsupported', 'needs-permission', 'listening'])(
@@ -428,7 +483,7 @@ describe('ShakeToPayView: search states', () => {
         renderView()
 
         expect(byText(COPY.searching)).toBeInTheDocument()
-        expect(byText(COPY.listTitle)).not.toBeInTheDocument()
+        expect(byText(COPY.empty)).toBeInTheDocument()
         expect(payButtons()).toHaveLength(0)
     })
 
@@ -440,35 +495,36 @@ describe('ShakeToPayView: search states', () => {
         expect(payButtons()).toHaveLength(0)
     })
 
-    it('searching with people: "Looking nearby…", the list title, and no "No one yet"', () => {
+    it('searching with people: "2 found, still looking", the photo prompt, and no "No one yet"', () => {
         mockSession.state = 'searching'
         mockSession.candidates = [ANA, BOB]
         renderView()
 
-        expect(shownStateMessages()).toEqual(['searching'])
-        expect(byText(COPY.listTitle)).toBeInTheDocument()
+        expect(byText(foundSearchingCopy(2))).toBeInTheDocument()
+        expect(byText(COPY.confirmRecipient)).toBeInTheDocument()
+        expect(shownStateMessages()).toEqual([])
         expect(payButtons()).toHaveLength(2)
     })
 
-    it('expired: "Search ended. Shake again to look for people."', () => {
+    it('expired: "Search ended" and "Shake again to look for people."', () => {
         mockSession.state = 'expired'
         renderView()
 
         expect(shownStateMessages()).toEqual(['expired'])
+        expect(byText(COPY.expired)).toBeInTheDocument()
         expect(payButtons()).toHaveLength(0)
-        expect(byText(COPY.listTitle)).not.toBeInTheDocument()
     })
 
-    it('error: "Couldn\'t reach Peanut. Check your connection and try again."', () => {
+    it('error: "Couldn\'t reach Peanut" and "Check your connection and try again."', () => {
         mockSession.state = 'error'
         renderView()
 
         expect(shownStateMessages()).toEqual(['error'])
+        expect(byText(COPY.error)).toBeInTheDocument()
         expect(payButtons()).toHaveLength(0)
-        expect(byText(COPY.listTitle)).not.toBeInTheDocument()
     })
 
-    it.each([1, 12, 45, 600])('rate-limited: "Too many shakes. Try again in %is."', (seconds) => {
+    it.each([1, 12, 45, 600])('rate-limited: "Too many shakes" and "Try again in %is."', (seconds) => {
         mockSession.state = 'rate-limited'
         mockSession.retryAfterSeconds = seconds
         renderView()
@@ -491,7 +547,7 @@ describe('ShakeToPayView: search states', () => {
         mockSession.state = 'searching'
         mockSession.candidates = [ANA]
         const { rerender } = renderView()
-        expect(shownStateMessages()).toEqual(['searching'])
+        expect(byText(foundSearchingCopy(1))).toBeInTheDocument()
 
         mockSession.state = 'expired'
         mockSession.candidates = []
@@ -502,7 +558,7 @@ describe('ShakeToPayView: search states', () => {
         mockSession.state = 'searching'
         mockSession.candidates = [BOB]
         rerender(<ShakeToPayView onPrev={onPrev} />)
-        expect(shownStateMessages()).toEqual(['searching'])
+        expect(byText(foundSearchingCopy(1))).toBeInTheDocument()
         expect(payButtons()).toHaveLength(1)
     })
 })
@@ -535,9 +591,10 @@ describe('ShakeToPayView: location hint', () => {
 
     it('does not block searching: the tap still works without a location', () => {
         mockLocation = { location: null, status: 'denied' }
+        mockSession.state = 'no-match'
         renderView()
 
-        fireEvent.click(tapButton())
+        fireEvent.click(retryButton())
 
         expect(mockSession.shake).toHaveBeenCalledWith(null)
     })
@@ -778,7 +835,7 @@ describe('ShakeToPayView: privacy', () => {
         renderView()
 
         fireEvent.click(screen.getByRole('button', { name: COPY.start }))
-        fireEvent.click(tapButton())
+        fireEvent.click(retryButton())
         triggerShake()
         fireEvent.click(payButton('Zed Qwertyson'))
         fireEvent.click(screen.getByRole('button', { name: 'Back' }))
@@ -823,9 +880,10 @@ describe('ShakeToPayView: confirming the recipient', () => {
 describe('ShakeToPayView: no motion sensor', () => {
     it('points to the tap button when the phone reports no motion', () => {
         mockMotion.status = 'unsupported'
+        mockSession.state = 'no-match'
         renderView()
         expect(byText(COPY.motionUnavailable)).toBeInTheDocument()
-        expect(tapButton()).toBeInTheDocument()
+        expect(retryButton()).toBeInTheDocument()
     })
 
     it.each(['listening', 'needs-permission', 'denied'] as const)(
@@ -958,21 +1016,18 @@ describe('ShakeToPayView: automatic entry search', () => {
         expect(mockSession.shake).toHaveBeenCalledTimes(2)
     })
 
-    it.each(['tap', 'motion'] as const)(
-        'a manual %s while waiting consumes pending automatic entry',
-        async (method) => {
-            const { rerender } = renderView()
-            await advanceEntry(500)
-            if (method === 'tap') fireEvent.click(tapButton())
-            else triggerShake()
-            expect(mockSession.shake.mock.calls).toEqual([[null]])
-            mockLocation = { status: 'granted', location: LOCATION }
-            rerender(<ShakeToPayView onPrev={onPrev} />)
-            await advanceEntry(5000)
-            expect(mockSession.shake).toHaveBeenCalledTimes(1)
-            expect(shakeEvents()).toEqual([['shake_to_pay_shake', { method, has_location: false }]])
-        }
-    )
+    // only motion can arrive while the entry search waits: the screen offers no tap until it has run
+    it('a shake while waiting consumes pending automatic entry', async () => {
+        const { rerender } = renderView()
+        await advanceEntry(500)
+        triggerShake()
+        expect(mockSession.shake.mock.calls).toEqual([[null]])
+        mockLocation = { status: 'granted', location: LOCATION }
+        rerender(<ShakeToPayView onPrev={onPrev} />)
+        await advanceEntry(5000)
+        expect(mockSession.shake).toHaveBeenCalledTimes(1)
+        expect(shakeEvents()).toEqual([['shake_to_pay_shake', { method: 'motion', has_location: false }]])
+    })
 
     it.each(['unmount', 'back', 'select'] as const)('cancels pending entry on %s', async (action) => {
         if (action === 'select') {
@@ -1047,7 +1102,7 @@ describe('ShakeToPayView: finished look window', () => {
         mockSession.candidates = [ANA, BOB]
         const { container } = renderView()
         expect(shownStateMessages()).toEqual([])
-        expect(byText(COPY.listTitle)).toBeInTheDocument()
+        expect(byText(nearbyCopy(2))).toBeInTheDocument()
         expect(byText(COPY.confirmRecipient)).toBeInTheDocument()
         expect(payButtons()).toHaveLength(2)
         expect(container.querySelector('[class*="animate-spin"]')).not.toBeInTheDocument()
@@ -1063,15 +1118,14 @@ describe('ShakeToPayView: finished look window', () => {
         expect(shownStateMessages()).toEqual(['no-match'])
         expect(byText(COPY.noMatch)).toBeInTheDocument()
         expect(payButtons()).toHaveLength(0)
-        expect(byText(COPY.listTitle)).not.toBeInTheDocument()
         expect(container.querySelector('[class*="animate-spin"]')).not.toBeInTheDocument()
-        expect(tapButton()).toBeEnabled()
+        expect(screen.getByRole('button', { name: COPY.shakeAgain })).toBeEnabled()
     })
 
     it('records first candidates arriving with done exactly once for that search', () => {
         mockSession.state = 'searching'
         const { rerender } = renderView()
-        fireEvent.click(tapButton())
+        triggerShake()
         expect(matchedEvents()).toEqual([])
         mockSession.state = 'done'
         mockSession.candidates = [ANA, BOB]
@@ -1086,7 +1140,7 @@ describe('ShakeToPayView: finished look window', () => {
     it('does not double count candidates already matched while searching when done arrives', () => {
         mockSession.state = 'searching'
         const { rerender } = renderView()
-        fireEvent.click(tapButton())
+        triggerShake()
         mockSession.candidates = [ANA]
         rerender(<ShakeToPayView onPrev={onPrev} />)
         expect(matchedEvents()).toEqual([['shake_to_pay_matched', { count: 1 }]])
@@ -1098,12 +1152,12 @@ describe('ShakeToPayView: finished look window', () => {
 
     it('a fresh manual search can record its own first done candidates', () => {
         const { rerender } = renderView()
-        fireEvent.click(tapButton())
+        triggerShake()
         mockSession.state = 'done'
         mockSession.candidates = [ANA]
         rerender(<ShakeToPayView onPrev={onPrev} />)
         expect(matchedEvents()).toEqual([['shake_to_pay_matched', { count: 1 }]])
-        fireEvent.click(tapButton())
+        fireEvent.click(retryButton())
         mockSession.state = 'searching'
         mockSession.candidates = []
         rerender(<ShakeToPayView onPrev={onPrev} />)
@@ -1114,6 +1168,56 @@ describe('ShakeToPayView: finished look window', () => {
             ['shake_to_pay_matched', { count: 1 }],
             ['shake_to_pay_matched', { count: 2 }],
         ])
+    })
+})
+
+describe('ShakeToPayView: the instant-camera stage', () => {
+    it.each(SESSION_STATES)('shows the undeveloped "Nobody yet" print only when nobody was found (%s)', (state) => {
+        mockSession.state = state
+        mockSession.retryAfterSeconds = state === 'rate-limited' ? 10 : null
+        renderView()
+
+        const expected = state === 'no-match' || state === 'expired'
+        expect(!!screen.queryByText('Nobody yet')).toBe(expected)
+    })
+
+    it('never shows the blank print next to real people', () => {
+        mockSession.state = 'done'
+        mockSession.candidates = [ANA]
+        renderView()
+
+        expect(screen.queryByText('Nobody yet')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        [[ANA], '1 person nearby'],
+        [[ANA, BOB, CARL], '3 people nearby'],
+    ])('counts the people found in the heading once the search is done (%#)', (people, heading) => {
+        mockSession.state = 'done'
+        mockSession.candidates = people
+        renderView()
+
+        expect(byText(heading)).toBeInTheDocument()
+        expect(payButtons()).toHaveLength(people.length)
+    })
+
+    it('"Not here? Shake again" starts a fresh tap search without leaving', () => {
+        mockSession.state = 'done'
+        mockSession.candidates = [ANA]
+        renderView()
+
+        fireEvent.click(screen.getByRole('button', { name: COPY.notHere }))
+
+        expect(mockSession.shake).toHaveBeenCalledTimes(1)
+        expect(shakeEvents().at(-1)).toEqual(['shake_to_pay_shake', { method: 'tap', has_location: false }])
+        expect(onPrev).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('labels the camera for screen readers', () => {
+        renderView()
+
+        expect(screen.getByRole('img', { name: 'Instant camera looking for people nearby' })).toBeInTheDocument()
     })
 })
 
