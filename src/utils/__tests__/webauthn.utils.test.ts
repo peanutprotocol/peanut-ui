@@ -330,6 +330,12 @@ describe('isPasskeyBusyError', () => {
         expect(isPasskeyBusyError(new Error('sign failed', { cause: ios }))).toBe(true)
     })
 
+    it('matches our own CeremonyConflictError by name, whatever its message says', () => {
+        const conflict = Object.assign(new Error('ceremony busy'), { name: 'CeremonyConflictError' })
+        expect(isPasskeyBusyError(conflict)).toBe(true)
+        expect(isPasskeyBusyError(new Error('sign failed', { cause: conflict }))).toBe(true)
+    })
+
     it('does not match other passkey failures', () => {
         expect(isPasskeyBusyError(new Error('The operation either timed out or was not allowed'))).toBe(false)
         expect(isPasskeyBusyError('already in progress')).toBe(false)
