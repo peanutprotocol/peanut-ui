@@ -245,6 +245,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-arrival-pix-br",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-home-add-drawer",
         "flow": "Home and shared states",
         "route": "/home?drawer=add"
@@ -849,6 +854,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-arrival-card",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
         "id": "fixture-home-verified-unfunded-no-card",
         "flow": "Card",
         "route": "/home"
@@ -1002,6 +1012,11 @@
         "id": "fixture-request-contact-received",
         "flow": "Payments",
         "route": "/request?recipient=alice"
+    },
+    {
+        "id": "fixture-arrival-qr-ar",
+        "flow": "Payments",
+        "route": "/home"
     },
     {
         "id": "fixture-send-contacts-long-names",
