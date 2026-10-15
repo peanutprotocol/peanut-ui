@@ -55,6 +55,11 @@ import { stashInvite } from '@/utils/invite-stash'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
+// The invite prompt offers to "continue without signing up". Mercado Pago and
+// Pix always need an account (TASK-23648), and their account prompt keeps the
+// invite, so for them that offer would be false.
+const SKIPS_INVITE_PROMPT = ['devconnect', 'mercadopago', 'pix']
+
 interface ISendLinkActionListProps {
     claimLinkData: ClaimLinkData
     isLoggedIn: boolean
@@ -283,7 +288,11 @@ export default function SendLinkActionList({
                                 return (
                                     <MethodCard
                                         onClick={() => {
-                                            if (isInviteLink && !isLoggedIn && method.id !== 'devconnect') {
+                                            if (
+                                                isInviteLink &&
+                                                !isLoggedIn &&
+                                                !SKIPS_INVITE_PROMPT.includes(method.id)
+                                            ) {
                                                 setSelectedMethod(method)
                                                 setShowInviteModal(true)
                                             } else {
