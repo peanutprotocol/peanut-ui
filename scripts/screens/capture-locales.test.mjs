@@ -22,16 +22,45 @@ test('PRs and dev pushes capture English unless a locale has its own change', ()
     )
 })
 
-test('translation catalogues and locale-named files add their locale', () => {
+test('translation fixes and locale-named files add their locale', () => {
     assert.deepEqual(pr(['src/i18n/app/messages/pt-BR.json']), ['en', 'pt-BR'])
     assert.deepEqual(pr(['src/i18n/app/messages/pt-BR.marketing.json']), ['en', 'pt-BR'])
     assert.deepEqual(pr(['src/i18n/app/messages/es-AR.json']), ['en', 'es-AR'])
+    assert.deepEqual(pr(['src/i18n/pt-BR.json']), ['en', 'pt-BR'])
     assert.deepEqual(pr(['src/app/es-ar/page.tsx', 'public/wallet/google/pt-BR.svg']), ['en', 'es-AR', 'pt-BR'])
+})
+
+test('translations that change with the matching English catalogue are reviewed in English', () => {
+    const feature = [
+        'src/components/Card.tsx',
+        'src/i18n/app/messages/en.json',
+        'src/i18n/app/messages/es-419.json',
+        'src/i18n/app/messages/es-AR.json',
+        'src/i18n/app/messages/pt-BR.json',
+    ]
+    assert.deepEqual(pr(feature), ['en'])
+    assert.match(
+        planCaptureLocales({ event: 'pull_request', branch: 'dev', changedFiles: feature, labels: [] }).reasons.join(
+            ' '
+        ),
+        /reviewed in English: es-419, es-AR, pt-BR/
+    )
+    assert.deepEqual(pr(['src/i18n/app/messages/en.marketing.json', 'src/i18n/app/messages/pt-BR.marketing.json']), [
+        'en',
+    ])
+    // Only the matching English catalogue defers a locale; a fix in another catalogue still counts.
+    assert.deepEqual(pr(['src/i18n/app/messages/en.marketing.json', 'src/i18n/app/messages/pt-BR.json']), [
+        'en',
+        'pt-BR',
+    ])
+    assert.deepEqual(pr(['src/i18n/en.json', 'src/i18n/app/messages/es-AR.json']), ['en', 'es-AR'])
+    assert.deepEqual(pr(['src/i18n/app/messages/en.json', 'src/app/pt-br/page.tsx']), ['en', 'pt-BR'])
 })
 
 test('es-419 copy also renders in es-AR', () => {
     assert.deepEqual(pr(['src/i18n/app/messages/es-419.json']), ['en', 'es-419', 'es-AR'])
     assert.deepEqual(pr(['src/app/es-419/page.tsx']), ['en', 'es-419', 'es-AR'])
+    assert.deepEqual(pr(['src/i18n/app/messages/en.json', 'src/i18n/app/messages/es-419.json']), ['en'])
 })
 
 test('shared localization, content, the label and every release capture all locales', () => {

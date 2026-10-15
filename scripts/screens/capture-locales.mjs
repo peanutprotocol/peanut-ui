@@ -6,13 +6,14 @@ export const ALL_LOCALES_LABEL = 'screens:all-locales'
 const localeBySlug = { 'es-419': 'es-419', 'es-ar': 'es-AR', 'pt-br': 'pt-BR' }
 // es-AR stores only its differences from es-419, so es-419 copy also renders in es-AR.
 const inheritedBy = { 'es-419': ['es-AR'] }
-const translationCatalogue = /^src\/i18n\/(?:app\/messages\/)?(en|es-419|es-AR|pt-BR)(?:\.marketing)?\.json$/
+const translationCatalogue = /^(src\/i18n\/(?:app\/messages\/)?)(en|es-419|es-AR|pt-BR)((?:\.marketing)?\.json)$/
 const sharedLocalization = /^src\/(?:i18n\/|content(?:\/|$))/
 const namedLocale = /(?:^|\/)(es-419|es-ar|pt-br)(?=[./]|$)/i
 
 /**
  * Every release, manual and unknown capture keeps all locales. PRs and dev pushes capture English plus
- * only the locales whose own translations or locale-named files changed.
+ * only locales with a translation fix (their catalogue changed but the matching English one did not)
+ * or a changed locale-named file.
  */
 export function planCaptureLocales({ event, branch, changedFiles, labels } = {}) {
     const all = (reason) => ({ locales: [...CAPTURE_LOCALES], reasons: [reason] })
@@ -29,12 +30,24 @@ export function planCaptureLocales({ event, branch, changedFiles, labels } = {})
         !changedFiles.every((path) => typeof path === 'string' && path.length > 0)
     )
         return all('Changed-file evidence is missing or invalid')
+    // Features add keys to every catalogue at once and are reviewed in English; only fixes are invisible there.
+    const englishCopy = new Set(
+        changedFiles
+            .map((path) => translationCatalogue.exec(path))
+            .filter((match) => match?.[2] === 'en')
+            .map(([, prefix, , suffix]) => prefix + suffix)
+    )
     const selected = new Set(['en'])
+    const alongsideEnglish = new Set()
     for (const path of changedFiles) {
         if (knownNonvisual(path)) continue
-        const catalogue = translationCatalogue.exec(path)?.[1]
-        if (catalogue) selected.add(catalogue)
-        else if (sharedLocalization.test(path)) return all('Shared localization or content source changed')
+        const catalogue = translationCatalogue.exec(path)
+        if (catalogue) {
+            const [, prefix, locale, suffix] = catalogue
+            if (locale === 'en') continue
+            if (englishCopy.has(prefix + suffix)) alongsideEnglish.add(locale)
+            else selected.add(locale)
+        } else if (sharedLocalization.test(path)) return all('Shared localization or content source changed')
         else {
             const named = namedLocale.exec(path)?.[1]
             if (named) selected.add(localeBySlug[named.toLowerCase()])
@@ -43,12 +56,16 @@ export function planCaptureLocales({ event, branch, changedFiles, labels } = {})
     for (const locale of [...selected]) for (const inherited of inheritedBy[locale] ?? []) selected.add(inherited)
     const locales = CAPTURE_LOCALES.filter((locale) => selected.has(locale))
     const added = locales.filter((locale) => locale !== 'en')
+    const deferred = CAPTURE_LOCALES.filter((locale) => alongsideEnglish.has(locale) && !selected.has(locale))
     return {
         locales,
         reasons: [
             added.length
-                ? `English plus locales whose own copy changed: ${added.join(', ')}`
+                ? `English plus locales with their own copy changes: ${added.join(', ')}`
                 : 'English only; no locale-specific copy changed',
+            ...(deferred.length
+                ? [`Translations that change with English copy are reviewed in English: ${deferred.join(', ')}`]
+                : []),
         ],
     }
 }
