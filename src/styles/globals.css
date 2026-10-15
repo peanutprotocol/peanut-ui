@@ -859,7 +859,9 @@
         @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-secondary {
-        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        /* hover keeps the shipped hand-built-pill look (white at 90%, the band
+           ground ghosting through) now that the pills ride this variant. */
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-background-default/90 active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-square {
         @apply !px-0;
