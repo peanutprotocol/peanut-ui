@@ -123,7 +123,9 @@ describe('submit-stores ios', () => {
         const created = fake.calls.find((c) => c.key === 'POST /v1/appStoreVersions').body.data.attributes
         expect(created).toEqual({ platform: 'IOS', versionString: '1.14.0', releaseType: 'AFTER_APPROVAL' })
         const pt = fake.calls.find((c) => c.key === 'PATCH /v1/appStoreVersionLocalizations/loc-pt').body
-        expect(pt.data.attributes.whatsNew).toBe('Correções de erros e melhorias.')
+        expect(pt.data.attributes.whatsNew).toBe(
+            'Pequenos ajustes nos bastidores. Guardar dólares, pagar com Pix e enviar dinheiro funcionam um pouco melhor nesta versão.'
+        )
         const submit = fake.calls.find((c) => c.key === 'PATCH /v1/reviewSubmissions/sub-1').body
         expect(submit.data.attributes).toEqual({ submitted: true })
     })
@@ -272,7 +274,12 @@ describe('submit-stores android', () => {
                     name: '1.14.0',
                     versionCodes: ['45'],
                     status: 'completed',
-                    releaseNotes: [{ language: 'en-US', text: 'Bug fixes and improvements.' }],
+                    releaseNotes: [
+                        {
+                            language: 'en-US',
+                            text: 'Small fixes under the hood. Paying by QR, sending money and keeping a balance in dollars all work a little better in this version.',
+                        },
+                    ],
                 },
             ],
         })

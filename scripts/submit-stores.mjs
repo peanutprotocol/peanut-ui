@@ -28,12 +28,14 @@ const BUNDLE_ID = 'me.peanut.wallet'
 const PACKAGE_NAME = 'me.peanut.wallet'
 const PLAIN_SEMVER = /^\d+\.\d+\.\d+$/
 
-// Shown when nobody typed release notes. Keyed by language prefix of the
-// App Store localization; anything else gets English.
+// Shown when nobody typed release notes: the fixed store text from
+// ops/releases.md "Release notes". Keyed by language prefix of the App Store
+// localization; anything else gets English. Add feature lines below the fixed
+// text only for a big feature release, and remove them again after it ships.
 const DEFAULT_WHATS_NEW = {
-    en: 'Bug fixes and improvements.',
-    es: 'Corrección de errores y mejoras.',
-    pt: 'Correções de erros e melhorias.',
+    en: 'Small fixes under the hood. Paying by QR, sending money and keeping a balance in dollars all work a little better in this version.',
+    es: 'Pequeños ajustes por dentro. Guardar dólares, pagar con QR y enviar dinero funciona un poco mejor en esta versión.',
+    pt: 'Pequenos ajustes nos bastidores. Guardar dólares, pagar com Pix e enviar dinheiro funcionam um pouco melhor nesta versão.',
 }
 
 // App Store versions that can still take a build and be submitted.
