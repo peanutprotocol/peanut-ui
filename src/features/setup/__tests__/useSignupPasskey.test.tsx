@@ -17,6 +17,7 @@ let mockIsRegistering = false
 const mockSetNoBackLock = jest.fn()
 const mockNext = jest.fn()
 let mockHandleNext = mockNext
+let mockDeviceType = 'android'
 
 jest.mock('@/hooks/useZeroDev', () => ({
     useZeroDev: () => ({ handleRegister: mockHandleRegister, address: mockAddress, isRegistering: mockIsRegistering }),
@@ -26,7 +27,10 @@ jest.mock('@/hooks/useSetupFlow', () => ({
     SETUP_POST_REGISTRATION_SCREEN: 'residence',
     useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext }),
 }))
-jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'android' }) }))
+jest.mock('@/hooks/useGetDeviceType', () => ({
+    DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },
+    useDeviceType: () => ({ deviceType: mockDeviceType }),
+}))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ setNoBackLockScreenId: mockSetNoBackLock }),
 }))
@@ -61,6 +65,7 @@ beforeEach(() => {
     mockAddress = undefined
     mockIsRegistering = false
     mockHandleNext = mockNext
+    mockDeviceType = 'android'
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
     // 404 = username free, so the handler proceeds to registration
     mockApiFetch.mockResolvedValue({ status: 404 })
@@ -330,6 +335,7 @@ describe('failures keep the user on the username step', () => {
             'Passkey verification is temporarily unavailable. Wait a few seconds and try again.',
         ],
     ])('shows specific recovery for %s', async (message, copy) => {
+        mockDeviceType = 'ios'
         mockHandleRegister.mockRejectedValue(
             Object.assign(new Error('The operation couldn’t be completed. ' + message), { name: 'NotAllowedError' })
         )
@@ -339,5 +345,100 @@ describe('failures keep the user on the username step', () => {
         expect(screen.queryByText(/was cancelled/)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Claim' })).not.toBeDisabled()
         expect(mockNext).not.toHaveBeenCalled()
+    })
+
+    it('records the platform error code that the NotAllowedError name flattens, not the message', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(
+                new Error(
+                    'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1000.)'
+                ),
+                { name: 'NotAllowedError' }
+            )
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        await screen.findByRole('alert')
+        const [[, properties]] = failedEvents()
+        expect(properties).toMatchObject({
+            error_name: 'NotAllowedError',
+            native_error_code: 'AuthorizationError:1000',
+        })
+        expect(JSON.stringify(properties)).not.toContain('operation couldn')
+    })
+})
+
+/*
+ * iOS ends the ceremony as a plain cancel when iCloud Passwords is off, even
+ * after its own prompt sent the user to Settings — users retried ~5 times and
+ * gave up on "Try again when ready".
+ */
+describe('repeated cancels on iOS', () => {
+    const cancel = (message = 'cancelled') => Object.assign(new Error(message), { name: 'NotAllowedError' })
+    const claimAndSettle = async () => {
+        const failures = failedEvents().length
+        claim()
+        await waitFor(() => expect(failedEvents()).toHaveLength(failures + 1))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled())
+    }
+
+    beforeEach(() => {
+        mockDeviceType = 'ios'
+    })
+
+    it('keeps the first cancel quiet and opens the iCloud help on the second', async () => {
+        mockHandleRegister.mockRejectedValue(cancel())
+        renderWithIntl(<Harness />)
+
+        await claimAndSettle()
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'Passkey verification wasn’t completed. Try again when ready.'
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+        await claimAndSettle()
+        expect(screen.getByRole('dialog')).toHaveTextContent('PasskeyNotSaved')
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    it('counts a native 1001 cancel the same way and retries from the drawer', async () => {
+        mockHandleRegister.mockRejectedValue(
+            cancel(
+                'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1001.)'
+            )
+        )
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        await claimAndSettle()
+        expect(screen.getByRole('dialog')).toHaveTextContent('PasskeyNotSaved')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(3))
+        expect(await screen.findByRole('dialog')).toHaveTextContent('PasskeyNotSaved')
+    })
+
+    it('does not count failures with a specific native reason', async () => {
+        mockHandleRegister.mockRejectedValue(
+            cancel('The operation couldn’t be completed. Device must be unlocked to perform request.')
+        )
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        await claimAndSettle()
+        expect(screen.getByRole('alert')).toHaveTextContent('Unlock the device, then try again.')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('leaves Android cancels inline however often they repeat', async () => {
+        mockDeviceType = 'android'
+        mockHandleRegister.mockRejectedValue(cancel())
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        await claimAndSettle()
+        await claimAndSettle()
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'Passkey verification wasn’t completed. Try again when ready.'
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 })

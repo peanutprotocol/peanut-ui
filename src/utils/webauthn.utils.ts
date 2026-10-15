@@ -418,6 +418,13 @@ export async function withWebAuthnRetry<T>(
 }
 
 /**
+ * Help-drawer key, not a WebAuthn error name. iOS reports a passkey it refused
+ * to save (iCloud Passwords off) the same way as a dismissed sheet, so repeated
+ * cancels on one signup step open this.
+ */
+export const PASSKEY_NOT_SAVED_HELP = 'PasskeyNotSaved'
+
+/**
  * Platform-specific troubleshooting steps for common issues
  *
  * IMPORTANT: These are suggestions based on community reports, not official fixes
@@ -455,6 +462,7 @@ export const PASSKEY_TROUBLESHOOTING_STEPS = {
             'turnOffVpn',
             'restartDevice',
         ],
+        [PASSKEY_NOT_SAVED_HELP]: ['openAppleAccount', 'turnOnIcloudPasswords', 'setPasscode', 'unlockPasswordManager'],
     },
     web: {
         // generic fallback for desktop/unsupported platforms

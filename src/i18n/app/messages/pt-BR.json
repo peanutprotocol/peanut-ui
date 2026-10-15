@@ -470,8 +470,8 @@
                         "description": "[Seu nome] → iCloud"
                     },
                     "step2": {
-                        "title": "Encontre Senhas e Chaves",
-                        "description": "Ative a opção"
+                        "title": "Encontre Senhas",
+                        "description": "Ative Sincronizar este iPhone"
                     },
                     "step3": {
                         "title": "Confira se funcionou",
@@ -873,9 +873,11 @@
                     "notAllowed": "Passkeys não habilitadas",
                     "invalidState": "A passkey já existe",
                     "notSupported": "Passkeys não compatíveis",
+                    "passkeyNotSaved": "Sua passkey não foi salva",
                     "default": "Problema com a passkey"
                 },
                 "descriptions": {
+                    "passkeyNotSaved": "Seu iPhone guarda as passkeys nas Senhas do iCloud. Se isso estiver desativado, o iOS não consegue salvar e fecha o aviso. Confira estes ajustes, volte aqui e toque em Tentar novamente.",
                     "notReadable": "Há um problema com as configurações de passkey do seu dispositivo. Tente de novo.",
                     "notAllowedAndroid": "Não conseguimos criar uma passkey. Entre em uma conta Google, atualize o Google Play Services ou configure o bloqueio de tela e tente de novo.",
                     "notAllowed": "As passkeys não estão habilitadas no seu dispositivo. Verifique as configurações do dispositivo para habilitá-las",
@@ -896,7 +898,10 @@
                     "restartDevice": "Reinicie o dispositivo",
                     "turnOffVpnPrivacy": "Desative temporariamente a VPN ou apps de privacidade",
                     "turnOffVpn": "Desative a VPN temporariamente",
-                    "enableIcloudKeychain": "Ative o Chaveiro do iCloud nos Ajustes",
+                    "enableIcloudKeychain": "Ative as Senhas do iCloud: Ajustes → seu nome → iCloud → Senhas → Sincronizar este iPhone",
+                    "openAppleAccount": "Abra os Ajustes e toque no seu nome no topo. Se aparecer a opção de iniciar sessão, entre com a sua Conta Apple primeiro.",
+                    "turnOnIcloudPasswords": "Toque em iCloud, depois em Senhas, e ative Sincronizar este iPhone.",
+                    "setPasscode": "Confira se há um código configurado em Ajustes → Face ID e Código.",
                     "enableBiometrics": "Ative o Face ID/Touch ID nos Ajustes",
                     "unlockPasswordManager": "Se você usa um gerenciador de senhas como o 1Password, abra e desbloqueie ele primeiro",
                     "exitIncognito": "Saia do modo anônimo ou privado",
@@ -915,7 +920,7 @@
                 "fullGuide": "Ler o guia completo"
             },
             "unsupported": "Passkeys ainda não estão disponíveis neste dispositivo. Entre com uma conta Google, atualize o Google Play Services e tente de novo.",
-            "unsupportedIos": "Passkeys ainda não estão disponíveis neste dispositivo. Ative o Chaveiro do iCloud e um código ou Face ID, atualize o iOS e tente de novo.",
+            "unsupportedIos": "Passkeys ainda não estão disponíveis neste dispositivo. Ative as Senhas do iCloud e um código ou Face ID, atualize o iOS e tente de novo.",
             "unsupportedDesktop": "Este navegador não conseguiu acessar o serviço de passkeys do seu computador. Reinicie ou atualize o navegador e tente de novo, ou entre pelo seu celular.",
             "origin": "As passkeys estão indisponíveis neste app no momento. Atualize o Peanut ou fale com o suporte se o problema continuar.",
             "loginError": "Não foi possível verificar sua passkey. Tente de novo ou fale com o suporte se continuar acontecendo.",

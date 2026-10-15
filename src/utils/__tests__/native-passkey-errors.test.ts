@@ -1,4 +1,4 @@
-import { nativePasskeyFailure } from '../native-passkey-errors'
+import { nativeErrorCode, nativePasskeyFailure } from '../native-passkey-errors'
 import { classifyPasskeyError, getPasskeyErrorSetupKey } from '../webauthn.utils'
 import { friendlyError } from '../friendly-error.utils'
 import { loadMessages } from '@/i18n/app/messages'
@@ -75,3 +75,22 @@ it.each(['en', 'es-419', 'es-AR', 'pt-BR'] as const)(
         expect(messages.errors.passkeyVerificationIncomplete).toBe(messages.setup.passkey.notCompleted)
     }
 )
+
+describe('nativeErrorCode', () => {
+    it.each([
+        [PREFIX + '(com.apple.AuthenticationServices.AuthorizationError error 1001.)', 'AuthorizationError:1001'],
+        [PREFIX + '(AuthenticationServicesCore.ASCABLEClient.ClientError error 4.)', 'ClientError:4'],
+        ['[16] Cancelled by user.', 'android:16'],
+        ['[50162] Unsuccessful result from folsom activity.', 'android:50162'],
+    ])('reads the platform code from %s', (message, code) => {
+        expect(nativeErrorCode(Object.assign(new Error(message), { name: 'NotAllowedError' }))).toBe(code)
+    })
+
+    it.each([
+        PREFIX + 'Device must be unlocked to perform request.',
+        'Couldn’t communicate with a helper application.',
+        '',
+    ])('has no code for %p', (message) => {
+        expect(nativeErrorCode(new Error(message))).toBeUndefined()
+    })
+})
