@@ -1378,7 +1378,8 @@
         "guestVerification": {
             "otherMethod": "Reclamar con otro método",
             "senderUnverifiedDescription": "Quien te envía todavía no puede enviar a un banco. Reclama de otra forma, o crea y verifica una cuenta para recibirlo en tu banco.",
-            "accountRequiredDescription": "Necesitas una cuenta de Peanut para reclamar con este método. Crea una y verifica tu identidad, y tus fondos se depositarán en tu banco."
+            "accountRequiredDescription": "Necesitas una cuenta de Peanut para reclamar con este método. Crea una y verifica tu identidad, y tus fondos se depositarán en tu banco.",
+            "regionalAccountRequiredDescription": "Necesitas una cuenta de Peanut para reclamar con este método. Los fondos llegan primero a tu cuenta y desde ahí puedes retirarlos a Mercado Pago o Pix."
         },
         "actions": {
             "claimOn": "Reclamar en",
@@ -1411,7 +1412,8 @@
             "fromSender": "de {sender}",
             "youWillReceive": "Recibiendo",
             "youClaimed": "Reclamado",
-            "devconnectReturnHint": "Toca el botón X de arriba a la izquierda para volver a la app de Devconnect"
+            "devconnectReturnHint": "Toca el botón X de arriba a la izquierda para volver a la app de Devconnect",
+            "withdrawTo": "Retirar a {method}"
         },
         "bank": {
             "selectCountry": "País de la cuenta bancaria",
@@ -1428,18 +1430,6 @@
                 "linkInvalid": "No pudimos verificar este enlace. Ábrelo de nuevo e inténtalo otra vez.",
                 "inProgress": "Este enlace se está reclamando ahora mismo. Espera un momento e inténtalo otra vez.",
                 "accountLimit": "Se agregaron demasiadas cuentas bancarias para este enlace. Contacta a soporte para reclamarlo."
-            }
-        },
-        "manteca": {
-            "youWillReceive": "Recibiendo",
-            "receiveIn": "Recibir en {method}",
-            "enterAccountDetails": "Ingresa los datos bancarios",
-            "destinationAddress": "Dirección de destino",
-            "exchangeRate": "Tipo de cambio",
-            "errors": {
-                "missingTxHash": "Falló el reclamo: falta el hash de la transacción.",
-                "withdrawalProcessing": "¡Retiro exitoso! Tus fondos se están procesando. Si la transacción no aparece en tu historial en 5 minutos, contacta a soporte.",
-                "generic": "Algo salió mal. Contacta a soporte"
             }
         }
     },

@@ -60,14 +60,16 @@ jest.mock('@/context/ClaimBankFlowContext', () => ({
         setFlowStep: jest.fn(),
         setShowVerificationModal: mockSetShowVerificationModal,
         setVerificationPromptReason: mockSetVerificationPromptReason,
-        setClaimToMercadoPago: jest.fn(),
-        setRegionalMethodType: jest.fn(),
         setHideTokenSelector: jest.fn(),
     }),
 }))
 
 jest.mock('@/hooks/useSavedAccounts', () => ({ __esModule: true, default: () => [] }))
-jest.mock('../../useClaimLink', () => ({ __esModule: true, default: () => ({ addParamStep: jest.fn() }) }))
+const mockAddParamStep = jest.fn()
+jest.mock('../../useClaimLink', () => ({
+    __esModule: true,
+    default: () => ({ addParamStep: (...args: unknown[]) => mockAddParamStep(...args) }),
+}))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ canDo: () => true }) }))
 
 // logged OUT — the state that makes the regional path raise the modal
@@ -136,15 +138,18 @@ describe('guest-verification prompt reason', () => {
         expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('account-required')
     })
 
-    test('a logged-out regional claim blames the missing account, not the sender', () => {
-        // mercadopago/pix never consult the sender's rails at all
+    test('a regional claim asks for an account and carries the method across the sign-up', () => {
+        // mercadopago/pix never consult the sender's rails at all, and the link
+        // goes to the new account before any withdraw (TASK-23648)
         mockSenderCanReceiveBankOfframp = false
         renderList()
 
         fireEvent.click(screen.getByText('Mercado Pago'))
 
-        expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('account-required')
+        expect(mockAddParamStep).toHaveBeenCalledWith('regional-claim', { method: 'mercadopago' })
+        expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('regional-account-required')
         expect(mockSetVerificationPromptReason).not.toHaveBeenCalledWith('sender-unverified')
+        expect(mockSetShowVerificationModal).toHaveBeenCalledWith(true)
     })
 })
 

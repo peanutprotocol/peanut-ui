@@ -1378,7 +1378,8 @@
         "guestVerification": {
             "otherMethod": "Resgatar com outro método",
             "senderUnverifiedDescription": "Quem enviou ainda não pode enviar para um banco. Resgate de outra forma, ou crie e verifique uma conta para receber no seu banco.",
-            "accountRequiredDescription": "Você precisa de uma conta Peanut para resgatar com este método. Crie uma e verifique sua identidade, e seus fundos serão depositados no seu banco."
+            "accountRequiredDescription": "Você precisa de uma conta Peanut para resgatar com este método. Crie uma e verifique sua identidade, e seus fundos serão depositados no seu banco.",
+            "regionalAccountRequiredDescription": "Você precisa de uma conta Peanut para resgatar com este método. Os fundos vão primeiro para a sua conta e, de lá, você pode sacá-los via Mercado Pago ou Pix."
         },
         "actions": {
             "claimOn": "Resgatar no",
@@ -1411,7 +1412,8 @@
             "fromSender": "de {sender}",
             "youWillReceive": "Recebendo",
             "youClaimed": "Resgatado",
-            "devconnectReturnHint": "Toque no botão X no canto superior esquerdo para voltar ao app da Devconnect"
+            "devconnectReturnHint": "Toque no botão X no canto superior esquerdo para voltar ao app da Devconnect",
+            "withdrawTo": "Sacar via {method}"
         },
         "bank": {
             "selectCountry": "País da conta bancária",
@@ -1428,18 +1430,6 @@
                 "linkInvalid": "Não conseguimos verificar este link. Abra o link de novo e tente outra vez.",
                 "inProgress": "Este link está sendo resgatado agora. Espere um pouco e tente outra vez.",
                 "accountLimit": "Muitas contas bancárias foram adicionadas para este link. Fale com o suporte para resgatá-lo."
-            }
-        },
-        "manteca": {
-            "youWillReceive": "Recebendo",
-            "receiveIn": "Receber no {method}",
-            "enterAccountDetails": "Digite os dados bancários",
-            "destinationAddress": "Endereço de destino",
-            "exchangeRate": "Taxa de câmbio",
-            "errors": {
-                "missingTxHash": "Falha no resgate: hash da transação ausente.",
-                "withdrawalProcessing": "Saque realizado! Seus fundos estão sendo processados. Se a transação não aparecer no seu histórico em 5 minutos, fale com o suporte.",
-                "generic": "Algo deu errado. Fale com o suporte"
             }
         }
     },

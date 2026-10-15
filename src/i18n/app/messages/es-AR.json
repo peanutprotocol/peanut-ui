@@ -763,7 +763,8 @@
         },
         "guestVerification": {
             "senderUnverifiedDescription": "Quien te envía todavía no puede enviar a un banco. Reclamá de otra forma, o creá y verificá una cuenta para recibirlo en tu banco.",
-            "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco."
+            "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco.",
+            "regionalAccountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Los fondos llegan primero a tu cuenta y desde ahí podés retirarlos a Mercado Pago o Pix."
         },
         "actions": {
             "invitedBy": "Invitación de {username}"
@@ -785,13 +786,6 @@
                 "linkInvalid": "No pudimos verificar este enlace. Abrilo de nuevo e intentalo otra vez.",
                 "inProgress": "Este enlace se está reclamando ahora mismo. Esperá un momento e intentalo otra vez.",
                 "accountLimit": "Se agregaron demasiadas cuentas bancarias para este enlace. Contactá a soporte para reclamarlo."
-            }
-        },
-        "manteca": {
-            "enterAccountDetails": "Ingresá los datos bancarios",
-            "errors": {
-                "withdrawalProcessing": "¡Retiro exitoso! Tus fondos se están procesando. Si la transacción no aparece en tu historial en 5 minutos, contactá a soporte.",
-                "generic": "Algo salió mal. Contactá a soporte"
             }
         }
     },

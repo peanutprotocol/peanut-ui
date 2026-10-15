@@ -29,6 +29,7 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { API_ERROR_CODES } from '@/services/api-error'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
+import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -53,7 +54,7 @@ export const SuccessClaimLinkView = ({
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo('/home')
     const queryClient = useQueryClient()
-    const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
+    const { offrampDetails, claimType, bankDetails, regionalMethodType } = useClaimBankFlow()
     const { triggerHaptic } = useAppHaptic()
     const params = useSearchParams()
     const campaignTag = badgeCampaignForLegacyWire(params)
@@ -159,7 +160,36 @@ export const SuccessClaimLinkView = ({
         title: isBankClaim ? t('success.youWillReceive') : t('success.youClaimed'),
     }
 
+    // The claimer asked for Mercado Pago or Pix, so the link went to their own
+    // account and the withdraw is the rest of that ask (TASK-23648). Argentina
+    // takes the claimed amount; the Pix send asks for its amount on /qr-pay.
+    const regionalWithdraw = useMemo(() => {
+        if (!regionalMethodType || isBankClaim) return null
+        if (regionalMethodType === 'pix') {
+            return { method: 'Pix', url: mantecaWithdrawUrl({ method: 'pix', country: 'brazil' }) }
+        }
+        const usd = Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
+        // whole cents, rounded down: the prefill never asks for more than arrived
+        const amount = usd > 0 ? String(Math.floor(usd * 100) / 100) : undefined
+        return {
+            method: 'Mercado Pago',
+            url: mantecaWithdrawUrl({ method: 'mercado-pago', country: 'argentina', amount }),
+        }
+    }, [regionalMethodType, isBankClaim, claimLinkData.amount, claimLinkData.tokenDecimals, tokenPrice])
+
     const renderButtons = () => {
+        if (authUser?.user.userId && regionalWithdraw) {
+            return (
+                <>
+                    <Button shadowSize="4" className="w-full" onClick={() => router.push(regionalWithdraw.url)}>
+                        {t('success.withdrawTo', { method: regionalWithdraw.method })}
+                    </Button>
+                    <div className="mt-2 flex justify-center">
+                        <LinkButton onClick={leaveToHome}>{t('backToHome')}</LinkButton>
+                    </div>
+                </>
+            )
+        }
         if (authUser?.user.userId) {
             return (
                 <Button

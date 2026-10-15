@@ -1378,7 +1378,8 @@
         "guestVerification": {
             "otherMethod": "Claim with other method",
             "senderUnverifiedDescription": "The sender can't send to a bank yet. Claim another way, or create and verify an account to receive it in your bank.",
-            "accountRequiredDescription": "You'll need a Peanut account to claim with this method. Create one and verify your identity, and your funds will be deposited to your bank."
+            "accountRequiredDescription": "You'll need a Peanut account to claim with this method. Create one and verify your identity, and your funds will be deposited to your bank.",
+            "regionalAccountRequiredDescription": "You'll need a Peanut account to claim with this method. The funds go to your account first, and from there you can withdraw them to Mercado Pago or Pix."
         },
         "actions": {
             "claimOn": "Claim on",
@@ -1411,7 +1412,8 @@
             "fromSender": "from {sender}",
             "youWillReceive": "Receiving",
             "youClaimed": "Claimed",
-            "devconnectReturnHint": "Tap the X button at the top left to return to the Devconnect app"
+            "devconnectReturnHint": "Tap the X button at the top left to return to the Devconnect app",
+            "withdrawTo": "Withdraw to {method}"
         },
         "bank": {
             "selectCountry": "Bank account country",
@@ -1428,18 +1430,6 @@
                 "linkInvalid": "We could not verify this link. Open the link again and try once more.",
                 "inProgress": "This link is being claimed right now. Wait a moment and try again.",
                 "accountLimit": "Too many bank accounts were added for this link. Contact support to claim it."
-            }
-        },
-        "manteca": {
-            "youWillReceive": "Receiving",
-            "receiveIn": "Receive in {method}",
-            "enterAccountDetails": "Enter bank details",
-            "destinationAddress": "Destination Address",
-            "exchangeRate": "Exchange Rate",
-            "errors": {
-                "missingTxHash": "Claim failed: missing transaction hash.",
-                "withdrawalProcessing": "Withdrawal successful! Your funds are being processed. If the transaction doesn't appear in your history within 5 minutes, please contact support.",
-                "generic": "Something went wrong. Please contact Support"
             }
         }
     },
