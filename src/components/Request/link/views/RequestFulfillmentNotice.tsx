@@ -19,7 +19,7 @@ export { REQUEST_FULFILLMENT_POLL_MS } from '@/constants/query.consts'
 
 /** Watch every request, including balance/crypto payments. Socket pushes invalidate
  * this query centrally; visible-screen polling recovers missed pushes. */
-export function RequestFulfillmentNotice({ requestId }: { requestId: string; bankPayable?: boolean }) {
+export function RequestFulfillmentNotice({ requestId }: { requestId: string }) {
     const t = useTranslations('request')
     const queryClient = useQueryClient()
 
