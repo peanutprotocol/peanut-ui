@@ -648,6 +648,13 @@ window.ScreenComments = {
             close,
             navigateThread,
             voteControls: (scope) => voting?.mount(scope),
+            votesAvailable: () => Boolean(voting),
+            voteTotals: (scope) => voting?.totalsFor(scope),
+            async loadVoteTotals(scopes) {
+                if (!voting) throw new Error('Votes are unavailable.')
+                if (!user) await authenticate()
+                await voting.loadTotals(scopes)
+            },
             isOpen: () => opened,
             current: () => current,
         }

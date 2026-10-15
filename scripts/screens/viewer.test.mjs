@@ -58,6 +58,12 @@ const elementIds = [
     'auth-preview',
     'auth-gate',
     'google-sign-in',
+    'comment-feed',
+    'comment-panel',
+    'upvoted-only',
+    'upvoted-control',
+    'downvoted-only',
+    'downvoted-control',
 ]
 
 class Element {
@@ -170,7 +176,7 @@ test('legacy four-pixel false positives are hidden, counted as unchanged, and re
 
 async function loadLanding(
     pathname,
-    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '' } = {}
+    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '', screenComments } = {}
 ) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
@@ -216,7 +222,7 @@ async function loadLanding(
                   : response,
         history,
         location,
-        window: {},
+        window: screenComments ? { ScreenComments: screenComments } : {},
     })
     vm.runInContext(viewer, context, {
         filename: 'public/screen-library/viewer.js',
@@ -1627,4 +1633,128 @@ test('Main filter shows released full libraries and comparisons and survives a s
     elements.get('branch').dispatch('change')
     assert.equal(versionLinks(elements).length, 4)
     assert.doesNotMatch(elements.location.search, /branch=/)
+})
+
+const votePath = `2026-10-15/pr-3703/en/${'c'.repeat(40)}`
+const voteReport = {
+    schema: 1,
+    type: 'capture',
+    locale: 'en',
+    width: 393,
+    height: 852,
+    screens: ['loved', 'disliked', 'split', 'quiet'].map((id, index) => ({
+        id,
+        name: id,
+        flow: 'Home',
+        status: 'captured',
+        image: `${String(index).repeat(64)}.png`,
+    })),
+}
+const voteTotals = {
+    loved: { up: 2, down: 0 },
+    disliked: { up: 0, down: 1 },
+    split: { up: 1, down: 1 },
+    quiet: { up: 0, down: 0 },
+}
+function fakeComments({ fail = 0 } = {}) {
+    const loaded = new Map()
+    const calls = []
+    const client = {
+        setContext: async () => {},
+        badge: () => new Element('badge'),
+        voteControls: () => new Element('votes'),
+        votesAvailable: () => true,
+        voteTotals: (scope) => loaded.get(scope.screenId),
+        async loadVoteTotals(scopes) {
+            calls.push(scopes.map((scope) => scope.screenId))
+            if (calls.length <= fail) throw new Error('Votes are unavailable right now.')
+            for (const scope of scopes) loaded.set(scope.screenId, voteTotals[scope.screenId])
+        },
+        open() {},
+        isOpen: () => false,
+        navigateThread() {},
+    }
+    return { create: () => client, calls }
+}
+const settle = () => new Promise((resolve) => setImmediate(resolve))
+const renderedIds = (elements) => elements.get('screens').children.map(({ id }) => id)
+const setVote = (elements, name, checked) => {
+    elements.get(name).checked = checked
+    elements.get(name).dispatch('change')
+}
+
+test('vote filters keep screens any teammate voted on, combine as either, and round trip through the URL', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    assert.equal(elements.get('upvoted-control').hidden, false)
+    assert.equal(elements.get('downvoted-control').hidden, false)
+    assert.equal(elements.get('upvoted-only').checked, true)
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    setVote(elements, 'downvoted-only', true)
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
+    assert.equal(new URLSearchParams(elements.location.search).get('votes'), 'up,down')
+    setVote(elements, 'upvoted-only', false)
+    assert.deepEqual(renderedIds(elements), ['disliked', 'split'])
+    assert.equal(new URLSearchParams(elements.location.search).get('votes'), 'down')
+    setVote(elements, 'downvoted-only', false)
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split', 'quiet'])
+    assert.equal(new URLSearchParams(elements.location.search).has('votes'), false)
+    assert.equal(screenComments.calls.length, 1, 'totals load once for every screen in the report')
+})
+
+test('an empty vote filter explains itself and offers a way back to every screen', async () => {
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: { ...voteReport, screens: voteReport.screens.filter(({ id }) => id === 'quiet') },
+        search: '?source=synthetic&locale=en&votes=down',
+        screenComments: fakeComments(),
+    })
+    await settle()
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /No downvoted screens match these filters/)
+    const showAll = notice.children.find((child) => child.textContent === 'Show all screens')
+    showAll.onclick()
+    assert.equal(elements.get('downvoted-only').checked, false)
+    assert.deepEqual(renderedIds(elements), ['quiet'])
+    assert.equal(new URLSearchParams(elements.location.search).has('votes'), false)
+})
+
+test('a failed vote load offers retry without looping and recovers', async () => {
+    const screenComments = fakeComments({ fail: 1 })
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    await settle()
+    assert.equal(screenComments.calls.length, 1, 'a failure is not retried automatically')
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /Votes are unavailable right now/)
+    const labels = notice.children.slice(1).map((child) => child.textContent)
+    assert.deepEqual(labels, ['Retry', 'Show all screens'])
+    notice.children[1].onclick()
+    await settle()
+    assert.equal(screenComments.calls.length, 2)
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+})
+
+test('vote filters stay hidden where votes are unavailable', async () => {
+    const report = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+    })
+    assert.equal(report.get('upvoted-control').hidden, true)
+    assert.equal(report.get('upvoted-only').checked, false)
+    assert.deepEqual(renderedIds(report), ['loved', 'disliked', 'split', 'quiet'])
+    const landing = await loadLanding('/screens/', {
+        index: [{ path: votePath, locale: 'en', source: 'synthetic' }],
+        screenComments: fakeComments(),
+    })
+    assert.equal(landing.get('upvoted-control').hidden, true)
+    assert.equal(landing.get('downvoted-control').hidden, true)
 })

@@ -345,8 +345,9 @@ h1 {
 }
 .filters-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
-    gap: 16px;
+    gap: 12px 16px;
     padding: 0 0 26px;
 }
 .filters {
@@ -429,8 +430,37 @@ label {
     outline: 3px solid rgb(255 144 232 / 65%);
     outline-offset: 2px;
 }
-#screen-updates-control {
+#screen-updates-control,
+.vote-filter {
     min-height: 40px;
+}
+.filter-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    grid-column: 1 / -1;
+}
+.filter-notice p {
+    margin: 0;
+}
+.filter-action {
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 7px 14px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.filter-action:hover {
+    border-color: var(--ink);
+}
+.filter-action:focus-visible {
+    outline: 3px solid var(--pink);
+    outline-offset: 2px;
 }
 input,
 select,

@@ -95,6 +95,49 @@ window.ScreenVoting = {
                 widget.refresh.disabled = Boolean(pending?.busy || state?.loading)
             }
         }
+        function batchesOf(scopes) {
+            const batches = []
+            let batch = []
+            for (const scope of scopes) {
+                const candidate = [...batch, scope]
+                if (
+                    batch.length &&
+                    (candidate.length > 100 ||
+                        new TextEncoder().encode(JSON.stringify({ scopes: candidate })).length > 30000)
+                ) {
+                    batches.push(batch)
+                    batch = []
+                }
+                batch.push(scope)
+            }
+            if (batch.length) batches.push(batch)
+            return batches
+        }
+        function totalsFor(scope) {
+            const state = states.get(keyOf(scope))
+            return state?.actor === getUser()?.id && Number.isInteger(state?.up) && Number.isInteger(state?.down)
+                ? { up: state.up, down: state.down }
+                : undefined
+        }
+        // Totals for screens that may not be on the page yet (vote filters span every row).
+        async function loadTotals(scopes) {
+            const actor = getUser()?.id
+            if (!actor) throw Object.assign(new Error('Sign in to filter by votes.'), { status: 401 })
+            const captured = generation,
+                epoch = getEpoch()
+            const missing = new Map()
+            for (const scope of scopes) if (!totalsFor(scope)) missing.set(keyOf(scope), canonical(scope))
+            for (const batch of batchesOf(missing.values())) {
+                const data = await api('/votes/summary', { method: 'POST', body: JSON.stringify({ scopes: batch }) })
+                if (captured !== generation || epoch !== getEpoch() || actor !== getUser()?.id)
+                    throw new Error('Your account changed while votes loaded. Try again.')
+                for (const vote of data.votes) {
+                    const current = states.get(vote.key)
+                    states.set(vote.key, { ...vote, actor, loading: current?.loading, sequence: current?.sequence })
+                }
+            }
+            paint()
+        }
         function schedule(force = false) {
             forceNext ||= force
             clearTimeout(timer)
@@ -115,21 +158,7 @@ window.ScreenVoting = {
                 const state = states.get(widget.key)
                 if (force || !state || state.actor !== actor || state.error) scopes.set(widget.key, widget.scope)
             }
-            const batches = []
-            let batch = []
-            for (const scope of scopes.values()) {
-                const candidate = [...batch, scope]
-                if (
-                    batch.length &&
-                    (candidate.length > 100 ||
-                        new TextEncoder().encode(JSON.stringify({ scopes: candidate })).length > 30000)
-                ) {
-                    batches.push(batch)
-                    batch = []
-                }
-                batch.push(scope)
-            }
-            if (batch.length) batches.push(batch)
+            const batches = batchesOf(scopes.values())
             for (const scopes of batches) {
                 for (const scope of scopes) {
                     const key = keyOf(scope)
@@ -287,6 +316,6 @@ window.ScreenVoting = {
             paint()
             schedule()
         }
-        return { mount, reset, refresh: (force = false) => schedule(force) }
+        return { mount, reset, refresh: (force = false) => schedule(force), totalsFor, loadTotals }
     },
 }

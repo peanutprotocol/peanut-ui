@@ -487,6 +487,7 @@ function navigateComment(scope, threadId) {
     $('search').value = ''
     $('flow').value = ''
     $('status').value = ''
+    resetVoteFilter()
     render()
     let row = rows.find((value) => value.id === scope.screenId)
     if (row[scope.side]?.image !== scope.image)
@@ -949,6 +950,8 @@ function shareableParams(overrides = {}) {
         if (query) params.set('q', query)
         if (flow) params.set('flow', flow)
         if (status) params.set('status', status)
+        const { up, down } = voteChoice()
+        if (up || down) params.set('votes', [up && 'up', down && 'down'].filter(Boolean).join(','))
         if (report.type === 'comparison') {
             params.set('view', overrides.view ?? viewMode)
             if ((overrides.scope ?? (showVariations ? 'all' : 'default')) === 'default') params.set('scope', 'default')
@@ -1152,6 +1155,68 @@ function navigatePreview(direction) {
     const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
     zoom(filteredRows[next], activeMode)
 }
+const voteFilter = { loading: false, error: '', requested: new Set() }
+const voteChoice = () => ({ up: Boolean($('upvoted-only')?.checked), down: Boolean($('downvoted-only')?.checked) })
+const afterScope = (row) => commentScopes(row).find((scope) => scope.side === 'after')
+function resetVoteFilter() {
+    if ($('upvoted-only')) $('upvoted-only').checked = false
+    if ($('downvoted-only')) $('downvoted-only').checked = false
+    voteFilter.error = ''
+    voteFilter.requested.clear()
+}
+function loadVoteFilter(scopes) {
+    if (voteFilter.loading) return
+    voteFilter.loading = true
+    for (const scope of scopes) voteFilter.requested.add(JSON.stringify(scope))
+    comments
+        .loadVoteTotals(scopes)
+        .then(() => (voteFilter.error = ''))
+        .catch((error) => (voteFilter.error = error.message || 'Votes are unavailable right now.'))
+        .finally(() => {
+            voteFilter.loading = false
+            render()
+        })
+}
+// Any teammate's vote counts: "Upvoted only" keeps screens with at least one upvote on the After screenshot.
+function voteFiltered(candidates) {
+    const choice = voteChoice()
+    if (!choice.up && !choice.down) return { rows: candidates }
+    const scopes = candidates.map(afterScope).filter(Boolean)
+    const missing = scopes.filter(
+        (scope) => !comments.voteTotals(scope) && !voteFilter.requested.has(JSON.stringify(scope))
+    )
+    if (voteFilter.loading || (missing.length && !voteFilter.error)) {
+        if (missing.length) loadVoteFilter(missing)
+        return { rows: [], notice: 'Loading votes…' }
+    }
+    if (voteFilter.error) return { rows: [], notice: voteFilter.error, retry: true }
+    return {
+        rows: candidates.filter((row) => {
+            const scope = afterScope(row)
+            const totals = scope && comments.voteTotals(scope)
+            return Boolean(totals) && ((choice.up && totals.up > 0) || (choice.down && totals.down > 0))
+        }),
+    }
+}
+function voteEmptyMessage() {
+    const { up, down } = voteChoice()
+    return up && down
+        ? 'No voted screens match these filters.'
+        : up
+          ? 'No upvoted screens match these filters.'
+          : 'No downvoted screens match these filters.'
+}
+function filterNotice(text, actions = []) {
+    const notice = el('div', undefined, 'filter-notice')
+    notice.append(el('p', text))
+    for (const [label, onClick] of actions) {
+        const action = el('button', label, 'filter-action')
+        action.type = 'button'
+        action.onclick = onClick
+        notice.append(action)
+    }
+    return notice
+}
 function filteredScreenRows() {
     const q = $('search').value.toLowerCase(),
         flow = $('flow').value,
@@ -1255,14 +1320,36 @@ function render() {
     if (report?.type === 'comparison')
         $('title').textContent = reportTitle || (changedMode ? 'See what changed.' : 'Every screen.')
     document.title = `${$('title').textContent} · Peanut Screen library`
-    filteredRows = filteredScreenRows()
+    const voted = voteFiltered(filteredScreenRows())
+    filteredRows = voted.rows
     renderedCount = 0
     $('screens').className =
         report?.type === 'journeys' ? 'all-screens journey-screens' : changedMode ? 'changed-screens' : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
+        const showAll = [
+            'Show all screens',
+            () => {
+                resetVoteFilter()
+                render()
+                syncShareableUrl()
+            },
+        ]
+        const retry = [
+            'Retry',
+            () => {
+                voteFilter.error = ''
+                voteFilter.requested.clear()
+                render()
+            },
+        ]
+        const { up, down } = voteChoice()
         $('screens').append(
-            el('p', changedMode ? 'No visual changes match these filters.' : 'No screens match these filters.')
+            voted.notice
+                ? filterNotice(voted.notice, voted.retry ? [retry, showAll] : [])
+                : up || down
+                  ? filterNotice(voteEmptyMessage(), [showAll])
+                  : el('p', changedMode ? 'No visual changes match these filters.' : 'No screens match these filters.')
         )
         $('screen-load-more').hidden = true
         return
@@ -1460,6 +1547,7 @@ function renderLanding() {
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     $('branch-control').hidden = selectedSource !== 'synthetic'
     $('screen-updates-control').hidden = selectedSource !== 'synthetic'
+    for (const control of ['upvoted-control', 'downvoted-control']) if ($(control)) $(control).hidden = true
     if (!$('screen-updates-only').dataset.initialized) {
         $('screen-updates-only').checked = requestedFilter('updates') !== 'all'
         $('screen-updates-only').dataset.initialized = 'true'
@@ -1811,6 +1899,17 @@ async function start() {
     if (report.type === 'comparison' && ['all', 'changed'].includes(requestedView)) viewMode = requestedView
     $('view-mode').checked = viewMode === 'all'
     $('search').value = requestedFilter('q').slice(0, 200)
+    const votesAvailable = Boolean(comments?.votesAvailable?.()) && Boolean(commentsReportPath)
+    const requestedVotes = requestedFilter('votes').split(',')
+    for (const [control, input, value] of [
+        ['upvoted-control', 'upvoted-only', 'up'],
+        ['downvoted-control', 'downvoted-only', 'down'],
+    ])
+        if ($(control)) {
+            $(control).hidden = !votesAvailable
+            $(input).checked = votesAvailable && requestedVotes.includes(value)
+        }
+    if (votesAvailable) $('dashboard-filters').hidden = false
     const requestedFlow = requestedFilter('flow')
     $('flow').value = rows.some((row) => row.flow === requestedFlow) ? requestedFlow : ''
     const requestedStatus = requestedFilter('status')
@@ -1833,6 +1932,7 @@ async function start() {
         $('view-mode').checked = true
         $('variations-mode').checked = true
         $('status').value = ''
+        resetVoteFilter()
         render()
         while (!document.getElementById(location.hash.slice(1)) && renderedCount < filteredRows.length) appendNextPage()
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
@@ -1845,6 +1945,13 @@ async function start() {
 }
 for (const name of ['search', 'flow'])
     $(name).addEventListener('input', () => {
+        render()
+        syncShareableUrl()
+    })
+for (const name of ['upvoted-only', 'downvoted-only'])
+    $(name)?.addEventListener('change', () => {
+        voteFilter.error = ''
+        voteFilter.requested.clear()
         render()
         syncShareableUrl()
     })
