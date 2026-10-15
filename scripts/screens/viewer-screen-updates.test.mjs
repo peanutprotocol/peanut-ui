@@ -235,6 +235,14 @@ test('A2: default gallery hides confirmed-zero PRs and retains positive PRs and 
     assert.ok(hasPath(links, baseline), 'baseline run remains')
 })
 
+test('A2: full-library captures that inherit zero-change PR provenance stay visible', async () => {
+    const library = run('dev', { branch: 'dev', reportType: 'capture', prNumber: 42, changedScreens: 0 })
+    const elements = await loadLanding('/screens/', { index: [zeroPr, library] })
+    const links = linkedPaths(elements)
+    assert.ok(!hasPath(links, zeroPr), 'zero-change PR comparison is hidden')
+    assert.ok(hasPath(links, library), 'full-library capture with PR provenance remains')
+})
+
 test('A3: switching off restores zero PRs and repeated events are deterministic', async () => {
     const elements = await loadLanding('/screens/', { index: catalogue })
     const initial = linkedPaths(elements)
@@ -338,6 +346,11 @@ test('A4: report links carry the off preference while reports keep their own scr
     })
     assert.equal(report.get('screen-updates-control').hidden, true)
     assert.ok(report.get('screens').children.length > 0, 'report screen remains visible')
+    assert.equal(
+        report.document.querySelector('.brand').href,
+        '/screens/?updates=all',
+        'the header gallery link keeps the off choice'
+    )
 })
 
 test('A5: a filtered-empty gallery reports zero and retains usable date and locale choices', async () => {

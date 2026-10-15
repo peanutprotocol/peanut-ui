@@ -735,6 +735,43 @@ async function main() {
             'refresh clears a definitive conflict at the same revision'
         )
         await refreshContext.close()
+
+        // A discussion whose screen later leaves the report must open in place;
+        // redirecting to the same report URL would loop forever.
+        const created = await fetch(`${origin}/screen-data/comments/threads`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', origin, 'x-test-actor': 'alice' },
+            body: JSON.stringify({
+                scope: { ...scope, screenId: 'screen-race', image: imageRace },
+                body: 'Retained discussion',
+                requestId: crypto.randomUUID(),
+            }),
+        })
+        assert.equal(created.status, 201)
+        const retainedThread = (await created.json()).thread.id
+        const removed = manifest.screens.splice(1, 1)
+        try {
+            const retainedPage = await alice.newPage()
+            retainedPage.on('pageerror', (error) => pageErrors.push(error.message))
+            let navigations = 0
+            retainedPage.on('request', (request) => {
+                if (request.isNavigationRequest() && request.frame() === retainedPage.mainFrame()) navigations++
+            })
+            await retainedPage.goto(`${reportUrl}&comments=${retainedThread}`, { waitUntil: 'domcontentloaded' })
+            await retainedPage
+                .locator('#zoom-position')
+                .filter({ hasText: 'No longer in this report' })
+                .waitFor({ state: 'visible', timeout: 8000 })
+            await retainedPage
+                .locator('#comment-panel')
+                .getByText('Retained discussion')
+                .waitFor({ state: 'visible', timeout: 8000 })
+            await retainedPage.waitForTimeout(500)
+            assert.equal(navigations, 1, 'a retained discussion for a removed screen does not redirect')
+            await retainedPage.close()
+        } finally {
+            manifest.screens.splice(1, 0, ...removed)
+        }
         assert.deepEqual(pageErrors, [], 'public viewer has no uncaught browser errors')
         console.log(
             `Screen voting browser acceptance passed: Alice/Bob, retry/refresh races, identity switch, 320px preview, reload (${requests.length} Alice mutation requests).`

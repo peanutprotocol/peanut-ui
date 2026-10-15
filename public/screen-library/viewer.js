@@ -450,13 +450,34 @@ function openComments(row, scope, threadId) {
     previewFeedback([scope])
     comments?.open(scope, threadId, commentScopes(row))
 }
+function openRetainedComment(scope, threadId) {
+    const row = {
+        id: scope.screenId,
+        name: `${scope.name || scope.screenId} · No longer in this report`,
+        [scope.side]: { image: scope.image, status: 'captured' },
+    }
+    zoom(row, 'screen')
+    $('zoom-images').replaceChildren(
+        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    )
+    $('zoom-position').textContent = 'No longer in this report'
+    $('zoom-prev').disabled = true
+    $('zoom-next').disabled = true
+    comments.open(scope, threadId, [scope])
+    previewFeedback([scope])
+}
 function navigateComment(scope, threadId) {
     if (!/^(?:reports\/[a-z0-9/-]+|collections\/[a-z0-9-]+)$/.test(scope.reportPath)) return
-    if (scope.reportPath !== commentsReportPath || !rows.some((row) => row.id === scope.screenId)) {
+    if (scope.reportPath !== commentsReportPath) {
         const path = scope.reportPath.startsWith('reports/')
             ? `/screens/${scope.reportPath.slice(8)}/`
             : `/${scope.reportPath}/`
         location.href = `${path}?${new URLSearchParams({ locale: scope.locale, comments: threadId, view: 'all' })}#${encodeURIComponent(scope.screenId)}`
+        return
+    }
+    // A collection can drop a screen after its discussion started; redirecting here would loop.
+    if (!rows.some((row) => row.id === scope.screenId)) {
+        openRetainedComment(scope, threadId)
         return
     }
     viewMode = 'all'
@@ -1467,8 +1488,9 @@ function renderLanding() {
     const visible = localeEntries.filter((entry) => {
         if (selectedDate && entry.date !== selectedDate) return false
         if (selectedSource !== 'synthetic' || !$('screen-updates-only').checked) return true
-        const { prNumber, changedScreens } = versionDetails(entry)
-        return !prNumber || changedScreens !== 0
+        // Full-library captures inherit their comparison's PR and count, but are never "no updates".
+        const { prNumber, changedScreens, kind } = versionDetails(entry)
+        return kind !== 'Changed screens' || !prNumber || changedScreens !== 0
     })
     const real = selectedSource === 'nutcracker'
     $('title').textContent = real ? 'Real backend journeys.' : 'Every screen. Every change.'
@@ -1605,6 +1627,7 @@ async function configureReportLocales(reportPath) {
 }
 async function start() {
     if (offline) document.querySelector('.brand').href = './index.html'
+    else if (requestedFilter('updates') === 'all') document.querySelector('.brand').href = '/screens/?updates=all'
     // The worker publishes both the root and nested copies of index.html.
     const pathname = location.pathname
     const isHostedIndex =
