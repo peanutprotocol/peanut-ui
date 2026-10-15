@@ -35,8 +35,6 @@ function buildInviteHref(merchant: Merchant, content: 'hero' | 'end_fold'): stri
     )
 }
 
-const ctaButtonClassName = '!w-auto bg-white px-6 hover:bg-white/90 md:px-8'
-
 type Currency = 'USD' | 'EUR'
 
 export default function MerchantLandingPage({ merchant }: { merchant: Merchant }) {
@@ -120,7 +118,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                     <div className="mt-8 flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-6">
                         <div className="relative">
                             <Link href={buildInviteHref(merchant, 'hero')} className="inline-block">
-                                <Button shadowSize="4" className={ctaButtonClassName}>
+                                <Button variant="secondary" className="!w-auto">
                                     {merchant.primaryCta}
                                 </Button>
                             </Link>
@@ -474,7 +472,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 </p>
                 <div className="mt-10 flex justify-center">
                     <Link href={buildInviteHref(merchant, 'end_fold')} className="inline-block">
-                        <Button shadowSize="4" className={ctaButtonClassName}>
+                        <Button variant="secondary" className="!w-auto">
                             INSTALL PEANUT
                         </Button>
                     </Link>

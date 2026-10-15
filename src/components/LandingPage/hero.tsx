@@ -127,7 +127,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                     onClick={cta.onClick}
                 >
-                    <Button shadowSize="4" icon={cta.icon} className="bg-white px-6 hover:bg-white/90 md:px-8">
+                    <Button variant="secondary" icon={cta.icon}>
                         {cta.label}
                     </Button>
                 </a>

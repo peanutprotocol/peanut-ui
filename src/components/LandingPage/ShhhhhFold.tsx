@@ -41,8 +41,7 @@ export function ShhhhhFold() {
 
                     <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">
                         <Link prefetch={false} href="/shhhhh">
-                            {/* ds-preview: pink 4px shadow -> standard black shadowSize=4 */}
-                            <Button shadowSize="4" className="!w-auto bg-white px-6 hover:bg-white/90 md:px-8">
+                            <Button variant="secondary" className="!w-auto">
                                 {t('cta')}
                             </Button>
                         </Link>
