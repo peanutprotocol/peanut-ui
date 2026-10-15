@@ -12,6 +12,8 @@ import {
     RAW_ERROR_TEXT_RE,
     hasHandRolledCloseGlyph,
     BARE_LIST_LEADING_RE,
+    HEX_RE,
+    FONT_KNERD_RE,
 } from '../ds-lint-rules.cjs'
 
 const countMatches = (text: string, re: RegExp) => (text.match(re) ?? []).length
@@ -1030,5 +1032,47 @@ describe('bareListLeading', () => {
         ).toBe(0)
         expect(countMatches('<ListItem leading={<CorridorFlag iso2="gb" />} />', BARE_LIST_LEADING_RE)).toBe(0)
         expect(countMatches('<ListItem leading={<DisplayIcon iconUrl={url} />} />', BARE_LIST_LEADING_RE)).toBe(0)
+    })
+})
+
+describe('rawHexMarketing (HEX_RE)', () => {
+    it('flags 3-, 6- and 8-digit hex wherever it is spelled', () => {
+        expect(countMatches('className="bg-[#90A8ED]"', HEX_RE)).toBe(1)
+        expect(countMatches("style={{ background: '#faf4f0' }}", HEX_RE)).toBe(1)
+        expect(countMatches('fill="#000"', HEX_RE)).toBe(1)
+    })
+
+    it('counts #RRGGBBAA once, not as six digits plus a stray pair', () => {
+        expect(countMatches('"#FFC90080"', HEX_RE)).toBe(1)
+    })
+
+    it('accepts token classes', () => {
+        expect(countMatches('className="bg-background-brand text-foreground-primary"', HEX_RE)).toBe(0)
+    })
+})
+
+describe('arbitraryFontSizeMarketing', () => {
+    it('flags arbitrary sizes in any unit, variant prefixes included', () => {
+        for (const cls of ['text-[4rem]', 'md:text-[2.375rem]', 'text-[9.79cqw]', 'text-[84px]']) {
+            expect(countMatches(`className="${cls}"`, ARBITRARY_FONT_SIZE_RE)).toBe(1)
+        }
+    })
+
+    it('accepts type tokens and non-size arbitraries', () => {
+        for (const cls of ['text-headingMedium', 'text-[#90A8ED]', 'text-[length:var(--x)]']) {
+            expect(countMatches(`className="${cls}"`, ARBITRARY_FONT_SIZE_RE)).toBe(0)
+        }
+    })
+})
+
+describe('knerdOutsideTitle (FONT_KNERD_RE)', () => {
+    it('flags font-knerd classes, variant prefixes included', () => {
+        expect(countMatches('className="font-knerd-filled text-white"', FONT_KNERD_RE)).toBe(1)
+        expect(countMatches('className="md:font-knerd-outline"', FONT_KNERD_RE)).toBe(1)
+    })
+
+    it('leaves the next/font variable plumbing alone', () => {
+        expect(countMatches("variable: '--font-knerd-outline'", FONT_KNERD_RE)).toBe(0)
+        expect(countMatches("fontFamily: 'var(--font-knerd-filled)'", FONT_KNERD_RE)).toBe(0)
     })
 })
