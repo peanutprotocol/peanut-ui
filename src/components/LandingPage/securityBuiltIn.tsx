@@ -68,7 +68,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                         preview ask, but "SEGURANÇA." measures 387px at 60px and
                         clips a 320px viewport (TASK-22366) — fell back one
                         display-ramp step */}
-                    <h2 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack md:text-6xl lg:text-heading">
+                    <h2 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack md:text-headingMedium">
                         {i18n.landingSecurityHeading}
                     </h2>
                 </div>

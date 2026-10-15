@@ -51,7 +51,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             className="relative overflow-hidden bg-background-page px-6 py-16 text-foreground-primary md:px-4 md:py-24"
         >
             <div className="mx-auto max-w-7xl">
-                <h2 className="font-roboto-flex-extrabold text-heading-l uppercase md:text-6xl lg:text-heading">
+                <h2 className="font-roboto-flex-extrabold text-heading uppercase md:text-headingMedium">
                     {problem.heading}
                 </h2>
 

@@ -122,9 +122,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
                     <div className="flex flex-col gap-10">
                         {filteredCategories.map((category) => (
                             <section key={category}>
-                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
-                                    {category}
-                                </h2>
+                                <h2 className="mb-4 text-label-m text-foreground-secondary uppercase">{category}</h2>
                                 <CategoryRows
                                     articles={filteredArticles.filter((a) => a.category === category)}
                                     locale={locale}

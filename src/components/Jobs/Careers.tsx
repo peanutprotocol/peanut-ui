@@ -60,9 +60,7 @@ export function Careers() {
                             {WORK_BLOCKS.map(({ label, body }, index) => (
                                 <div key={label}>
                                     {index > 0 && <Divider />}
-                                    <h3 className="mb-2 text-label-m tracking-widest text-foreground-secondary uppercase">
-                                        {label}
-                                    </h3>
+                                    <h3 className="mb-2 text-label-m text-foreground-secondary uppercase">{label}</h3>
                                     <p className="text-body-s text-foreground-primary">{body}</p>
                                 </div>
                             ))}

@@ -75,7 +75,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                     <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
 
-                <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] !leading-[5rem] font-extraBlack md:text-6xl lg:text-headingMedium">
+                <h1 className="font-roboto-flex-extrabold text-left text-heading font-extraBlack md:text-headingMedium">
                     {i18n.landingRailsHeading}
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>
@@ -99,7 +99,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
             </div>
 
             <div className="w-full">
-                <p className="mb-4 text-center text-body-s tracking-widest text-foreground-primary uppercase opacity-60">
+                <p className="mb-4 text-center text-body-s text-foreground-primary uppercase opacity-60">
                     {i18n.landingWorksWith}
                 </p>
                 <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">

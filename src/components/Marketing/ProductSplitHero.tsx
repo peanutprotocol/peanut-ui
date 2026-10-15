@@ -68,7 +68,7 @@ export function ProductSplitHero({ eyebrow, headline, pitch, lead, cta, art, dis
                             steps right of it on phones. */}
                         <h1>
                             {eyebrow && (
-                                <span className="font-roboto-flex-extrabold block pl-12 text-body-s-semibold tracking-widest uppercase md:pl-0">
+                                <span className="font-roboto-flex-extrabold block pl-12 text-body-s-semibold uppercase md:pl-0">
                                     {eyebrow}
                                 </span>
                             )}
