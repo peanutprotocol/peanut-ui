@@ -1559,10 +1559,7 @@
         },
         "tokenSelector": {
             "selectAToken": "Elegí un token",
-            "drawerTitle": "Elegí token y red",
-            "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Podés usar USDC en Arbitrum.",
-            "selectANetwork": "Elegí una red",
-            "searchTokenPlaceholder": "Token o dirección",
+            "searchTokenPlaceholder": "Buscar token",
             "noMatchingTokensDescription": "Intentá buscar otro token",
             "searchNetworkPlaceholder": "Buscar red",
             "noNetworksFoundDescription": "Intentá buscar otra red"

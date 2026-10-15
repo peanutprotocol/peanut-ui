@@ -1,6 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { WithdrawAmountView } from '../WithdrawAmountView'
+import { type WithdrawFeeEstimate } from '@/features/withdraw/useWithdrawFeeEstimate'
 
 // TASK-23054: a bank account paid in EUR, GBP, MXN or COP takes the bank
 // amount in that currency; the USD it converts to at the quote rate is what
@@ -79,5 +80,59 @@ describe('WithdrawAmountView — USD amount (unchanged)', () => {
         expect(screen.queryByText('EUR')).not.toBeInTheDocument()
         fireEvent.change(field, { target: { value: '42' } })
         expect(onAmountChange.mock.lastCall?.[0]).toBe('42')
+    })
+})
+
+describe('WithdrawAmountView — crypto fee estimate (TASK-23392)', () => {
+    const renderEstimate = (feeEstimate: WithdrawFeeEstimate, receiveTokenSymbol = 'USDT') =>
+        renderWithIntl(
+            <WithdrawAmountView
+                pageTitle="Withdraw"
+                heading="Amount to withdraw"
+                initialAmount="10"
+                walletBalance="500.00"
+                balanceFillAmount={500}
+                onBalanceFilled={() => {}}
+                onAmountChange={() => {}}
+                onBack={() => {}}
+                onContinue={() => {}}
+                continueDisabled={false}
+                error={{ showError: false, errorMessage: '' }}
+                isCryptoWithdraw
+                feeEstimate={feeEstimate}
+                receiveTokenSymbol={receiveTokenSymbol}
+            />
+        )
+    const card = () => screen.getByTestId('withdraw-fee-estimate')
+
+    it('no amount: no card', () => {
+        renderEstimate({ status: 'idle' })
+        expect(screen.queryByTestId('withdraw-fee-estimate')).toBeNull()
+    })
+
+    it('free route: "No fee" and the full amount arrives', () => {
+        renderEstimate({ status: 'free' }, 'USDC')
+        expect(card()).toHaveTextContent('Network fee')
+        expect(card()).toHaveTextContent('No fee')
+        expect(card()).toHaveTextContent('$10')
+    })
+
+    it('quoted route: an estimate, marked as one', () => {
+        renderEstimate({ status: 'ready', feeUsd: 0.4, receiveAmount: '9.6' })
+        expect(card()).toHaveTextContent('Estimated network fee')
+        expect(card()).toHaveTextContent('~$0.40')
+        expect(card()).toHaveTextContent('≈ $9.6')
+    })
+
+    it('a non-stablecoin receive amount names its token', () => {
+        renderEstimate({ status: 'ready', feeUsd: 1, receiveAmount: '0.0021' }, 'ETH')
+        expect(card()).toHaveTextContent('≈ 0.0021 ETH')
+    })
+
+    it('a failed quote shows a dash, never a zero fee', () => {
+        renderEstimate({ status: 'failed' })
+        expect(card()).not.toHaveTextContent('$0')
+        expect(card()).not.toHaveTextContent('No fee')
+        expect(screen.getAllByText('—')).toHaveLength(2)
     })
 })
