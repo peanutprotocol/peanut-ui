@@ -16,6 +16,11 @@ const migrationSql = () =>
         .sort()
         .map((name) => readFileSync(resolve(migrationsPath, name), 'utf8'))
         .join('\n')
+// Writes in one millisecond tie on created_at and then order by random UUID, which made
+// the chronological assertions flaky on fast runners. Keep test time strictly increasing.
+const realNow = Date.now
+let lastNow = 0
+Date.now = () => (lastNow = Math.max(realNow(), lastNow + 1))
 const email = 'alice@peanut.me'
 const otherEmail = 'bob@peanut.me'
 const imageBefore = `${'a'.repeat(64)}.webp`
