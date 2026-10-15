@@ -63,11 +63,11 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
     return (
         <section
             id="regulated-rails"
-            className="relative overflow-hidden bg-background-page py-20 text-foreground-primary"
+            className="relative overflow-hidden bg-background-page py-16 text-foreground-primary md:py-24"
         >
             <CloudsCss clouds={regulatedRailsClouds} />
 
-            <div className="relative max-w-5xl px-10 py-8 md:px-24 md:py-16">
+            <div className="relative mx-auto max-w-7xl px-6 pb-8 md:px-4 md:pb-16">
                 <AnimateOnView className="absolute -top-12 -right-72" delay="0.2s" x="5px" rotate="22deg">
                     <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>

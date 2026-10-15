@@ -35,7 +35,7 @@ const Manteca = ({
     return (
         <section
             id="qr-pay"
-            className="relative overflow-hidden py-20 text-foreground-primary md:min-h-[850px] lg:min-h-[750px]"
+            className="relative overflow-hidden py-16 text-foreground-primary md:min-h-[850px] md:py-24 lg:min-h-[750px]"
             style={{ backgroundColor }}
         >
             <div className="hidden md:block">
@@ -56,7 +56,7 @@ const Manteca = ({
                 ))}
             </div>
 
-            <div className="relative flex flex-col items-center justify-center px-4">
+            <div className="relative flex flex-col items-center justify-center px-6 md:px-4">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
                     {i18n.landingPayLocalHeading}
                 </h1>

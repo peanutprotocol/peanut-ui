@@ -7,6 +7,7 @@ import { SendInSecondsCTA } from './SendInSecondsCTA'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { landingStrings } from './landingStrings'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
 
 const sendInSecondsClouds = [
     { top: '15%', width: 320, speed: '40s', direction: 'ltr' as const },
@@ -42,7 +43,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
     return (
         <section
             id="send-in-seconds"
-            className="relative overflow-hidden bg-yellow-500 px-4 py-16 text-foreground-primary md:py-32"
+            className="relative overflow-hidden bg-yellow-500 px-6 py-16 text-foreground-primary md:px-4 md:py-24"
         >
             <CloudsCss clouds={sendInSecondsClouds} />
 
@@ -69,7 +70,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
             />
 
             {/* Main content */}
-            <div className="relative mx-auto max-w-3xl text-center">
+            <div className={`relative mx-auto ${PROSE_WIDTH} text-center`}>
                 {/* Was an SVG with the words baked in, so it stayed English on every locale.
                     Solid black KNERD, not the white Title: white letters vanish into the clouds.
                     Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px.

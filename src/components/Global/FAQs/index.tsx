@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
 
 export type FAQsProps = {
     heading: string
@@ -61,10 +62,10 @@ export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }
                 // (its own bottom margin: 16 under an h2, 24 under a paragraph)
                 inline
                     ? 'relative overflow-hidden pb-12 text-foreground-primary'
-                    : 'relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32'
+                    : 'relative overflow-hidden bg-background-page px-6 py-16 text-foreground-primary md:px-4 md:py-24'
             }
         >
-            <div className="mx-auto max-w-3xl">
+            <div className={`mx-auto ${PROSE_WIDTH}`}>
                 {/* headingSmall on mobile: "PERGUNTAS FREQUENTES" at text-heading
                     (60px) needs 401px and clips at 320px (TASK-22366). inline, the
                     blog column is 240px at 320 and "FREQUENTES" at headingSmall

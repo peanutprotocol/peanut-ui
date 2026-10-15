@@ -6,6 +6,7 @@ import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { PROSE_WIDTH } from './constants'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -34,9 +35,9 @@ export function MarketingHero({
     ctaText = ctaText ?? i18n.getStarted
     return (
         <>
-            <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-20">
+            <section className="relative overflow-hidden bg-action-primary px-6 py-16 text-center md:px-8 md:py-24">
                 <CloudsCss clouds={marketingClouds} />
-                <div className="relative z-10 mx-auto max-w-3xl">
+                <div className={`relative z-10 mx-auto ${PROSE_WIDTH}`}>
                     {image && (
                         <Image
                             src={image}

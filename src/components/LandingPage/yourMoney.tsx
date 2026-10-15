@@ -22,8 +22,8 @@ export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const bodyParts = linkTerms(i18n.landingGlobalCashBody, cityTerms(contentHrefsFor(locale)))
 
     return (
-        <section id="global-cash" className="bg-yellow-500 px-4 py-12 text-foreground-primary md:py-16">
-            <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-7 md:flex-row">
+        <section id="global-cash" className="bg-yellow-500 px-6 py-16 text-foreground-primary md:px-4 md:py-24">
+            <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row">
                 <div className="space-y-6 mt-4 mb-12 w-full text-center md:mt-6 md:mb-20 md:w-1/2 md:text-left">
                     <h1 className="font-roboto-flex-extrabold text-6xl font-extraBlack md:text-6xl lg:text-headingMedium">
                         {i18n.landingGlobalCashLine1}

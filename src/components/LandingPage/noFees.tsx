@@ -8,6 +8,7 @@ import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { ContextualLinks } from './ContextualLinks'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { CloudsCss } from './CloudsCss'
@@ -67,7 +68,7 @@ export function NoFees({
     return (
         <section
             id="no-fees"
-            className={twMerge('relative overflow-hidden bg-blue-300 px-4 py-24 md:py-14', className)}
+            className={twMerge('relative overflow-hidden bg-blue-300 px-6 py-16 md:px-4 md:py-24', className)}
         >
             {/* CSS keyframes rather than framer-motion: these loop forever, and a
                 perpetual rAF loop on the main thread was the landing page's single
@@ -79,7 +80,7 @@ export function NoFees({
                 ]}
             />
 
-            <div className="relative mx-auto w-full max-w-3xl text-center">
+            <div className={`relative mx-auto w-full ${PROSE_WIDTH} text-center`}>
                 {/* Animated stars */}
                 <AnimateOnView className="absolute -top-12 -right-36" y="20px" x="5px" rotate="22deg" delay="0.2s">
                     <Image src={Star} alt="Floating Star" width={50} height={50} />

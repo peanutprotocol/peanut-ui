@@ -58,7 +58,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
     const features = buildFeatures(i18n, contentHrefsFor(locale))
 
     return (
-        <section id="security" className="bg-background-brand px-4 py-16 text-foreground-primary md:py-40">
+        <section id="security" className="bg-background-brand px-6 py-16 text-foreground-primary md:px-4 md:py-24">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
                     {/* h2, not h1: this h1 sat directly above the h3 feature

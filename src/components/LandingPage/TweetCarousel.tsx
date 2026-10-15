@@ -342,8 +342,8 @@ const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     if (columns.length === 0) return null
 
     return (
-        <section id="testimonials" className="w-full bg-background-brand pt-12 pb-10 md:pt-16 md:pb-14">
-            <div className="mx-auto max-w-7xl px-4 pb-8">
+        <section id="testimonials" className="w-full bg-background-brand py-16 md:py-24">
+            <div className="mx-auto max-w-7xl px-6 pb-8 md:px-4">
                 <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-foreground-primary lg:text-headingMedium">
                     {strings.wallOfLove}
                 </h2>

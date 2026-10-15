@@ -24,8 +24,11 @@ export function ShhhhhFold() {
     const t = useTranslations('shhhhh.hero')
 
     return (
-        <section id="peanut-card" className="relative overflow-hidden bg-gray-950 px-4 py-20 text-white md:py-28">
-            <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-9 md:grid-cols-[1.1fr_0.9fr] md:gap-13">
+        <section
+            id="peanut-card"
+            className="relative overflow-hidden bg-gray-950 px-6 py-16 text-white md:px-4 md:py-24"
+        >
+            <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 md:grid-cols-[1.1fr_0.9fr] md:gap-12">
                 <div className="min-w-0">
                     <Link
                         prefetch={false}
@@ -35,11 +38,11 @@ export function ShhhhhFold() {
                         {t('wordmark')}
                     </Link>
 
-                    <p className="font-roboto-flex-extrabold mt-5 max-w-xl text-heading-s uppercase md:text-heading-m">
+                    <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-heading-s uppercase md:text-heading-m">
                         {t('tagline')}
                     </p>
 
-                    <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">
+                    <div className="mt-8 flex flex-wrap items-center gap-6">
                         <Link prefetch={false} href="/shhhhh">
                             {/* ds-preview: pink 4px shadow -> standard black shadowSize=4 */}
                             <Button shadowSize="4" className="!w-auto bg-white px-6 hover:bg-white/90 md:px-8">
