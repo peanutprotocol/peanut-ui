@@ -62,7 +62,7 @@
         "features/deposit-accounts/components/DepositAccountsListScreen.tsx": 214,
         "features/limits/views/LimitsPageView.tsx": 91,
         "features/limits/views/MantecaLimitsView.tsx": 105,
-        "features/payments/flows/contribute-pot/components/PayByBankTransferDrawer.tsx": 129,
+        "features/payments/flows/contribute-pot/components/PayByBankTransferDrawer.tsx": 155,
         "features/payments/flows/contribute-pot/views/ContributePotInputView.tsx": 200,
         "features/payments/flows/direct-send/views/SendInputView.tsx": 63,
         "features/payments/flows/qr-pay/views/QrPayFormView.tsx": 228,
