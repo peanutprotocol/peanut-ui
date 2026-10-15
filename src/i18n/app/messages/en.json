@@ -1315,6 +1315,7 @@
             "unavailable": "Bank transfer is not available for this request right now.",
             "amountLabel": "Amount to send",
             "amountValueApprox": "≈ {amount}",
+            "bodyWithReference": "{text} · Reference {reference}",
             "exactBadge": "Exact amount",
             "estimateBadge": "Estimate",
             "amountNote": "Estimated at today’s rate. Your bank may convert at a different rate, so the exact amount can change.",
