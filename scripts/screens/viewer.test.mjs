@@ -1707,7 +1707,7 @@ test('vote filters keep screens any teammate voted on, combine as either, and ro
     assert.equal(screenComments.calls.length, 1, 'totals load once for every screen in the report')
 })
 
-test('an empty vote filter explains itself and offers a way back to every screen', async () => {
+test('an empty vote filter explains itself and offers a way to clear it', async () => {
     const elements = await loadLanding(`/screens/${votePath}/`, {
         report: { ...voteReport, screens: voteReport.screens.filter(({ id }) => id === 'quiet') },
         search: '?source=synthetic&locale=en&votes=down',
@@ -1716,8 +1716,8 @@ test('an empty vote filter explains itself and offers a way back to every screen
     await settle()
     const [notice] = elements.get('screens').children
     assert.match(elementText(notice), /No downvoted screens match these filters/)
-    const showAll = notice.children.find((child) => child.textContent === 'Show all screens')
-    showAll.onclick()
+    const clear = notice.children.find((child) => child.textContent === 'Clear vote filters')
+    clear.onclick()
     assert.equal(elements.get('downvoted-only').checked, false)
     assert.deepEqual(renderedIds(elements), ['quiet'])
     assert.equal(new URLSearchParams(elements.location.search).has('votes'), false)
@@ -1736,7 +1736,7 @@ test('a failed vote load offers retry without looping and recovers', async () =>
     const [notice] = elements.get('screens').children
     assert.match(elementText(notice), /Votes are unavailable right now/)
     const labels = notice.children.slice(1).map((child) => child.textContent)
-    assert.deepEqual(labels, ['Retry', 'Show all screens'])
+    assert.deepEqual(labels, ['Retry', 'Clear vote filters'])
     notice.children[1].onclick()
     await settle()
     assert.equal(screenComments.calls.length, 2)

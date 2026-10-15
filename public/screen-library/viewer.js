@@ -1332,8 +1332,8 @@ function render() {
         report?.type === 'journeys' ? 'all-screens journey-screens' : changedMode ? 'changed-screens' : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
-        const showAll = [
-            'Show all screens',
+        const clearVotes = [
+            'Clear vote filters',
             () => {
                 resetVoteFilter()
                 render()
@@ -1351,9 +1351,9 @@ function render() {
         const { up, down } = voteChoice()
         $('screens').append(
             voted.notice
-                ? filterNotice(voted.notice, voted.retry ? [retry, showAll] : [])
+                ? filterNotice(voted.notice, voted.retry ? [retry, clearVotes] : [])
                 : up || down
-                  ? filterNotice(voteEmptyMessage(), [showAll])
+                  ? filterNotice(voteEmptyMessage(), [clearVotes])
                   : el('p', changedMode ? 'No visual changes match these filters.' : 'No screens match these filters.')
         )
         $('screen-load-more').hidden = true

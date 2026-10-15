@@ -1293,6 +1293,10 @@ footer {
     #status-control {
         flex: 1 1 120px;
     }
+    /* Both vote switches share one row under Locale instead of one wrapping alone. */
+    .filters-row:has(.vote-filter:not([hidden])) #locale-control {
+        flex-basis: 100%;
+    }
     #screens {
         justify-content: center;
     }
@@ -1639,6 +1643,12 @@ summary {
 }
 .device-preview > .screen-feedback {
     contain: inline-size;
+}
+.device-preview > .screen-feedback > * {
+    flex: none;
+}
+dialog .screen-feedback .comment-count {
+    white-space: nowrap;
 }
 dialog .screen-votes {
     justify-content: center;
