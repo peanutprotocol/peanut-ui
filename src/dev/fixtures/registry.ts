@@ -212,6 +212,37 @@ const RECEIPT_ATTACHMENT_ENTRY = {
     attachmentUrl: 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf',
 }
 
+// A request paid by bank deposit (TASK-23729): no charge, the deposit matcher
+// closed it. €5 asked = $5.64, 5.57 USDC arrived, and it settled in euros, so
+// the API sends `completedAt` (the request's `paidAt`) and no `cancelledAt`.
+const BANK_PAID_REQUEST_ENTRY = {
+    uuid: 'fixture-bank-paid-request',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-12T10:00:00.000Z'),
+    createdAt: new Date('2026-08-11T09:00:00.000Z'),
+    completedAt: new Date('2026-08-12T10:00:00.000Z'),
+    amount: '5.64',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'CLOSED',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    memo: 'Concert ticket',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        source: 'EXTERNAL',
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        receivedAmount: '5.57',
+    },
+    isRequestLink: true,
+    totalAmountCollected: 5.57,
+    charges: [],
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -1279,6 +1310,15 @@ export const FIXTURES: Record<string, Fixture> = {
                 entries: [{ ...RECEIPT_ATTACHMENT_ENTRY, attachmentUrl: null }],
                 hasMore: false,
             },
+        },
+    },
+    'history-bank-paid-request': {
+        route: '/history',
+        about: 'A request paid by bank deposit a few cents short in USD. Reads Completed, nothing remaining.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [BANK_PAID_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-paid-request': BANK_PAID_REQUEST_ENTRY,
         },
     },
     'empty-history': {

@@ -266,6 +266,10 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             return goalCents > 0 && collectedCents >= goalCents ? 'completed' : 'pending'
         }
         case 'CLOSED':
+            // The API stamps `completedAt` only on a request that was paid off.
+            // A bank-paid request can close a few cents short in USD, so the
+            // collected total cannot decide this.
+            if (entry.completedAt) return 'completed'
             // 0 collected → treated as cancelled, not closed
             return entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
         default: {

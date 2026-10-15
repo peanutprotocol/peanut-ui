@@ -1014,6 +1014,11 @@
         "route": "/request?recipient=alice"
     },
     {
+        "id": "fixture-history-bank-paid-request",
+        "flow": "Payments",
+        "route": "/history"
+    },
+    {
         "id": "fixture-arrival-qr-ar",
         "flow": "Payments",
         "route": "/home"

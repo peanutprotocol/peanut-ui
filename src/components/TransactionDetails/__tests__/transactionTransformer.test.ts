@@ -715,6 +715,58 @@ describe('mapTransactionDataForDrawer', () => {
             const result = mapTransactionDataForDrawer(openRequest('100', 0)).transactionDetails
             expect(result.status).toBe('pending')
         })
+
+        it('an open request part paid by bank stays pending', () => {
+            const result = mapTransactionDataForDrawer(openRequest('10', 2.5)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+    })
+
+    describe('request-link CLOSED status (TASK-23729)', () => {
+        // The API stamps `completedAt` (the request's `paidAt`) only on a request
+        // that was paid off, and `cancelledAt` only on one closed unpaid. A
+        // bank-paid request used to read "Cancelled" because it has no charge.
+        const closedRequest = (amount: string, totalAmountCollected: number, overrides: Partial<HistoryEntry> = {}) =>
+            baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                status: EHistoryStatus.CLOSED,
+                extraData: { kind: 'P2P_REQUEST_FULFILL' },
+                isRequestLink: true,
+                amount,
+                totalAmountCollected,
+                ...overrides,
+            })
+
+        it('a request paid by bank only maps to completed, though short in USD', () => {
+            // €5 asked = $5.64; the deposit delivered 5.57 USDC and settled it
+            const result = mapTransactionDataForDrawer(
+                closedRequest('5.64', 5.57, { completedAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('completed')
+            expect(result.completedAt).toBe('2026-10-14T10:00:00Z')
+            expect(result.cancelledDate).toBeUndefined()
+        })
+
+        it('a request paid partly by bank and partly by a charge maps to completed', () => {
+            const result = mapTransactionDataForDrawer(
+                closedRequest('100', 100.01, { completedAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('completed')
+        })
+
+        it('a request closed unpaid by the requester stays cancelled', () => {
+            const result = mapTransactionDataForDrawer(
+                closedRequest('100', 0, { cancelledAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('cancelled')
+        })
+
+        it('a request closed with money collected but never settled stays closed', () => {
+            const result = mapTransactionDataForDrawer(
+                closedRequest('100', 40, { cancelledAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('closed')
+        })
     })
 
     describe('sender-side SEND_LINK claim state (TASK-20289)', () => {
