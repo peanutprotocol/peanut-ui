@@ -127,8 +127,8 @@ function sumCollectedFromCharges(entry: HistoryEntry, charges: ChargeEntry[]): n
  * Picking one page's figure loses the rest; adding them double-counts the
  * charges that repeat at a page boundary.
  *
- * Rule: union the `charges` by uuid and re-derive the total from that union,
- * take the later `timestamp`, and keep the earlier (page-0) copy for
+ * Rule: union the `charges` by uuid and re-derive the total from that union
+ * plus the bank part (`extraData.receivedAmount`, once), take the later `timestamp`, and keep the earlier (page-0) copy for
  * everything else — the link-level fields (amount/goal, status, recipient) are
  * identical across copies, and page 0 is the freshest for a
  * websocket-prepended row. When no page shipped a charges array (or the token
@@ -144,7 +144,12 @@ function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): His
     const charges = [...chargesByUuid.values()]
 
     const greatestPageTotal = Math.max(existing.totalAmountCollected ?? 0, incoming.totalAmountCollected ?? 0)
-    const fromCharges = sumCollectedFromCharges(existing, charges)
+    // Bank deposits are no charge: each copy's total includes them, the charge
+    // union does not. Every copy carries the same bank amount, so add it once.
+    const bankReceived = Number(existing.extraData?.receivedAmount ?? 0)
+    const chargesTotal = sumCollectedFromCharges(existing, charges)
+    const derivedTotal =
+        chargesTotal === undefined ? undefined : chargesTotal + (Number.isFinite(bankReceived) ? bankReceived : 0)
     // `>=`, not `>`: a rollup repeats under the same uuid on every page holding
     // its charges and its timestamp does NOT move when the link status flips, so
     // a strict comparison would keep page 0's stale status through a
@@ -161,7 +166,8 @@ function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): His
         // copy. Identity fields stay with page 0, which is the freshest for a
         // websocket-prepended row.
         status: fresher.status,
-        totalAmountCollected: fromCharges !== undefined ? Math.max(fromCharges, greatestPageTotal) : greatestPageTotal,
+        totalAmountCollected:
+            derivedTotal !== undefined ? Math.max(derivedTotal, greatestPageTotal) : greatestPageTotal,
         charges: charges.length ? charges : existing.charges,
     }
 }

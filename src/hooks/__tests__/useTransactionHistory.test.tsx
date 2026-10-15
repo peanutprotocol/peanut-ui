@@ -246,11 +246,17 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
 
     const potRow = (
         collected: number,
-        opts: { timestamp?: string; charges?: ReturnType<typeof charge>[]; status?: string } = {}
+        opts: {
+            timestamp?: string
+            charges?: ReturnType<typeof charge>[]
+            status?: string
+            amount?: string
+            bankReceived?: string
+        } = {}
     ): HistoryEntry =>
         ({
             uuid: 'pot-1',
-            amount: '12',
+            amount: opts.amount ?? '12',
             status: opts.status ?? 'OPEN',
             isRequestLink: true,
             chainId: '42161',
@@ -259,6 +265,7 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
             timestamp: new Date(opts.timestamp ?? '2026-08-01T00:00:00Z'),
             totalAmountCollected: collected,
             ...(opts.charges ? { charges: opts.charges } : {}),
+            ...(opts.bankReceived ? { extraData: { receivedAmount: opts.bankReceived } } : {}),
         }) as unknown as HistoryEntry
 
     const twoPages = (first: HistoryEntry, second: HistoryEntry) =>
@@ -358,6 +365,30 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
         const result = await collectLatestEntries(fetchPage, 5)
 
         expect(result.entries[0].totalAmountCollected).toBe(10)
+    })
+
+    // TASK-23729: each copy's total includes the bank part, the charge union
+    // does not, so the merge adds `extraData.receivedAmount` once.
+    it('adds the bank part once to charges split across pages ($40 bank + $30 + $30)', async () => {
+        const fetchPage = twoPages(
+            potRow(70, { amount: '100', bankReceived: '40', charges: [charge('ch-1', '30')] }),
+            potRow(70, { amount: '100', bankReceived: '40', charges: [charge('ch-2', '30')] })
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(100)
+    })
+
+    it('does not double-count a bank-only request repeated across pages', async () => {
+        const fetchPage = twoPages(
+            potRow(40, { amount: '100', bankReceived: '40' }),
+            potRow(40, { amount: '100', bankReceived: '40' })
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(40)
     })
 
     it('falls back to the greater precomputed total when no page ships charges', async () => {

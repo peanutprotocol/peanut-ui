@@ -236,6 +236,7 @@ const BANK_PAID_REQUEST_ENTRY = {
         source: 'EXTERNAL',
         fulfilledChargeCount: 0,
         totalChargeCount: 0,
+        receivedAmount: '5.57',
     },
     isRequestLink: true,
     totalAmountCollected: 5.57,
