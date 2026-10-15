@@ -463,16 +463,19 @@ function openRetainedComment(scope, threadId) {
     $('zoom-position').textContent = 'No longer in this report'
     $('zoom-prev').disabled = true
     $('zoom-next').disabled = true
-    comments.open(scope, threadId, [scope])
+    if (threadId) comments.open(scope, threadId, [scope])
     previewFeedback([scope])
 }
+// Comment feed items carry a threadId; vote activity opens the screen without a discussion.
 function navigateComment(scope, threadId) {
     if (!/^(?:reports\/[a-z0-9/-]+|collections\/[a-z0-9-]+)$/.test(scope.reportPath)) return
     if (scope.reportPath !== commentsReportPath) {
         const path = scope.reportPath.startsWith('reports/')
             ? `/screens/${scope.reportPath.slice(8)}/`
             : `/${scope.reportPath}/`
-        location.href = `${path}?${new URLSearchParams({ locale: scope.locale, comments: threadId, view: 'all' })}#${encodeURIComponent(scope.screenId)}`
+        const params = new URLSearchParams({ locale: scope.locale, ...(threadId ? { comments: threadId } : {}) })
+        params.set('view', 'all')
+        location.href = `${path}?${params}#${encodeURIComponent(scope.screenId)}`
         return
     }
     // A collection can drop a screen after its discussion started; redirecting here would loop.
@@ -490,21 +493,23 @@ function navigateComment(scope, threadId) {
     resetVoteFilter()
     render()
     let row = rows.find((value) => value.id === scope.screenId)
+    const version = threadId ? 'Commented version' : 'Voted version'
     if (row[scope.side]?.image !== scope.image)
         row = {
             ...row,
-            name: `${row.name} · Commented version`,
+            name: `${row.name} · ${version}`,
             [scope.side]: { image: scope.image, status: 'captured' },
         }
     zoom(row, scope.side === 'before' ? 'side' : 'screen')
     if (scope.side === 'before')
         $('zoom-images').replaceChildren(
-            phonePreview(image(scope.image, row.name, { preview: false }), 'Before · Commented version')
+            phonePreview(image(scope.image, row.name, { preview: false }), `Before · ${version}`)
         )
-    comments.open(scope, threadId, [scope])
+    if (threadId) comments.open(scope, threadId, [scope])
     previewFeedback([scope])
     const url = new URL(location.href)
-    url.searchParams.set('comments', threadId)
+    if (threadId) url.searchParams.set('comments', threadId)
+    else url.searchParams.delete('comments')
     url.hash = scope.screenId
     history.replaceState(null, '', url.pathname + url.search + url.hash)
 }

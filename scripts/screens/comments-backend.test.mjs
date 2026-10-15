@@ -1,14 +1,18 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { DatabaseSync } from 'node:sqlite'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import worker from './worker/index.mjs'
 
 // Generic SQL adapter: no query matching. All batches use SQLite transactions.
 function fixture(manifest, reportPath = 'reports/2026-10-14/pr-5/en/abc/run-1') {
     const sql = new DatabaseSync(':memory:')
     sql.exec('PRAGMA foreign_keys = ON')
-    sql.exec(readFileSync(new URL('./worker/migrations/0001_comments.sql', import.meta.url), 'utf8'))
+    const migrations = new URL('./worker/migrations/', import.meta.url)
+    for (const name of readdirSync(migrations)
+        .filter((file) => file.endsWith('.sql'))
+        .sort())
+        sql.exec(readFileSync(new URL(name, migrations), 'utf8'))
     const counters = { queries: 0 }
     function prepare(query) {
         let values = []

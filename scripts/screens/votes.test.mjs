@@ -350,7 +350,7 @@ test('vote inputs, identity, origin, request type, limits, and missing anchors f
 })
 
 test('D1 batch interruption rolls back vote, trusted scope, and receipt; lost response replays', async () => {
-    for (const boundary of [1, 2, 3]) {
+    for (const boundary of [1, 2, 3, 4]) {
         const f = fixture()
         try {
             const before = f.counts()

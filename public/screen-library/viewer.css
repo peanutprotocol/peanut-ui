@@ -1437,6 +1437,23 @@ summary {
     font-size: 10px;
     font-weight: 400;
 }
+.vote-feed-action {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 3px 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+.vote-feed-action svg {
+    width: 14px;
+    height: 14px;
+}
+.vote-feed-action[data-vote-change='cleared'] {
+    color: #8a7d8e;
+    font-weight: 500;
+}
 .comment-feed-excerpt {
     display: -webkit-box;
     -webkit-line-clamp: 2;

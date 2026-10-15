@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { webcrypto } from 'node:crypto'
@@ -9,7 +9,13 @@ import { DatabaseSync } from 'node:sqlite'
 import worker from './worker/index.mjs'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
-const migrationPath = resolve(here, 'worker/migrations/0001_comments.sql')
+const migrationsPath = resolve(here, 'worker/migrations')
+const migrationSql = () =>
+    readdirSync(migrationsPath)
+        .filter((name) => name.endsWith('.sql'))
+        .sort()
+        .map((name) => readFileSync(resolve(migrationsPath, name), 'utf8'))
+        .join('\n')
 const email = 'alice@peanut.me'
 const otherEmail = 'bob@peanut.me'
 const imageBefore = `${'a'.repeat(64)}.webp`
@@ -110,7 +116,7 @@ function makeFixture({
 } = {}) {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    if (migrate) db.exec(readFileSync(migrationPath, 'utf8'))
+    if (migrate) db.exec(migrationSql())
     const counters = { databaseCalls: 0 }
     const comments = database === 'sqlite' ? d1For(db, counters, { failBatchAfter }) : database
     const manifest = (path) =>

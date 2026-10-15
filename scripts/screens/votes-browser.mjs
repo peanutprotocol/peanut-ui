@@ -2,7 +2,7 @@
 // The local server, identities, manifest, and D1 data are synthetic; browser egress is blocked.
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve, sep, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { once } from 'node:events'
@@ -102,13 +102,11 @@ function makeD1(db) {
 }
 
 const db = new DatabaseSync(':memory:')
-db.exec(readFileSync(resolve(here, 'worker/migrations/0001_comments.sql'), 'utf8'))
-const voteMigration = resolve(here, 'worker/migrations/0002_votes.sql')
-try {
-    db.exec(readFileSync(voteMigration, 'utf8'))
-} catch (error) {
-    if (error.code !== 'ENOENT') throw error
-}
+const migrations = resolve(here, 'worker/migrations')
+for (const name of readdirSync(migrations)
+    .filter((file) => file.endsWith('.sql'))
+    .sort())
+    db.exec(readFileSync(resolve(migrations, name), 'utf8'))
 const env = {
     COMMENTS: makeD1(db),
     SCREEN_LIBRARY_ACCESS_AUD: 'votes-browser-test',
@@ -463,6 +461,24 @@ async function main() {
         )
         assert.equal(await alicePage.locator('#screen-home .screen-votes [data-vote-count="up"]').textContent(), '0')
         assert.equal(await alicePage.locator('#screen-home .screen-votes [data-vote-count="down"]').textContent(), '1')
+
+        // Vote activity reaches the feed; a vote item opens its screen without a discussion.
+        const voteItems = alicePage.locator('#comment-feed .vote-feed-item')
+        await voteItems.first().waitFor({ state: 'visible', timeout: 8000 })
+        assert.deepEqual(
+            await voteItems.evaluateAll((items) =>
+                items.map((item) => item.querySelector('.vote-feed-action')?.textContent?.trim())
+            ),
+            ['Removed their upvote', 'Downvoted', 'Upvoted'],
+            'replays and retries add no duplicate activity'
+        )
+        assert.match(await voteItems.nth(1).innerText(), /Bob[\s\S]*Downvoted[\s\S]*Home · en/)
+        await voteItems.nth(1).click()
+        await alicePage.locator('#zoom').waitFor({ state: 'visible', timeout: 8000 })
+        assert.equal(await alicePage.locator('#comment-panel').isVisible(), false)
+        assert.equal(new URL(alicePage.url()).searchParams.has('comments'), false)
+        await alicePage.keyboard.press('Escape')
+        await alicePage.locator('#zoom').waitFor({ state: 'hidden' })
 
         await alicePage.setViewportSize({ width: 1024, height: 768 })
         await alicePage.locator('#screen-home').getByRole('button', { name: 'Enlarge Home, Screen' }).click()

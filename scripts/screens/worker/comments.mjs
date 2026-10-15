@@ -160,15 +160,45 @@ export async function commentsFetch(request, env, ctx) {
                 fail(400, 'Invalid PR number')
             const namespace = `feed:${pr ?? ''}`,
                 { limit, cursor } = page(url, 30, namespace)
+            // Comments and vote events share one (created_at, id) cursor. Each side is
+            // bounded to limit + 1 before the merge, so a page never scans either table.
+            const where = (alias) =>
+                `WHERE 1 = 1${pr ? ` AND ${alias}.pr_number = ?` : ''}${cursor ? ` AND (${alias}.created_at < ? OR (${alias}.created_at = ? AND ${alias}.id < ?))` : ''}`
+            const filters = [...(pr ? [Number(pr)] : []), ...cursorValues(cursor)]
             const rows = await all(
                 db,
-                `SELECT c.*, t.scope_json, t.resolved FROM comments c JOIN comment_threads t ON c.thread_id = t.id WHERE 1 = 1${pr ? ' AND c.pr_number = ?' : ''}${cursor ? ' AND (c.created_at < ? OR (c.created_at = ? AND c.id < ?))' : ''} ORDER BY c.created_at DESC, c.id DESC LIMIT ?`,
-                [...(pr ? [Number(pr)] : []), ...cursorValues(cursor), limit + 1]
+                `SELECT * FROM (
+                    SELECT * FROM (SELECT 'comment' AS kind, c.id, c.thread_id, c.body, c.author_id, c.author_name,
+                        c.created_at, c.edited_at, c.version, t.scope_json, t.resolved, NULL AS value, NULL AS previous_value
+                        FROM comments c JOIN comment_threads t ON c.thread_id = t.id ${where('c')}
+                        ORDER BY c.created_at DESC, c.id DESC LIMIT ?)
+                    UNION ALL
+                    SELECT * FROM (SELECT 'vote' AS kind, e.id, NULL, NULL, e.actor_id, e.actor_name,
+                        e.created_at, NULL, NULL, s.scope_json, NULL, e.value, e.previous_value
+                        FROM screen_vote_events e JOIN screen_vote_scopes s ON e.scope_key = s.scope_key ${where('e')}
+                        ORDER BY e.created_at DESC, e.id DESC LIMIT ?)
+                ) ORDER BY created_at DESC, id DESC LIMIT ?`,
+                [...filters, limit + 1, ...filters, limit + 1, limit + 1]
             )
             return json({
-                items: rows
-                    .slice(0, limit)
-                    .map((row) => ({ ...comment(row), scope: JSON.parse(row.scope_json), resolved: !!row.resolved })),
+                items: rows.slice(0, limit).map((row) =>
+                    row.kind === 'vote'
+                        ? {
+                              kind: 'vote',
+                              id: row.id,
+                              actor: { id: row.author_id, name: row.author_name },
+                              value: row.value,
+                              previousValue: row.previous_value,
+                              createdAt: row.created_at,
+                              scope: JSON.parse(row.scope_json),
+                          }
+                        : {
+                              kind: 'comment',
+                              ...comment(row),
+                              scope: JSON.parse(row.scope_json),
+                              resolved: !!row.resolved,
+                          }
+                ),
                 nextCursor: nextCursor(rows, limit, namespace),
             })
         }

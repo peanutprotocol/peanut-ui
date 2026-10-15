@@ -273,6 +273,12 @@ async function call(path, { method = 'GET', body, email, assertion = token(email
             ],
             'actual D1 ordered duplicate summary has aggregate totals and only own choice'
         )
+        const activity = (await call('/feed?pr=123')).data.items.filter((item) => item.kind === 'vote')
+        ok(
+            [activity.length, activity[0]?.actor.id, activity[0]?.value],
+            [winner.mine === -1 ? 4 : 3, 'bob@example.test', -1],
+            'actual D1 logs each accepted vote change once and merges it into the feed'
+        )
         await mf.dispose()
         mf = start()
         const afterRestart = await call(`/threads/${root.id}`)

@@ -58,7 +58,7 @@ window.ScreenComments = {
             threads = []
             feedBusy = false
             feed.replaceChildren(
-                node('h2', 'Latest comments'),
+                node('h2', 'Latest activity'),
                 node('p', 'Sign in to view and add comments.', 'comment-notice')
             )
             const a = node('a', 'Sign in')
@@ -137,8 +137,8 @@ window.ScreenComments = {
                     voting?.reset({ forgetPending: Boolean(changedActor) })
                     if (changedActor) {
                         feed.replaceChildren(
-                            node('h2', 'Latest comments'),
-                            node('p', 'Loading comments…', 'comment-notice')
+                            node('h2', 'Latest activity'),
+                            node('p', 'Loading activity…', 'comment-notice')
                         )
                         if (opened)
                             panel.replaceChildren(node('p', 'Loading discussion for your account…', 'comment-notice'))
@@ -166,7 +166,7 @@ window.ScreenComments = {
             if (!append) {
                 feedItems = []
                 nextFeed = undefined
-                feed.replaceChildren(node('h2', 'Latest comments'), node('p', 'Loading comments…', 'comment-notice'))
+                feed.replaceChildren(node('h2', 'Latest activity'), node('p', 'Loading activity…', 'comment-notice'))
             }
             try {
                 const data = await api(
@@ -178,7 +178,7 @@ window.ScreenComments = {
                 renderFeed()
             } catch (error) {
                 if (actor === epoch) {
-                    if (!append) feed.replaceChildren(node('h2', 'Latest comments'))
+                    if (!append) feed.replaceChildren(node('h2', 'Latest activity'))
                     notice(feed, error.message, () => loadFeed(append))
                 }
             } finally {
@@ -198,33 +198,68 @@ window.ScreenComments = {
             const icon = window.ScreenVoting?.icon?.('refresh')
             if (icon) refresh.append(icon)
             else refresh.textContent = 'Refresh'
-            feed.firstChild.append(node('h2', 'Latest comments'), refresh)
+            feed.firstChild.append(node('h2', 'Latest activity'), refresh)
             feed.firstChild.lastChild.setAttribute('aria-label', 'Refresh comments and votes')
-            if (!feedItems.length) notice(feed, 'No comments yet. Start a discussion on a screen.')
-            for (const item of feedItems) {
-                const b = button('', () => onNavigate(item.scope, item.threadId), 'comment-feed-item')
-                b.dataset.commentId = item.id
-                b.dataset.threadId = item.threadId
-                const avatar = node('span', (item.author.name || '?').slice(0, 1).toUpperCase(), 'comment-avatar')
-                avatar.setAttribute('aria-hidden', 'true')
-                const content = node('span', undefined, 'comment-feed-content')
-                const meta = node('span', undefined, 'comment-meta')
-                meta.append(node('strong', item.author.name), node('time', time(item.createdAt)))
-                const body = node('span', item.body, 'comment-feed-excerpt')
-                body.dataset.commentBody = ''
-                content.append(
-                    meta,
-                    body,
-                    node(
-                        'span',
-                        `${item.scope.name || item.scope.screenId} · ${item.scope.locale} · ${item.scope.side}${item.resolved ? ' · Resolved' : ''}`,
-                        'comment-location'
-                    )
+            if (!feedItems.length) notice(feed, 'No activity yet. Vote on or discuss a screen.')
+            for (const item of feedItems) feed.append(item.kind === 'vote' ? voteFeedItem(item) : commentFeedItem(item))
+            if (nextFeed) feed.append(button('More activity', () => loadFeed(true), 'comment-more'))
+        }
+        function feedItemShell(onClick, name, createdAt, className = 'comment-feed-item') {
+            const b = button('', onClick, className)
+            const avatar = node('span', (name || '?').slice(0, 1).toUpperCase(), 'comment-avatar')
+            avatar.setAttribute('aria-hidden', 'true')
+            const content = node('span', undefined, 'comment-feed-content')
+            const meta = node('span', undefined, 'comment-meta')
+            meta.append(node('strong', name), node('time', time(createdAt)))
+            content.append(meta)
+            b.append(avatar, content)
+            return { b, content }
+        }
+        function commentFeedItem(item) {
+            const { b, content } = feedItemShell(
+                () => onNavigate(item.scope, item.threadId),
+                item.author.name,
+                item.createdAt
+            )
+            b.dataset.commentId = item.id
+            b.dataset.threadId = item.threadId
+            const body = node('span', item.body, 'comment-feed-excerpt')
+            body.dataset.commentBody = ''
+            content.append(
+                body,
+                node(
+                    'span',
+                    `${item.scope.name || item.scope.screenId} · ${item.scope.locale} · ${item.scope.side}${item.resolved ? ' · Resolved' : ''}`,
+                    'comment-location'
                 )
-                b.append(avatar, content)
-                feed.append(b)
-            }
-            if (nextFeed) feed.append(button('More comments', () => loadFeed(true), 'comment-more'))
+            )
+            return b
+        }
+        function voteFeedItem(item) {
+            const down = item.value === -1 || (item.value === 0 && item.previousValue === -1)
+            const verb =
+                item.value === 1
+                    ? 'Upvoted'
+                    : item.value === -1
+                      ? 'Downvoted'
+                      : `Removed their ${down ? 'downvote' : 'upvote'}`
+            const { b, content } = feedItemShell(
+                () => onNavigate(item.scope),
+                item.actor.name,
+                item.createdAt,
+                'comment-feed-item vote-feed-item'
+            )
+            b.dataset.voteEventId = item.id
+            const action = node('span', undefined, 'vote-feed-action')
+            action.dataset.voteChange = item.value === 0 ? 'cleared' : down ? 'down' : 'up'
+            const icon = window.ScreenVoting?.icon?.(down ? 'down' : 'up')
+            if (icon) action.append(icon)
+            action.append(node('span', verb))
+            content.append(
+                action,
+                node('span', `${item.scope.name || item.scope.screenId} · ${item.scope.locale}`, 'comment-location')
+            )
+            return b
         }
         function scheduleCounts() {
             clearTimeout(countTimer)
@@ -609,7 +644,7 @@ window.ScreenComments = {
                 voting?.refresh()
             } catch (error) {
                 if (error.status !== 401) {
-                    feed.replaceChildren(node('h2', 'Latest comments'))
+                    feed.replaceChildren(node('h2', 'Latest activity'))
                     notice(feed, error.message, () => setContext(context))
                 }
             }
@@ -624,7 +659,7 @@ window.ScreenComments = {
                 if (opened && user?.id !== previous) await loadPanel()
             } catch (error) {
                 if (error.status !== 401) {
-                    feed.replaceChildren(node('h2', 'Latest comments'))
+                    feed.replaceChildren(node('h2', 'Latest activity'))
                     notice(feed, error.message, () => setContext(context))
                 }
             }

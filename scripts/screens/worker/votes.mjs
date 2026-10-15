@@ -12,6 +12,11 @@ import {
     version,
 } from './comments-shared.mjs'
 
+function prNumber(reportPath) {
+    const match = /^reports\/[^/]+\/pr-([1-9]\d*)\//.exec(reportPath)
+    return match && Number.isSafeInteger(Number(match[1])) ? Number(match[1]) : null
+}
+
 export async function votesFetch(path, data, user, env) {
     const db = env.COMMENTS
     if (path === '/votes/summary') {
@@ -68,6 +73,30 @@ export async function votesFetch(path, data, user, env) {
                     `INSERT INTO screen_vote_scopes (scope_key, scope_json) SELECT ?, ? WHERE ${guard}
                      ON CONFLICT(scope_key) DO NOTHING`,
                     [key, JSON.stringify(trusted ?? scope), ...values]
+                ),
+            // Runs before the upsert so previous_value reads the old choice; the guard keeps
+            // rejected, conflicting and replayed writes from logging an event.
+            (guard, values) =>
+                statement(
+                    db,
+                    `INSERT INTO screen_vote_events
+                     (id, actor_id, actor_name, scope_key, value, previous_value, pr_number, created_at)
+                     SELECT ?, ?, ?, ?, ?, previous.value, ?, ?
+                     FROM (SELECT coalesce((SELECT value FROM screen_votes WHERE actor_id = ? AND scope_key = ?), 0) AS value) AS previous
+                     WHERE previous.value != ? AND ${guard}`,
+                    [
+                        crypto.randomUUID(),
+                        user.id,
+                        user.name,
+                        key,
+                        data.value,
+                        prNumber(scope.reportPath),
+                        Date.now(),
+                        user.id,
+                        key,
+                        data.value,
+                        ...values,
+                    ]
                 ),
             (guard, values) =>
                 statement(

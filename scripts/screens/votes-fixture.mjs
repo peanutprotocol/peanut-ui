@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import worker from './worker/index.mjs'
 
 export const UUID = () => crypto.randomUUID()
@@ -43,10 +43,11 @@ export function fixture({
 } = {}) {
     const sql = new DatabaseSync(':memory:')
     sql.exec('PRAGMA foreign_keys = ON')
-    sql.exec(readFileSync(new URL('./worker/migrations/0001_comments.sql', import.meta.url), 'utf8'))
-    // During the spec-only baseline the additive migration may not exist yet.
-    const voteMigration = new URL('./worker/migrations/0002_votes.sql', import.meta.url)
-    if (existsSync(voteMigration)) sql.exec(readFileSync(voteMigration, 'utf8'))
+    const migrations = new URL('./worker/migrations/', import.meta.url)
+    for (const name of readdirSync(migrations)
+        .filter((file) => file.endsWith('.sql'))
+        .sort())
+        sql.exec(readFileSync(new URL(name, migrations), 'utf8'))
 
     const counters = { queries: 0 }
     const env = {

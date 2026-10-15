@@ -41,6 +41,7 @@ Voting uses the same verified human identity and exact screenshot version scope.
 - Failure recovery: missing auth/storage is unavailable, never an empty discussion. Bound external waits, preserve failed drafts, and reuse request IDs when retrying uncertain saves. Clear private caches when identity changes.
 - Limits: plain text is limited to 4000 Unicode code points; JSON bodies to 32768 UTF-8 bytes. Use bounded, stable cursors and batches of at most 100 image-count scopes.
 - Migration: comments use a dedicated D1 binding with additive migrations; screenshots remain in private R2. An unconfigured comments database preserves the R2-only gallery. Rollback retains discussion data.
+- Activity: a vote event is written in the same guarded D1 batch as the vote, so rejected, conflicting, replayed or unchanged choices log nothing. The feed merges comments and vote events newest first under one cursor, each side bounded to one page.
 - Deployment: use the exact trusted artifact, serialized deployments, a 10-minute job budget and 5-minute remote-operation limits with progress at least once per minute. No automatic retries or bulk screenshot migration in deployment runners.
 - Verification: run the Screen Library Node suite, independent SQLite-backed API acceptance, local Worker/D1 smoke, browser interactions and affected lint/format checks. Report local SQL, Worker bundling, hosted CI, remote binding/schema and authenticated live behavior separately.
 
