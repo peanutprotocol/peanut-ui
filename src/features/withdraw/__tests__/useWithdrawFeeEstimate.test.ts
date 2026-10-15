@@ -93,6 +93,13 @@ describe('useWithdrawFeeEstimate', () => {
         expect(result.current).toEqual({ status: 'failed' })
     })
 
+    test('a malformed quote is a failure, never NaN', async () => {
+        preview.mockResolvedValue({} as never)
+        const { result } = renderHook(() => useWithdrawFeeEstimate({ ...base, amountUsd: '10' }))
+        await settle()
+        expect(result.current).toEqual({ status: 'failed' })
+    })
+
     test('an older response never overwrites a newer amount', async () => {
         const first = deferred<{ feeUsd: number; receiveAmount: string }>()
         const second = deferred<{ feeUsd: number; receiveAmount: string }>()

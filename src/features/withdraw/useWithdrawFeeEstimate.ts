@@ -63,7 +63,10 @@ export function useWithdrawFeeEstimate({
             recipient,
         })
             .then(({ feeUsd, receiveAmount }) => {
-                if (!stale) setResult({ key, estimate: { status: 'ready', feeUsd, receiveAmount } })
+                if (stale) return
+                // a malformed quote is an unknown fee, not a number to show
+                const valid = Number.isFinite(feeUsd) && feeUsd >= 0 && Number.isFinite(Number(receiveAmount))
+                setResult({ key, estimate: valid ? { status: 'ready', feeUsd, receiveAmount } : { status: 'failed' } })
             })
             .catch(() => {
                 if (!stale) setResult({ key, estimate: { status: 'failed' } })

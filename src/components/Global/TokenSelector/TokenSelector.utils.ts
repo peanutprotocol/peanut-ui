@@ -17,6 +17,13 @@ import type { IToken } from '@/interfaces/interfaces'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 
 export const WALLET_CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
+// Arbitrum leads every network list; the wallet chain first (it differs from
+// Arbitrum One only on a sandbox wallet, which runs on Arb Sepolia)
+const PREFERRED_CHAIN_IDS = [WALLET_CHAIN_ID, '42161']
+const preferredRank = (chainId: string) => {
+    const i = PREFERRED_CHAIN_IDS.indexOf(chainId)
+    return i === -1 ? PREFERRED_CHAIN_IDS.length : i
+}
 
 // logo for the synthesized wallet-chain entry (sandbox runs on Arb Sepolia,
 // which the mainnet-only chain record does not list)
@@ -125,12 +132,10 @@ export function buildTokenOptions(
     }).sort((a, b) => tokenRank(a.symbol) - tokenRank(b.symbol) || a.symbol.localeCompare(b.symbol))
 }
 
-/** free first, then the wallet chain, then the order given (Array.sort is stable) */
+/** free first, then Arbitrum, then the order given (Array.sort is stable) */
 export function sortNetworks(networks: NetworkOption[]): NetworkOption[] {
     return [...networks].sort(
-        (a, b) =>
-            Number(b.isFree) - Number(a.isFree) ||
-            Number(b.chainId === WALLET_CHAIN_ID) - Number(a.chainId === WALLET_CHAIN_ID)
+        (a, b) => Number(b.isFree) - Number(a.isFree) || preferredRank(a.chainId) - preferredRank(b.chainId)
     )
 }
 
@@ -146,7 +151,7 @@ export function splitNetworkBadges(networks: NetworkOption[]): { shown: NetworkO
 export function pickDefaultNetwork(option: TokenOption, currentChainId?: string): NetworkOption {
     return (
         option.networks.find((n) => n.chainId === currentChainId) ??
-        option.networks.find((n) => n.chainId === WALLET_CHAIN_ID) ??
+        option.networks.find((n) => PREFERRED_CHAIN_IDS.includes(n.chainId)) ??
         option.networks[0]
     )
 }

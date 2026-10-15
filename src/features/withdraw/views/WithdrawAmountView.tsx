@@ -195,7 +195,7 @@ const FeeEstimateCard: FC<{
         // the quote's fee verbatim; a sub-cent fee is not rounded to a misleading "~$0.00"
         fee = estimate.feeUsd > 0 && estimate.feeUsd < 0.01 ? '< $0.01' : `~$${Math.max(0, estimate.feeUsd).toFixed(2)}`
         receive = isStableCoin(tokenSymbol)
-            ? `≈ $${formatNumberForDisplay(estimate.receiveAmount, { maxDecimals: 6 })}`
+            ? `≈ $${Number(estimate.receiveAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
             : `≈ ${formatNumberForDisplay(estimate.receiveAmount, { maxDecimals: 6 })} ${tokenSymbol}`
     }
 

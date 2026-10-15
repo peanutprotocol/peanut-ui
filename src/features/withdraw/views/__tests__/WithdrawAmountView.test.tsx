@@ -121,7 +121,7 @@ describe('WithdrawAmountView — crypto fee estimate (TASK-23392)', () => {
         renderEstimate({ status: 'ready', feeUsd: 0.4, receiveAmount: '9.6' })
         expect(card()).toHaveTextContent('Estimated network fee')
         expect(card()).toHaveTextContent('~$0.40')
-        expect(card()).toHaveTextContent('≈ $9.6')
+        expect(card()).toHaveTextContent('≈ $9.60')
     })
 
     it('a non-stablecoin receive amount names its token', () => {
