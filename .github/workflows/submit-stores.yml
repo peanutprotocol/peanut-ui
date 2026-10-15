@@ -2,7 +2,9 @@ name: Submit store builds
 
 # Moves a tagged store build from the tester tracks to the stores: the TestFlight
 # build to App Store review (released automatically on approval) and the Play
-# `internal` release to `production`. Nothing is built or uploaded here.
+# `internal` release to the `production` track. Google Play does not publish it:
+# a person publishes the release in the Play Console after this run. Nothing is
+# built or uploaded here.
 #
 # Run it only after the native smoke test on the release page passed on one
 # iPhone and one Android (ops/releases.md step 18). Start with dry_run on: it
