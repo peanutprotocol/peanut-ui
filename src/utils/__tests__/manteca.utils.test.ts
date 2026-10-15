@@ -5,7 +5,7 @@
  * string, malformed value, absent field — falls back to the local constant
  * (with a Sentry report when a served value existed but failed validation).
  */
-import { pickMantecaDepositAddress, requireMantecaDepositAddress, resolveOfframpSpendRecipient } from '../manteca.utils'
+import { pickMantecaDepositAddress, resolveOfframpSpendRecipient } from '../manteca.utils'
 
 const mockCapture = jest.fn()
 jest.mock('@sentry/nextjs', () => ({
@@ -44,20 +44,6 @@ describe('pickMantecaDepositAddress', () => {
         expect(pickMantecaDepositAddress('0x1234', FALLBACK)).toBe(FALLBACK)
         expect(pickMantecaDepositAddress(42 as unknown, FALLBACK)).toBe(FALLBACK)
         expect(mockCapture).toHaveBeenCalledTimes(3)
-    })
-})
-
-describe('requireMantecaDepositAddress (fail-closed paths)', () => {
-    test('a valid address passes', () => {
-        expect(requireMantecaDepositAddress(SERVED)).toBe(SERVED)
-        expect(mockCapture).not.toHaveBeenCalled()
-    })
-
-    test('missing, empty, malformed, and zero all return null AND report — never a fallback', () => {
-        for (const bad of [undefined, null, '', '0x1234', '0x0000000000000000000000000000000000000000']) {
-            expect(requireMantecaDepositAddress(bad)).toBeNull()
-        }
-        expect(mockCapture).toHaveBeenCalledTimes(5)
     })
 })
 

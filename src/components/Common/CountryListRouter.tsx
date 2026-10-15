@@ -10,6 +10,7 @@ import { type ClaimLinkData } from '@/services/sendLinks'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
+import useClaimLink from '@/components/Claim/useClaimLink'
 import { useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 
@@ -26,16 +27,24 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
     const {
         setFlowStep: setClaimBankFlowStep,
         setSelectedCountry,
-        setClaimToMercadoPago,
         setFlowStep,
+        setVerificationPromptReason,
+        setShowVerificationModal,
     } = useClaimBankFlow()
+    const { addParamStep } = useClaimLink()
     const savedAccounts = useSavedAccounts()
 
     const handleCountryClick = (country: CountryData) => {
         setSelectedCountry(country)
         if (isMantecaSupportedCountryCode(country.id)) {
-            setFlowStep(null) // reset the flow step to initial view first
-            setClaimToMercadoPago(true)
+            // Argentina and Brazil pay out through Manteca, and a link is never
+            // claimed to Manteca directly (TASK-23648): the claimer creates an
+            // account, the link goes there, and they withdraw to Mercado Pago
+            // or Pix. Same path as tapping those methods in the list.
+            setFlowStep(null) // back to the initial view, which shows the prompt
+            addParamStep('regional-claim', { method: country.id.toUpperCase() === 'BR' ? 'pix' : 'mercadopago' })
+            setVerificationPromptReason('regional-account-required')
+            setShowVerificationModal(true)
         } else {
             setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
         }
