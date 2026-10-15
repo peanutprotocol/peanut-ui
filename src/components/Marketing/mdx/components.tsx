@@ -168,7 +168,7 @@ export const mdxComponents: MdxComponentMap = {
     ),
     th: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
         <th
-            className="border-b border-border-default bg-action-primary/15 px-4 py-3 text-label-m tracking-wide text-foreground-primary uppercase"
+            className="border-b border-border-default bg-background-page px-4 py-3 text-label-m tracking-wide text-foreground-primary uppercase"
             {...props}
         />
     ),

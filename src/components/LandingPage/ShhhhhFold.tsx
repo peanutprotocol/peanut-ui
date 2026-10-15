@@ -13,11 +13,10 @@ const ScaledPixelatedCardFace = dynamic(
     { ssr: false }
 )
 
-// On a black ground a black drop shadow is invisible, so the card and the
-// button both carry brand pink here. Deliberate deviation from the
-// all-black-shadow rule, and it applies on this fold only. The button repeats
-// the hex in its class because Tailwind only sees literals.
-const PINK = '#FF90E8'
+// On a black ground a black drop shadow is invisible, so the card's shadow
+// carries brand pink here. Deliberate deviation from the all-black-shadow
+// rule, and it applies on this fold only.
+const PINK = 'var(--color-background-brand)'
 
 /** Public card entry on the homepage. */
 export function ShhhhhFold() {
@@ -50,7 +49,7 @@ export function ShhhhhFold() {
                         </Link>
                     </div>
 
-                    <p className="font-roboto-flex mt-6 max-w-xl text-body-xs text-white/60 md:text-body-s">
+                    <p className="font-roboto-flex mt-6 max-w-xl text-body-xs text-foreground-inverse-secondary md:text-body-s">
                         {t('disclaimer')}
                     </p>
                 </div>

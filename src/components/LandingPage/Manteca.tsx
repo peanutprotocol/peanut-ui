@@ -19,24 +19,21 @@ const starConfigs = [
     { className: 'absolute bottom-20 right-44', delay: '0.6s', rotate: '22deg' },
 ]
 
-// Cream default; the homepage passes blue instead — there it follows
-// RegulatedRails, which is already cream.
-const DEFAULT_BG_COLOR = '#F9F4F0'
-
+// Cream default; the homepage passes the lavender band instead — there it
+// follows RegulatedRails, which is already cream.
 const Manteca = ({
     locale = DEFAULT_LOCALE,
-    backgroundColor = DEFAULT_BG_COLOR,
+    backgroundClassName = 'bg-background-page',
 }: {
     locale?: Locale
-    backgroundColor?: string
+    backgroundClassName?: string
 }) => {
     const i18n = getTranslations(locale)
 
     return (
         <section
             id="qr-pay"
-            className="relative overflow-hidden py-16 text-foreground-primary md:min-h-[850px] md:py-24 lg:min-h-[750px]"
-            style={{ backgroundColor }}
+            className={`relative overflow-hidden py-16 text-foreground-primary md:min-h-[850px] md:py-24 lg:min-h-[750px] ${backgroundClassName}`}
         >
             <div className="hidden md:block">
                 <CloudsCss />

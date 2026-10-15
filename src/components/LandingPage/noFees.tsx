@@ -66,7 +66,10 @@ export function NoFees({
     return (
         <section
             id="no-fees"
-            className={twMerge('relative overflow-hidden bg-blue-300 px-6 py-16 md:px-4 md:py-24', className)}
+            className={twMerge(
+                'relative overflow-hidden bg-background-marketing-sky px-6 py-16 md:px-4 md:py-24',
+                className
+            )}
         >
             {/* CSS keyframes rather than framer-motion: these loop forever, and a
                 perpetual rAF loop on the main thread was the landing page's single

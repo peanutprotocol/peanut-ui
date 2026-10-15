@@ -65,6 +65,10 @@
     --color-background-brand: #ff90e8;
     /* The sign-up hero: blue-300, the colour the hero art is drawn for (Hugo, 2026-10-10). */
     --color-background-setup-hero: var(--color-blue-300);
+    /* The lavender marketing band ground — the sky fill under the no-fees,
+       qr-pay, drop-link and exchange-widget bands (RULED 2026-10-14 konrad:
+       lavender is a permitted marketing ground). Marketing bands only. */
+    --color-background-marketing-sky: var(--color-blue-300);
 
     --color-background-icon-bubble-green: #29cc6a;
     --color-background-icon-bubble-red: #ea8282;
@@ -93,6 +97,9 @@
     --color-foreground-primary: #000000;
     --color-foreground-secondary: #5f646d;
     --color-foreground-inverse: #ffffff;
+    /* Secondary text on the black marketing folds; same 60% alpha pattern as
+       over-color-secondary. Replaces the ad-hoc text-white/60-70 utilities. */
+    --color-foreground-inverse-secondary: #ffffff99;
     --color-foreground-error: #ff3b30;
     /* the attention tone as text — the badge/surface attention yellows are
        fills and are unreadable as type. same amber the recipient-card warning
@@ -317,9 +324,6 @@
     /* fonts (v3 fontFamily port; next/font vars injected in layout) */
     --font-sans:
         var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-display:
-        var(--font-sniglet), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-condensed: var(--font-roboto);
     --font-condensed--font-variation-settings: 'wdth' 50;
@@ -1687,7 +1691,7 @@ input::placeholder {
  */
 
 .content-page tbody tr:nth-child(even) {
-    @apply bg-background-badge-accent/30;
+    @apply bg-background-page;
 }
 
 /* ── Print (public receipt) ── */
