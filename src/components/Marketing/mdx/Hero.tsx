@@ -31,12 +31,6 @@ interface HeroProps {
  */
 export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, subtitleLang }: HeroProps) {
     const i18n = getTranslations(locale)
-    // Hero sizes are a standing exception (ruled 2026-09-17) and stay off the
-    // ramp — but one es/pt word (TRANSFERÊNCIAS, ESTABELECIMENTO) can outgrow
-    // the 342px column at 2.5rem, and break-words would then split it mid-word,
-    // which the hyphenation ruling forbids. SSR-safe longest-word check; the
-    // step to 2.25rem applies at phone width only.
-    const hasLongWord = title.split(/\s+/).some((word) => word.length >= 13)
     return (
         <>
             <section className="relative overflow-hidden bg-background-brand px-6 py-16 text-center md:px-8 md:py-24">
@@ -45,10 +39,10 @@ export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, s
                     {/* break-words only, no hyphens-auto: it split brand names
                         mid-word ("PEA-NUT", "BI-NANCE") on es/pt pages. A too-long
                         word ("ESTABELECIMENTO") still soft-wraps instead of
-                        clipping at 320px (TASK-22366 sweep). */}
-                    <h1
-                        className={`font-roboto-flex-extrabold ${hasLongWord ? 'text-4xl' : 'text-[2.5rem]'} leading-[0.95] font-extraBlack break-words text-foreground-primary uppercase md:text-[4.5rem]`}
-                    >
+                        clipping at 320px (TASK-22366 sweep); the real fix for
+                        those is shorter h1 copy (content-side, ruled 15 Oct) —
+                        hero sizes stay fixed (standing exception 2026-09-17). */}
+                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words text-foreground-primary uppercase md:text-[4.5rem]">
                         {title}
                     </h1>
                     {subtitle && (
