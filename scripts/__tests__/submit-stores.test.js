@@ -257,6 +257,7 @@ describe('submit-stores android', () => {
         const result = await run(['android', '--version', '1.14.0'], androidEnv(fake.base))
         expect(result.stderr).toBe('')
         expect(result.status).toBe(0)
+        expect(result.stdout).toContain('Not published yet: publish it by hand in the Play Console')
         expect(writes(fake.calls)).toEqual([
             'POST /token',
             `POST ${PLAY}/edits`,
@@ -296,7 +297,7 @@ describe('submit-stores android', () => {
         fake = await startServer(androidRoutes({ production: liveProduction }))
         const result = await run(['android', '--version', '1.14.0', '--dry-run'], androidEnv(fake.base))
         expect(result.status).toBe(0)
-        expect(result.stdout).toContain('would release 1.14.0 to production')
+        expect(result.stdout).toContain('would move 1.14.0 to the Play production track')
         expect(writes(fake.calls)).toEqual(['POST /token', `POST ${PLAY}/edits`, `DELETE ${PLAY}/edits/edit-1`])
     })
 
