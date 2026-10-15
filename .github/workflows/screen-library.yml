@@ -2,7 +2,8 @@ name: Screen library
 on:
     pull_request:
         branches: [dev]
-        types: [opened, synchronize, reopened]
+        # converted_to_draft starts a run that skips refs and so cancels an active capture.
+        types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     push:
         branches: [dev, main]
     workflow_dispatch:
@@ -34,14 +35,21 @@ jobs:
 
     refs:
         needs: backdoor-scan
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        # Drafts capture once they are marked ready for review.
+        if: >-
+            github.event_name != 'pull_request' ||
+            (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)
         runs-on: ubuntu-24.04
         timeout-minutes: 5
+        permissions:
+            contents: read
+            pull-requests: read
         outputs:
             before: ${{ steps.refs.outputs.before }}
             after: ${{ steps.refs.outputs.after }}
             mode: ${{ steps.impact.outputs.mode || steps.plan.outputs.mode }}
             only: ${{ steps.impact.outputs.only }}
+            locales: ${{ steps.plan.outputs.locales }}
             gallery: ${{ steps.plan.outputs.gallery }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -84,6 +92,10 @@ jobs:
                   AFTER: ${{ steps.refs.outputs.after }}
                   EVENT: ${{ github.event_name }}
                   BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
+                  # Live labels, so adding screens:all-locales and re-running takes effect.
+                  GH_TOKEN: ${{ github.token }}
+                  REPOSITORY: ${{ github.repository }}
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
               run: node scripts/screens/decide-capture.mjs
             - name: Install isolated impact parser
               if: steps.plan.outputs.mode != 'skip' && github.event_name == 'pull_request'
@@ -105,7 +117,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                locale: [en, es-419, es-AR, pt-BR]
+                locale: ${{ fromJSON(needs.refs.outputs.locales || '["en","es-419","es-AR","pt-BR"]') }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -173,7 +185,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                locale: [en, es-419, es-AR, pt-BR]
+                locale: ${{ fromJSON(needs.refs.outputs.locales || '["en","es-419","es-AR","pt-BR"]') }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:

@@ -18,7 +18,7 @@ export function verifyReusedBaseline({ receipt, beforeBytes, after, expectedComm
     )
         throw new Error('Invalid reused baseline receipt or manifest bytes')
     const run = api(`actions/runs/${receipt.runId}`)
-    const verified = verifyBaselineSource({ api, repository, expectedCommit, run })
+    const verified = verifyBaselineSource({ api, repository, expectedCommit, run, locales: [after.locale] })
     if (!verified || !verified.artifacts.some((artifact) => artifact.name === receipt.artifact))
         throw new Error('Reused baseline source run or artifact is not trusted')
     const directory = mkdtempSync(join(tmpdir(), 'screen-baseline-source-'))

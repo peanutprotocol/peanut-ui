@@ -253,8 +253,11 @@ describe('failures keep the user on the username step', () => {
             // NotReadableError goes through withWebAuthnRetry's backoff first
             expect(await screen.findByRole('dialog', {}, { timeout: 5000 })).toHaveTextContent(name)
             const ceremonies = mockHandleRegister.mock.calls.length
+            const failures = failedEvents().length
             fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
             await waitFor(() => expect(mockHandleRegister.mock.calls.length).toBeGreaterThan(ceremonies))
+            // Let the retry's backoff finish here, or its failure event lands in a later test.
+            await waitFor(() => expect(failedEvents()).toHaveLength(failures + 1), { timeout: 5000 })
         },
         10000
     )

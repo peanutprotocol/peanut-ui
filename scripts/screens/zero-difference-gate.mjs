@@ -55,7 +55,7 @@ export function reviewableComparison(comparison) {
 }
 
 /** Decide whether an exact-head PR review has enough visual coverage to pass. */
-export function evaluateZeroDifferenceGate({ event, changedFiles, reports, exception, plan }) {
+export function evaluateZeroDifferenceGate({ event, changedFiles, reports, exception, plan, locales }) {
     if (event !== 'pull_request') return { ok: true, reason: 'No PR visual-coverage gate for integration runs.' }
     if (!Array.isArray(changedFiles) || !changedFiles.every((path) => typeof path === 'string'))
         return { ok: false, reason: 'Cannot verify the changed-file list for this PR.' }
@@ -69,9 +69,12 @@ export function evaluateZeroDifferenceGate({ event, changedFiles, reports, excep
     } catch {
         return { ok: false, reason: 'Trusted capture plan has invalid scope.' }
     }
+    const required = locales ?? [...supportedLocales]
+    if (!Array.isArray(required) || !required.length || !required.every((locale) => supportedLocales.has(locale)))
+        return { ok: false, reason: 'Trusted capture plan has invalid locales.' }
     if (
         !Array.isArray(reports) ||
-        reports.length !== supportedLocales.size ||
+        !required.every((locale) => reports.some((report) => report?.locale === locale)) ||
         reports.some((report) => {
             if (
                 !supportedLocales.has(report?.locale) ||
@@ -85,7 +88,7 @@ export function evaluateZeroDifferenceGate({ event, changedFiles, reports, excep
             return false
         })
     )
-        return { ok: false, reason: 'UI review needs a complete, unique comparison for every supported locale.' }
+        return { ok: false, reason: 'UI review needs a complete, unique comparison for every required locale.' }
 
     if (reports.some((report) => report.changedScreens > 0))
         return { ok: true, reason: 'Visual differences are present in the Screen Library report.' }
@@ -93,7 +96,7 @@ export function evaluateZeroDifferenceGate({ event, changedFiles, reports, excep
         return { ok: true, reason: 'Zero visual differences accepted by the explicit PR description exception.' }
     return {
         ok: false,
-        reason: 'UI source changed but all four Screen Library reports have zero visual differences. Add a deterministic capture state or put “Screen Library exception: <reason>” on its own line in the PR description, then rerun the check.',
+        reason: `UI source changed but every Screen Library report (${reports.map((report) => report.locale).join(', ')}) has zero visual differences. Add a deterministic capture state, add the screens:all-locales label and re-run if the change only shows in another locale, or put “Screen Library exception: <reason>” on its own line in the PR description, then rerun the check.`,
     }
 }
 import { canonicalScope } from './capture-scope.mjs'
