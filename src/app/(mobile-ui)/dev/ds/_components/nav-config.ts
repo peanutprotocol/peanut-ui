@@ -1,4 +1,5 @@
 import {
+    AppWindow,
     BellRing,
     CalendarRange,
     Blocks,
@@ -18,12 +19,14 @@ import {
     CreditCard,
     Ellipsis,
     FileSearch,
+    FileText,
     FlaskConical,
     Gauge,
     Gift,
     GitCompare,
     Group,
     Heading1,
+    Images,
     KeyRound,
     Layers,
     Layers2,
@@ -54,6 +57,7 @@ import {
     SlidersHorizontal,
     Sparkles,
     Square,
+    Stamp,
     SquareCheck,
     Table2,
     TextAlignStart,
@@ -106,6 +110,7 @@ export const TIERS: NavTier[] = [
     { label: 'Patterns', href: '/dev/ds/patterns', icon: Puzzle, key: 'patterns' },
     { label: 'Primitives', href: '/dev/ds/primitives', icon: Component, key: 'primitives' },
     { label: 'Foundations', href: '/dev/ds/foundations', icon: Blocks, key: 'foundations' },
+    { label: 'Marketing', href: '/dev/ds/marketing', icon: Megaphone, key: 'marketing' },
     { label: 'Audit', href: '/dev/ds/audit', icon: ClipboardCheck, key: 'audit' },
     { label: 'Playground', href: '/dev/ds/playground', icon: FlaskConical, key: 'playground' },
 ]
@@ -496,6 +501,42 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             description: 'Percentage slider with magnetic snap points. Used by AmountInput in contribute-pot',
             status: 'production',
             usages: 1,
+        },
+    ],
+    // the marketing surfaces' chapter of the doc site (drift-audit rulings of
+    // 2026-10-14/15, Konrad): what the live site ships is the ratified brand.
+    marketing: [
+        {
+            label: 'Brand',
+            icon: Stamp,
+            href: '/dev/ds/marketing/brand',
+            description:
+                'The ratified brand reality: palette, corner + border rules, body weight, the display ramp, the Knerd rule, and brand-book errata',
+            status: 'production',
+        },
+        {
+            label: 'Assets',
+            icon: Images,
+            href: '/dev/ds/marketing/assets',
+            description:
+                'Mascot pose gallery with recolour status, doodle and glove inventory with the ruled art direction, and where-used notes',
+            status: 'production',
+        },
+        {
+            label: 'Landing',
+            icon: AppWindow,
+            href: '/dev/ds/marketing/landing',
+            description:
+                'Hero recipes: key visual on the main LP, the promoted product-split hero on sub-LPs (stub — a sibling branch fills it)',
+            status: 'limited',
+        },
+        {
+            label: 'Content',
+            icon: FileText,
+            href: '/dev/ds/marketing/content',
+            description:
+                'Content-page chrome: the plain pink mdx hero on every content page, blog included (stub — a sibling branch fills it)',
+            status: 'limited',
         },
     ],
     audit: [
