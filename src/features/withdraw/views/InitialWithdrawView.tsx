@@ -196,7 +196,8 @@ export default function InitialWithdrawView({
                     onAutoCorrect={() => {
                         if (recipientAddressRef.current) setNetworkUnconfirmed(true)
                     }}
-                    onUserSelect={() => setNetworkUnconfirmed(false)}
+                    // a token tap keeps the default network, so only a network pick confirms it
+                    onNetworkSelect={() => setNetworkUnconfirmed(false)}
                 />
 
                 {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}

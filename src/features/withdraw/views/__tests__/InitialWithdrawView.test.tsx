@@ -61,10 +61,10 @@ jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
 // stand-in exposing the selector's two callbacks as buttons
 jest.mock('@/components/Global/TokenSelector/TokenSelector', () => ({
     __esModule: true,
-    default: ({ onAutoCorrect, onUserSelect }: { onAutoCorrect?: () => void; onUserSelect?: () => void }) => (
+    default: ({ onAutoCorrect, onNetworkSelect }: { onAutoCorrect?: () => void; onNetworkSelect?: () => void }) => (
         <>
             <button onClick={onAutoCorrect}>selector auto-correct</button>
-            <button onClick={onUserSelect}>selector user pick</button>
+            <button onClick={onNetworkSelect}>selector network pick</button>
         </>
     ),
 }))
@@ -203,7 +203,7 @@ describe('InitialWithdrawView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'selector auto-correct' }))
         expect(screen.getByText('Pick the network for this address')).toBeInTheDocument()
         expect(cont).toBeDisabled()
-        fireEvent.click(screen.getByRole('button', { name: 'selector user pick' }))
+        fireEvent.click(screen.getByRole('button', { name: 'selector network pick' }))
         expect(screen.queryByText('Pick the network for this address')).toBeNull()
     })
 

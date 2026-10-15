@@ -52,14 +52,14 @@ function Harness({
     viewType = 'withdraw',
     isLoadingChains = false,
     onAutoCorrect,
-    onUserSelect,
+    onNetworkSelect,
 }: {
     initialChainID?: string
     initialTokenAddress?: string
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
     isLoadingChains?: boolean
     onAutoCorrect?: () => void
-    onUserSelect?: () => void
+    onNetworkSelect?: () => void
 }) {
     const [selectedChainID, setSelectedChainID] = useState(initialChainID)
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenAddress)
@@ -77,7 +77,7 @@ function Harness({
                     } as never
                 }
             >
-                <TokenSelector viewType={viewType} onAutoCorrect={onAutoCorrect} onUserSelect={onUserSelect} />
+                <TokenSelector viewType={viewType} onAutoCorrect={onAutoCorrect} onNetworkSelect={onNetworkSelect} />
                 <output data-testid="chain-probe">{selectedChainID || 'none'}</output>
                 <output data-testid="token-probe">{selectedTokenAddress || 'none'}</output>
             </tokenSelectorContext.Provider>
@@ -191,14 +191,14 @@ describe('TokenSelector (TASK-23392)', () => {
         expect(quiet).not.toHaveBeenCalled()
     })
 
-    test('drawer picks are reported as user selections', () => {
-        const onUserSelect = jest.fn()
-        render(<Harness onUserSelect={onUserSelect} />)
+    test('only a network pick is reported as an explicit network choice', () => {
+        const onNetworkSelect = jest.fn()
+        render(<Harness onNetworkSelect={onNetworkSelect} />)
         fireEvent.click(networkTrigger())
         fireEvent.click(optionNamed('Ethereum'))
         fireEvent.click(tokenTrigger())
         fireEvent.click(optionNamed('USDT'))
-        expect(onUserSelect).toHaveBeenCalledTimes(2)
+        expect(onNetworkSelect).toHaveBeenCalledTimes(1)
     })
 
     test('a pair is not corrected while the chain record loads', () => {

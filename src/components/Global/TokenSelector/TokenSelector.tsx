@@ -56,8 +56,8 @@ interface NewTokenSelectorProps {
     disabled?: boolean
     /** the selector replaced a pair it does not offer — the screen decides whether the user must confirm */
     onAutoCorrect?: () => void
-    /** the user picked a token or a network in a drawer */
-    onUserSelect?: () => void
+    /** the user picked a network in the network drawer — an explicit network choice */
+    onNetworkSelect?: () => void
 }
 
 type DrawerKind = 'token' | 'network'
@@ -66,7 +66,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     viewType = 'other',
     disabled,
     onAutoCorrect,
-    onUserSelect,
+    onNetworkSelect,
 }) => {
     const t = useTranslations('global')
     // check if cross-chain is disabled via maintenance config
@@ -157,12 +157,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
 
     const handleTokenSelect = (option: TokenOption) => {
         select(pickDefaultNetwork(option, selectedChainID))
-        onUserSelect?.()
         close()
     }
     const handleNetworkSelect = (network: NetworkOption) => {
         select(network)
-        onUserSelect?.()
+        onNetworkSelect?.()
         close()
     }
 
