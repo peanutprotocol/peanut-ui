@@ -3,30 +3,30 @@
     "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 1178,
+    "dsTextScale": 1416,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 35,
-    "nuqsFiles": 44,
+    "nuqsFiles": 47,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 117,
-    "fontWeightOnTypeToken": 29,
-    "offScaleSpacing": 89,
+    "fontWeightOnTypeToken": 26,
+    "offScaleSpacing": 81,
     "iconOffScale": 44,
     "offScaleRadius": 16,
     "rawDuration": 1,
-    "retypedCardLiteral": 13,
-    "hoverNoActiveFiles": 21,
-    "arbitraryFontSize": 20,
+    "retypedCardLiteral": 12,
+    "hoverNoActiveFiles": 17,
+    "arbitraryFontSize": 14,
     "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
     "bareListLeading": 17,
-    "rawHexMarketing": 4,
-    "arbitraryFontSizeMarketing": 18,
-    "knerdOutsideTitle": 3,
+    "rawHexMarketing": 0,
+    "arbitraryFontSizeMarketing": 12,
+    "knerdOutsideTitle": 4,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -121,6 +121,11 @@
                 "knerdOutsideTitle new at 3"
             ],
             "reason": "marketing ratchet (raw-hex-marketing ruling 2026-10-14): three new metrics over the marketing surfaces, introduced at their current counts. the parallel fix branches lower the real counts; the integrator re-baselines after merging them."
+        },
+        {
+            "date": "2026-10-15",
+            "metrics": ["knerdOutsideTitle 3 -> 4"],
+            "reason": "knerdOutsideTitle 3 -> 4 on the run-2 integration merge: the one real debt (sendInSeconds hand-rolled font-knerd closing fold) is gone — routed through Title per the knerd-closing-fold ruling; the +2 are the new /dev/ds marketing doc pages naming the class in prose (landing tier description, closing-fold preview comment), text the scanner reads as data, not rendered classes"
         }
     ]
 }
