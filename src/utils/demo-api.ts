@@ -488,6 +488,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
+    // No arrival prompt by default: the drawer shows only in the arrival-* fixtures.
+    { method: 'POST', pattern: '/users/me/arrival', handler: () => ({ prompt: null }) },
     {
         method: 'POST',
         pattern: '/users/username/check',

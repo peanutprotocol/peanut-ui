@@ -251,6 +251,24 @@
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
             "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
+        },
+        "arrival": {
+            "qr_ar": {
+                "title": "Just landed in Argentina",
+                "description": "The café only takes Mercado Pago? Pay by scanning QR codes and save money!",
+                "cta": "Scan QR"
+            },
+            "pix_br": {
+                "title": "Just landed in Brazil",
+                "description": "Everything here runs on Pix. Scan the QR code and pay as a local!",
+                "cta": "Scan QR"
+            },
+            "card": {
+                "title": "Peanut Card works here",
+                "description": "Pay online, and in shops with Apple Pay or Google Pay where supported.",
+                "cta": "View card"
+            },
+            "notNow": "Not now"
         }
     },
     "profile": {

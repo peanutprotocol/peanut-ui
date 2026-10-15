@@ -102,6 +102,18 @@
         },
         "drawers": {
             "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios a tu nombre."
+        },
+        "arrival": {
+            "qr_ar": {
+                "description": "¿El café solo acepta Mercado Pago? ¡Pagá escaneando el QR y ahorrá dinero!"
+            },
+            "pix_br": {
+                "description": "Acá todo se paga con Pix. ¡Escaneá el QR y pagá como un local!"
+            },
+            "card": {
+                "title": "La tarjeta funciona acá",
+                "description": "Pagá en línea y en comercios con Apple Pay o Google Pay donde estén disponibles."
+            }
         }
     },
     "profile": {

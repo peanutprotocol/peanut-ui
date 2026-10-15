@@ -1535,6 +1535,24 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { showEarlyUserModal: true } },
     },
 
+    // Arrival prompt (TASK-23251). The app must resolve a country first (the
+    // edge, else ipapi); with none it makes no call and shows nothing.
+    'arrival-qr-ar': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Argentina, pay a Mercado Pago QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'qr_ar' } },
+    },
+    'arrival-pix-br': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Brazil, pay a Pix QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'pix_br' } },
+    },
+    'arrival-card': {
+        route: '/home',
+        about: 'Arrival drawer over home: abroad with an active card.',
+        responses: { 'POST /users/me/arrival': { prompt: 'card' } },
+    },
+
     // ---------------------------------------------------------------------
     // Standing deposit accounts (the bank hub). One fixture per state a payer or
     // a holder can be looking at — the two policy fields on `matching` are

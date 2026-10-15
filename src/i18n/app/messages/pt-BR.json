@@ -251,6 +251,24 @@
             "shareRequestLinkDescription": "Peça um valor com um link para compartilhar",
             "shareBankDetails": "Compartilhar dados bancários",
             "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários no seu nome."
+        },
+        "arrival": {
+            "qr_ar": {
+                "title": "Desembarcou na Argentina",
+                "description": "O café só aceita Mercado Pago? Pague escaneando o QR e economize!",
+                "cta": "Escanear QR"
+            },
+            "pix_br": {
+                "title": "Desembarcou no Brasil",
+                "description": "Aqui tudo é no Pix. Escaneie o QR: seus dólares já falam Pix!",
+                "cta": "Escanear QR"
+            },
+            "card": {
+                "title": "O cartão funciona aqui",
+                "description": "Pague online e em lojas com Apple Pay ou Google Pay onde estiverem disponíveis.",
+                "cta": "Ver cartão"
+            },
+            "notNow": "Agora não"
         }
     },
     "profile": {
