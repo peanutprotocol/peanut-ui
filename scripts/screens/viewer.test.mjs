@@ -1679,8 +1679,14 @@ function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' }
             for (const scope of scopes) loaded.set(scope.screenId, state.totals[scope.screenId])
         },
         open() {},
+        close() {},
         isOpen: () => false,
         navigateThread() {},
+    }
+    // Mirrors votes.js: a saved vote updates its totals, then calls onVotesChange.
+    const settleVote = (screenId, totals) => {
+        loaded.set(screenId, totals)
+        state.options.onVotesChange()
     }
     // Mirrors votes.js: an account change clears personal totals, then calls onVotesReset.
     const switchAccount = (totals) => {
@@ -1694,6 +1700,7 @@ function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' }
             return client
         },
         calls,
+        settleVote,
         switchAccount,
     }
 }
@@ -1898,4 +1905,51 @@ test('an account switch reloads personal votes instead of reusing the previous p
     await settle()
     assert.equal(screenComments.calls.length, 2, 'totals reload for the new account')
     assert.deepEqual(renderedIds(elements), ['split'], "Bob's upvotes, not Alice's")
+})
+
+test('removing your last matching vote drops the card from the vote filter right away', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+    screenComments.settleVote('loved', { up: 1, down: 0, mine: 0 })
+    const [notice, ...rest] = elements.get('screens').children
+    assert.equal(notice.className, 'filter-notice')
+    assert.equal(rest.length, 0)
+    assert.match(elementText(notice), /You haven't upvoted any screens/)
+    assert.equal(screenComments.calls.length, 1, 're-filtering reuses the settled totals')
+})
+
+test('a vote settled in the open preview re-filters once the preview closes', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    elements.get('zoom').open = true
+    screenComments.settleVote('split', { up: 0, down: 1, mine: 0 })
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'], 'the preview keeps a stable list while open')
+    elements.get('zoom').open = false
+    elements.get('zoom').dispatch('close')
+    assert.deepEqual(renderedIds(elements), ['loved'])
+})
+
+test('settled votes leave the list alone when no vote filter is on', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en',
+        screenComments,
+    })
+    await settle()
+    const before = elements.get('screens').children
+    screenComments.settleVote('loved', { up: 0, down: 0, mine: 0 })
+    assert.equal(elements.get('screens').children, before, 'no re-render without a vote filter')
 })

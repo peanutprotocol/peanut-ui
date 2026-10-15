@@ -54,7 +54,7 @@ window.ScreenVoting = {
         }
         return svg
     },
-    create({ api, authenticate, getUser, getEpoch, onReset }) {
+    create({ api, authenticate, getUser, getEpoch, onReset, onChange }) {
         const fields = ['reportPath', 'screenId', 'locale', 'profile', 'image', 'side']
         const widgets = new Set(),
             states = new Map(),
@@ -232,6 +232,7 @@ window.ScreenVoting = {
                 intents.delete(widget.key)
                 states.delete(widget.key)
                 await load()
+                onChange?.()
             } catch (error) {
                 if (intents.get(widget.key) !== intent) return
                 intent.conflict =
@@ -298,6 +299,7 @@ window.ScreenVoting = {
                 try {
                     await authenticate()
                     await load(true, key)
+                    onChange?.()
                 } catch {
                     paint()
                 }

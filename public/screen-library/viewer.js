@@ -418,6 +418,7 @@ const comments =
               dialog: $('zoom'),
               onNavigate: navigateComment,
               onVotesReset: voteTotalsReset,
+              onVotesChange: voteTotalsChanged,
           })
         : null
 function commentScopes(row) {
@@ -1162,7 +1163,7 @@ function navigatePreview(direction) {
     const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
     zoom(filteredRows[next], activeMode)
 }
-const voteFilter = { loading: false, error: '', requested: new Set() }
+const voteFilter = { loading: false, error: '', requested: new Set(), stale: false }
 const voteChoice = () => {
     const picked = ($('votes')?.value ?? '').split(',')
     return { up: picked.includes('up'), down: picked.includes('down') }
@@ -1185,6 +1186,22 @@ function voteTotalsReset() {
     voteFilter.requested.clear()
     const { up, down } = voteChoice()
     if (report && (up || down)) render()
+}
+// A settled vote can drop a card out of the active vote filter. Re-filter without losing the
+// reader's place; while the preview is open, wait until it closes so its position stays valid.
+function voteTotalsChanged() {
+    const { up, down } = voteChoice()
+    if (!report || !(up || down)) return
+    if ($('zoom').open) voteFilter.stale = true
+    else refreshVoteFilter()
+}
+function refreshVoteFilter() {
+    voteFilter.stale = false
+    const shown = renderedCount,
+        scroll = window.scrollY
+    render()
+    while (renderedCount < Math.min(shown, filteredRows.length)) appendNextPage()
+    if (scroll !== undefined) window.scrollTo?.(0, scroll)
 }
 function loadVoteFilter(scopes) {
     if (voteFilter.loading) return
@@ -2064,7 +2081,10 @@ $('variations-mode').addEventListener('change', () => {
     syncShareableUrl()
 })
 $('close').onclick = () => $('zoom').close()
-$('zoom').addEventListener('close', () => comments?.close())
+$('zoom').addEventListener('close', () => {
+    comments?.close()
+    if (voteFilter.stale) refreshVoteFilter()
+})
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')

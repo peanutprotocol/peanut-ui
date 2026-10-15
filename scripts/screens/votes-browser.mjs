@@ -848,6 +848,16 @@ async function main() {
             'No voted screens'
         )
         assert.equal(new URL(scopePage.url()).searchParams.get('votes'), 'up,down')
+        // Removing your own vote drops the card from My votes as soon as the save settles.
+        await scopePage.locator('label:has(#vote-scope-me) > span').click()
+        const bobVoted = reportOrder.filter(
+            (id) => votedBy('bob@example.test', 1).includes(id) || votedBy('bob@example.test', -1).includes(id)
+        )
+        assert.ok(bobVoted.length, 'Bob has a vote to remove')
+        await shows(bobVoted, "You haven't voted")
+        await scopePage.locator(`#${bobVoted[0]} .tile-foot [data-vote][aria-pressed="true"]`).click()
+        await shows(bobVoted.slice(1), "You haven't voted")
+        assert.equal(new URL(scopePage.url()).searchParams.get('by'), 'me')
         await scopeContext.close()
         assert.deepEqual(pageErrors, [], 'public viewer has no uncaught browser errors')
         console.log(

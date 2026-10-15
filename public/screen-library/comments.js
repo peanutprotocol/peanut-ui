@@ -1,7 +1,7 @@
 /* Private screen discussions. All user content is rendered as literal text. */
 'use strict'
 window.ScreenComments = {
-    create({ feed, panel, dialog, onNavigate, onVotesReset }) {
+    create({ feed, panel, dialog, onNavigate, onVotesReset, onVotesChange }) {
         const node = (tag, text, cls) => {
             const n = document.createElement(tag)
             if (text !== undefined) n.textContent = text
@@ -51,6 +51,7 @@ window.ScreenComments = {
             getUser: () => user,
             getEpoch: () => epoch,
             onReset: () => onVotesReset?.(),
+            onChange: () => onVotesChange?.(),
         })
         function requireLogin() {
             const pendingForms = [...panel.querySelectorAll('.comment-composer')]
