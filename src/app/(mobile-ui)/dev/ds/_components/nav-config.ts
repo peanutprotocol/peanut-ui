@@ -527,16 +527,16 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: AppWindow,
             href: '/dev/ds/marketing/landing',
             description:
-                'Hero recipes: key visual on the main LP, the promoted product-split hero on sub-LPs (stub — a sibling branch fills it)',
-            status: 'limited',
+                'The LP recipes at true 390/1440 viewports: the three heroes with placement rules, FAQ and closing folds, the on-band CTA, containers and section rhythm',
+            status: 'production',
         },
         {
             label: 'Content',
             icon: FileText,
             href: '/dev/ds/marketing/content',
             description:
-                'Content-page chrome: the plain pink mdx hero on every content page, blog included (stub — a sibling branch fills it)',
-            status: 'limited',
+                'Content-page visual rules at true 390/1440 viewports: plain pink hero, single-heading FAQ, plain-token tables, the 24px gutter + 640 prose measure, and the page header',
+            status: 'production',
         },
     ],
     audit: [
