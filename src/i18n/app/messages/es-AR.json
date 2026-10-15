@@ -914,6 +914,9 @@
         "status": {
             "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
             "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escribile a soporte para continuar.",
+            "requiresInfoAddressBody": "Subí un comprobante de domicilio, como una factura de servicios o un contrato de alquiler de los últimos 3 meses, para terminar tu solicitud de tarjeta.",
+            "requiresInfoIdentityBody": "Volvé a subir tu documento de identidad para terminar tu solicitud de tarjeta.",
+            "requiresInfoWaitBody": "No tenés que hacer nada más por ahora. Tu solicitud va a avanzar cuando nuestro socio de tarjetas revise tu documento.",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escribile a soporte y lo resolvemos.",
             "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vivís. Podés seguir usando las otras funciones de Peanut disponibles para vos.",

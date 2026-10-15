@@ -28,6 +28,7 @@ export const REASON_CODE_KEYS = {
     email_required: 'reasons.email_required',
     submission_failed: 'reasons.submission_failed',
     proof_of_address_review: 'reasons.proof_of_address_review',
+    proof_of_address_received: 'reasons.proof_of_address_received',
     bridge_tos_required: 'reasons.bridge_tos_required',
     bridge_tos_v2_required: 'reasons.bridge_tos_v2_required',
     bridge_processing: 'reasons.bridge_processing',

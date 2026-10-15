@@ -62,6 +62,9 @@ const COPY_KEYS = {
     },
 } as const satisfies Record<Variant, { title: string; body: string }>
 
+/** A collected proof of address on its way to, or with, the card partner: nothing for the user to do. */
+const AWAITING_DOCUMENT_REVIEW: ReadonlySet<string> = new Set(['proof_of_address_received', 'proof_of_address_review'])
+
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
 
@@ -89,6 +92,17 @@ const ApplicationStatusScreen: FC<Props> = ({
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const copyKeys = COPY_KEYS[variant]
+    // requires-info's default body points at support; an upload button or a wait is the way forward instead
+    const bodyKey =
+        variant !== 'requires-info'
+            ? copyKeys.body
+            : onUploadProofOfAddress
+              ? 'status.requiresInfoAddressBody'
+              : onUploadIdentity
+                ? 'status.requiresInfoIdentityBody'
+                : reasonCode && AWAITING_DOCUMENT_REVIEW.has(reasonCode)
+                  ? 'status.requiresInfoWaitBody'
+                  : copyKeys.body
     const reasonKey = reasonCodeKey(reasonCode)
     const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
     return (
@@ -106,7 +120,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 <div className="flex flex-col gap-3">
                     <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
                     {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
-                    <p className="text-foreground-secondary">{t(copyKeys.body)}</p>
+                    <p className="text-foreground-secondary">{t(bodyKey)}</p>
                 </div>
                 {variant === 'geo-blocked' && (
                     <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>

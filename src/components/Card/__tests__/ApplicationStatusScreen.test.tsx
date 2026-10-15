@@ -207,3 +207,71 @@ describe('ApplicationStatusScreen — upload error', () => {
         expect(screen.getByText('Could not start the upload. Please try again.')).toBeInTheDocument()
     })
 })
+
+describe('ApplicationStatusScreen — requires-info body never contradicts its button', () => {
+    const SUPPORT_BODY = en.card.status.requiresInfoBody
+
+    it('with a proof-of-address upload, the body asks for the upload instead of a support message', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonCode="proof_of_address"
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={jest.fn()}
+            />
+        )
+        expect(screen.getByText(en.card.status.requiresInfoAddressBody)).toBeInTheDocument()
+        expect(screen.queryByText(SUPPORT_BODY)).not.toBeInTheDocument()
+        expect(en.card.status.requiresInfoAddressBody).not.toMatch(/support/i)
+    })
+
+    it('with an identity re-upload, the body asks for the identity document', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                onContactSupport={jest.fn()}
+                onUploadIdentity={jest.fn()}
+            />
+        )
+        expect(screen.getByText(en.card.status.requiresInfoIdentityBody)).toBeInTheDocument()
+        expect(screen.queryByText(SUPPORT_BODY)).not.toBeInTheDocument()
+    })
+
+    it.each(['proof_of_address_received', 'proof_of_address_review'])(
+        'while a collected proof of address waits (%s), it says there is nothing to do',
+        (reasonCode) => {
+            render(
+                <ApplicationStatusScreen variant="requires-info" reasonCode={reasonCode} onContactSupport={jest.fn()} />
+            )
+            expect(screen.getByText(en.identity.reasons[reasonCode as 'proof_of_address_review'])).toBeInTheDocument()
+            expect(screen.getByText(en.card.status.requiresInfoWaitBody)).toBeInTheDocument()
+            expect(screen.queryByText(SUPPORT_BODY)).not.toBeInTheDocument()
+        }
+    )
+
+    it('the received state does not claim the partner is reviewing it yet', () => {
+        expect(en.identity.reasons.proof_of_address_received).not.toMatch(/review/i)
+    })
+
+    it('with nothing the user can upload, support stays the way forward', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonCode="card_needs_review"
+                onContactSupport={jest.fn()}
+            />
+        )
+        expect(screen.getByText(SUPPORT_BODY)).toBeInTheDocument()
+    })
+
+    it('other variants keep their own body even with an upload button', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="rejected"
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={jest.fn()}
+            />
+        )
+        expect(screen.getByText(REASSURANCE)).toBeInTheDocument()
+    })
+})
