@@ -404,6 +404,16 @@ export interface RecentMethod {
     path: string
 }
 
+export type AttentionLedgerEntry = {
+    shownAt?: string[]
+    dismissedAt?: string
+    snoozedUntil?: string
+    version?: string
+    lastSessionShown?: number
+    consecutiveSessions?: number
+    updatedAt?: string
+}
+
 export type UserPreferences = {
     balanceHidden?: boolean
     /** Welcome card only: first usable Home render, Home visits, and permanent dismissal on this device. */
@@ -454,6 +464,8 @@ export type UserPreferences = {
      *  rather than hiding it forever, and a genuinely new cap block is never
      *  suppressed by a stale local flag. */
     capNudgeSubmittedAt?: string
+    /** the attention manager's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
+    attention?: Partial<Record<string, AttentionLedgerEntry>>
 }
 
 export const updateUserPreferences = (

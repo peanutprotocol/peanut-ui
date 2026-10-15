@@ -11,7 +11,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import RateUnavailable from '@/components/Global/RateUnavailable'
-import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
+import { AttentionSlot } from '@/features/attention/AttentionSlot'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
@@ -203,7 +203,7 @@ export function BridgeBankOnrampView() {
                             {t('eurAccountsOnlyDescription')}
                         </Callout>
                     )}
-                    {advisoryDeadline && <VerificationDeadlineNotice effectiveDate={advisoryDeadline} />}
+                    <AttentionSlot id="bank-transfer" context={{ advisoryDeadline: advisoryDeadline ?? null }} />
                     <Button
                         variant="primary"
                         shadowSize="4"

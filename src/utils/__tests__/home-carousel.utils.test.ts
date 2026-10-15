@@ -4,15 +4,7 @@
  * comes back, except the allow-list, and "Pay with QR" never shows to a user
  * who already paid a QR or whose residence has no QR rail.
  */
-import {
-    RECURRING_CAROUSEL_CTAS,
-    blockedCardCtaId,
-    hiddenCarouselCTAs,
-    hideHomeCta,
-    readHiddenHomeCtas,
-    showQrPayCTA,
-    showVerifyCTA,
-} from '@/utils/home-carousel.utils'
+import { RECURRING_CAROUSEL_CTAS, hiddenCarouselCTAs, showQrPayCTA, showVerifyCTA } from '@/utils/home-carousel.utils'
 import { QrKycState } from '@/constants/kyc.consts'
 
 const NOW = new Date('2026-09-25T12:00:00Z')
@@ -60,23 +52,6 @@ describe('showQrPayCTA', () => {
 
     it('not while history is loading, so it does not flash in and out', () => {
         expect(showQrPayCTA({ canPayQrNow: true, hasMadeQrPayment: undefined })).toBe(false)
-    })
-})
-
-describe('one store for every Home CTA a user closes', () => {
-    beforeEach(() => localStorage.clear())
-
-    it('hiding a blocked card keeps the carousel cards already closed, and the reverse', () => {
-        const blockedId = blockedCardCtaId('region-restricted', 'identity_region_restricted')
-        hideHomeCta('u1', 'qr-payment')
-        hideHomeCta('u1', blockedId)
-        hideHomeCta('u1', 'invite-friends')
-        expect([...readHiddenHomeCtas('u1').keys()].sort()).toEqual([blockedId, 'invite-friends', 'qr-payment'])
-    })
-
-    it('is per user', () => {
-        hideHomeCta('u1', 'qr-payment')
-        expect(readHiddenHomeCtas('u2').has('qr-payment')).toBe(false)
     })
 })
 

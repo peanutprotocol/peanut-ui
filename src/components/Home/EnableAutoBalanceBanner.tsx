@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { captureMessage } from '@sentry/nextjs'
-import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
+import type { ActionModalButtonProps, ActionModalTertiaryCta } from '@/components/Global/ActionModal'
+import { AskShell } from '@/features/attention/AskShell'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import type { AskSurfaceProps } from '@/features/attention/types'
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
  * Blocking modal shown when the user holds an ACTIVE Rain card without
@@ -38,7 +42,7 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
  * dedupe) is keyed by card id, so a later re-issued card always gets its
  * own clean setup pass.
  */
-export default function EnableAutoBalanceBanner() {
+export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentation }: AskSurfaceProps) {
     const t = useTranslations('home.autoBalance')
     const tCommon = useTranslations('common')
     const { overview } = useRainCardOverview()
@@ -116,6 +120,7 @@ export default function EnableAutoBalanceBanner() {
                     // stuck — treating it as success would fire a false
                     // Sentry page on any flaky connection.
                     if (result.ok && result.overviewFresh) setGrantSucceededFor(grantedCardId)
+                    if (result.ok) onActed()
                 })
             },
         },
@@ -128,18 +133,22 @@ export default function EnableAutoBalanceBanner() {
             ? {
                   text: tCommon('skipForNow'),
                   disabled: isGranting,
-                  onClick: () => setDismissedFor(card?.id ?? null),
+                  onClick: () => {
+                      setDismissedFor(card?.id ?? null)
+                      // the grant is re-prompted on the first card spend regardless
+                      onSnoozed(Date.now() + DAY_MS)
+                  },
               }
             : undefined
 
     const dismissed = dismissedFor !== null && dismissedFor === (card?.id ?? null)
 
     return (
-        <ActionModal
+        <AskShell
+            presentation={presentation}
             visible={shouldShow && !dismissed}
             onClose={() => {}}
-            preventClose
-            hideModalCloseButton
+            dismissible={false}
             concept="card"
             title={t('title')}
             description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}

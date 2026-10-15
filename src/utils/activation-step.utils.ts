@@ -87,6 +87,20 @@ export function canAlreadyTransact(rails: readonly RailCapability[], isActivated
     return isActivated || rails.some((rail) => rail.status === 'enabled')
 }
 
+/**
+ * The to-do list's count: create account (always done), verify, add money, and
+ * first payment when a spend route exists (a pending route is an open row).
+ */
+export function checklistProgress(onboarding: OnboardingState): { done: number; total: number } {
+    const hasPaymentRow = onboarding.firstPaymentRoute !== 'none'
+    const done =
+        1 +
+        (onboarding.verify === 'done' ? 1 : 0) +
+        (onboarding.addMoneyDone ? 1 : 0) +
+        (hasPaymentRow && onboarding.firstPaymentDone ? 1 : 0)
+    return { done, total: hasPaymentRow ? 4 : 3 }
+}
+
 export interface VerifyRowInput {
     status: IdentityVerificationStatus | undefined
     /** useIdentityVerification: a final decision (not region), incl. a FINAL action_required */

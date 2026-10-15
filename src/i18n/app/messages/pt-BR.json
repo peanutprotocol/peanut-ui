@@ -211,6 +211,42 @@
             "card": {
                 "title": "Peça o <b>Peanut Card</b>",
                 "description": "Gaste seu saldo <b>onde a Visa é aceita</b>."
+            },
+            "virtualAccount": {
+                "title": "Abra sua conta bancária",
+                "description": "Receba dados de conta para receber transferências no seu saldo."
+            },
+            "nextPayment": {
+                "title": "Pague com a Peanut de novo",
+                "description": "Seu saldo está pronto. Escaneie um QR ou use seu cartão."
+            },
+            "shareBankDetails": {
+                "title": "Compartilhe seus dados bancários",
+                "description": "Passe os dados da sua conta para um empregador ou cliente e receba aqui."
+            },
+            "requestMoney": {
+                "title": "Peça dinheiro",
+                "description": "Esperando um pagamento ou dividindo uma conta? Envie um pedido."
+            },
+            "sendMoney": {
+                "title": "Envie dinheiro para um amigo",
+                "description": "Pague qualquer pessoa em segundos, direto do seu saldo."
+            },
+            "backupPasskey": {
+                "title": "Adicione uma passkey de backup",
+                "description": "Uma segunda passkey mantém seu dinheiro acessível se você perder este aparelho."
+            },
+            "addEmail": {
+                "title": "Adicione seu e-mail",
+                "description": "Receba comprovantes e alertas da conta por e-mail."
+            },
+            "rewards": {
+                "title": "Você tem recompensas esperando",
+                "description": "Abra Recompensas para ver o que você ganhou."
+            },
+            "completeProfile": {
+                "title": "Complete seu perfil",
+                "description": "Adicione seu nome para que seus amigos reconheçam você ao pagar."
             }
         },
         "pendingTasks": {
@@ -251,6 +287,9 @@
             "shareRequestLinkDescription": "Peça um valor com um link para compartilhar",
             "shareBankDetails": "Compartilhar dados bancários",
             "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários no seu nome."
+        },
+        "attention": {
+            "label": "Próximos passos"
         }
     },
     "profile": {

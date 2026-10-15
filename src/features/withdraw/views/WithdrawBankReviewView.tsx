@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
-import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNotice'
+import { AttentionSlot } from '@/features/attention/AttentionSlot'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -170,7 +170,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Callout>
             )}
 
-            {verificationDeadline && <VerificationDeadlineNotice effectiveDate={verificationDeadline} />}
+            <AttentionSlot id="bank-transfer" context={{ advisoryDeadline: verificationDeadline ?? null }} />
 
             {usdSpeed && (
                 <UsdPayoutSpeedChoice

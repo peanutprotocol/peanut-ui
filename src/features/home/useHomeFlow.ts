@@ -5,11 +5,9 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useCallback, useEffect, useState } from 'react'
-import { hideHomeCta, readHiddenHomeCtas } from '@/utils/home-carousel.utils'
+import { useEffect } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
 import { useBalanceVisibility } from './useBalanceVisibility'
-import { useHomeWelcome } from './useHomeWelcome'
 
 /**
  * flow hook for the home page — owns every behaviour so the page and views
@@ -31,24 +29,6 @@ export function useHomeFlow() {
     const userId = user?.user.userId
     const { isBalanceHidden, toggleBalanceVisibility } = useBalanceVisibility(userId)
     const isPageLoading = isFetchingUser && !username
-    const showWelcome = useHomeWelcome(
-        userId,
-        isPageLoading,
-        onboarding.verify === 'done' || onboarding.addMoneyDone || onboarding.firstPaymentDone
-    )
-
-    // a hidden blocked card lives in the same store as carousel dismissals. Read after mount: per-device localStorage.
-    const [hiddenHomeCtas, setHiddenHomeCtas] = useState<ReadonlySet<string>>(new Set())
-    useEffect(() => {
-        setHiddenHomeCtas(new Set(readHiddenHomeCtas(userId).keys()))
-    }, [userId])
-    const hideCta = useCallback(
-        (id: string) => {
-            hideHomeCta(userId, id)
-            setHiddenHomeCtas((prev) => new Set(prev).add(id))
-        },
-        [userId]
-    )
 
     // re-fetch user on mount to pick up activation status changes (e.g. after qr payment)
     useEffect(() => {
@@ -75,9 +55,6 @@ export function useHomeFlow() {
         isActivated,
         onboarding,
         isOnboardingComplete,
-        showWelcome,
-        hiddenHomeCtas,
-        hideCta,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
