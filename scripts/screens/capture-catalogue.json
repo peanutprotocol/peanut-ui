@@ -1019,6 +1019,11 @@
         "route": "/history"
     },
     {
+        "id": "fixture-history-request-bank-details",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-bank-request"
+    },
+    {
         "id": "fixture-arrival-qr-ar",
         "flow": "Payments",
         "route": "/home"
