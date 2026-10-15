@@ -28,16 +28,14 @@ export function NoFees({
     const router = useRouter()
     const interceptAppCta = useAppModal()
 
-    // One vw ramp can't serve every locale: "TRANSFER" only clips under ~340px,
-    // while "TRANSFERENCIA"/"TRANSFERÊNCIA" (both 491px at 60px) need ~545px.
-    // <html lang> is SSR'd as "en" and only corrected after hydration, so a
-    // :lang() ramp would first paint at the EN size and jump on the es/pt pages.
-    // At 320px the ramps carry a longest word of 337px / 540px at 60px, which
-    // is 8 / 14 characters — messages.test.ts holds the catalogs to that.
+    // Ruled ramp only (design.md §3.2): heading 60 mobile, stepping down to
+    // headingSmall 42 for catalogs whose longest word would clip at 60px
+    // ("TRANSFERENCIA"/"TRANSFERÊNCIA" measure 491px at 60px). <html lang> is
+    // SSR'd as "en" and only corrected after hydration, so a :lang() step would
+    // first paint at the EN size and jump on the es/pt pages. The 8-character
+    // threshold is what messages.test.ts holds the catalogs to.
     const headlineSize =
-        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8
-            ? 'text-[min(10vw,3.75rem)]'
-            : 'text-[min(16vw,3.75rem)]'
+        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8 ? 'text-headingSmall' : 'text-heading'
 
     // The scribble circles the closing word of the line, so each catalog picks
     // what gets circled just by putting that word last.
@@ -103,8 +101,6 @@ export function NoFees({
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
 
-                {/* fluid below md so the longest word of the headline still
-                    fits at 320px; unchanged from md up */}
                 <h1
                     className={`font-roboto-flex-extrabold ${headlineSize} text-foreground-primary md:text-headingMedium`}
                 >
@@ -113,11 +109,10 @@ export function NoFees({
 
                 {/* Was a single SVG with the copy baked into vector paths — the
                     lettering is real text now so it localizes; only the doodles
-                    stay as art. Sizes are cqw/em so the block scales exactly as
-                    the SVG did. */}
-                <div className="@container mx-auto mb-1 w-full max-w-xs md:max-w-md">
-                    {/* cqw sizing has to sit inside the container, not on it */}
-                    <div className="pt-[0.23em] font-sans text-[9.79cqw]/[1.21] font-[450] tracking-[-0.058em] text-foreground-primary">
+                    stay as art, positioned in em so they track the lettering
+                    size. */}
+                <div className="mx-auto mb-1 w-full max-w-xs md:max-w-md">
+                    <div className="font-roboto-flex-extrabold pt-[0.23em] text-headingSmall text-foreground-primary">
                         <p>
                             {reallyZeroLead}
                             <span className="relative inline-block">

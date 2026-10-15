@@ -344,7 +344,7 @@ const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     return (
         <section id="testimonials" className="w-full bg-background-brand pt-12 pb-10 md:pt-16 md:pb-14">
             <div className="mx-auto max-w-7xl px-4 pb-8">
-                <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-foreground-primary lg:text-headingMedium">
+                <h2 className="font-roboto-flex-extrabold text-center text-heading font-extraBlack text-foreground-primary md:text-headingMedium">
                     {strings.wallOfLove}
                 </h2>
                 <p className="mt-3 text-center text-body-m text-foreground-primary md:text-xl">

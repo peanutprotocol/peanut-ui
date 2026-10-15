@@ -147,7 +147,7 @@ export default function ShhhhhLandingPage() {
                         {/* The star above sits where the eyebrow starts, so the eyebrow
                             steps right of it on phones. */}
                         <h1>
-                            <span className="font-roboto-flex-extrabold block pl-12 text-body-s-semibold tracking-widest uppercase md:pl-0">
+                            <span className="font-roboto-flex-extrabold block pl-12 text-body-s-semibold uppercase md:pl-0">
                                 {t('hero.wordmark')}
                             </span>
                             <span className="font-roboto-flex-extrabold mt-2 block text-headingMedium font-extraBlack md:text-headingLarge">

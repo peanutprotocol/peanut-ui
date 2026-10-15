@@ -35,10 +35,11 @@ export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, s
             <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-24">
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-4xl">
-                    {/* break-words + hyphens: one long word ("COMMUNICATIONS",
-                        "INSTANTANEAMENTE") must wrap, not clip, at 320px
-                        (TASK-22366 sweep) */}
-                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words hyphens-auto text-foreground-primary uppercase md:text-[4.5rem]">
+                    {/* break-words only, no hyphens-auto: it split brand names
+                        mid-word ("PEA-NUT", "BI-NANCE") on es/pt pages. A too-long
+                        word ("ESTABELECIMENTO") still soft-wraps instead of
+                        clipping at 320px (TASK-22366 sweep). */}
+                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words text-foreground-primary uppercase md:text-[4.5rem]">
                         {title}
                     </h1>
                     {subtitle && (

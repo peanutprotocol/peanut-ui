@@ -57,7 +57,7 @@ const Manteca = ({
             </div>
 
             <div className="relative flex flex-col items-center justify-center px-4">
-                <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
+                <h1 className="font-roboto-flex-extrabold text-center text-heading font-extraBlack md:text-left md:text-headingMedium">
                     {i18n.landingPayLocalHeading}
                 </h1>
 

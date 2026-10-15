@@ -1365,6 +1365,55 @@ input::placeholder {
     letter-spacing: -1px;
 }
 
+/* display-ramp leading (RULED 2026-09-17, enforced 2026-10-14):
+   .font-roboto-flex-extrabold is unlayered, so its line-height: 100% beats the
+   layered text-headingLarge/headingMedium/heading/headingSmall utilities and
+   the ruled 112/104, 80/64, 60/46, 42/36 leading never rendered. These
+   compound rules re-assert the ramp's leading at the same (unlayered) cascade
+   level, scoped to the four display sizes so app-scale pairings
+   (text-heading-s, text-body-*) keep the 100% they ship with. The media
+   blocks mirror the md/lg variants. */
+.font-roboto-flex-extrabold.text-headingLarge {
+    line-height: var(--text-headingLarge--line-height);
+}
+.font-roboto-flex-extrabold.text-headingMedium {
+    line-height: var(--text-headingMedium--line-height);
+}
+.font-roboto-flex-extrabold.text-heading {
+    line-height: var(--text-heading--line-height);
+}
+.font-roboto-flex-extrabold.text-headingSmall {
+    line-height: var(--text-headingSmall--line-height);
+}
+@media (min-width: 768px) {
+    .font-roboto-flex-extrabold.md\:text-headingLarge {
+        line-height: var(--text-headingLarge--line-height);
+    }
+    .font-roboto-flex-extrabold.md\:text-headingMedium {
+        line-height: var(--text-headingMedium--line-height);
+    }
+    .font-roboto-flex-extrabold.md\:text-heading {
+        line-height: var(--text-heading--line-height);
+    }
+    .font-roboto-flex-extrabold.md\:text-headingSmall {
+        line-height: var(--text-headingSmall--line-height);
+    }
+}
+@media (min-width: 1024px) {
+    .font-roboto-flex-extrabold.lg\:text-headingLarge {
+        line-height: var(--text-headingLarge--line-height);
+    }
+    .font-roboto-flex-extrabold.lg\:text-headingMedium {
+        line-height: var(--text-headingMedium--line-height);
+    }
+    .font-roboto-flex-extrabold.lg\:text-heading {
+        line-height: var(--text-heading--line-height);
+    }
+    .font-roboto-flex-extrabold.lg\:text-headingSmall {
+        line-height: var(--text-headingSmall--line-height);
+    }
+}
+
 .embla__slide {
     flex: 0 0 100%;
     min-width: 0;

@@ -153,7 +153,7 @@ export default async function PressPage({ params }: PageProps) {
                                     .map(([label, text], index) => (
                                         <div key={label}>
                                             {index > 0 && <Divider />}
-                                            <h3 className="mb-2 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                            <h3 className="mb-2 text-label-m text-foreground-secondary uppercase">
                                                 {label}
                                             </h3>
                                             <p className="text-body-s text-foreground-primary">{text}</p>
@@ -199,7 +199,7 @@ export default async function PressPage({ params }: PageProps) {
                                     if (files.length === 0) return null
                                     return (
                                         <div key={group.label}>
-                                            <h3 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                            <h3 className="mb-4 text-label-m text-foreground-secondary uppercase">
                                                 {group.label}
                                             </h3>
                                             <div className="flex flex-col">

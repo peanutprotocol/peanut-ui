@@ -103,7 +103,7 @@ export function ContentLinkList({ items, locale, strings, grouped }: ContentLink
                         if (inType.length === 0) return null
                         return (
                             <section key={t}>
-                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
+                                <h2 className="mb-4 text-label-m text-foreground-secondary uppercase">
                                     {typeLabels[t]}
                                 </h2>
                                 {renderLinkRows(inType, locale, strings.inEnglish)}

@@ -71,7 +71,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                             surface={MIGRATION_SURFACES.LANDING_HERO}
                             variant="primary"
                             className="pointer-events-auto block"
-                            buttonClassName="w-full uppercase"
+                            buttonClassName="w-full"
                         />
                     ) : (
                         <Link prefetch={false} href="/setup" className="pointer-events-auto block">
