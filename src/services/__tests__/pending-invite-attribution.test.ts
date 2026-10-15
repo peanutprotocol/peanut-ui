@@ -116,6 +116,13 @@ describe('pending invite attribution', () => {
         ])
         expect(mockClearInviteIfOwnedBy).toHaveBeenCalledWith('alice', 'user-a')
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, expect.anything())
+        // no referral row and no accepted/failed event: before the settled
+        // event this outcome left no trace at all
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
+            trigger: 'session',
+            status: 'campaign_only',
+            invite_type: EInviteType.PAYMENT_LINK,
+        })
     })
 
     it('de-duplicates registration and auth-provider attempts', async () => {
@@ -167,5 +174,54 @@ describe('pending invite attribution', () => {
             claims: [],
         })
         await expect(accountAAttempt).resolves.toMatchObject({ status: 'retryable' })
+    })
+    it('reports each caller once under its own trigger when registration and the auth provider race', async () => {
+        mockAcceptInvite.mockResolvedValue({
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            claims: [],
+        })
+
+        await Promise.all([
+            settlePendingInviteAttribution('user-a', 'session'),
+            settlePendingInviteAttribution('user-a', 'registration'),
+        ])
+
+        expect(mockAcceptInvite).toHaveBeenCalledTimes(1)
+        const settled = mockCapture.mock.calls.filter(
+            ([event]) => event === ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED
+        )
+        expect(settled.map(([, properties]) => properties)).toEqual([
+            { trigger: 'session', status: 'attributed', invite_type: EInviteType.PAYMENT_LINK },
+            { trigger: 'registration', status: 'attributed', invite_type: EInviteType.PAYMENT_LINK },
+        ])
+    })
+
+    it('reports an invite bound to another account instead of dropping it silently', async () => {
+        mockBindInviteToUser.mockReturnValue(false)
+
+        await expect(settlePendingInviteAttribution('user-b', 'registration')).resolves.toMatchObject({
+            status: 'account_mismatch',
+        })
+
+        expect(mockAcceptInvite).not.toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
+            trigger: 'registration',
+            status: 'account_mismatch',
+        })
+    })
+
+    it('reports a registration that found no invite, but not an ordinary app start', async () => {
+        inviteCode = ''
+
+        await settlePendingInviteAttribution('user-a', 'session')
+        expect(mockCapture).not.toHaveBeenCalled()
+
+        await settlePendingInviteAttribution('user-a', 'registration')
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
+            trigger: 'registration',
+            status: 'none',
+        })
     })
 })

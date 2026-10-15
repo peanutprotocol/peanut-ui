@@ -364,9 +364,9 @@ function SetupPageContent() {
             // route a returning user past Landing onto Signup (regression from PR #2346).
             /*
              * ?code= arrives from an /invite deep link (native maps
-             * peanut.me/invite?code=X here — see native-routes.ts). Persist it
-             * as the same session cookie the web InvitesPage writes, so it
-             * survives the multi-step signup and reaches registration.
+             * peanut.me/invite?code=X here — see native-routes.ts). Stash it
+             * like the web InvitesPage does, so it survives the multi-step
+             * signup and reaches registration.
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {

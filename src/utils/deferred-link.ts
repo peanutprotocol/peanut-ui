@@ -10,10 +10,10 @@ import { isValidLocale } from '@/i18n/config'
 import { type AppLocale, resolveLocaleOrNull } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
 import { nativeCapability } from './native-capability'
-import { getFromCookie, sanitizeRedirectURL } from './cookie-url.utils'
+import { sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
-import { stashInvite } from '@/utils/invite-stash'
+import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
 import {
     BADGE_CAMPAIGN_QUERY_PARAM,
@@ -249,10 +249,10 @@ function latestCampaignTouch(
 
 /**
  * builds the payload querystring from the current web context: locale from the
- * /{locale}/ path prefix, invite/badge campaign from their existing cookies, dest
+ * /{locale}/ path prefix, invite from the invite stash, badge campaigns from their cookies, dest
  * from the argument (defaults to the current path + query, locale stripped).
- * `invite` overrides the cookie for surfaces that know the code before any
- * cookie is written (the claim page's invite-link CTA).
+ * `invite` overrides the stash for surfaces that know the code before anything
+ * is stashed (the claim page's invite-link CTA).
  */
 export function buildDeferredPayload(dest?: string, invite?: string, store: 'android' | 'ios' = 'android'): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
@@ -260,8 +260,8 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
     const firstSegment = window.location.pathname.split('/').filter(Boolean)[0]
     if (firstSegment && isValidLocale(firstSegment)) params.set('lang', firstSegment)
 
-    const inviteCode = invite || getFromCookie('inviteCode')
-    if (typeof inviteCode === 'string' && inviteCode) params.set('invite', inviteCode)
+    const inviteCode = invite || readInviteCode()
+    if (inviteCode) params.set('invite', inviteCode)
 
     for (const badgeCampaign of getPendingBadgeCampaigns()) {
         params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
@@ -567,12 +567,11 @@ async function doRestore(): Promise<RestoredContext | null> {
 export function applyDeferredPayload(payload: DeferredPayload): RestoredContext {
     if (payload.attribution) restoreSignupAttribution(payload.attribution)
 
-    // inviteCode: SESSION cookie, exactly matching the web invite flow
-    // (InvitesPage). the cookie routes /setup past Landing — the only screen
-    // with Log In — so a durable cookie would lock an existing user who
-    // installed via a friend's invite link out of login (the PR #2346
-    // regression class). session scope keeps attribution for the
-    // install→open→signup funnel and self-heals on app restart.
+    // the invite stash routes /setup past Landing — the only screen with
+    // Log In — so it expires after a day (invite-stash.ts): long enough for
+    // the install→open→signup funnel across restarts, short enough that an
+    // existing user who installed via a friend's link is not kept off Log In
+    // (the PR #2346 regression class).
     const invite = payload.invite ? toInviteCode(payload.invite) : ''
     // a deferred link carries only a bare code — DIRECT, and through the one
     // writer so the type can never be a stale leftover from an earlier flow

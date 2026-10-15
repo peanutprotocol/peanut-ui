@@ -22,13 +22,40 @@ export type PendingInviteAttributionOutcome = {
 
 const inFlight = new Map<string, Promise<PendingInviteAttributionOutcome>>()
 
+/** Registration settles once per account; a session start retries a durable invite. */
+export type InviteAttributionTrigger = 'registration' | 'session'
+
 /**
- * Records a stashed inviter after authentication. The invite cookie is only
+ * Records a stashed inviter after authentication. The invite stash is only
  * cleared after the API confirms either the immutable referral edge or a
  * terminal legacy campaign-only hand-off. Failures remain durable for the
  * next authenticated app start and never block open signup.
+ *
+ * Each call reports its outcome once, under its own trigger — registration
+ * always, `none` included, so a lost hand-off shows up instead of leaving no
+ * trace; a session start only when it found an invite (otherwise it is every
+ * app launch). Registration and the auth provider usually race for the same
+ * attempt, and both still report.
  */
-export function settlePendingInviteAttribution(userId: string): Promise<PendingInviteAttributionOutcome> {
+export async function settlePendingInviteAttribution(
+    userId: string,
+    trigger: InviteAttributionTrigger = 'session'
+): Promise<PendingInviteAttributionOutcome> {
+    const outcome = await settleShared(userId)
+    if (trigger === 'registration' || outcome.status !== 'none') {
+        try {
+            // Enums only — never the code, which names the inviter.
+            posthog.capture(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
+                trigger,
+                status: outcome.status,
+                ...(outcome.inviteType ? { invite_type: outcome.inviteType } : {}),
+            })
+        } catch {}
+    }
+    return outcome
+}
+
+function settleShared(userId: string): Promise<PendingInviteAttributionOutcome> {
     const inviteCode = readInviteCode().trim()
     if (!inviteCode) return Promise.resolve({ status: 'none' })
     if (!bindInviteToUser(userId)) return Promise.resolve({ status: 'account_mismatch', inviteCode })
@@ -39,7 +66,7 @@ export function settlePendingInviteAttribution(userId: string): Promise<PendingI
 
     const attempt = settlePendingInviteAttributionOnce(userId, inviteCode).catch(
         (error): PendingInviteAttributionOutcome => {
-            // Cookie/storage reads are expected to be safe, but attribution is
+            // Storage reads are expected to be safe, but attribution is
             // never allowed to turn a completed registration into a failed one.
             captureException(error, { tags: { error_type: 'invite_attribution_recovery_failed' } })
             return { status: 'retryable' }

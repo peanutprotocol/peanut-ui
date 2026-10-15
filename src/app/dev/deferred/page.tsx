@@ -19,6 +19,7 @@ import {
     CONSUMED_KEY,
 } from '@/utils/deferred-link'
 import { getFromCookie } from '@/utils/general.utils'
+import { readInviteCode } from '@/utils/invite-stash'
 import { getPlatform } from '@/utils/capacitor'
 import { BASE_URL } from '@/constants/general.consts'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -44,7 +45,7 @@ export default function DeferredLinkDevPage() {
             platform: getPlatform(),
             consumedFlag: localStorage.getItem(CONSUMED_KEY) ?? '(unset)',
             persistedLocale: localStorage.getItem(APP_LOCALE_KEY) ?? '(unset)',
-            inviteCodeCookie: String(getFromCookie('inviteCode') ?? '(unset)'),
+            inviteStash: readInviteCode() || '(unset)',
             campaignTagCookie: String(getFromCookie('campaignTag') ?? '(unset)'),
         })
     }, [])

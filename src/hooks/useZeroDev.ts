@@ -173,7 +173,7 @@ export const useZeroDev = () => {
             // Fail-open: a referral never blocks open signup. The shared
             // authenticated recovery path keeps the inviter until the server
             // confirms its immutable reward edge.
-            await settlePendingInviteAttribution(registeredUser.user.userId)
+            await settlePendingInviteAttribution(registeredUser.user.userId, 'registration')
 
             // Campaign acquisition is independent from invite attribution. It
             // runs after authentication whether or not an invite was present,
