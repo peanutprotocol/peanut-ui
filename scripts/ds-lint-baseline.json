@@ -24,6 +24,9 @@
     "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
     "bareListLeading": 17,
+    "rawHexMarketing": 4,
+    "arbitraryFontSizeMarketing": 18,
+    "knerdOutsideTitle": 3,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -109,6 +112,15 @@
             "date": "2026-09-25",
             "metrics": ["offScaleSpacing 87 -> 89"],
             "reason": "one product accordion (TASK-23071): flush Accordion.Content inside a bordered item carries -mx-px -mb-px so the country list's own card borders sit on the item border instead of reading as a card inside a card. border-overlay geometry, the same category as the tabs chip weld, not box rhythm. 2 sites in 0_Bruddle/Accordion.tsx."
+        },
+        {
+            "date": "2026-10-15",
+            "metrics": [
+                "rawHexMarketing new at 4",
+                "arbitraryFontSizeMarketing new at 18",
+                "knerdOutsideTitle new at 3"
+            ],
+            "reason": "marketing ratchet (raw-hex-marketing ruling 2026-10-14): three new metrics over the marketing surfaces, introduced at their current counts. the parallel fix branches lower the real counts; the integrator re-baselines after merging them."
         }
     ]
 }
