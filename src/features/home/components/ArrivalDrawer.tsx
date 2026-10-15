@@ -6,9 +6,11 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useOtherOpenOverlays } from '@/utils/overlay-visibility'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useEffect, useRef } from 'react'
@@ -23,8 +25,8 @@ interface ArrivalDrawerProps {
 
 /**
  * What already works in the country the user just arrived in (TASK-23251):
- * a QR in Argentina or Brazil, the card elsewhere. Moves into the attention
- * registry once ui#3667 lands.
+ * a QR in Argentina or Brazil under the country's flag, the card elsewhere.
+ * Moves into the attention registry once ui#3667 lands.
  */
 export default function ArrivalDrawer({ arrival, blocked, onDismiss }: ArrivalDrawerProps) {
     const t = useTranslations('home.arrival')
@@ -69,7 +71,18 @@ export default function ArrivalDrawer({ arrival, blocked, onDismiss }: ArrivalDr
                 <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* the head owns the M/12 beneath it, as in the other Home drawers */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble {...(isQr ? CONCEPT_ICONS.qrPay : CONCEPT_ICONS.card)} />
+                        {isQr ? (
+                            // the flag takes the m bubble's 48px; circle-flags are already round
+                            <Image
+                                src={getFlagUrl(arrival.country)}
+                                alt=""
+                                width={96}
+                                height={96}
+                                className="size-12 rounded-full object-cover"
+                            />
+                        ) : (
+                            <IconBubble {...CONCEPT_ICONS.card} />
+                        )}
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t(`${arrival.prompt}.title`)}</DrawerTitle>
                             <DrawerDescription>{t(`${arrival.prompt}.description`)}</DrawerDescription>

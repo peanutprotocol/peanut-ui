@@ -31,6 +31,11 @@ jest.mock('@/components/Global/Drawer', () => ({
     DrawerDescription: (props: { children: React.ReactNode }) => <p>{props.children}</p>,
 }))
 
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+}))
+
 import ArrivalDrawer from '../components/ArrivalDrawer'
 
 const arrival = (prompt: Arrival['prompt'], country: string): Arrival => ({ userId: 'u1', country, prompt })
@@ -42,16 +47,23 @@ beforeEach(() => {
 })
 
 it.each([
-    ['qr_ar', 'AR', 'qr-code'],
-    ['pix_br', 'BR', 'qr-code'],
-    ['card', 'ES', 'credit-card'],
-] as const)('renders the %s variant and tracks it once with country and prompt', (prompt, country, icon) => {
+    ['qr_ar', 'AR', '/flags/ar.svg'],
+    ['pix_br', 'BR', '/flags/br.svg'],
+    ['card', 'ES', null],
+] as const)('renders the %s variant and tracks it once with country and prompt', (prompt, country, flag) => {
     const shown = arrival(prompt, country)
-    const { rerender } = render(<ArrivalDrawer arrival={shown} blocked={false} onDismiss={jest.fn()} />)
+    const { container, rerender } = render(<ArrivalDrawer arrival={shown} blocked={false} onDismiss={jest.fn()} />)
     expect(screen.getByRole('heading')).toHaveTextContent(`home.arrival.${prompt}.title`)
     expect(screen.getByText(`home.arrival.${prompt}.description`)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: `home.arrival.${prompt}.cta` })).toBeInTheDocument()
-    expect(screen.getByTestId('icon')).toHaveTextContent(icon)
+    // Argentina and Brazil show their flag in place of the QR bubble; the card keeps its bubble
+    if (flag) {
+        expect(container.querySelector('img')?.getAttribute('src')).toBe(flag)
+        expect(screen.queryByTestId('icon')).toBeNull()
+    } else {
+        expect(screen.getByTestId('icon')).toHaveTextContent('credit-card')
+        expect(container.querySelector('img')).toBeNull()
+    }
     rerender(<ArrivalDrawer arrival={shown} blocked={false} onDismiss={jest.fn()} />)
     expect(mockCapture).toHaveBeenCalledTimes(1)
     expect(mockCapture).toHaveBeenCalledWith('arrival_prompt_shown', { country, prompt })
