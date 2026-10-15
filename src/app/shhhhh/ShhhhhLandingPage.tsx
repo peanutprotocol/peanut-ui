@@ -7,6 +7,7 @@ import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { captureException } from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
+import { FAQsPanel } from '@/components/Global/FAQs'
 import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
 import { Marquee } from '@/components/LandingPage/marquee'
 import { JsonLd } from '@/components/Marketing/JsonLd'
@@ -279,31 +280,17 @@ export default function ShhhhhLandingPage() {
 
             <Marquee message={marqueeWords} />
 
-            {/* §6 — FAQ (white) */}
-            <section className="bg-background-default px-4 py-16 text-foreground-primary">
-                <div className="mx-auto max-w-3xl">
-                    <h2 className={sectionTitleClass}>{t('faq.title')}</h2>
-                    <div className="mt-10 border-y-2 border-border-default">
-                        {faqKeys.map((key, index) => (
-                            <details
-                                key={key}
-                                className={`group py-4 ${index > 0 ? 'border-t-2 border-border-default' : ''}`}
-                            >
-                                <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-heading-card uppercase [&::-webkit-details-marker]:hidden">
-                                    <span>{t(`faq.${key}.question`)}</span>
-                                    <span aria-hidden className="ml-4 shrink-0 select-none group-open:hidden">
-                                        {'+'}
-                                    </span>
-                                    <span aria-hidden className="ml-4 hidden shrink-0 select-none group-open:inline">
-                                        {'−'}
-                                    </span>
-                                </summary>
-                                <p className="mt-4 text-body-l">{t(`faq.${key}.answer`)}</p>
-                            </details>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            {/* §6 — FAQ: the shared marketing fold on cream (ruled 2026-10-14).
+                The page exemption covers its grounds and look, not a hand-rolled
+                FAQ widget — the bespoke one shipped without a focus ring. */}
+            <FAQsPanel
+                heading={t('faq.title')}
+                questions={faqKeys.map((key) => ({
+                    id: key,
+                    question: t(`faq.${key}.question`),
+                    answer: t(`faq.${key}.answer`),
+                }))}
+            />
 
             <Marquee message={marqueeWords} />
 
