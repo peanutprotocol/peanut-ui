@@ -65,18 +65,11 @@ export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }
             }
         >
             <div className="mx-auto max-w-3xl">
-                {/* headingSmall on mobile: "PERGUNTAS FREQUENTES" at text-heading
-                    (60px) needs 401px and clips at 320px (TASK-22366). inline, the
-                    blog column is 240px at 320 and "FREQUENTES" at headingSmall
-                    needs 267px, so it steps down to heading.m on mobile. heading.m
-                    carries its own weight (800), so no font-extraBlack on top */}
-                <h2
-                    className={
-                        inline
-                            ? 'font-roboto-flex-extrabold text-heading-m uppercase md:text-headingMedium'
-                            : 'font-roboto-flex-extrabold text-headingSmall font-extraBlack uppercase md:text-headingMedium'
-                    }
-                >
+                {/* the one marketing FAQ heading pair: headingSmall 42 → headingMedium 80
+                    (ruled 2026-10-14). The old inline step-down existed for long localized
+                    headings (TASK-22366); the copy is "FAQ." everywhere now, so it fits
+                    every column at headingSmall. */}
+                <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack uppercase md:text-headingMedium">
                     {heading}
                 </h2>
                 <div className="mt-10 border-y-2 border-border-default">
