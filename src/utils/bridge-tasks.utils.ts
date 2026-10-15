@@ -1,4 +1,5 @@
 import type { NextAction, RailCapability } from '@/types/capabilities'
+import { railVerdict } from '@/utils/capability-gate'
 
 /**
  * How many days before its due date a future-dated document request shows up.
@@ -46,7 +47,7 @@ const isDocumentRequest = (action: NextAction): boolean => action.kind === 'sums
  * time: the large task card or the carousel, never both.
  *
  * - `largeTasks`: the large card. A document request joins it only in its
- *   final week.
+ *   final week; the card application's document request always does.
  * - `documentSlide`: a document request inside the heads-up window but before
  *   its final week. It leads the carousel as a small item.
  */
@@ -56,11 +57,44 @@ export function selectHomeTasks(
     now: Date = new Date()
 ): { largeTasks: NextAction[]; documentSlide: NextAction | undefined } {
     const tasks = selectBridgeTasks(nextActions, rails, now)
+    const cardTask = selectCardDocumentTask(nextActions, rails)
     return {
-        largeTasks: tasks.filter((task) => !isDocumentRequest(task) || isInFinalWeek(task.effectiveDate, now)),
+        largeTasks: [
+            ...tasks.filter((task) => !isDocumentRequest(task) || isInFinalWeek(task.effectiveDate, now)),
+            ...(cardTask ? [cardTask] : []),
+        ],
         documentSlide: tasks.find((task) => isDocumentRequest(task) && !isInFinalWeek(task.effectiveDate, now)),
     }
 }
+
+const CARD_DOCUMENT_TASK_PREFIX = 'card-document:'
+
+/**
+ * The card application's document request as a Home task: Rain asks for a
+ * proof of address, or for the identity document again in its own portal
+ * (`rain-hosted`). The card screen holds the button, so the task opens it.
+ * Only a requires-info rail: a denial is a verdict, and a collected document
+ * waiting for review is a `wait`. Keyed apart from the action, because Bridge
+ * emits the same `sumsub:proof_of_address` key and only the rail says whose
+ * ask it is.
+ */
+export function selectCardDocumentTask(nextActions: NextAction[], rails: RailCapability[]): NextAction | undefined {
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    for (const rail of rails) {
+        if (rail.provider !== 'rain' || rail.status !== 'requires-info') continue
+        const { status, nextAction } = railVerdict(rail, byKey)
+        if (status !== 'fixable' || !nextAction) continue
+        if (
+            nextAction.kind === 'rain-hosted' ||
+            (nextAction.kind === 'sumsub' && nextAction.levelKey === 'proof_of_address')
+        ) {
+            return { ...nextAction, key: `${CARD_DOCUMENT_TASK_PREFIX}${nextAction.key}` }
+        }
+    }
+    return undefined
+}
+
+export const isCardDocumentTask = (task: NextAction): boolean => task.key.startsWith(CARD_DOCUMENT_TASK_PREFIX)
 
 /**
  * The nextActions renderable as pending Bridge verification tasks:

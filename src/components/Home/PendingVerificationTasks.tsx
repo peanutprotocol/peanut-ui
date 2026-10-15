@@ -12,7 +12,12 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import type { NextAction } from '@/types/capabilities'
-import { bridgeTaskDismissalKey, selectBridgeTasks, selectHomeTasks } from '@/utils/bridge-tasks.utils'
+import {
+    bridgeTaskDismissalKey,
+    isCardDocumentTask,
+    selectBridgeTasks,
+    selectHomeTasks,
+} from '@/utils/bridge-tasks.utils'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
@@ -47,6 +52,9 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * (selectHomeTasks). The Sumsub modals stay mounted after the task disappears,
  * so a flow in progress survives the list refetching. A failed start shows its
  * error in the slide, never a silent no-op.
+ *
+ * On Home it also carries the card application's document request
+ * (selectCardDocumentTask). That task opens /card, which holds the upload.
  *
  * Home shows one CTA surface at a time: this card, or `whenEmpty` (the carousel
  * or the activation card) when no task is visible — never both.
@@ -152,6 +160,10 @@ export default function PendingVerificationTasks({
 
     const handleOpenTask = useCallback(
         (task: NextAction) => {
+            if (isCardDocumentTask(task)) {
+                router.push('/card')
+                return
+            }
             if (task.kind === 'accept-tos') {
                 setActiveTosTask(task)
                 return
@@ -190,6 +202,15 @@ export default function PendingVerificationTasks({
     }
     const taskCopy = (task: NextAction): { title: string; description: string } => {
         const advisory = !!task.effectiveDate
+        if (isCardDocumentTask(task)) {
+            return {
+                title: t('pendingTasks.cardDocumentTitle'),
+                description:
+                    task.kind === 'rain-hosted'
+                        ? t('pendingTasks.cardIdentityDescription')
+                        : t('pendingTasks.cardAddressDescription'),
+            }
+        }
         if (task.kind === 'sumsub') {
             return { title: t('pendingTasks.documentTitle'), description: t('pendingTasks.documentDescription') }
         }
@@ -243,7 +264,8 @@ export default function PendingVerificationTasks({
                         {visibleTasks.map((task) => {
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
-                            const isDocument = task.kind === 'sumsub'
+                            const isCard = isCardDocumentTask(task)
+                            const isDocument = task.kind === 'sumsub' && !isCard
                             const deadline = formatEffectiveDate(task.effectiveDate)
                             const startError =
                                 isDocument && documentFlow.startedTaskKey === task.key ? documentFlow.error : null
@@ -261,7 +283,10 @@ export default function PendingVerificationTasks({
                                             </button>
                                         )}
                                         <div className="flex size-10 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
-                                            <Icon name={isHosted || isDocument ? 'user-id' : 'badge'} size={20} />
+                                            <Icon
+                                                name={isHosted || isDocument || isCard ? 'user-id' : 'badge'}
+                                                size={20}
+                                            />
                                         </div>
                                         <div className="w-full">
                                             <div className="text-body-m-semibold">{copy.title}</div>
@@ -282,11 +307,13 @@ export default function PendingVerificationTasks({
                                             disabled={isDocument && documentFlow.isLoading}
                                             onClick={() => handleOpenTask(task)}
                                         >
-                                            {isDocument
-                                                ? t('pendingTasks.documentCta')
-                                                : isHosted
-                                                  ? 'Complete verification'
-                                                  : 'Review terms'}
+                                            {isCard
+                                                ? t('pendingTasks.cardDocumentCta')
+                                                : isDocument
+                                                  ? t('pendingTasks.documentCta')
+                                                  : isHosted
+                                                    ? 'Complete verification'
+                                                    : 'Review terms'}
                                         </Button>
                                         {startError && (
                                             <Callout
