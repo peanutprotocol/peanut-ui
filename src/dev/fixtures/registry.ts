@@ -243,6 +243,29 @@ const BANK_PAID_REQUEST_ENTRY = {
     charges: [],
 }
 
+// A pending request link that accepts bank transfer (TASK-23727): the
+// requester's receipt shows the reference and the bank details behind a tap.
+const PENDING_BANK_REQUEST_ENTRY = {
+    ...BANK_PAID_REQUEST_ENTRY,
+    uuid: 'fixture-bank-request',
+    timestamp: new Date('2026-10-15T10:00:00.000Z'),
+    createdAt: new Date('2026-10-15T10:00:00.000Z'),
+    completedAt: null,
+    amount: '250',
+    status: 'PENDING',
+    memo: 'Flat deposit',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        bankInstructionsShared: true,
+        link: 'https://peanut.me/request/fixture-bank-request',
+    },
+    totalAmountCollected: 0,
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -1319,6 +1342,19 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [BANK_PAID_REQUEST_ENTRY], hasMore: false },
             'GET /history/fixture-bank-paid-request': BANK_PAID_REQUEST_ENTRY,
+        },
+    },
+    'history-request-bank-details': {
+        route: '/history?tx=fixture-bank-request',
+        about: 'A pending request that accepts bank transfer: its receipt shows the payment reference and the bank details.',
+        responses: {
+            'GET /users/history': { entries: [PENDING_BANK_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-request': PENDING_BANK_REQUEST_ENTRY,
+            'GET /requests/fixture-bank-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
         },
     },
     'empty-history': {
