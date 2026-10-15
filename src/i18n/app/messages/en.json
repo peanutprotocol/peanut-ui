@@ -1085,7 +1085,9 @@
             "sendBankDescription": "EUR, USD, MXN, BRL & more",
             "pixKeyDescription": "Any Pix key",
             "exchangeOrWalletTitle": "Crypto",
-            "exchangeOrWalletDescription": "Binance, MetaMask and more"
+            "exchangeOrWalletDescription": "Binance, MetaMask and more",
+            "shakeTitle": "Shake to pay",
+            "shakeDescription": "Pay someone next to you"
         },
         "contacts": {
             "searchPlaceholder": "Recipient",
@@ -1117,6 +1119,37 @@
             "cancelSuccessRefresh": "Link cancelled! Refresh to see updated balance.",
             "cancelFailed": "Failed to cancel link. Please try again.",
             "minFiatClaimWarning": "Amounts under ${amount} can't be claimed to a bank, Pix or Mercado Pago — the recipient can still claim to a Peanut account or crypto wallet."
+        },
+        "shake": {
+            "title": "Shake to pay",
+            "instructions": "Shake your phones at the same time",
+            "startShaking": "Start shaking",
+            "tapToFind": "Tap to find people",
+            "searching": "Looking nearby…",
+            "foundSearching": "{count} found, still looking",
+            "nearbyCount": "{count, plural, one {# person nearby} other {# people nearby}}",
+            "confirmRecipient": "Tap a photo to pay. Check the @username first.",
+            "empty": "No one yet. Ask them to shake too.",
+            "noMatchTitle": "No one found",
+            "noMatch": "Shake at the same moment as the person you're paying, then try again.",
+            "expiredTitle": "Search ended",
+            "expired": "Shake again to look for people.",
+            "errorTitle": "Couldn't reach Peanut",
+            "error": "Check your connection and try again.",
+            "rateLimitedTitle": "Too many shakes",
+            "rateLimited": "Try again in {seconds}s.",
+            "shakeAgain": "Shake again",
+            "notHere": "Not here? Shake again",
+            "cancel": "Cancel",
+            "nobodyYet": "Nobody yet",
+            "motionDenied": "Motion access is off. Tap the button instead.",
+            "motionUnavailable": "This phone isn't reporting motion. Tap the button instead.",
+            "locationHint": "Turn on location to find people near you more easily.",
+            "contact": "Contact",
+            "verified": "Verified",
+            "payAria": "Pay {name}",
+            "payNamedAria": "Pay {name} (@{username})",
+            "illustrationAlt": "Instant camera looking for people nearby"
         }
     },
     "request": {

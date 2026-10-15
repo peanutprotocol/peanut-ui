@@ -631,7 +631,9 @@
         },
         "methods": {
             "contactsTitle": "Usuario de Peanut",
-            "contactsDescription": "Enviá a cualquier usuario de Peanut"
+            "contactsDescription": "Enviá a cualquier usuario de Peanut",
+            "shakeTitle": "Agitá para pagar",
+            "shakeDescription": "Pagale a alguien que está a tu lado"
         },
         "contacts": {
             "searchPlaceholder": "Destinatario",
@@ -652,6 +654,20 @@
         "link": {
             "cancelSuccessRefresh": "¡Enlace cancelado! Actualizá para ver tu saldo al día.",
             "cancelFailed": "No se pudo cancelar el enlace. Intentalo de nuevo."
+        },
+        "shake": {
+            "title": "Agitá para pagar",
+            "tapToFind": "Tocá para buscar personas",
+            "confirmRecipient": "Tocá una foto para pagar. Primero revisá el @usuario.",
+            "empty": "Todavía nadie. Pedile que también agite su teléfono.",
+            "noMatch": "Agitá el teléfono al mismo tiempo que la persona a quien le pagás y volvé a intentarlo.",
+            "expired": "Agitá de nuevo para buscar personas.",
+            "error": "Revisá tu conexión e intentá de nuevo.",
+            "rateLimited": "Intentá de nuevo en {seconds} s.",
+            "notHere": "¿No está acá? Agitá de nuevo",
+            "motionDenied": "El acceso al movimiento está desactivado. Tocá el botón.",
+            "motionUnavailable": "Este teléfono no detecta movimiento. Tocá el botón.",
+            "locationHint": "Activá la ubicación para encontrar más fácil a personas cerca de vos."
         }
     },
     "request": {

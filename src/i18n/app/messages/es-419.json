@@ -1085,7 +1085,9 @@
             "sendBankDescription": "EUR, USD, MXN, BRL y más",
             "pixKeyDescription": "Cualquier clave Pix",
             "exchangeOrWalletTitle": "Cripto",
-            "exchangeOrWalletDescription": "Binance, MetaMask y más"
+            "exchangeOrWalletDescription": "Binance, MetaMask y más",
+            "shakeTitle": "Agita para pagar",
+            "shakeDescription": "Paga a alguien que está a tu lado"
         },
         "contacts": {
             "searchPlaceholder": "Destinatario",
@@ -1117,6 +1119,37 @@
             "cancelSuccessRefresh": "¡Enlace cancelado! Actualiza para ver tu saldo al día.",
             "cancelFailed": "No se pudo cancelar el enlace. Inténtalo de nuevo.",
             "minFiatClaimWarning": "Los montos menores a ${amount} no se pueden reclamar en banco, Pix o Mercado Pago; el destinatario igual puede reclamar en una cuenta Peanut o billetera cripto."
+        },
+        "shake": {
+            "title": "Agita para pagar",
+            "instructions": "Agiten sus teléfonos al mismo tiempo",
+            "startShaking": "Empezar a agitar",
+            "tapToFind": "Toca para buscar personas",
+            "searching": "Buscando cerca…",
+            "foundSearching": "{count, plural, one {# encontrado, seguimos buscando} other {# encontrados, seguimos buscando}}",
+            "nearbyCount": "{count, plural, one {# persona cerca} other {# personas cerca}}",
+            "confirmRecipient": "Toca una foto para pagar. Primero revisa el @usuario.",
+            "empty": "Todavía nadie. Pídele que también agite su teléfono.",
+            "noMatchTitle": "No encontramos a nadie",
+            "noMatch": "Agita el teléfono al mismo tiempo que la persona a quien le pagas y vuelve a intentarlo.",
+            "expiredTitle": "La búsqueda terminó",
+            "expired": "Agita de nuevo para buscar personas.",
+            "errorTitle": "No pudimos conectar con Peanut",
+            "error": "Revisa tu conexión e intenta de nuevo.",
+            "rateLimitedTitle": "Demasiados intentos",
+            "rateLimited": "Inténtalo de nuevo en {seconds} s.",
+            "shakeAgain": "Agitar de nuevo",
+            "notHere": "¿No está aquí? Agita de nuevo",
+            "cancel": "Cancelar",
+            "nobodyYet": "Nadie todavía",
+            "motionDenied": "El acceso al movimiento está desactivado. Toca el botón.",
+            "motionUnavailable": "Este teléfono no detecta movimiento. Toca el botón.",
+            "locationHint": "Activa la ubicación para encontrar más fácil a personas cerca de ti.",
+            "contact": "Contacto",
+            "verified": "Verificado",
+            "payAria": "Pagar a {name}",
+            "payNamedAria": "Pagar a {name} (@{username})",
+            "illustrationAlt": "Cámara instantánea buscando personas cerca"
         }
     },
     "request": {

@@ -24,6 +24,8 @@ import { ChatAppsLine } from '@/components/Global/PeanutActionCard/ChatAppsLine'
 import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
+import { ShakeToPayView } from '@/features/shake-to-pay/ShakeToPayView'
 
 // Lazy — only needed for address/ENS recipients, and pulls the heavy
 // TokenSelector → wagmi config graph. Static-importing it bloats the common
@@ -44,6 +46,9 @@ export const SendRouterView = () => {
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
+    const flagEnabled = useFeatureFlags()
+    const shakeToPayEnabled = flagEnabled('shake_to_pay', { nonProdBypass: true })
+    const isShaking = shakeToPayEnabled && searchParams.get('view') === 'shake'
     // direct send to a specific user — supports both:
     // - query param: /send?recipient=kushagra (preferred for native navigation)
     // - path segment: /send/kushagra (from deep links, SPA fallback serves /send page)
@@ -66,9 +71,9 @@ export const SendRouterView = () => {
     }
 
     const handlePrev = () => {
-        // sub-views (link or contacts) go back to the base send page; the base
-        // view goes back through in-app history (fallback: home)
-        if (isSendingByLink || isSendingToContacts) {
+        // sub-views (link, contacts, shake) go back to the base send page; the
+        // base view goes back through in-app history (fallback: home)
+        if (isSendingByLink || isSendingToContacts || isShaking) {
             goBackToBase()
         } else {
             goBack()
@@ -85,6 +90,9 @@ export const SendRouterView = () => {
             case 'peanut-contacts':
                 // navigate to contacts/user selection page
                 router.push('/send?view=contacts')
+                break
+            case 'shake-to-pay':
+                router.push('/send?view=shake')
                 break
             case 'bank':
                 // navigate to send via bank flow. Fresh entry IS a fresh flow:
@@ -158,8 +166,17 @@ export const SendRouterView = () => {
             soon: false,
         }
 
-        return [peanutContactsOption, ...geoFilteredMethods]
-    }, [geoFilteredMethods, t])
+        const shakeToPayOption: PaymentMethod = {
+            id: 'shake-to-pay',
+            identifierIcon: <IconBubble {...CONCEPT_ICONS.shakeToPay} size="s" />,
+            title: t('methods.shakeTitle'),
+            description: t('methods.shakeDescription'),
+            icons: [],
+            soon: false,
+        }
+
+        return [peanutContactsOption, ...(shakeToPayEnabled ? [shakeToPayOption] : []), ...geoFilteredMethods]
+    }, [geoFilteredMethods, shakeToPayEnabled, t])
 
     // direct send to a specific recipient (native app uses /send?recipient=...).
     // Mirrors the web [...recipient] dispatch: an EVM address / ENS / a recipient
@@ -190,6 +207,10 @@ export const SendRouterView = () => {
     // contacts view
     if (isSendingToContacts) {
         return <ContactsView onPrev={handlePrev} />
+    }
+
+    if (isShaking) {
+        return <ShakeToPayView onPrev={handlePrev} />
     }
 
     return (

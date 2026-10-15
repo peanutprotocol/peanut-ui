@@ -173,6 +173,21 @@ jest.mock('../views/Contacts.view', () => ({
     ),
 }))
 
+let mockShakeToPayFlag = false
+jest.mock('@/hooks/useFeatureFlag', () => ({
+    useFeatureFlags: () => (flagKey: string) => flagKey === 'shake_to_pay' && mockShakeToPayFlag,
+}))
+
+jest.mock('@/features/shake-to-pay/ShakeToPayView', () => ({
+    ShakeToPayView: (props: any) => (
+        <div data-testid="shake-view">
+            <button data-testid="shake-back" onClick={props.onPrev}>
+                Back
+            </button>
+        </div>
+    ),
+}))
+
 // withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
 
 // ---------- import component under test AFTER all mocks ----------
@@ -209,6 +224,7 @@ function renderSend(params: Record<string, string> = {}) {
 // ---------- default mock values ----------
 
 function applyDefaults() {
+    mockShakeToPayFlag = false
     mockUseContacts.mockReturnValue({
         contacts: [],
         isLoading: false,
@@ -447,5 +463,46 @@ describe('GROUP 4: Method Selection', () => {
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockRouterBack).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+    })
+})
+
+describe('GROUP 5: Shake to pay', () => {
+    test('the Shake to pay row is hidden while the shake_to_pay flag is off', () => {
+        renderSend()
+
+        expect(screen.queryByTestId('action-card-Shake to pay')).not.toBeInTheDocument()
+    })
+
+    test('with the flag on, the row sits right after Peanut user and opens /send?view=shake', () => {
+        mockShakeToPayFlag = true
+        renderSend()
+
+        const titles = screen.getAllByTestId(/^action-card-/).map((el) => el.getAttribute('data-testid'))
+        expect(titles.slice(0, 2)).toEqual(['action-card-Peanut user', 'action-card-Shake to pay'])
+
+        fireEvent.click(screen.getByTestId('action-card-Shake to pay'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/send?view=shake')
+    })
+
+    test('view=shake renders the shake view only while the flag is on', () => {
+        mockShakeToPayFlag = true
+        const on = renderSend({ view: 'shake' })
+        expect(screen.getByTestId('shake-view')).toBeInTheDocument()
+        expect(screen.queryByText('Send with a link')).not.toBeInTheDocument()
+        on.unmount()
+
+        mockShakeToPayFlag = false
+        renderSend({ view: 'shake' })
+        expect(screen.queryByTestId('shake-view')).not.toBeInTheDocument()
+        expect(screen.getByText('Send with a link')).toBeInTheDocument()
+    })
+
+    test('Back from a cold deep-link into the shake view replaces to /send', () => {
+        mockShakeToPayFlag = true
+        renderSend({ view: 'shake' })
+
+        fireEvent.click(screen.getByTestId('shake-back'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 })

@@ -61,6 +61,12 @@ export const ANALYTICS_EVENTS = {
 
     // ── Send ──
     SEND_METHOD_SELECTED: 'send_method_selected',
+    // Shake to pay: discovery only; the payment itself reports through the direct-send events.
+    SHAKE_TO_PAY_OPENED: 'shake_to_pay_opened',
+    SHAKE_TO_PAY_SHAKE: 'shake_to_pay_shake',
+    SHAKE_TO_PAY_MATCHED: 'shake_to_pay_matched',
+    SHAKE_TO_PAY_SELECTED: 'shake_to_pay_selected',
+    SHAKE_TO_PAY_PERMISSION: 'shake_to_pay_permission',
     // Emitted for every direct send that ends in the error toast, whatever the
     // step. Until this existed a failed send left no analytics trace at all.
     SEND_FAILED: 'send_failed',
