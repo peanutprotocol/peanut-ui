@@ -34,7 +34,9 @@ export default function ProductSplitHeroPreview() {
                             <span className="font-roboto-flex-extrabold block text-body-s-semibold uppercase">
                                 Peanut Card
                             </span>
-                            <span className="font-roboto-flex-extrabold mt-2 block text-headingMedium font-extraBlack break-words md:text-headingLarge">
+                            {/* ruled LP title ramp (landing-title-sizes A): heading 60 mobile,
+                                headingMedium 80 desktop — word-boundary wrap only, so no break-words */}
+                            <span className="font-roboto-flex-extrabold mt-2 block text-heading font-extraBlack md:text-headingMedium">
                                 SPEND ANYWHERE
                             </span>
                         </h1>
