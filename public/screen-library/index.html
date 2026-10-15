@@ -98,6 +98,30 @@
                                 aria-hidden="true"
                             ></span
                         ></label>
+                        <div
+                            id="vote-scope-control"
+                            class="vote-scope"
+                            role="radiogroup"
+                            aria-labelledby="vote-scope-label"
+                            hidden
+                        >
+                            <span id="vote-scope-label">Votes from</span>
+                            <span class="vote-scope-options"
+                                ><label
+                                    ><input
+                                        id="vote-scope-all"
+                                        type="radio"
+                                        name="vote-scope"
+                                        value="all"
+                                        checked
+                                    /><span>All teammates</span></label
+                                ><label
+                                    ><input id="vote-scope-me" type="radio" name="vote-scope" value="me" /><span
+                                        >My votes</span
+                                    ></label
+                                ></span
+                            >
+                        </div>
                         <label id="profile-control" hidden>Viewport<select id="profile"></select></label>
                     </nav>
                     <nav id="screen-filters" class="filters" aria-label="Filter screens">

@@ -54,7 +54,7 @@ window.ScreenVoting = {
         }
         return svg
     },
-    create({ api, authenticate, getUser, getEpoch }) {
+    create({ api, authenticate, getUser, getEpoch, onReset }) {
         const fields = ['reportPath', 'screenId', 'locale', 'profile', 'image', 'side']
         const widgets = new Set(),
             states = new Map(),
@@ -116,7 +116,7 @@ window.ScreenVoting = {
         function totalsFor(scope) {
             const state = states.get(keyOf(scope))
             return state?.actor === getUser()?.id && Number.isInteger(state?.up) && Number.isInteger(state?.down)
-                ? { up: state.up, down: state.down }
+                ? { up: state.up, down: state.down, mine: state.mine ?? 0 }
                 : undefined
         }
         // Totals for screens that may not be on the page yet (vote filters span every row).
@@ -130,7 +130,9 @@ window.ScreenVoting = {
             for (const batch of batchesOf(missing.values())) {
                 const data = await api('/votes/summary', { method: 'POST', body: JSON.stringify({ scopes: batch }) })
                 if (captured !== generation || epoch !== getEpoch() || actor !== getUser()?.id)
-                    throw new Error('Your account changed while votes loaded. Try again.')
+                    throw Object.assign(new Error('Your account changed while votes loaded. Try again.'), {
+                        stale: true,
+                    })
                 for (const vote of data.votes) {
                     const current = states.get(vote.key)
                     states.set(vote.key, { ...vote, actor, loading: current?.loading, sequence: current?.sequence })
@@ -315,6 +317,7 @@ window.ScreenVoting = {
             if (forgetPending) intents.clear()
             paint()
             schedule()
+            onReset?.()
         }
         return { mount, reset, refresh: (force = false) => schedule(force), totalsFor, loadTotals }
     },

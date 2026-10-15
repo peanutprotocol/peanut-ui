@@ -434,6 +434,59 @@ label {
 .vote-filter {
     min-height: 40px;
 }
+.vote-scope {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 650;
+}
+.vote-scope[hidden] {
+    display: none;
+}
+.vote-scope-options {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid #aaa2ac;
+    border-radius: 8px;
+    background: white;
+}
+.vote-scope-options label {
+    position: relative;
+    display: block;
+    cursor: pointer;
+}
+.vote-scope-options input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+}
+.vote-scope-options span {
+    display: block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    transition: background 120ms ease;
+}
+.vote-scope-options label:hover input:not(:checked) + span {
+    background: #f1eef1;
+}
+.vote-scope-options input:checked + span {
+    background: var(--ink);
+    color: white;
+}
+.vote-scope-options input:focus-visible + span {
+    outline: 3px solid rgb(255 144 232 / 65%);
+    outline-offset: 2px;
+}
 .filter-notice {
     display: flex;
     flex-wrap: wrap;
@@ -1296,6 +1349,10 @@ footer {
     /* Both vote switches share one row under Locale instead of one wrapping alone. */
     .filters-row:has(.vote-filter:not([hidden])) #locale-control {
         flex-basis: 100%;
+    }
+    /* Pinned, the multi-row filter stack would cover most of a phone screen. */
+    .filters-stack {
+        position: static;
     }
     #screens {
         justify-content: center;

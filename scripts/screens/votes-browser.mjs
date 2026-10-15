@@ -788,6 +788,54 @@ async function main() {
         } finally {
             manifest.screens.splice(1, 0, ...removed)
         }
+
+        // "My votes" follows the signed-in person, reloads on an account switch,
+        // and "All teammates" falls back to shared totals.
+        const reportOrder = manifest.screens.map((screen) => screen.id)
+        const screensOf = (rows) => reportOrder.filter((id) => rows.some((row) => JSON.parse(row.scope_key)[1] === id))
+        const votedBy = (actor, value) =>
+            screensOf(
+                db.prepare('SELECT scope_key FROM screen_votes WHERE actor_id = ? AND value = ?').all(actor, value)
+            )
+        const votedByAnyone = (value) =>
+            screensOf(db.prepare('SELECT scope_key FROM screen_votes WHERE value = ?').all(value))
+        assert.notDeepEqual(
+            votedBy('alice@example.test', -1),
+            votedBy('bob@example.test', -1),
+            'fixture separates people'
+        )
+        const scopeContext = await browser.newContext({
+            viewport: { width: 1024, height: 768 },
+            extraHTTPHeaders: { 'x-test-actor': 'alice' },
+        })
+        await scopeContext.route('**/*', (route) =>
+            new URL(route.request().url()).origin === origin ? route.continue() : route.abort('blockedbyclient')
+        )
+        const scopePage = await scopeContext.newPage()
+        scopePage.on('pageerror', (error) => pageErrors.push(error.message))
+        const shows = (ids, emptyText) =>
+            scopePage.waitForFunction(
+                ([expected, empty]) => {
+                    const tiles = [...document.querySelectorAll('#screens > article.tile')].map((tile) => tile.id)
+                    const notice = document.querySelector('#screens .filter-notice p')?.textContent ?? ''
+                    return expected.length
+                        ? JSON.stringify(tiles) === JSON.stringify(expected)
+                        : !tiles.length && notice.includes(empty)
+                },
+                [ids, emptyText],
+                { timeout: 8000 }
+            )
+        await scopePage.goto(`${reportUrl}&votes=down&by=me`, { waitUntil: 'domcontentloaded' })
+        await shows(votedBy('alice@example.test', -1), "You haven't downvoted")
+        assert.equal(await scopePage.locator('#vote-scope-me').isChecked(), true)
+        await scopeContext.setExtraHTTPHeaders({ 'x-test-actor': 'bob' })
+        await scopePage.evaluate(() => window.dispatchEvent(new Event('focus')))
+        await shows(votedBy('bob@example.test', -1), "You haven't downvoted")
+        await scopePage.locator('label:has(#vote-scope-all) > span').click()
+        await shows(votedByAnyone(-1), 'No downvoted screens')
+        assert.equal(new URL(scopePage.url()).searchParams.has('by'), false)
+        assert.equal(new URL(scopePage.url()).searchParams.get('votes'), 'down')
+        await scopeContext.close()
         assert.deepEqual(pageErrors, [], 'public viewer has no uncaught browser errors')
         console.log(
             `Screen voting browser acceptance passed: Alice/Bob, retry/refresh races, identity switch, 320px preview, reload (${requests.length} Alice mutation requests).`

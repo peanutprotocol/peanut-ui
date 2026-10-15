@@ -64,6 +64,9 @@ const elementIds = [
     'upvoted-control',
     'downvoted-only',
     'downvoted-control',
+    'vote-scope-control',
+    'vote-scope-all',
+    'vote-scope-me',
 ]
 
 class Element {
@@ -1651,14 +1654,21 @@ const voteReport = {
     })),
 }
 const voteTotals = {
-    loved: { up: 2, down: 0 },
-    disliked: { up: 0, down: 1 },
-    split: { up: 1, down: 1 },
-    quiet: { up: 0, down: 0 },
+    loved: { up: 2, down: 0, mine: 1 },
+    disliked: { up: 0, down: 1, mine: 0 },
+    split: { up: 1, down: 1, mine: -1 },
+    quiet: { up: 0, down: 0, mine: 0 },
 }
-function fakeComments({ fail = 0 } = {}) {
+const bobTotals = {
+    loved: { up: 2, down: 0, mine: 0 },
+    disliked: { up: 0, down: 1, mine: -1 },
+    split: { up: 1, down: 1, mine: 1 },
+    quiet: { up: 0, down: 0, mine: 0 },
+}
+function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' } = {}) {
     const loaded = new Map()
     const calls = []
+    const state = { totals: voteTotals, options: undefined }
     const client = {
         setContext: async () => {},
         badge: () => new Element('badge'),
@@ -1667,14 +1677,27 @@ function fakeComments({ fail = 0 } = {}) {
         voteTotals: (scope) => loaded.get(scope.screenId),
         async loadVoteTotals(scopes) {
             calls.push(scopes.map((scope) => scope.screenId))
-            if (calls.length <= fail) throw new Error('Votes are unavailable right now.')
-            for (const scope of scopes) loaded.set(scope.screenId, voteTotals[scope.screenId])
+            if (calls.length <= fail) throw new Error(failure)
+            for (const scope of scopes) loaded.set(scope.screenId, state.totals[scope.screenId])
         },
         open() {},
         isOpen: () => false,
         navigateThread() {},
     }
-    return { create: () => client, calls }
+    // Mirrors votes.js: an account change clears personal totals, then calls onVotesReset.
+    const switchAccount = (totals) => {
+        state.totals = totals
+        loaded.clear()
+        state.options.onVotesReset()
+    }
+    return {
+        create: (options) => {
+            state.options = options
+            return client
+        },
+        calls,
+        switchAccount,
+    }
 }
 const settle = () => new Promise((resolve) => setImmediate(resolve))
 const renderedIds = (elements) => elements.get('screens').children.map(({ id }) => id)
@@ -1757,4 +1780,100 @@ test('vote filters stay hidden where votes are unavailable', async () => {
     })
     assert.equal(landing.get('upvoted-control').hidden, true)
     assert.equal(landing.get('downvoted-control').hidden, true)
+})
+
+const setScope = (elements, scope) => {
+    elements.get('vote-scope-me').checked = scope === 'me'
+    elements.get('vote-scope-all').checked = scope !== 'me'
+    elements.get(scope === 'me' ? 'vote-scope-me' : 'vote-scope-all').dispatch('change')
+}
+
+test('My votes keeps only the viewer’s own choices and stays in the URL as by=me', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    assert.equal(elements.get('vote-scope-control').hidden, false)
+    assert.equal(elements.get('vote-scope-me').checked, true)
+    assert.deepEqual(renderedIds(elements), ['loved'], 'upvotes work as favorites')
+    setVote(elements, 'downvoted-only', true)
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    const params = new URLSearchParams(elements.location.search)
+    assert.equal(params.get('votes'), 'up,down')
+    assert.equal(params.get('by'), 'me')
+    setScope(elements, 'all')
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'], 'all teammates restores shared totals')
+    assert.equal(new URLSearchParams(elements.location.search).has('by'), false, 'the default scope is omitted')
+    assert.equal(screenComments.calls.length, 1, 'switching scope reuses the loaded totals')
+})
+
+test('the vote scope defaults to all teammates and is hidden without votes', async () => {
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments: fakeComments(),
+    })
+    await settle()
+    assert.equal(elements.get('vote-scope-all').checked, true)
+    assert.equal(elements.get('vote-scope-me').checked, false)
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    const unavailable = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+    })
+    assert.equal(unavailable.get('vote-scope-control').hidden, true)
+    assert.equal(unavailable.get('vote-scope-me').checked, false)
+})
+
+test('an empty My votes filter speaks to the viewer and offers to clear it', async () => {
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: { ...voteReport, screens: voteReport.screens.filter(({ id }) => id === 'loved') },
+        search: '?source=synthetic&locale=en&votes=down&by=me',
+        screenComments: fakeComments(),
+    })
+    await settle()
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /You haven't downvoted any screens that match these filters/)
+    notice.children.find((child) => child.textContent === 'Clear vote filters').onclick()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+    assert.equal(elements.get('vote-scope-me').checked, true, 'clearing filters keeps the chosen scope')
+})
+
+test('My votes without a known identity shows why instead of an empty result', async () => {
+    const screenComments = fakeComments({ fail: 1, failure: 'Your session expired. Sign in, then retry.' })
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    await settle()
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /Sign in, then retry/)
+    assert.deepEqual(
+        notice.children.slice(1).map((child) => child.textContent),
+        ['Retry', 'Clear vote filters']
+    )
+    notice.children[1].onclick()
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+})
+
+test('an account switch reloads personal votes instead of reusing the previous person’s', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+    screenComments.switchAccount(bobTotals)
+    assert.match(elementText(elements.get('screens').children[0]), /Loading your votes/)
+    await settle()
+    assert.equal(screenComments.calls.length, 2, 'totals reload for the new account')
+    assert.deepEqual(renderedIds(elements), ['split'], "Bob's upvotes, not Alice's")
 })

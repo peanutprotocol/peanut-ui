@@ -1,7 +1,7 @@
 /* Private screen discussions. All user content is rendered as literal text. */
 'use strict'
 window.ScreenComments = {
-    create({ feed, panel, dialog, onNavigate }) {
+    create({ feed, panel, dialog, onNavigate, onVotesReset }) {
         const node = (tag, text, cls) => {
             const n = document.createElement(tag)
             if (text !== undefined) n.textContent = text
@@ -45,7 +45,13 @@ window.ScreenComments = {
             badges = new Set(),
             counts = new Map(),
             expanded = new Set()
-        const voting = window.ScreenVoting?.create({ api, authenticate, getUser: () => user, getEpoch: () => epoch })
+        const voting = window.ScreenVoting?.create({
+            api,
+            authenticate,
+            getUser: () => user,
+            getEpoch: () => epoch,
+            onReset: () => onVotesReset?.(),
+        })
         function requireLogin() {
             const pendingForms = [...panel.querySelectorAll('.comment-composer')]
             user = undefined
