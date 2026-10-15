@@ -1,8 +1,16 @@
 import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { knownNonvisual, galleryMaintenanceChange, galleryIndexChange } from './capture-plan.mjs'
+import { CAPTURE_LOCALES, planCaptureLocales } from './capture-locales.mjs'
 
-const { BEFORE: before, AFTER: after, EVENT: event, BRANCH: branch } = process.env
+const {
+    BEFORE: before,
+    AFTER: after,
+    EVENT: event,
+    BRANCH: branch,
+    REPOSITORY: repository,
+    PR_NUMBER: prNumber,
+} = process.env
 if (!/^[a-f0-9]{40}$/.test(before ?? '') || !/^[a-f0-9]{40}$/.test(after ?? ''))
     throw new Error('Capture planning requires immutable revisions')
 const changedFiles = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', before, after, '--'], {
@@ -56,9 +64,29 @@ if (process.argv.includes('--impact') && mode !== 'skip' && event === 'pull_requ
         only = mode === 'targeted' ? plan.screenIds.join(',') : ''
     }
 }
+// Re-runs replay the original event payload, so read the PR's current labels instead.
+function currentPrLabels() {
+    if (event !== 'pull_request') return []
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? '') || !/^[1-9]\d*$/.test(prNumber ?? '')) return null
+    try {
+        return JSON.parse(
+            execFileSync('gh', ['api', `repos/${repository}/pulls/${prNumber}`, '--jq', '[.labels[].name]'], {
+                encoding: 'utf8',
+                timeout: 60000,
+            })
+        )
+    } catch {
+        return null
+    }
+}
+const localePlan =
+    capabilities?.localeScope === 1
+        ? planCaptureLocales({ event, branch, changedFiles, labels: currentPrLabels() })
+        : { locales: CAPTURE_LOCALES, reasons: ['Trusted dev publisher has no locale-scope capability'] }
 console.log(`Capture decision: ${mode}; changed paths: ${changedFiles.length}`)
+console.log(`Capture locales: ${localePlan.locales.join(', ')} (${localePlan.reasons.join('; ')})`)
 if (process.env.GITHUB_OUTPUT)
     appendFileSync(
         process.env.GITHUB_OUTPUT,
-        `mode=${mode}\nonly=${only}\ngallery=${gallery}\nrefresh_indexes=${changedFiles.some(galleryIndexChange)}\ndeploy_gallery=${changedFiles.some((path) => galleryMaintenanceChange(path) && !galleryIndexChange(path))}\n`
+        `mode=${mode}\nonly=${only}\nlocales=${JSON.stringify(localePlan.locales)}\ngallery=${gallery}\nrefresh_indexes=${changedFiles.some(galleryIndexChange)}\ndeploy_gallery=${changedFiles.some((path) => galleryMaintenanceChange(path) && !galleryIndexChange(path))}\n`
     )

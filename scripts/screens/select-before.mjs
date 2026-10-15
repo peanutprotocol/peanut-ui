@@ -19,7 +19,7 @@ const api = (path) =>
             maxBuffer: 64 * 1024 * 1024,
         })
     )
-const source = findBaselineSource({ api, repository, expectedCommit: before })
+const source = findBaselineSource({ api, repository, expectedCommit: before, locales: [locale] })
 let reused = false
 let reason = 'No retained compatible candidate in the verified baseline cache search; capture before once'
 if (source) {

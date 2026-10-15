@@ -6,7 +6,7 @@ import { validateCapture, verifyAsset } from './core.mjs'
 import { mainRevisions, pushRevisions } from './capture-revisions.mjs'
 import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
-import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
+import { parseCaptureArtifact, selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
 import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
 import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
@@ -16,6 +16,7 @@ import { evaluateZeroDifferenceGate, reviewableComparison } from './zero-differe
 import { planRevisionCapture } from './capture-impact.mjs'
 import { canonicalScope } from './capture-scope.mjs'
 import { verifyReusedBaseline } from './verify-reused-baseline.mjs'
+import { ALL_LOCALES_LABEL, missingLocales, planCaptureLocales } from './capture-locales.mjs'
 const LOCALES = {
     en: 'English',
     'es-419': 'Español',
@@ -106,7 +107,26 @@ if (mainRelease) {
     ).trim()
 } else throw new Error('Unsupported triggering event')
 
-function verifyExternalBaseline(expected) {
+// Include both sides of a rename so moving a UI file outside src cannot hide its removal.
+const changedFiles =
+    !mainRelease && ['pull_request', 'push'].includes(run.event)
+        ? execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', expectedBase, expectedHead, '--'], {
+              encoding: 'utf8',
+              maxBuffer: 64 * 1024 * 1024,
+          })
+              .split('\0')
+              .filter(Boolean)
+        : []
+// Recomputed from the exact revisions and current PR labels, never from the caller's matrix.
+const localePlan = planCaptureLocales({
+    event: run.event,
+    branch: run.event === 'pull_request' ? pr.base.ref : run.head_branch,
+    changedFiles,
+    labels: run.event === 'pull_request' ? (pr.labels ?? []).map((label) => label?.name) : [],
+})
+console.log(`Required Screen Library locales: ${localePlan.locales.join(', ')} (${localePlan.reasons.join('; ')})`)
+
+function verifyExternalBaseline(expected, locales) {
     const baselineDir = process.env.SCREEN_LIBRARY_BASELINE_DIR
     const baselineRunId = process.env.SCREEN_LIBRARY_BASELINE_RUN_ID
     const baselineArtifact = process.env.SCREEN_LIBRARY_BASELINE_ARTIFACT
@@ -125,6 +145,7 @@ function verifyExternalBaseline(expected) {
         repository: repo,
         expectedCommit: expected,
         defaultBranch,
+        locales,
     })
     if (!verified) throw new Error('External baseline run provenance mismatch')
     const validArtifacts = verified.artifacts
@@ -154,17 +175,31 @@ const requiresSameRunBaseline = captureNames.some((name) => {
 })
 let capturePairs = selectCapturePairs(captureNames, ({ before, after }) => hasCapture(before) && hasCapture(after))
 if (capturePairs.length) {
-    if (capturePairs.length !== Object.keys(LOCALES).length)
-        throw new Error('Incomplete locale matrix: every supported locale needs a before/after pair')
+    const missing = missingLocales(
+        localePlan.locales,
+        capturePairs.map((pair) => pair.locale)
+    )
+    if (missing.length)
+        throw new Error(`Incomplete locale matrix: missing before/after pairs for ${missing.join(', ')}`)
 } else {
     if (run.event !== 'pull_request' || requiresSameRunBaseline || !process.env.SCREEN_LIBRARY_BASELINE_DIR)
         throw new Error('No complete before/after capture artifact pairs were found in this run')
-    const baseline = verifyExternalBaseline(expectedBase)
+    const afterLocales = Object.keys(LOCALES).filter((locale) =>
+        captureNames.some((name) => {
+            const artifact = parseCaptureArtifact(name)
+            return artifact?.side === 'after' && artifact.locale === locale
+        })
+    )
+    const missing = missingLocales(localePlan.locales, afterLocales)
+    if (missing.length) throw new Error(`Incomplete locale matrix: missing after captures for ${missing.join(', ')}`)
+    const baseline = verifyExternalBaseline(expectedBase, afterLocales)
     const baselineDirNames = readdirSync(baseline.dir, { withFileTypes: true })
         .filter((entry) => entry.isDirectory())
         .map((entry) => entry.name)
-    const selectedBaselineArtifacts = selectBaselineArtifacts(baselineDirNames, baseline.kind, expectedBase)
-    if (selectedBaselineArtifacts.length !== Object.keys(LOCALES).length)
+    const selectedBaselineArtifacts = selectBaselineArtifacts(baselineDirNames, baseline.kind, expectedBase).filter(
+        (artifact) => afterLocales.includes(artifact.locale)
+    )
+    if (selectedBaselineArtifacts.length !== afterLocales.length)
         throw new Error('External baseline is missing one or more locale artifacts')
     if (baseline.artifact && !baselineDirNames.includes(baseline.artifact))
         throw new Error('External baseline artifact was not downloaded')
@@ -178,7 +213,7 @@ if (capturePairs.length) {
             throw new Error(`External baseline artifact identity mismatch: ${artifact.name}`)
         baselines.set(capture.locale, dir)
     }
-    capturePairs = Object.keys(LOCALES).map((locale) => {
+    capturePairs = afterLocales.map((locale) => {
         const after = selectCaptureArtifact(captureNames, 'after', hasCapture, locale)
         const before = baselines.get(locale)
         if (!before) throw new Error(`External baseline is missing locale ${locale}`)
@@ -326,21 +361,12 @@ recordPublished(true)
 
 let coverageGate
 if (run.event === 'pull_request' && pr) {
-    // Include both sides of a rename so moving a UI file outside src cannot hide its removal.
-    const changedFiles = execFileSync(
-        'git',
-        ['diff', '--name-only', '--no-renames', '-z', expectedBase, expectedHead, '--'],
-        {
-            encoding: 'utf8',
-        }
-    )
-        .split('\0')
-        .filter(Boolean)
     coverageGate = evaluateZeroDifferenceGate({
         event: run.event,
         changedFiles,
         reports,
         exception: pr.body ?? '',
+        locales: localePlan.locales,
         ...(trustedPlan ? { plan: trustedPlan } : {}),
     })
     console.log(`Screen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}`)
@@ -349,11 +375,19 @@ if (run.event === 'pull_request' && pr) {
 if (pr) {
     const marker = '<!-- screen-library -->'
     const publicOrigin = normalizePublicOrigin(process.env.SCREEN_LIBRARY_PUBLIC_URL)
-    const coverageDescription = trustedPlan
-        ? `Targeted review: ${trustedPlan.screenIds.length} states across ${[...new Set(reports[0].after.screens.map((screen) => screen.flow))].sort().join(', ')} in all locales. Other flows were not captured. ${reports.every(({ scopeComplete }) => scopeComplete) ? 'Selected scope complete.' : 'Selected scope incomplete; review its gaps and failures.'}`
-        : reports.every(({ complete }) => complete)
-          ? 'Reviewable capture in all locales; newly registered states are marked in the report.'
-          : 'Incomplete capture; unavailable states are listed in the report.'
+    const everyLocale = reports.length === Object.keys(LOCALES).length
+    const localeScope = everyLocale ? 'all locales' : reports.map(({ locale }) => LOCALES[locale]).join(', ')
+    const localeNote =
+        everyLocale || run.event !== 'pull_request'
+            ? ''
+            : ` Other locales were not captured; add the \`${ALL_LOCALES_LABEL}\` label and re-run Screen library to include them.`
+    const coverageDescription = `${
+        trustedPlan
+            ? `Targeted review: ${trustedPlan.screenIds.length} states across ${[...new Set(reports[0].after.screens.map((screen) => screen.flow))].sort().join(', ')} in ${localeScope}. Other flows were not captured. ${reports.every(({ scopeComplete }) => scopeComplete) ? 'Selected scope complete.' : 'Selected scope incomplete; review its gaps and failures.'}`
+            : reports.every(({ complete }) => complete)
+              ? `Reviewable capture in ${localeScope}; newly registered states are marked in the report.`
+              : 'Incomplete capture; unavailable states are listed in the report.'
+    }${localeNote}`
     const body = `${marker}\n${reports
         .map(({ locale, path }) => `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/)`)
         .join(
