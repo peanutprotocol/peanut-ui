@@ -89,8 +89,13 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                     ) : (
                         <>
                             {headline.slice(0, accentAt)}
-                            <Title text={accent} />
-                            {headline.slice(accentAt + accent.length)}
+                            {/* Punctuation touching the accent wraps with it — Title is an
+                                inline-block, so a loose ". " starts the next line with a bare period. */}
+                            <span className="whitespace-nowrap">
+                                <Title text={accent} />
+                                {headline.slice(accentAt + accent.length).match(/^\S*/)?.[0]}
+                            </span>
+                            {headline.slice(accentAt + accent.length).replace(/^\S*/, '')}
                         </>
                     )}
                 </h2>
