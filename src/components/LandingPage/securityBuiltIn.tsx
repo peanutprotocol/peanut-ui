@@ -114,12 +114,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                 {feature.id === 3 && (
                                     <div className="mt-6">
                                         <Link prefetch={false} href="/support">
-                                            <Button
-                                                shadowSize="4"
-                                                className="bg-white px-6 text-foreground-primary hover:bg-white/90"
-                                            >
-                                                {i18n.landingTalkToSupport}
-                                            </Button>
+                                            <Button variant="secondary">{i18n.landingTalkToSupport}</Button>
                                         </Link>
                                     </div>
                                 )}

@@ -58,7 +58,7 @@ export function MarketingHero({
                     <p className="mt-6 text-heading-m text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
-                            <Button href={ctaHref} shadowSize="4" className="inline-flex w-auto px-8">
+                            <Button variant="secondary" href={ctaHref} className="inline-flex w-auto">
                                 {ctaText}
                             </Button>
                         </div>

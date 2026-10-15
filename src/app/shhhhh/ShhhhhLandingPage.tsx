@@ -160,9 +160,8 @@ export default function ShhhhhLandingPage() {
                         <p className="font-roboto-flex mt-6 max-w-xl text-body-l">{t('hero.lead')}</p>
                         <div className="relative mt-8 sm:inline-block">
                             <Button
-                                className="sm:w-auto sm:min-w-64 sm:px-10"
+                                className="sm:w-auto"
                                 variant="secondary"
-                                shadowSize="4"
                                 onClick={handleCTA}
                                 loading={busy}
                                 disabled={busy}
