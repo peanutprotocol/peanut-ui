@@ -835,6 +835,19 @@ async function main() {
         await shows(votedByAnyone(-1), 'No downvoted screens')
         assert.equal(new URL(scopePage.url()).searchParams.has('by'), false)
         assert.equal(new URL(scopePage.url()).searchParams.get('votes'), 'down')
+        await scopePage.selectOption('#votes', '')
+        await scopePage.locator('#vote-scope-control').waitFor({ state: 'hidden' })
+        assert.equal(new URL(scopePage.url()).searchParams.has('votes'), false)
+        await scopePage.selectOption('#votes', 'up,down')
+        await scopePage.locator('#vote-scope-control').waitFor({ state: 'visible' })
+        await shows(
+            votedByAnyone(1)
+                .concat(votedByAnyone(-1))
+                .filter((id, i, all) => all.indexOf(id) === i)
+                .sort((a, b) => reportOrder.indexOf(a) - reportOrder.indexOf(b)),
+            'No voted screens'
+        )
+        assert.equal(new URL(scopePage.url()).searchParams.get('votes'), 'up,down')
         await scopeContext.close()
         assert.deepEqual(pageErrors, [], 'public viewer has no uncaught browser errors')
         console.log(

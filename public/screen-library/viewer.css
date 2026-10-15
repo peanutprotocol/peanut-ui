@@ -430,9 +430,11 @@ label {
     outline: 3px solid rgb(255 144 232 / 65%);
     outline-offset: 2px;
 }
-#screen-updates-control,
-.vote-filter {
+#screen-updates-control {
     min-height: 40px;
+}
+#votes-control {
+    flex: 0 0 150px;
 }
 .vote-scope {
     display: flex;
@@ -1341,14 +1343,11 @@ footer {
         flex-basis: 100%;
     }
     #locale-control,
+    #votes-control,
     #profile-control,
     #flow-control,
     #status-control {
         flex: 1 1 120px;
-    }
-    /* Both vote switches share one row under Locale instead of one wrapping alone. */
-    .filters-row:has(.vote-filter:not([hidden])) #locale-control {
-        flex-basis: 100%;
     }
     /* Pinned, the multi-row filter stack would cover most of a phone screen. */
     .filters-stack {

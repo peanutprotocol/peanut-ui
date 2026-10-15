@@ -86,18 +86,14 @@
                                 aria-hidden="true"
                             ></span
                         ></label>
-                        <label id="upvoted-control" class="switch-control vote-filter" for="upvoted-only" hidden
-                            ><span>Upvoted only</span><input id="upvoted-only" type="checkbox" role="switch" /><span
-                                class="switch"
-                                aria-hidden="true"
-                            ></span
-                        ></label>
-                        <label id="downvoted-control" class="switch-control vote-filter" for="downvoted-only" hidden
-                            ><span>Downvoted only</span><input id="downvoted-only" type="checkbox" role="switch" /><span
-                                class="switch"
-                                aria-hidden="true"
-                            ></span
-                        ></label>
+                        <label id="votes-control" hidden
+                            >Votes<select id="votes">
+                                <option value="">All screens</option>
+                                <option value="up">Upvoted</option>
+                                <option value="down">Downvoted</option>
+                                <option value="up,down">Any vote</option>
+                            </select></label
+                        >
                         <div
                             id="vote-scope-control"
                             class="vote-scope"

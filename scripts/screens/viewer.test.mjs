@@ -60,10 +60,8 @@ const elementIds = [
     'google-sign-in',
     'comment-feed',
     'comment-panel',
-    'upvoted-only',
-    'upvoted-control',
-    'downvoted-only',
-    'downvoted-control',
+    'votes',
+    'votes-control',
     'vote-scope-control',
     'vote-scope-all',
     'vote-scope-me',
@@ -1701,12 +1699,12 @@ function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' }
 }
 const settle = () => new Promise((resolve) => setImmediate(resolve))
 const renderedIds = (elements) => elements.get('screens').children.map(({ id }) => id)
-const setVote = (elements, name, checked) => {
-    elements.get(name).checked = checked
-    elements.get(name).dispatch('change')
+const setVotes = (elements, value) => {
+    elements.get('votes').value = value
+    elements.get('votes').dispatch('change')
 }
 
-test('vote filters keep screens any teammate voted on, combine as either, and round trip through the URL', async () => {
+test('the Votes filter keeps screens any teammate voted on, Any vote is either, and it round trips through the URL', async () => {
     const screenComments = fakeComments()
     const elements = await loadLanding(`/screens/${votePath}/`, {
         report: voteReport,
@@ -1714,20 +1712,39 @@ test('vote filters keep screens any teammate voted on, combine as either, and ro
         screenComments,
     })
     await settle()
-    assert.equal(elements.get('upvoted-control').hidden, false)
-    assert.equal(elements.get('downvoted-control').hidden, false)
-    assert.equal(elements.get('upvoted-only').checked, true)
+    assert.equal(elements.get('votes-control').hidden, false)
+    assert.equal(elements.get('votes').value, 'up')
+    assert.equal(elements.get('vote-scope-control').hidden, false, 'Votes from appears once a vote option is picked')
     assert.deepEqual(renderedIds(elements), ['loved', 'split'])
-    setVote(elements, 'downvoted-only', true)
+    setVotes(elements, 'up,down')
     assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
     assert.equal(new URLSearchParams(elements.location.search).get('votes'), 'up,down')
-    setVote(elements, 'upvoted-only', false)
+    setVotes(elements, 'down')
     assert.deepEqual(renderedIds(elements), ['disliked', 'split'])
     assert.equal(new URLSearchParams(elements.location.search).get('votes'), 'down')
-    setVote(elements, 'downvoted-only', false)
+    setVotes(elements, '')
     assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split', 'quiet'])
     assert.equal(new URLSearchParams(elements.location.search).has('votes'), false)
+    assert.equal(elements.get('vote-scope-control').hidden, true, 'All screens hides Votes from')
     assert.equal(screenComments.calls.length, 1, 'totals load once for every screen in the report')
+})
+
+test('legacy vote URLs resolve to the Votes filter', async () => {
+    for (const [query, value] of [
+        ['votes=up', 'up'],
+        ['votes=down', 'down'],
+        ['votes=up,down', 'up,down'],
+        ['votes=down,up', 'up,down'],
+        ['votes=sideways', ''],
+    ]) {
+        const elements = await loadLanding(`/screens/${votePath}/`, {
+            report: voteReport,
+            search: `?source=synthetic&locale=en&${query}`,
+            screenComments: fakeComments(),
+        })
+        await settle()
+        assert.equal(elements.get('votes').value, value, query)
+    }
 })
 
 test('an empty vote filter explains itself and offers a way to clear it', async () => {
@@ -1741,7 +1758,7 @@ test('an empty vote filter explains itself and offers a way to clear it', async 
     assert.match(elementText(notice), /No downvoted screens match these filters/)
     const clear = notice.children.find((child) => child.textContent === 'Clear vote filters')
     clear.onclick()
-    assert.equal(elements.get('downvoted-only').checked, false)
+    assert.equal(elements.get('votes').value, '')
     assert.deepEqual(renderedIds(elements), ['quiet'])
     assert.equal(new URLSearchParams(elements.location.search).has('votes'), false)
 })
@@ -1771,15 +1788,16 @@ test('vote filters stay hidden where votes are unavailable', async () => {
         report: voteReport,
         search: '?source=synthetic&locale=en&votes=up',
     })
-    assert.equal(report.get('upvoted-control').hidden, true)
-    assert.equal(report.get('upvoted-only').checked, false)
+    assert.equal(report.get('votes-control').hidden, true)
+    assert.equal(report.get('votes').value, '')
+    assert.equal(report.get('vote-scope-control').hidden, true)
     assert.deepEqual(renderedIds(report), ['loved', 'disliked', 'split', 'quiet'])
     const landing = await loadLanding('/screens/', {
         index: [{ path: votePath, locale: 'en', source: 'synthetic' }],
         screenComments: fakeComments(),
     })
-    assert.equal(landing.get('upvoted-control').hidden, true)
-    assert.equal(landing.get('downvoted-control').hidden, true)
+    assert.equal(landing.get('votes-control').hidden, true)
+    assert.equal(landing.get('vote-scope-control').hidden, true)
 })
 
 const setScope = (elements, scope) => {
@@ -1799,7 +1817,7 @@ test('My votes keeps only the viewer’s own choices and stays in the URL as by=
     assert.equal(elements.get('vote-scope-control').hidden, false)
     assert.equal(elements.get('vote-scope-me').checked, true)
     assert.deepEqual(renderedIds(elements), ['loved'], 'upvotes work as favorites')
-    setVote(elements, 'downvoted-only', true)
+    setVotes(elements, 'up,down')
     assert.deepEqual(renderedIds(elements), ['loved', 'split'])
     const params = new URLSearchParams(elements.location.search)
     assert.equal(params.get('votes'), 'up,down')
@@ -1808,6 +1826,10 @@ test('My votes keeps only the viewer’s own choices and stays in the URL as by=
     assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'], 'all teammates restores shared totals')
     assert.equal(new URLSearchParams(elements.location.search).has('by'), false, 'the default scope is omitted')
     assert.equal(screenComments.calls.length, 1, 'switching scope reuses the loaded totals')
+    setScope(elements, 'me')
+    setVotes(elements, '')
+    const cleared = new URLSearchParams(elements.location.search)
+    assert.equal(cleared.has('votes') || cleared.has('by'), false, 'no hidden scope is kept without a vote filter')
 })
 
 test('the vote scope defaults to all teammates and is hidden without votes', async () => {

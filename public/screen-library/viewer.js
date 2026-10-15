@@ -958,7 +958,7 @@ function shareableParams(overrides = {}) {
         if (status) params.set('status', status)
         const { up, down } = voteChoice()
         if (up || down) params.set('votes', [up && 'up', down && 'down'].filter(Boolean).join(','))
-        if (myVotes()) params.set('by', 'me')
+        if ((up || down) && myVotes()) params.set('by', 'me')
         if (report.type === 'comparison') {
             params.set('view', overrides.view ?? viewMode)
             if ((overrides.scope ?? (showVariations ? 'all' : 'default')) === 'default') params.set('scope', 'default')
@@ -1163,12 +1163,19 @@ function navigatePreview(direction) {
     zoom(filteredRows[next], activeMode)
 }
 const voteFilter = { loading: false, error: '', requested: new Set() }
-const voteChoice = () => ({ up: Boolean($('upvoted-only')?.checked), down: Boolean($('downvoted-only')?.checked) })
+const voteChoice = () => {
+    const picked = ($('votes')?.value ?? '').split(',')
+    return { up: picked.includes('up'), down: picked.includes('down') }
+}
 const myVotes = () => Boolean($('vote-scope-me')?.checked)
 const afterScope = (row) => commentScopes(row).find((scope) => scope.side === 'after')
+// "Votes from" only matters once a vote option is picked, so the row stays narrow until then.
+function syncVoteScope() {
+    if ($('vote-scope-control')) $('vote-scope-control').hidden = !!$('votes-control')?.hidden || !$('votes')?.value
+}
 function resetVoteFilter() {
-    if ($('upvoted-only')) $('upvoted-only').checked = false
-    if ($('downvoted-only')) $('downvoted-only').checked = false
+    if ($('votes')) $('votes').value = ''
+    syncVoteScope()
     voteFilter.error = ''
     voteFilter.requested.clear()
 }
@@ -1575,8 +1582,7 @@ function renderLanding() {
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     $('branch-control').hidden = selectedSource !== 'synthetic'
     $('screen-updates-control').hidden = selectedSource !== 'synthetic'
-    for (const control of ['upvoted-control', 'downvoted-control', 'vote-scope-control'])
-        if ($(control)) $(control).hidden = true
+    for (const control of ['votes-control', 'vote-scope-control']) if ($(control)) $(control).hidden = true
     if (!$('screen-updates-only').dataset.initialized) {
         $('screen-updates-only').checked = requestedFilter('updates') !== 'all'
         $('screen-updates-only').dataset.initialized = 'true'
@@ -1930,19 +1936,19 @@ async function start() {
     $('search').value = requestedFilter('q').slice(0, 200)
     const votesAvailable = Boolean(comments?.votesAvailable?.()) && Boolean(commentsReportPath)
     const requestedVotes = requestedFilter('votes').split(',')
-    for (const [control, input, value] of [
-        ['upvoted-control', 'upvoted-only', 'up'],
-        ['downvoted-control', 'downvoted-only', 'down'],
-    ])
-        if ($(control)) {
-            $(control).hidden = !votesAvailable
-            $(input).checked = votesAvailable && requestedVotes.includes(value)
-        }
+    if ($('votes-control')) {
+        $('votes-control').hidden = !votesAvailable
+        $('votes').value = votesAvailable
+            ? [requestedVotes.includes('up') && 'up', requestedVotes.includes('down') && 'down']
+                  .filter(Boolean)
+                  .join(',')
+            : ''
+    }
     if ($('vote-scope-control')) {
-        $('vote-scope-control').hidden = !votesAvailable
         $('vote-scope-me').checked = votesAvailable && requestedFilter('by') === 'me'
         $('vote-scope-all').checked = !$('vote-scope-me').checked
     }
+    syncVoteScope()
     if (votesAvailable) $('dashboard-filters').hidden = false
     const requestedFlow = requestedFilter('flow')
     $('flow').value = rows.some((row) => row.flow === requestedFlow) ? requestedFlow : ''
@@ -1982,8 +1988,9 @@ for (const name of ['search', 'flow'])
         render()
         syncShareableUrl()
     })
-for (const name of ['upvoted-only', 'downvoted-only', 'vote-scope-all', 'vote-scope-me'])
+for (const name of ['votes', 'vote-scope-all', 'vote-scope-me'])
     $(name)?.addEventListener('change', () => {
+        syncVoteScope()
         voteFilter.error = ''
         voteFilter.requested.clear()
         render()
