@@ -254,13 +254,13 @@
         },
         "arrival": {
             "qr_ar": {
-                "title": "Boas-vindas à Argentina",
-                "description": "Pague como os argentinos. QR do Mercado Pago, direto do seu saldo.",
+                "title": "Desembarcou na Argentina",
+                "description": "O café só aceita Mercado Pago? Pague escaneando o QR e economize!",
                 "cta": "Escanear QR"
             },
             "pix_br": {
-                "title": "Boas-vindas ao Brasil",
-                "description": "Pague com Pix, direto do seu saldo.",
+                "title": "Desembarcou no Brasil",
+                "description": "Aqui tudo é no Pix. Escaneie o QR: seus dólares já falam Pix!",
                 "cta": "Escanear QR"
             },
             "card": {

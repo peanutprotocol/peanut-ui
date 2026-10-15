@@ -254,13 +254,13 @@
         },
         "arrival": {
             "qr_ar": {
-                "title": "Welcome to Argentina",
-                "description": "Pay like a local. Mercado Pago QR codes, straight from your balance.",
+                "title": "Just landed in Argentina",
+                "description": "The café only takes Mercado Pago? Pay by scanning QR codes and save money!",
                 "cta": "Scan QR"
             },
             "pix_br": {
-                "title": "Welcome to Brazil",
-                "description": "Pay like a local. Pix QR codes, straight from your balance.",
+                "title": "Just landed in Brazil",
+                "description": "Everything here runs on Pix. Scan the QR code and pay as a local!",
                 "cta": "Scan QR"
             },
             "card": {

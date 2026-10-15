@@ -105,10 +105,10 @@
         },
         "arrival": {
             "qr_ar": {
-                "description": "Pagá con QR de Mercado Pago, directo desde tu saldo."
+                "description": "¿El café solo acepta Mercado Pago? ¡Pagá escaneando el QR y ahorrá dinero!"
             },
             "pix_br": {
-                "description": "Pagá como un local. QR de Pix, directo desde tu saldo."
+                "description": "Acá todo se paga con Pix. ¡Escaneá el QR y pagá como un local!"
             },
             "card": {
                 "title": "La tarjeta funciona acá",
