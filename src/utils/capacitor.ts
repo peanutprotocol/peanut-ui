@@ -93,6 +93,11 @@ export function isIOSNative(): boolean {
     return getPlatform() === 'ios-native'
 }
 
+/** iOS counterpart of {@link isAndroidNativeBridge}: false in iPhone Safari, even on capacitor-flavoured web builds. */
+export function isIOSNativeBridge(): boolean {
+    return isNativeBridge() && window.Capacitor?.getPlatform?.() === 'ios'
+}
+
 /**
  * The export's stylesheet needs `@layer` (Safari 15.4), `color-mix(in oklab)`
  * (16.2) and `@property` (16.4); a WebView missing any of them paints the app

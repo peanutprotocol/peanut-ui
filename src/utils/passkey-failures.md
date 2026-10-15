@@ -16,10 +16,17 @@ the user canceled or that a passkey is missing.
 | Unknown technical failure | Existing flow-specific error handling | Preserve the original diagnostic |
 
 The signup flow retains its existing quiet handling for unspecified WebAuthn
-refusals. Specific native failures receive the same recovery as login and signing.
+refusals, with one exception: in the native iOS app (not iPhone Safari), the
+second cancel or unspecified refusal on the same username step opens the
+"passkey not saved" help drawer (iCloud Passwords steps). iOS ends registration as a cancel when iCloud Passwords is off,
+even after its own prompt sends the user to Settings, so repeated cancels are the
+only signal the app gets. Specific native failures receive the same recovery as
+login and signing.
 Every ceremony remains observable through `webauthn_ceremony` (`outcome`,
-`error_code`, `native_reason`, `purpose`, `duration_ms`). `native_reason` distinguishes
-explicit cancellation from ambiguous refusals without sending raw platform messages.
+`error_code`, `native_reason`, `native_error_code`, `purpose`, `duration_ms`).
+`native_reason` distinguishes explicit cancellation from ambiguous refusals, and
+`native_error_code` (e.g. `AuthorizationError:1000`, `android:16`) carries the
+platform code, both without sending raw platform messages.
 Signup also retains its terminal failure
 event. These attempt events are the denominator; exception counts are not.
 
