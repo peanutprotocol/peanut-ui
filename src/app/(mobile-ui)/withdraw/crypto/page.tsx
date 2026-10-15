@@ -970,6 +970,7 @@ export default function WithdrawCryptoPage() {
                     isCryptoWithdraw
                     feeEstimate={feeEstimate}
                     receiveTokenSymbol={destination.token.symbol}
+                    resolvedAmountUsd={liveResolvedAmount}
                 />
             )}
 

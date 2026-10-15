@@ -1065,7 +1065,8 @@
         },
         "initial": {
             "placeholderEns": "Dirección o ENS",
-            "placeholderAddress": "Dirección"
+            "placeholderAddress": "Dirección",
+            "confirmNetwork": "Elegí la red para esta dirección"
         },
         "confirm": {
             "youPay": "Total"

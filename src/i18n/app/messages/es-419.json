@@ -2035,7 +2035,8 @@
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
-            "detailsMissing": "Faltan los datos del retiro"
+            "detailsMissing": "Faltan los datos del retiro",
+            "confirmNetwork": "Elige la red para esta dirección"
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",

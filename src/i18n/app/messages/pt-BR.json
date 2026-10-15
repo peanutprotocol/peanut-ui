@@ -2035,7 +2035,8 @@
         "initial": {
             "placeholderEns": "Endereço ou ENS",
             "placeholderAddress": "Endereço",
-            "detailsMissing": "Faltam os dados do saque"
+            "detailsMissing": "Faltam os dados do saque",
+            "confirmNetwork": "Escolha a rede para este endereço"
         },
         "confirm": {
             "recipientReceives": "O destinatário recebe",

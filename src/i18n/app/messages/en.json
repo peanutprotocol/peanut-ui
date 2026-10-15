@@ -2035,7 +2035,8 @@
         "initial": {
             "placeholderEns": "Address or ENS",
             "placeholderAddress": "Address",
-            "detailsMissing": "Withdrawal details are missing"
+            "detailsMissing": "Withdrawal details are missing",
+            "confirmNetwork": "Pick the network for this address"
         },
         "confirm": {
             "recipientReceives": "Recipient receives",

@@ -51,11 +51,15 @@ function Harness({
     initialTokenAddress = USDC_ARB,
     viewType = 'withdraw',
     isLoadingChains = false,
+    onAutoCorrect,
+    onUserSelect,
 }: {
     initialChainID?: string
     initialTokenAddress?: string
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
     isLoadingChains?: boolean
+    onAutoCorrect?: () => void
+    onUserSelect?: () => void
 }) {
     const [selectedChainID, setSelectedChainID] = useState(initialChainID)
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenAddress)
@@ -73,7 +77,7 @@ function Harness({
                     } as never
                 }
             >
-                <TokenSelector viewType={viewType} />
+                <TokenSelector viewType={viewType} onAutoCorrect={onAutoCorrect} onUserSelect={onUserSelect} />
                 <output data-testid="chain-probe">{selectedChainID || 'none'}</output>
                 <output data-testid="token-probe">{selectedTokenAddress || 'none'}</output>
             </tokenSelectorContext.Provider>
@@ -175,6 +179,26 @@ describe('TokenSelector (TASK-23392)', () => {
         render(<Harness initialChainID="tron" initialTokenAddress={USDC_ARB} />)
         expect(chain()).toBe('42161')
         expect(tokenAddress()).toBe(USDC_ARB)
+    })
+
+    test('a correction is reported once; a valid pair reports nothing', () => {
+        const onAutoCorrect = jest.fn()
+        const { unmount } = render(<Harness initialChainID="534352" onAutoCorrect={onAutoCorrect} />)
+        expect(onAutoCorrect).toHaveBeenCalledTimes(1)
+        unmount()
+        const quiet = jest.fn()
+        render(<Harness onAutoCorrect={quiet} />)
+        expect(quiet).not.toHaveBeenCalled()
+    })
+
+    test('drawer picks are reported as user selections', () => {
+        const onUserSelect = jest.fn()
+        render(<Harness onUserSelect={onUserSelect} />)
+        fireEvent.click(networkTrigger())
+        fireEvent.click(optionNamed('Ethereum'))
+        fireEvent.click(tokenTrigger())
+        fireEvent.click(optionNamed('USDT'))
+        expect(onUserSelect).toHaveBeenCalledTimes(2)
     })
 
     test('a pair is not corrected while the chain record loads', () => {

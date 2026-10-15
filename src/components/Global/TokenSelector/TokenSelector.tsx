@@ -13,7 +13,7 @@
  */
 
 import { useTranslations } from 'next-intl'
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import Badge from '@/components/Global/Badges/Badge'
@@ -54,11 +54,20 @@ const NETWORK_SEARCH_MIN = 7
 interface NewTokenSelectorProps {
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
     disabled?: boolean
+    /** the selector replaced a pair it does not offer — the screen decides whether the user must confirm */
+    onAutoCorrect?: () => void
+    /** the user picked a token or a network in a drawer */
+    onUserSelect?: () => void
 }
 
 type DrawerKind = 'token' | 'network'
 
-const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', disabled }) => {
+const TokenSelector: React.FC<NewTokenSelectorProps> = ({
+    viewType = 'other',
+    disabled,
+    onAutoCorrect,
+    onUserSelect,
+}) => {
     const t = useTranslations('global')
     // check if cross-chain is disabled via maintenance config
     const isXchainWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableXchainWithdraw
@@ -130,8 +139,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
         [setSelectedChainID, setSelectedTokenAddress]
     )
 
+    // latest callback without re-running the correction on every parent render
+    const onAutoCorrectRef = useRef(onAutoCorrect)
+    onAutoCorrectRef.current = onAutoCorrect
     useEffect(() => {
-        if (fallback) select(fallback.network)
+        if (!fallback) return
+        select(fallback.network)
+        onAutoCorrectRef.current?.()
     }, [fallback, select])
 
     const open = (kind: DrawerKind) => {
@@ -143,10 +157,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
 
     const handleTokenSelect = (option: TokenOption) => {
         select(pickDefaultNetwork(option, selectedChainID))
+        onUserSelect?.()
         close()
     }
     const handleNetworkSelect = (network: NetworkOption) => {
         select(network)
+        onUserSelect?.()
         close()
     }
 

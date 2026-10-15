@@ -58,6 +58,8 @@ interface WithdrawAmountViewProps {
     feeEstimate?: WithdrawFeeEstimate
     /** the destination token, for the "Recipient receives" line */
     receiveTokenSymbol?: string
+    /** USD the withdrawal really moves (a max withdrawal keeps the sub-cent remainder); defaults to the typed amount */
+    resolvedAmountUsd?: string
 }
 
 /** Amount step of the withdraw flow — dumb view, state lives in the flow hook + URL. */
@@ -79,6 +81,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     bankAmount,
     feeEstimate,
     receiveTokenSymbol = 'USDC',
+    resolvedAmountUsd,
 }) => {
     const tCommon = useTranslations('common')
     const t = useTranslations('withdraw')
@@ -132,7 +135,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 {feeEstimate && feeEstimate.status !== 'idle' && (
                     <FeeEstimateCard
                         estimate={feeEstimate}
-                        amountUsd={initialAmount}
+                        amountUsd={resolvedAmountUsd ?? initialAmount}
                         tokenSymbol={receiveTokenSymbol}
                         labels={{
                             networkFee: t('confirm.networkFee'),
