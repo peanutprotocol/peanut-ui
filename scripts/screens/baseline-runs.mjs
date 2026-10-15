@@ -1,19 +1,19 @@
 import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { CAPTURE_LOCALES } from './capture-locales.mjs'
 
-const locales = ['en', 'es-419', 'es-AR', 'pt-BR']
-
-export function completeBaselineArtifacts(artifacts, kind, expectedCommit) {
+/** Locale-scoped runs are valid sources for the locales they actually captured. */
+export function completeBaselineArtifacts(artifacts, kind, expectedCommit, locales = CAPTURE_LOCALES) {
     const retained = artifacts.filter((artifact) => !artifact.expired)
     const selected = selectBaselineArtifacts(
         retained.map((artifact) => artifact.name),
         kind,
         expectedCommit
-    )
-    if (selected.length !== locales.length) return []
+    ).filter((selection) => locales.includes(selection.locale))
+    if (!locales.length || selected.length !== locales.length) return []
     return selected.map((selection) => retained.find((artifact) => artifact.name === selection.name))
 }
 
-export function trustedIntegrationBaselineRun(run, jobs, repository, expectedCommit) {
+export function trustedIntegrationBaselineRun(run, jobs, repository, expectedCommit, locales = CAPTURE_LOCALES) {
     if (
         run.path !== '.github/workflows/screen-library.yml' ||
         run.event !== 'push' ||
@@ -47,13 +47,14 @@ export function verifiedExternalBaselineSource({
     repository,
     expectedCommit,
     defaultBranch,
+    locales = CAPTURE_LOCALES,
 }) {
-    if (trustedIntegrationBaselineRun(run, jobs, repository, expectedCommit)) {
-        const complete = completeBaselineArtifacts(artifacts, 'integration', expectedCommit)
+    if (trustedIntegrationBaselineRun(run, jobs, repository, expectedCommit, locales)) {
+        const complete = completeBaselineArtifacts(artifacts, 'integration', expectedCommit, locales)
         if (complete.length) return { kind: 'integration', artifacts: complete }
     }
     if (trustedScheduledBaselineRun(run, repository, defaultBranch)) {
-        const complete = completeBaselineArtifacts(artifacts, 'baseline', expectedCommit)
+        const complete = completeBaselineArtifacts(artifacts, 'baseline', expectedCommit, locales)
         if (complete.length) return { kind: 'baseline', artifacts: complete }
     }
     return null

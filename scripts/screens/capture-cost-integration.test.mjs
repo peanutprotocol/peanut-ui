@@ -530,7 +530,14 @@ test('workflow skips before installs, checks current PR, gates one fresh fallbac
     assert.equal((beforeJob.match(/node scripts\/screens\/run-capture.mjs/g) ?? []).length, 1)
     assert.match(beforeJob, /steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'/)
     assert.match(workflow, /screen-library-publish.yml@dev/)
-    assert.match(workflow, /matrix:\n\s+locale: \[en, es-419, es-AR, pt-BR\]/)
+    assert.equal(
+        (
+            workflow.match(
+                /matrix:\n\s+locale: \$\{\{ fromJSON\(needs\.refs\.outputs\.locales \|\| '\["en","es-419","es-AR","pt-BR"\]'\) \}\}/g
+            ) ?? []
+        ).length,
+        2
+    )
     assert.match(
         readFileSync(new URL('../../public/screen-library/viewer.js', import.meta.url), 'utf8'),
         /other flows were not captured/
