@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Submits a tagged store build that is already on the tester tracks:
 //   ios      TestFlight build → App Store review, released automatically on approval
-//   android  Play `internal` release → `production`
+//   android  Play `internal` release → `production` track; a person still publishes it in the Play Console
 //
 // The release pipeline stops at the tester tracks so people can smoke test the
 // exact binary first (ops/releases.md step 18). This replaces the console clicks
-// that follow. It never uploads a binary; it only moves the one that is there.
+// that follow, except the Play publish. It never uploads a binary; it only moves
+// the one that is there.
 //
 // Usage:
 //   node scripts/submit-stores.mjs ios --version 1.14.0 [--dry-run] [--whats-new <text>]
@@ -316,14 +317,16 @@ async function submitAndroid({ version, dryRun, whatsNew, rollout }) {
         }
         log(`internal ${version}: versionCode ${versionCodes.join(',')}; production now ${newestLive || 'empty'}`)
         if (dryRun) {
-            log(`would release ${version} to production, ${status}${rollout < 1 ? ` at ${rollout * 100}%` : ''}`)
+            log(
+                `would move ${version} to the Play production track, ${status}${rollout < 1 ? ` at ${rollout * 100}%` : ''}; it then needs a manual publish in the Play Console`
+            )
             await play('DELETE', `/edits/${edit.id}`)
             return
         }
         await play('PUT', `/edits/${edit.id}/tracks/production`, { track: 'production', releases: [release] })
         await play('POST', `/edits/${edit.id}:commit`)
         log(
-            `released ${version} to Play production (${status}${rollout < 1 ? `, ${rollout * 100}%` : ''}); Google reviews it before users get it`
+            `moved ${version} to the Play production track (${status}${rollout < 1 ? `, ${rollout * 100}%` : ''}). Not published yet: publish it by hand in the Play Console; Google reviews it after that`
         )
     } catch (error) {
         // An uncommitted edit blocks nothing, but leaving one is untidy; a failed

@@ -470,8 +470,8 @@
                         "description": "[Tu nombre] → iCloud"
                     },
                     "step2": {
-                        "title": "Busca Contraseñas y llavero",
-                        "description": "Actívalo"
+                        "title": "Busca Contraseñas",
+                        "description": "Activa Sincronizar este iPhone"
                     },
                     "step3": {
                         "title": "Verifica que funcionó",
@@ -873,9 +873,11 @@
                     "notAllowed": "Passkeys no habilitadas",
                     "invalidState": "La passkey ya existe",
                     "notSupported": "Passkeys no compatibles",
+                    "passkeyNotSaved": "Tu passkey no se guardó",
                     "default": "Problema con la passkey"
                 },
                 "descriptions": {
+                    "passkeyNotSaved": "Tu iPhone guarda las passkeys en Contraseñas de iCloud. Si está desactivado, iOS no puede guardarla y cierra el aviso. Revisa estos ajustes, vuelve aquí y toca Reintentar.",
                     "notReadable": "Hay un problema con la configuración de passkeys de tu dispositivo. Inténtalo de nuevo.",
                     "notAllowedAndroid": "No pudimos crear una passkey. Inicia sesión en una cuenta de Google, actualiza Google Play Services o configura el bloqueo de pantalla, y vuelve a intentar.",
                     "notAllowed": "Las passkeys no están habilitadas en tu dispositivo. Revisa la configuración de tu dispositivo para habilitarlas",
@@ -896,7 +898,10 @@
                     "restartDevice": "Reinicia el dispositivo",
                     "turnOffVpnPrivacy": "Desactiva temporalmente la VPN o las apps de privacidad",
                     "turnOffVpn": "Desactiva temporalmente la VPN",
-                    "enableIcloudKeychain": "Activa el Llavero de iCloud en Ajustes",
+                    "enableIcloudKeychain": "Activa Contraseñas de iCloud: Configuración → tu nombre → iCloud → Contraseñas → Sincronizar este iPhone",
+                    "openAppleAccount": "Abre Configuración y toca tu nombre arriba. Si en su lugar ves la opción de iniciar sesión, inicia sesión con tu cuenta de Apple primero.",
+                    "turnOnIcloudPasswords": "Toca iCloud, luego Contraseñas, y activa Sincronizar este iPhone.",
+                    "setPasscode": "Asegúrate de tener un código configurado en Configuración → Face ID y código.",
                     "enableBiometrics": "Activa Face ID/Touch ID en Ajustes",
                     "unlockPasswordManager": "Si usas un gestor de contraseñas como 1Password, ábrelo y desbloquéalo primero",
                     "exitIncognito": "Sal del modo incógnito o privado",
@@ -915,7 +920,7 @@
                 "fullGuide": "Leer la guía completa"
             },
             "unsupported": "Las passkeys todavía no están disponibles en este dispositivo. Inicia sesión con una cuenta de Google, actualiza Google Play Services e inténtalo de nuevo.",
-            "unsupportedIos": "Las passkeys todavía no están disponibles en este dispositivo. Activa el Llavero de iCloud y un código o Face ID, actualiza iOS e inténtalo de nuevo.",
+            "unsupportedIos": "Las passkeys todavía no están disponibles en este dispositivo. Activa Contraseñas de iCloud y un código o Face ID, actualiza iOS e inténtalo de nuevo.",
             "unsupportedDesktop": "Este navegador no pudo conectarse al servicio de passkeys de tu computadora. Reinicia o actualiza el navegador e inténtalo de nuevo, o inicia sesión desde tu teléfono.",
             "origin": "Las passkeys no están disponibles en esta app por el momento. Actualiza Peanut o contacta a soporte si el problema continúa.",
             "loginError": "No pudimos verificar tu passkey. Inténtalo de nuevo o contacta a soporte si sigue pasando.",
@@ -1492,7 +1497,9 @@
             "fetchDetails": "No se pudieron obtener los detalles del pago QR",
             "cardAuthNeeded": "Se necesita una autorización única de la tarjeta. Se te pedirá confirmar una vez.",
             "confirmTransaction": "Confirma la transacción.",
-            "signFailed": "No se pudo firmar la transacción.",
+            "signFailed": "No pudimos confirmar este pago. No se te cobró nada. Inténtalo de nuevo.",
+            "preparationFailed": "Algo salió mal. No se te cobró nada. Inténtalo de nuevo.",
+            "passkeyBusy": "Ya hay otra confirmación abierta. Ciérrala y toca Pagar de nuevo. No se te cobró nada.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Inténtalo de nuevo. Si el problema persiste, contacta a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escanea el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escanea el código QR de nuevo.",

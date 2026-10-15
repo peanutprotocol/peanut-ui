@@ -6,6 +6,7 @@ const screenLibrary = readFileSync('.github/workflows/screen-library.yml', 'utf8
 const testsWorkflow = readFileSync('.github/workflows/tests.yml', 'utf8')
 const baseline = readFileSync('.github/workflows/screen-library-baseline.yml', 'utf8')
 const publisher = readFileSync('.github/workflows/screen-library-publish.yml', 'utf8')
+const gallery = readFileSync('.github/workflows/screen-library-gallery.yml', 'utf8')
 const collections = readFileSync('.github/workflows/screen-library-collection.yml', 'utf8')
 const publishRun = readFileSync('scripts/screens/publish-run.mjs', 'utf8')
 const baselinePublisher = readFileSync('scripts/screens/publish-baseline-viewports.mjs', 'utf8')
@@ -67,30 +68,38 @@ test('publisher and deploy reuse one Cloudflare API token during the secret-name
     assert.doesNotMatch(screenLibrary, /^\s+CLOUDFLARE_API_TOKEN:/m)
     assert.match(declaredInputs, /CLOUDFLARE_PUBLISH_TOKEN:\n\s+required: false/)
     assert.match(declaredInputs, /CLOUDFLARE_API_TOKEN:\n\s+required: false/)
-    assert.match(publisher, /environment: screen-library-deploy/)
+    assert.match(gallery, /environment: screen-library-deploy/)
+    assert.match(publisher, /uses: peanutprotocol\/peanut-ui\/\.github\/workflows\/screen-library-gallery.yml@dev/)
+    assert.match(
+        publisher,
+        /CLOUDFLARE_PUBLISH_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/
+    )
     // Scope credentials to each operation, so adding a migration/deployment
     // cannot pass because an unrelated step happens to contain the fallback.
-    const steps = publisher.split(/^ {12}- /m).slice(1)
     const token =
         /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/
+    const stepsOf = (workflow) => workflow.split(/^ {12}- /m).slice(1)
     const operations = [
-        'node scripts/screens/publish-run.mjs',
-        'node scripts/screens/rebuild-index.mjs',
-        'wrangler d1 migrations apply COMMENTS --remote',
-        'wrangler deploy --config /tmp/screen-gallery/wrangler.json',
-        'wrangler deploy --config /tmp/screen-collections/wrangler.json',
-        'wrangler deploy --config /tmp/screen-library-mcp/wrangler.json',
+        [publisher, 'node scripts/screens/publish-run.mjs'],
+        [publisher, 'node scripts/screens/rebuild-index.mjs'],
+        [gallery, 'node scripts/screens/rebuild-index.mjs'],
+        [gallery, 'wrangler d1 migrations apply COMMENTS --remote'],
+        [gallery, 'wrangler deploy --config /tmp/screen-gallery/wrangler.json'],
+        [gallery, 'wrangler deploy --config /tmp/screen-collections/wrangler.json'],
+        [gallery, 'wrangler deploy --config /tmp/screen-library-mcp/wrangler.json'],
     ]
-    for (const operation of operations) {
-        const matching = steps.filter((step) => step.includes(operation))
+    for (const [workflow, operation] of operations) {
+        const matching = stepsOf(workflow).filter((step) => step.includes(operation))
         assert.equal(matching.length, 1, `${operation} must have one explicit workflow step`)
         assert.match(matching[0], token, `${operation} must receive the token fallback`)
     }
+    const steps = [...stepsOf(publisher), ...stepsOf(gallery)]
     for (const step of steps.filter((value) => /\bwrangler (?:deploy|d1 migrations apply)\b/.test(value)))
         assert.match(step, token, 'every remote deployment or migration must receive the token fallback')
     for (const declaration of steps.flatMap((value) => value.match(/^\s+CLOUDFLARE_API_TOKEN:[^\n]*/gm) ?? []))
         assert.match(declaration, token, 'every declared Cloudflare token must use the same fallback')
-    assert.match(publisher, /CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher/)
+    assert.equal((publisher.match(new RegExp(token.source, 'g')) ?? []).length, 2)
+    assert.match(gallery, /CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher/)
 })
 
 test('immutable uploads run outside the short serialized index refresh', () => {

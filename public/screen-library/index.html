@@ -22,6 +22,7 @@
                 <div id="provenance"></div>
             </details>
             <p id="coverage" role="status">Loading library…</p>
+            <p id="history-unavailable" class="history-meta" hidden></p>
             <section id="auth-preview" class="auth-preview" hidden aria-hidden="true">
                 <div class="auth-preview-card"><span></span><i></i><b></b></div>
                 <div class="auth-preview-card"><span></span><i></i><b></b></div>
@@ -133,6 +134,48 @@
                     </div>
                 </section>
             </div>
+            <section id="screen-history" hidden aria-labelledby="history-title">
+                <button id="history-close" type="button" class="history-link">← Back to screens</button>
+                <h1 id="history-title"></h1>
+                <p id="history-context" class="history-meta"></p>
+                <div class="history-heading">
+                    <h2>Every visual change, in order</h2>
+                    <span>History</span>
+                </div>
+                <p id="history-status" role="status" aria-live="polite"></p>
+                <div id="history-grid" class="history-grid" aria-label="Visual versions"></div>
+                <p class="history-meta">
+                    Click a date or screenshot to compare with the previous visual version. Dates use UTC.
+                </p>
+                <div class="history-actions">
+                    <button id="history-load-more" type="button" hidden>Load older history</button>
+                    <button id="history-retry" type="button" hidden>Retry failed reads</button>
+                </div>
+                <details id="history-gap-details" hidden>
+                    <summary id="history-gap-summary">Capture gaps</summary>
+                    <ul id="history-gaps"></ul>
+                </details>
+                <section id="history-detail" hidden aria-labelledby="history-detail-title">
+                    <div class="history-heading">
+                        <h2 id="history-detail-title"></h2>
+                        <div class="history-controls" role="group" aria-label="History comparison view">
+                            <button id="history-side" type="button">Side by side</button>
+                            <button id="history-overlay" type="button">Overlay</button>
+                            <button id="history-single" type="button">Selected version</button>
+                        </div>
+                    </div>
+                    <label id="history-slider-label" hidden
+                        >Previous / selected version<input
+                            id="history-slider"
+                            type="range"
+                            min="0"
+                            max="100"
+                            value="50"
+                    /></label>
+                    <div id="history-images" class="history-images"></div>
+                    <p id="history-detail-note" class="history-meta"></p>
+                </section>
+            </section>
             <div class="library-layout">
                 <div class="library-content">
                     <section id="versions" aria-label="Versions"></section>
@@ -150,6 +193,7 @@
                     <p id="zoom-position" class="zoom-position"></p>
                     <h2 id="zoom-title"></h2>
                 </div>
+                <button id="zoom-history" type="button" hidden>History</button>
                 <button id="close" aria-label="Close enlarged screen">Close ×</button>
             </div>
             <div id="zoom-controls" class="zoom-controls">

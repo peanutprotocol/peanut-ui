@@ -464,3 +464,48 @@ describe('closeInAppBrowser', () => {
         document.removeEventListener(cap.IN_APP_BROWSER_CLOSED_EVENT, onClosed)
     })
 })
+
+describe('isIOSNativeBridge', () => {
+    const originalEnv = process.env
+
+    beforeEach(() => {
+        jest.resetModules()
+        process.env = { ...originalEnv }
+        delete window.Capacitor
+    })
+
+    afterEach(() => {
+        process.env = originalEnv
+        delete window.Capacitor
+    })
+
+    it('is true only when the bridge is live on iOS', () => {
+        window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+        expect((require('../capacitor') as typeof import('../capacitor')).isIOSNativeBridge()).toBe(true)
+    })
+
+    it.each([
+        ['an Android bridge', { getPlatform: () => 'android', isNativePlatform: () => true }],
+        ['a bundled web build', { getPlatform: () => 'web', isNativePlatform: () => false }],
+    ])('is false for %s', (_, capacitor) => {
+        window.Capacitor = capacitor
+        expect((require('../capacitor') as typeof import('../capacitor')).isIOSNativeBridge()).toBe(false)
+    })
+
+    it('is false in iPhone Safari on a capacitor-flavoured web build', () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        const originalUserAgent = navigator.userAgent
+        const setUserAgent = (ua: string) =>
+            Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true })
+        setUserAgent(
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 26_5 like Mac OS X) AppleWebKit/605.1.15 Version/26.5 Mobile/15E148 Safari/604.1'
+        )
+        try {
+            const cap = require('../capacitor') as typeof import('../capacitor')
+            expect(cap.isIOSNative()).toBe(true)
+            expect(cap.isIOSNativeBridge()).toBe(false)
+        } finally {
+            setUserAgent(originalUserAgent)
+        }
+    })
+})
