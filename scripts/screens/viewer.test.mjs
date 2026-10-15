@@ -159,7 +159,7 @@ test('legacy four-pixel false positives are hidden, counted as unchanged, and re
     const noiseTile = elements.get('screens').children.find(({ id }) => id === 'pixels-4')
     assert.equal(noiseTile.children[0].children[0].textContent, 'unchanged')
     assert.match(elementText(noiseTile), /4 pixels below change threshold/)
-    assert.doesNotMatch(elementText(noiseTile), /0\.00% pixels changed/)
+    assert.doesNotMatch(elementText(noiseTile), /0\.00% changed/)
     assert.equal(
         elements.get('screens').children.find(({ id }) => id === 'failed').children[0].children[0].textContent,
         'failed'

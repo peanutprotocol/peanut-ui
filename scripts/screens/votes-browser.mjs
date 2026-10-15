@@ -225,8 +225,8 @@ async function assertPreviewGeometry(page, label) {
         }
         return {
             stage: rect('.preview-stage'),
-            image: rect('#zoom-images'),
-            feedback: rect('#zoom-feedback'),
+            image: rect('#zoom-images .device-frame'),
+            feedback: rect('#zoom .screen-feedback'),
             previous: rect('#zoom-prev'),
             next: rect('#zoom-next'),
         }
@@ -293,7 +293,7 @@ async function main() {
         const reportUrl = `${origin}/screens/${reportRelativePath}/?source=synthetic&locale=en`
         await alicePage.goto(reportUrl, { waitUntil: 'domcontentloaded' })
         await alicePage.locator('#screen-home').waitFor({ state: 'visible', timeout: 8000 })
-        const card = alicePage.locator('#screen-home .screen-feedback')
+        const card = alicePage.locator('#screen-home .screen-votes')
         await card.waitFor({ state: 'visible', timeout: 8000 })
         const up = card.locator('[data-vote="1"]')
         const down = card.locator('[data-vote="-1"]')
@@ -359,7 +359,7 @@ async function main() {
         await card.locator('[data-vote-retry]').click()
         await alicePage.waitForFunction(
             () => {
-                const card = document.querySelector('#screen-home .screen-feedback')
+                const card = document.querySelector('#screen-home .screen-votes')
                 return (
                     card?.querySelector('[data-vote-count="up"]')?.textContent?.trim() === '1' &&
                     card?.querySelector('[data-vote-retry]')?.hidden !== false
@@ -374,7 +374,7 @@ async function main() {
 
         // Clicking the rendered screenshot opens the enlarged preview with the same vote scope.
         await alicePage.locator('#screen-home').getByRole('button', { name: 'Enlarge Home, Screen' }).click()
-        const preview = alicePage.locator('#zoom-feedback')
+        const preview = alicePage.locator('#zoom .screen-votes')
         await preview.waitFor({ state: 'visible', timeout: 8000 })
         assert.equal(await preview.locator('[data-vote-count="up"]').textContent(), '1')
         assert.equal(await preview.locator('[data-vote="1"]').getAttribute('aria-pressed'), 'true')
@@ -395,7 +395,7 @@ async function main() {
             await route.continue()
         })
         await bobPage.goto(reportUrl, { waitUntil: 'domcontentloaded' })
-        const bobCard = bobPage.locator('#screen-home .screen-feedback')
+        const bobCard = bobPage.locator('#screen-home .screen-votes')
         await bobCard.waitFor({ state: 'visible', timeout: 8000 })
         await bobCard
             .locator('[data-vote-status]')
@@ -404,7 +404,7 @@ async function main() {
         await bobCard.locator('[data-vote-refresh]').click()
         await bobPage.waitForFunction(
             () =>
-                document.querySelector('#screen-home .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
+                document.querySelector('#screen-home .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
                 '1',
             undefined,
             { timeout: 8000 }
@@ -418,7 +418,7 @@ async function main() {
         await bobCard.locator('[data-vote="-1"]').click()
         await bobPage.waitForFunction(
             () => {
-                const card = document.querySelector('#screen-home .screen-feedback')
+                const card = document.querySelector('#screen-home .screen-votes')
                 return (
                     card?.querySelector('[data-vote-count="up"]')?.textContent?.trim() === '1' &&
                     card?.querySelector('[data-vote-count="down"]')?.textContent?.trim() === '1'
@@ -427,18 +427,21 @@ async function main() {
             undefined,
             { timeout: 8000 }
         )
-        const refresh = preview.locator('[data-vote-refresh]')
-        await refresh.waitFor({ state: 'visible', timeout: 8000 })
-        await refresh.click()
+        assert.equal(
+            await preview.locator('[data-vote-refresh]').isVisible(),
+            false,
+            'refresh stays hidden until a vote error needs it'
+        )
+        await alicePage.evaluate(() => window.dispatchEvent(new Event('focus')))
         await alicePage.waitForFunction(
-            () => document.querySelector('#zoom-feedback [data-vote-count="down"]')?.textContent?.trim() === '1',
+            () => document.querySelector('#zoom .screen-votes [data-vote-count="down"]')?.textContent?.trim() === '1',
             undefined,
             { timeout: 8000 }
         )
         const aliceUpPreview = preview.locator('[data-vote="1"]')
         await aliceUpPreview.click()
         await alicePage.waitForFunction(
-            () => document.querySelector('#zoom-feedback [data-vote-count="up"]')?.textContent?.trim() === '0',
+            () => document.querySelector('#zoom .screen-votes [data-vote-count="up"]')?.textContent?.trim() === '0',
             undefined,
             { timeout: 8000 }
         )
@@ -447,27 +450,23 @@ async function main() {
         await alicePage.locator('#zoom').waitFor({ state: 'hidden' })
         await alicePage.reload({ waitUntil: 'domcontentloaded' })
         await alicePage
-            .locator('#screen-home .screen-feedback [data-vote="1"][aria-pressed="false"]')
+            .locator('#screen-home .screen-votes [data-vote="1"][aria-pressed="false"]')
             .waitFor({ state: 'visible', timeout: 8000 })
         await alicePage.waitForFunction(
             () =>
-                document.querySelector('#screen-home .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
+                document.querySelector('#screen-home .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
                     '0' &&
-                document
-                    .querySelector('#screen-home .screen-feedback [data-vote-count="down"]')
-                    ?.textContent?.trim() === '1',
+                document.querySelector('#screen-home .screen-votes [data-vote-count="down"]')?.textContent?.trim() ===
+                    '1',
             undefined,
             { timeout: 8000 }
         )
-        assert.equal(await alicePage.locator('#screen-home .screen-feedback [data-vote-count="up"]').textContent(), '0')
-        assert.equal(
-            await alicePage.locator('#screen-home .screen-feedback [data-vote-count="down"]').textContent(),
-            '1'
-        )
+        assert.equal(await alicePage.locator('#screen-home .screen-votes [data-vote-count="up"]').textContent(), '0')
+        assert.equal(await alicePage.locator('#screen-home .screen-votes [data-vote-count="down"]').textContent(), '1')
 
         await alicePage.setViewportSize({ width: 1024, height: 768 })
         await alicePage.locator('#screen-home').getByRole('button', { name: 'Enlarge Home, Screen' }).click()
-        const desktopPreview = alicePage.locator('#zoom-feedback')
+        const desktopPreview = alicePage.locator('#zoom .screen-votes')
         await desktopPreview.waitFor({ state: 'visible' })
         await assertPreviewGeometry(alicePage, 'desktop')
         await alicePage.locator('#zoom').screenshot({ path: '/private/tmp/peanut-screen-voting-preview-desktop.png' })
@@ -475,7 +474,7 @@ async function main() {
         await alicePage.locator('#zoom').waitFor({ state: 'hidden' })
 
         await alicePage.setViewportSize({ width: 320, height: 712 })
-        const mobileCard = alicePage.locator('#screen-home .screen-feedback')
+        const mobileCard = alicePage.locator('#screen-home .screen-votes')
         await mobileCard.waitFor({ state: 'visible' })
         const cardBounds = await mobileCard.boundingBox()
         assert.ok(
@@ -483,7 +482,7 @@ async function main() {
             `feedback fits 320px viewport: ${JSON.stringify(cardBounds)}`
         )
         await alicePage.locator('#screen-home').getByRole('button', { name: 'Enlarge Home, Screen' }).click()
-        const mobilePreview = alicePage.locator('#zoom-feedback')
+        const mobilePreview = alicePage.locator('#zoom .screen-votes')
         await mobilePreview.waitFor({ state: 'visible' })
         await assertPreviewGeometry(alicePage, 'mobile')
         const previewBounds = await mobilePreview.boundingBox()
@@ -515,12 +514,12 @@ async function main() {
             if (new URL(response.url()).pathname.endsWith('/votes')) switchVoteStatus = response.status()
         })
         await switchPage.goto(reportUrl, { waitUntil: 'domcontentloaded' })
-        const raceCard = switchPage.locator('#screen-race .screen-feedback')
+        const raceCard = switchPage.locator('#screen-race .screen-votes')
         await raceCard.waitFor({ state: 'visible', timeout: 8000 })
         await raceCard.locator('[data-vote="1"]').waitFor({ state: 'visible' })
         await switchPage.waitForFunction(
             () =>
-                document.querySelector('#screen-race .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
+                document.querySelector('#screen-race .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
                 '0',
             undefined,
             { timeout: 8000 }
@@ -553,7 +552,7 @@ async function main() {
         await switchPage.waitForFunction(
             () =>
                 document
-                    .querySelector('#screen-race .screen-feedback [data-vote-status]')
+                    .querySelector('#screen-race .screen-votes [data-vote-status]')
                     ?.textContent?.includes('Voting is not permitted'),
             undefined,
             { timeout: 8000 }
@@ -567,11 +566,10 @@ async function main() {
         await switchPage.evaluate(() => window.dispatchEvent(new Event('focus')))
         await switchPage.waitForFunction(
             () =>
-                document.querySelector('#screen-race .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
+                document.querySelector('#screen-race .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
                     '0' &&
-                document
-                    .querySelector('#screen-race .screen-feedback [data-vote="1"]')
-                    ?.getAttribute('aria-pressed') === 'false',
+                document.querySelector('#screen-race .screen-votes [data-vote="1"]')?.getAttribute('aria-pressed') ===
+                    'false',
             undefined,
             { timeout: 8000 }
         )
@@ -603,11 +601,11 @@ async function main() {
             }
         })
         await refreshPage.goto(reportUrl, { waitUntil: 'domcontentloaded' })
-        const uncertainCard = refreshPage.locator('#screen-race .screen-feedback')
+        const uncertainCard = refreshPage.locator('#screen-race .screen-votes')
         await uncertainCard.waitFor({ state: 'visible', timeout: 8000 })
         await refreshPage.waitForFunction(
             () =>
-                document.querySelector('#screen-race .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
+                document.querySelector('#screen-race .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
                 '0',
             undefined,
             { timeout: 8000 }
@@ -664,11 +662,10 @@ async function main() {
         )
         await refreshPage.waitForFunction(
             () =>
-                document.querySelector('#screen-race .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
+                document.querySelector('#screen-race .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
                     '0' &&
-                document
-                    .querySelector('#screen-race .screen-feedback [data-vote-count="down"]')
-                    ?.textContent?.trim() === '0',
+                document.querySelector('#screen-race .screen-votes [data-vote-count="down"]')?.textContent?.trim() ===
+                    '0',
             undefined,
             { timeout: 8000 }
         )
@@ -690,8 +687,8 @@ async function main() {
         await uncertainCard.locator('[data-vote-retry]').click()
         await refreshPage.waitForFunction(
             () =>
-                document.querySelector('#screen-race .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
-                    '1' && document.querySelector('#screen-race .screen-feedback [data-vote-retry]')?.hidden !== false,
+                document.querySelector('#screen-race .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
+                    '1' && document.querySelector('#screen-race .screen-votes [data-vote-retry]')?.hidden !== false,
             undefined,
             { timeout: 8000 }
         )
@@ -722,15 +719,13 @@ async function main() {
         await uncertainCard.locator('[data-vote-refresh]').click()
         await refreshPage.waitForFunction(
             () =>
-                document.querySelector('#screen-race .screen-feedback [data-vote-count="up"]')?.textContent?.trim() ===
+                document.querySelector('#screen-race .screen-votes [data-vote-count="up"]')?.textContent?.trim() ===
                     '1' &&
-                document
-                    .querySelector('#screen-race .screen-feedback [data-vote-count="down"]')
-                    ?.textContent?.trim() === '0' &&
-                document
-                    .querySelector('#screen-race .screen-feedback [data-vote="1"]')
-                    ?.getAttribute('aria-pressed') === 'true' &&
-                document.querySelector('#screen-race .screen-feedback [data-vote="-1"]')?.disabled === false,
+                document.querySelector('#screen-race .screen-votes [data-vote-count="down"]')?.textContent?.trim() ===
+                    '0' &&
+                document.querySelector('#screen-race .screen-votes [data-vote="1"]')?.getAttribute('aria-pressed') ===
+                    'true' &&
+                document.querySelector('#screen-race .screen-votes [data-vote="-1"]')?.disabled === false,
             undefined,
             { timeout: 8000 }
         )

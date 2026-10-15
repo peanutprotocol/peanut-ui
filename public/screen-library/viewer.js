@@ -406,26 +406,39 @@ function updatePreviewPosition() {
     $('zoom-prev').disabled = onlyOne
     $('zoom-next').disabled = onlyOne
 }
+// Votes are a verdict on the change, so only the After screenshot carries them.
+const verdictControls = (scope) => (scope?.side === 'after' ? comments?.voteControls?.(scope) : undefined)
 function feedback(scope, action) {
     const group = el('div', undefined, 'screen-feedback')
-    const votes = comments?.voteControls?.(scope)
+    const votes = verdictControls(scope)
     if (votes) group.append(votes)
     group.append(comments.badge(scope, action))
     return group
 }
+function previewFor(scope) {
+    return [...$('zoom-images').querySelectorAll('.device-preview')].find((preview) => {
+        const images = preview.querySelectorAll('img')
+        return images.length === 1 && images[0].getAttribute('src') === asset(scope.image)
+    })
+}
 function previewFeedback(scopes) {
     if (!comments) return
-    let group = $('zoom-feedback')
-    if (!group) {
-        group = el('div')
-        group.id = 'zoom-feedback'
-        $('zoom-images').after(group)
+    let fallback = $('zoom-feedback')
+    if (!fallback) {
+        fallback = el('div')
+        fallback.id = 'zoom-feedback'
+        $('zoom-images').after(fallback)
     }
-    group.replaceChildren()
+    fallback.replaceChildren()
     for (const scope of scopes) {
         const item = feedback(scope, () => comments.open(scope, undefined, scopes))
+        const preview = previewFor(scope)
+        if (preview) {
+            preview.append(item)
+            continue
+        }
         if (scopes.length > 1) item.prepend(el('span', scope.side === 'before' ? 'Before' : 'After', 'feedback-side'))
-        group.append(item)
+        fallback.append(item)
     }
 }
 function zoom(row, mode = 'side') {
@@ -543,7 +556,8 @@ function renderTile(row) {
               ['After', row.after],
           ]) {
         const fig = el('figure', undefined, `shot${label === 'Before' && newScreen(row) ? ' new-screen-shot' : ''}`)
-        fig.append(el('figcaption', label))
+        const caption = el('figcaption', label)
+        fig.append(caption)
         if (!unavailable(s)) {
             const b = el('button')
             b.setAttribute('aria-label', `Enlarge ${row.name}, ${label}`)
@@ -553,7 +567,7 @@ function renderTile(row) {
             const side =
                 label === 'Before' ? 'before' : label === 'After' ? 'after' : s === row.before ? 'before' : 'after'
             const scope = commentScopes(row).find((value) => value.side === side)
-            if (scope) fig.append(feedback(scope, () => openComments(row, scope)))
+            if (scope) caption.append(comments.badge(scope, () => openComments(row, scope)))
         } else
             fig.append(
                 label === 'Before' && newScreen(row)
@@ -576,7 +590,9 @@ function renderTile(row) {
                     : 'Below change threshold'
             )
         )
-    else if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% pixels changed`))
+    else if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% changed`))
+    const verdict = verdictControls(commentScopes(row).find((scope) => scope.side === 'after'))
+    if (verdict) foot.append(verdict)
     tile.append(foot)
     return tile
 }

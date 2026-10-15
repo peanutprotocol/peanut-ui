@@ -60,6 +60,7 @@ window.ScreenVoting = {
             states = new Map(),
             intents = new Map()
         let timer,
+            forceNext = false,
             generation = 0,
             sequence = 0
         const canonical = (scope) => Object.fromEntries(fields.map((field) => [field, scope[field]]))
@@ -82,18 +83,26 @@ window.ScreenVoting = {
                     state?.actor === actor && actor && Number.isInteger(state.up) && Number.isInteger(state.down)
                 const pending = intent?.actor === actor ? intent : undefined
                 for (const [value, control, count] of widget.controls) {
+                    const total = valid ? (value === 1 ? state.up : state.down) : undefined
                     control.setAttribute('aria-pressed', String(Boolean(valid && state.mine === value)))
                     control.disabled = !valid || Boolean(pending)
-                    count.textContent = valid ? String(value === 1 ? state.up : state.down) : '—'
+                    count.textContent = valid ? String(total) : '—'
+                    count.hidden = !total
                 }
                 widget.status.textContent = pending?.busy ? 'Saving…' : pending?.error || state?.error || ''
                 widget.retry.hidden = !pending?.error || pending.conflict
+                widget.refresh.hidden = !(pending?.error || state?.error)
                 widget.refresh.disabled = Boolean(pending?.busy || state?.loading)
             }
         }
-        function schedule() {
+        function schedule(force = false) {
+            forceNext ||= force
             clearTimeout(timer)
-            timer = setTimeout(() => load(), 40)
+            timer = setTimeout(() => {
+                const forced = forceNext
+                forceNext = false
+                load(forced)
+            }, 40)
         }
         async function load(force = false, reconcileKey) {
             const captured = generation,
@@ -218,21 +227,26 @@ window.ScreenVoting = {
             root.setAttribute('role', 'group')
             root.setAttribute('aria-label', `${scope.side === 'before' ? 'Before' : 'After'} screenshot votes`)
             const widget = { root, scope, key, controls: [] }
-            for (const [value, label] of [
-                [1, 'up'],
-                [-1, 'down'],
+            const choice = element('span')
+            choice.className = 'vote-choice'
+            for (const [value, label, text] of [
+                [1, 'up', 'Looks good'],
+                [-1, 'down', 'Needs work'],
             ]) {
                 const control = element('button'),
+                    caption = element('span', text),
                     count = element('span', '—')
                 control.type = 'button'
                 control.dataset.vote = value
                 control.setAttribute('aria-label', `Thumbs ${label}, ${scope.side} screenshot`)
                 control.setAttribute('aria-pressed', 'false')
                 control.disabled = true
+                caption.className = 'vote-label'
                 count.dataset.voteCount = label
-                control.append(window.ScreenVoting.icon(label), count)
+                count.hidden = true
+                control.append(window.ScreenVoting.icon(label), caption, count)
                 control.onclick = () => save(widget, value)
-                root.append(control)
+                choice.append(control)
                 widget.controls.push([value, control, count])
             }
             widget.status = element('span')
@@ -247,6 +261,7 @@ window.ScreenVoting = {
             widget.refresh.append(window.ScreenVoting.icon('refresh'))
             widget.refresh.type = 'button'
             widget.refresh.dataset.voteRefresh = ''
+            widget.refresh.hidden = true
             widget.refresh.setAttribute('aria-label', `Refresh votes, ${scope.side} screenshot`)
             widget.refresh.onclick = async () => {
                 try {
@@ -256,7 +271,10 @@ window.ScreenVoting = {
                     paint()
                 }
             }
-            root.append(widget.refresh, widget.status, widget.retry)
+            const message = element('span')
+            message.className = 'vote-message'
+            message.append(widget.status, widget.retry)
+            root.append(widget.refresh, choice, message)
             widgets.add(widget)
             queueMicrotask(paint)
             schedule()
@@ -269,6 +287,6 @@ window.ScreenVoting = {
             paint()
             schedule()
         }
-        return { mount, reset, refresh: schedule }
+        return { mount, reset, refresh: (force = false) => schedule(force) }
     },
 }

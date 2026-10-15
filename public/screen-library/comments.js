@@ -187,12 +187,19 @@ window.ScreenComments = {
         }
         function renderFeed() {
             feed.replaceChildren(node('div', undefined, 'comment-feed-heading'))
-            const refresh = button('', () => loadFeed(), 'comment-refresh')
+            const refresh = button(
+                '',
+                () => {
+                    loadFeed()
+                    voting?.refresh(true)
+                },
+                'comment-refresh'
+            )
             const icon = window.ScreenVoting?.icon?.('refresh')
             if (icon) refresh.append(icon)
             else refresh.textContent = 'Refresh'
             feed.firstChild.append(node('h2', 'Latest comments'), refresh)
-            feed.firstChild.lastChild.setAttribute('aria-label', 'Refresh comments')
+            feed.firstChild.lastChild.setAttribute('aria-label', 'Refresh comments and votes')
             if (!feedItems.length) notice(feed, 'No comments yet. Start a discussion on a screen.')
             for (const item of feedItems) {
                 const b = button('', () => onNavigate(item.scope, item.threadId), 'comment-feed-item')
@@ -242,6 +249,8 @@ window.ScreenComments = {
             for (const b of badges) {
                 const count = counts.get(key(b.scope))
                 b.countElement.textContent = count === undefined ? '—' : count
+                b.countElement.hidden = !count
+                b.element.classList.toggle('has-comments', count > 0)
                 b.element.setAttribute(
                     'aria-label',
                     `${count === undefined ? 'View' : count} comments, ${b.scope.side}`
@@ -250,7 +259,10 @@ window.ScreenComments = {
         }
         function badge(scope, onOpen) {
             const b = button('', onOpen, 'comment-count')
-            const countElement = node('span', counts.get(key(scope)) ?? '—')
+            const cached = counts.get(key(scope))
+            const countElement = node('span', cached ?? '—')
+            countElement.hidden = !cached
+            b.classList.toggle('has-comments', cached > 0)
             const icon = window.ScreenVoting?.icon?.('message')
             if (icon) b.append(icon)
             b.append(countElement)
@@ -608,7 +620,7 @@ window.ScreenComments = {
                 await authenticate()
                 await loadFeed()
                 scheduleCounts()
-                voting?.refresh()
+                voting?.refresh(true)
                 if (opened && user?.id !== previous) await loadPanel()
             } catch (error) {
                 if (error.status !== 401) {
