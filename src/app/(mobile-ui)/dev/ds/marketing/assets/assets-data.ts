@@ -35,9 +35,9 @@ export interface MascotEntry {
 /**
  * All 10 canonical poses (the deprecated juggling Lottie is out of brand —
  * Hugo, 2026-10-10 — and stays off this page). Ruling (mascot-palette A): every
- * pose moves to the brand tokens, regenerated from the recoloured canonical set
- * in mono/assets — recolour at the source or the next re-export reverts the
- * fixed files. Pink sneakers are canon across the whole set (k6).
+ * pose is on the brand tokens (recoloured 2026-10-15, ds-marketing-art, in
+ * step with the canonical set in mono/assets — recolour at the source or the
+ * next re-export reverts). Pink sneakers are canon across the whole set (k6).
  */
 export const MASCOT_ENTRIES: MascotEntry[] = [
     {
@@ -66,38 +66,38 @@ export const MASCOT_ENTRIES: MascotEntry[] = [
     },
     {
         pose: 'pointing',
-        status: 'pending recolour',
-        fills: ['#fcc814', '#e882d0', '#cc485e'],
+        status: 'on-brand',
+        fills: ['#ffc900', '#ff90e8', '#ea8282'],
         usedFor: 'Grinning, pointing off-screen',
     },
     {
         pose: 'pointing-down',
-        status: 'pending recolour',
-        fills: ['#fcc814', '#e882d0', '#cc485e', '#ffc1cf'],
+        status: 'on-brand',
+        fills: ['#ffc900', '#ff90e8', '#ea8282', '#ffcccc'],
         usedFor: 'Marketing CTA (mdx CTA on compare/send-to pages)',
     },
     {
         pose: 'sad',
-        status: 'pending recolour',
-        fills: ['#fcc814', '#e882d0'],
+        status: 'on-brand',
+        fills: ['#ffc900', '#ff90e8'],
         usedFor: 'Errors — slumped and dejected',
     },
     {
         pose: 'walking',
-        status: 'pending recolour',
-        fills: ['#fcc814', '#e882d0', '#cc485e', '#ffc1cf'],
+        status: 'on-brand',
+        fills: ['#ffc900', '#ff90e8', '#ea8282', '#ffcccc'],
         usedFor: 'Physical-card waitlist — on the way / shipping',
     },
     {
         pose: 'waving-hello',
-        status: 'pending recolour',
-        fills: ['#fcc814', '#e882d0', '#cc485e', '#ffc1cf'],
+        status: 'on-brand',
+        fills: ['#ffc900', '#ff90e8', '#ea8282', '#ffcccc'],
         usedFor: 'Greetings and setup',
     },
     {
         pose: 'worried',
-        status: 'pending recolour',
-        fills: ['#fcc814', '#e882d0', '#46acff'],
+        status: 'on-brand',
+        fills: ['#ffc900', '#ff90e8', '#46acff'],
         usedFor: 'Errors and empty states — hands to face',
     },
 ]
@@ -116,41 +116,41 @@ export interface DoodleEntry {
 }
 
 /**
- * Doodles. Ruled direction (doodle-palette A): ONE four-point sparkle, brand
- * yellow #FFC900 with a black outline. The near-miss yellows (#ffd25c star,
- * #ffca05 coins + sleeve) read dull next to the #FFC900 marquee and go.
+ * Doodles. Ruling (doodle-palette A, applied 2026-10-15 by ds-marketing-art):
+ * ONE four-point sparkle, brand yellow #FFC900 with a black outline; the
+ * near-miss yellows (#ffd25c, #ffca05) are gone.
  */
 export const DOODLE_ENTRIES: DoodleEntry[] = [
     {
         label: 'star',
         asset: star,
         path: 'assets/illustrations/star.svg',
-        status: 'pending recolour',
-        fills: '#ffd25c — off-palette yellow',
+        status: 'canon',
+        fills: '#FFC900, black outline',
         usedIn: 'Stars/ProseStars mdx, ExchangeWidget, sendInSeconds, RegulatedRails, noFees, Manteca',
     },
     {
         label: 'sparkle',
         asset: sparkle,
         path: 'assets/illustrations/sparkle.svg',
-        status: 'pending recolour',
-        fills: 'white fill, #121212 outline',
-        usedIn: '/shhhhh — becomes THE sparkle once recoloured to #FFC900 + black outline',
+        status: 'canon',
+        fills: '#FFC900, black outline',
+        usedIn: '/shhhhh and the merchant end fold — THE sparkle',
     },
     {
         label: 'stack-coin',
         asset: stackCoin,
         path: 'assets/illustrations/stack-coin.svg',
-        status: 'pending recolour',
-        fills: '#ffca05 coins',
+        status: 'canon',
+        fills: '#FFC900 coins',
         usedIn: 'ProblemFold',
     },
     {
         label: 'peanut-card-hand',
         asset: peanutCardHand,
         path: 'assets/cards/peanut-card-hand.svg',
-        status: 'pending recolour',
-        fills: '#ffca05 sleeve',
+        status: 'canon',
+        fills: '#FFC900 sleeve',
         usedIn: 'Card share asset (PixelatedCardFace)',
     },
     {
@@ -189,9 +189,8 @@ export interface GloveEntry {
 }
 
 /**
- * Gloves. Ruled direction (glove-style A): flat white/black only — no #aba99b
- * shading. The footer hand row shows both styles side by side on every page
- * today; the shaded three get flattened.
+ * Gloves. Ruling (glove-style A, applied 2026-10-15 by ds-marketing-art):
+ * flat white/black only — the #aba99b shading is gone from the shaded three.
  */
 export const GLOVE_ENTRIES: GloveEntry[] = [
     {
@@ -222,24 +221,24 @@ export const GLOVE_ENTRIES: GloveEntry[] = [
         label: 'hand-thumbs-up',
         asset: handThumbsUp,
         path: 'assets/illustrations/hand-thumbs-up.svg',
-        status: 'pending flatten',
-        fills: '#aba99b shading',
+        status: 'canon',
+        fills: 'flat white/black',
         usedIn: 'FooterChrome hand row; the home marquee default image',
     },
     {
         label: 'got-it-hand',
         asset: gotItHand,
         path: 'assets/illustrations/got-it-hand.svg',
-        status: 'pending flatten',
-        fills: '#aba99b shading',
+        status: 'canon',
+        fills: 'flat white/black',
         usedIn: 'Landing folds',
     },
     {
         label: 'got-it-hand-flipped',
         asset: gotItHandFlipped,
         path: 'assets/illustrations/got-it-hand-flipped.svg',
-        status: 'pending flatten',
-        fills: '#aba99b shading',
+        status: 'canon',
+        fills: 'flat white/black',
         usedIn: 'Landing folds',
     },
 ]
