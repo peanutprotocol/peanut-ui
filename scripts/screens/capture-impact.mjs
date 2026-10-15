@@ -132,7 +132,7 @@ export function fixtureIdentityFiles(roots, options = {}) {
     return [...visited].sort()
 }
 
-function revisionGraph(revision, catalogue, runGit, deadline) {
+export function revisionGraph(revision, catalogue, runGit, deadline) {
     const paths = runGit(['ls-tree', '-r', '--name-only', '-z', revision]).split('\0').filter(Boolean)
     if (paths.length > 20000) throw new Error('Source graph exceeds its 20,000-file budget')
     const files = new Set(paths)

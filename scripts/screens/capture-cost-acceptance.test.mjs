@@ -130,7 +130,6 @@ test('planner forces full capture for globals, unknown paths and capture infrast
         'src/context/authContext.tsx',
         'src/hooks/useNotifications.ts',
         'src/services/push.ts',
-        'src/content',
         'src/i18n/app/locales/en.json',
         'public/logo.svg',
         'pnpm-lock.yaml',

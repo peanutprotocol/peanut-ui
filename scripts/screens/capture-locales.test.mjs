@@ -22,15 +22,17 @@ test('PRs and dev pushes capture English unless a locale has its own change', ()
     )
 })
 
-test('translation fixes and locale-named files add their locale', () => {
+test('translation fixes and locale-named app files add their locale', () => {
     assert.deepEqual(pr(['src/i18n/app/messages/pt-BR.json']), ['en', 'pt-BR'])
-    assert.deepEqual(pr(['src/i18n/app/messages/pt-BR.marketing.json']), ['en', 'pt-BR'])
     assert.deepEqual(pr(['src/i18n/app/messages/es-AR.json']), ['en', 'es-AR'])
-    assert.deepEqual(pr(['src/i18n/pt-BR.json']), ['en', 'pt-BR'])
-    assert.deepEqual(pr(['src/app/es-ar/page.tsx', 'public/wallet/google/pt-BR.svg']), ['en', 'es-AR', 'pt-BR'])
+    assert.deepEqual(pr(['src/features/qr-pay/es-ar/MerchantTip.tsx', 'public/wallet/google/pt-BR.svg']), [
+        'en',
+        'es-AR',
+        'pt-BR',
+    ])
 })
 
-test('translations that change with the matching English catalogue are reviewed in English', () => {
+test('translations that change with the English app catalogue are reviewed in English', () => {
     const feature = [
         'src/components/Card.tsx',
         'src/i18n/app/messages/en.json',
@@ -45,26 +47,31 @@ test('translations that change with the matching English catalogue are reviewed 
         ),
         /reviewed in English: es-419, es-AR, pt-BR/
     )
-    assert.deepEqual(pr(['src/i18n/app/messages/en.marketing.json', 'src/i18n/app/messages/pt-BR.marketing.json']), [
-        'en',
+    assert.deepEqual(pr(['src/i18n/app/messages/en.json', 'public/wallet/google/pt-BR.svg']), ['en', 'pt-BR'])
+})
+
+test('marketing catalogues and marketing pages never add a locale', () => {
+    for (const path of [
+        'src/i18n/es-ar.json',
+        'src/i18n/pt-br.json',
+        'src/i18n/es-419.json',
+        'src/i18n/app/messages/pt-BR.marketing.json',
+        'src/app/es-ar/page.tsx',
+        'src/app/[locale]/(marketing)/help/page.tsx',
+        'src/content',
     ])
-    // Only the matching English catalogue defers a locale; a fix in another catalogue still counts.
-    assert.deepEqual(pr(['src/i18n/app/messages/en.marketing.json', 'src/i18n/app/messages/pt-BR.json']), [
-        'en',
-        'pt-BR',
-    ])
+        assert.deepEqual(pr(['src/components/Card.tsx', path]), ['en'], path)
     assert.deepEqual(pr(['src/i18n/en.json', 'src/i18n/app/messages/es-AR.json']), ['en', 'es-AR'])
-    assert.deepEqual(pr(['src/i18n/app/messages/en.json', 'src/app/pt-br/page.tsx']), ['en', 'pt-BR'])
 })
 
 test('es-419 copy also renders in es-AR', () => {
     assert.deepEqual(pr(['src/i18n/app/messages/es-419.json']), ['en', 'es-419', 'es-AR'])
-    assert.deepEqual(pr(['src/app/es-419/page.tsx']), ['en', 'es-419', 'es-AR'])
+    assert.deepEqual(pr(['public/wallet/google/es-419.svg']), ['en', 'es-419', 'es-AR'])
     assert.deepEqual(pr(['src/i18n/app/messages/en.json', 'src/i18n/app/messages/es-419.json']), ['en'])
 })
 
-test('shared localization, content, the label and every release capture all locales', () => {
-    for (const path of ['src/i18n/app/IntlCore.tsx', 'src/i18n/app/config.ts', 'src/content'])
+test('shared localization, the label and every release capture all locales', () => {
+    for (const path of ['src/i18n/app/IntlCore.tsx', 'src/i18n/app/config.ts'])
         assert.deepEqual(pr([path]), CAPTURE_LOCALES, path)
     assert.deepEqual(pr(['src/components/Card.tsx'], ['bug', ALL_LOCALES_LABEL]), CAPTURE_LOCALES)
     for (const input of [
@@ -210,9 +217,9 @@ test('the caller narrows locales from live PR labels once trusted dev advertises
     )
 })
 
-test('caller skips drafts, captures on ready for review and lets the planner read live labels', () => {
+test('caller skips drafts, cancels on conversion to draft and lets the planner read live labels', () => {
     const caller = readFileSync(new URL('../../.github/workflows/screen-library.yml', import.meta.url), 'utf8')
-    assert.match(caller, /types: \[opened, synchronize, reopened, ready_for_review\]/)
+    assert.match(caller, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/)
     assert.match(caller, /!github\.event\.pull_request\.draft/)
     assert.doesNotMatch(caller, /labeled/)
     const refs = caller.slice(caller.indexOf('\n    refs:\n'), caller.indexOf('\n    capture_after:\n'))

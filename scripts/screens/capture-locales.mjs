@@ -6,8 +6,9 @@ export const ALL_LOCALES_LABEL = 'screens:all-locales'
 const localeBySlug = { 'es-419': 'es-419', 'es-ar': 'es-AR', 'pt-br': 'pt-BR' }
 // es-AR stores only its differences from es-419, so es-419 copy also renders in es-AR.
 const inheritedBy = { 'es-419': ['es-AR'] }
-const translationCatalogue = /^(src\/i18n\/(?:app\/messages\/)?)(en|es-419|es-AR|pt-BR)((?:\.marketing)?\.json)$/
-const sharedLocalization = /^src\/(?:i18n\/|content(?:\/|$))/
+// App catalogues only; the marketing catalogues are nonvisual (capture-plan.mjs marketingOnly).
+const translationCatalogue = /^src\/i18n\/app\/messages\/(en|es-419|es-AR|pt-BR)\.json$/
+const sharedLocalization = /^src\/i18n\//
 const namedLocale = /(?:^|\/)(es-419|es-ar|pt-br)(?=[./]|$)/i
 
 /**
@@ -31,23 +32,17 @@ export function planCaptureLocales({ event, branch, changedFiles, labels } = {})
     )
         return all('Changed-file evidence is missing or invalid')
     // Features add keys to every catalogue at once and are reviewed in English; only fixes are invisible there.
-    const englishCopy = new Set(
-        changedFiles
-            .map((path) => translationCatalogue.exec(path))
-            .filter((match) => match?.[2] === 'en')
-            .map(([, prefix, , suffix]) => prefix + suffix)
-    )
+    const englishCopyChanged = changedFiles.some((path) => translationCatalogue.exec(path)?.[1] === 'en')
     const selected = new Set(['en'])
     const alongsideEnglish = new Set()
     for (const path of changedFiles) {
         if (knownNonvisual(path)) continue
-        const catalogue = translationCatalogue.exec(path)
-        if (catalogue) {
-            const [, prefix, locale, suffix] = catalogue
+        const locale = translationCatalogue.exec(path)?.[1]
+        if (locale) {
             if (locale === 'en') continue
-            if (englishCopy.has(prefix + suffix)) alongsideEnglish.add(locale)
+            if (englishCopyChanged) alongsideEnglish.add(locale)
             else selected.add(locale)
-        } else if (sharedLocalization.test(path)) return all('Shared localization or content source changed')
+        } else if (sharedLocalization.test(path)) return all('Shared localization source changed')
         else {
             const named = namedLocale.exec(path)?.[1]
             if (named) selected.add(localeBySlug[named.toLowerCase()])
