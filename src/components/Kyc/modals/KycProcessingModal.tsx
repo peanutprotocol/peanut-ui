@@ -1,4 +1,6 @@
 import { useTranslations } from 'next-intl'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import type { CapabilityReason } from '@/types/capabilities'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -11,6 +13,7 @@ interface KycProcessingModalProps {
     pendingSince?: string | null
     /** The provider is reviewing (a `wait` next action): nothing for the user to finish. */
     waitingOnProvider?: boolean
+    reason?: CapabilityReason
     /** Re-opens the verification, so one the user left unfinished can be completed. */
     onResume?: () => void
     onContactSupport?: () => void
@@ -29,17 +32,21 @@ export const KycProcessingModal = ({
     onClose,
     pendingSince,
     waitingOnProvider = false,
+    reason,
     onResume,
     onContactSupport,
 }: KycProcessingModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
+    const supplementInReview = reason?.code === 'requirements_in_review'
+    const reasonKey = supplementInReview ? reasonCodeKey(reason.code) : undefined
 
     const pendingSinceMs = pendingSince ? Date.parse(pendingSince) : NaN
     const isStale = Number.isFinite(pendingSinceMs) && Date.now() - pendingSinceMs > STALE_AFTER_MS
     // Only an unfinished verification has something the user can continue; a
     // provider review does not, so that branch offers support and nothing else.
-    const canResume = isStale && !waitingOnProvider && !!onResume
+    const canResume = isStale && !waitingOnProvider && !supplementInReview && !!onResume
 
     return (
         <Drawer
@@ -56,12 +63,16 @@ export const KycProcessingModal = ({
                         <IconBubble icon="clock" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{isStale ? t('processingStaleTitle') : t('processingTitle')}</DrawerTitle>
-                            <DrawerDescription>
-                                {canResume
-                                    ? t('processingUnfinishedDescription')
-                                    : isStale
-                                      ? t('processingReviewDescription')
-                                      : t('processingDescription')}
+                            <DrawerDescription
+                                data-testid={supplementInReview ? 'kyc-supplement-in-review' : undefined}
+                            >
+                                {reasonKey
+                                    ? tIdentity(reasonKey)
+                                    : canResume
+                                      ? t('processingUnfinishedDescription')
+                                      : isStale
+                                        ? t('processingReviewDescription')
+                                        : t('processingDescription')}
                             </DrawerDescription>
                         </DrawerHeader>
                     </div>
@@ -76,7 +87,7 @@ export const KycProcessingModal = ({
                                 {tCommon('gotIt')}
                             </Button>
                         )}
-                        {isStale && onContactSupport && (
+                        {isStale && !supplementInReview && onContactSupport && (
                             <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                         )}
                     </div>

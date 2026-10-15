@@ -30,6 +30,8 @@ export type SumsubActionErrorCode =
     | 'residence_change_failed'
     | 'resubmit_failed'
     | 'start_action_failed'
+    // start-action refused a supplement the gate no longer asks for; `fallback` names the step instead
+    | 'supplement_not_required'
     | 'invalid_response'
     | 'unexpected'
 
@@ -103,6 +105,8 @@ export const initiateSumsubKyc = async (params?: {
     crossRegion?: boolean
     targetCountry?: string
     correctSession?: boolean
+    /** false on the legacy fallback after a failed plan read, so the backend starts the legacy flow */
+    documentSelection?: boolean
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string; code?: SumsubActionErrorCode }> => {
     const body: Record<string, string | boolean | undefined> = {
         corridor: params?.corridor,
@@ -116,6 +120,8 @@ export const initiateSumsubKyc = async (params?: {
     try {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
+            // The backend only asks clients that announce the document picker to choose documents first.
+            headers: params?.documentSelection === false ? {} : { 'x-kyc-document-selection': '1' },
             body: JSON.stringify(body),
         })
 
@@ -141,6 +147,8 @@ export const initiateSumsubKyc = async (params?: {
                 actionType: responseJson.actionType,
                 session: responseJson.session,
                 workflow: responseJson.workflow,
+                attemptId: responseJson.attemptId,
+                sdkConfig: responseJson.sdkConfig,
             },
         }
     } catch (e: unknown) {
@@ -377,11 +385,17 @@ export const refreshKycState = async (): Promise<KycRefreshResponse> => {
     }
 }
 
+/** The step start-action names when it refuses a supplement the gate no longer asks for. */
+export type SupplementFallback = 'contact-support' | 'restart-identity' | 'wait'
+const SUPPLEMENT_FALLBACKS = new Set<string>(['contact-support', 'restart-identity', 'wait'])
+
 export interface StartKycActionResponse {
     token?: string
     session?: VerificationActionSession
     levelName: string
     externalActionId?: string
+    /** Sumsub had already reviewed this action: nothing to open, the backend recorded the review. */
+    completed?: boolean
 }
 
 /**
@@ -395,7 +409,13 @@ export interface StartKycActionResponse {
  */
 export const startKycAction = async (
     key: string
-): Promise<{ data?: StartKycActionResponse; error?: string; code?: SumsubActionErrorCode }> => {
+): Promise<{
+    data?: StartKycActionResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    reason?: string
+    fallback?: SupplementFallback
+}> => {
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
@@ -403,12 +423,29 @@ export const startKycAction = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(
+            const failure = backendOrFallback(
                 responseJson,
                 'Failed to start verification',
                 'start_action_failed',
                 response.status
             )
+            if (response.status !== 409 || responseJson.error !== 'supplement_not_required') return failure
+            const { reason, fallback } = responseJson
+            return {
+                ...failure,
+                code: 'supplement_not_required',
+                ...(typeof reason === 'string' ? { reason } : {}),
+                ...(SUPPLEMENT_FALLBACKS.has(fallback) ? { fallback: fallback as SupplementFallback } : {}),
+            }
+        }
+        if (!responseJson.sumsubAccessToken && !responseJson.session && responseJson.status === 'completed') {
+            return {
+                data: {
+                    levelName: responseJson.levelName,
+                    externalActionId: responseJson.externalActionId,
+                    completed: true,
+                },
+            }
         }
         if (!responseJson.sumsubAccessToken && !responseJson.session) {
             return { error: 'Invalid response from server', code: 'invalid_response' }

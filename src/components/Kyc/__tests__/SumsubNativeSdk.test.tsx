@@ -48,6 +48,7 @@ const launch = jest.fn()
 const dismiss = jest.fn()
 const resetSdk = jest.fn()
 const configureApplicant = jest.fn()
+const configureDocuments = jest.fn()
 let builtInstances: { sendEvent: jest.Mock; getNewAccessToken: jest.Mock }[] = []
 let statusHandler: ((event: { newStatus?: string }) => void) | undefined
 
@@ -55,6 +56,10 @@ function installSdk() {
     const builder: Record<string, unknown> = {}
     builder.withHandlers = (handlers: { onStatusChanged?: (e: { newStatus?: string }) => void }) => {
         statusHandler = handlers.onStatusChanged
+        return builder
+    }
+    builder.withPreferredDocumentDefinitions = (definitions: unknown) => {
+        configureDocuments(definitions)
         return builder
     }
     builder.withLocale = () => builder
@@ -87,6 +92,15 @@ const baseProps = () => ({
 })
 
 describe('SumsubNativeSdk', () => {
+    it('passes frozen identity choices to the native SDK before launch', () => {
+        installSdk()
+        const documentConfig = {
+            documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'RESIDENCE_PERMIT' } },
+            autoSelectDocumentDefinitions: true as const,
+        }
+        render(<SumsubNativeSdk {...baseProps()} visible documentConfig={documentConfig} />)
+        expect(configureDocuments).toHaveBeenCalledWith(documentConfig.documentDefinitions)
+    })
     beforeEach(() => {
         launch.mockReset()
         dismiss.mockReset()

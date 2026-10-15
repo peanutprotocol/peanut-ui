@@ -1010,6 +1010,7 @@ function MantecaBankWithdrawFlow() {
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
                 taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}
+                ctaTestId="kyc-identity-gate-cta"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {

@@ -13,15 +13,19 @@ import type { DepositCorridor } from '../types'
 const handleInitiateKyc = jest.fn()
 const handleRestartIdentity = jest.fn()
 const handleSelfHealResubmit = jest.fn()
+const handleFixableGate = jest.fn()
+let mockDocumentPlan: unknown = null
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: (...args: unknown[]) => handleInitiateKyc(...args),
         handleRestartIdentity: () => handleRestartIdentity(),
         handleSelfHealResubmit: (...args: unknown[]) => handleSelfHealResubmit(...args),
+        handleFixableGate: (...args: unknown[]) => handleFixableGate(...args),
         isLoading: false,
         error: null,
         errorCooldown: null,
         showWrapper: false,
+        documentPlan: mockDocumentPlan,
     }),
 }))
 const gateFor = jest.fn((): GateState => ({ kind: 'needs-enrollment' }) as GateState)
@@ -38,9 +42,11 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => nu
 
 // the modal is the only way to reach onVerify, so the test holds its props
 let verify: () => Promise<void>
+let modalVisible = false
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
-    InitiateKycModal: (props: { onVerify: () => Promise<void> }) => {
+    InitiateKycModal: (props: { visible: boolean; onVerify: () => Promise<void> }) => {
         verify = props.onVerify
+        modalVisible = props.visible
         return null
     },
 }))
@@ -63,7 +69,10 @@ const openWith = async (open: (remediation: Remediation) => void) => {
 const openBannerFor = (gate: GateState, corridor?: DepositCorridor) =>
     openWith((remediation) => remediation.resolveGate(gate, corridor))
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+    jest.clearAllMocks()
+    mockDocumentPlan = null
+})
 
 describe('useDepositGateRemediation', () => {
     it('restarts the identity run the provider asked us to restart', async () => {
@@ -73,17 +82,53 @@ describe('useDepositGateRemediation', () => {
         expect(handleInitiateKyc).not.toHaveBeenCalled()
     })
 
-    it('resubmits a rejected document rather than collecting it again', async () => {
-        await openBannerFor({ kind: 'fixable-rejection' } as GateState)
+    it('hands a fixable rejection to the shared router rather than collecting it again', async () => {
+        const gate = { kind: 'fixable-rejection' } as GateState
+        await openBannerFor(gate)
 
-        expect(handleSelfHealResubmit).toHaveBeenCalledWith('BRIDGE')
+        expect(handleFixableGate).toHaveBeenCalledWith('BRIDGE', gate)
         expect(handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    // A supplement has no provider rejection behind it, so the resubmit route 404s.
+    it('passes a parked rail its supplement action, never straight to resubmit', async () => {
+        const gate = {
+            kind: 'fixable-rejection',
+            userMessage: null,
+            actionKey: 'supplement:bridge',
+            reason: { code: 'requirements_missing', userMessage: 'x' },
+        } as GateState
+        await openBannerFor(gate, 'SEPA_EU')
+
+        expect(handleFixableGate).toHaveBeenCalledWith('BRIDGE', gate)
+        expect(handleSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    it("names the corridor's own provider", async () => {
+        const gate = { kind: 'fixable-rejection', actionKey: 'sumsub:source_of_funds' } as GateState
+        await openBannerFor(gate, 'PIX_BR')
+
+        expect(handleFixableGate).toHaveBeenCalledWith('MANTECA', gate)
     })
 
     it('starts a first identity run for a user who has none', async () => {
         await openBannerFor({ kind: 'needs-identity' } as GateState)
 
         expect(handleInitiateKyc).toHaveBeenCalled()
+    })
+
+    it('closes the start modal when the document list opens', () => {
+        let remediation: Remediation | undefined
+        function Host() {
+            remediation = useDepositGateRemediation()
+            return <>{remediation.modals}</>
+        }
+        const { rerender } = render(<Host />)
+        act(() => remediation!.resolveGate({ kind: 'needs-identity' } as GateState))
+        expect(modalVisible).toBe(true)
+        mockDocumentPlan = { available: true, routes: [] }
+        rerender(<Host />)
+        expect(modalVisible).toBe(false)
     })
 
     // One path from a corridor tap into verification, whichever screen the tap

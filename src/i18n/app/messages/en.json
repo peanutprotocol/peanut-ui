@@ -2963,6 +2963,22 @@
             "stillLoading": "Still loading your account — please try again in a moment.",
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
+        "setup": {
+            "settingUp": "Setting up",
+            "available": "Available",
+            "underReview": "Under review",
+            "documentNeeded": "Document needed",
+            "agreementsNeeded": "Agreements needed",
+            "verifyId": "Verify ID",
+            "notAvailable": "Not available",
+            "verifyAgain": "Verify again with a {country} ID",
+            "verifyAgainNote": "Starts a new identity check.",
+            "uploadNow": "Upload now",
+            "later": "Later",
+            "continueCard": "Continue card setup",
+            "reviewTerms": "Review terms",
+            "termsNeeded": "Terms needed"
+        },
         "bridgeTos": {
             "title": "Accept terms",
             "description": "Accept the provider's terms to turn on bank transfers.",
@@ -3312,6 +3328,38 @@
             "taxId": "Your identity is verified, but we could not validate your tax ID for this country. Check and correct it to enable bank transfers.",
             "details": "Some information needs updating before bank transfers can be enabled. Your identity verification is saved.",
             "correct": "Correct details"
+        },
+        "documents": {
+            "title": "Choose your documents",
+            "description": "Choose what you’ll use here. We’ll open verification with these documents already selected.",
+            "features": "What would you like to use?",
+            "qr": "QR payments",
+            "local": "Local bank transfers",
+            "bank": "USD, EUR, MXN and GBP accounts",
+            "card": "Peanut card",
+            "unavailable": "Verification is not available for these choices yet. Try a different payment option.",
+            "documentSet": "Required documents",
+            "identity": "Identity document",
+            "documentType": "Document type",
+            "issuingCountry": "Issuing country",
+            "choose": "Choose an option",
+            "continue": "Continue to verification",
+            "passport": "Passport",
+            "idCard": "National ID card",
+            "drivers": "Driving licence",
+            "residencePermit": "Residence permit",
+            "otherDocument": "Supporting document",
+            "preferencesTitle": "Payment features",
+            "preferencesDescription": "Choose the payment features you’d like to use. Your identity stays verified.",
+            "preferencesContinue": "Continue"
+        },
+        "supplement": {
+            "proofOfAddressTitle": "Add a proof of address",
+            "proofOfAddressDescription": "Your ID is verified. To open your bank accounts, our payment partner also needs a proof of address, such as a recent bank statement or utility bill.",
+            "proofOfAddressCta": "Add proof of address",
+            "later": "Do this later",
+            "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
+            "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with."
         }
     },
     "identity": {
@@ -3351,6 +3399,10 @@
             "tax_identification_number": "We need your tax identification number to continue.",
             "address_of_residence": "We need your residential address to continue.",
             "residence_unresolved": "We still need your home address to finish setting up bank transfers. Add it and we will retry automatically.",
+            "requirements_missing": "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically.",
+            "requirements_in_review": "We're checking your proof of address. Bank accounts open once it's approved.",
+            "identity_document_insufficient": "The document you verified with can't be used for this account. Verify again with a different ID document.",
+            "requirements_uncollectable": "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you.",
             "proof_of_address": "We need a valid proof of address document.",
             "source_of_funds": "We need information about your source of funds.",
             "proof_of_source_of_funds": "We need a document proving your source of funds.",
@@ -3382,7 +3434,10 @@
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
-            "identity_document_missing": "We need an identity document and a selfie to complete your verification."
+            "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
+            "document_country_unsupported": "Needs an ID issued by {country}",
+            "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
+            "under_minimum_age": "Only from age 18"
         }
     },
     "recoverFunds": {

@@ -34,7 +34,8 @@ import { railUserMessage, railVerdict } from '@/utils/capability-gate'
  *   - happy           : nothing pending an action
  *   - fixable         : user can re-submit docs via self-heal (`requires-info`)
  *   - restart-identity: blocked + the rail carries a `restart-identity` action
- *                       (Manteca country-not-supported). Self-fixable by
+ *                       (Manteca country-not-supported, a document the send
+ *                       gate refused for any provider). Self-fixable by
  *                       re-verifying with a different document. Also the state
  *                       for an approval with no identity document on file
  *                       (see {@link identityDocumentRestartAction}).
@@ -118,9 +119,8 @@ export function deriveProviderRejection(
     const fixable = candidates.find((candidate) => candidate.verdict.status === 'fixable' && !isProvideEmail(candidate))
     const blocked = candidates.find((candidate) => candidate.verdict.status === 'blocked' || isProvideEmail(candidate))
     const isRestartIdentity =
-        provider === 'MANTECA' &&
-        (blocked?.verdict.blocking?.selfHealKind === 'restart-identity' ||
-            blocked?.verdict.blocking?.code === 'country_not_supported')
+        blocked?.verdict.blocking?.selfHealKind === 'restart-identity' ||
+        (provider === 'MANTECA' && blocked?.verdict.blocking?.code === 'country_not_supported')
     const state: ProviderRejectionState = fixable
         ? 'fixable'
         : isRestartIdentity

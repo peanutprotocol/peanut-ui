@@ -23,6 +23,8 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { writeStoredValue } from '@/utils/safe-storage'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
  * (same model as features/home/useHomeFlow).
@@ -115,6 +117,9 @@ export function useCardFlow() {
     // KYC residence is eligible and only an open residence-change request is
     // restricting issuance. The recovery screen links to that exact request.
     const [pendingResidenceBlocked, setPendingResidenceBlocked] = useState(false)
+    // The send gate's refusal of Rain for this plan (POST /rain/cards 403
+    // provider-not-in-plan), when the app has copy and a step for it.
+    const [planRefusal, setPlanRefusal] = useState<string | null>(null)
 
     const state = computeCardState({
         overview,
@@ -157,6 +162,15 @@ export function useCardFlow() {
     const invalidateOverview = useCallback(() => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
+
+    // The identity steps a plan refusal asks for: a supplement, or a restart with another document.
+    const kycFlow = useMultiPhaseKycFlow({
+        onKycSuccess: () => {
+            setPlanRefusal(null)
+            invalidateOverview()
+        },
+    })
+    const startKycAction = kycFlow.handleStartAction
 
     // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
     // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
@@ -275,6 +289,15 @@ export function useCardFlow() {
                 setPendingResidenceBlocked(true)
                 return
             }
+            if (res.status === 'provider-not-in-plan' && 'message' in res) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                const reason = 'reason' in res ? res.reason : undefined
+                if (reason === 'requirements_missing') void startKycAction('supplement:rain')
+                else if (reason && reasonCodeKey(reason)) setPlanRefusal(reason)
+                else setApplyError(res.message)
+                return
+            }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
@@ -287,7 +310,7 @@ export function useCardFlow() {
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo]
+        [invalidateOverview, refetchCardInfo, startKycAction]
     )
 
     // Card-create-after-apply failure detector (see advanceFromApplyResponse).
@@ -584,6 +607,9 @@ export function useCardFlow() {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
+        planRefusal,
+        setPlanRefusal,
+        kycFlow,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,

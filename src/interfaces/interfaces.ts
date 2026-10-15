@@ -5,7 +5,7 @@ import { type UserCapabilities, type IdentityVerification } from '@/types/capabi
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
 // phases for the multi-phase kyc verification modal
-export type KycModalPhase = 'verifying' | 'preparing' | 'bridge_tos' | 'complete'
+export type KycModalPhase = 'verifying' | 'preparing' | 'bridge_tos' | 'supplement' | 'complete'
 
 // per-provider rail status for tracking after kyc approval
 export type ProviderDisplayStatus = 'setting_up' | 'requires_tos' | 'requires_documents' | 'enabled' | 'failed'

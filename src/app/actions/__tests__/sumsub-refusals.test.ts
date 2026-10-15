@@ -311,3 +311,64 @@ describe('residence refusals (code field)', () => {
         }
     )
 })
+
+describe('startKycAction — an action Sumsub already reviewed', () => {
+    it('reports it as completed instead of an invalid response', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                levelName: 'provider-rfi-proof-of-address',
+                externalActionId: 'supplement-1',
+                status: 'completed',
+            }),
+        } as unknown as Response)
+        expect(await startKycAction('supplement:bridge')).toEqual({
+            data: { levelName: 'provider-rfi-proof-of-address', externalActionId: 'supplement-1', completed: true },
+        })
+    })
+
+    it('still refuses a body with neither a token, a session nor a completed status', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ levelName: 'provider-rfi-proof-of-address' }),
+        } as unknown as Response)
+        expect(await startKycAction('supplement:bridge')).toMatchObject({ code: 'invalid_response' })
+    })
+})
+
+// A supplement the gate no longer asks for: the 409 names the step to take instead.
+describe('startKycAction — a supplement that is no longer needed', () => {
+    it.each([
+        ['requirements_uncollectable', 'contact-support'],
+        ['identity_document_insufficient', 'restart-identity'],
+        ['requirements_unreadable', 'wait'],
+    ])('surfaces %s with its fallback %s', async (reason, fallback) => {
+        respondWith(409, { error: 'supplement_not_required', reason, fallback })
+        const result = await startKycAction('supplement:bridge')
+        expect(result).toMatchObject({ code: 'supplement_not_required', reason, fallback })
+        expect(result.error).not.toMatch(/supplement_not_required/)
+        expect(isTerminalActionCode(result.code)).toBe(false)
+    })
+
+    it('a refusal without a fallback still carries its code', async () => {
+        respondWith(409, { error: 'supplement_not_required' })
+        const result = await startKycAction('supplement:bridge')
+        expect(result.code).toBe('supplement_not_required')
+        expect(result.fallback).toBeUndefined()
+    })
+
+    it('drops a fallback this build cannot route', async () => {
+        respondWith(409, { error: 'supplement_not_required', reason: 'x', fallback: 'teleport' })
+        expect((await startKycAction('supplement:bridge')).fallback).toBeUndefined()
+    })
+
+    it('leaves every other refusal as it was', async () => {
+        respondWith(409, { error: 'identity_not_approved', fallback: 'contact-support' })
+        expect(await startKycAction('supplement:bridge')).toEqual({
+            error: 'Failed to start verification',
+            code: 'start_action_failed',
+        })
+    })
+})

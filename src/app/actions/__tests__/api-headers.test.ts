@@ -104,6 +104,25 @@ describe('action functions Content-Type headers', () => {
         expect(headers['Content-Type']).toBe('application/json')
     })
 
+    it('announces document-selection support on every identity initiate', async () => {
+        const { initiateSumsubKyc } = require('@/app/actions/sumsub')
+        await initiateSumsubKyc()
+        expect(getLastCallUrl()).toBe('https://api.test.com/users/identity')
+        expect(getLastCallHeaders()['x-kyc-document-selection']).toBe('1')
+
+        await initiateSumsubKyc({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' })
+        expect(getLastCallHeaders()['x-kyc-document-selection']).toBe('1')
+        expect(getLastCallHeaders()['Authorization']).toBe('Bearer test-token')
+    })
+
+    it('leaves the document-selection header off the legacy fallback after a failed plan read', async () => {
+        const { initiateSumsubKyc } = require('@/app/actions/sumsub')
+        await initiateSumsubKyc({ documentSelection: false })
+        expect(getLastCallUrl()).toBe('https://api.test.com/users/identity')
+        expect(getLastCallHeaders()['x-kyc-document-selection']).toBeUndefined()
+        expect(getLastCallHeaders()['Authorization']).toBe('Bearer test-token')
+    })
+
     it('should include Content-Type in updateUserById', async () => {
         const { updateUserById } = require('@/app/actions/users')
         await updateUserById({ name: 'Test' })

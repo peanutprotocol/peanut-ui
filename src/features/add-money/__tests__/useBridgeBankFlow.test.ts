@@ -62,6 +62,7 @@ const mockSumsubFlow = {
     isLoading: false,
     error: null,
     showWrapper: false,
+    documentPlan: null as unknown,
     handleInitiateKyc: jest.fn(),
     handleSelfHealResubmit: jest.fn(),
     handleFixableGate: jest.fn(),
@@ -185,6 +186,7 @@ describe('useBridgeBankFlow', () => {
             mockOnrampFlow.onrampData = data
         })
         mockUseLimitsValidation.mockReturnValue({ isBlocking: false, isWarning: false })
+        mockSumsubFlow.documentPlan = null
     })
 
     it('resolves the selected country from the path and fetches the user on mount', () => {
@@ -268,6 +270,17 @@ describe('useBridgeBankFlow', () => {
 
         expect(result.current.showKycModal).toBe(true)
         expect(mockPendingModalOpen).not.toHaveBeenCalled()
+    })
+
+    it('closes the KYC modal when the document list opens', () => {
+        mockGate = { kind: 'needs-identity' }
+        const { result, rerender } = renderFlow('?step=inputAmount&amount=100')
+        act(() => result.current.handleAmountContinue())
+        expect(result.current.showKycModal).toBe(true)
+
+        mockSumsubFlow.documentPlan = { available: true, routes: [] }
+        rerender()
+        expect(result.current.showKycModal).toBe(false)
     })
 
     it('Continue on a loading gate silently no-ops', () => {

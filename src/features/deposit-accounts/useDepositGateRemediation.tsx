@@ -43,11 +43,11 @@ export function useDepositGateRemediation(): {
     // corridor they tapped, one verification later.
     const [kycCorridor, setKycCorridor] = useState<DepositCorridor | undefined>()
 
-    // the SDK takes over the screen; the modal that offered to open it should not
-    // still be sitting behind it
+    // the document list or the SDK takes over the screen; the modal that offered
+    // to open it should not stay in front of it
     useEffect(() => {
-        if (sumsubFlow.showWrapper) setKycModalGate(undefined)
-    }, [sumsubFlow.showWrapper])
+        if (sumsubFlow.showWrapper || sumsubFlow.documentPlan) setKycModalGate(undefined)
+    }, [sumsubFlow.showWrapper, sumsubFlow.documentPlan])
 
     const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
         setKycCorridor(corridor)
@@ -89,16 +89,10 @@ export function useDepositGateRemediation(): {
                         return
                     }
                     if (kycModalGate?.kind === 'fixable-rejection') {
-                        // A document the provider rejected is resubmitted, not
-                        // re-collected from scratch — the same handoff the four
-                        // shipped bank surfaces make today. It is wrong for one
-                        // code: `residence_unresolved` parks the rail before the
-                        // provider ever sees the user, so the resubmit route
-                        // answers 404. peanut-ui#2985 fixes that centrally for
-                        // every surface at once; this one inherits the fix when
-                        // that merges, and must not grow its own copy of the
-                        // reason table in the meantime.
-                        await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                        // The shared router resubmits a rejected document and opens a parked rail's own step.
+                        const provider =
+                            kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'manteca' ? 'MANTECA' : 'BRIDGE'
+                        await sumsubFlow.handleFixableGate(provider, kycModalGate)
                         return
                     }
                     // The corridor, where there is one, names the level: a

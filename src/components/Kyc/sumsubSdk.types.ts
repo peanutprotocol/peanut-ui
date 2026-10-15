@@ -6,6 +6,7 @@
 export type SumsubSubmissionSource = 'sdk_submitted' | 'sdk_teardown'
 
 export interface SumsubSdkProps {
+    documentConfig?: import('@/app/actions/types/kyc-workflow.types').KycDocumentConfig
     sessionKey?: string
     visible: boolean
     accessToken: string | null

@@ -2963,6 +2963,22 @@
             "stillLoading": "Ainda estamos carregando sua conta — tente novamente em instantes.",
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
         },
+        "setup": {
+            "settingUp": "Configurando",
+            "available": "Disponível",
+            "underReview": "Em análise",
+            "documentNeeded": "Falta um documento",
+            "agreementsNeeded": "Faltam os acordos",
+            "verifyId": "Verificar ID",
+            "notAvailable": "Não disponível",
+            "verifyAgain": "Verificar de novo com documento de {country}",
+            "verifyAgainNote": "Inicia uma nova verificação de identidade.",
+            "uploadNow": "Enviar agora",
+            "later": "Depois",
+            "continueCard": "Continuar com o cartão",
+            "reviewTerms": "Revisar termos",
+            "termsNeeded": "Faltam os termos"
+        },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
             "lastStepDescription": "Último passo: aceite os termos de serviço para ativar as transferências bancárias nos EUA, na Europa e no México.",
@@ -3312,6 +3328,38 @@
             "taxId": "Sua identidade foi verificada, mas não conseguimos validar seu documento fiscal para este país. Confira e corrija os dados para habilitar transferências bancárias.",
             "details": "Algumas informações precisam ser atualizadas para habilitar transferências bancárias. Sua verificação de identidade está salva.",
             "correct": "Corrigir dados"
+        },
+        "documents": {
+            "title": "Escolha seus documentos",
+            "description": "Escolha aqui os documentos que você vai usar. Abriremos a verificação com esses documentos já selecionados.",
+            "features": "O que você gostaria de usar?",
+            "qr": "Pagamentos QR",
+            "local": "Transferências bancárias locais",
+            "bank": "Contas em USD, EUR, MXN e GBP",
+            "card": "Cartão Peanut",
+            "unavailable": "A verificação ainda não está disponível para essas opções. Tente outra opção de pagamento.",
+            "documentSet": "Documentos necessários",
+            "identity": "Documento de identidade",
+            "documentType": "Tipo de documento",
+            "issuingCountry": "País de emissão",
+            "choose": "Escolha uma opção",
+            "continue": "Continuar para a verificação",
+            "passport": "Passaporte",
+            "idCard": "Documento nacional de identidade",
+            "drivers": "Carteira de habilitação",
+            "residencePermit": "Permissão de residência",
+            "otherDocument": "Documento de apoio",
+            "preferencesTitle": "Recursos de pagamento",
+            "preferencesDescription": "Escolha os recursos de pagamento que deseja usar. Sua identidade continua verificada.",
+            "preferencesContinue": "Continuar"
+        },
+        "supplement": {
+            "proofOfAddressTitle": "Adicione um comprovante de endereço",
+            "proofOfAddressDescription": "Sua identidade está verificada. Para abrir suas contas bancárias, nosso parceiro de pagamentos também precisa de um comprovante de endereço, como um extrato bancário ou uma conta de consumo recente.",
+            "proofOfAddressCta": "Adicionar comprovante de endereço",
+            "later": "Fazer isso depois",
+            "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
+            "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação."
         }
     },
     "identity": {
@@ -3351,6 +3399,10 @@
             "tax_identification_number": "Precisamos do seu número de identificação fiscal para continuar.",
             "address_of_residence": "Precisamos do seu endereço residencial para continuar.",
             "residence_unresolved": "Ainda precisamos do seu endereço residencial para terminar de configurar as transferências bancárias. Adicione e tentaremos de novo automaticamente.",
+            "requirements_missing": "Para abrir suas contas bancárias, nosso parceiro de pagamentos precisa de um comprovante de endereço, como um extrato bancário ou uma conta de consumo recente. Envie e terminaremos de configurá-las automaticamente.",
+            "requirements_in_review": "Estamos analisando seu comprovante de endereço. Suas contas bancárias serão abertas assim que ele for aprovado.",
+            "identity_document_insufficient": "O documento que você usou na verificação não pode ser usado para esta conta. Verifique novamente com outro documento de identidade.",
+            "requirements_uncollectable": "Nosso parceiro de pagamentos precisa de algo que não conseguimos coletar no app. Fale com o suporte e terminaremos a configuração com você.",
             "proof_of_address": "Precisamos de um comprovante de residência válido.",
             "source_of_funds": "Precisamos de informações sobre a origem dos seus fundos.",
             "proof_of_source_of_funds": "Precisamos de um documento que comprove a origem dos seus fundos.",
@@ -3382,7 +3434,10 @@
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "residence_bank_restricted": "Transferências bancárias não estão disponíveis para residentes do seu país. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
-            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação."
+            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação.",
+            "document_country_unsupported": "Precisa de um documento de identidade do país: {country}",
+            "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
+            "under_minimum_age": "Somente a partir de 18 anos"
         }
     },
     "recoverFunds": {

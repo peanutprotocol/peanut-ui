@@ -12,6 +12,7 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { useCardFlow } from './useCardFlow'
 
@@ -41,6 +42,9 @@ export const CardPage: FC = () => {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
+        planRefusal,
+        setPlanRefusal,
+        kycFlow,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
@@ -109,6 +113,33 @@ export const CardPage: FC = () => {
         if (pendingResidenceBlocked) {
             return <ApplicationStatusScreen variant="pending-residence-blocked" onPrev={onBack} />
         }
+        // A supplement start the backend refused for good: support is the way on.
+        if (kycFlow.isTerminalError && kycFlow.error) {
+            return (
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonMessage={kycFlow.error}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onPrev={onBack}
+                />
+            )
+        }
+        if (planRefusal) {
+            return (
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonCode={planRefusal}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onUploadIdentity={
+                        planRefusal === 'identity_document_insufficient'
+                            ? () => void kycFlow.handleRestartIdentity()
+                            : undefined
+                    }
+                    uploadError={kycFlow.error ?? undefined}
+                    onPrev={() => setPlanRefusal(null)}
+                />
+            )
+        }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.
         if (pendingCountryConfirmation) {
@@ -169,7 +200,7 @@ export const CardPage: FC = () => {
                         fundingRequired={fundingRequired}
                         onApply={() => handleApply(false)}
                         onPrev={onBack}
-                        applyError={applyError}
+                        applyError={applyError ?? kycFlow.error}
                     />
                 )
             case 'pending':
@@ -291,6 +322,7 @@ export const CardPage: FC = () => {
                     return response.data.token
                 }}
             />
+            <SumsubKycModals flow={kycFlow} />
             <SumsubKycWrapper
                 visible={sumsubToken !== null}
                 accessToken={sumsubToken}

@@ -1493,6 +1493,19 @@
             "taxId": "Tu identidad está verificada, pero no pudimos validar tu identificación fiscal para este país. Revisala y corregila para habilitar las transferencias bancarias.",
             "details": "Hay información que debés actualizar para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
             "correct": "Corregir datos"
+        },
+        "documents": {
+            "title": "Elegí tus documentos",
+            "description": "Elegí acá los documentos que vas a usar. Abriremos la verificación con estos documentos ya seleccionados.",
+            "unavailable": "La verificación todavía no está disponible para estas opciones. Probá otra opción de pago.",
+            "choose": "Elegí una opción",
+            "preferencesTitle": "Funciones de pago",
+            "preferencesDescription": "Elegí las funciones de pago que querés usar. Tu identidad sigue verificada.",
+            "preferencesContinue": "Continuar"
+        },
+        "supplement": {
+            "proofOfAddressTitle": "Agregá un comprobante de domicilio",
+            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos."
         }
     },
     "identity": {
@@ -1502,6 +1515,9 @@
         "reasons": {
             "eea_tin_reupload": "Volvé a subir tu número de identificación fiscal.",
             "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agregalo y lo reintentaremos automáticamente.",
+            "requirements_missing": "Para abrir tus cuentas bancarias, nuestro socio de pagos necesita un comprobante de domicilio, como un estado de cuenta bancario o una factura de servicios reciente. Agregalo y terminaremos de configurarlas automáticamente.",
+            "identity_document_insufficient": "El documento con el que te verificaste no se puede usar para esta cuenta. Verificate de nuevo con otro documento de identidad.",
+            "requirements_uncollectable": "Nuestro socio de pagos necesita algo que no podemos recopilar en la app. Escribile a soporte y terminaremos la configuración con vos.",
             "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agregá uno a tu perfil y lo reintentaremos automáticamente.",
             "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: tocá abajo para escribirle a soporte.",
             "bridge_tos_required": "Aceptá los términos de nuestro socio de pagos para continuar.",
