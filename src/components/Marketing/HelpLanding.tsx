@@ -6,7 +6,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { SearchInput } from '@/components/SearchInput'
 import { ContentLinkRow } from './ContentLinkRow'
-import { PROSE_WIDTH } from './constants'
+import { HUB_WIDTH } from './constants'
 import { isCapacitor } from '@/utils/capacitor'
 import { isNativeHelpContext } from '@/utils/native-help-context'
 import { showCrispLauncher } from '@/utils/crisp-launcher'
@@ -105,7 +105,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
     return (
         <>
             {/* Search */}
-            <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
+            <div className={`mx-auto mt-10 mb-8 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
                 <SearchInput
                     value={searchTerm}
                     onChange={setSearchTerm}
@@ -117,7 +117,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
             </div>
 
             {/* Articles by category */}
-            <div className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
+            <div className={`mx-auto ${HUB_WIDTH} px-6 md:px-4`}>
                 {filteredCategories.length > 0 ? (
                     <div className="flex flex-col gap-10">
                         {filteredCategories.map((category) => (

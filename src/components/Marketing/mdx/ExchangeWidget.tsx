@@ -48,7 +48,7 @@ function ExchangeWidgetInner({
     // migration hero all use it). No semantic token names it — flagged, not
     // swapped: the only token carrying that hex is avatar-blue-border.
     return (
-        <section className="relative my-8 w-full bg-blue-300 pt-10 pb-14 md:pt-14 md:pb-16">
+        <section className="relative w-full bg-blue-300 py-16 md:py-24">
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <CloudsCss clouds={widgetClouds} />
                 <Image
@@ -102,7 +102,7 @@ export function ExchangeWidget(props: ExchangeWidgetProps) {
     return (
         <Suspense
             fallback={
-                <section className="relative my-8 w-full overflow-hidden bg-blue-300 pt-10 pb-14 md:pt-14 md:pb-16">
+                <section className="relative w-full overflow-hidden bg-blue-300 py-16 md:py-24">
                     <div className="relative z-10 mx-auto max-w-[640px] px-6 md:px-4">
                         {/* same Card, same slots, same sizes as the loaded
                             widget, so the swap does not jump */}

@@ -152,7 +152,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
     return (
         <section
             id="hero"
-            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-background-brand px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-background-brand px-6 pt-4 pb-12 md:px-4 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
             <CloudsCss clouds={heroClouds} className="md:hidden" />
             <CloudsCss className="hidden md:block" />
@@ -162,7 +162,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     src={GlobalCashLocalFeel}
                     preload
                     sizes="(min-width: 768px) 50vw, 100vw"
-                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-[1000px] object-contain md:w-[50%]"
+                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-7xl object-contain md:w-[50%]"
                     alt="Global Cash Local Feel"
                 />
 
@@ -188,7 +188,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
                     back from this gap rather than from the artwork, so every locale keeps the same
                     hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
-                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
+                <h2 className="font-roboto-flex-extrabold mt-16 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
                 <span

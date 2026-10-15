@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { twMerge } from '@/utils/tw'
 import manifest from '@/content/generated/footer-manifest.json'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { getTranslations, t } from '@/i18n'
@@ -119,7 +120,10 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
     )
 }
 
-export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {}) {
+export function SEOFooter({
+    locale = DEFAULT_LOCALE,
+    padForStickyCta = false,
+}: { locale?: Locale; padForStickyCta?: boolean } = {}) {
     const i18n = getTranslations(locale)
     const sendTo = (manifest.sendMoney?.to ?? []) as ManifestEntry[]
     // The manifest may still list a retired corridor; it answers 410.
@@ -153,8 +157,13 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
         return key ? i18n[key] : entry.name
     }
 
+    // pb-24 clears the fixed StickyMobileCTA, which only the landing
+    // (home, /lp) renders — every other route keeps the plain py-8.
     return (
-        <nav aria-label={i18n.footerSiteDirectory} className="bg-black px-8 py-8 pb-24 md:px-20 md:pb-8">
+        <nav
+            aria-label={i18n.footerSiteDirectory}
+            className={twMerge('bg-black px-6 py-8 md:px-20', padForStickyCta && 'pb-24 md:pb-8')}
+        >
             <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
                 {hasSendMoney && (
                     <FooterSection title={i18n.sendMoney}>
