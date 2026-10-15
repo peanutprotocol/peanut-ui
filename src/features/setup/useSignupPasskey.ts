@@ -9,8 +9,8 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
-import { isCapacitor } from '@/utils/capacitor'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
+import { isCapacitor, isIOSNativeBridge } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-errors'
@@ -172,12 +172,13 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
-            // iOS ends the ceremony as a plain cancel when iCloud Passwords is
-            // off, even after its own prompt sent the user to Settings.
+            // The iOS app ends the ceremony as a plain cancel when iCloud
+            // Passwords is off, even after its own prompt sent the user to
+            // Settings. iPhone Safari keeps the browser path below.
             const nativeReason = nativePasskeyFailure(err)
             const cancelled =
                 nativeReason === 'canceled' || (!nativeReason && err.name === WebAuthnErrorName.NotAllowed)
-            if (cancelled && deviceType === DeviceType.IOS && !isProbablyPrivateMode()) {
+            if (cancelled && isIOSNativeBridge()) {
                 if (nativeReason) reportPasskeyFailure(err, 'registration')
                 iosCancelsRef.current += 1
                 if (iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {

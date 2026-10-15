@@ -16,9 +16,9 @@ the user canceled or that a passkey is missing.
 | Unknown technical failure | Existing flow-specific error handling | Preserve the original diagnostic |
 
 The signup flow retains its existing quiet handling for unspecified WebAuthn
-refusals, with one exception: on iOS, the second cancel or unspecified refusal on
-the same username step opens the "passkey not saved" help drawer (iCloud
-Passwords steps). iOS ends registration as a cancel when iCloud Passwords is off,
+refusals, with one exception: in the native iOS app (not iPhone Safari), the
+second cancel or unspecified refusal on the same username step opens the
+"passkey not saved" help drawer (iCloud Passwords steps). iOS ends registration as a cancel when iCloud Passwords is off,
 even after its own prompt sends the user to Settings, so repeated cancels are the
 only signal the app gets. Specific native failures receive the same recovery as
 login and signing.

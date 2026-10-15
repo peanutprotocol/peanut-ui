@@ -18,6 +18,7 @@ const mockSetNoBackLock = jest.fn()
 const mockNext = jest.fn()
 let mockHandleNext = mockNext
 let mockDeviceType = 'android'
+let mockIOSNativeBridge = false
 
 jest.mock('@/hooks/useZeroDev', () => ({
     useZeroDev: () => ({ handleRegister: mockHandleRegister, address: mockAddress, isRegistering: mockIsRegistering }),
@@ -27,9 +28,10 @@ jest.mock('@/hooks/useSetupFlow', () => ({
     SETUP_POST_REGISTRATION_SCREEN: 'residence',
     useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext }),
 }))
-jest.mock('@/hooks/useGetDeviceType', () => ({
-    DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },
-    useDeviceType: () => ({ deviceType: mockDeviceType }),
+jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: mockDeviceType }) }))
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isIOSNativeBridge: () => mockIOSNativeBridge,
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ setNoBackLockScreenId: mockSetNoBackLock }),
@@ -66,6 +68,7 @@ beforeEach(() => {
     mockIsRegistering = false
     mockHandleNext = mockNext
     mockDeviceType = 'android'
+    mockIOSNativeBridge = false
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
     // 404 = username free, so the handler proceeds to registration
     mockApiFetch.mockResolvedValue({ status: 404 })
@@ -336,6 +339,7 @@ describe('failures keep the user on the username step', () => {
         ],
     ])('shows specific recovery for %s', async (message, copy) => {
         mockDeviceType = 'ios'
+        mockIOSNativeBridge = true
         mockHandleRegister.mockRejectedValue(
             Object.assign(new Error('The operation couldn’t be completed. ' + message), { name: 'NotAllowedError' })
         )
@@ -369,11 +373,11 @@ describe('failures keep the user on the username step', () => {
 })
 
 /*
- * iOS ends the ceremony as a plain cancel when iCloud Passwords is off, even
- * after its own prompt sent the user to Settings — users retried ~5 times and
- * gave up on "Try again when ready".
+ * The iOS app ends the ceremony as a plain cancel when iCloud Passwords is off,
+ * even after its own prompt sent the user to Settings — users retried ~5 times
+ * and gave up on "Try again when ready".
  */
-describe('repeated cancels on iOS', () => {
+describe('repeated cancels in the iOS app', () => {
     const cancel = (message = 'cancelled') => Object.assign(new Error(message), { name: 'NotAllowedError' })
     const claimAndSettle = async () => {
         const failures = failedEvents().length
@@ -384,6 +388,7 @@ describe('repeated cancels on iOS', () => {
 
     beforeEach(() => {
         mockDeviceType = 'ios'
+        mockIOSNativeBridge = true
     })
 
     it('keeps the first cancel quiet and opens the iCloud help on the second', async () => {
@@ -429,8 +434,12 @@ describe('repeated cancels on iOS', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('leaves Android cancels inline however often they repeat', async () => {
-        mockDeviceType = 'android'
+    it.each([
+        ['iPhone Safari', 'ios'],
+        ['Android', 'android'],
+    ])('leaves %s cancels inline however often they repeat', async (_, deviceType) => {
+        mockDeviceType = deviceType
+        mockIOSNativeBridge = false
         mockHandleRegister.mockRejectedValue(cancel())
         renderWithIntl(<Harness />)
         await claimAndSettle()
