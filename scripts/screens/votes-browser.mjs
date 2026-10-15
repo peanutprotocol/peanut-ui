@@ -858,6 +858,64 @@ async function main() {
         await scopePage.locator(`#${bobVoted[0]} .tile-foot [data-vote][aria-pressed="true"]`).click()
         await shows(bobVoted.slice(1), "You haven't voted")
         assert.equal(new URL(scopePage.url()).searchParams.get('by'), 'me')
+
+        // Another teammate's change reaches the filter on window focus, including a card it was hiding.
+        await scopePage.selectOption('#votes', 'up')
+        await scopePage.locator('label:has(#vote-scope-all) > span').click()
+        const upvotedBefore = votedByAnyone(1)
+        await shows(upvotedBefore, 'No upvoted screens')
+        const screenOf = (key) => JSON.parse(key)[1]
+        for (const row of db.prepare('SELECT actor_id, scope_key FROM screen_votes WHERE value = 1').all())
+            if (screenOf(row.scope_key) === upvotedBefore[0])
+                db.prepare(
+                    'UPDATE screen_votes SET value = 0, version = version + 1 WHERE actor_id = ? AND scope_key = ?'
+                ).run(row.actor_id, row.scope_key)
+        const hiddenKey = db
+            .prepare('SELECT scope_key FROM screen_vote_scopes')
+            .all()
+            .map((row) => row.scope_key)
+            .find((key) => JSON.parse(key)[5] === 'after' && !upvotedBefore.includes(screenOf(key)))
+        if (hiddenKey)
+            db.prepare(
+                `INSERT INTO screen_votes (actor_id, scope_key, value, version) VALUES ('dan@example.test', ?, 1, 1)
+                 ON CONFLICT(actor_id, scope_key) DO UPDATE SET value = 1, version = screen_votes.version + 1`
+            ).run(hiddenKey)
+        const upvotedAfter = votedByAnyone(1)
+        assert.notDeepEqual(upvotedAfter, upvotedBefore, 'the teammate change is visible to the filter')
+        await scopePage.evaluate(() => window.dispatchEvent(new Event('focus')))
+        await shows(upvotedAfter, 'No upvoted screens')
+
+        // A failed reload right after a save keeps a still-matching card, with its own Refresh.
+        await scopePage.selectOption('#votes', 'up,down')
+        const anyVote = reportOrder.filter((id) => votedByAnyone(1).includes(id) || votedByAnyone(-1).includes(id))
+        await shows(anyVote, 'No voted screens')
+        const keeper = anyVote[0]
+        let voteSent = false
+        let failNextSummary = true
+        await scopePage.route('**/screen-data/comments/votes', async (route) => {
+            if (route.request().method() === 'POST') voteSent = true
+            await route.continue()
+        })
+        await scopePage.route('**/screen-data/comments/votes/summary', async (route) => {
+            if (voteSent && failNextSummary && route.request().method() === 'POST') {
+                failNextSummary = false
+                await route.fulfill({
+                    status: 503,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ error: 'Synthetic summary outage' }),
+                })
+                return
+            }
+            await route.continue()
+        })
+        await scopePage.locator(`#${keeper} .tile-foot [data-vote][aria-pressed="false"]`).first().click()
+        await scopePage
+            .locator(`#${keeper} .tile-foot [data-vote-refresh]`)
+            .waitFor({ state: 'visible', timeout: 8000 })
+        await shows(anyVote, 'No voted screens')
+        await scopePage.locator(`#${keeper} .tile-foot [data-vote-refresh]`).click()
+        await scopePage.locator(`#${keeper} .tile-foot [data-vote-refresh]`).waitFor({ state: 'hidden', timeout: 8000 })
+        await shows(anyVote, 'No voted screens')
         await scopeContext.close()
         assert.deepEqual(pageErrors, [], 'public viewer has no uncaught browser errors')
         console.log(

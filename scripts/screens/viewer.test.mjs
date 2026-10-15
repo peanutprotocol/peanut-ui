@@ -1666,6 +1666,7 @@ const bobTotals = {
 function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' } = {}) {
     const loaded = new Map()
     const calls = []
+    const forced = []
     const state = { totals: voteTotals, options: undefined }
     const client = {
         setContext: async () => {},
@@ -1673,8 +1674,9 @@ function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' }
         voteControls: () => new Element('votes'),
         votesAvailable: () => true,
         voteTotals: (scope) => loaded.get(scope.screenId),
-        async loadVoteTotals(scopes) {
+        async loadVoteTotals(scopes, { force = false } = {}) {
             calls.push(scopes.map((scope) => scope.screenId))
+            forced.push(force)
             if (calls.length <= fail) throw new Error(failure)
             for (const scope of scopes) loaded.set(scope.screenId, state.totals[scope.screenId])
         },
@@ -1688,6 +1690,11 @@ function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' }
         loaded.set(screenId, totals)
         state.options.onVotesChange()
     }
+    // Mirrors comments.js: teammates changed votes, then focus or the feed's Refresh calls onVotesRefresh.
+    const teammatesChanged = (totals) => {
+        state.totals = totals
+        state.options.onVotesRefresh()
+    }
     // Mirrors votes.js: an account change clears personal totals, then calls onVotesReset.
     const switchAccount = (totals) => {
         state.totals = totals
@@ -1700,7 +1707,9 @@ function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' }
             return client
         },
         calls,
+        forced,
         settleVote,
+        teammatesChanged,
         switchAccount,
     }
 }
@@ -1952,4 +1961,55 @@ test('settled votes leave the list alone when no vote filter is on', async () =>
     const before = elements.get('screens').children
     screenComments.settleVote('loved', { up: 0, down: 0, mine: 0 })
     assert.equal(elements.get('screens').children, before, 'no re-render without a vote filter')
+})
+
+test('a focus or feed refresh re-checks every row the vote filter covers without a loading flash', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    screenComments.teammatesChanged({
+        ...voteTotals,
+        split: { up: 0, down: 1, mine: -1 },
+        disliked: { up: 1, down: 1, mine: 0 },
+    })
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'], 'the current list stays while totals reload')
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked'], 'removed and newly matching cards both update')
+    assert.deepEqual(
+        [...screenComments.calls.at(-1)],
+        ['loved', 'disliked', 'split', 'quiet'],
+        'hidden rows are re-checked'
+    )
+    assert.equal(screenComments.forced.at(-1), true)
+})
+
+test('a refresh with no vote filter on loads nothing extra', async () => {
+    const screenComments = fakeComments()
+    await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en',
+        screenComments,
+    })
+    await settle()
+    screenComments.teammatesChanged(bobTotals)
+    await settle()
+    assert.equal(screenComments.calls.length, 0)
+})
+
+test('unknown totals never hide a card that is already on screen', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up,down',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
+    screenComments.settleVote('split', undefined)
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
 })

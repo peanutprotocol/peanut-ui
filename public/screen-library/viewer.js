@@ -419,6 +419,7 @@ const comments =
               onNavigate: navigateComment,
               onVotesReset: voteTotalsReset,
               onVotesChange: voteTotalsChanged,
+              onVotesRefresh: voteTotalsRefreshed,
           })
         : null
 function commentScopes(row) {
@@ -1163,7 +1164,7 @@ function navigatePreview(direction) {
     const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
     zoom(filteredRows[next], activeMode)
 }
-const voteFilter = { loading: false, error: '', requested: new Set(), stale: false }
+const voteFilter = { loading: false, error: '', requested: new Set(), stale: false, refreshing: false }
 const voteChoice = () => {
     const picked = ($('votes')?.value ?? '').split(',')
     return { up: picked.includes('up'), down: picked.includes('down') }
@@ -1194,6 +1195,20 @@ function voteTotalsChanged() {
     if (!report || !(up || down)) return
     if ($('zoom').open) voteFilter.stale = true
     else refreshVoteFilter()
+}
+// Focus and the feed's Refresh reload votes. Quietly re-check every row the active filter covers,
+// including rows it hides; if that fails the current list stays and the cards show their own errors.
+function voteTotalsRefreshed() {
+    const { up, down } = voteChoice()
+    if (!report || !(up || down) || voteFilter.loading || voteFilter.refreshing) return
+    const scopes = filteredScreenRows().map(afterScope).filter(Boolean)
+    if (!scopes.length) return
+    voteFilter.refreshing = true
+    comments
+        .loadVoteTotals(scopes, { force: true })
+        .then(voteTotalsChanged)
+        .catch(() => {})
+        .finally(() => (voteFilter.refreshing = false))
 }
 function refreshVoteFilter() {
     voteFilter.stale = false
@@ -1233,11 +1248,13 @@ function voteFiltered(candidates) {
     }
     if (voteFilter.error) return { rows: [], notice: voteFilter.error, retry: true }
     const mine = myVotes()
+    const shown = new Set(filteredRows.map((row) => row.id))
     return {
         rows: candidates.filter((row) => {
             const scope = afterScope(row)
             const totals = scope && comments.voteTotals(scope)
-            if (!totals) return false
+            // Unknown totals (a save in flight or a failed reload) never hide a card already on screen.
+            if (!totals) return Boolean(scope) && shown.has(row.id)
             return mine
                 ? (choice.up && totals.mine === 1) || (choice.down && totals.mine === -1)
                 : (choice.up && totals.up > 0) || (choice.down && totals.down > 0)

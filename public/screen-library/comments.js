@@ -1,7 +1,7 @@
 /* Private screen discussions. All user content is rendered as literal text. */
 'use strict'
 window.ScreenComments = {
-    create({ feed, panel, dialog, onNavigate, onVotesReset, onVotesChange }) {
+    create({ feed, panel, dialog, onNavigate, onVotesReset, onVotesChange, onVotesRefresh }) {
         const node = (tag, text, cls) => {
             const n = document.createElement(tag)
             if (text !== undefined) n.textContent = text
@@ -199,6 +199,7 @@ window.ScreenComments = {
                 () => {
                     loadFeed()
                     voting?.refresh(true)
+                    onVotesRefresh?.()
                 },
                 'comment-refresh'
             )
@@ -663,6 +664,7 @@ window.ScreenComments = {
                 await loadFeed()
                 scheduleCounts()
                 voting?.refresh(true)
+                onVotesRefresh?.()
                 if (opened && user?.id !== previous) await loadPanel()
             } catch (error) {
                 if (error.status !== 401) {
@@ -692,10 +694,10 @@ window.ScreenComments = {
             voteControls: (scope) => voting?.mount(scope),
             votesAvailable: () => Boolean(voting),
             voteTotals: (scope) => voting?.totalsFor(scope),
-            async loadVoteTotals(scopes) {
+            async loadVoteTotals(scopes, options) {
                 if (!voting) throw new Error('Votes are unavailable.')
                 if (!user) await authenticate()
-                await voting.loadTotals(scopes)
+                await voting.loadTotals(scopes, options)
             },
             isOpen: () => opened,
             current: () => current,

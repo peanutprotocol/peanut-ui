@@ -120,13 +120,13 @@ window.ScreenVoting = {
                 : undefined
         }
         // Totals for screens that may not be on the page yet (vote filters span every row).
-        async function loadTotals(scopes) {
+        async function loadTotals(scopes, { force = false } = {}) {
             const actor = getUser()?.id
             if (!actor) throw Object.assign(new Error('Sign in to filter by votes.'), { status: 401 })
             const captured = generation,
                 epoch = getEpoch()
             const missing = new Map()
-            for (const scope of scopes) if (!totalsFor(scope)) missing.set(keyOf(scope), canonical(scope))
+            for (const scope of scopes) if (force || !totalsFor(scope)) missing.set(keyOf(scope), canonical(scope))
             for (const batch of batchesOf(missing.values())) {
                 const data = await api('/votes/summary', { method: 'POST', body: JSON.stringify({ scopes: batch }) })
                 if (captured !== generation || epoch !== getEpoch() || actor !== getUser()?.id)
@@ -232,7 +232,8 @@ window.ScreenVoting = {
                 intents.delete(widget.key)
                 states.delete(widget.key)
                 await load()
-                onChange?.()
+                // A failed summary leaves no totals; filtering on that would hide a still-matching card.
+                if (totalsFor(widget.scope)) onChange?.()
             } catch (error) {
                 if (intents.get(widget.key) !== intent) return
                 intent.conflict =
@@ -299,7 +300,7 @@ window.ScreenVoting = {
                 try {
                     await authenticate()
                     await load(true, key)
-                    onChange?.()
+                    if (totalsFor(scope)) onChange?.()
                 } catch {
                     paint()
                 }
