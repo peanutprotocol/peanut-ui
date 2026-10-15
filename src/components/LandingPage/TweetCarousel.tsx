@@ -110,9 +110,10 @@ const PlayOverlay = () => (
     </div>
 )
 
-/** Base card styles shared across all card types */
+/** Base card styles shared across all card types. The 4px shadow matches the
+ *  4px press translate — law 7: the press drops the card into its own shadow. */
 const CARD_BASE_CLASSES =
-    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none'
+    'shadow-4 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none'
 
 /** Featured card with media (photo or video) - tallest card type */
 const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
