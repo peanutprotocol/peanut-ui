@@ -252,6 +252,7 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
             status?: string
             amount?: string
             bankReceived?: string
+            completedAt?: string
         } = {}
     ): HistoryEntry =>
         ({
@@ -266,6 +267,7 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
             totalAmountCollected: collected,
             ...(opts.charges ? { charges: opts.charges } : {}),
             ...(opts.bankReceived ? { extraData: { receivedAmount: opts.bankReceived } } : {}),
+            ...(opts.completedAt ? { completedAt: opts.completedAt } : {}),
         }) as unknown as HistoryEntry
 
     const twoPages = (first: HistoryEntry, second: HistoryEntry) =>
@@ -391,6 +393,43 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
         expect(result.entries[0].totalAmountCollected).toBe(40)
     })
 
+    it('a bank payment that lands between page fetches is not lost', async () => {
+        // page 2 was fetched after a $40 bank deposit; page 1 predates it
+        const fetchPage = twoPages(
+            potRow(30, { amount: '100', bankReceived: '0', charges: [charge('ch-1', '30')] }),
+            potRow(70, { amount: '100', bankReceived: '40', charges: [charge('ch-2', '30')] })
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(100)
+    })
+
+    it('keeps the larger bank amount through a three-page merge', async () => {
+        const pages: HistoryResponse[] = [
+            {
+                entries: [potRow(30, { amount: '120', bankReceived: '0', charges: [charge('ch-1', '30')] })],
+                cursor: 'c1',
+                hasMore: true,
+            },
+            {
+                entries: [potRow(70, { amount: '120', bankReceived: '40', charges: [charge('ch-2', '30')] })],
+                cursor: 'c2',
+                hasMore: true,
+            },
+            { entries: [potRow(20, { amount: '120', charges: [charge('ch-3', '20')] })], hasMore: false },
+        ]
+        const fetchPage = jest.fn(
+            (cursor?: string): Promise<HistoryResponse> => Promise.resolve(pages[cursor ? Number(cursor.slice(1)) : 0])
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(fetchPage).toHaveBeenCalledTimes(3)
+        expect(result.entries[0].totalAmountCollected).toBe(120)
+        expect(result.entries[0].extraData?.receivedAmount).toBe('40')
+    })
+
     it('falls back to the greater precomputed total when no page ships charges', async () => {
         const fetchPage = twoPages(potRow(10), potRow(12))
 
@@ -416,6 +455,30 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
         const result = await collectLatestEntries(fetchPage, 5)
 
         expect(new Date(result.entries[0].timestamp).toISOString()).toBe('2026-08-05T00:00:00.000Z')
+    })
+
+    it('a request settled between page fetches maps to completed, though short in USD', async () => {
+        // page 1 predates settlement; page 2 was fetched after the bank deposit closed it
+        const fetchPage = twoPages(
+            potRow(3, { amount: '5.64', charges: [charge('ch-1', '3')], timestamp: '2026-08-01T00:00:00Z' }),
+            potRow(5.57, {
+                amount: '5.64',
+                charges: [charge('ch-2', '2.57')],
+                timestamp: '2026-08-02T00:00:00Z',
+                status: 'CLOSED',
+                completedAt: '2026-08-02T00:00:00Z',
+            })
+        )
+
+        const { entries } = await collectLatestEntries(fetchPage, 5)
+        const merged = {
+            ...entries[0],
+            userRole: EHistoryUserRole.RECIPIENT,
+            extraData: { kind: 'P2P_REQUEST_FULFILL' },
+        } as HistoryEntry
+
+        expect(merged.completedAt).toBe('2026-08-02T00:00:00Z')
+        expect(mapTransactionDataForDrawer(merged).transactionDetails.status).toBe('completed')
     })
 
     it('the merged disjoint row maps to completed — a fully-paid pot loses the hourglass', async () => {

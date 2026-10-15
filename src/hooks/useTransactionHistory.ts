@@ -128,10 +128,11 @@ function sumCollectedFromCharges(entry: HistoryEntry, charges: ChargeEntry[]): n
  * charges that repeat at a page boundary.
  *
  * Rule: union the `charges` by uuid and re-derive the total from that union
- * plus the bank part (`extraData.receivedAmount`, once), take the later `timestamp`, and keep the earlier (page-0) copy for
- * everything else — the link-level fields (amount/goal, status, recipient) are
- * identical across copies, and page 0 is the freshest for a
- * websocket-prepended row. When no page shipped a charges array (or the token
+ * plus the larger bank part (`extraData.receivedAmount`, once), take the later
+ * `timestamp` and the status with its settlement stamps from that copy, and
+ * keep the earlier (page-0) copy for everything else — the other link-level
+ * fields (amount/goal, recipient) are identical across copies, and page 0 is
+ * the freshest for a websocket-prepended row. When no page shipped a charges array (or the token
  * is unknown) the re-derivation isn't possible, so the greater precomputed
  * page total is used instead; it also floors the re-derived value so a page
  * reporting more than its own charges account for can never lose ground.
@@ -145,11 +146,13 @@ function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): His
 
     const greatestPageTotal = Math.max(existing.totalAmountCollected ?? 0, incoming.totalAmountCollected ?? 0)
     // Bank deposits are no charge: each copy's total includes them, the charge
-    // union does not. Every copy carries the same bank amount, so add it once.
-    const bankReceived = Number(existing.extraData?.receivedAmount ?? 0)
+    // union does not, so add them once. The bank amount only grows, and a
+    // deposit can land between two page fetches: take the larger copy's.
+    const bankReceived = Math.max(bankReceivedOf(existing), bankReceivedOf(incoming))
+    const carriesBankAmount =
+        existing.extraData?.receivedAmount !== undefined || incoming.extraData?.receivedAmount !== undefined
     const chargesTotal = sumCollectedFromCharges(existing, charges)
-    const derivedTotal =
-        chargesTotal === undefined ? undefined : chargesTotal + (Number.isFinite(bankReceived) ? bankReceived : 0)
+    const derivedTotal = chargesTotal === undefined ? undefined : chargesTotal + bankReceived
     // `>=`, not `>`: a rollup repeats under the same uuid on every page holding
     // its charges and its timestamp does NOT move when the link status flips, so
     // a strict comparison would keep page 0's stale status through a
@@ -163,13 +166,24 @@ function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): His
         timestamp: fresher.timestamp,
         // Link-level state can change mid-pagination (a request closed between
         // pages), and the status drives the pill — take it from the fresher
-        // copy. Identity fields stay with page 0, which is the freshest for a
+        // copy, with the settlement stamps that go with it so the three always
+        // agree. Identity fields stay with page 0, which is the freshest for a
         // websocket-prepended row.
         status: fresher.status,
+        completedAt: fresher.completedAt,
+        cancelledAt: fresher.cancelledAt,
         totalAmountCollected:
             derivedTotal !== undefined ? Math.max(derivedTotal, greatestPageTotal) : greatestPageTotal,
         charges: charges.length ? charges : existing.charges,
+        // Written back so a third page merging into this result still sees it.
+        ...(carriesBankAmount ? { extraData: { ...existing.extraData, receivedAmount: String(bankReceived) } } : {}),
     }
+}
+
+/** A rollup copy's bank part, in USD; 0 when absent or malformed. */
+function bankReceivedOf(entry: HistoryEntry): number {
+    const amount = Number(entry.extraData?.receivedAmount ?? 0)
+    return Number.isFinite(amount) ? amount : 0
 }
 
 /**
