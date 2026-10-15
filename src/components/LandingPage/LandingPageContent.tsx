@@ -19,10 +19,6 @@ import { landingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 import { contentHrefsFor } from './landingContentHrefs.server'
 
-// Blue, not Manteca's default cream: on the homepage it follows RegulatedRails,
-// which is cream already.
-const MANTECA_BG_COLOR = '#90A8ED'
-
 // Shared body of the landing page, rendered by / (en) and by each per-locale
 // landing route. Reads the filesystem via getLandingContent, so this must stay
 // a server component.
@@ -79,7 +75,9 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     strings={strings}
                     contentHrefs={contentHrefs}
                     problemSlot={<ProblemFold strings={strings} />}
-                    mantecaSlot={<Manteca locale={locale} backgroundColor={MANTECA_BG_COLOR} />}
+                    // The lavender band, not Manteca's default cream: on the homepage it
+                    // follows RegulatedRails, which is cream already.
+                    mantecaSlot={<Manteca locale={locale} backgroundClassName="bg-background-marketing-sky" />}
                     regulatedRailsSlot={<RegulatedRails locale={locale} />}
                     yourMoneySlot={<YourMoney locale={locale} />}
                     securitySlot={<SecurityBuiltIn locale={locale} />}

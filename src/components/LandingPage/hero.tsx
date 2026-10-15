@@ -208,7 +208,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     </Link>
                     .
                 </span>
-                <span className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m">
+                <span className="mt-2 block text-center text-body-s text-foreground-over-color-secondary md:text-body-m">
                     {strings.heroNoLocalId}
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}

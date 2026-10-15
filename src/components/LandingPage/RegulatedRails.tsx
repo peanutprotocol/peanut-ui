@@ -99,10 +99,13 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
             </div>
 
             <div className="w-full">
-                <p className="mb-4 text-center text-body-s tracking-widest text-foreground-primary uppercase opacity-60">
+                <p className="mb-4 text-center text-body-s tracking-widest text-foreground-secondary uppercase">
                     {i18n.landingWorksWith}
                 </p>
-                <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">
+                {/* The old raw white hex here was a dead class (the prop takes a
+                    Tailwind class), so this strip has always rendered on the
+                    section's cream — keep that look explicitly. */}
+                <MarqueeWrapper backgroundColor="bg-transparent" direction="right" className="border-none">
                     {logos.map((logo) => {
                         const mark = (
                             <Image

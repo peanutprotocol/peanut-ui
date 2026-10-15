@@ -32,7 +32,7 @@ export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, s
     const i18n = getTranslations(locale)
     return (
         <>
-            <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-24">
+            <section className="relative overflow-hidden bg-background-brand px-4 py-16 text-center md:px-8 md:py-24">
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-4xl">
                     {/* break-words + hyphens: one long word ("COMMUNICATIONS",

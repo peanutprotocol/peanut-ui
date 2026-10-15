@@ -92,7 +92,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+                    className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-foreground-inverse-secondary"
                 >
                     {children}
                 </a>
@@ -111,7 +111,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
             <Link
                 prefetch={false}
                 href={href}
-                className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+                className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-foreground-inverse-secondary"
             >
                 {children}
             </Link>

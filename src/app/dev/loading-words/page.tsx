@@ -68,11 +68,6 @@ export default function LoadingWordsPreview() {
                     <SizeSwatch label="xl · bold" word={WORDS[index]} className="text-heading-xs" />
                     <SizeSwatch label="2xl · bold" word={WORDS[index]} className="text-heading-s" />
                     <SizeSwatch label="2xl · extrabold" word={WORDS[index]} className="text-heading-s" />
-                    <SizeSwatch
-                        label="display (Sniglet) · bold · xl"
-                        word={WORDS[index]}
-                        className="font-display text-heading-xs"
-                    />
                 </div>
             </Section>
 

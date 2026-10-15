@@ -90,7 +90,7 @@ export const FooterChrome = ({
                             Squirrel Labs
                         </a>
                     </p>
-                    <p className="text-body-xs text-white/70">{i18n.footerLegalEntity}</p>
+                    <p className="text-body-xs text-foreground-inverse-secondary">{i18n.footerLegalEntity}</p>
                 </section>
 
                 <div className="hidden md:block">

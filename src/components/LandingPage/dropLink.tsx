@@ -12,7 +12,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
     return (
         <section
             id="drop-link"
-            className="flex min-h-[500px] items-center justify-center bg-blue-300 px-4 py-16 text-foreground-primary md:min-h-[700px]"
+            className="flex min-h-[500px] items-center justify-center bg-background-marketing-sky px-4 py-16 text-foreground-primary md:min-h-[700px]"
         >
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
                 <div className="space-y-8 w-full md:w-2/3">
