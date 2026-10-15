@@ -215,13 +215,35 @@ describe('pending invite attribution', () => {
     it('reports a registration that found no invite, but not an ordinary app start', async () => {
         inviteCode = ''
 
-        await settlePendingInviteAttribution('user-a', 'session')
+        await settlePendingInviteAttribution('user-without-invite', 'session')
         expect(mockCapture).not.toHaveBeenCalled()
 
-        await settlePendingInviteAttribution('user-a', 'registration')
+        await settlePendingInviteAttribution('user-without-invite', 'registration')
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
             trigger: 'registration',
             status: 'none',
+        })
+    })
+    it('reports the referral the auth provider already settled, not `none`, when registration runs after it', async () => {
+        mockAcceptInvite.mockResolvedValue({
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            claims: [],
+        })
+
+        // the session hydrates first and settles while registration still awaits other work
+        await settlePendingInviteAttribution('user-session-first', 'session')
+        inviteCode = '' // the confirmed accept cleared the stash
+
+        await expect(settlePendingInviteAttribution('user-session-first', 'registration')).resolves.toMatchObject({
+            status: 'attributed',
+        })
+        expect(mockAcceptInvite).toHaveBeenCalledTimes(1)
+        expect(mockCapture).toHaveBeenLastCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
+            trigger: 'registration',
+            status: 'attributed',
+            invite_type: EInviteType.PAYMENT_LINK,
         })
     })
 })

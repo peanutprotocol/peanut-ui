@@ -80,7 +80,7 @@ describe('invite attribution hand-off in an iOS WebView without cookies', () => 
         const { result } = renderHook(() => useSetupFlowContext(), { wrapper })
         act(() => result.current.applyManualInvite('bob'))
 
-        await settlePendingInviteAttribution('new-user', 'registration')
+        await settlePendingInviteAttribution('typed-inviter-user', 'registration')
 
         expect(mockAcceptInvite).toHaveBeenCalledWith('bob', EInviteType.DIRECT)
     })
@@ -89,7 +89,7 @@ describe('invite attribution hand-off in an iOS WebView without cookies', () => 
         // useNativeAppLinks and /setup?code= both stash a bare code as DIRECT
         stashInvite('carol', EInviteType.DIRECT)
 
-        await settlePendingInviteAttribution('new-user', 'registration')
+        await settlePendingInviteAttribution('invite-link-user', 'registration')
 
         expect(mockAcceptInvite).toHaveBeenCalledWith('carol', EInviteType.DIRECT)
     })
@@ -107,7 +107,7 @@ describe('invite attribution hand-off in an iOS WebView without cookies', () => 
     })
 
     it('a registration with no inviter reports `none` instead of leaving no trace', async () => {
-        const outcome = await settlePendingInviteAttribution('new-user', 'registration')
+        const outcome = await settlePendingInviteAttribution('user-without-invite', 'registration')
 
         expect(outcome.status).toBe('none')
         expect(mockAcceptInvite).not.toHaveBeenCalled()

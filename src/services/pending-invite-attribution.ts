@@ -21,6 +21,13 @@ export type PendingInviteAttributionOutcome = {
 }
 
 const inFlight = new Map<string, Promise<PendingInviteAttributionOutcome>>()
+/**
+ * The outcome that consumed each account's stash in this app session. The
+ * auth provider usually settles first — registration hydrates the session,
+ * then awaits other work — and an emptied stash must not make registration
+ * report a successful referral as `none` (Chip review round 1).
+ */
+const consumedOutcomes = new Map<string, PendingInviteAttributionOutcome>()
 
 /** Registration settles once per account; a session start retries a durable invite. */
 export type InviteAttributionTrigger = 'registration' | 'session'
@@ -41,7 +48,9 @@ export async function settlePendingInviteAttribution(
     userId: string,
     trigger: InviteAttributionTrigger = 'session'
 ): Promise<PendingInviteAttributionOutcome> {
-    const outcome = await settleShared(userId)
+    const shared = await settleShared(userId)
+    const outcome =
+        trigger === 'registration' && shared.status === 'none' ? (consumedOutcomes.get(userId) ?? shared) : shared
     if (trigger === 'registration' || outcome.status !== 'none') {
         try {
             // Enums only — never the code, which names the inviter.
@@ -72,9 +81,15 @@ function settleShared(userId: string): Promise<PendingInviteAttributionOutcome> 
             return { status: 'retryable' }
         }
     )
-    const trackedAttempt = attempt.finally(() => {
-        if (inFlight.get(attemptKey) === trackedAttempt) inFlight.delete(attemptKey)
-    })
+    const trackedAttempt = attempt
+        .then((outcome) => {
+            // only outcomes that cleared the stash; a retryable one keeps it
+            if (outcome.status !== 'retryable') consumedOutcomes.set(userId, outcome)
+            return outcome
+        })
+        .finally(() => {
+            if (inFlight.get(attemptKey) === trackedAttempt) inFlight.delete(attemptKey)
+        })
     inFlight.set(attemptKey, trackedAttempt)
     return trackedAttempt
 }
