@@ -37,6 +37,7 @@ export const SuccessClaimLinkView = ({
     claimLinkData,
     tokenPrice,
     onCustom,
+    type,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
     const tCommon = useTranslations('common')
@@ -163,19 +164,24 @@ export const SuccessClaimLinkView = ({
     // The claimer asked for Mercado Pago or Pix, so the link went to their own
     // account and the withdraw is the rest of that ask (TASK-23648). Argentina
     // takes the claimed amount; the Pix send asks for its amount on /qr-pay.
+    // A cross-chain claim gets no prefill: the bridge fee makes the link amount
+    // more than arrives, and the bridged funds land later.
     const regionalWithdraw = useMemo(() => {
         if (!regionalMethodType || isBankClaim) return null
         if (regionalMethodType === 'pix') {
             return { method: 'Pix', url: mantecaWithdrawUrl({ method: 'pix', country: 'brazil' }) }
         }
-        const usd = Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
+        const usd =
+            type === 'claimxchain'
+                ? 0
+                : Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
         // whole cents, rounded down: the prefill never asks for more than arrived
         const amount = usd > 0 ? String(Math.floor(usd * 100) / 100) : undefined
         return {
             method: 'Mercado Pago',
             url: mantecaWithdrawUrl({ method: 'mercado-pago', country: 'argentina', amount }),
         }
-    }, [regionalMethodType, isBankClaim, claimLinkData.amount, claimLinkData.tokenDecimals, tokenPrice])
+    }, [regionalMethodType, isBankClaim, type, claimLinkData.amount, claimLinkData.tokenDecimals, tokenPrice])
 
     const renderButtons = () => {
         if (authUser?.user.userId && regionalWithdraw) {

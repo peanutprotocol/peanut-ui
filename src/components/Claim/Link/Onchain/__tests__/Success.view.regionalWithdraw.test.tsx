@@ -112,6 +112,16 @@ describe('withdraw offer after a regional claim', () => {
         expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina&amount=12.34')
     })
 
+    test('a cross-chain claim opens the withdraw with no amount', () => {
+        // The bridge takes a fee, so the link amount is more than arrives.
+        mockRegionalMethodType = 'mercadopago'
+        renderWithIntl(<SuccessClaimLinkView {...props} type="claimxchain" />)
+
+        fireEvent.click(screen.getByText('Withdraw to Mercado Pago'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina')
+    })
+
     test('an ordinary claim offers only the way home', () => {
         renderWithIntl(<SuccessClaimLinkView {...props} />)
 
