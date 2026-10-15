@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import Star from '@/assets/illustrations/star.svg'
+import Title from '@/components/0_Bruddle/Title'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { SendInSecondsCTA } from './SendInSecondsCTA'
@@ -40,6 +41,14 @@ const starConfigs = [
 export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
 
+    // Knerd goes through Title, one accent word, the rest in the display ramp
+    // (ruled 2026-10-14). The accent quotes the headline exactly; if a
+    // translation drifts the fold renders the plain headline instead of
+    // mis-splitting it.
+    const headline = i18n.landingClosingHeadline
+    const accent = i18n.landingClosingAccent
+    const accentAt = headline.indexOf(accent)
+
     return (
         <section
             id="send-in-seconds"
@@ -72,12 +81,19 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
             {/* Main content */}
             <div className={`relative mx-auto ${PROSE_WIDTH} text-center`}>
                 {/* Was an SVG with the words baked in, so it stayed English on every locale.
-                    Solid black KNERD, not the white Title: white letters vanish into the clouds.
                     Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px.
-                    KNERD accents reach 1.03em above the baseline, so leading stays at 1.1 or more
-                    (48px at 42px, 88px at 80px); tighter, the Á of EMPEZÁ lands in the line above. */}
-                <h2 className="mb-6 font-knerd-filled text-headingSmall leading-12 text-balance text-foreground-primary md:mb-10 md:text-headingMedium md:leading-22">
-                    {i18n.landingClosingHeadline}
+                    The accent words carry no accented caps in any locale, so the knerd
+                    glyphs stay inside the display leading. */}
+                <h2 className="font-roboto-flex-extrabold mb-6 text-headingSmall font-extraBlack text-balance text-foreground-primary uppercase md:mb-10 md:text-headingMedium">
+                    {accentAt === -1 ? (
+                        headline
+                    ) : (
+                        <>
+                            {headline.slice(0, accentAt)}
+                            <Title text={accent} />
+                            {headline.slice(accentAt + accent.length)}
+                        </>
+                    )}
                 </h2>
 
                 <p className="mb-6 hidden font-roboto text-body-m text-balance md:mb-8 md:block md:text-heading-l">

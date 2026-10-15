@@ -126,6 +126,8 @@ export interface Translations {
 
     // Landing page — send-in-seconds section (closing CTA)
     landingClosingHeadline: string
+    /** The 1-3 headline words set in Knerd. Must quote the headline exactly. */
+    landingClosingAccent: string
     landingClosingSubline: string
 
     // Landing page — hero
