@@ -3383,6 +3383,244 @@
             "later": "Hacerlo más tarde",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contacta a soporte y lo completamos por ti.",
             "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte."
+        },
+        "verifyOnce": {
+            "back": "Volver",
+            "progress": "Paso {current} de {total}",
+            "continue": "Continuar",
+            "choose": "Elegir",
+            "whyAsk": "¿Por qué lo preguntamos?",
+            "whyTitle": "Por qué lo preguntamos",
+            "whyShared": "Compartimos cada respuesta solo con el socio que la necesita.",
+            "gotIt": "Entendido",
+            "optional": "Opcional",
+            "phoneHelp": "Incluye el código de tu país, como +52.",
+            "hints": {
+                "purpose": "Elige la opción más parecida.",
+                "work": "Elige la opción más parecida.",
+                "money": "Una estimación aproximada está bien."
+            },
+            "why": {
+                "purpose": "Los bancos y emisores de tarjetas deben saber cómo usarás tu cuenta. Toda cuenta financiera regulada lo pregunta.",
+                "work": "Los bancos y emisores de tarjetas deben saber a qué te dedicas.",
+                "money": "Nuestros socios revisan que el movimiento de tu cuenta coincida con tus ingresos. Un rango es suficiente.",
+                "birth": "Tu país de nacimiento define qué normas fiscales aplican a tu cuenta.",
+                "address": "Tu domicilio debe coincidir con donde vives y aparece en los datos de tu cuenta.",
+                "phone": "El socio de tu tarjeta usa tu número de teléfono para mantener tu tarjeta segura.",
+                "tax": "Las cuentas en tu país deben estar vinculadas a tu número fiscal."
+            },
+            "sentence": {
+                "cardPurpose": "Usaré mi tarjeta <nw>para <pill></pill></nw>",
+                "bankPurpose": "Usaré mi cuenta <nw>para <pill></pill></nw>",
+                "occupation": "Mi trabajo se parece más <nw>a <pill></pill></nw>",
+                "employmentStatus": "Mi situación laboral <nw>es <pill></pill></nw>",
+                "annualSalary": "<nw>Gano <pill></pill></nw> <nw>al año</nw>",
+                "expectedMonthlyVolume": "<nw>Gastaré <pill></pill></nw> <nw>al mes</nw>",
+                "sourceOfFunds": "Mi dinero viene <nw>de <pill></pill></nw>",
+                "countryOfBirth": "Nací <nw>en <pill></pill></nw>"
+            },
+            "pickerTitle": {
+                "cardPurpose": "Para qué usarás la tarjeta",
+                "bankPurpose": "Para qué usarás la cuenta",
+                "occupation": "Tu trabajo",
+                "employmentStatus": "Tu situación laboral",
+                "annualSalary": "Tus ingresos anuales",
+                "expectedMonthlyVolume": "Lo que gastarás cada mes",
+                "sourceOfFunds": "De dónde viene tu dinero",
+                "countryOfBirth": "País de nacimiento"
+            },
+            "search": {
+                "occupation": "Buscar trabajos",
+                "country": "Buscar países",
+                "popular": "Populares",
+                "matches": "{count, plural, one {# resultado} other {# resultados}}",
+                "typeToSearch": "Escribe para buscar entre los {count} trabajos.",
+                "noJob": "Ningún trabajo coincide con “{query}”. Prueba una palabra más general, como “manager” o “driver”, o elige Other.",
+                "noCountry": "Ningún país coincide con “{query}”.",
+                "keepTyping": "Sigue escribiendo para acotar la búsqueda."
+            },
+            "options": {
+                "cardPurpose": {
+                    "personal_spending": "Gastos del día a día",
+                    "travel": "Viajes",
+                    "online_shopping": "Compras en línea",
+                    "bills": "Pago de cuentas",
+                    "business_expenses": "Gastos de negocio"
+                },
+                "bankPurpose": {
+                    "personal_or_living_expenses": "Gastos y cuentas del día a día",
+                    "receive_salary": "Recibir mi sueldo",
+                    "receive_payment_for_freelancing": "Cobrar trabajos freelance",
+                    "payments_to_friends_or_family_abroad": "Enviar dinero a familia o amigos en el exterior",
+                    "purchase_goods_and_services": "Comprar productos y servicios",
+                    "ecommerce_retail_payments": "Vender en línea o en una tienda",
+                    "protect_wealth": "Proteger mis ahorros",
+                    "investment_purposes": "Invertir",
+                    "operating_a_company": "Administrar una empresa",
+                    "charitable_donations": "Donar a causas benéficas"
+                },
+                "employmentStatus": {
+                    "employed": "Con empleo",
+                    "self_employed": "Por cuenta propia",
+                    "student": "Estudiante",
+                    "retired": "Jubilación",
+                    "homemaker": "Tareas del hogar",
+                    "unemployed": "Sin trabajo"
+                },
+                "annualSalary": {
+                    "under_25k": "Menos de US$25.000",
+                    "25k_50k": "US$25.000–US$49.999",
+                    "50k_100k": "US$50.000–US$99.999",
+                    "100k_200k": "US$100.000–US$199.999",
+                    "over_200k": "Más de US$200.000"
+                },
+                "expectedMonthlyVolume": {
+                    "under_1k": "Menos de US$1.000",
+                    "1k_5k": "US$1.000–US$4.999",
+                    "5k_10k": "US$5.000–US$9.999",
+                    "over_10k": "US$10.000 o más"
+                },
+                "sourceOfFunds": {
+                    "salary": "Mi sueldo",
+                    "savings": "Mis ahorros",
+                    "company_funds": "Mi negocio",
+                    "investments_loans": "Inversiones o préstamos",
+                    "pension_retirement": "Mi jubilación",
+                    "gifts": "Regalos",
+                    "inheritance": "Una herencia",
+                    "sale_of_assets_real_estate": "La venta de propiedades o bienes",
+                    "government_benefits": "Beneficios del gobierno",
+                    "ecommerce_reseller": "Ventas en línea",
+                    "someone_elses_funds": "Dinero de otra persona",
+                    "gambling_proceeds": "Ganancias de apuestas"
+                }
+            },
+            "titles": {
+                "address": "¿Dónde vives?",
+                "phone": "¿Cuál es tu número de teléfono?"
+            },
+            "descriptions": {
+                "address": "Tu domicilio, como aparece en una factura o estado de cuenta.",
+                "phone": "El socio de tu tarjeta lo usa para mantener tu tarjeta segura. No te enviaremos códigos."
+            },
+            "labels": {
+                "street": "Calle",
+                "buildingNumber": "Número",
+                "town": "Ciudad",
+                "state": "Estado o provincia",
+                "postCode": "Código postal",
+                "country": "País",
+                "countryLocked": "Tu país de residencia. Puedes cambiarlo en Perfil.",
+                "phone": "Número de teléfono"
+            },
+            "tax": {
+                "title": {
+                    "ssn": "¿Cuál es tu número de Seguro Social?",
+                    "other": "¿Cuál es tu número fiscal?"
+                },
+                "description": {
+                    "ssn": "Las cuentas bancarias de EE. UU. lo necesitan.",
+                    "other": "El número fiscal de tu país de residencia."
+                },
+                "label": {
+                    "ssn": "Número de Seguro Social",
+                    "cuit": "CUIT o CUIL",
+                    "cpf": "CPF",
+                    "rut": "RUT",
+                    "curp": "CURP",
+                    "cc": "Cédula de ciudadanía",
+                    "other": "Número fiscal"
+                },
+                "placeholder": {
+                    "ssn": "123-45-6789",
+                    "cuit": "20-12345678-6",
+                    "cpf": "123.456.789-09",
+                    "rut": "12.345.678-5",
+                    "curp": "GODE561231HDFRRN09",
+                    "cc": "1023456789",
+                    "other": "Tu número fiscal"
+                },
+                "help": {
+                    "ssn": "9 dígitos. No se aceptan ITIN.",
+                    "cuit": "11 dígitos, de tu constancia de inscripción.",
+                    "cpf": "11 dígitos.",
+                    "rut": "Con el dígito verificador al final.",
+                    "curp": "18 caracteres.",
+                    "cc": "Como aparece en tu documento.",
+                    "other": "Como aparece en tus documentos fiscales."
+                }
+            },
+            "errors": {
+                "required": "Responde esto para continuar.",
+                "invalidOption": "Elige una de las opciones.",
+                "invalidTaxId": "Revisa el número. No parece correcto.",
+                "itinNotAccepted": "Eso es un ITIN. Ingresa tu número de Seguro Social.",
+                "invalidPhone": "Ingresa el número completo con el código de tu país, como +52.",
+                "invalidCountry": "Elige un país de la lista.",
+                "tooLong": "Es demasiado largo. Usa menos de 100 caracteres.",
+                "invalidText": "Usa solo letras, números y signos de puntuación.",
+                "invalid": "Revisa esta respuesta.",
+                "retry": "No pudimos guardarlo. Revisa tu conexión e inténtalo de nuevo.",
+                "featureNotSelected": "Tu cuenta cambió. Estamos cargando las preguntas correctas.",
+                "identitySubmitted": "Ya enviaste tu documento, así que estas respuestas no pueden cambiar ahora.",
+                "unavailable": "Esta verificación no está disponible en este momento."
+            },
+            "midpoint": {
+                "title": "Ya hiciste la parte difícil",
+                "description": "Último paso: fotos de tu documento y una selfie rápida. Elige el documento que usarás.",
+                "document": "Tipo de documento",
+                "issuedBy": "País de emisión",
+                "cta": "Continuar a la verificación",
+                "privacy": "Sumsub maneja tus documentos de forma segura.",
+                "failed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
+                "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde."
+            },
+            "review": {
+                "title": "Estamos revisando tu documento",
+                "description": "La revisión suele tardar unos minutos. Si tiene que verla una persona, tarda de 1 a 3 días hábiles. Te avisaremos.",
+                "cta": "Ir al inicio"
+            },
+            "failed": {
+                "title": "Necesitamos revisar tu documento otra vez",
+                "description": "Tu verificación necesita algo de ti. En el inicio verás qué hacer.",
+                "cta": "Ir al inicio"
+            },
+            "verified": {
+                "title": "¡Verificación lista!",
+                "description": "Ahora agrega dinero para empezar a usar Peanut.",
+                "cta": "Ir al inicio"
+            },
+            "poa": {
+                "title": "Agrega un comprobante de domicilio",
+                "description": "Tu documento no es de {country}, así que nuestro socio bancario pide un documento reciente con tu nombre y tu domicilio allí.",
+                "kinds": {
+                    "bankStatement": "Estado de cuenta bancario",
+                    "utilityBill": "Factura de un servicio",
+                    "taxLetter": "Carta fiscal o del gobierno"
+                },
+                "recent": "De los últimos 3 meses",
+                "upload": "Subir documento",
+                "skip": "Omitir por ahora",
+                "skipNote": "Puedes omitirlo. Tu cuenta bancaria se abre igual, y nuestro socio podría pedirlo más adelante."
+            },
+            "addLater": {
+                "title": {
+                    "bank": "Unas respuestas para tu cuenta bancaria",
+                    "card": "Unas respuestas para tu tarjeta"
+                },
+                "description": "Solo preguntamos lo que todavía no nos dijiste. Tu verificación de identidad no cambia.",
+                "doneTitle": "Todo listo",
+                "doneDescription": {
+                    "bank": "Estamos configurando tu cuenta bancaria. Suele tardar unos minutos y te avisaremos cuando esté lista.",
+                    "card": "Estamos configurando tu tarjeta. Suele tardar unos minutos y te avisaremos cuando esté lista."
+                },
+                "doneCta": "Listo"
+            },
+            "loadFailed": {
+                "title": "No pudimos cargar esto",
+                "description": "Revisa tu conexión e inténtalo de nuevo. Tus respuestas hasta ahora están guardadas.",
+                "retry": "Intentar de nuevo"
+            }
         }
     },
     "identity": {

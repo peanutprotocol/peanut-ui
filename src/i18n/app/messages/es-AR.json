@@ -1530,6 +1530,58 @@
         "supplement": {
             "proofOfAddressTitle": "Agregá un comprobante de domicilio",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos."
+        },
+        "verifyOnce": {
+            "phoneHelp": "Incluí el código de tu país, como +54.",
+            "hints": {
+                "purpose": "Elegí la opción más parecida.",
+                "work": "Elegí la opción más parecida."
+            },
+            "why": {
+                "work": "Los bancos y emisores de tarjetas tienen que saber a qué te dedicás.",
+                "address": "Tu domicilio tiene que coincidir con donde vivís y aparece en los datos de tu cuenta."
+            },
+            "search": {
+                "typeToSearch": "Escribí para buscar entre los {count} trabajos.",
+                "noJob": "Ningún trabajo coincide con “{query}”. Probá una palabra más general, como “manager” o “driver”, o elegí Other.",
+                "keepTyping": "Seguí escribiendo para acotar la búsqueda."
+            },
+            "titles": {
+                "address": "¿Dónde vivís?"
+            },
+            "labels": {
+                "countryLocked": "Tu país de residencia. Podés cambiarlo en Perfil."
+            },
+            "errors": {
+                "required": "Respondé esto para continuar.",
+                "invalidOption": "Elegí una de las opciones.",
+                "invalidTaxId": "Revisá el número. No parece correcto.",
+                "itinNotAccepted": "Eso es un ITIN. Ingresá tu número de Seguro Social.",
+                "invalidPhone": "Ingresá el número completo con el código de tu país, como +54.",
+                "invalidCountry": "Elegí un país de la lista.",
+                "tooLong": "Es demasiado largo. Usá menos de 100 caracteres.",
+                "invalidText": "Usá solo letras, números y signos de puntuación.",
+                "invalid": "Revisá esta respuesta.",
+                "retry": "No pudimos guardarlo. Revisá tu conexión e intentá de nuevo."
+            },
+            "midpoint": {
+                "description": "Último paso: fotos de tu documento y una selfie rápida. Elegí el documento que vas a usar.",
+                "failed": "No pudimos iniciar la verificación. Intentá de nuevo.",
+                "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde."
+            },
+            "failed": {
+                "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."
+            },
+            "verified": {
+                "description": "Ahora agregá dinero para empezar a usar Peanut."
+            },
+            "poa": {
+                "title": "Agregá un comprobante de domicilio",
+                "skipNote": "Podés omitirlo. Tu cuenta bancaria se abre igual, y nuestro socio podría pedirlo más adelante."
+            },
+            "loadFailed": {
+                "description": "Revisá tu conexión e intentá de nuevo. Tus respuestas hasta ahora están guardadas."
+            }
         }
     },
     "identity": {

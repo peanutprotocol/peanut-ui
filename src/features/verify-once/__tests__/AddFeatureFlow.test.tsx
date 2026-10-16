@@ -1,0 +1,140 @@
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { renderWithIntl } from '@/test-utils/intl'
+import type { VerifyOnceQuestions } from '@/app/actions/types/kyc-verify-once.types'
+import { getKycQuestions, saveKycAnswers } from '@/app/actions/kyc-verify-once'
+import { getKycDocumentPlan, saveKycFeatures } from '@/app/actions/kyc-workflow'
+import { AddFeatureFlow, AddFeatureQuestions } from '../AddFeatureFlow'
+
+jest.mock('@/app/actions/kyc-verify-once', () => ({ getKycQuestions: jest.fn(), saveKycAnswers: jest.fn() }))
+jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentPlan: jest.fn(), saveKycFeatures: jest.fn() }))
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
+
+const mockQuestions = getKycQuestions as jest.MockedFunction<typeof getKycQuestions>
+const mockSave = saveKycAnswers as jest.MockedFunction<typeof saveKycAnswers>
+const mockPlan = getKycDocumentPlan as jest.MockedFunction<typeof getKycDocumentPlan>
+const mockSaveFeatures = saveKycFeatures as jest.MockedFunction<typeof saveKycFeatures>
+
+const features = { qr: true, bank: true, local: false, card: false }
+const choice = (key: string, value: string | null) => ({
+    key,
+    kind: 'choice' as const,
+    required: true,
+    options: ['personal_spending', 'travel', 'under_25k', '25k_50k', 'under_1k'],
+    value,
+})
+
+const cardQuestions = (): VerifyOnceQuestions => ({
+    available: true,
+    attemptId: null,
+    residence: 'US',
+    steps: [
+        { id: 'purpose', features: ['card'], answered: false, fields: [choice('cardPurpose', 'travel')] },
+        {
+            id: 'money',
+            features: ['card'],
+            answered: false,
+            fields: [choice('annualSalary', '25k_50k'), choice('expectedMonthlyVolume', 'under_1k')],
+        },
+        { id: 'birth', features: ['base'], answered: true, fields: [] },
+        {
+            id: 'phone',
+            features: ['card'],
+            answered: false,
+            fields: [{ key: 'phone', kind: 'phone', required: true, value: null }],
+        },
+    ],
+    firstUnanswered: 'purpose',
+    progress: { done: 1, total: 4 },
+})
+
+beforeEach(() => {
+    jest.clearAllMocks()
+    mockPlan.mockResolvedValue({ available: true, features, routes: [], policyVersion: 'v1', activeAttemptId: null })
+    mockSaveFeatures.mockResolvedValue({ plan: {} as never })
+})
+
+describe('AddFeatureQuestions', () => {
+    it('asks every missing answer of the feature on one screen, never an ID check', async () => {
+        mockQuestions.mockResolvedValue(cardQuestions())
+        renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={jest.fn()} />)
+        expect(await screen.findByText('A few answers for your card')).toBeInTheDocument()
+        expect(mockQuestions).toHaveBeenCalledWith('card')
+        expect(screen.getByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-pick-annualSalary')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-pick-expectedMonthlyVolume')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-input-phone')).toBeInTheDocument()
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    })
+
+    it('saves each open step for the feature in order, then adds the feature', async () => {
+        mockQuestions.mockResolvedValue(cardQuestions())
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
+        fireEvent.change(await screen.findByTestId('verify-input-phone'), { target: { value: '+1 415 555 0132' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockSave.mock.calls.map(([step, values, feature]) => [step, values, feature])).toEqual([
+            ['purpose', { cardPurpose: 'travel' }, 'card'],
+            ['money', { annualSalary: '25k_50k', expectedMonthlyVolume: 'under_1k' }, 'card'],
+            ['phone', { phone: '+14155550132' }, 'card'],
+        ])
+        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true })
+    })
+
+    it('stops at the first refused step and shows its error; the feature is not added', async () => {
+        mockQuestions.mockResolvedValue(cardQuestions())
+        mockSave
+            .mockResolvedValueOnce({ kind: 'saved', next: 'money' })
+            .mockResolvedValueOnce({ kind: 'saved', next: 'phone' })
+            .mockResolvedValueOnce({ kind: 'invalid', errors: { phone: 'invalid_phone' } })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
+        fireEvent.change(await screen.findByTestId('verify-input-phone'), { target: { value: '+1 415 5550' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        expect(await screen.findByText('Enter the full number with your country code, like +1.')).toBeInTheDocument()
+        expect(onDone).not.toHaveBeenCalled()
+        expect(mockSaveFeatures).not.toHaveBeenCalled()
+    })
+
+    it('with nothing missing, adds the feature straight away', async () => {
+        const answered = cardQuestions()
+        answered.steps = answered.steps.map((s) => ({ ...s, answered: true }))
+        mockQuestions.mockResolvedValue(answered)
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockSave).not.toHaveBeenCalled()
+        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true })
+    })
+
+    it('leaves an already saved feature as it is', async () => {
+        mockPlan.mockResolvedValue({
+            available: true,
+            features: { ...features, card: true },
+            routes: [],
+            policyVersion: 'v1',
+            activeAttemptId: null,
+        })
+        const answered = cardQuestions()
+        answered.steps = []
+        mockQuestions.mockResolvedValue(answered)
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockSaveFeatures).not.toHaveBeenCalled()
+    })
+})
+
+describe('AddFeatureFlow', () => {
+    it('ends on the provider status for a bank account and returns where the user came from', async () => {
+        mockQuestions.mockResolvedValue({ ...cardQuestions(), steps: [] })
+        const onExit = jest.fn()
+        renderWithIntl(<AddFeatureFlow feature="bank" onExit={onExit} />)
+        expect(await screen.findByText('You’re all set')).toBeInTheDocument()
+        expect(screen.getByText(/setting up your bank account/)).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-feature-done'))
+        expect(onExit).toHaveBeenCalled()
+    })
+})

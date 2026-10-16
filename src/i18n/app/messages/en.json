@@ -3383,6 +3383,244 @@
             "later": "Do this later",
             "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
             "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with."
+        },
+        "verifyOnce": {
+            "back": "Go back",
+            "progress": "Step {current} of {total}",
+            "continue": "Continue",
+            "choose": "Choose",
+            "whyAsk": "Why do we ask?",
+            "whyTitle": "Why we ask",
+            "whyShared": "We share each answer only with the partner that needs it.",
+            "gotIt": "Got it",
+            "optional": "Optional",
+            "phoneHelp": "Include your country code, like +1.",
+            "hints": {
+                "purpose": "Pick the closest match.",
+                "work": "Pick the closest match.",
+                "money": "Rough estimates are fine."
+            },
+            "why": {
+                "purpose": "Banks and card issuers must know how you’ll use your account. Every regulated financial account asks this.",
+                "work": "Banks and card issuers must know what you do for work.",
+                "money": "Our partners check that your account activity fits your income. A range is enough.",
+                "birth": "Where you were born decides which tax rules apply to your account.",
+                "address": "Your home address must match where you live, and it goes on your account details.",
+                "phone": "Your card partner uses your phone number to keep your card secure.",
+                "tax": "Accounts in your country must be linked to your tax number."
+            },
+            "sentence": {
+                "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
+                "bankPurpose": "I’ll use my account <nw>for <pill></pill></nw>",
+                "occupation": "My job is closest <nw>to <pill></pill></nw>",
+                "employmentStatus": "<nw>I’m <pill></pill></nw>",
+                "annualSalary": "<nw>I earn <pill></pill></nw> <nw>a year</nw>",
+                "expectedMonthlyVolume": "<nw>I’ll spend <pill></pill></nw> <nw>a month</nw>",
+                "sourceOfFunds": "My money comes <nw>from <pill></pill></nw>",
+                "countryOfBirth": "I was born <nw>in <pill></pill></nw>"
+            },
+            "pickerTitle": {
+                "cardPurpose": "What you’ll use the card for",
+                "bankPurpose": "What you’ll use the account for",
+                "occupation": "Your job",
+                "employmentStatus": "Your work",
+                "annualSalary": "Your yearly income",
+                "expectedMonthlyVolume": "What you’ll spend each month",
+                "sourceOfFunds": "Where your money comes from",
+                "countryOfBirth": "Country of birth"
+            },
+            "search": {
+                "occupation": "Search jobs",
+                "country": "Search countries",
+                "popular": "Popular",
+                "matches": "{count, plural, one {# match} other {# matches}}",
+                "typeToSearch": "Type to search all {count} jobs.",
+                "noJob": "No job matches “{query}”. Try a broader word, like “manager” or “driver”, or pick Other.",
+                "noCountry": "No country matches “{query}”.",
+                "keepTyping": "Keep typing to narrow it down."
+            },
+            "options": {
+                "cardPurpose": {
+                    "personal_spending": "Everyday spending",
+                    "travel": "Travel",
+                    "online_shopping": "Online shopping",
+                    "bills": "Paying bills",
+                    "business_expenses": "Business expenses"
+                },
+                "bankPurpose": {
+                    "personal_or_living_expenses": "Everyday spending and bills",
+                    "receive_salary": "Receiving my salary",
+                    "receive_payment_for_freelancing": "Getting paid for freelance work",
+                    "payments_to_friends_or_family_abroad": "Sending money to family or friends abroad",
+                    "purchase_goods_and_services": "Buying goods and services",
+                    "ecommerce_retail_payments": "Selling online or in a shop",
+                    "protect_wealth": "Protecting my savings",
+                    "investment_purposes": "Investing",
+                    "operating_a_company": "Running a company",
+                    "charitable_donations": "Giving to charity"
+                },
+                "employmentStatus": {
+                    "employed": "Employed",
+                    "self_employed": "Self-employed",
+                    "student": "A student",
+                    "retired": "Retired",
+                    "homemaker": "A homemaker",
+                    "unemployed": "Not working"
+                },
+                "annualSalary": {
+                    "under_25k": "Under $25,000",
+                    "25k_50k": "$25,000–$49,999",
+                    "50k_100k": "$50,000–$99,999",
+                    "100k_200k": "$100,000–$199,999",
+                    "over_200k": "Over $200,000"
+                },
+                "expectedMonthlyVolume": {
+                    "under_1k": "Under $1,000",
+                    "1k_5k": "$1,000–$4,999",
+                    "5k_10k": "$5,000–$9,999",
+                    "over_10k": "$10,000 or more"
+                },
+                "sourceOfFunds": {
+                    "salary": "My salary",
+                    "savings": "My savings",
+                    "company_funds": "My business",
+                    "investments_loans": "Investments or loans",
+                    "pension_retirement": "My pension",
+                    "gifts": "Gifts",
+                    "inheritance": "An inheritance",
+                    "sale_of_assets_real_estate": "Selling property or assets",
+                    "government_benefits": "Government benefits",
+                    "ecommerce_reseller": "Selling online",
+                    "someone_elses_funds": "Someone else’s money",
+                    "gambling_proceeds": "Gambling winnings"
+                }
+            },
+            "titles": {
+                "address": "Where do you live?",
+                "phone": "What’s your phone number?"
+            },
+            "descriptions": {
+                "address": "Your home address, as it appears on a bill or bank statement.",
+                "phone": "Your card partner uses it to keep your card secure. We won’t send you codes."
+            },
+            "labels": {
+                "street": "Street",
+                "buildingNumber": "Number",
+                "town": "Town or city",
+                "state": "State or region",
+                "postCode": "Postcode",
+                "country": "Country",
+                "countryLocked": "Your country of residence. You can change it in Profile.",
+                "phone": "Phone number"
+            },
+            "tax": {
+                "title": {
+                    "ssn": "What’s your Social Security number?",
+                    "other": "What’s your tax number?"
+                },
+                "description": {
+                    "ssn": "US bank accounts need it.",
+                    "other": "The tax number from your country of residence."
+                },
+                "label": {
+                    "ssn": "Social Security number",
+                    "cuit": "CUIT or CUIL",
+                    "cpf": "CPF",
+                    "rut": "RUT",
+                    "curp": "CURP",
+                    "cc": "Cédula de ciudadanía",
+                    "other": "Tax number"
+                },
+                "placeholder": {
+                    "ssn": "123-45-6789",
+                    "cuit": "20-12345678-6",
+                    "cpf": "123.456.789-09",
+                    "rut": "12.345.678-5",
+                    "curp": "GODE561231HDFRRN09",
+                    "cc": "1023456789",
+                    "other": "Your tax number"
+                },
+                "help": {
+                    "ssn": "9 digits. ITINs aren’t accepted.",
+                    "cuit": "11 digits, from your tax registration.",
+                    "cpf": "11 digits.",
+                    "rut": "With the check digit at the end.",
+                    "curp": "18 characters.",
+                    "cc": "As it appears on your ID.",
+                    "other": "As it appears on your tax documents."
+                }
+            },
+            "errors": {
+                "required": "Answer this to continue.",
+                "invalidOption": "Choose one of the options.",
+                "invalidTaxId": "Check the number. It doesn’t look right.",
+                "itinNotAccepted": "That’s an ITIN. Enter your Social Security number.",
+                "invalidPhone": "Enter the full number with your country code, like +1.",
+                "invalidCountry": "Choose a country from the list.",
+                "tooLong": "That’s too long. Keep it under 100 characters.",
+                "invalidText": "Use only letters, numbers and punctuation.",
+                "invalid": "Check this answer.",
+                "retry": "We couldn’t save that. Check your connection and try again.",
+                "featureNotSelected": "Your account changed. We’re loading the right questions.",
+                "identitySubmitted": "Your ID is already submitted, so these answers can’t change now.",
+                "unavailable": "This check isn’t available right now."
+            },
+            "midpoint": {
+                "title": "That’s the hard part done",
+                "description": "Last step: photos of your ID and a quick selfie. Pick the ID you’ll use.",
+                "document": "Document type",
+                "issuedBy": "Issuing country",
+                "cta": "Continue to ID check",
+                "privacy": "Your documents are handled securely by Sumsub.",
+                "failed": "We couldn’t start the ID check. Try again.",
+                "unavailable": "We can’t show the documents right now. Try again later."
+            },
+            "review": {
+                "title": "We’re checking your ID",
+                "description": "Checks usually come back in a few minutes. If a reviewer needs to look, it takes 1 to 3 business days. We’ll let you know.",
+                "cta": "Go to Home"
+            },
+            "failed": {
+                "title": "We need another look at your ID",
+                "description": "Your ID check needs something from you. Home shows what to do next.",
+                "cta": "Go to Home"
+            },
+            "verified": {
+                "title": "You’re verified!",
+                "description": "Next, add money to start using Peanut.",
+                "cta": "Go to Home"
+            },
+            "poa": {
+                "title": "Add a proof of address",
+                "description": "Your ID isn’t from {country}, so our banking partner asks for a recent document with your name and your address there.",
+                "kinds": {
+                    "bankStatement": "Bank statement",
+                    "utilityBill": "Utility bill",
+                    "taxLetter": "Tax or government letter"
+                },
+                "recent": "From the last 3 months",
+                "upload": "Upload document",
+                "skip": "Skip for now",
+                "skipNote": "You can skip this. Your bank account still opens, and our partner may ask for it later."
+            },
+            "addLater": {
+                "title": {
+                    "bank": "A few answers for your bank account",
+                    "card": "A few answers for your card"
+                },
+                "description": "We only ask what you haven’t told us yet. Your ID check stays as it is.",
+                "doneTitle": "You’re all set",
+                "doneDescription": {
+                    "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",
+                    "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready."
+                },
+                "doneCta": "Done"
+            },
+            "loadFailed": {
+                "title": "We couldn’t load this",
+                "description": "Check your connection and try again. Your answers so far are saved.",
+                "retry": "Try again"
+            }
         }
     },
     "identity": {
