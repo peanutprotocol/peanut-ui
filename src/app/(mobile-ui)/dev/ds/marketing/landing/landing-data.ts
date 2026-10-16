@@ -67,8 +67,9 @@ export const SECTION_PADDING: PaddingStep[] = [
 
 /** cta-on-band-variant E + cta-hierarchy A + cta-casing B */
 export const CTA_RULES = [
-    'On a coloured band (pink, yellow, black): Button variant=secondary — the white pill — default size, no visual overrides.',
+    'On a coloured band (pink, yellow): Button variant=secondary — the white pill — default size, no visual overrides.',
     'On cream (the page ground): Button variant=primary — the pink pill.',
+    'On a dark ground (the gray-950 black band): Button variant=primary — the black offset shadow does not read on black, the pink fill does.',
     'Labels are sentence case everywhere.',
 ]
 
