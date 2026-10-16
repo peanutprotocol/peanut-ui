@@ -142,11 +142,11 @@ export function useNativeAppLinks() {
                 return false
             }
             // /invite is rewritten to /setup by the mapper (the landing page is
-            // pruned from the native export) — carry the code via the SESSION
-            // invite cookie, same semantics as the deferred-link restore: it
-            // pre-fills signup but self-heals on restart, so an existing user
-            // re-tapping a friend's invite is never locked out of login. The
-            // side effect lives here because the mapper runs during render.
+            // pruned from the native export) — carry the code via the invite
+            // stash, same as the deferred-link restore: it opens signup, and
+            // expires after a day so an existing user re-tapping a friend's
+            // invite is not kept off login. The side effect lives here because
+            // the mapper runs during render.
             try {
                 const parsed = new URL(url, 'https://peanut.me')
                 if (parsed.pathname.split('/').filter(Boolean)[0] === 'invite') {
