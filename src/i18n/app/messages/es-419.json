@@ -2026,7 +2026,8 @@
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
-            "detailsMissing": "Faltan los datos del retiro"
+            "detailsMissing": "Faltan los datos del retiro",
+            "confirmNetwork": "Elige la red para esta dirección"
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
@@ -2037,6 +2038,7 @@
             "chainAlt": "red",
             "to": "Para",
             "networkFee": "Comisión de red",
+            "estimatedNetworkFee": "Comisión de red estimada",
             "networkFeeInfo": "Entregar en esta red es gratis — Peanut lo cubre. Algunas redes, como Ethereum, Tron y Solana, cobran una comisión que se descuenta del monto recibido.",
             "networkFeeChargedInfo": "Cada red cobra distinto por entregar. Esta cobra, y se descuenta del monto recibido. Otras, como Arbitrum, son gratis.",
             "youPay": "Total",
@@ -3436,27 +3438,19 @@
         "tokenSelector": {
             "selectAToken": "Elige un token",
             "onChain": "en <c>{chainName}</c>",
-            "noFeesWithToken": "Sin comisiones con este token.",
-            "drawerTitle": "Elige token y red",
-            "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Puedes usar USDC en Arbitrum.",
-            "allNetworks": "Todas",
-            "selectANetwork": "Elige una red",
-            "moreNetworksButton": "más",
-            "searchTokenPlaceholder": "Token o dirección",
-            "sponsoredHint": "Las transacciones con USDC en Arbitrum son patrocinadas",
-            "availableToken": "Token disponible",
-            "searchResults": "Resultados de búsqueda",
-            "popularTokensOnChain": "Tokens populares en {chainName}",
-            "popularTokens": "Tokens populares",
-            "noMatchingTokensTitle": "No se encontraron tokens populares que coincidan",
+            "searchTokenPlaceholder": "Buscar token",
             "noMatchingTokensDescription": "Intenta buscar otro token",
-            "noPopularTokensTitle": "No hay tokens populares disponibles",
-            "moreNetworksTitle": "Más redes",
             "searchNetworkPlaceholder": "Buscar red",
             "noNetworksFoundTitle": "No se encontraron redes que coincidan con {search}",
             "noNetworksFoundDescription": "Intenta buscar otra red",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Borrar búsqueda"
+            "clearSearch": "Borrar búsqueda",
+            "tokenLabel": "Token",
+            "networkLabel": "Red",
+            "noFee": "Sin comisión",
+            "networkFee": "Comisión de red",
+            "noTokensFoundTitle": "No se encontraron tokens",
+            "lockedHint": "Por ahora, solo USDC en Arbitrum"
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",
