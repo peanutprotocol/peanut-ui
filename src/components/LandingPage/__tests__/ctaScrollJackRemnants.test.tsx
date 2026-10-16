@@ -1,9 +1,11 @@
 /**
  * The scroll-jack drove the hero CTA through a `--cta-scale` custom property
  * and anchored itself on `#sticky-button-target` in the send-in-seconds fold.
- * Both are gone; the `.cta-motion` / `.cta-enter` entrance stays.
+ * Both are gone, and so is the `.cta-motion` hover wobble: marketing CTAs are
+ * plain DS Buttons that only press (design.md law 7), rendered in link mode —
+ * one anchor, never a Button nested in a link.
  */
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { Hero } from '../hero'
 import { SendInSeconds } from '../sendInSeconds'
 import { landingStrings } from '../landingStrings'
@@ -18,7 +20,7 @@ jest.mock('next/image', () => ({
 const strings = landingStrings(getTranslations('en'))
 
 describe('Hero CTA', () => {
-    it('renders the CTA without a scale custom property', () => {
+    it('renders the CTA as one button-shaped link with no motion custom properties', () => {
         const { container } = render(
             <Hero
                 strings={strings}
@@ -28,15 +30,31 @@ describe('Hero CTA', () => {
             />
         )
 
-        const cta = container.querySelector('.cta-motion') as HTMLElement | null
-        expect(cta).not.toBeNull()
-        expect(cta!.getAttribute('style')).not.toContain('--cta-scale')
-        // the translate/rotate entrance stays
-        expect(cta!.getAttribute('style')).toContain('--cta-x')
+        const cta = screen.getByRole('link', { name: 'Sign up' })
+        expect(cta).toHaveAttribute('href', '/setup')
+        expect(cta).toHaveClass('btn', 'btn-secondary', 'w-fit')
+        expect(cta.querySelector('a, button')).toBeNull()
+        expect(container.querySelector('.cta-motion')).toBeNull()
+        expect(container.innerHTML).not.toContain('--cta-')
     })
 
-    it('keeps rendering a custom CTA without a scale custom property', () => {
-        const { container } = render(
+    it('hides the CTA while the footer is on screen', () => {
+        render(
+            <Hero
+                strings={strings}
+                contentHrefs={EN_LANDING_CONTENT_HREFS}
+                buttonVisible={false}
+                primaryCta={{ label: 'Sign up', href: '/setup' }}
+            />
+        )
+
+        const holder = screen.getByRole('link', { name: 'Sign up' }).parentElement as HTMLElement
+        expect(holder.style.opacity).toBe('0')
+        expect(holder.style.pointerEvents).toBe('none')
+    })
+
+    it('keeps rendering a custom CTA', () => {
+        render(
             <Hero
                 strings={strings}
                 contentHrefs={EN_LANDING_CONTENT_HREFS}
@@ -45,29 +63,25 @@ describe('Hero CTA', () => {
             />
         )
 
-        const cta = container.querySelector('.cta-motion') as HTMLElement | null
-        expect(cta).not.toBeNull()
-        expect(cta!.getAttribute('style')).not.toContain('--cta-scale')
+        expect(screen.getByText('store pair')).toBeInTheDocument()
     })
 })
 
 describe('SendInSeconds fold', () => {
     // The scroll-jack regression guard. Keep it free of fold-10 content assertions.
-    it('drops the scroll-jack target but keeps the section anchor and the CTA motion class', () => {
+    it('drops the scroll-jack target and the CTA motion class but keeps the section anchor', () => {
         const { container } = render(<SendInSeconds locale="en" />)
 
         expect(container.querySelector('#send-in-seconds')).toBeInTheDocument()
         expect(container.querySelector('#sticky-button-target')).toBeNull()
-        expect(container.querySelector('.cta-motion')).not.toBeNull()
+        expect(container.querySelector('.cta-motion')).toBeNull()
     })
 
-    // Fold 10's content as it ships today. PR 2 of TASK-21788 rewrites this fold into
-    // "GET THE APP" and re-points the CTA away from /send, so this is the test to
-    // retarget or delete there — the regression guard above stays untouched.
-    it('links the CTA to /send with the entrance animation (fold-10 content, superseded by PR 2)', () => {
+    it('links the CTA to /send as a single hugging DS button', () => {
         const { container } = render(<SendInSeconds locale="en" />)
 
-        expect(container.querySelector('.cta-motion.cta-enter')).not.toBeNull()
-        expect(container.querySelector('a[href="/send"]')).toBeInTheDocument()
+        const cta = container.querySelector('a[href="/send"]')
+        expect(cta).toBeInTheDocument()
+        expect(cta).toHaveClass('btn', 'btn-secondary', 'w-fit')
     })
 })

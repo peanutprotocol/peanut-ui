@@ -19,7 +19,7 @@ export default function CtaBandsPreview() {
                 <section key={band.name} className={`px-4 py-16 text-center ${band.className}`}>
                     <p className="font-roboto-flex-extrabold text-heading-s uppercase">{band.name}</p>
                     <div className="mx-auto mt-6 w-fit">
-                        <Button variant="secondary" className="w-auto px-8">
+                        <Button variant="secondary" className="w-fit">
                             Get the app
                         </Button>
                     </div>
@@ -28,7 +28,7 @@ export default function CtaBandsPreview() {
             <section className="px-4 py-16 text-center text-foreground-primary">
                 <p className="font-roboto-flex-extrabold text-heading-s uppercase">Cream — the page ground</p>
                 <div className="mx-auto mt-6 w-fit">
-                    <Button variant="primary" className="w-auto px-8">
+                    <Button variant="primary" className="w-fit">
                         Get the app
                     </Button>
                 </div>

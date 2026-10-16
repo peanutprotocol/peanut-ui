@@ -26,7 +26,7 @@ export default function ClosingFoldPreview() {
                     The subline stays Roboto Flex — Knerd is only for the lockup above.
                 </p>
                 <div className="mx-auto mt-8 w-fit">
-                    <Button variant="secondary" shadowSize="4" className="w-auto px-8">
+                    <Button variant="secondary" className="w-fit">
                         Get started
                     </Button>
                 </div>

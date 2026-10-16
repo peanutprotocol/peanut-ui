@@ -13,7 +13,6 @@ import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
-import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -97,42 +96,33 @@ type HeroProps = {
 }
 
 /*
- * CSS custom properties consumed by `.cta-motion` in globals.css, replacing the
- * framer-motion animate/whileHover pair. Same values, but the transform runs on
- * the compositor instead of a main-thread rAF loop.
+ * The CTA hides while the footer is on screen (the sticky bar takes over).
+ * No hover or entrance motion: a DS Button only presses (design.md law 7).
  */
-const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean): CSSProperties =>
-    ({
-        '--cta-x': buttonVisible ? '0px' : '20px',
-        '--cta-y': buttonVisible ? '0px' : '20px',
-        '--cta-r': buttonVisible ? '0deg' : '1deg',
-        '--cta-hover-x': variant === 'primary' ? '0px' : '3px',
-        opacity: buttonVisible ? 1 : 0,
-        pointerEvents: buttonVisible ? 'auto' : 'none',
-    }) as CSSProperties
+const getCtaStyle = (buttonVisible?: boolean): CSSProperties => ({
+    opacity: buttonVisible ? 1 : 0,
+    pointerEvents: buttonVisible ? 'auto' : 'none',
+})
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? `mx-auto ${CTA_WIDTH}` : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto' : 'right-[calc(50%-120px)]'}`
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, contentHrefs }: HeroProps) {
     const migrationOn = useMigrationFlag()
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
-            <div
-                className={`${getButtonContainerClasses(variant)} cta-motion`}
-                style={getCtaStyle(variant, buttonVisible)}
-            >
-                <a
-                    className="block w-full"
+            <div className={getButtonContainerClasses(variant)} style={getCtaStyle(buttonVisible)}>
+                <Button
+                    variant="secondary"
+                    icon={cta.icon}
                     href={cta.href}
-                    target={cta.isExternal ? '_blank' : undefined}
-                    rel={cta.isExternal ? 'noopener noreferrer' : undefined}
+                    plainAnchor
+                    external={cta.isExternal}
                     onClick={cta.onClick}
+                    className="w-fit"
                 >
-                    <Button variant="secondary" icon={cta.icon}>
-                        {cta.label}
-                    </Button>
-                </a>
+                    {cta.label}
+                </Button>
                 {cta.subtext && (
                     <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">
                         {cta.subtext}
@@ -143,10 +133,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
     }
 
     const renderCustomCta = () => (
-        <div
-            className={`${getButtonContainerClasses('primary')} cta-motion`}
-            style={getCtaStyle('primary', buttonVisible)}
-        >
+        <div className={getButtonContainerClasses('primary')} style={getCtaStyle(buttonVisible)}>
             {customCta}
         </div>
     )

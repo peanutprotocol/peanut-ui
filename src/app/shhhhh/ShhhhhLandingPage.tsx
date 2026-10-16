@@ -120,7 +120,7 @@ export default function ShhhhhLandingPage() {
                 pitch={t('hero.pitch')}
                 lead={t('hero.lead')}
                 cta={
-                    <Button variant="secondary" onClick={handleCTA} loading={busy} disabled={busy}>
+                    <Button variant="secondary" onClick={handleCTA} loading={busy} disabled={busy} className="w-fit">
                         {t('hero.cta')}
                     </Button>
                 }
@@ -263,9 +263,8 @@ export default function ShhhhhLandingPage() {
                         closer, while the hero stays secondary because its background
                         is that same fill. */}
                     <Button
-                        className="mx-auto mt-10 sm:w-auto sm:min-w-64 sm:px-10"
+                        className="mx-auto mt-10 w-fit"
                         variant="primary"
-                        shadowSize="4"
                         onClick={handleCTA}
                         loading={busy}
                         disabled={busy}

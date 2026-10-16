@@ -1,5 +1,4 @@
 import Image, { type StaticImageData } from 'next/image'
-import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
@@ -11,7 +10,6 @@ import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { contentHrefsFor } from './landingContentHrefs.server'
-import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 interface Feature {
     id: number
@@ -113,11 +111,9 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     </p>
                                 )}
                                 {feature.id === 3 && (
-                                    <div className={`mt-6 ${CTA_WIDTH}`}>
-                                        <Link prefetch={false} href="/support" className="block">
-                                            <Button variant="secondary">{i18n.landingTalkToSupport}</Button>
-                                        </Link>
-                                    </div>
+                                    <Button prefetch={false} href="/support" variant="secondary" className="mt-6 w-fit">
+                                        {i18n.landingTalkToSupport}
+                                    </Button>
                                 )}
                             </div>
                         </div>

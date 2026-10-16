@@ -859,9 +859,7 @@
         @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-secondary {
-        /* hover keeps the shipped hand-built-pill look (white at 90%, the band
-           ground ghosting through) now that the pills ride this variant. */
-        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-background-default/90 active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-square {
         @apply !px-0;
@@ -1619,40 +1617,8 @@ input::placeholder {
     }
 }
 
-/* ── Landing page: CTA motion (replaces framer-motion) ── */
-/* Easing is the DS ease-spring token — two-curve law (RULED 2026-10-14 K8;
-   the bespoke damping-15 approximation curves are gone).
-   Hover is gated on (hover: hover) to match tailwind's hoverOnlyWhenSupported,
-   so a tap on iOS can't latch the button into its hover transform. */
-.cta-motion {
-    transform: translate(var(--cta-x, 0px), var(--cta-y, 0px)) rotate(var(--cta-r, 0deg));
-    transition:
-        transform 0.45s var(--ease-spring),
-        opacity 0.45s ease;
-}
-
-@media (hover: hover) {
-    .cta-motion:hover {
-        --cta-x: var(--cta-hover-x, 0px);
-        --cta-y: 6px;
-        --cta-r: 0.75deg;
-    }
-}
-
-/* Mount entrance. No `forwards`: the end state is the element's base style, so
-   the hover transition above still works once the animation finishes. */
-.cta-enter {
-    animation: cta-enter 0.45s var(--ease-spring);
-}
-
-@keyframes cta-enter {
-    from {
-        opacity: 0;
-        transform: translate(0, 4px) rotate(0.75deg);
-    }
-}
-
-/* Sticky mobile bar: same ease-spring curve, just quicker (0.35s) */
+/* ── Landing page: sticky mobile CTA bar ── */
+/* slides in on the DS ease-spring curve (0.35s) */
 .sticky-cta-in {
     animation: sticky-cta-in 0.35s var(--ease-spring);
 }
@@ -1676,8 +1642,6 @@ input::placeholder {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cta-motion,
-    .cta-enter,
     .sticky-cta-in,
     .sticky-cta-out {
         animation: none;

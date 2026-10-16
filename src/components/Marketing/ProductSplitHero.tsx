@@ -5,7 +5,6 @@ import { motion, MotionConfig } from 'framer-motion'
 import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
 import Sparkle from '@/assets/illustrations/sparkle.svg'
 import Star from '@/assets/illustrations/star.svg'
-import { CTA_WIDTH } from './constants'
 
 interface ProductSplitHeroProps {
     /** Small tracked-caps line above the headline, part of the h1 (the product wordmark). */
@@ -83,7 +82,7 @@ export function ProductSplitHero({ eyebrow, headline, pitch, lead, cta, art, dis
                             </p>
                         )}
                         {lead && <p className="font-roboto-flex mt-6 max-w-xl text-body-l">{lead}</p>}
-                        <div className={`relative mt-8 ${CTA_WIDTH}`}>
+                        <div className="relative mt-8 w-fit">
                             {cta}
                             <motion.img
                                 src={Sparkle.src}

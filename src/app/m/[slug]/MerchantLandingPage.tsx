@@ -15,7 +15,6 @@ import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
 import { Star } from '@/assets/illustrations'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import type { Merchant, MenuItem } from './merchants'
-import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 /** Build a `/invite` URL with the merchant's vanity code + the UTM
  *  attribution. The code (e.g. `STAIN`, `BANOMADS`) is registered in
@@ -117,10 +116,10 @@ function Hero({ merchant }: { merchant: Merchant }) {
                     )}
 
                     <div className="mt-8 flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-6">
-                        <div className={`relative ${CTA_WIDTH}`}>
-                            <Link href={buildInviteHref(merchant, 'hero')} className="block">
-                                <Button variant="secondary">{merchant.primaryCta}</Button>
-                            </Link>
+                        <div className="relative w-fit">
+                            <Button href={buildInviteHref(merchant, 'hero')} variant="secondary" className="w-fit">
+                                {merchant.primaryCta}
+                            </Button>
                             <motion.img
                                 src={Star.src}
                                 alt=""
@@ -470,9 +469,9 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                     {merchant.install.sub}
                 </p>
                 <div className="mt-10 flex justify-center">
-                    <Link href={buildInviteHref(merchant, 'end_fold')} className={`block ${CTA_WIDTH}`}>
-                        <Button variant="secondary">INSTALL PEANUT</Button>
-                    </Link>
+                    <Button href={buildInviteHref(merchant, 'end_fold')} variant="secondary" className="w-fit">
+                        INSTALL PEANUT
+                    </Button>
                 </div>
                 <Link
                     href="/home"
