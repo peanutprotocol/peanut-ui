@@ -2,8 +2,7 @@
  * Tests for useGrantSessionKey — the Rain card session-key grant.
  *
  * Money-path invariant under test: the serialized permission approval this hook
- * produces (which the backend replays for auto-balance sweeps and collateral
- * withdrawals) MUST bind its sudo plugin to the v0.0.3 PATCHED passkey
+ * produces (which the backend replays for collateral withdrawals) MUST bind its sudo plugin to the v0.0.3 PATCHED passkey
  * validator (`0x7ab1…`), for EVERY user — including pre-2025-09-18 accounts
  * whose migration kernel client still exposes the STALE v0.0.2 validator
  * (`0xbA45…`) via `account.kernelPluginManager.sudoValidator`.
@@ -130,6 +129,11 @@ jest.mock('@/context/kernelClient.context', () => ({
 import { createKernelAccount } from '@zerodev/sdk'
 import { useGrantSessionKey } from '../useGrantSessionKey'
 
+/** The approval the backend received — the only one that ever gets replayed. */
+const storedApproval = (): string | undefined =>
+    (mockSubmitWithdrawSessionApproval.mock.calls[0]?.[0] as { serializedApproval?: string } | undefined)
+        ?.serializedApproval
+
 beforeEach(() => {
     jest.clearAllMocks()
     mockEnsureClient.mockResolvedValue({ account: { address: USER_ADDRESS } })
@@ -173,12 +177,11 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         mockClientSudoValidatorAddress = V003_VALIDATOR
         const { result } = renderHook(() => useGrantSessionKey())
 
-        let serialized: string | undefined
         await act(async () => {
-            const r = await result.current.serializeGrant()
-            if (r.ok) serialized = r.serialized
+            await result.current.grant()
         })
 
+        const serialized = storedApproval()
         expect(serialized).toBe(`permission:sudo=${V003_VALIDATOR}`)
         expect(serialized).not.toContain(V002_VALIDATOR)
         // Resolved via getPatchedSudoValidator, not the client's plugin manager.
@@ -191,12 +194,11 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         mockClientSudoValidatorAddress = V002_VALIDATOR
         const { result } = renderHook(() => useGrantSessionKey())
 
-        let serialized: string | undefined
         await act(async () => {
-            const r = await result.current.serializeGrant()
-            if (r.ok) serialized = r.serialized
+            await result.current.grant()
         })
 
+        const serialized = storedApproval()
         expect(serialized).toBe(`permission:sudo=${V003_VALIDATOR}`)
         expect(serialized).not.toContain(V002_VALIDATOR)
         expect(mockGetPatchedSudoValidator).toHaveBeenCalledTimes(1)
@@ -217,11 +219,12 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         const { result } = renderHook(() => useGrantSessionKey())
 
         await act(async () => {
-            const r = await result.current.serializeGrant()
+            const r = await result.current.grant()
             expect(r.ok).toBe(true)
         })
 
-        expect(mockRefetch).toHaveBeenCalledTimes(1)
+        // one fresh read to pin the coordinator, one after the grant to flip the flag
+        expect(mockRefetch).toHaveBeenCalledTimes(2)
         const policyArgs = toCallPolicy.mock.calls[0][0] as {
             permissions: { target: string }[]
         }
@@ -234,9 +237,9 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         mockRefetch.mockImplementation(async () => ({ isSuccess: false, data: undefined, error: new Error('offline') }))
         const { result } = renderHook(() => useGrantSessionKey())
 
-        let out: Awaited<ReturnType<typeof result.current.serializeGrant>> | undefined
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
         await act(async () => {
-            out = await result.current.serializeGrant()
+            out = await result.current.grant()
         })
 
         expect(out).toEqual({ ok: false, error: { kind: 'unexpected', message: 'offline' } })
@@ -286,12 +289,27 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         }
         const { result } = renderHook(() => useGrantSessionKey())
 
-        let out: Awaited<ReturnType<typeof result.current.serializeGrant>> | undefined
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
         await act(async () => {
-            out = await result.current.serializeGrant()
+            out = await result.current.grant()
         })
 
         expect(out).toEqual({ ok: false, error: { kind: 'no-contracts' } })
         expect(mockPatchedValidator.signTypedData).not.toHaveBeenCalled()
+    })
+
+    it('the policy targets only the coordinator, so a missing collateral proxy is not a precondition', async () => {
+        mockFreshOverview = {
+            status: { coordinatorAddress: COORDINATOR },
+            cards: [{ id: 'card-1', status: 'ACTIVE' }],
+        }
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).not.toEqual({ ok: false, error: { kind: 'no-contracts' } })
     })
 })

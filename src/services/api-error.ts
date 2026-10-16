@@ -22,6 +22,9 @@ export const API_ERROR_CODES = {
     WITHDRAWAL_SIGNATURE_COOLDOWN: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
     WITHDRAWAL_SIGNATURE_EXPIRED: 'WITHDRAWAL_SIGNATURE_EXPIRED',
     WITHDRAWAL_SUBMISSION_FAILED: 'WITHDRAWAL_SUBMISSION_FAILED',
+    /** A withdrawal for this user was sent and has not settled yet. Do not send
+     *  it (or another one) again until it has. */
+    WITHDRAWAL_PENDING_CONFIRMATION: 'WITHDRAWAL_PENDING_CONFIRMATION',
     STALE_CARD_APPROVAL: 'STALE_CARD_APPROVAL',
     /** Rain rotated the controller (or the grant is bound to the old one), on an
      *  attempt with NO financial effect: refused by `/prepare` or by

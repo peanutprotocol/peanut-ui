@@ -1,5 +1,6 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useCallback, useEffect, useState } from 'react'
+import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useTranslations } from 'next-intl'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { CardAcquisitionScreen, CardMilestoneScreen } from './components/CardAcquisitionScreen'
@@ -8,6 +9,7 @@ import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardCountryConfirmScreen from '@/components/Card/CardCountryConfirmScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
+import CardStopBanner from '@/components/Card/CardStopBanner'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
@@ -60,6 +62,9 @@ export const CardPage: FC = () => {
         setIsSupportModalOpen,
         onBack,
     } = useCardFlow()
+    // Outlives the card screen: a cancel can remove the last card while the stop is still pending.
+    const [stopAttempt, setStopAttempt] = useState<StopAttempt | null>(null)
+    const clearStopAttempt = useCallback(() => setStopAttempt(null), [])
 
     const celebrationKey = `card_issuance_celebration_pending_v1:${user?.user.userId}`
     const [showIssuedCelebration, setShowIssuedCelebration] = useState(false)
@@ -262,7 +267,9 @@ export const CardPage: FC = () => {
                     )
                 }
                 const card = findActiveCard(overview)!
-                return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
+                return (
+                    <YourCardScreen overview={overview!} card={card} onPrev={onBack} onStopAttempt={setStopAttempt} />
+                )
             }
             default:
                 return null
@@ -271,6 +278,12 @@ export const CardPage: FC = () => {
 
     return (
         <PageContainer>
+            <CardStopBanner
+                key={stopAttempt?.attemptId}
+                enabled={!!overview?.status?.hasApplication}
+                attempt={stopAttempt}
+                onSettled={clearStopAttempt}
+            />
             {renderState()}
             <SumsubKycWrapper
                 visible={poaToken !== null}

@@ -56,7 +56,9 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
 }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: jest.fn(), getCode: jest.fn() } }))
-jest.mock('@/services/rain', () => ({ rainApi: { getSessionKeyAddress: jest.fn() } }))
+jest.mock('@/services/rain', () => ({
+    rainApi: { getSessionKeyAddress: jest.fn(), submitWithdrawSessionApproval: jest.fn() },
+}))
 const mockHandleSendUserOpEncoded = jest.fn(() => Promise.resolve({ userOpHash: '0xhash', receipt: null }))
 jest.mock('@/hooks/useZeroDev', () => ({
     useZeroDev: () => ({ handleSendUserOpEncoded: mockHandleSendUserOpEncoded }),
@@ -100,6 +102,13 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 let signTypedData: jest.Mock
 
+// The grant is the only production path to the serialize step: a good approval
+// is the one the backend received, not a value handed back to the caller.
+const expectApprovalStored = (out: unknown) => {
+    expect(out).toEqual({ ok: true, overviewFresh: true })
+    expect(rainApi.submitWithdrawSessionApproval).toHaveBeenCalledWith({ serializedApproval: 'SERIALIZED_APPROVAL' })
+}
+
 beforeEach(() => {
     jest.clearAllMocks()
     signTypedData = jest.fn().mockResolvedValue('0xENABLESIG')
@@ -112,12 +121,16 @@ beforeEach(() => {
         // not the client's possibly-stale kernelPluginManager.sudoValidator.
         getPatchedSudoValidator: jest.fn().mockResolvedValue({ signTypedData }),
     })
-    const overview = { status: { contractAddress: COLLATERAL, coordinatorAddress: COORDINATOR }, cards: [{}] }
+    const overview = {
+        status: { contractAddress: COLLATERAL, coordinatorAddress: COORDINATOR },
+        cards: [{ id: 'card-1', status: 'ACTIVE' }],
+    }
     ;(useRainCardOverview as jest.Mock).mockReturnValue({
         overview,
         // The grant reads the coordinator off a FRESH refetch (TASK-22734).
         refetch: jest.fn().mockResolvedValue({ isSuccess: true, data: overview }),
     })
+    ;(rainApi.submitWithdrawSessionApproval as jest.Mock).mockResolvedValue(undefined)
     ;(rainApi.getSessionKeyAddress as jest.Mock).mockResolvedValue({
         address: '0x4300F803a281e257F3C1de001512e68972f8d022',
     })
@@ -135,14 +148,30 @@ beforeEach(() => {
     ;(peanutPublicClient.getCode as jest.Mock).mockResolvedValue('0xdeadbeef')
 })
 
+describe('useGrantSessionKey — session-key scope', () => {
+    it('grants withdrawAsset on the coordinator only — no token transfer permission', async () => {
+        ;(peanutPublicClient.readContract as jest.Mock).mockResolvedValue(1n)
+
+        const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
+        await act(async () => {
+            await result.current.grant()
+        })
+
+        const { permissions } = (toCallPolicy as jest.Mock).mock.calls[0][0]
+        expect(permissions).toHaveLength(1)
+        expect(permissions[0].target).toBe(COORDINATOR)
+        expect(permissions[0].rules).toBeUndefined()
+    })
+})
+
 describe('useGrantSessionKey — enable approval binds to the live currentNonce', () => {
     it('reads currentNonce and binds the enable approval to it, injecting the signature', async () => {
         ;(peanutPublicClient.readContract as jest.Mock).mockResolvedValue(2n) // migrated account, nonce advanced past 1
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
-        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        let out: Awaited<ReturnType<typeof result.current.grant>>
         await act(async () => {
-            out = await result.current.serializeGrant()
+            out = await result.current.grant()
         })
 
         // currentNonce was read on the account…
@@ -157,21 +186,22 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         // …signed by the sudo (passkey) validator, and injected into serialize.
         expect(signTypedData).toHaveBeenCalledWith({ primaryType: 'Enable', message: {} })
         expect(serializePermissionAccount).toHaveBeenCalledWith(expect.anything(), undefined, '0xENABLESIG')
-        expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
+        expectApprovalStored(out!)
     })
 
     it('aborts the grant when currentNonce cannot be read on a DEPLOYED account — no approval is produced', async () => {
         ;(peanutPublicClient.readContract as jest.Mock).mockRejectedValue(new Error('RPC read failed'))
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
-        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        let out: Awaited<ReturnType<typeof result.current.grant>>
         await act(async () => {
-            out = await result.current.serializeGrant()
+            out = await result.current.grant()
         })
 
         // The old silent fallback would have minted a nonce-1 approval here.
         expect(getPluginsEnableTypedData).not.toHaveBeenCalled()
         expect(serializePermissionAccount).not.toHaveBeenCalled()
+        expect(rainApi.submitWithdrawSessionApproval).not.toHaveBeenCalled()
         expect(out!.ok).toBe(false)
     })
 
@@ -183,13 +213,13 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         ;(peanutPublicClient.readContract as jest.Mock).mockRejectedValue(new Error('returned no data ("0x")'))
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
-        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        let out: Awaited<ReturnType<typeof result.current.grant>>
         await act(async () => {
-            out = await result.current.serializeGrant()
+            out = await result.current.grant()
         })
 
         expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
-        expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
+        expectApprovalStored(out!)
     })
 
     it('normalizes a deployed-but-uninitialized nonce of 0 to 1, the way the SDK does', async () => {
@@ -197,7 +227,7 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
         await act(async () => {
-            await result.current.serializeGrant()
+            await result.current.grant()
         })
 
         expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
@@ -212,16 +242,16 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         mockRepairEnableNonce.mockResolvedValue({ validatorNonce: 4 })
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
-        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        let out: Awaited<ReturnType<typeof result.current.grant>>
         await act(async () => {
-            out = await result.current.serializeGrant()
+            out = await result.current.grant()
         })
 
         expect(mockRepairEnableNonce).toHaveBeenCalledWith(
             expect.objectContaining({ validNonceFrom: 3, accountAddress: ACCOUNT })
         )
         expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 4 }))
-        expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
+        expectApprovalStored(out!)
     })
 
     it('deploys an undeployed pre-cutoff (migration-wrapper) account via the migration gate before granting — its approval would AA14 otherwise', async () => {
@@ -249,15 +279,15 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         )
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
-        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        let out: Awaited<ReturnType<typeof result.current.grant>>
         await act(async () => {
-            out = await result.current.serializeGrant()
+            out = await result.current.grant()
         })
 
         expect(mockEnsureRootValidatorMigrated).toHaveBeenCalled()
         expect(mockRepairEnableNonce).not.toHaveBeenCalled()
         expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
-        expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
+        expectApprovalStored(out!)
     })
 })
 
@@ -279,9 +309,9 @@ it('awaits an in-flight kernel build before signing the session-key grant', asyn
     ;(peanutPublicClient.getCode as jest.Mock).mockResolvedValue('0x1234')
     ;(peanutPublicClient.readContract as jest.Mock).mockResolvedValue(1n)
     const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
-    let pending!: ReturnType<typeof result.current.serializeGrant>
+    let pending!: ReturnType<typeof result.current.grant>
     await act(async () => {
-        pending = result.current.serializeGrant()
+        pending = result.current.grant()
     })
     expect(ensure).toHaveBeenCalledWith('42161')
     expect(signTypedData).not.toHaveBeenCalled()

@@ -22,6 +22,13 @@ jest.mock('@/components/Card/CardFace', () => ({ __esModule: true, default: () =
 jest.mock('@/components/Card/LockCardModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/CancelCardModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/context/ModalsContext', () => {
+    const modals = { setIsSupportModalOpen: jest.fn() }
+    return { useModalsContext: () => modals, useModalsContextOptional: () => modals }
+})
+jest.mock('@/hooks/wallet/useCardCollateralReturn', () => ({
+    useCardCollateralReturn: () => ({ returnCollateral: jest.fn(), isReturning: false, lastError: null }),
+}))
 jest.mock('next/image', () => ({
     __esModule: true,
     default: ({
