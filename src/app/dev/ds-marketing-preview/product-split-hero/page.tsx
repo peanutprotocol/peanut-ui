@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { Star } from '@/assets/illustrations'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
  * The /shhhhh split promoted to THE sub-LP hero (q4, ruled 2026-10-15): copy
@@ -47,7 +48,7 @@ export default function ProductSplitHeroPreview() {
                             Copy column left, product art right. A sub-LP leads with the one star feature it sells — the
                             key visual stays on the main LP.
                         </p>
-                        <Button variant="secondary" className="mt-8 w-fit">
+                        <Button variant="secondary" className={`mt-8 w-fit ${CTA_MOTION}`}>
                             Get started
                         </Button>
                     </div>

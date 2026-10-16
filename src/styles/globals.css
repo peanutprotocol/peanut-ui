@@ -1617,6 +1617,41 @@ input::placeholder {
     }
 }
 
+/* ── Marketing CTA motion layer (ruled 2026-10-16, konrad) ── */
+/* The one motion a marketing CTA adds on top of the plain DS Button: a mount
+   entrance and a hover drop-and-tilt. Put CTA_MOTION (Marketing/constants.ts)
+   on the Button itself; geometry, variant and the 4px press stay the DS
+   Button's. It is unlayered so its transform transition beats the Button's
+   `transition-all duration-instant` utility — the shorthand re-lists `all` at
+   the instant duration first, so colour, shadow and the press `translate`
+   (a separate property in tailwind v4) stay instant.
+   Hover is gated on (hover: hover) to match tailwind's hoverOnlyWhenSupported,
+   so a tap on iOS can't latch the button into its hover transform.
+   A parent may set --cta-x / --cta-y / --cta-r to park the CTA off its rest
+   position (the landing hero does, while the footer is on screen). */
+.cta-motion {
+    transform: translate(var(--cta-x, 0px), var(--cta-y, 0px)) rotate(var(--cta-r, 0deg));
+    transition:
+        all var(--transition-duration-instant),
+        transform var(--transition-duration-slow) var(--ease-spring);
+    animation: cta-enter var(--transition-duration-slow) var(--ease-spring);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .cta-motion:not(:disabled):hover {
+        transform: translate(0px, 6px) rotate(0.75deg);
+    }
+}
+
+/* No `forwards`: the end state is the element's base style, so the hover
+   transition above still works once the animation finishes. */
+@keyframes cta-enter {
+    from {
+        opacity: 0;
+        transform: translate(0, 4px) rotate(0.75deg);
+    }
+}
+
 /* ── Landing page: sticky mobile CTA bar ── */
 /* slides in on the DS ease-spring curve (0.35s) */
 .sticky-cta-in {
@@ -1646,6 +1681,13 @@ input::placeholder {
     .sticky-cta-out {
         animation: none;
         transition: none;
+    }
+
+    /* the CTA stays put: no entrance, no parked offset. the hover rule is
+       already gated off above; the DS press is untouched. */
+    .cta-motion {
+        animation: none;
+        transform: none;
     }
 }
 

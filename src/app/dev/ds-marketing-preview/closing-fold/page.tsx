@@ -1,5 +1,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import Title from '@/components/0_Bruddle/Title'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
  * The closing fold on the hero composition (knerd-closing-fold A, ruled
@@ -26,7 +27,7 @@ export default function ClosingFoldPreview() {
                     The subline stays Roboto Flex — Knerd is only for the lockup above.
                 </p>
                 <div className="mx-auto mt-8 w-fit">
-                    <Button variant="secondary" className="w-fit">
+                    <Button variant="secondary" className={`w-fit ${CTA_MOTION}`}>
                         Get started
                     </Button>
                 </div>

@@ -7,6 +7,7 @@ import { RoleCard } from '@/components/Jobs/RoleCard'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import Link from 'next/link'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 // Company facts here are lifted from content/press/en.md (boilerplate + company_facts)
 // and content/team/en.md (founders) in mono — the single source for how Peanut
@@ -116,10 +117,10 @@ export function Careers() {
                                 the cover letter. Tell us what you&apos;d do in your first month.
                             </p>
                             <div className="flex flex-col items-center gap-4">
-                                <Button href={NOTION_JOB_BOARD_URL} external className="w-fit">
+                                <Button href={NOTION_JOB_BOARD_URL} external className={`w-fit ${CTA_MOTION}`}>
                                     Apply on Notion
                                 </Button>
-                                <Button variant="secondary" href="/lp" className="w-fit">
+                                <Button variant="secondary" href="/lp" className={`w-fit ${CTA_MOTION}`}>
                                     See what we&apos;ve built
                                 </Button>
                             </div>

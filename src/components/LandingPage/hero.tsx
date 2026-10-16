@@ -13,6 +13,7 @@ import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -96,16 +97,21 @@ type HeroProps = {
 }
 
 /*
- * The CTA hides while the footer is on screen (the sticky bar takes over).
- * No hover or entrance motion: a DS Button only presses (design.md law 7).
+ * The CTA fades out while the footer is on screen (the sticky bar takes over).
+ * The holder parks the CTA_MOTION button off its rest position through the
+ * --cta-* custom properties `.cta-motion` reads, so it slides as it fades.
  */
-const getCtaStyle = (buttonVisible?: boolean): CSSProperties => ({
-    opacity: buttonVisible ? 1 : 0,
-    pointerEvents: buttonVisible ? 'auto' : 'none',
-})
+const getCtaStyle = (buttonVisible?: boolean): CSSProperties =>
+    ({
+        '--cta-x': buttonVisible ? '0px' : '20px',
+        '--cta-y': buttonVisible ? '0px' : '20px',
+        '--cta-r': buttonVisible ? '0deg' : '1deg',
+        opacity: buttonVisible ? 1 : 0,
+        pointerEvents: buttonVisible ? 'auto' : 'none',
+    }) as CSSProperties
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto' : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 flex flex-col items-center justify-center transition-opacity duration-slow ${variant === 'primary' ? 'mx-auto' : 'right-[calc(50%-120px)]'}`
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, contentHrefs }: HeroProps) {
     const migrationOn = useMigrationFlag()
@@ -119,7 +125,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     plainAnchor
                     external={cta.isExternal}
                     onClick={cta.onClick}
-                    className="w-fit"
+                    className={`w-fit ${CTA_MOTION}`}
                 >
                     {cta.label}
                 </Button>

@@ -21,6 +21,7 @@ import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { queueShhhhhCampaignContinuation, shhhhhCampaignSignupRoute } from './shhhhh-acquisition'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 const faqKeys = ['q1', 'q2', 'q3', 'q5', 'q6', 'q7', 'q8'] as const
 
@@ -120,7 +121,13 @@ export default function ShhhhhLandingPage() {
                 pitch={t('hero.pitch')}
                 lead={t('hero.lead')}
                 cta={
-                    <Button variant="secondary" onClick={handleCTA} loading={busy} disabled={busy} className="w-fit">
+                    <Button
+                        variant="secondary"
+                        onClick={handleCTA}
+                        loading={busy}
+                        disabled={busy}
+                        className={`w-fit ${CTA_MOTION}`}
+                    >
                         {t('hero.cta')}
                     </Button>
                 }
@@ -263,7 +270,7 @@ export default function ShhhhhLandingPage() {
                         closer, while the hero stays secondary because its background
                         is that same fill. */}
                     <Button
-                        className="mx-auto mt-10 w-fit"
+                        className={`mx-auto mt-10 w-fit ${CTA_MOTION}`}
                         variant="primary"
                         onClick={handleCTA}
                         loading={busy}

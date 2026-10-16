@@ -20,3 +20,10 @@ export const CARD_HOVER =
  *  element map and any component that writes its own anchor cannot drift. */
 export const PROSE_LINK =
     'text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary'
+
+/** The marketing CTA motion layer (ruled 2026-10-16, konrad): a mount entrance
+ *  and a hover drop-and-tilt, `.cta-motion` in globals.css. Put it on the DS
+ *  Button of every marketing CTA, next to `w-fit` — one class, never a
+ *  per-site variant. It changes no geometry, colour or variant, and it stands
+ *  down under prefers-reduced-motion. App screens never take it. */
+export const CTA_MOTION = 'cta-motion'

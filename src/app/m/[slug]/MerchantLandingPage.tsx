@@ -15,6 +15,7 @@ import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
 import { Star } from '@/assets/illustrations'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import type { Merchant, MenuItem } from './merchants'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /** Build a `/invite` URL with the merchant's vanity code + the UTM
  *  attribution. The code (e.g. `STAIN`, `BANOMADS`) is registered in
@@ -117,7 +118,11 @@ function Hero({ merchant }: { merchant: Merchant }) {
 
                     <div className="mt-8 flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-6">
                         <div className="relative w-fit">
-                            <Button href={buildInviteHref(merchant, 'hero')} variant="secondary" className="w-fit">
+                            <Button
+                                href={buildInviteHref(merchant, 'hero')}
+                                variant="secondary"
+                                className={`w-fit ${CTA_MOTION}`}
+                            >
                                 {merchant.primaryCta}
                             </Button>
                             <motion.img
@@ -469,7 +474,11 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                     {merchant.install.sub}
                 </p>
                 <div className="mt-10 flex justify-center">
-                    <Button href={buildInviteHref(merchant, 'end_fold')} variant="secondary" className="w-fit">
+                    <Button
+                        href={buildInviteHref(merchant, 'end_fold')}
+                        variant="secondary"
+                        className={`w-fit ${CTA_MOTION}`}
+                    >
                         INSTALL PEANUT
                     </Button>
                 </div>

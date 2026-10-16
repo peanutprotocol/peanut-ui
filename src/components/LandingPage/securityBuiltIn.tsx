@@ -10,6 +10,7 @@ import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { contentHrefsFor } from './landingContentHrefs.server'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 interface Feature {
     id: number
@@ -111,7 +112,12 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     </p>
                                 )}
                                 {feature.id === 3 && (
-                                    <Button prefetch={false} href="/support" variant="secondary" className="mt-6 w-fit">
+                                    <Button
+                                        prefetch={false}
+                                        href="/support"
+                                        variant="secondary"
+                                        className={`mt-6 w-fit ${CTA_MOTION}`}
+                                    >
                                         {i18n.landingTalkToSupport}
                                     </Button>
                                 )}

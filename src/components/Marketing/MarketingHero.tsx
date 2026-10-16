@@ -6,7 +6,7 @@ import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { PROSE_WIDTH } from './constants'
+import { CTA_MOTION, PROSE_WIDTH } from './constants'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -59,7 +59,7 @@ export function MarketingHero({
                     <p className="mt-6 text-heading-m text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
-                            <Button variant="secondary" href={ctaHref} className="mx-auto w-fit">
+                            <Button variant="secondary" href={ctaHref} className={`mx-auto w-fit ${CTA_MOTION}`}>
                                 {ctaText}
                             </Button>
                         </div>
