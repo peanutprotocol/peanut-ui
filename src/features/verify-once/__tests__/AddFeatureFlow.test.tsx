@@ -210,7 +210,7 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
         mockQuestions.mockResolvedValue({
             available: true,
             attemptId: null,
-            residence: 'BR',
+            residence: 'AR',
             steps: [
                 {
                     id: 'birth',
@@ -246,7 +246,7 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
         renderWithIntl(<AddFeatureQuestions feature="local" onBack={jest.fn()} onDone={onDone} />)
         expect(await screen.findByText('For local transfers')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-maritalStatus')).toHaveTextContent('Married')
-        expect(screen.getByText('I must report to COAF')).toBeInTheDocument()
+        expect(screen.getByText('I must report to the UIF')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-toggle-isPep'))
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
@@ -255,48 +255,31 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
     })
 })
 
-describe('AddFeatureQuestions: the EEA foreign tax question', () => {
-    it('shows the country and number only once the toggle is on, and requires them then', async () => {
+describe('AddFeatureQuestions: the US-citizen check for local transfers', () => {
+    it('says up front that local transfers are not for US citizens, and shows the refusal on Continue', async () => {
         mockQuestions.mockResolvedValue({
             available: true,
             attemptId: null,
-            residence: 'DE',
+            residence: 'AR',
             steps: [
                 {
-                    id: 'tax',
-                    features: ['bank'],
+                    id: 'purpose',
+                    features: ['local'],
                     answered: false,
-                    fields: [
-                        { key: 'taxElsewhere', kind: 'toggle', required: true, value: null },
-                        {
-                            key: 'foreignTaxCountry',
-                            kind: 'country',
-                            required: true,
-                            visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
-                            value: 'ES',
-                        },
-                        {
-                            key: 'foreignTaxId',
-                            kind: 'text',
-                            required: true,
-                            visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
-                            value: null,
-                        },
-                    ],
+                    fields: [{ key: 'usCitizen', kind: 'toggle', required: true, value: null }],
                 },
             ],
-            firstUnanswered: 'tax',
+            firstUnanswered: 'purpose',
             progress: { done: 1, total: 2 },
         })
-        renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={jest.fn()} />)
-        await screen.findByTestId('verify-toggle-taxElsewhere')
-        expect(screen.queryByTestId('verify-input-foreignTaxId')).not.toBeInTheDocument()
-        expect(screen.getByTestId('verify-continue')).toBeEnabled()
-        fireEvent.click(screen.getByTestId('verify-toggle-taxElsewhere'))
-        expect(screen.getByTestId('verify-pick-foreignTaxCountry')).toBeInTheDocument()
-        expect(screen.getByTestId('verify-continue')).toBeDisabled()
-        fireEvent.change(screen.getByTestId('verify-input-foreignTaxId'), { target: { value: 'X1234' } })
-        expect(screen.getByTestId('verify-continue')).toBeEnabled()
+        mockSave.mockResolvedValue({ kind: 'invalid', errors: { usCitizen: 'us_citizen_not_supported' } })
+        renderWithIntl(<AddFeatureQuestions feature="local" onBack={jest.fn()} onDone={jest.fn()} />)
+        fireEvent.click(await screen.findByTestId('verify-toggle-usCitizen'))
+        expect(screen.getByTestId('verify-note-usCitizen')).toHaveTextContent('aren’t available to US citizens')
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        expect(await screen.findByTestId('verify-error-usCitizen')).toHaveTextContent('aren’t available to US citizens')
+        expect(screen.queryByTestId('verify-note-usCitizen')).not.toBeInTheDocument()
+        expect(mockSave).toHaveBeenCalledWith('purpose', { usCitizen: 'yes' }, 'local')
     })
 })
 

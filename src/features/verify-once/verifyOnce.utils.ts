@@ -78,6 +78,7 @@ const ERROR_KEYS: Record<string, string> = {
     invalid_country: 'invalidCountry',
     too_long: 'tooLong',
     invalid_text: 'invalidText',
+    us_citizen_not_supported: 'usCitizenNotSupported',
 }
 
 /** A server error code → its `kyc.verifyOnce.errors.*` key; an unknown code reads as a generic check-this-answer line. */

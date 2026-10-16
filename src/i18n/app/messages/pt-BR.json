@@ -3439,7 +3439,6 @@
                 "bankOccupation": "Seu trabalho, para a conta bancária",
                 "bankMonthlyPayments": "Quanto sua conta vai movimentar por mês",
                 "actingAsIntermediary": "Em nome de quem você envia dinheiro",
-                "foreignTaxCountry": "Onde mais você paga impostos",
                 "nationality": "Sua cidadania",
                 "maritalStatus": "Estado civil"
             },
@@ -3521,7 +3520,6 @@
                 "maritalStatus": {
                     "single": "Solteiro(a)",
                     "married": "Casado(a)",
-                    "civil_union": "Em união estável",
                     "divorced": "Divorciado(a)",
                     "widowed": "Viúvo(a)"
                 }
@@ -3529,12 +3527,14 @@
             "titles": {
                 "address": "Onde você mora?",
                 "phone": "Qual é o seu número de telefone?",
-                "declarations": "Alguma destas opções se aplica a você?"
+                "declarations": "Alguma destas opções se aplica a você?",
+                "purpose": "Primeiro, uma verificação rápida"
             },
             "descriptions": {
                 "address": "Seu endereço residencial, como aparece em uma conta ou extrato bancário.",
                 "phone": "O parceiro do seu cartão usa esse número para manter seu cartão seguro. Não vamos enviar códigos.",
-                "declarations": "A maioria das pessoas deixa as três desligadas. Se alguma se aplicar, podemos pedir um documento depois."
+                "declarations": "A maioria das pessoas deixa as três desligadas. Se alguma se aplicar, podemos pedir um documento depois.",
+                "purpose": "Transferências bancárias locais na Argentina e no Brasil não estão disponíveis para cidadãos dos EUA."
             },
             "labels": {
                 "street": "Rua",
@@ -3547,10 +3547,8 @@
                 "phone": "Número de telefone",
                 "isPep": "Ocupo um cargo público",
                 "isFatca": "Sou contribuinte dos EUA",
-                "isFep": "Sou obrigado a reportar ao {authority}",
-                "taxElsewhere": "Também pago impostos em outro país",
-                "foreignTaxCountry": "País",
-                "foreignTaxId": "Número fiscal nesse país"
+                "isFep": "Sou obrigado a reportar à UIF",
+                "usCitizen": "Tenho cidadania dos EUA"
             },
             "tax": {
                 "title": {
@@ -3602,7 +3600,8 @@
                 "retry": "Não conseguimos salvar. Confira sua conexão e tente de novo.",
                 "featureNotSelected": "Sua conta mudou. Estamos carregando as perguntas certas.",
                 "identitySubmitted": "Seu documento já foi enviado, então essas respostas não podem mudar agora.",
-                "unavailable": "Esta verificação não está disponível agora."
+                "unavailable": "Esta verificação não está disponível agora.",
+                "usCitizenNotSupported": "Transferências locais não estão disponíveis para cidadãos dos EUA. Você ainda pode receber com uma conta em USD ou pagar com QR."
             },
             "midpoint": {
                 "title": "A parte difícil já foi",
@@ -3664,7 +3663,11 @@
             "toggleNotes": {
                 "isPep": "Ou um parente próximo ou parceiro ocupa.",
                 "isFatca": "Cidadão ou residente fiscal dos EUA.",
-                "isFep": "Vale para algumas profissões, como tabeliães e contadores."
+                "isFep": "Vale para algumas profissões, como tabeliães.",
+                "usCitizen": "Mesmo que eu também tenha outra cidadania."
+            },
+            "whenYes": {
+                "usCitizen": "Transferências locais não estão disponíveis para cidadãos dos EUA. Você ainda pode receber com uma conta em USD ou pagar com QR."
             }
         }
     },

@@ -1565,7 +1565,8 @@
                 "tooLong": "Es demasiado largo. Usá menos de 100 caracteres.",
                 "invalidText": "Usá solo letras, números y signos de puntuación.",
                 "invalid": "Revisá esta respuesta.",
-                "retry": "No pudimos guardarlo. Revisá tu conexión e intentá de nuevo."
+                "retry": "No pudimos guardarlo. Revisá tu conexión e intentá de nuevo.",
+                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
             },
             "midpoint": {
                 "description": "Último paso: fotos de tu documento y una selfie rápida. Elegí el documento que vas a usar.",
@@ -1586,8 +1587,10 @@
                 "description": "Revisá tu conexión e intentá de nuevo. Tus respuestas hasta ahora están guardadas."
             },
             "pickerTitle": {
-                "actingAsIntermediary": "En nombre de quién enviás dinero",
-                "foreignTaxCountry": "Dónde más pagás impuestos"
+                "actingAsIntermediary": "En nombre de quién enviás dinero"
+            },
+            "whenYes": {
+                "usCitizen": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
             }
         }
     },

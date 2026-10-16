@@ -33,8 +33,8 @@ function useStepHeading(step: VerifyOnceStep) {
             description: t(ssn ? 'tax.description.ssn' : 'tax.description.other'),
         }
     }
-    if (step.id === 'address' || step.id === 'phone' || step.id === 'declarations')
-        return { title: t(`titles.${step.id}`), description: t(`descriptions.${step.id}`) }
+    if (['address', 'phone', 'declarations', 'purpose'].includes(step.id))
+        return { title: t(`titles.${step.id}` as never), description: t(`descriptions.${step.id}` as never) }
     return null
 }
 

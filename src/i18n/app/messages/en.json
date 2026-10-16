@@ -3439,7 +3439,6 @@
                 "bankOccupation": "Your job, for the bank account",
                 "bankMonthlyPayments": "What your account moves each month",
                 "actingAsIntermediary": "Who you send money for",
-                "foreignTaxCountry": "Where else you pay tax",
                 "nationality": "Your citizenship",
                 "maritalStatus": "Marital status"
             },
@@ -3521,7 +3520,6 @@
                 "maritalStatus": {
                     "single": "Single",
                     "married": "Married",
-                    "civil_union": "In a civil union",
                     "divorced": "Divorced",
                     "widowed": "Widowed"
                 }
@@ -3529,12 +3527,14 @@
             "titles": {
                 "address": "Where do you live?",
                 "phone": "What’s your phone number?",
-                "declarations": "Do any of these apply to you?"
+                "declarations": "Do any of these apply to you?",
+                "purpose": "First, one quick check"
             },
             "descriptions": {
                 "address": "Your home address, as it appears on a bill or bank statement.",
                 "phone": "Your card partner uses it to keep your card secure. We won’t send you codes.",
-                "declarations": "Most people leave all three off. If one applies, we may ask for a document later."
+                "declarations": "Most people leave all three off. If one applies, we may ask for a document later.",
+                "purpose": "Local bank transfers in Argentina and Brazil aren’t open to US citizens."
             },
             "labels": {
                 "street": "Street",
@@ -3547,10 +3547,8 @@
                 "phone": "Phone number",
                 "isPep": "I hold a public office",
                 "isFatca": "I’m a US person for tax",
-                "isFep": "I must report to {authority}",
-                "taxElsewhere": "I also pay tax in another country",
-                "foreignTaxCountry": "Country",
-                "foreignTaxId": "Tax number there"
+                "isFep": "I must report to the UIF",
+                "usCitizen": "I’m a US citizen"
             },
             "tax": {
                 "title": {
@@ -3602,7 +3600,8 @@
                 "retry": "We couldn’t save that. Check your connection and try again.",
                 "featureNotSelected": "Your account changed. We’re loading the right questions.",
                 "identitySubmitted": "Your ID is already submitted, so these answers can’t change now.",
-                "unavailable": "This check isn’t available right now."
+                "unavailable": "This check isn’t available right now.",
+                "usCitizenNotSupported": "Local transfers aren’t available to US citizens. You can still get paid with a USD account or pay by QR."
             },
             "midpoint": {
                 "title": "That’s the hard part done",
@@ -3664,7 +3663,11 @@
             "toggleNotes": {
                 "isPep": "Or a close relative or partner does.",
                 "isFatca": "A US citizen or US tax resident.",
-                "isFep": "Required in some jobs, like notaries and accountants."
+                "isFep": "Required in some jobs, like notaries.",
+                "usCitizen": "Even if I also hold another citizenship."
+            },
+            "whenYes": {
+                "usCitizen": "Local transfers aren’t available to US citizens. You can still get paid with a USD account or pay by QR."
             }
         }
     },

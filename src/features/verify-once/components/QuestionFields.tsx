@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Field } from '@/components/0_Bruddle/Field'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -289,33 +290,46 @@ function TypedFields({
             {itin && !errorText('taxId') && <FieldError>{t('errors.itinNotAccepted')}</FieldError>}
             {groupToggles(fields.filter((f) => !known.has(f.key) && isVisible(f, values))).map((group) =>
                 Array.isArray(group) ? (
-                    <ListGroup key={group[0].key}>
-                        {group.map((f) => {
-                            const title = t(`labels.${f.key}` as 'labels.isFep', {
-                                authority: residence === 'BR' ? 'COAF' : 'UIF',
-                            })
-                            return (
-                                <ListItem
-                                    key={f.key}
-                                    title={title}
-                                    body={
-                                        t.has(`toggleNotes.${f.key}` as never)
-                                            ? t(`toggleNotes.${f.key}` as never)
-                                            : undefined
-                                    }
-                                    bodyWrap
-                                    trailing={
-                                        <Toggle
-                                            checked={values[f.key] === 'yes'}
-                                            onChange={(on) => onChange(f.key, on ? 'yes' : 'no')}
-                                            aria-label={title}
-                                            data-testid={`verify-toggle-${f.key}`}
-                                        />
-                                    }
-                                />
-                            )
-                        })}
-                    </ListGroup>
+                    <div key={group[0].key} className="flex flex-col gap-2">
+                        <ListGroup>
+                            {group.map((f) => {
+                                const title = t(`labels.${f.key}` as never)
+                                return (
+                                    <ListItem
+                                        key={f.key}
+                                        title={title}
+                                        body={
+                                            t.has(`toggleNotes.${f.key}` as never)
+                                                ? t(`toggleNotes.${f.key}` as never)
+                                                : undefined
+                                        }
+                                        bodyWrap
+                                        className="py-3"
+                                        trailing={
+                                            <Toggle
+                                                checked={values[f.key] === 'yes'}
+                                                onChange={(on) => onChange(f.key, on ? 'yes' : 'no')}
+                                                aria-label={title}
+                                                data-testid={`verify-toggle-${f.key}`}
+                                            />
+                                        }
+                                    />
+                                )
+                            })}
+                        </ListGroup>
+                        {group.map((f) =>
+                            errorText(f.key) ? (
+                                <FieldError key={f.key} data-testid={`verify-error-${f.key}`}>
+                                    {errorText(f.key)}
+                                </FieldError>
+                            ) : values[f.key] === 'yes' && t.has(`whenYes.${f.key}` as never) ? (
+                                // A yes that rules something out says so before Continue, not after.
+                                <Callout key={f.key} priority="info" data-testid={`verify-note-${f.key}`}>
+                                    {t(`whenYes.${f.key}` as never)}
+                                </Callout>
+                            ) : null
+                        )}
+                    </div>
                 ) : group.kind === 'country' ? (
                     fieldFor(group, (f) => (
                         <AnswerPicker
