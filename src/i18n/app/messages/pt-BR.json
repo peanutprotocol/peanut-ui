@@ -1315,6 +1315,7 @@
             "unavailable": "A transferência bancária não está disponível para esta solicitação no momento.",
             "amountLabel": "Valor a enviar",
             "amountValueApprox": "≈ {amount}",
+            "bodyWithReference": "{text} · Referência {reference}",
             "exactBadge": "Valor exato",
             "estimateBadge": "Estimativa",
             "amountNote": "Estimado pela cotação de hoje. Seu banco pode converter por outra cotação, então o valor exato pode mudar.",
