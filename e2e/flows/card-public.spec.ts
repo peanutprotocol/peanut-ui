@@ -54,7 +54,7 @@ test('an ordinary account reaches the application and card terms without a queue
     await expect(apply).toBeInViewport({ ratio: 0.99 })
     await shot(page, 'application-cta')
     await apply.click()
-    await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Accept terms', exact: true })).toBeVisible()
     await shot(page, 'terms')
 })
 
@@ -187,7 +187,7 @@ test('Home asks for nothing when the permission is ready, paused, or its state c
 test('re-issuing a card ends the card terms with one unchecked funding authorization', async ({ page }) => {
     await page.goto('/card?__fixture=card-reissue')
     await page.getByRole('button', { name: 'Get card', exact: true }).click()
-    await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Accept terms', exact: true })).toBeVisible()
     const boxes = page.getByRole('checkbox')
     // international: the four original rows, then the one funding authorization
     await expect(boxes).toHaveCount(5)

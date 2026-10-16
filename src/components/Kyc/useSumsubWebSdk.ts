@@ -40,6 +40,7 @@ export function useSumsubWebSdk({
     visible,
     sessionKey,
     accessToken,
+    email,
     onComplete,
     onSubmitted,
     onError,
@@ -48,6 +49,10 @@ export function useSumsubWebSdk({
 }: UseSumsubWebSdkArgs) {
     const accessTokenRef = useRef(accessToken)
     accessTokenRef.current = accessToken
+    // Read the latest default at launch without restarting an active SDK,
+    // which would discard edits made inside Sumsub.
+    const emailRef = useRef(email)
+    emailRef.current = email
     const hasAccessToken = !!accessToken
     const [sdkLoaded, setSdkLoaded] = useState(false)
     const [sdkLoadError, setSdkLoadError] = useState(false)
@@ -127,6 +132,7 @@ export function useSumsubWebSdk({
         script.id = 'sumsub-websdk'
         script.src = SUMSUB_SDK_URL
         script.async = true
+        script.crossOrigin = 'anonymous'
         script.onload = handleLoaded
         script.onerror = handleError
         document.head.appendChild(script)
@@ -225,7 +231,11 @@ export function useSumsubWebSdk({
 
             const sdk = window.snsWebSdk
                 .init(accessTokenRef.current!, stableOnRefreshToken)
-                .withConf({ lang: sumsubLocaleRef.current, theme: 'light' })
+                .withConf({
+                    lang: sumsubLocaleRef.current,
+                    theme: 'light',
+                    ...(emailRef.current ? { email: emailRef.current } : {}),
+                })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
                 .on('onApplicantSubmitted', handleSubmitted)
                 .on('onApplicantResubmitted', handleResubmitted)

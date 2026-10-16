@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The half-finished exit: the channel is already cleared but the beta bundle is
  * still running. Reading the channel alone calls that "not on beta", which hides

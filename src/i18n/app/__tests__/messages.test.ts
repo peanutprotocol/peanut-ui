@@ -34,13 +34,13 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'Welcome to Peanut!':
         'visible title vs. its spoken form: es shows "¡Bienvenid@ a Peanut!", screen readers get "¡Te damos la bienvenida a Peanut!" (the @ is read as "arroba")',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
-    Username:
-        "signup asks for your own new handle (Tu usuario) vs. waitlist asks for the inviter's (Nombre de usuario)",
+    Username: 'signup handles and recipient/profile labels need different regional wording',
     'Mexican peso bank transfers': 'sentence fragment vs. standalone label casing',
     'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',
     'British pound bank transfers': 'sentence fragment vs. standalone label casing',
     'Peanut reward': 'receipt title fragment vs. standalone label casing (Recompensa Peanut / recompensa Peanut)',
+    'Log in': 'button label in the infinitive vs. the invite page imperative (Iniciar sesión / Inicia sesión)',
     'Pay a QR code':
         'button label in the infinitive vs. checklist hint in the imperative like its sibling hints (Pagar / Paga un código QR)',
 }
@@ -248,5 +248,26 @@ describe('ENS badge copy is localized', () => {
         const messages = await loadMessages(locale)
         expect(messages.badges.catalog.ENS.name).not.toBe(en.badges.catalog.ENS.name)
         expect(messages.badges.catalog.ENS.description).not.toBe(en.badges.catalog.ENS.description)
+    })
+})
+
+describe('card partner review reason copy', () => {
+    const key = 'identity.reasons.card_needs_review'
+
+    it('provides the approved English review copy', async () => {
+        expect(leafValue(await loadMessages('en'), key)).toBe('Our card partner needs to check a few more details.')
+    })
+
+    it.each(['es-419', 'pt-BR'] as const)('%s has its own translated review copy', async (locale) => {
+        const rawCopy = leafValue(CATALOGS[locale], key)
+        expect(typeof rawCopy).toBe('string')
+        expect(rawCopy.trim().length).toBeGreaterThan(0)
+        expect(rawCopy).not.toBe('Our card partner needs to check a few more details.')
+        expect(leafValue(await loadMessages(locale), key)).toBe(rawCopy)
+    })
+
+    it('lets Argentine Spanish inherit the Latin American Spanish review copy', async () => {
+        expect(leafPaths(esAR)).not.toContain(key)
+        expect(leafValue(await loadMessages('es-AR'), key)).toBe(leafValue(es419, key))
     })
 })

@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { receiptPdfVersion } from '../receipt-pdf-link.utils'
 import type { TransactionDetails } from '../transactionTransformer'
 
@@ -16,6 +18,13 @@ describe('receiptPdfVersion', () => {
         const withRate = (rate: string) =>
             ({ ...base, extraDataForDrawer: { receipt: { exchange_rate: rate } } }) as unknown as TransactionDetails
         expect(receiptPdfVersion(withRate('1400'))).not.toBe(receiptPdfVersion(withRate('1420')))
+    })
+
+    test('changes when the provider changes', () => {
+        const withProvider = (provider: string) =>
+            ({ ...base, extraDataForDrawer: { provider } }) as unknown as TransactionDetails
+        expect(receiptPdfVersion(withProvider('BRIDGE'))).not.toBe(receiptPdfVersion(withProvider('RAIN')))
+        expect(receiptPdfVersion(withProvider('BRIDGE'))).not.toBe(receiptPdfVersion(base))
     })
 
     test('is an opaque digest, never the receipt details themselves', () => {

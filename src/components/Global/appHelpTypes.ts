@@ -33,7 +33,8 @@ export type AppHelpNodeProps = Record<string, string | number | boolean>
  */
 export type AppHelpNode = string | { t: string; p?: AppHelpNodeProps; c?: AppHelpNode[] }
 
-export type AppHelpArticle = { title: string; body: AppHelpNode[] }
+/** `lang` is the locale that owns the prose — English when the fallback served it. */
+export type AppHelpArticle = { title: string; body: AppHelpNode[]; lang?: HelpLocale }
 
 export const isAppHelpSlug = (slug: string): slug is AppHelpSlug =>
     APP_HELP_SLUGS.some((supported) => supported === slug)

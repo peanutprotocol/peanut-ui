@@ -18,6 +18,19 @@ jest.mock('next/link', () => ({
 }))
 
 describe('Button', () => {
+    test('compact selector presses by its 2px shadow depth', () => {
+        render(
+            <Button variant="secondary" size="compact" shadowSize="2">
+                Choose a method
+            </Button>
+        )
+        const cls = screen.getByRole('button', { name: 'Choose a method' }).className
+        expect(cls).toContain('btn-compact')
+        expect(cls).toContain('btn-shadow-primary-2')
+        expect(cls).toContain('active:translate-x-0.5')
+        expect(cls).not.toContain('active:translate-x-1')
+    })
+
     test('shadowless variant renders no press translate', () => {
         render(<Button variant="ghost">Ghost</Button>)
         expect(screen.getByRole('button', { name: /Ghost/ }).className).not.toContain('active:translate')

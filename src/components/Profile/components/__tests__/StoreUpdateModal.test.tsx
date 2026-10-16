@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * StoreUpdateModal — the prompt for an update only the store can deliver.
  * It must never offer a restart: the JS is not on the device, so restarting

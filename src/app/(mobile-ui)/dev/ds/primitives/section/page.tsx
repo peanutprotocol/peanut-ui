@@ -1,11 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Tabs } from '@/components/0_Bruddle/Tabs'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { PropsTable } from '../../_components/PropsTable'
 import { ProductUsage } from '../../_components/ProductUsage'
@@ -17,9 +15,6 @@ import { CodeBlock } from '../../_components/CodeBlock'
 import { WhenToUse } from '../../_components/WhenToUse'
 
 export default function SectionPage() {
-    // mirrors TokenSelector's activeNetworkTab state
-    const [networkTab, setNetworkTab] = useState('all')
-
     return (
         <DocPage>
             <DocHeader
@@ -113,51 +108,6 @@ export default function SectionPage() {
                             <ListItem title="Bank transfer" body="USD, EUR" chevron onClick={() => {}} />
                             <ListItem title="Pix" body="BRL" chevron onClick={() => {}} />
                         </ListGroup>
-                    </Section>
-                </ProductUsage.Example>
-
-                <ProductUsage.Example
-                    title="Token selector — select a network"
-                    path="src/components/Global/TokenSelector/TokenSelector.tsx"
-                    description="The trailing slot: 'More networks' sits on the title row as a sibling of the h2, so the heading keeps the title as its accessible name. The wrapper reserves the link's full 44px hit area without stretching the row."
-                    code={`<Section
-    title={t('tokenSelector.selectANetwork')}
-    trailing={
-        <div className="flex min-h-11 shrink-0 items-center">
-            <LinkButton onClick={handleSearchNetwork}>{t('tokenSelector.moreNetworksTitle')}</LinkButton>
-        </div>
-    }
->
-    <div ref={attachTabsRow}>
-        <Tabs
-            aria-label={t('tokenSelector.selectANetwork')}
-            value={activeNetworkTab}
-            onValueChange={handleNetworkTabChange}
-            tabs={networkTabs}
-            fullWidth="stretch"
-        />
-    </div>
-</Section>`}
-                >
-                    <Section
-                        title="Select a network"
-                        trailing={
-                            <div className="flex min-h-11 shrink-0 items-center">
-                                <LinkButton onClick={() => {}}>More networks</LinkButton>
-                            </div>
-                        }
-                    >
-                        <Tabs
-                            aria-label="Select a network"
-                            value={networkTab}
-                            onValueChange={setNetworkTab}
-                            tabs={[
-                                { value: 'all', label: 'All' },
-                                { value: 'arb', label: 'ARB' },
-                                { value: 'eth', label: 'ETH' },
-                            ]}
-                            fullWidth="stretch"
-                        />
                     </Section>
                 </ProductUsage.Example>
 

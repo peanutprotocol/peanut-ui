@@ -30,6 +30,9 @@ import { hasCardPaymentRowsContent } from '@/components/TransactionDetails/provi
 import { countryData } from '@/components/AddMoney/consts'
 import { getContributorsFromCharge, formatCurrency } from '@/utils/general.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
+import { useOptionalAuth } from '@/context/authContext'
+import type { ProviderId } from '@/types/provider.types'
+import { providerIdForTransaction } from '@/utils/provider.utils'
 
 const ALL_ROWS_HIDDEN = transactionDetailsRowKeys.reduce(
     (acc, key) => {
@@ -53,6 +56,9 @@ export interface ReceiptViewModel {
     /** Country resolved from the transaction's currency code (used by the
      *  Manteca deposit-info row for the country-specific address label). */
     country: (typeof countryData)[number] | undefined
+
+    /** The provider that moved the money, named in the details card's Provider row. */
+    providerId: ProviderId | null
 
     /** Per-row visibility config — drives rendering. Dividers between rows
      *  come from the details card's `divide-y`, so no last-row border logic. */
@@ -153,6 +159,16 @@ export function useReceiptViewModel(
         [transaction]
     )
 
+    // the in-app receipt is the signed-in user's own history, so their residence
+    // picks the Bridge entity, but only on their own on/off-ramp
+    // (providerIdForTransaction checks the flow). the /receipt page can be
+    // anyone's, so it gets the brand-only record rather than the viewer's entity.
+    const viewerResidence = useOptionalAuth()?.user?.residence?.verified
+    const providerId = useMemo(
+        () => (transaction ? providerIdForTransaction(transaction, isPublic ? null : viewerResidence) : null),
+        [transaction, isPublic, viewerResidence]
+    )
+
     const rowVisibilityConfig = useMemo<Record<TransactionDetailsRowKey, boolean>>(() => {
         if (!transaction) return ALL_ROWS_HIDDEN
 
@@ -219,6 +235,7 @@ export function useReceiptViewModel(
             bankReceives:
                 transaction.payoutReceivedUsd !== undefined &&
                 !['cancelled', 'failed', 'refunded'].includes(transaction.status ?? ''),
+            provider: !!providerId,
             conversion: showsConversion,
             exchangeRate: !!receiptExchangeRate(transaction) && !foldsRateIntoConversion,
             bankAccountDetails: !!(
@@ -272,7 +289,7 @@ export function useReceiptViewModel(
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
         }
-    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
+    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled, providerId])
 
     // Every activity kind gets a receipt once it is no longer waiting for an
     // interactive send/request action. Existing public receipt kinds share a
@@ -315,6 +332,7 @@ export function useReceiptViewModel(
         isQRPayment,
         isCardSpend,
         country,
+        providerId,
         rowVisibilityConfig,
         shouldShowShareReceipt,
         shouldShowDownloadPdf,

@@ -1,15 +1,19 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useSubmissionKey } from '@/hooks/useSubmissionKey'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
@@ -36,6 +40,7 @@ import { requestAmountFromInput, toApiAmount, usdEquivalent, type AmountInputSid
  * autosave, and the QR/share link derivation. The view only renders.
  */
 export const useCreateRequestLink = () => {
+    const origin = useAppOrigin()
     const t = useTranslations('request')
     const toast = useToast()
     const { address, isConnected } = useWallet()
@@ -141,6 +146,7 @@ export const useCreateRequestLink = () => {
 
     // Refs for cleanup
     const createLinkAbortRef = useRef<AbortController | null>(null)
+    const submissionKey = useSubmissionKey()
 
     const _usdValue = useMemo(() => {
         if (!selectedTokenData?.price || !tokenValue) return ''
@@ -175,9 +181,9 @@ export const useCreateRequestLink = () => {
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
 
-        if (tokenValue) return payLinkUrl(`/${user?.user.username}/${tokenValue}USDC`)
-        return shareableUrl(`/send/${user?.user.username}`)
-    }, [user?.user.username, tokenValue, generatedLink])
+        if (tokenValue) return payLinkUrl(`/${user?.user.username}/${tokenValue}USDC`, origin)
+        return shareableUrl(`/send/${user?.user.username}`, origin)
+    }, [user?.user.username, tokenValue, generatedLink, origin])
 
     // What a failed create says. A request asked in a fiat currency fails in
     // ways a dollar request cannot, and "failed to create link" tells the
@@ -267,8 +273,15 @@ export const useCreateRequestLink = () => {
                     ...(isDenominated ? { requestedAmount: { amount: toApiAmount(requestAmount), currency } } : {}),
                 }
 
-                // POST new request
-                const requestDetails = await requestsApi.create(requestData)
+                // POST new request. A re-tap of the same unchanged form reuses
+                // the key, so the API answers with the request it already made.
+                // A non-USD request's dollar estimate moves with every rate
+                // refresh and the API ignores it, so it is not part of the form.
+                const { tokenAmount: _dollarEstimate, ...withoutEstimate } = requestData
+                const requestDetails = await requestsApi.create({
+                    ...requestData,
+                    idempotencyKey: submissionKey(isDenominated ? withoutEstimate : requestData),
+                })
 
                 // An API deployed before `requestedAmount` does not refuse the
                 // field: the body schema strips it, and the request is created
@@ -319,6 +332,7 @@ export const useCreateRequestLink = () => {
             selectedChainID,
             bankInstructionsShared,
             createErrorMessage,
+            submissionKey,
             toast,
             queryClient,
             setLoadingState,
@@ -485,6 +499,7 @@ export const useCreateRequestLink = () => {
         setGeneratedLink(link)
         const copied = await pendingCopy.resolve(link)
         toast.success(copied ? t('linkCreatedAndCopiedToast') : t('linkCreatedToast'))
+        void offerPushPrompt(PUSH_PROMPT_TRIGGERS.REQUEST_CREATED)
         return link
     }, [generatedLink, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest, toast, t])
 

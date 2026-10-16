@@ -4,6 +4,8 @@ import type { GateState } from '@/utils/capability-gate'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useRef, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
+import { offerPushPrompt } from '@/hooks/useNotifications'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
 import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS, type DepositAccountScreen } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
@@ -213,7 +215,9 @@ export function DepositAccountsFlow({
     const viewedStatus =
         resolved === 'details' && account ? (account.timedOut ? 'timed-out' : account.status) : undefined
     useEffect(() => {
-        if (viewedStatus) trackDetailsViewed(corridor, viewedStatus)
+        if (!viewedStatus) return
+        trackDetailsViewed(corridor, viewedStatus)
+        void offerPushPrompt(PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT)
     }, [viewedStatus, corridor])
 
     // Which screen is right depends on whether the user already holds this

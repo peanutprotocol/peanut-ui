@@ -4,6 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import {
     BANK_ROW_COUNTRIES,
@@ -82,10 +83,13 @@ export function useBankRows() {
     // reloads before /users/me returns it (or an API without the fields yet).
     const residence = user?.residence ?? null
     const userId = user?.user?.userId
-    // localStorage is synchronous I/O: read once per account, not per render.
-    const { localDeclared, localSecond } = useMemo(
-        () => ({ localDeclared: readDeclaredResidence(userId), localSecond: readSecondResidence(userId) }),
-        [userId]
+    const localDeclared = useHydrationSnapshot(
+        () => readDeclaredResidence(userId),
+        () => null
+    )
+    const localSecond = useHydrationSnapshot(
+        () => readSecondResidence(userId),
+        () => null
     )
     // `declaredSecond` is authoritative when the server sends it AT ALL: `null`
     // means "no second residence", which `??` would wrongly treat like the

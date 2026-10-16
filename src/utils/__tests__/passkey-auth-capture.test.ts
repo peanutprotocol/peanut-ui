@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { installPasskeyVerifyCapture } from '../passkey-auth-capture'
 import { stashCeremonyStepUpToken, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
 import { isCapacitor } from '@/utils/capacitor'

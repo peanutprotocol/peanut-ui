@@ -44,6 +44,13 @@ allprojects {
     configurations.configureEach {
         exclude group: 'com.sumsub.sns', module: 'idensic-mobile-sdk-eid'
         exclude group: 'de.authada.library', module: 'aal'
+        // 2.10+ calls JobScheduler.forNamespace before startup on malformed Android 14 runtimes (TASK-22316).
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'androidx.work') {
+                details.useVersion '2.9.1'
+                details.because 'Keep startup and background work usable without JobScheduler.forNamespace'
+            }
+        }
     }
 
     // Force Java 17 for all modules (capacitor-android uses 21)

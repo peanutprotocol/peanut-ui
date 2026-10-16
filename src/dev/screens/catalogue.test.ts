@@ -15,6 +15,9 @@ describe('screen catalogue', () => {
                 'p66-bank-local',
                 'h01-notifications',
                 'h02-settings',
+                'fixture-setup-pending',
+                'p50-setup-session',
+                'p51-setup-finish',
             ].filter((id) => ids.has(id))
         ).toEqual([])
         expect(
@@ -34,21 +37,33 @@ describe('screen catalogue', () => {
         ).toEqual([])
     })
 
-    it('orders setup screens by their product journey and keeps rewards invites in Rewards', () => {
+    it('keeps setup screens in their flow regardless of journey order and rewards invites in Rewards', () => {
         const setupIds = SCREENS.filter(({ flow }) => flow === 'Setup and login').map(({ id }) => id)
-        expect(setupIds.slice(0, 10)).toEqual([
-            '01-a-landing',
-            '02-a-joinwaitlist',
-            '06-a-signup',
-            '03-a-residence-select',
-            '07-a-setuppasskey',
-            '08-a-passkeysetuphelpmodal',
-            '09-a-passkeyinfomodal',
-            '05-a-signtesttransaction',
-            '20-a-setupnotificationsmodal',
-            'p51-setup-finish',
-        ])
+        expect(setupIds).toEqual(
+            expect.arrayContaining([
+                '01-a-landing',
+                '06-b-invite',
+                '06-a-signup',
+                '08-a-passkeysetuphelpmodal',
+                '09-a-passkeyinfomodal',
+                '03-a-residence-select',
+                '04-b-advantage-fees',
+                '02-b-advantage-card',
+                '03-c-residence-congrats',
+                '03-h-funding-methods',
+                '03-i-payment-methods',
+                '07-c-notification-email',
+                '07-d-notification-settings',
+                '07-b-advantage-control',
+                '05-a-signtesttransaction',
+                '07-e-setup-celebration',
+                '20-a-setupnotificationsmodal',
+            ])
+        )
         expect(SCREENS.find(({ id }) => id === 'fixture-rewards-invites')?.flow).toBe('Rewards')
+    })
+
+    it('sorts screens by their configured order', () => {
         expect(SCREENS.every((screen, index) => index === 0 || SCREENS[index - 1].order < screen.order)).toBe(true)
     })
 

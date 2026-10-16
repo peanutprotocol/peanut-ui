@@ -33,7 +33,7 @@ describe('resolveSetupEntryStep', () => {
         it.each([
             ['invite code', { hasInviteCode: true }],
             ['?step=signup', { stepParam: 'signup' }],
-        ])('skips the invite gate with %s', (_name, overrides) => {
+        ])('opens signup directly with %s', (_name, overrides) => {
             expect(resolveSetupEntryStep({ ...base, ...overrides })).toBe('signup')
         })
 

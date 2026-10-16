@@ -107,6 +107,8 @@ const styles = StyleSheet.create({
     lastRow: { borderBottomWidth: 0 },
     rowLabel: { color: grey, maxWidth: 88 },
     rowValue: { width: 370, textAlign: 'right', fontSize: 8.5, fontWeight: 600 },
+    providerNote: { fontSize: 7.5, color: grey },
+    providerName: { fontWeight: 600, color: PDF_TOKENS.foregroundPrimary, marginTop: 4 },
 })
 
 export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
@@ -148,6 +150,17 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
                         </View>
                     ))}
                 </View>
+
+                {model.provider && (
+                    <View style={styles.providerNote}>
+                        <Text>{model.provider.intro}</Text>
+                        <Text style={styles.providerName}>{model.provider.name}</Text>
+                        {model.provider.addressLines.map((line) => (
+                            <Text key={line}>{line}</Text>
+                        ))}
+                        {model.provider.termsUrl && <Text>{model.provider.termsUrl}</Text>}
+                    </View>
+                )}
             </Page>
         </Document>
     )

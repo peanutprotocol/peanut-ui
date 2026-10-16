@@ -128,13 +128,6 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'TokenAndNetworkConfirmationDrawer',
-                realUsages: 3,
-                status: 'live',
-                source: 'components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
-                divergence: 'ActionModal with modalPanelClassName="max-w-sm".',
-            },
-            {
                 name: 'GuestVerificationModal',
                 realUsages: 1,
                 status: 'live',
@@ -603,7 +596,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 usedIn: [
                     'components/Home/HomeHistory.tsx',
                     'components/Common/CountryList.tsx',
-                    'components/Settings/LanguageView.tsx',
+                    'components/Global/LanguageList.tsx',
                     'features/limits/views/LimitsPageView.tsx',
                     'features/home/components/HomeActionDrawers.tsx',
                 ],

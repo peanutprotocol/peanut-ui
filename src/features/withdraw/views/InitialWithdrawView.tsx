@@ -10,7 +10,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useRouter } from 'next/navigation'
-import { useContext, useEffect, useMemo, useRef } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
@@ -55,6 +55,13 @@ export default function InitialWithdrawView({
         error,
         setError,
     } = useWithdrawFlow()
+
+    // A prefilled destination (address book, back navigation) on a network the
+    // selector no longer offers gets moved to a valid one. Never send to the
+    // moved network silently: the user picks the network for that address first.
+    const [networkUnconfirmed, setNetworkUnconfirmed] = useState(false)
+    const recipientAddressRef = useRef(recipient.address)
+    recipientAddressRef.current = recipient.address
 
     // Non-EVM destinations (Solana/Tron) drive the recipient input's address
     // family; changing family invalidates whatever address was typed.
@@ -184,7 +191,14 @@ export default function InitialWithdrawView({
             <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
-                <TokenSelector viewType="withdraw" />
+                <TokenSelector
+                    viewType="withdraw"
+                    onAutoCorrect={() => {
+                        if (recipientAddressRef.current) setNetworkUnconfirmed(true)
+                    }}
+                    // a token tap keeps the default network, so only a network pick confirms it
+                    onNetworkSelect={() => setNetworkUnconfirmed(false)}
+                />
 
                 {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
                 <div className="flex flex-col gap-1">
@@ -207,7 +221,11 @@ export default function InitialWithdrawView({
                         showInfoText={false}
                         isWithdrawal
                     />
-                    {error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>}
+                    {networkUnconfirmed ? (
+                        <FieldError>{t('initial.confirmNetwork')}</FieldError>
+                    ) : (
+                        error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>
+                    )}
                 </div>
 
                 {/* Surface the resolved address as soon as an ENS name validates —
@@ -231,6 +249,7 @@ export default function InitialWithdrawView({
                         !isValidRecipient ||
                         error.showError ||
                         inputChanging ||
+                        networkUnconfirmed ||
                         isProcessing
                     }
                     loading={isProcessing}

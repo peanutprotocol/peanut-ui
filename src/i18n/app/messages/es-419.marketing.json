@@ -1,5 +1,7 @@
 {
     "common": {
+        "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
+        "exchangeRateInfo": "Este es el tipo de cambio actual. Puede cambiar ligeramente antes de que se confirme tu pago.",
         "fundsOnTheWay": "Fondos en camino",
         "cancel": "Cancelar",
         "continue": "Continuar",
@@ -10,14 +12,17 @@
         "retry": "Reintentar",
         "close": "Cerrar",
         "loading": "Cargando...",
+        "inEnglish": "En inglés",
         "somethingWentWrong": "Algo salió mal",
         "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
         "copiedToClipboard": "Copiado al portapapeles",
+        "savedToDocuments": "Guardado en Documentos",
         "maybeLater": "Quizás más tarde",
         "tryAgain": "Intentar de nuevo",
         "skipForNow": "Omitir por ahora",
         "gotIt": "Entendido",
         "contactSupport": "Contactar soporte",
+        "supportErrorPrefill": "Recibí este error en la app: {error}",
         "peanutFee": "Comisión de Peanut",
         "sponsoredByPeanut": "¡Patrocinada por Peanut!",
         "pending": "Pendiente",
@@ -116,26 +121,27 @@
         "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo.",
         "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento.",
         "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisa tu actividad antes de volver a intentarlo.",
-        "userOpReverted": "No se pudo completar el pago. Intenta de nuevo."
+        "userOpReverted": "No se pudo completar el pago. Intenta de nuevo.",
+        "passkeyAssociationUnavailable": "La verificación con passkey no está disponible por el momento. Espera unos segundos e inténtalo de nuevo.",
+        "passkeyAssociationMismatch": "Las passkeys no están disponibles en esta app por el momento. Actualiza Peanut o contacta a soporte si el problema continúa.",
+        "passkeyDeviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
+        "passkeyBiometryRequired": "Usa Face ID o Touch ID para verificar la passkey e inténtalo de nuevo.",
+        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras."
     },
     "migration": {
         "downloadPeanut": "Descargar Peanut",
         "downloadPrompt": {
             "earlyTitle": "¡La app de Peanut ya está aquí!",
             "earlyDescription": "Peanut ahora es una app, en la App Store y Google Play. La misma cuenta, más rápida, y avisos al instante cuando llega dinero.",
-            "maybeLater": "La descargo más tarde",
-            "title": "Peanut será solo app",
-            "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descárgala ahora y continúa justo donde quedaste. Tu cuenta y tu dinero se mudan contigo automáticamente.",
-            "remindLater": "Recordarme más tarde"
+            "maybeLater": "La descargo más tarde"
         },
         "sunset": {
-            "heading": "Peanut ahora es solo app",
-            "sub": "Descarga la app y continúa justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí.",
             "supportLink": "¿Problemas para descargar la app? Habla con nuestro soporte"
         },
         "qr": {
             "title": "Descarga la app de Peanut",
-            "scanHint": "Escanea con la cámara de tu celular para descargar."
+            "scanHint": "Escanea con la cámara de tu celular para descargar.",
+            "logIn": "Inicia sesión en la web"
         },
         "banner": {
             "title": "¡La app de Peanut ya está aquí!",

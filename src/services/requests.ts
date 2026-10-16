@@ -13,6 +13,10 @@ export const requestsApi = {
         const response = await serverFetch('/requests', {
             method: 'POST',
             body: jsonStringify(data),
+            // With a key the API answers a resend with the request the first
+            // attempt made, so a create that failed before any response may be
+            // sent again (PEANUT-UI-TE1). Without one it must not.
+            idempotent: !!data.idempotencyKey,
         })
 
         // The error keeps the API's `code`: a request asked in a fiat currency

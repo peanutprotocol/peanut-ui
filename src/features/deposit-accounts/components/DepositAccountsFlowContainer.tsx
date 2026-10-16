@@ -4,8 +4,9 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
 import { rewriteMethodPath } from '@/utils/native-routes'
-import { withReturnTo } from '@/utils/return-to.utils'
+import { readReturnTo, withReturnTo } from '@/utils/return-to.utils'
 import { useRouter } from 'next/navigation'
+import { parseAsString, useQueryState } from 'nuqs'
 import { DepositAccountsFlow } from './DepositAccountsFlow'
 import type { DepositSupportReason } from '../types'
 import { useDepositAccounts } from '../useDepositAccounts'
@@ -62,6 +63,8 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
     } = useDepositAccounts({ onVerificationRequired: verifyCorridor })
     const { user } = useAuth()
     const router = useRouter()
+    const [returnToParam] = useQueryState('returnTo', parseAsString)
+    const returnTo = readReturnTo(new URLSearchParams(returnToParam ? { returnTo: returnToParam } : {}), '/add-money')
     const residenceIso2s = useResidenceIso2s()
     const { openSupportWithMessage } = useModalsContext()
     const review = useEndorsementReview()
@@ -105,7 +108,12 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 // amount route they never knowingly opened.
                 onTopUp={(corridor) => {
                     const href = corridorTopUpHref(corridor, residenceIso2s)
-                    if (href) router.push(withReturnTo(rewriteMethodPath(href), '/add-money?method=bank'))
+                    if (href) {
+                        const bankHub = returnTo
+                            ? withReturnTo('/add-money?method=bank', returnTo)
+                            : '/add-money?method=bank'
+                        router.push(withReturnTo(rewriteMethodPath(href), bankHub))
+                    }
                 }}
                 review={review}
             />

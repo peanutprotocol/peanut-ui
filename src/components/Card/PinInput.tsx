@@ -30,7 +30,7 @@ const PinInput: FC<Props> = ({ value, onChange, length = 4, autoFocus = true, di
             // posthog skips this subtree in session replays.
             // this keeps pin digits and the filled-dot count out of recordings.
             className={twMerge(
-                'ph-no-capture flex items-center justify-center gap-4 rounded-sm outline-action-focus focus-within:outline-[3px] focus-within:outline-solid',
+                'ph-no-capture flex items-center justify-center gap-4 rounded-sm outline-foreground-primary focus-within:outline-[3px] focus-within:outline-offset-4 focus-within:outline-solid',
                 className
             )}
         >
@@ -54,7 +54,7 @@ const PinInput: FC<Props> = ({ value, onChange, length = 4, autoFocus = true, di
                 value={value}
                 onChange={handleChange}
                 maxLength={length}
-                className="sr-only"
+                className="sr-only outline-none"
                 aria-label={t('inputAriaLabel')}
                 disabled={disabled}
             />

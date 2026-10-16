@@ -9,7 +9,7 @@ import { APP_RELEASE } from '@/constants/app-release'
 import { getPlatform, isCapacitor, isNativeBridge } from '@/utils/capacitor'
 import { resolveDeviceIdentity, type DeviceIdentity } from '@/utils/device-identity'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
-import { resolveLocale, type AppLocale } from './config'
+import { resolveLocale, resolveLocaleOrNull, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
 
@@ -43,6 +43,10 @@ export function emitLocaleToAnalytics(locale: AppLocale): void {
 }
 
 function navigatorLocale(): AppLocale {
+    for (const tag of typeof navigator !== 'undefined' ? (navigator.languages ?? []) : []) {
+        const locale = resolveLocaleOrNull(tag)
+        if (locale) return locale
+    }
     return resolveLocale(typeof navigator !== 'undefined' ? navigator.language : null)
 }
 
@@ -55,18 +59,25 @@ function navigatorLocale(): AppLocale {
  * share one round-trip instead of each making their own.
  */
 let deviceTag: Promise<string | null> | null = null
-function rawDeviceTag(): Promise<string | null> {
+export function rawDeviceTag(): Promise<string | null> {
     if (!deviceTag) deviceTag = readDeviceTag()
     return deviceTag
 }
 async function readDeviceTag(): Promise<string | null> {
     if (isCapacitor()) {
+        let timeout: ReturnType<typeof setTimeout> | undefined
         try {
-            const { Device } = await import('@capacitor/device')
-            const { value } = await Device.getLanguageTag()
+            const value = await Promise.race([
+                import('@capacitor/device').then(async ({ Device }) => (await Device.getLanguageTag()).value),
+                new Promise<null>((resolve) => {
+                    timeout = setTimeout(() => resolve(null), 1500)
+                }),
+            ])
             if (value) return value
         } catch {
             // older binary / plugin missing — fall through to navigator
+        } finally {
+            clearTimeout(timeout)
         }
     }
     return typeof navigator !== 'undefined' ? navigator.language : null

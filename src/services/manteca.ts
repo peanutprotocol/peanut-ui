@@ -1,6 +1,5 @@
 import {
     type MantecaDepositResponseData,
-    type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
@@ -192,10 +191,9 @@ export const mantecaApi = {
      *   withdrawal via the user's session-key UserOp with `directTransfer=true`
      *   straight to MANTECA's deposit address. One passkey tap (admin EIP-712).
      *
-     * Order vs funding depends on the branch: the modern mixed/userOp route
-     * broadcasts the funding UserOp FIRST (its revert is definitive, so a
-     * failure creates no provider order at all), while the legacy
-     * `rainWithdrawal` branch creates the Manteca order first and funds after.
+     * Funding is reserved and claimed before the provider order is created
+     * (with `qr_broadcast_first_always` on); a pending or failed claim is held,
+     * so the client never re-signs an uncertain direct submission.
      */
     completeQrPaymentWithSignedTx: async (
         body: ClientPaymentAttemptBody &
@@ -264,14 +262,20 @@ export const mantecaApi = {
 
         return response.json()
     },
-    getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
+    getPrices: async (
+        { asset, against }: { asset: string; against: string },
+        options: { callerReportsFailures?: boolean } = {}
+    ): Promise<MantecaPrice> => {
         const response = await serverFetch(`/manteca/prices?asset=${asset}&against=${against}`, {
             method: 'GET',
+            ...options,
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Get prices failed: ${response.statusText}`)
+            throw Object.assign(new Error(errorData.message || `Get prices failed: ${response.statusText}`), {
+                status: response.status,
+            })
         }
 
         return response.json()
@@ -348,38 +352,9 @@ export const mantecaApi = {
         }
     },
 
-    withdraw: async (data: MantecaWithdrawData): Promise<MantecaWithdrawResponse> => {
-        try {
-            const response = await serverFetch('/manteca/withdraw', {
-                method: 'POST',
-                timeoutMs: 120_000, // Funding can precede Manteca accounting; match the signed withdrawal budget.
-                body: jsonStringify(data),
-            })
-
-            const result = await response.json()
-            if (!response.ok) {
-                return {
-                    error: result.error || 'Failed to create manteca withdraw.',
-                    message: result.message,
-                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
-                }
-            }
-
-            return { data: result }
-        } catch (error) {
-            console.log('error', error)
-            console.error('Error calling create manteca withdraw API:', error)
-            if (error instanceof Error) {
-                return { error: error.message }
-            }
-            return { error: 'An unexpected error occurred.' }
-        }
-    },
-
     /**
      * Initialize withdraw with a locked price.
      * This locks the exchange rate for ~120 seconds so user sees the exact amount they'll receive.
-     * The priceLockCode should be passed to withdraw() to use the locked price.
      */
     initiateWithdraw: async (params: {
         amount: string
@@ -427,14 +402,12 @@ export const mantecaApi = {
      *  - 'rainWithdrawal' (collateral-only): backend submits the signed
      *    Rain withdrawal via the user's session-key UserOp with
      *    `directTransfer=true` straight to MANTECA's deposit address.
-     *    One passkey tap (admin EIP-712). Ordinary collateral funding no
-     *    longer routes here — only forced flows (lock/cancel card) do.
+     *    One passkey tap (admin EIP-712) for an approved account when
+     *    routing selects collateral-only.
      *
-     * Order vs funding depends on the branch: the modern mixed/userOp route
-     * broadcasts the funding UserOp FIRST (a definitive revert leaves no
-     * provider order behind), while the legacy `rainWithdrawal` branch creates
-     * the Manteca order first and funds after — which is why it has no safe
-     * resume and ordinary collateral spends avoid it.
+     * With `qr_broadcast_first_always` on, either branch reserves and claims
+     * the funding before the provider order is created. The client never
+     * re-signs an uncertain direct submission.
      */
     withdrawWithSignedTx: async (
         body:

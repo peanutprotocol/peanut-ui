@@ -11,6 +11,10 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
+import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { corridorNeedsReference } from '../instructionRows'
 import type { ClaimableCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -70,6 +74,10 @@ export function ClaimAccountScreen({
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
     const tGlobal = useTranslations('global')
+    const tProvider = useTranslations('provider')
+    const bridgeProviderId = useBridgeProviderId()
+    // only bridge corridors are claimable, but the rail says so rather than this screen assuming it
+    const providerId = rail.provider === 'bridge' ? bridgeProviderId : null
 
     // The floor is one of these lines, and the screen states each rule once.
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
@@ -91,6 +99,19 @@ export function ClaimAccountScreen({
                 />
 
                 <ListGroup>
+                    {/* who holds the account, before what it does (TASK-23295) */}
+                    {providerId && (
+                        <ListItem
+                            leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" className="self-start" />}
+                            title={tProvider('label.accountProvider')}
+                            trailing={
+                                <span className="flex items-center gap-2 text-label-l text-foreground-primary">
+                                    {PROVIDERS[providerId].brand}
+                                    <ProviderHelp providerId={providerId} prospective />
+                                </span>
+                            }
+                        />
+                    )}
                     <ListItem
                         leading={<IconBubble icon="wallet" size="s" color="blue" className="self-start" />}
                         title={t('claim.benefitBalance')}
@@ -188,21 +209,40 @@ export function ClaimAccountScreen({
                         >
                             {t('claim.cta', { currency: rail.currency })}
                         </Button>
-                        {/* The terms the tap agrees to. It sits under the button,
-                            so the shell reservation still clears the button. */}
-                        <p className="text-center text-body-xs text-foreground-secondary">
-                            {t.rich('claim.termsAgreement', {
-                                currency: rail.currency,
-                                terms: (chunks) => (
-                                    <DocsLink
-                                        href={VIRTUAL_ACCOUNT_TERMS_HREF}
-                                        className="underline underline-offset-2"
-                                    >
-                                        {chunks}
-                                    </DocsLink>
-                                ),
-                            })}
-                        </p>
+                        {/* The terms the tap agrees to: the provider's own, named by
+                            their title. It sits under the button, so the shell
+                            reservation still clears the button. */}
+                        {providerId ? (
+                            <p className="text-center text-body-xs text-foreground-secondary">
+                                {t.rich('claim.providerTerms', {
+                                    termsName: PROVIDERS[providerId].termsName ?? PROVIDERS[providerId].brand,
+                                    terms: (chunks) => (
+                                        <a
+                                            href={PROVIDERS[providerId].termsUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="underline underline-offset-2"
+                                        >
+                                            {chunks}
+                                        </a>
+                                    ),
+                                })}
+                            </p>
+                        ) : (
+                            <p className="text-center text-body-xs text-foreground-secondary">
+                                {t.rich('claim.termsAgreement', {
+                                    currency: rail.currency,
+                                    terms: (chunks) => (
+                                        <DocsLink
+                                            href={VIRTUAL_ACCOUNT_TERMS_HREF}
+                                            className="underline underline-offset-2"
+                                        >
+                                            {chunks}
+                                        </DocsLink>
+                                    ),
+                                })}
+                            </p>
+                        )}
                     </>
                 )}
             </PageStack.Footer>

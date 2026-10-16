@@ -6,6 +6,7 @@
 import { demoRespond } from '@/utils/demo-api'
 import { FIXTURES } from './registry'
 import { ensureActiveFixture } from './active'
+import { isStressActive, stressResponse } from './stress'
 import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
@@ -44,6 +45,10 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const method = (options?.method ?? 'GET').toUpperCase()
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
 
+    // No fixture call reaches the network, so a spec cannot see requests there.
+    // A spec that creates this list reads each call the page made from it.
+    ;(window as Window & { __fixtureRequests?: string[] }).__fixtureRequests?.push(`${method} ${path}`)
+
     if (fixture.fails?.includes(key)) {
         return new Response(JSON.stringify({ error: 'fixture failure' }), { status: 500, headers: JSON_HEADERS })
     }
@@ -52,8 +57,13 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     // fallback for the rest. A fixture only says what differs from that.
     const base = await demoRespond(path, options, { offline: true })
     const override = fixture.responses?.[key]
-    if (override === undefined) return base
+    const stress = isStressActive() && !!base.headers.get('content-type')?.includes('json')
+    if (override === undefined && !stress) return base
 
     const data = await base.json().catch(() => ({}))
-    return new Response(JSON.stringify(merge(data, override)), { status: base.status, headers: JSON_HEADERS })
+    const merged = override === undefined ? data : merge(data, override)
+    return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
+        status: base.status,
+        headers: JSON_HEADERS,
+    })
 }

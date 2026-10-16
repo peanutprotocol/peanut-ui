@@ -14,7 +14,9 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
+import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import CancelCardModal from '@/components/Card/CancelCardModal'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -70,7 +72,10 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
-    const { nativeAvailable, isAdding, addToWallet } = usePushProvisioning({ id: card.id, last4: card.last4 })
+    const { nativeAvailable, alreadyInWallet, isAdding, addToWallet } = usePushProvisioning({
+        id: card.id,
+        last4: card.last4,
+    })
     const { returnCollateral, isReturning, lastError: lastReturnError } = useCardCollateralReturn()
 
     const handleAddToWallet = useCallback(async () => {
@@ -117,14 +122,27 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
 
             {revealError && <Callout priority="error">{revealError}</Callout>}
 
-            <CardFace
-                last4={card.last4}
-                isLocked={isLocked}
-                revealed={revealed}
-                loading={isRevealing}
-                onToggleReveal={isLocked || isRevealing ? undefined : toggle}
-                onCopy={handleCopy}
-            />
+            {/* issuer line reads as the card's caption: inline gap XS/4 (design.md spacing) */}
+            <div className="flex flex-col gap-1">
+                <CardFace
+                    last4={card.last4}
+                    isLocked={isLocked}
+                    revealed={revealed}
+                    loading={isRevealing}
+                    onToggleReveal={isLocked || isRevealing ? undefined : toggle}
+                    onCopy={handleCopy}
+                />
+                <ProviderFinePrint providerId="third-national" label="cardProvider" />
+            </div>
+
+            {walletPlatform === 'android' &&
+                (alreadyInWallet ? (
+                    <p role="status" className="text-center text-body-m text-foreground-secondary">
+                        {t('addedToGoogleWallet')}
+                    </p>
+                ) : nativeAvailable ? (
+                    <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+                ) : null)}
 
             {/* Card payments come from the wallet; older collateral cannot pay them.
                 The note and its action leave only once a refreshed read shows none. */}
@@ -194,12 +212,13 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
                             onClick={() => router.push('/card/physical')}
                         />
                         {walletLabel &&
+                            !(walletPlatform === 'android' && (nativeAvailable || alreadyInWallet)) &&
                             // use native provisioning when it is available
                             (nativeAvailable ? (
                                 <ListItem
                                     title={walletLabel}
                                     leading={<Icon name="wallet" size={24} />}
-                                    chevron
+                                    disabled={isAdding}
                                     onClick={() => void handleAddToWallet()}
                                 />
                             ) : (

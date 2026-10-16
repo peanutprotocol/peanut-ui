@@ -6,6 +6,8 @@
         <meta name="robots" content="noindex,nofollow" />
         <title>Peanut · Screen library</title>
         <link rel="stylesheet" href="/screen-library/viewer.css" />
+        <script defer src="/screen-library/votes.js"></script>
+        <script defer src="/screen-library/comments.js"></script>
         <script defer src="/screen-library/viewer.js"></script>
     </head>
     <body>
@@ -20,6 +22,7 @@
                 <div id="provenance"></div>
             </details>
             <p id="coverage" role="status">Loading library…</p>
+            <p id="history-unavailable" class="history-meta" hidden></p>
             <section id="auth-preview" class="auth-preview" hidden aria-hidden="true">
                 <div class="auth-preview-card"><span></span><i></i><b></b></div>
                 <div class="auth-preview-card"><span></span><i></i><b></b></div>
@@ -56,11 +59,65 @@
                             aria-hidden="true"
                         ></span
                     ></label>
+                    <label class="switch-control"
+                        ><span>Show all variations</span
+                        ><input
+                            id="variations-mode"
+                            type="checkbox"
+                            role="switch"
+                            aria-label="Show all variations" /><span class="switch" aria-hidden="true"></span
+                    ></label>
                 </div>
                 <div id="filters-row" class="filters-row">
                     <nav id="dashboard-filters" class="filters" aria-label="Filter published versions" hidden>
                         <label id="source-control">Source<select id="source"></select></label>
+                        <label id="branch-control"
+                            >Branch<select id="branch">
+                                <option value="">All branches</option>
+                                <option value="main">Main</option>
+                                <option value="dev">Dev</option>
+                            </select></label
+                        >
                         <label id="locale-control">Locale<select id="locale"></select></label>
+                        <label id="screen-updates-control" class="switch-control" for="screen-updates-only" hidden
+                            ><span>Screen updates only</span
+                            ><input id="screen-updates-only" type="checkbox" role="switch" checked /><span
+                                class="switch"
+                                aria-hidden="true"
+                            ></span
+                        ></label>
+                        <label id="votes-control" hidden
+                            >Votes<select id="votes">
+                                <option value="">All screens</option>
+                                <option value="up">Upvoted</option>
+                                <option value="down">Downvoted</option>
+                                <option value="up,down">Any vote</option>
+                            </select></label
+                        >
+                        <div
+                            id="vote-scope-control"
+                            class="vote-scope"
+                            role="radiogroup"
+                            aria-labelledby="vote-scope-label"
+                            hidden
+                        >
+                            <span id="vote-scope-label">Votes from</span>
+                            <span class="vote-scope-options"
+                                ><label
+                                    ><input
+                                        id="vote-scope-all"
+                                        type="radio"
+                                        name="vote-scope"
+                                        value="all"
+                                        checked
+                                    /><span>All teammates</span></label
+                                ><label
+                                    ><input id="vote-scope-me" type="radio" name="vote-scope" value="me" /><span
+                                        >My votes</span
+                                    ></label
+                                ></span
+                            >
+                        </div>
                         <label id="profile-control" hidden>Viewport<select id="profile"></select></label>
                     </nav>
                     <nav id="screen-filters" class="filters" aria-label="Filter screens">
@@ -76,6 +133,7 @@
                                 <option value="differences">Visual changes</option>
                                 <option value="changed">Changed pixels</option>
                                 <option value="added">Added</option>
+                                <option value="new">New screen</option>
                                 <option value="removed">Removed</option>
                                 <option value="unchanged">Unchanged</option>
                                 <option value="unavailable">Unavailable</option>
@@ -115,9 +173,58 @@
                     </div>
                 </section>
             </div>
-            <section id="versions" aria-label="Versions"></section>
-            <section id="screens" aria-label="Screens"></section>
-            <div id="screen-load-more" class="load-more" hidden aria-live="polite">Scroll to load more screens</div>
+            <section id="screen-history" hidden aria-labelledby="history-title">
+                <button id="history-close" type="button" class="history-link">← Back to screens</button>
+                <h1 id="history-title"></h1>
+                <p id="history-context" class="history-meta"></p>
+                <div class="history-heading">
+                    <h2>Every visual change, in order</h2>
+                    <span>History</span>
+                </div>
+                <p id="history-status" role="status" aria-live="polite"></p>
+                <div id="history-grid" class="history-grid" aria-label="Visual versions"></div>
+                <p class="history-meta">
+                    Click a date or screenshot to compare with the previous visual version. Dates use UTC.
+                </p>
+                <div class="history-actions">
+                    <button id="history-load-more" type="button" hidden>Load older history</button>
+                    <button id="history-retry" type="button" hidden>Retry failed reads</button>
+                </div>
+                <details id="history-gap-details" hidden>
+                    <summary id="history-gap-summary">Capture gaps</summary>
+                    <ul id="history-gaps"></ul>
+                </details>
+                <section id="history-detail" hidden aria-labelledby="history-detail-title">
+                    <div class="history-heading">
+                        <h2 id="history-detail-title"></h2>
+                        <div class="history-controls" role="group" aria-label="History comparison view">
+                            <button id="history-side" type="button">Side by side</button>
+                            <button id="history-overlay" type="button">Overlay</button>
+                            <button id="history-single" type="button">Selected version</button>
+                        </div>
+                    </div>
+                    <label id="history-slider-label" hidden
+                        >Previous / selected version<input
+                            id="history-slider"
+                            type="range"
+                            min="0"
+                            max="100"
+                            value="50"
+                    /></label>
+                    <div id="history-images" class="history-images"></div>
+                    <p id="history-detail-note" class="history-meta"></p>
+                </section>
+            </section>
+            <div class="library-layout">
+                <div class="library-content">
+                    <section id="versions" aria-label="Versions"></section>
+                    <section id="screens" aria-label="Screens"></section>
+                    <div id="screen-load-more" class="load-more" hidden aria-live="polite">
+                        Scroll to load more screens
+                    </div>
+                </div>
+                <aside id="comment-feed" class="comment-feed" aria-label="Latest screen activity" hidden></aside>
+            </div>
         </main>
         <dialog id="zoom" aria-labelledby="zoom-title">
             <div class="dialog-head">
@@ -125,6 +232,7 @@
                     <p id="zoom-position" class="zoom-position"></p>
                     <h2 id="zoom-title"></h2>
                 </div>
+                <button id="zoom-history" type="button" hidden>History</button>
                 <button id="close" aria-label="Close enlarged screen">Close ×</button>
             </div>
             <div id="zoom-controls" class="zoom-controls">
@@ -134,10 +242,13 @@
                     >Before / after<input id="slider" type="range" min="0" max="100" value="50"
                 /></label>
             </div>
-            <div class="preview-stage">
-                <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
-                <div id="zoom-images"></div>
-                <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
+            <div class="zoom-body">
+                <div class="preview-stage">
+                    <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
+                    <div id="zoom-images"></div>
+                    <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
+                </div>
+                <aside id="comment-panel" class="comment-panel" aria-label="Screen discussion" hidden></aside>
             </div>
             <p class="preview-help"><kbd>←</kbd><kbd>→</kbd> Navigate <kbd>Esc</kbd> Close</p>
         </dialog>

@@ -173,8 +173,15 @@ const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hid
 // The transparent resting border keeps the chip's geometry identical in both
 // states, so switching tabs never shifts anything. Everything here is
 // size-independent; the size-varying properties live in SIZES.
+//
+// `min-w-max` is the floor that keeps a chip at its label width. `stretch`
+// adds `flex-1`, and twMerge drops `shrink-0` in its favour, so the chips were
+// squeezed under their labels (TASK-23130: at 360px `⬡ ARB` got 66px of the
+// 81px it needs). A squeezed row never overflows, so `scrollWidth` read no
+// overflow and the token selector's trim never dropped a tab. With the floor,
+// an overflowing row really overflows and the trim sees it.
 const trigger =
-    'relative flex shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary disabled:cursor-not-allowed disabled:opacity-40'
+    'relative flex min-w-max shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary disabled:cursor-not-allowed disabled:opacity-40'
 
 /**
  * `lg` deliberately lands on BottomNav's own 52px / px-6, so a large tab row

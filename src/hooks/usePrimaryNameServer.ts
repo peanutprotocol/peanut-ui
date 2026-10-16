@@ -5,6 +5,7 @@ import { useEffect, useMemo } from 'react'
 import { isAddress } from 'viem'
 import { serverFetch } from '@/utils/api-fetch'
 import { lookupPrimaryNameOnChain } from '@/utils/ens-onchain.utils'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 const PRIMARY_NAME_TTL_MS = 24 * 60 * 60 * 1000 // 1 day
 
@@ -74,13 +75,18 @@ export function usePrimaryNameServer(address?: string): { primaryName: string | 
         staleTime: PRIMARY_NAME_TTL_MS,
         gcTime: PRIMARY_NAME_TTL_MS,
         retry: false,
-        queryFn: async (): Promise<string | null> => {
+        queryFn: async ({ signal }): Promise<string | null> => {
             try {
-                const res = await serverFetch(`/ens/reverse/${address}`, { method: 'GET' })
+                // This only decorates an address for display. A timeout leaves
+                // the cached name/raw address usable; timing and breadcrumbs
+                // remain visible without classifying that fallback as a crash.
+                const res = await serverFetch(`/ens/reverse/${address}`, { method: 'GET', signal, silentTimeout: true })
                 if (!res.ok) throw new Error(`ens reverse lookup failed: ${res.status}`)
                 const json = (await res.json()) as { name?: string | null }
                 return json.name ?? null
-            } catch {
+            } catch (error) {
+                // An unused/superseded query must not start another RPC request.
+                if (signal.aborted) throw error
                 // On-chain fallback. A rejection here propagates, leaving the
                 // query in an error state rather than caching a negative result
                 // for 24h while the route 404s.
@@ -101,7 +107,18 @@ export function usePrimaryNameServer(address?: string): { primaryName: string | 
     }, [enabled, address, resolved, settledNoName])
 
     // read once per address, not on every render — history feeds mount many rows
-    const cachedName = useMemo(() => (enabled ? getCachedName(address) : undefined), [enabled, address])
+    const readCachedName = useMemo(() => {
+        let read = false
+        let value: string | undefined
+        return () => {
+            if (!read) {
+                value = enabled ? getCachedName(address) : undefined
+                read = true
+            }
+            return value
+        }
+    }, [enabled, address])
+    const cachedName = useHydrationSnapshot(readCachedName, () => undefined)
 
     return { primaryName: resolved ?? (settledNoName ? undefined : cachedName) }
 }

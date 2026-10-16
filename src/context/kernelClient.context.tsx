@@ -291,12 +291,9 @@ export const createKernelClientForChain = async <C extends Chain>(
                     transport: http(paymasterUrl, { timeout: ZERODEV_RPC_TIMEOUT_MS }),
                 })
 
-                try {
-                    return await zerodevPaymaster.sponsorUserOperation(sponsorUserOperationArgs(userOperation))
-                } catch (error) {
-                    console.error('Paymaster error:', error)
-                    throw error
-                }
+                // The flow captures a failed sponsorship with payment context.
+                // Logging and rethrowing here counted the same failure twice.
+                return zerodevPaymaster.sponsorUserOperation(sponsorUserOperationArgs(userOperation))
             },
         },
     })

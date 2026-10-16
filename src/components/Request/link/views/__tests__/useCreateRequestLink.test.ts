@@ -112,6 +112,7 @@ jest.mock('@/utils/general.utils', () => ({
     isNativeCurrency: () => false,
 }))
 jest.mock('@/utils/url.utils', () => ({
+    appBaseUrl: () => 'https://peanut.me',
     payLinkUrl: (path: string) => `https://peanut.me${path}`,
     shareableUrl: (path: string) => `https://peanut.me${path}`,
 }))
@@ -255,6 +256,95 @@ describe('useCreateRequestLink', () => {
         expect(result.current.errorState.showError).toBe(true)
         expect(cancelCopy).toHaveBeenCalled()
         expect(toastError).toHaveBeenCalled()
+    })
+
+    describe('the idempotency key', () => {
+        const keyOfCall = (n: number) => (apiCreate.mock.calls[n][0] as { idempotencyKey?: string }).idempotencyKey
+
+        it('sends a key, and a re-tap of the same form after a failure reuses it', async () => {
+            apiCreate.mockRejectedValueOnce(new TypeError('Load failed'))
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            act(() => {
+                result.current.handleRequestAmountChange('5')
+            })
+
+            await act(async () => {
+                await result.current.generateLink()
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiCreate).toHaveBeenCalledTimes(2)
+            expect(keyOfCall(0)).toEqual(expect.any(String))
+            expect(keyOfCall(0)!.length).toBeGreaterThan(8)
+            expect(keyOfCall(1)).toBe(keyOfCall(0))
+            expect(result.current.requestId).toBe('req-1')
+        })
+
+        it('makes a new key when the form changes after a failure', async () => {
+            apiCreate.mockRejectedValueOnce(new TypeError('Load failed'))
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            act(() => {
+                result.current.handleRequestAmountChange('5')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            act(() => {
+                result.current.handleRequestAmountChange('6')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiCreate.mock.calls[1][0]).toEqual(expect.objectContaining({ tokenAmount: '6' }))
+            expect(keyOfCall(1)).not.toBe(keyOfCall(0))
+        })
+
+        // the API prices a non-USD request itself; a rate refresh is not an edit
+        it('keeps the key of a non-USD request when only the rate moved', async () => {
+            apiCreate.mockRejectedValueOnce(new TypeError('Load failed'))
+            mockExchangeRate = 0.8
+            const currencyAdapter = currencyWrapper('?currency=EUR')
+            const { result, rerender } = renderHook(() => useCreateRequestLink(), { wrapper: currencyAdapter })
+            act(() => {
+                result.current.handleRequestAmountChange('100')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            mockExchangeRate = 0.79
+            rerender()
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiCreate.mock.calls[0][0].tokenAmount).not.toBe(apiCreate.mock.calls[1][0].tokenAmount)
+            expect(keyOfCall(1)).toBe(keyOfCall(0))
+        })
+
+        it('makes a new key when the comment changes after a failure', async () => {
+            apiCreate.mockRejectedValueOnce(new TypeError('Load failed'))
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            act(() => {
+                result.current.handleRequestAmountChange('5')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            act(() => {
+                result.current.handleAttachmentOptionsChange({ message: 'dinner', fileUrl: '', rawFile: undefined })
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(keyOfCall(1)).not.toBe(keyOfCall(0))
+        })
     })
 
     /**

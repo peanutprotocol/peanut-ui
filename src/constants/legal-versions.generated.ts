@@ -25,12 +25,12 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: '9eb731e649de21ef8a28fca821f4123d63be55f0765a0843fe42bac31bbbe0bd',
     },
     'card-terms-us': {
-        version: '2026-06-01',
-        hash: '431def76a1838075b8110dff955da06a3d561d61229117c14127deef9f09e1ca',
+        version: '2026-10-08',
+        hash: '5401c45fef1b8006355a6fb19d8bedf56c53eb48b73e3f9d2afb4eb70daa7c8d',
     },
     privacy: {
-        version: '2026-09-25',
-        hash: '1d7cb222ea2fdac39adfc99a6739822045091c131ddd38ed4030be38bef66452',
+        version: '2026-09-29',
+        hash: 'db3eb7845bf56d187bc2052ce352274ca6cf5263d7e83cecc05ebbf017b68b5c',
     },
     'real-time-funding-terms': {
         version: '2026-09-29',

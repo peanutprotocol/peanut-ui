@@ -158,9 +158,11 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(value).toBeDefined()
         expect(value).not.toBe('ES9121000418450200051332')
         expect(value).toContain('1332')
-        expect(labels(model).slice(-4)).toEqual([
+        // who, then money, then trace (receipt-rows ruling)
+        expect(labels(model).slice(-5)).toEqual([
             'IBAN',
             'common.exchangeRate',
+            'transaction.rows.fee',
             'transaction.rows.txId',
             'transaction.rows.transferId',
         ])
@@ -444,5 +446,58 @@ describe('buildReceiptPdfModel — bank deposit sender reference', () => {
         )
         expect(labels(model)).not.toContain('transaction.rows.senderNote')
         expect(JSON.stringify(model)).not.toContain('INVOICE 4471')
+    })
+})
+
+describe('buildReceiptPdfModel — provider', () => {
+    test('a bridge offramp names bridge by brand, with its legal page in the small print', () => {
+        const model = buildReceiptPdfModel(withOverrides({}, { provider: 'BRIDGE' }), t, 'en')
+        expect(row(model, 'provider.label.provider')).toBe('Bridge')
+        expect(model.provider).toEqual({
+            intro: 'provider.sheetIntro:{"brand":"Bridge"}',
+            name: 'Bridge',
+            addressLines: [],
+            termsUrl: 'https://www.bridge.xyz/legal',
+        })
+    })
+
+    test("with the owner's residence a bridge receipt prints the serving entity", () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({}, { provider: 'BRIDGE', bridgeFlow: 'OFFRAMP' }),
+            t,
+            'en',
+            'DE'
+        )
+        expect(model.provider?.name).toBe('Bridge Building S.A.')
+        expect(model.provider?.addressLines).toEqual(['33, Boulevard Prince Henri', 'L-1724 Luxembourg'])
+    })
+
+    test('a card spend names rain as the card provider and keeps the issuer legal name and office', () => {
+        const model = buildReceiptPdfModel(withOverrides({}, { provider: 'RAIN' }), t, 'en')
+        expect(row(model, 'provider.label.cardProvider')).toBe('Rain')
+        expect(model.provider?.name).toBe('Nimbus LLC, doing business as Third National')
+        expect(model.provider?.addressLines).toContain('San Juan, PR 00917')
+    })
+
+    test('a rhino transfer names rhino but never prints terms the user did not accept', () => {
+        const model = buildReceiptPdfModel(withOverrides({}, { provider: 'RHINO' }), t, 'en')
+        expect(row(model, 'provider.label.provider')).toBe('Rhino.fi')
+        expect(model.provider?.termsUrl).toBeUndefined()
+    })
+
+    test('a manteca qr payment names manteca and prints its terms, like every other manteca payment', () => {
+        const qr = buildReceiptPdfModel(
+            withOverrides({ currency: { amount: '1000', code: 'ARS' } }, { provider: 'MANTECA', kind: 'QR_PAY' }),
+            t,
+            'en'
+        )
+        expect(row(qr, 'provider.label.provider')).toBe('Manteca')
+        expect(qr.provider?.termsUrl).toBe('https://manteca.dev/es/tyc/crypto')
+    })
+
+    test('a peanut-only transfer has no provider row and no small print', () => {
+        const model = buildReceiptPdfModel(baseTx, t, 'en')
+        expect(labels(model)).not.toContain('provider.label.provider')
+        expect(model.provider).toBeUndefined()
     })
 })

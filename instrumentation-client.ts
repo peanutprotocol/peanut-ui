@@ -2,15 +2,18 @@ import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from 
 import { APP_RELEASE } from '@/constants/app-release'
 import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
-import { beforeSendHandler } from './sentry.utils'
+import { beforeSendHandler, crossOriginScriptErrorContext, isBrowserHostScriptError } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
+import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -34,6 +37,10 @@ if (
 ) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
+    // Web journeys begin at the first pageview. Native journeys are created
+    // at registration unless a deferred store handoff restores this context
+    // first; the native app cannot observe the pre-install browser page.
+    const signupAttribution = isNativeBuild ? null : captureSignupAttribution({ includeDocumentReferrer: true })
 
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
         // Web posts through the `/relay` Next.js rewrite — the path is intentionally
@@ -52,7 +59,8 @@ if (
         // persisted — so a late register left the first open after an OTA
         // carrying the PREVIOUS bundle's release. `loaded` runs before that
         // first capture, which is the whole point of the denominator.
-        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
+        loaded: (ph) =>
+            ph.register({ app_release: APP_RELEASE, ...signupAttributionPosthogProperties(signupAttribution) }),
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
@@ -64,6 +72,18 @@ if (
             // this class server-side; exception autocapture must not double-report
             // it here (TASK-22408).
             if (isNativeFetchRejectionExceptionEvent(event)) return null
+            if (event?.event === '$exception' && Array.isArray(event.properties?.$exception_list)) {
+                const exceptions = event.properties.$exception_list
+                if (isExpectedExceptionChain(exceptions)) return null
+                if (isBrowserHostScriptError(exceptions)) return null
+                const scriptErrorContext = crossOriginScriptErrorContext(
+                    exceptions,
+                    Array.from(document.scripts),
+                    window.location.origin,
+                    navigator.userAgent
+                )
+                if (scriptErrorContext) Object.assign(event.properties, scriptErrorContext)
+            }
             if (event?.event) noteAppReviewFriction(event.event)
             // Once-per-session login: runs here, after capture assigned/rotated
             // $session_id — a pre-capture get_session_id() guard misses idle-
@@ -135,7 +155,10 @@ if (
          * where it was parsed and evaluated (~1.7s of CPU on the landing page)
          * for a branch that only ever runs in the Capacitor build.
          */
-        void import('@sentry/nextjs').then((Sentry) => {
+        // unhandled, a ChunkLoadError here would trip the inline reload script
+        const loadSdk = () => importWithChunkRetry(() => import('@sentry/nextjs')).catch(() => null)
+        void loadSdk().then((Sentry) => {
+            if (!Sentry) return
             Sentry.init({
                 dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
                 environment: inferSentryEnvironment(),

@@ -99,6 +99,16 @@ export function PayByBankTransferDrawer({
           })
         : undefined
     const figure = railAmount?.kind === 'local' ? bankPayAmountFigure(railAmount) : undefined
+    const figureText = !figure
+        ? t('bankTransfer.description')
+        : figure.approx
+          ? t('bankTransfer.amountValueApprox', { amount: formatBankAmount(figure.value, figure.currency) })
+          : formatBankAmount(figure.value, figure.currency)
+    // The reference is what matches the transfer to this request, so the payer
+    // reads it before opening the details.
+    const bodyText = rail?.reference
+        ? t('bankTransfer.bodyWithReference', { text: figureText, reference: rail.reference })
+        : figureText
 
     return (
         <>
@@ -115,17 +125,7 @@ export function PayByBankTransferDrawer({
                         )}
                     </div>
                 }
-                body={
-                    <div className="text-body-xs">
-                        {!figure
-                            ? t('bankTransfer.description')
-                            : figure.approx
-                              ? t('bankTransfer.amountValueApprox', {
-                                    amount: formatBankAmount(figure.value, figure.currency),
-                                })
-                              : formatBankAmount(figure.value, figure.currency)}
-                    </div>
-                }
+                body={<div className="text-body-xs">{bodyText}</div>}
                 onClick={() => setIsOpen(true)}
                 chevron
             />

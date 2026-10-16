@@ -50,7 +50,7 @@ Send from balance straight to any third-party bank account, and receive into the
 
 - Required only for bank deposits/withdrawals and local QR payments. Passport or national ID from any country (US driver's license accepted for US users). No local ID anywhere.
 - Crypto deposits, crypto withdrawals, and browsing require no verification.
-- Limits: Latin America ~$2,000/month combined (raisable with documents); US/Europe/Mexico/UK no hard limit (very large transactions reviewed); crypto unlimited.
+- Limits: Latin America ~$2,000/month combined (raisable with documents); US/Europe/Mexico no hard limit (very large transactions reviewed); crypto unlimited.
 
 ## Fees
 
@@ -59,7 +59,7 @@ Send from balance straight to any third-party bank account, and receive into the
 ## Where Peanut works
 
 - Local QR spending live: Argentina (MercadoPago), Brazil (PIX).
-- Bank rails live: 36 SEPA-zone countries (EUR), US (ACH/wire), Mexico (SPEI), UK (Faster Payments).
+- Bank rails live: 36 SEPA-zone countries (EUR), US (ACH/wire), Mexico (SPEI), GBP (Faster Payments).
 - Crypto deposit/withdraw: global, all non-restricted countries.
 - Card: apply in the app after identity verification; applications are subject to approval — https://peanut.me/shhhhh
 - Roadmap (not live): local payment methods in many more countries (CoDi, Transfiya, Yape, Bizum, MB WAY, UPI, and others). Only Argentina and Brazil have live local spending today.

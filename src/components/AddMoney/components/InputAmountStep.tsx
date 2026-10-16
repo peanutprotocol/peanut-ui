@@ -37,6 +37,8 @@ interface InputAmountStepProps {
     onBack: () => void
     // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
     maintenanceBanner?: React.ReactNode
+    // who provides the deposit, one line under the continue button (TASK-23295)
+    providerFinePrint?: React.ReactNode
 }
 
 const InputAmountStep = ({
@@ -55,6 +57,7 @@ const InputAmountStep = ({
     limitsCurrency,
     onBack,
     maintenanceBanner,
+    providerFinePrint,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -94,7 +97,11 @@ const InputAmountStep = ({
                 <div className="text-label-l">{t('howMuchToAdd')}</div>
 
                 {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
-                <Field error={!limitsValidation?.isBlocking ? validationError : undefined} errorTestId="error-alert">
+                <Field
+                    helper={t('mustMatchBankTransfer')}
+                    error={!limitsValidation?.isBlocking ? validationError : undefined}
+                    errorTestId="error-alert"
+                >
                     <AmountInput
                         initialAmount={tokenAmount}
                         initialDenomination={initialDenomination}
@@ -121,9 +128,6 @@ const InputAmountStep = ({
                     <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
                 )}
 
-                <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                    <span>{t('mustMatchBankTransfer')}</span>
-                </div>
                 <Button
                     variant="primary"
                     shadowSize="4"
@@ -141,6 +145,8 @@ const InputAmountStep = ({
                 >
                     {tCommon('continue')}
                 </Button>
+                {/* fine print sits under the CTA, never between the amount and the button */}
+                {providerFinePrint}
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && (
                     <Callout priority="error" data-testid="error-alert">

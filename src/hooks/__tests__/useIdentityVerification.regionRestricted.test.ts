@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { useIdentityVerification } from '../useIdentityVerification'
-import { type IdentityVerification } from '@/types/capabilities'
+import { type IdentityVerification, type NextAction } from '@/types/capabilities'
 
 const mockUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
@@ -106,5 +106,49 @@ describe('useIdentityVerification — a FINAL action_required and an email colli
         const r = withIdentity({ status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] })
         expect(r.isEmailCollision).toBe(true)
         expect(r.isTerminalFailure).toBe(false)
+    })
+})
+
+describe('useIdentityVerification — needsDocumentRestart', () => {
+    const withActions = (nextActions?: NextAction[], status: IdentityVerification['status'] = 'action_required') => {
+        mockUser.mockReturnValue({
+            user: {
+                identityVerification: { status },
+                ...(nextActions ? { capabilities: { rails: [], nextActions, restrictions: [] } } : {}),
+            },
+            isFetchingUser: false,
+        })
+        return renderHook(() => useIdentityVerification()).result.current
+    }
+
+    it('is true when the API offers the restart for an approval with no identity document', () => {
+        const r = withActions([
+            { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+        ])
+        expect(r.needsDocumentRestart).toBe(true)
+    })
+
+    it('is false for a restart that names another cause', () => {
+        expect(
+            withActions([{ key: 'restart-identity', kind: 'restart-identity', purpose: 'restart' }])
+                .needsDocumentRestart
+        ).toBe(false)
+    })
+
+    it.each(['processing', 'failed', 'verified', 'not_started'] as const)(
+        'is false for %s even if the action rides along: that status keeps its own button',
+        (status) => {
+            const restart: NextAction = {
+                key: 'restart-identity',
+                kind: 'restart-identity',
+                purpose: 'identity_document_missing',
+            }
+            expect(withActions([restart], status).needsDocumentRestart).toBe(false)
+        }
+    )
+
+    it('is false with no actions, and before capabilities load', () => {
+        expect(withActions([]).needsDocumentRestart).toBe(false)
+        expect(withActions().needsDocumentRestart).toBe(false)
     })
 })

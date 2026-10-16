@@ -12,6 +12,11 @@
 import type { Fixture } from './types'
 import type { RainCardFunding, RainFundingManagementStatus } from '@/services/rain'
 import {
+    RESTRICTED_RESIDENCE_ISO2,
+    CARD_RESTRICTED_RESIDENCE_ISO2,
+    BANKING_RESTRICTED_RESIDENCE_ISO2,
+} from '@/constants/residence.consts'
+import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
     CLAIMABLE_USD_PREVIEW,
@@ -183,6 +188,84 @@ const WIRE_WITHDRAWAL_ENTRY = {
     recipientAccount: { identifier: '938636999398030', type: 'US', isUser: false },
     currency: { amount: '80.00', code: 'USD' },
     extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', usdAmount: '100', payoutFeeUsd: 20, payoutRail: 'wire' },
+}
+
+const RECEIPT_ATTACHMENT_ENTRY = {
+    uuid: 'fixture-receipt-attachment',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-14T10:00:00.000Z'),
+    amount: '25.00',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: {
+        identifier: 'ana',
+        type: 'PEANUT_WALLET',
+        isUser: true,
+        username: 'ana',
+        fullName: 'Ana Ruiz',
+    },
+    memo: 'Dinner',
+    extraData: { kind: 'P2P_REQUEST_FULFILL', usdAmount: '25.00' },
+    // synthetic url; the focused browser spec supplies the file without contacting s3.
+    attachmentUrl: 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf',
+}
+
+// A request paid by bank deposit (TASK-23729): no charge, the deposit matcher
+// closed it. €5 asked = $5.64, 5.57 USDC arrived, and it settled in euros, so
+// the API sends `completedAt` (the request's `paidAt`) and no `cancelledAt`.
+const BANK_PAID_REQUEST_ENTRY = {
+    uuid: 'fixture-bank-paid-request',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-12T10:00:00.000Z'),
+    createdAt: new Date('2026-08-11T09:00:00.000Z'),
+    completedAt: new Date('2026-08-12T10:00:00.000Z'),
+    amount: '5.64',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'CLOSED',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    memo: 'Concert ticket',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        source: 'EXTERNAL',
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        receivedAmount: '5.57',
+    },
+    isRequestLink: true,
+    totalAmountCollected: 5.57,
+    charges: [],
+}
+
+// A pending request link that accepts bank transfer (TASK-23727): the
+// requester's receipt shows the reference and the bank details behind a tap.
+const PENDING_BANK_REQUEST_ENTRY = {
+    ...BANK_PAID_REQUEST_ENTRY,
+    uuid: 'fixture-bank-request',
+    timestamp: new Date('2026-10-15T10:00:00.000Z'),
+    createdAt: new Date('2026-10-15T10:00:00.000Z'),
+    completedAt: null,
+    amount: '250',
+    status: 'PENDING',
+    memo: 'Flat deposit',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        bankInstructionsShared: true,
+        link: 'https://peanut.me/request/fixture-bank-request',
+    },
+    totalAmountCollected: 0,
 }
 
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
@@ -690,10 +773,16 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
 }
 
 export const FIXTURES: Record<string, Fixture> = {
-    'setup-pending': {
-        route: '/setup',
-        about: 'Resume an unfinished account setup',
-        responses: { 'GET /users/me': { user: { hasAppAccess: false }, accounts: [] } },
+    'setup-payment-plan': {
+        route: '/dev/surfaces?s=03-c-residence-congrats',
+        about: 'Signup funding and payment choices with settled residence eligibility.',
+        responses: {
+            'GET /config/residence-restrictions': {
+                full: [...RESTRICTED_RESIDENCE_ISO2],
+                cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
+                bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
+            },
+        },
     },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
@@ -970,6 +1059,23 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: 'p[role="alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
+    'qr-pay-rate-unavailable': {
+        route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1',
+        about: 'An open-amount QR whose live exchange rate failed: Retry remains reachable before currency is set.',
+        waitFor: 'div.my-auto button',
+        responses: {
+            'POST /manteca/qr-payment/init': {
+                code: '',
+                type: 'PIX',
+                paymentAsset: 'BRL',
+                paymentAssetAmount: '0',
+                paymentAgainst: 'USDC',
+                paymentAgainstAmount: '0',
+                paymentPrice: '0',
+            },
+        },
+        fails: ['GET /manteca/prices'],
+    },
     // A PIX-key send after the key screen resolved the owner: the owner's name is
     // the heading, and the key with the masked CPF/CNPJ sits underneath.
     'qr-pay-pix-key-owner': {
@@ -1039,6 +1145,33 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/me': { user: { badges: [] }, identityVerification: { status: 'not_started' } },
             'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-onboarding': {
+        route: '/card?card_step=eligibility',
+        about: 'Card onboarding: eligibility, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-available': {
+        route: '/card?card_step=available',
+        about: 'Card onboarding: available, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-funding': {
+        route: '/card?card_step=funding',
+        about: 'Card onboarding: funding, with eligible residence and no application.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
             'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
         },
@@ -1391,6 +1524,47 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
     },
+    'history-receipt-attachment': {
+        route: '/history',
+        about: 'A completed request payment with an attachment. Open its receipt to check download states.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [RECEIPT_ATTACHMENT_ENTRY], hasMore: false },
+        },
+    },
+    'history-receipt-no-attachment': {
+        route: '/history',
+        about: 'The same completed request payment without an attachment. Open its receipt to check the missing row.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': {
+                entries: [{ ...RECEIPT_ATTACHMENT_ENTRY, attachmentUrl: null }],
+                hasMore: false,
+            },
+        },
+    },
+    'history-bank-paid-request': {
+        route: '/history',
+        about: 'A request paid by bank deposit a few cents short in USD. Reads Completed, nothing remaining.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [BANK_PAID_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-paid-request': BANK_PAID_REQUEST_ENTRY,
+        },
+    },
+    'history-request-bank-details': {
+        route: '/history?tx=fixture-bank-request',
+        about: 'A pending request that accepts bank transfer: its receipt shows the payment reference and the bank details.',
+        responses: {
+            'GET /users/history': { entries: [PENDING_BANK_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-request': PENDING_BANK_REQUEST_ENTRY,
+            'GET /requests/fixture-bank-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
+    },
     'empty-history': {
         route: '/history',
         about: 'Nothing on the timeline yet: no transaction, no badge, no ID check.',
@@ -1476,6 +1650,44 @@ export const FIXTURES: Record<string, Fixture> = {
                     reviewedAt: null,
                 },
                 capabilities: { rails: [], nextActions: [], restrictions: [] },
+            },
+        },
+    },
+    'identity-document-missing': {
+        route: '/add-money/argentina/manteca',
+        about: 'Approved with no identity document on file: the ARS top-up asks for an ID and a selfie and restarts the identity check, while the pool rail still pays.',
+        responses: {
+            'GET /users/me': {
+                // the AR residence keeps the residence gate out of the way
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                // what api#1776 answers for a marked approval: the identity asks
+                // for a document, the rails keep their status, and the restart
+                // is a top-level action attached to no rail
+                identityVerification: {
+                    status: 'action_required',
+                    actionMessage: 'We need an identity document and a selfie to complete your verification.',
+                    reviewPending: false,
+                    submittedAt: null,
+                    reviewedAt: '2026-07-20T10:00:00.000Z',
+                },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'manteca.bank_transfer_ar',
+                            provider: 'manteca',
+                            method: 'BANK_TRANSFER_AR',
+                            channel: 'bank',
+                            country: 'AR',
+                            currency: 'ARS',
+                            status: 'enabled',
+                            operations: { deposit: 'requires-info', withdraw: 'requires-info', pay: 'enabled' },
+                        },
+                    ],
+                    nextActions: [
+                        { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
+                    ],
+                    restrictions: [],
+                },
             },
         },
     },
@@ -1605,6 +1817,24 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
         responses: { 'GET /users/me': { showEarlyUserModal: true } },
+    },
+
+    // Arrival prompt (TASK-23251). The app must resolve a country first (the
+    // edge, else ipapi); with none it makes no call and shows nothing.
+    'arrival-qr-ar': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Argentina, pay a Mercado Pago QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'qr_ar' } },
+    },
+    'arrival-pix-br': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Brazil, pay a Pix QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'pix_br' } },
+    },
+    'arrival-card': {
+        route: '/home',
+        about: 'Arrival drawer over home: abroad with an active card.',
+        responses: { 'POST /users/me/arrival': { prompt: 'card' } },
     },
 
     // ---------------------------------------------------------------------
@@ -2498,6 +2728,41 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
+    },
+    'request-created-bank-details': {
+        // Tap Create request: demo-api creates every request as `demo-request`.
+        route: '/request?amount=50',
+        about: 'A new request that accepts bank transfer: the created screen shows the payment reference and the bank details.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] },
+            'GET /requests/demo-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
+    },
+    'request-pay-open-amount': {
+        // The override keys on this charge id, so the route names it.
+        route: '/pay-request?chargeId=demo-open-charge',
+        about: 'Paying a request sent with no amount: the requestee types one before paying (TASK-22123).',
+        responses: {
+            'GET /request-charges/demo-open-charge': {
+                transactionType: 'REQUEST',
+                tokenAmount: null,
+                currencyAmount: null,
+                openAmount: true,
+                requestLink: {
+                    recipientAddress: '0x00000000000000000000000000000000000a11ce',
+                    recipientAccount: {
+                        userId: 'demo-alice',
+                        identifier: '0x00000000000000000000000000000000000a11ce',
+                        user: { username: 'alice' },
+                    },
+                },
+            },
+        },
     },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,

@@ -134,17 +134,13 @@ export type SignSpendProgressEvent =
  *
  * Strategies map to backend behaviour:
  * - smart-only: backend broadcasts the signed UserOp via the bundler.
- * - mixed: backend broadcasts the signed UserOp (which atomically pulls
- *   collateral — up to and including the FULL amount — and forwards it to the
- *   recipient). Ordinary collateral funding runs here: it is the pipeline with
- *   a durable reservation, a precomputed hash, broadcast-first submission and
- *   definitive failure codes, so a late controller rotation can be replaced on
- *   the same lock. Cost: the passkey fallback is two taps instead of the direct
- *   path's one (the ephemeral one-tap path is unchanged where enabled).
- * - collateral-only: ONLY for `forceStrategy` callers (lock/cancel card).
- *   Backend submits the signed Rain withdrawal via the user's session-key
- *   UserOp with `directTransfer=true` (1 passkey tap — admin EIP-712 only);
- *   that handler orders before funding and has no safe resume.
+ * - mixed: only when the smart account genuinely contributes; backend
+ *   broadcasts the signed UserOp (which atomically pulls the collateral
+ *   shortfall and forwards the full amount to the recipient).
+ * - collateral-only: routed collateral spends (QR_PAY, FIAT_OFFRAMP) and
+ *   `forceStrategy` callers (lock/cancel card). Backend
+ *   submits the signed Rain withdrawal via the user's session-key UserOp with
+ *   `directTransfer=true` (one admin EIP-712 signature for an approved account).
  */
 
 export const useSignSpendBundle = () => {
@@ -227,24 +223,6 @@ export const useSignSpendBundle = () => {
                     collateralOnlyAllowed: true,
                     flow: 'sign-only',
                 }))
-                /*
-                 * Ordinary collateral funding EXECUTES through the mixed
-                 * pipeline: it is the one with a durable reservation, a
-                 * precomputed hash, broadcast-first and definitive failure
-                 * codes, so a late controller rotation can be recovered on the
-                 * same lock. The legacy collateral handler creates the provider
-                 * order before funding and cannot be resumed safely.
-                 *
-                 * `smartBalance = 0` (not `collateralOnlyAllowed: false`) keeps
-                 * the funding SOURCE the user's routing already chose: the whole
-                 * amount comes from collateral even when the smart account has a
-                 * balance. Forced collateral-only (lock/cancel card) is exempt —
-                 * it is submitted by the backend's session key, not broadcast.
-                 */
-                if (strategy === 'collateral-only') {
-                    strategy = 'mixed'
-                    smartBalance = 0n
-                }
             }
 
             onStrategyDecided?.(strategy)
@@ -330,12 +308,14 @@ export const useSignSpendBundle = () => {
                 // the user's session-key UserOp (1 tap total).
                 if (strategy === 'collateral-only') {
                     // The backend chooses the intent kind from the destination
-                    // (TASK-21815) — nothing user-declared goes on the wire.
+                    // (TASK-21815); only a bank offramp declares itself, since it
+                    // shares the QR provider address and would record as QR_PAY.
                     const prep = await rainApi.prepareWithdrawal(
                         {
                             amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                             recipientAddress: recipient,
                             directTransfer: true,
+                            ...(kind === 'FIAT_OFFRAMP' ? { kind } : {}),
                         },
                         { suppressCooldownEvent: suppressCooldownEvent === true || signRecovered }
                     )

@@ -193,6 +193,24 @@ test('late auth hydrates without enabling a no-op save', async () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 })
 
+test('an untouched email adopts the signup email from a late profile refresh without making it dirty', () => {
+    mockUser!.user.email = ''
+    const view = renderWithIntl(<ProfileEditView />)
+    mockUser = { user: { ...mockUser!.user, email: 'signup@example.com' } }
+    view.rerender(<ProfileEditView />)
+    expect(screen.getByLabelText('Email for notifications')).toHaveValue('signup@example.com')
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+})
+
+test('an email refresh preserves a replacement the user is editing', async () => {
+    const view = renderWithIntl(<ProfileEditView />)
+    await change('Email for notifications', 'replacement@example.com')
+    mockUser = { user: { ...mockUser!.user, email: 'signup@example.com' } }
+    view.rerender(<ProfileEditView />)
+    expect(screen.getByLabelText('Email for notifications')).toHaveValue('replacement@example.com')
+    expect(screen.getByRole('button', { name: 'Send code' })).toBeEnabled()
+})
+
 test('a duplicate email error is linked to its input and can be corrected', async () => {
     jest.mocked(requestEmailChange).mockResolvedValueOnce({
         error: 'This email is already associated with another account',

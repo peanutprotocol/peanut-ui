@@ -15,9 +15,11 @@ const mockOpenSupport = jest.fn()
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport }),
-}))
+// Callout and ProviderRow read the optional variant; both hooks see the same provider value.
+jest.mock('@/context/ModalsContext', () => {
+    const modals = { setIsSupportModalOpen: (...args: unknown[]) => mockOpenSupport(...args) }
+    return { useModalsContext: () => modals, useModalsContextOptional: () => modals }
+})
 jest.mock('@/hooks/useCardReveal', () => ({
     useCardReveal: () => ({ revealed: null, isLoading: false, error: null, toggle: jest.fn() }),
 }))

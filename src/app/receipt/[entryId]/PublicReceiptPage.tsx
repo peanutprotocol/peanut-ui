@@ -1,6 +1,7 @@
 'use client'
 
 import type React from 'react'
+import { useSyncExternalStore } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
@@ -8,19 +9,35 @@ import { TransactionDetailsReceipt } from '@/components/TransactionDetails/Trans
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useAuth } from '@/context/authContext'
 
+type ReceiptAuthState = 'loading' | 'anonymous' | 'authenticated'
+const subscribeAuthSnapshot = () => () => {}
+
 export function PublicReceiptPage({
     state,
     transaction,
     children,
+    initialAuthState = 'loading',
 }: {
     state?: 'gone' | 'loadFailed'
     transaction?: TransactionDetails
     /** Owner view: the client refetches the entry so the shared PDF cache never sees a cookie. */
     children?: React.ReactNode
+    /** Serialized server state; the production user query starts pending with no cached user. */
+    initialAuthState?: ReceiptAuthState
 }) {
     const { user, isFetchingUser } = useAuth()
-    const isAuthenticated = Boolean(user?.user.userId)
-    const showPublicIssuer = !isFetchingUser && !isAuthenticated
+    const liveAuthState: ReceiptAuthState = user?.user.userId
+        ? 'authenticated'
+        : isFetchingUser
+          ? 'loading'
+          : 'anonymous'
+    const authState = useSyncExternalStore(
+        subscribeAuthSnapshot,
+        () => liveAuthState,
+        () => initialAuthState
+    )
+    const isAuthenticated = authState === 'authenticated'
+    const showPublicIssuer = authState === 'anonymous'
 
     return (
         <PageContainer className="receipt-page flex min-h-dvh flex-col items-center p-4">

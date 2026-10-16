@@ -6,7 +6,12 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { PASSKEY_TROUBLESHOOTING_STEPS, PASSKEY_WARNINGS, WebAuthnErrorName } from '@/utils/webauthn.utils'
+import {
+    PASSKEY_NOT_SAVED_HELP,
+    PASSKEY_TROUBLESHOOTING_STEPS,
+    PASSKEY_WARNINGS,
+    WebAuthnErrorName,
+} from '@/utils/webauthn.utils'
 import { useTranslations } from 'next-intl'
 
 interface PasskeySetupHelpDrawerProps {
@@ -47,6 +52,7 @@ export const PasskeySetupHelpDrawer = ({
     const tCommon = useTranslations('common')
 
     const getTitle = (): string => {
+        if (errorName === PASSKEY_NOT_SAVED_HELP) return t('titles.passkeyNotSaved')
         if (errorName === WebAuthnErrorName.NotReadable) return t('titles.notReadable')
         if (errorName === WebAuthnErrorName.NotAllowed) return t('titles.notAllowed')
         if (errorName === WebAuthnErrorName.InvalidState) return t('titles.invalidState')
@@ -55,6 +61,7 @@ export const PasskeySetupHelpDrawer = ({
     }
 
     const getDescription = (): string => {
+        if (errorName === PASSKEY_NOT_SAVED_HELP) return t('descriptions.passkeyNotSaved')
         if (errorName === WebAuthnErrorName.NotReadable) return t('descriptions.notReadable')
         if (errorName === WebAuthnErrorName.NotAllowed) {
             return platform === 'android' ? t('descriptions.notAllowedAndroid') : t('descriptions.notAllowed')

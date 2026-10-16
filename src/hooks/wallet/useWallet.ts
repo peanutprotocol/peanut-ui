@@ -3,6 +3,7 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useIsFetching } from '@tanstack/react-query'
 import { formatUnits, type Hex, type Address } from 'viem'
 import { useZeroDev } from '../useZeroDev'
@@ -206,7 +207,10 @@ export const useWallet = () => {
     // resolves.
     // peek, not ensure: this runs in the render body, and ensureActiveFixture
     // writes (sessionStorage + cookie). api-fetch does the promotion write.
-    const demoMode = isDemoMode() || !!peekActiveFixture()
+    const demoMode = useHydrationSnapshot(
+        () => isDemoMode() || !!peekActiveFixture(),
+        () => false
+    )
     const demoBalanceUnits = useDemoBalanceUnits()
 
     // The TanStack ['balance', address] query is the single owner (the redux

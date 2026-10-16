@@ -1,4 +1,7 @@
 /**
+ * The prompt names the account provider and links its terms before any consent
+ * action, and its own button accepts nothing (TASK-23262, TASK-23295).
+ *
  * The android system-browser detour (Capacitor's WebView cancels third-party
  * subframe navigations, so the ToS iframe painted blank) gives the step no
  * acceptance signal — only "the user came back". These cover the resulting
@@ -18,9 +21,11 @@ jest.mock('@/app/actions/users', () => ({
 }))
 
 const mockFetchUser = jest.fn().mockResolvedValue(null)
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ fetchUser: mockFetchUser }),
-}))
+let mockVerifiedResidence: string | null = null
+jest.mock('@/context/authContext', () => {
+    const auth = () => ({ fetchUser: mockFetchUser, user: { residence: { verified: mockVerifiedResidence } } })
+    return { useAuth: auth, useOptionalAuth: auth }
+})
 
 const mockConfirm = jest.fn<Promise<boolean>, [unknown, { observedAcceptance?: boolean }?]>()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
@@ -39,13 +44,14 @@ jest.mock('@/components/Global/IframeWrapper', () => ({
 
 const openTos = async () => {
     await act(async () => {
-        screen.getByRole('button', { name: 'Accept terms' }).click()
+        screen.getByRole('button', { name: 'Continue' }).click()
     })
 }
 
 describe('BridgeTosStep', () => {
     beforeEach(() => {
         closeIframe = undefined
+        mockVerifiedResidence = null
         mockConfirm.mockReset()
         mockGetBridgeTosLink.mockReset()
         mockGetBridgeTosLink.mockResolvedValue({ data: { tosLink: 'https://compliance.test/tos' } })
@@ -59,6 +65,52 @@ describe('BridgeTosStep', () => {
         )
         return { onComplete, onSkip }
     }
+
+    it('names the account provider and links the terms of the verified residence before any consent action', () => {
+        mockVerifiedResidence = 'DE'
+        renderStep()
+
+        expect(screen.getByText('Accept terms')).toBeInTheDocument()
+        expect(screen.getByText('Account provider')).toBeInTheDocument()
+        expect(screen.getByText('Bridge')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'About Bridge' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Bridge EEA user terms' })).toHaveAttribute(
+            'href',
+            'https://www.bridge.xyz/legal/eea-user-terms/bridge-building-s-a'
+        )
+        // the button leads to bridge's page; it accepts nothing itself
+        expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument()
+        expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+        const cta = screen.getByRole('button', { name: 'Continue' })
+        // the card sits between the description and the button
+        expect(
+            screen.getByRole('button', { name: 'About Bridge' }).compareDocumentPosition(cta) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
+    })
+
+    it('opens a document in a new tab without starting the acceptance flow', () => {
+        renderStep()
+
+        const terms = screen.getByRole('link', { name: 'Bridge terms' })
+        expect(terms).toHaveAttribute('target', '_blank')
+        // jsdom does not navigate; the click must reach no handler of ours
+        terms.addEventListener('click', (e) => e.preventDefault())
+        terms.click()
+
+        expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('tos-iframe')).not.toBeInTheDocument()
+    })
+
+    it('links the US terms for a US resident', () => {
+        mockVerifiedResidence = 'US'
+        renderStep()
+
+        expect(screen.getByRole('link', { name: 'Bridge US terms' })).toHaveAttribute(
+            'href',
+            'https://www.bridge.xyz/legal/us-terms/bridge-building-inc'
+        )
+    })
 
     it('completes when Bridge confirms the terms were signed', async () => {
         mockConfirm.mockResolvedValue(true)

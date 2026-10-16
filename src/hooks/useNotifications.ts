@@ -3,14 +3,20 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
+import { initializeNotificationIdentity, syncNotificationIdentityFromHook } from '@/services/onesignal/identity'
+import { isPermanentOneSignalInitError } from '@/services/onesignal/errors'
+import { isChunkLoadError } from '@/utils/chunk-error-recovery'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { onForegroundPushDelivered } from '@/utils/notifications-events'
 import { useAuth } from '@/context/authContext'
+import { useAppLocked } from '@/hooks/useAppLocked'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
+import { HOME_FALLBACK_MIN_SESSION, PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
@@ -38,6 +44,9 @@ interface NotificationsState {
     sdkReady: boolean
     oneSignalInitialized: boolean
     showPermissionModal: boolean
+    /** the moment that opened the pre-prompt; kept after it closes so the
+     *  closing modal keeps its copy */
+    promptTrigger: PushPromptTrigger | null
     isRequestingPermission: boolean
 }
 
@@ -47,6 +56,7 @@ const INITIAL_STATE: NotificationsState = {
     sdkReady: false,
     oneSignalInitialized: false,
     showPermissionModal: false,
+    promptTrigger: null,
     isRequestingPermission: false,
 }
 
@@ -73,14 +83,22 @@ const getSnapshot = () => state
 export const getNotificationPermissionSnapshot = (): NotificationPermissionState => state.permissionState
 const getServerSnapshot = () => INITIAL_STATE
 
-let currentExternalId: string | null = null
-let lastLinkedExternalId: string | null = null
-// the login in flight, so a second sync for the same id joins it instead of
-// starting another login() (the double-record race behind TASK-22209)
-let loginInFlight: { id: string; token: object; promise: Promise<void> } | null = null
+let currentExternalId: string | null | undefined
 let disableExternalIdLogin = false
-let hasTrackedModalShown = false
-let initStarted = false
+// A session is one app load. One pre-prompt per session at most, and the
+// session count gates the Home fallback.
+let promptShownThisSession = false
+const countedSessions = new Set<string>()
+// moments that came before OneSignal init or the user id (a cold deep link
+// into Add money or add-to-wallet), in order; offered once both are ready. A
+// list, not one slot: the first may turn out snoozed while a later one is not.
+let pendingPromptTriggers: PushPromptTrigger[] = []
+// the moment behind the OS dialog, for the permission events that follow it
+let permissionRequestTrigger: PushPromptTrigger | null = null
+let initializationPromise: Promise<void> | null = null
+const MAX_INIT_ATTEMPTS = 3
+let initAttempts = 0
+let initRetryArmed = false
 
 function handleLoginError(err: unknown) {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -109,121 +127,153 @@ function handleLoginError(err: unknown) {
 
 // link/unlink the OneSignal subscription to the logged-in user
 async function syncExternalIdLink() {
-    if (!state.oneSignalInitialized) return
+    // AuthProvider owns null reconciliation: this hook sees null both while
+    // the profile is unresolved and after a confirmed sign-out.
+    if (!state.oneSignalInitialized || !currentExternalId) return
     const id = currentExternalId
-    if (id && lastLinkedExternalId !== id) {
-        if (disableExternalIdLogin) return
-        if (loginInFlight?.id === id) {
-            // join it rather than start a second login for the same id, then
-            // check the outcome: a joined caller that never retries would leave
-            // the device unlinked whenever the login it joined failed
-            await loginInFlight.promise
-            if (currentExternalId === id && lastLinkedExternalId !== id) return syncExternalIdLink()
-            return
-        }
-        const token = {}
-        const promise = (async () => {
+    if (disableExternalIdLogin) return
+    try {
+        await syncNotificationIdentityFromHook(id)
+    } catch (err) {
+        handleLoginError(err)
+        // One bounded retry also recovers callers that joined a failed login.
+        if (currentExternalId === id && !disableExternalIdLogin) {
             try {
-                const adapter = await getOneSignalAdapter()
-                await adapter.login(id)
-                // commit only on success so transient failures retry on the next
-                // sync, and only while this call still owns the tracker — an
-                // older login settling late must not name an account we left
-                if (loginInFlight?.token === token) lastLinkedExternalId = id
-            } catch (err: unknown) {
-                handleLoginError(err)
-            } finally {
-                // a switch to another external id may own the tracker by now —
-                // clearing it here would drop that newer login's guard
-                if (loginInFlight?.token === token) loginInFlight = null
+                await syncNotificationIdentityFromHook(id)
+            } catch (retryError) {
+                handleLoginError(retryError)
             }
-        })()
-        loginInFlight = { id, token, promise }
-        return promise
-    } else if (!id && lastLinkedExternalId !== null) {
-        lastLinkedExternalId = null
-        try {
-            const adapter = await getOneSignalAdapter()
-            await adapter.logout()
-        } catch (err) {
-            addBreadcrumb({ category: 'onesignal', message: 'logout failed', data: { error: String(err) } })
         }
     }
 }
 
-// determine if permission modal should be shown (once per user)
-async function evaluateVisibility() {
-    if (!state.sdkReady || !state.oneSignalInitialized) return
+interface PushStatus {
+    permission: NotificationPermissionState
+    optedIn: boolean
+}
 
-    let granted = false
-    let optedIn = false
+async function readPushStatus(): Promise<PushStatus | null> {
     try {
         const adapter = await getOneSignalAdapter()
-        granted = (await adapter.getPermission()) === 'granted'
-        optedIn = await adapter.isOptedIn()
+        return { permission: await adapter.getPermission(), optedIn: await adapter.isOptedIn() }
     } catch {
-        return
+        return null
     }
-    setState({ isPushOptedIn: optedIn })
+}
 
-    // if permission is granted, hide modal
-    if (granted) {
-        setState({ showPermissionModal: false })
-        return
+// The OS dialog is one-shot: once it has an answer, or OneSignal already holds
+// an opt-in, no pre-prompt may ask again. A denied user is left to the
+// carousel CTA, which opens the OS settings.
+function isPushUnanswered({ permission, optedIn }: PushStatus): boolean {
+    return permission === 'default' && !optedIn && state.permissionState !== 'denied'
+}
+
+// hide the pre-prompt once push is answered
+async function evaluateVisibility() {
+    if (!state.sdkReady || !state.oneSignalInitialized) return
+    const status = await readPushStatus()
+    if (!status) return
+    setState({ isPushOptedIn: status.optedIn })
+    if (!isPushUnanswered(status)) setState({ showPermissionModal: false })
+}
+
+const isWithinSnooze = (closedAt: string) => Date.now() - new Date(closedAt).getTime() < NOTIF_PROMPT_SNOOZE_MS
+
+function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
+    const userPreferences = getUserPreferences(userId)
+    if (trigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK) {
+        const closedAt = userPreferences?.notifPromptClosedAt?.[trigger]
+        return !!closedAt && isWithinSnooze(closedAt)
     }
-
-    const userPreferences = getUserPreferences(currentExternalId ?? undefined)
-    // migration window (TASK-20771): "Not now" snoozes instead of dismissing
-    // forever — the custom pre-prompt exists so we CAN re-ask later. Legacy
-    // `notifModalClosed: true` (no timestamp) converts to a snooze starting
-    // now, same trick as getDismissedCTAs. Flag off keeps the old
-    // closed-forever behavior.
+    if ((userPreferences?.sessionCount ?? 0) < HOME_FALLBACK_MIN_SESSION) return true
+    // The Home fallback snoozes on the last "Not now" of any pre-prompt.
+    // Migration window (TASK-20771): "Not now" snoozes instead of dismissing
+    // forever. Legacy `notifModalClosed: true` (no timestamp) converts to a
+    // snooze starting now, same trick as getDismissedCTAs. Flag off keeps the
+    // old closed-forever behavior.
     let closedAt = userPreferences?.notifModalClosedAt
     if (!closedAt && userPreferences?.notifModalClosed) {
         closedAt = new Date().toISOString()
-        updateUserPreferences(currentExternalId ?? undefined, { notifModalClosedAt: closedAt })
+        updateUserPreferences(userId, { notifModalClosedAt: closedAt })
     }
-    const snoozeExpired = !!closedAt && Date.now() - new Date(closedAt).getTime() >= NOTIF_PROMPT_SNOOZE_MS
-    const modalClosed = !!closedAt && !(isPwaSunsetOn() && snoozeExpired)
+    return !!closedAt && (!isPwaSunsetOn() || isWithinSnooze(closedAt))
+}
 
-    // don't show modal if permission is denied (carousel cta will handle it)
-    if (state.permissionState === 'denied') {
-        setState({ showPermissionModal: false })
+/**
+ * Ask for push at a money moment (TASK-23251). Shows the pre-prompt with the
+ * copy for `trigger`, unless push is already answered, this session already
+ * showed a pre-prompt, or "Not now" snoozed this moment. Safe to call every
+ * time the moment happens.
+ */
+export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void> {
+    const userId = currentExternalId
+    if (promptShownThisSession) return
+    if (!state.oneSignalInitialized || !userId) {
+        if (!pendingPromptTriggers.includes(trigger)) pendingPromptTriggers.push(trigger)
         return
     }
+    const status = await readPushStatus()
+    // re-checked after the await: two moments can land in the same tick
+    if (!status || promptShownThisSession || !isPushUnanswered(status)) return
+    if (isPromptSnoozed(trigger, userId)) return
+    promptShownThisSession = true
+    setState({ showPermissionModal: true, promptTrigger: trigger })
+    posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
+}
 
-    // if permission is default and user already opted in at onesignal level, hide modal
-    if (optedIn) {
-        setState({ showPermissionModal: false })
-        return
-    }
-
-    // show modal only if user hasn't closed it yet
-    if (!modalClosed) {
-        setState({ showPermissionModal: true })
-        if (!hasTrackedModalShown) {
-            hasTrackedModalShown = true
-            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS })
-        }
-    } else {
-        setState({ showPermissionModal: false })
+async function offerPendingPrompts() {
+    if (!state.oneSignalInitialized || !currentExternalId) return
+    const queued = pendingPromptTriggers
+    pendingPromptTriggers = []
+    for (const trigger of queued) {
+        if (promptShownThisSession) return
+        await offerPushPrompt(trigger)
     }
 }
 
+// the trigger of the pre-prompt on screen, null for the carousel and waitlist asks
+const activePromptTrigger = () => (state.showPermissionModal ? state.promptTrigger : null)
+
 // initialize onesignal (web or native) via the platform adapter, once per page
-async function ensureInitialized() {
-    if (initStarted || typeof window === 'undefined') return
+function ensureInitialized(): Promise<void> {
+    if (typeof window === 'undefined' || isDemoMode()) return Promise.resolve()
+    if (!initializationPromise) initializationPromise = initializeNotifications()
+    return initializationPromise
+}
+
+// The web SDK cannot be initialized twice in one document; there only its chunk load is retryable.
+function isRetryableInitFailure(error: unknown): boolean {
+    if (isChunkLoadError(error)) return true
+    return isCapacitor() && !isPermanentOneSignalInitError(error)
+}
+
+// Retried on the next online or foreground edge, never on a timer, so a device that stays offline costs nothing.
+function armInitRetry() {
+    if (initRetryArmed) return
+    initRetryArmed = true
+    const retry = () => {
+        if (document.visibilityState !== 'visible' || !navigator.onLine) return
+        initRetryArmed = false
+        window.removeEventListener('online', retry)
+        document.removeEventListener('visibilitychange', retry)
+        void ensureInitialized()
+    }
+    window.addEventListener('online', retry)
+    document.addEventListener('visibilitychange', retry)
+}
+
+async function initializeNotifications() {
     // demo sessions are synthetic: no push subscription, no external_id login
     if (isDemoMode()) return
-    initStarted = true
 
     if (typeof Notification !== 'undefined') {
         setState({ permissionState: Notification.permission as NotificationPermissionState })
     }
 
+    let initSucceeded = false
     try {
-        const adapter = await getOneSignalAdapter()
-        await adapter.init()
+        const adapter = await initializeNotificationIdentity()
+        initSucceeded = true
 
         // Web half of the foreground-push badge refresh (the Set dedupes the
         // shared reference with useForegroundPushRefresh's registration; on
@@ -237,10 +287,13 @@ async function ensureInitialized() {
             evaluateVisibility()
 
             // track the resulting permission state
+            const trigger = permissionRequestTrigger
             if (permissionState === 'granted') {
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_GRANTED)
+                permissionRequestTrigger = null
+                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_GRANTED, { trigger })
             } else if (permissionState === 'denied') {
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED)
+                permissionRequestTrigger = null
+                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED, { trigger })
             }
         })
 
@@ -289,20 +342,56 @@ async function ensureInitialized() {
         })
 
         setState({ oneSignalInitialized: true, sdkReady: true })
-        await syncExternalIdLink()
+        void syncExternalIdLink()
         await evaluateVisibility()
+        void offerPendingPrompts()
     } catch (e) {
+        initAttempts += 1
+        // Only a failed init is retried: past it, the listeners and login above have already run.
+        if (!initSucceeded && isRetryableInitFailure(e) && initAttempts < MAX_INIT_ATTEMPTS) {
+            initializationPromise = null
+            addBreadcrumb({
+                category: 'onesignal',
+                message: 'init failed, retry armed',
+                data: { attempt: initAttempts, error: String(e) },
+            })
+            armInitRetry()
+            return
+        }
+        // Settled for good, so remounts don't report the same failure again.
         // Surface Brave/Shields SDK-block failures; previously silent.
         console.warn('OneSignal init failed', e)
-        captureException(e, { level: 'warning', tags: { feature: 'onesignal', source: 'onesignal_init' } })
+        if (isOriginBoundRefusalOffProduction(e)) return
+        captureException(e, {
+            level: 'warning',
+            tags: { feature: 'onesignal', source: 'onesignal_init' },
+            extra: { attempts: initAttempts },
+        })
     }
+}
+
+// A OneSignal web app answers only on the origin it is registered for, so every
+// preview deploy and localhost is refused by design (PEANUT-UI-STG). On staging
+// or production the same refusal is a real misconfiguration and still reports.
+function isOriginBoundRefusalOffProduction(e: unknown): boolean {
+    if (!(e instanceof Error) || !e.message.startsWith('Can only be used on:')) return false
+    const environment = inferSentryEnvironment()
+    return environment === 'preview' || environment === 'development'
+}
+
+function countSession(userId: string) {
+    if (countedSessions.has(userId)) return
+    countedSessions.add(userId)
+    updateUserPreferences(userId, { sessionCount: (getUserPreferences(userId)?.sessionCount ?? 0) + 1 })
 }
 
 function setExternalId(externalId: string | null) {
     if (currentExternalId === externalId) return
     currentExternalId = externalId
+    if (externalId) countSession(externalId)
     syncExternalIdLink()
     evaluateVisibility()
+    void offerPendingPrompts()
 }
 
 // update permission state from the platform adapter
@@ -319,12 +408,35 @@ async function refreshPermissionState() {
 
 // request notification permission from user
 async function requestPermission(): Promise<NotificationPermissionState> {
-    if (typeof window === 'undefined' || !state.oneSignalInitialized) return 'default'
-
+    if (typeof window === 'undefined' || isDemoMode()) return 'default'
     setState({ isRequestingPermission: true })
-    posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED)
+    permissionRequestTrigger = activePromptTrigger()
+    posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED, { trigger: permissionRequestTrigger })
 
     try {
+        if (!isCapacitor() && typeof Notification !== 'undefined') {
+            // Start the browser prompt in the Continue/click gesture, before
+            // any SDK import, initialization or network await. Permission is
+            // independent of OneSignal availability and preview-domain setup.
+            const newPermission =
+                Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
+            setState({ permissionState: newPermission })
+            void evaluateVisibility()
+            if (newPermission === 'granted') {
+                // Register delivery separately; a slow/unavailable provider
+                // must not suppress the system prompt or hold signup here.
+                void ensureInitialized()
+                    .then(async () => {
+                        if (!state.oneSignalInitialized) return
+                        const adapter = await getOneSignalAdapter()
+                        await adapter.requestPermission()
+                    })
+                    .catch(() => {})
+            }
+            return newPermission
+        }
+        if (!state.oneSignalInitialized) await ensureInitialized()
+        if (!state.oneSignalInitialized) return 'default'
         const adapter = await getOneSignalAdapter()
         const newPermission = await adapter.requestPermission()
         setState({ permissionState: newPermission })
@@ -347,30 +459,47 @@ async function requestPermission(): Promise<NotificationPermissionState> {
     }
 }
 
+// Snoozes the moment that asked. The legacy fields snooze the Home fallback;
+// `notifModalClosed` is kept so bundles predating notifModalClosedAt stay closed.
+function recordPromptClosed(trigger: PushPromptTrigger | null) {
+    const userId = currentExternalId ?? undefined
+    const closedAt = new Date().toISOString()
+    updateUserPreferences(userId, {
+        notifModalClosed: true,
+        notifModalClosedAt: closedAt,
+        ...(trigger && {
+            notifPromptClosedAt: { ...getUserPreferences(userId)?.notifPromptClosedAt, [trigger]: closedAt },
+        }),
+    })
+}
+
 // close modal when user dismisses it
 function closePermissionModal() {
+    const trigger = activePromptTrigger()
     setState({ showPermissionModal: false })
-    // legacy boolean kept so bundles predating notifModalClosedAt stay closed
-    updateUserPreferences(currentExternalId ?? undefined, {
-        notifModalClosed: true,
-        notifModalClosedAt: new Date().toISOString(),
-    })
-    posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS })
+    recordPromptClosed(trigger)
+    posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
 }
 
 // update permission state after user interacts with permission prompt
 async function afterPermissionAttempt() {
-    // mark modal as closed (permanent flag-off; 14-day snooze while the
-    // native-migration flag is on — see evaluateVisibility)
-    updateUserPreferences(currentExternalId ?? undefined, {
-        notifModalClosed: true,
-        notifModalClosedAt: new Date().toISOString(),
-    })
+    // an OS dialog the user closed without answering snoozes like "Not now"
+    const trigger = activePromptTrigger()
+    setState({ showPermissionModal: false })
+    recordPromptClosed(trigger)
     await refreshPermissionState()
 }
 
+export function resetPushPromptForTests() {
+    promptShownThisSession = false
+    pendingPromptTriggers = []
+    permissionRequestTrigger = null
+    setState({ showPermissionModal: false, promptTrigger: null })
+}
+
 export function useNotifications() {
-    const { user } = useAuth()
+    const { user, isFetchingUser, userFetchError, isLoggingOut } = useAuth()
+    const appLocked = useAppLocked()
     const externalId = user?.user.userId
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
@@ -379,11 +508,13 @@ export function useNotifications() {
     }, [])
 
     useEffect(() => {
+        if (appLocked || isFetchingUser || userFetchError || isLoggingOut) return
         setExternalId(externalId ?? null)
-    }, [externalId])
+    }, [externalId, appLocked, isFetchingUser, userFetchError, isLoggingOut])
 
     return {
         showPermissionModal: snapshot.showPermissionModal,
+        promptTrigger: snapshot.promptTrigger,
         requestPermission,
         closePermissionModal,
         afterPermissionAttempt,

@@ -31,7 +31,7 @@ jobs:
                   token: ${{ secrets.SUBMODULE_TOKEN }}
             - uses: pnpm/action-setup@v4
             - name: Install Vercel CLI
-              run: pnpm add --global vercel@latest
+              run: pnpm add --global vercel@62.2.0
             - name: Link to Project
               run: vercel link --yes --project=peanut-wallet --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
             - name: Pull Vercel Environment Information

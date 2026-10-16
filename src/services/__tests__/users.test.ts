@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { AccountHasBalanceError, usersApi } from '@/services/users'
-import { serverFetch } from '@/utils/api-fetch'
+import { apiFetch, serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({
     serverFetch: jest.fn(),
@@ -8,6 +8,7 @@ jest.mock('@/utils/api-fetch', () => ({
 }))
 
 const mockServerFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
+const mockApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>
 
 const response = (init: { ok: boolean; status?: number; body?: unknown; headers?: Record<string, string> }) =>
     ({
@@ -100,4 +101,27 @@ it.each([
 ])('preserves deletion refusal $code for localized UI copy', async ({ status, body, code }) => {
     mockServerFetch.mockResolvedValue(response({ ok: false, status, body }))
     await expect(usersApi.requestDeletion()).rejects.toMatchObject({ name: 'ApiError', status, code })
+})
+
+describe('usersApi.requestByUsername', () => {
+    beforeEach(() => mockApiFetch.mockReset())
+
+    const sentCharge = () => JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
+
+    it('asks for the typed amount', async () => {
+        mockApiFetch.mockResolvedValue(response({ ok: true, body: { data: { id: 'c1' } } }))
+        await usersApi.requestByUsername({ username: 'alice', amount: '5', toAddress: '0xabc' })
+        expect(sentCharge()).toMatchObject({
+            pricing_type: 'fixed_price',
+            local_price: { amount: '5', currency: 'USD' },
+            requestProps: { requesteeUsername: 'alice', recipientAddress: '0xabc' },
+        })
+    })
+
+    it('leaves a blank amount to the requestee', async () => {
+        mockApiFetch.mockResolvedValue(response({ ok: true, body: { data: { id: 'c1' } } }))
+        await usersApi.requestByUsername({ username: 'alice', amount: '', toAddress: '0xabc' })
+        expect(sentCharge()).toMatchObject({ pricing_type: 'no_price', requestProps: { requesteeUsername: 'alice' } })
+        expect(sentCharge()).not.toHaveProperty('local_price')
+    })
 })

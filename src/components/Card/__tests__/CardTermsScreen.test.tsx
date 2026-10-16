@@ -13,6 +13,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import type { AppLocale } from '@/i18n/app/config'
 import { deepMerge } from '@/i18n/app/messages'
 import en from '@/i18n/app/messages/en.json'
+import { PROVIDERS } from '@/constants/providers.consts'
 import es419 from '@/i18n/app/messages/es-419.json'
 import ptBR from '@/i18n/app/messages/pt-BR.json'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
@@ -77,7 +78,42 @@ describe('CardTermsScreen legal links', () => {
 
     it('leaves the issuer policy on the issuer domain', () => {
         renderAt('pt-BR')
-        expect(hrefs()).toContain('https://www.third-national.com/privacypolicy')
+        expect(hrefs()).toContain(PROVIDERS['third-national'].privacyUrl)
+    })
+})
+
+describe('CardTermsScreen card provider', () => {
+    it('titles the screen Accept terms and names Rain as the card provider above the terms', () => {
+        renderAt('en')
+        expect(screen.getByRole('heading', { name: 'Accept terms' })).toBeInTheDocument()
+        expect(screen.getByText('Card provider')).toBeInTheDocument()
+        const brand = screen.getByText('Rain')
+        expect(screen.queryByText('Third National')).not.toBeInTheDocument()
+        const firstTerm = screen.getAllByRole('checkbox')[0]
+        expect(brand.compareDocumentPosition(firstTerm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('speaks of the issuer relationship as ahead, since the terms are not accepted yet', () => {
+        window.matchMedia ??= (query: string) =>
+            ({
+                matches: false,
+                media: query,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+                onchange: null,
+            }) as MediaQueryList
+        renderAt('en')
+        fireEvent.click(screen.getByRole('button', { name: 'About Rain' }))
+        const sheet = screen.getByRole('dialog')
+        expect(
+            within(sheet).getByText(
+                'When you accept the card terms, your relationship is directly with Third National.'
+            )
+        ).toBeInTheDocument()
+        expect(within(sheet).queryByText(/You have a direct relationship/)).not.toBeInTheDocument()
     })
 })
 
@@ -126,7 +162,8 @@ describe('CardTermsScreen managed funding consent', () => {
         const statement = screen.getByTestId('funding-authorization-statement')
         expect(statement).toHaveTextContent(AUTHORIZATION)
         expect(within(statement).getByRole('link', { name: 'Real-Time Funding Terms' })).toBeInTheDocument()
-        expect(document.body.textContent).not.toMatch(/\bRain\b/)
+        // the card provider row above the terms names Rain; the consent itself does not
+        expect(screen.getByTestId('card-funding-consent').textContent).not.toMatch(/\bRain\b/)
         expect(document.body.textContent).not.toMatch(/existing/i)
     })
 

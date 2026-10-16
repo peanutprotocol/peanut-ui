@@ -18,6 +18,8 @@ import { useBridgeOfframpFlow } from '@/features/withdraw/useBridgeOfframpFlow'
 import { WithdrawBankReviewView } from '@/features/withdraw/views/WithdrawBankReviewView'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 import { payoutAmounts } from '@/features/withdraw/bank-amount'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { providerForRegionIntent } from '@/utils/regions.utils'
 
 /**
  * Bridge bank-withdraw review page. Steps live in the URL
@@ -36,6 +38,7 @@ export default function WithdrawBankPage() {
     const flow = useBridgeOfframpFlow()
     const bankRegionIntent = useBankRegionIntent()
     const { setIsSupportModalOpen } = useModalsContext()
+    const providerId = useBridgeProviderId()
 
     const {
         step,
@@ -113,6 +116,7 @@ export default function WithdrawBankPage() {
                     onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
                     onAddBankAccountAgain={flow.onAddBankAccountAgain}
                     usdSpeed={flow.usdSpeed}
+                    providerId={providerId}
                 />
             )}
 
@@ -124,6 +128,7 @@ export default function WithdrawBankPage() {
                     secondaryAmount={successAmounts.secondary}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={flow.pointsData?.estimatedPoints}
+                    providerId={providerId}
                 />
             )}
 
@@ -134,10 +139,12 @@ export default function WithdrawBankPage() {
                     flow.handleCreateAndInitiateOfframp()
                 }}
                 onSkip={flow.hideTos}
-                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
 
             <InitiateKycModal
+                providerId={
+                    providerForRegionIntent(bankRegionIntent(countryFromPath)) === 'bridge' ? providerId : undefined
+                }
                 cooldownActive={!!flow.sumsubFlow.errorCooldown}
                 visible={flow.showKycModal}
                 onClose={() => {

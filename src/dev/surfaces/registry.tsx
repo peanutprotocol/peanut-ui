@@ -1,5 +1,7 @@
 'use client'
 
+import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
  * each mounted open so the visual-shot harness can photograph it.
@@ -12,12 +14,12 @@
  */
 
 import React from 'react'
-import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
-import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
+import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
-import { useTranslations } from 'next-intl'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
+import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
@@ -49,7 +51,6 @@ import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import OtaUpdateModal from '@/components/Profile/components/OtaUpdateModal'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import BalanceWarningDrawer from '@/components/Global/BalanceWarningDrawer'
-import TokenAndNetworkConfirmationDrawer from '@/components/Global/TokenAndNetworkConfirmationDrawer'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import CameraPermissionDrawer from '@/components/Global/QRScanner/CameraPermissionDrawer'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
@@ -69,7 +70,7 @@ import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
-import ResidenceStep from '@/components/Setup/Views/Residence'
+import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
@@ -83,30 +84,64 @@ import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-
  * are the app's, not the harness's. Mounting the view bare (which this harness
  * did first) drops all of that and photographs a naked form.
  */
-function SetupScreen({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
+function SetupScreen({
+    screenId,
+    children,
+    showProgress = true,
+    forceFullScreen = false,
+    residenceCountry,
+}: {
+    screenId: ScreenId
+    children?: React.ReactNode
+    showProgress?: boolean
+    forceFullScreen?: boolean
+    residenceCountry?: string
+}) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
-            <SetupScreenBody screenId={screenId}>{children}</SetupScreenBody>
+            <SetupScreenBody
+                screenId={screenId}
+                showProgress={showProgress}
+                forceFullScreen={forceFullScreen}
+                residenceCountry={residenceCountry}
+            >
+                {children}
+            </SetupScreenBody>
         </SetupFlowProvider>
     )
 }
-function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
-    const t = useTranslations('setup')
+function SetupScreenBody({
+    screenId,
+    children,
+    showProgress = true,
+    forceFullScreen = false,
+    residenceCountry,
+}: {
+    screenId: ScreenId
+    children?: React.ReactNode
+    showProgress?: boolean
+    forceFullScreen?: boolean
+    residenceCountry?: string
+}) {
+    const { setSteps, setResidenceCountry } = useSetupFlowContext()
+    React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
+    React.useLayoutEffect(() => {
+        if (residenceCountry) setResidenceCountry(residenceCountry)
+    }, [residenceCountry, setResidenceCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
+    const stepCopy = useSetupStepCopy(step)
     if (!step) return null
     const View = step.component
-    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
-    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
     return (
         <SetupWrapper
+            fullScreen={forceFullScreen || step.fullScreen}
+            showProgress={showProgress}
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={!step.titleInView ? t(titleKey) : undefined}
-            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
+            {...stepCopy}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
-            showLogoutButton={step.screenId === 'sign-test-transaction'}
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}
@@ -143,6 +178,41 @@ function AppPageSurface({ children }: { children: React.ReactNode }) {
     )
 }
 
+function WithdrawReviewSurface({
+    isProcessing = false,
+    alreadySpent = false,
+}: {
+    isProcessing?: boolean
+    alreadySpent?: boolean
+}) {
+    return (
+        <AppPageSurface>
+            <ConfirmWithdrawView
+                amount="50"
+                token={
+                    {
+                        address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+                        symbol: 'USDC',
+                        decimals: 6,
+                        price: 1,
+                    } as React.ComponentProps<typeof ConfirmWithdrawView>['token']
+                }
+                chain={
+                    { chainId: 'solana', networkName: 'Solana' } as React.ComponentProps<
+                        typeof ConfirmWithdrawView
+                    >['chain']
+                }
+                toAddress="11111111111111111111111111111111"
+                onConfirm={noop}
+                onBack={noop}
+                insufficientBalance
+                isProcessing={isProcessing}
+                alreadySpent={alreadySpent}
+            />
+        </AppPageSurface>
+    )
+}
+
 import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -169,26 +239,69 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
     },
-    '02-a-joinwaitlist': {
-        ...SURFACE_META['02-a-joinwaitlist'],
-        render: () => <SetupScreen screenId="welcome" />,
+
+    '03-c-residence-congrats': {
+        ...SURFACE_META['03-c-residence-congrats'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="PT" />,
+    },
+    '03-h-funding-methods': {
+        ...SURFACE_META['03-h-funding-methods'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" />,
+    },
+    '03-i-payment-methods': {
+        ...SURFACE_META['03-i-payment-methods'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" />,
     },
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
     },
+
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
         render: () => (
-            <SetupScreen screenId="sign-test-transaction">
-                <AccountReadyView onContinue={noop} />
+            <SetupScreen screenId="advantage-control">
+                <SetupConfirmationView merged onConfirm={noop} />
             </SetupScreen>
         ),
     },
+    '06-b-invite': {
+        ...SURFACE_META['06-b-invite'],
+        render: () => <SetupScreen screenId="invite" />,
+    },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
-    '07-a-setuppasskey': {
-        ...SURFACE_META['07-a-setuppasskey'],
-        render: () => <SetupScreen screenId="passkey-permission" />,
+    '02-b-advantage-card': {
+        ...SURFACE_META['02-b-advantage-card'],
+        render: () => <SetupScreen screenId="advantage-card" />,
+    },
+
+    '04-b-advantage-fees': {
+        ...SURFACE_META['04-b-advantage-fees'],
+        render: () => <SetupScreen screenId="advantage-fees" />,
+    },
+    '07-c-notification-email': {
+        ...SURFACE_META['07-c-notification-email'],
+        render: () => <SetupScreen screenId="notification-email" />,
+    },
+    '07-d-notification-settings': {
+        ...SURFACE_META['07-d-notification-settings'],
+        render: () => <SetupScreen screenId="notification-permission" />,
+    },
+    '07-e-setup-celebration': {
+        ...SURFACE_META['07-e-setup-celebration'],
+        render: () => (
+            <SetupScreen screenId="advantage-control" showProgress={false} forceFullScreen>
+                <SetupCelebrationView />
+            </SetupScreen>
+        ),
+    },
+    '07-b-advantage-control': {
+        ...SURFACE_META['07-b-advantage-control'],
+        render: () => (
+            <SetupScreen screenId="advantage-control">
+                <SetupConfirmationView merged onConfirm={noop} />
+            </SetupScreen>
+        ),
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],
@@ -378,9 +491,9 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <SupportedNetworksDrawer visible onClose={noop} />,
     },
     '41-c-migrationdownloadmodal': {
-        name: 'MigrationDownloadModal (early)',
+        name: 'MigrationDownloadModal',
         path: 'Migration/MigrationDownloadModal.tsx',
-        render: () => <MigrationDownloadModal forceVariant="early" />,
+        render: () => <MigrationDownloadModal forceVisible />,
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],
@@ -408,11 +521,6 @@ export const SURFACES: Record<string, Surface> = {
         name: 'BalanceWarningDrawer',
         path: 'Global/BalanceWarningDrawer/index.tsx',
         render: () => <BalanceWarningDrawer visible onCloseAction={noop} />,
-    },
-    '49-c-tokenandnetworkconfirmationmodal': {
-        name: 'TokenAndNetworkConfirmationDrawer',
-        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
-        render: () => <TokenAndNetworkConfirmationDrawer isVisible onClose={noop} onAccept={noop} />,
     },
     '50-d-transactiondetailsdrawer': {
         ...SURFACE_META['50-d-transactiondetailsdrawer'],
@@ -527,7 +635,7 @@ export const SURFACES: Record<string, Surface> = {
                     heading="Frequently asked questions"
                     questions={[
                         { id: 'q1', question: 'How long does a transfer take?', answer: 'Usually a few minutes.' },
-                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut-to-Peanut payments.' },
+                        { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut to Peanut.' },
                     ]}
                 />
             </div>
@@ -717,13 +825,23 @@ export const SURFACES: Record<string, Surface> = {
             </AppPageSurface>
         ),
     },
+    '82-f-choice-card-needs-review': {
+        ...SURFACE_META['82-f-choice-card-needs-review'],
+        render: () => (
+            <AppPageSurface>
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonCode="card_needs_review"
+                    onUploadProofOfAddress={noop}
+                    onUploadIdentity={noop}
+                    onContactSupport={noop}
+                />
+            </AppPageSurface>
+        ),
+    },
     '83-f-choice-residence-restricted': {
         ...SURFACE_META['83-f-choice-residence-restricted'],
-        render: () => (
-            <SetupScreen screenId="residence">
-                <ResidenceStep initialView="restricted" />
-            </SetupScreen>
-        ),
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="RU" />,
     },
     '84-f-choice-public-profile-guest': {
         ...SURFACE_META['84-f-choice-public-profile-guest'],
@@ -794,6 +912,18 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '89-f-withdraw-review-insufficient': {
+        ...SURFACE_META['89-f-withdraw-review-insufficient'],
+        render: () => <WithdrawReviewSurface />,
+    },
+    '90-f-withdraw-review-processing': {
+        ...SURFACE_META['90-f-withdraw-review-processing'],
+        render: () => <WithdrawReviewSurface isProcessing />,
+    },
+    '91-f-withdraw-review-spent': {
+        ...SURFACE_META['91-f-withdraw-review-spent'],
+        render: () => <WithdrawReviewSurface alreadySpent />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

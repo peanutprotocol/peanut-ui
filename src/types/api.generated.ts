@@ -63,6 +63,10 @@ export interface paths {
                         accountType: "iban" | "us" | "evm-address" | "peanut-wallet" | "bridgeBankAccount" | "manteca" | "clabe" | "cbu" | "cvu" | "pix";
                         bridgeAccountIdentifier?: string;
                         chainId?: string;
+                        signupPreferences?: {
+                            fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                        };
                         telegramHandle?: string;
                         userId: string;
                     };
@@ -1264,6 +1268,7 @@ export interface paths {
                     "application/json": {
                         amount: string;
                         chargeId?: string;
+                        idempotencyKey?: string;
                         recipientAddress?: string;
                         source: {
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
@@ -1321,6 +1326,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -1699,7 +1716,7 @@ export interface paths {
                         attachment?: unknown;
                         baseUrl?: string;
                         filename?: string;
-                        local_price: {
+                        local_price?: {
                             amount: string;
                             currency?: string;
                         };
@@ -1725,7 +1742,7 @@ export interface paths {
                         attachment?: unknown;
                         baseUrl?: string;
                         filename?: string;
-                        local_price: {
+                        local_price?: {
                             amount: string;
                             currency?: string;
                         };
@@ -1751,7 +1768,7 @@ export interface paths {
                         attachment?: unknown;
                         baseUrl?: string;
                         filename?: string;
-                        local_price: {
+                        local_price?: {
                             amount: string;
                             currency?: string;
                         };
@@ -1844,6 +1861,47 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/charges/{chargeId}/amount": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chargeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amount: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         trace?: never;
     };
     "/charges/{uuid}/payments": {
@@ -5160,6 +5218,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/healthz/mobula": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz/rain": {
         parameters: {
             query?: never;
@@ -6514,6 +6605,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        email: boolean;
+                        push: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            push: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notifications/unread-count": {
         parameters: {
             query?: never;
@@ -6686,6 +6866,7 @@ export interface paths {
                 query?: never;
                 header?: {
                     "api-key"?: string;
+                    "x-signup-analytics-state"?: "enabled" | "disabled" | "unknown";
                 };
                 path?: never;
                 cookie?: never;
@@ -10009,6 +10190,7 @@ export interface paths {
                     "application/json": {
                         bankInstructionsShared?: boolean;
                         chainId?: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -10024,6 +10206,7 @@ export interface paths {
                     } | {
                         bankInstructionsShared?: boolean;
                         chainId: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -10059,6 +10242,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -12499,6 +12694,50 @@ export interface paths {
                     cursor?: string;
                     limit?: number;
                     targetUsername?: string;
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/history/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One file in the requested format. A period with more records than one file holds returns application/zip: one file per calendar year of the time zone, in the requested format. */
+        get: {
+            parameters: {
+                query: {
+                    format: "csv" | "pdf" | "xlsx";
+                    from?: string;
+                    /** @description Exclusive upper date-time bound */
+                    to?: string;
+                    timeZone?: string;
+                    /** @description Language of the PDF and XLSX labels, dates and amounts. CSV is always English. */
+                    locale?: "en" | "es-419" | "es-AR" | "pt-BR";
                 };
                 header?: never;
                 path?: never;
@@ -13166,6 +13405,10 @@ export interface paths {
                                 banking: boolean;
                                 card: boolean;
                             };
+                            signupPreferences: {
+                                fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                                paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                            } | null;
                         } & {
                             [key: string]: unknown;
                         };
@@ -13175,6 +13418,62 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/arrival": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        country: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            prompt: "qr_ar" | "pix_br" | "card" | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -13207,6 +13506,64 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/signup-attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        attribution: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            accepted: boolean;
+                            /** @enum {string} */
+                            reason: "attached" | "already_attached" | "expired" | "not_collecting" | "not_found" | "post_signup_touch";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };

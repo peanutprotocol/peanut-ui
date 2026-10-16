@@ -7,8 +7,10 @@ import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNot
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { DataRowGroup } from '@/components/0_Bruddle/DataRowGroup'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import type { ProviderId } from '@/types/provider.types'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { type ReviewPayout } from '@/features/withdraw/types'
@@ -70,6 +72,8 @@ interface WithdrawBankReviewViewProps {
     onRetryQuote?: () => void
     /** Set when the provider refused the saved account for good: add it again replaces Retry. */
     onAddBankAccountAgain?: () => void
+    /** The Bridge entity that makes the payout; the Provider row names it. */
+    providerId: ProviderId
     /** USD only: same-day ACH or wire, the fee and what the bank receives. */
     usdSpeed?: {
         options: UsdPayoutSpeedOption[]
@@ -105,6 +109,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     onRetryQuote,
     onAddBankAccountAgain,
     usdSpeed,
+    providerId,
 }) => {
     // a half-typed reference is not an error yet — name the problem on blur
     const [referenceTouched, setReferenceTouched] = useState(false)
@@ -176,42 +181,20 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 />
             )}
 
-            {usdSpeed ? (
-                // A USD payout uses DataRow (design.md "receipt / detail card"). The
-                // fee is the chosen speed's, from the backend's fee table, and the
-                // bank receives the amount less it. Other currencies keep their
-                // PaymentInfoRow card until they are moved as a whole.
-                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
-                    {bankAccount?.details?.accountOwnerName && (
-                        <DataRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
-                    )}
-                    <DataRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                    <DataRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
-                    <DataRow label={t('bank.arrives')} value={t(`bank.${USD_ARRIVAL_KEY[usdSpeed.selected]}`)} />
-                    <DataRow
-                        label={t('bank.fee')}
-                        value={
-                            Number(usdSpeed.feeUsd) > 0
-                                ? formatBankAmount(Number(usdSpeed.feeUsd), 'USD')
-                                : t('bank.speedFree')
-                        }
-                    />
-                    <DataRow
-                        label={t('bank.bankReceives')}
-                        value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
-                    />
-                </Card>
-            ) : (
-                <Card className="rounded-sm">
+            {/* Who, then what moves (receipt-rows ruling): the destination account
+                in one group, the amounts and the provider in another. USD adds
+                an Arrives group between them, and its fee is the chosen speed's. */}
+            <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <DataRowGroup>
                     {/* The holder is whoever the account was saved under — often not
                         the user (a parent, a partner). When no name was stored, leave
                         the row out: the user's own name here would be a wrong claim. */}
                     {bankAccount?.details?.accountOwnerName && (
-                        <PaymentInfoRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
+                        <DataRow label={t('bank.accountOwner')} value={bankAccount.details.accountOwnerName} />
                     )}
                     {bankAccount?.type === AccountType.IBAN ? (
                         <>
-                            <PaymentInfoRow
+                            <DataRow
                                 label={t('bank.iban')}
                                 value={
                                     bankAccount?.identifier
@@ -223,29 +206,34 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                                 account has none. Show the row only for the saved
                                 accounts that still carry one — an empty "N/A" row
                                 tells the user nothing. */}
-                            {bankAccount.bic && (
-                                <PaymentInfoRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />
-                            )}
+                            {bankAccount.bic && <DataRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />}
                         </>
                     ) : bankAccount?.type === AccountType.CLABE ? (
-                        <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
+                        <DataRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
                     ) : bankAccount?.type === AccountType.CO_BANK_TRANSFER ? (
                         // A Colombian account is named by its number alone; the bank
                         // code is not shown back to the user.
-                        <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                        <DataRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
                     ) : bankAccount?.type === AccountType.GB ? (
                         <>
-                            <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                            <PaymentInfoRow label={t('bank.sortCode')} value={getBicAndRoutingNumber()} />
+                            <DataRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                            <DataRow label={t('bank.sortCode')} value={getBicAndRoutingNumber()} />
                         </>
                     ) : (
                         <>
-                            <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
-                            <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
+                            <DataRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                            <DataRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
                         </>
                     )}
+                </DataRowGroup>
+                {usdSpeed && (
+                    <DataRowGroup>
+                        <DataRow label={t('bank.arrives')} value={t(`bank.${USD_ARRIVAL_KEY[usdSpeed.selected]}`)} />
+                    </DataRowGroup>
+                )}
+                <DataRowGroup>
                     {convertsCurrency && (
-                        <PaymentInfoRow
+                        <DataRow
                             loading={isRateLoading}
                             label={tCommon('exchangeRate')}
                             value={
@@ -256,9 +244,27 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             moreInfoText={tRate('approximate')}
                         />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value="$0" />
-                </Card>
-            )}
+                    {usdSpeed ? (
+                        <>
+                            <DataRow
+                                label={t('bank.fee')}
+                                value={
+                                    Number(usdSpeed.feeUsd) > 0
+                                        ? formatBankAmount(Number(usdSpeed.feeUsd), 'USD')
+                                        : t('bank.speedFree')
+                                }
+                            />
+                            <DataRow
+                                label={t('bank.bankReceives')}
+                                value={formatBankAmount(Number(usdSpeed.receivedUsd), 'USD')}
+                            />
+                        </>
+                    ) : (
+                        <DataRow label={t('bank.fee')} value="$0" />
+                    )}
+                    <ProviderRow providerId={providerId} />
+                </DataRowGroup>
+            </Card>
 
             {payoutNoteKey && (
                 <p className="text-body-xs text-foreground-secondary">

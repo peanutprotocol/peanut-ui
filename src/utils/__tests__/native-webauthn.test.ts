@@ -11,6 +11,13 @@ import { webcrypto } from 'node:crypto'
 
 import { base64URLToBytes, createNativeSignMessageCallback, parsePublicKeyToWebAuthnKey } from '../native-webauthn'
 
+const mockCaptureException = jest.fn()
+jest.mock('@/utils/sentry-lazy', () => ({
+    captureException: (...args: unknown[]) => mockCaptureException(...args),
+    addBreadcrumb: jest.fn(),
+}))
+jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({ openCredentialCall: () => undefined }))
+
 // jsdom has no WebCrypto; parsePublicKeyToWebAuthnKey needs crypto.subtle
 if (!globalThis.crypto?.subtle) {
     Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true })
@@ -183,6 +190,30 @@ describe('createNativeSignMessageCallback', () => {
         installCredentialsMock(null)
         const sign = createNativeSignMessageCallback(RP_ID)
         await expect(sign(MESSAGE, RP_ID, 8453)).rejects.toThrow('native signing failed')
+    })
+
+    it('tags a signing ceremony that never settles as a sign timeout, and still rejects', async () => {
+        jest.useFakeTimers()
+        try {
+            mockCaptureException.mockClear()
+            credentialsGet = jest.fn(() => new Promise(() => {}))
+            Object.defineProperty(global.navigator, 'credentials', {
+                value: { get: credentialsGet },
+                configurable: true,
+            })
+            const sign = createNativeSignMessageCallback(RP_ID)
+            const assertion = expect(sign(MESSAGE, RP_ID, 8453)).rejects.toMatchObject({
+                name: 'CeremonyTimeoutError',
+            })
+            await jest.advanceTimersByTimeAsync(60_000)
+            await assertion
+            expect(mockCaptureException).toHaveBeenCalledWith(
+                expect.objectContaining({ name: 'CeremonyTimeoutError' }),
+                expect.objectContaining({ tags: { error_type: 'sign_ceremony_timeout' } })
+            )
+        } finally {
+            jest.useRealTimers()
+        }
     })
 
     describe('credential pinning (multi-account fix)', () => {

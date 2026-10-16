@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -8,6 +9,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useForegroundPushRefresh } from '@/hooks/useForegroundPushRefresh'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
+import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -80,12 +82,16 @@ type TabBox = { left: number; width: number }
 const restingX = (box: TabBox) => box.left - 1
 
 export const BottomNav = () => {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('navigation')
     const pathname = usePathname()
     const router = useRouter()
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
+    const isWebSupportOpen = isSupportModalOpen && !nativePlatform.isCapacitor
     const { triggerHaptic } = useAppHaptic()
-    const hasUnreadSupport = useSupportUnread()
+    const { user } = useAuth()
+    const hasUnreadSupport = useSupportUnread(!!user?.user.userId, user?.user.userId)
     // the badge above is event-driven; this makes sure a web session that
     // never mounts useNotifications (direct /card or /history load) still
     // gets the foreground-push event the badge listens for
@@ -168,7 +174,7 @@ export const BottomNav = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeTab])
 
-    const selectedTab = isSupportModalOpen ? 'support' : activeTab
+    const selectedTab = isWebSupportOpen ? 'support' : activeTab
     const activeBox = selectedTab ? boxes[selectedTab] : undefined
 
     const clampX = (x: number) => {
@@ -287,7 +293,7 @@ export const BottomNav = () => {
                 <button
                     type="button"
                     aria-label={t('support')}
-                    aria-expanded={isSupportModalOpen}
+                    aria-expanded={isWebSupportOpen}
                     {...tabPressHandlers('support')}
                     onClick={() => setIsSupportModalOpen(true)}
                     className={tabClass}

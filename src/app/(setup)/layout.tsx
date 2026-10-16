@@ -10,33 +10,30 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
-import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import SunsetScreen from '@/components/Migration/SunsetScreen'
-import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { filterSetupStepsForResidence } from '@/features/setup/filterSetupSteps'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
-    const { setSteps } = useSetupFlowContext()
+    const { setSteps, residenceCountry } = useSetupFlowContext()
+    const residenceRestrictions = useResidenceRestrictionSets()
     const { deviceType } = useDeviceType()
-    const migrationOn = useMigrationFlag()
-    const hasKeepWebBypass = useKeepWebBypass()
 
     /*
      * Bottom-inset fill color. The content directly above the bottom inset (iOS
      * home indicator / Android 15 edge-to-edge nav bar) is the setup flow's white
-     * panel, so a periwinkle fill reads as a stray strip — fill with white on
+     * panel, so a hero-colored fill reads as a stray strip — fill with white on
      * every native build (both platforms) and on iOS browsers. State + effect
      * (not a render-time platform check) so the static
      * export's prerendered HTML hydrates cleanly.
      */
-    const [bottomInsetFill, setBottomInsetFill] = useState('bg-background-setup-hero')
+    const [bottomInsetFill, setBottomInsetFill] = useState('setup-hero-background')
     useEffect(() => {
         if (isCapacitor() || deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
     }, [deviceType])
 
-    // configure status bar for native. the setup/onboarding flow has a periwinkle
-    // top (illustration + feedback ribbon), so tint the status bar to match — on
+    // configure status bar for native. Start at the setup blue; SetupWrapper
+    // updates it to each step's tint after the color transition. On
     // pre-edge-to-edge Android the OS paints this color; on Android 15+ it's a
     // no-op (edge-to-edge forced) and the CSS safe zone below handles it.
     useEffect(() => {
@@ -48,23 +45,16 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 // below instead of surfacing as unhandled rejections in Sentry
                 await StatusBar.setOverlaysWebView({ overlay: false })
                 await StatusBar.setStyle({ style: Style.Light })
-                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // --color-background-setup-hero; capacitor takes a literal
+                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // --color-background-setup-hero (blue-300); capacitor takes a literal
             })
             .catch(() => {})
     }, [])
 
     useEffect(() => {
-        setSteps(setupSteps)
-    }, [setSteps])
+        setSteps(filterSetupStepsForResidence(setupSteps, residenceRestrictions, residenceCountry))
+    }, [setSteps, residenceRestrictions, residenceCountry])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
-
-    // Past the cutover, web signup is switched off too. Use the same
-    // block as the mobile-ui layout (this route group has its own layout, so
-    // it needs its own gate). keep-web cookie/param bypasses.
-    if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass })) {
-        return <SunsetScreen />
-    }
 
     return (
         <AppShell

@@ -33,6 +33,19 @@ const base: CreateRequestRequest = {
 beforeEach(() => jest.clearAllMocks())
 
 describe('requestsApi.create', () => {
+    it('sends the idempotency key and allows the one resend only with a key', async () => {
+        mockFetch.mockResolvedValue(response(200, { uuid: 'req-1' }))
+
+        await requestsApi.create({ ...base, idempotencyKey: 'key-1' })
+        await requestsApi.create(base)
+
+        const [, withKey] = mockFetch.mock.calls[0]
+        expect(JSON.parse(withKey!.body as string).idempotencyKey).toBe('key-1')
+        expect(withKey).toEqual(expect.objectContaining({ idempotent: true }))
+        const [, withoutKey] = mockFetch.mock.calls[1]
+        expect(withoutKey).toEqual(expect.objectContaining({ idempotent: false }))
+    })
+
     it('sends the asked amount and currency beside the dollar tokenAmount', async () => {
         mockFetch.mockResolvedValue(response(200, { uuid: 'req-1' }))
 

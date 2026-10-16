@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
+import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
@@ -18,6 +19,12 @@ export function proxy(request: NextRequest) {
     // `src/app/dev/*`, which have no layout gate at all.
     if (shouldBlockDevRoute(pathname)) {
         return new NextResponse(null, { status: 404 })
+    }
+
+    // Retired marketing pages answer 410 before the page route runs, so the
+    // status holds even while the content mirror still has their files.
+    if (isGoneMarketingPath(pathname)) {
+        return new NextResponse(null, { status: 410, headers: { 'X-Robots-Tag': 'noindex' } })
     }
 
     // check if full maintenance mode is enabled
@@ -201,5 +208,8 @@ export const config = {
         '/link/:path*',
         '/dev/:path*',
         '/qr/:path*',
+        // Retired marketing pages (GONE_MARKETING_PATHS in gone-routes.consts.ts).
+        '/:locale/united-kingdom',
+        '/:locale/send-money-from/united-kingdom/to/:to',
     ],
 }

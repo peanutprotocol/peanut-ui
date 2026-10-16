@@ -44,6 +44,7 @@ export const ORPHANED_SDK_GRACE_MS = 2000
 export const SumsubNativeSdk = ({
     visible,
     accessToken,
+    email,
     onClose,
     onComplete,
     onError,
@@ -60,6 +61,9 @@ export const SumsubNativeSdk = ({
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
+    // A profile refresh must not relaunch the SDK over the user's KYC edits.
+    const emailRef = useRef(email)
+    emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
     const onSubmittedRef = useRef(onSubmitted)
     const sumsubLocaleRef = useRef(toSumsubLocale(locale))
@@ -112,12 +116,26 @@ export const SumsubNativeSdk = ({
         let settled = false
         let launched = false
         let hasSubmitted = false
+        let submissionReported = false
+        // A cancelled launch must report to its original attempt even after a new SDK opens.
+        const launchOnSubmitted = onSubmittedRef.current
         let orphanTimer: ReturnType<typeof setTimeout> | undefined
         let removeResumeListener: (() => void) | undefined
+
+        const reportCancelledSubmission = () => {
+            if (!hasSubmitted || submissionReported) return
+            submissionReported = true
+            try {
+                launchOnSubmitted?.('sdk_teardown')
+            } catch (error) {
+                console.error('[sumsub] submission callback failed', error)
+            }
+        }
 
         const handleExit = (status: string | undefined) => {
             // Native status is per level. Only the backend confirms a complete workflow.
             const closedSubmitted = SUBMITTED_STATES.has(status ?? '')
+            submissionReported = hasSubmitted || closedSubmitted
             if (!isMultiLevelRef.current && (hasSubmitted || closedSubmitted)) {
                 onCompleteRef.current()
             } else {
@@ -137,6 +155,7 @@ export const SumsubNativeSdk = ({
                     },
                 })
                 .withLocale(sumsubLocaleRef.current)
+                .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
                 .build()
 
@@ -164,7 +183,12 @@ export const SumsubNativeSdk = ({
                 posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED, { platform: 'native' })
                 void launchWithStaleLockRecovery().then(
                     (result) => {
-                        if (cancelled || settled) return
+                        if (cancelled) {
+                            if (SUBMITTED_STATES.has(result?.status ?? '')) hasSubmitted = true
+                            reportCancelledSubmission()
+                            return
+                        }
+                        if (settled) return
                         settled = true
                         clearActiveSumsubInstance(instance)
                         if (result?.success === false) {
@@ -229,6 +253,7 @@ export const SumsubNativeSdk = ({
 
         return () => {
             cancelled = true
+            reportCancelledSubmission()
             clearTimeout(orphanTimer)
             removeResumeListener?.()
             clearActiveSumsubInstance(instance)

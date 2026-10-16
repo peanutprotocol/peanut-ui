@@ -372,3 +372,58 @@ test('batched publication retains every report while uploading a shared image on
         rmSync(dir, { recursive: true, force: true })
     }
 })
+
+test('main release publishes a full library and a recomputed comparison with New screen evidence', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-main-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        const png = new PNG({ width: 393, height: 852 })
+        png.data.fill(127)
+        const image = storeAsset(assets, PNG.sync.write(png))
+        const before = capture(image, 'en', 'b'.repeat(40))
+        const after = capture(image)
+        const newScreen = { ...after.screens[0], id: 'new-state', name: 'New state' }
+        after.screens.push(newScreen)
+        before.screens.push({
+            id: newScreen.id,
+            name: newScreen.name,
+            kind: 'route',
+            flow: 'Home',
+            status: 'unavailable',
+            reason: 'No compatible before scenario',
+        })
+        const storage = memoryStorage()
+        const env = {
+            SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example',
+            EXPECTED_HEAD: after.commit,
+            EXPECTED_BASE: before.commit,
+            SOURCE_BRANCH: 'main',
+            DEV_SEQUENCE: '50',
+        }
+        const comparisonPath = `2026-10-08/compare-main/en/${after.commit}/run-50-1`
+        writeFileSync(
+            join(dir, 'manifest.json'),
+            JSON.stringify({ type: 'comparison', before, after, screens: [{ status: 'unchanged' }] })
+        )
+        await publishReport({ inputDir: dir, reportPath: comparisonPath, env, storage })
+        const report = JSON.parse(storage.objects.get(`reports/${comparisonPath}/manifest.json`).toString())
+        assert.equal(report.before.commit, before.commit)
+        assert.equal(report.after.commit, after.commit)
+        assert.equal(report.screens.find((screen) => screen.id === 'new-state').status, 'new')
+        assert.equal(
+            report.screens.find((screen) => screen.id === 'new-state').before.reason,
+            'No compatible before scenario'
+        )
+        const mainPath = `2026-10-08/main/en/${after.commit}/run-50-1`
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(after))
+        await publishReport({ inputDir: dir, reportPath: mainPath, env: { ...env, EXPECTED_BASE: '' }, storage })
+        const index = JSON.parse(storage.objects.get('index.json').toString())
+        assert.equal(index.length, 2)
+        assert.ok(index.every((entry) => entry.branch === 'main'))
+        assert.equal(index.find((entry) => entry.path === mainPath).changedScreens, 1)
+        assert.equal(storage.objects.has('latest.json'), false, 'Main must not overwrite the dev pointer')
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})

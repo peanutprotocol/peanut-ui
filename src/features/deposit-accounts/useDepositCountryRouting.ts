@@ -2,9 +2,11 @@
 
 import type { CountryData } from '@/components/AddMoney/consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { addMoneyRoutesForCountry, hasAddMoneyRoute, prefersStandingAccount } from '@/features/add-money/countryRoutes'
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
@@ -72,6 +74,7 @@ export function useDepositCountryRouting({
             method_type: 'bank',
             country: country.path,
         })
+        void offerPushPrompt(PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT)
 
         const routes = addMoneyRoutesForCountry(country, offeredCorridors, depositAccountsEnabled)
         const standing = routes.find((route) => route.kind === 'standing')

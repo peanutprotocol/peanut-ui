@@ -309,16 +309,7 @@ export default function PendingVerificationTasks({
 
             {documentFlow.modals}
 
-            {activeTosTask && (
-                <BridgeTosStep
-                    visible
-                    onComplete={closeTos}
-                    onSkip={closeTos}
-                    reasonCode={
-                        activeTosTask.key === 'accept-tos:sepa' ? 'bridge_tos_v2_required' : 'bridge_tos_required'
-                    }
-                />
-            )}
+            {activeTosTask && <BridgeTosStep visible onComplete={closeTos} onSkip={closeTos} />}
         </>
     )
 }

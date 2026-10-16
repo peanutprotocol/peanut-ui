@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // tests for apiFetch and serverFetch — both now call PEANUT_API_URL directly
 // on every platform. The historical web→proxy fork is gone (the proxy was
 // retired once peanut-api-ts/dev dropped the api-key requirement and CORS
@@ -8,6 +10,10 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import posthog from 'posthog-js'
+import { enableDemoMode, disableDemoMode } from '@/utils/demo'
+import { demoRespond } from '@/utils/demo-api'
+
+jest.mock('@/utils/demo-api', () => ({ demoRespond: jest.fn() }))
 
 jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) })),
@@ -38,10 +44,24 @@ const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.captur
 describe('apiFetch', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        disableDemoMode()
     })
 
     afterEach(() => {
         jest.restoreAllMocks()
+        disableDemoMode()
+    })
+
+    it('intercepts web demo writes before auth headers or real network requests', async () => {
+        ;(isCapacitor as jest.Mock).mockReturnValue(false)
+        const synthetic = { ok: true }
+        ;(demoRespond as jest.Mock).mockResolvedValue(synthetic)
+        enableDemoMode()
+        const options = { method: 'POST', body: JSON.stringify({ residenceCountry: 'BR' }) }
+        expect(await apiFetch('/update-user', options)).toBe(synthetic)
+        expect(demoRespond).toHaveBeenCalledWith('/update-user', options)
+        expect(getAuthHeaders).not.toHaveBeenCalled()
+        expect(mockFetchWithSentry).not.toHaveBeenCalled()
     })
 
     describe('url', () => {
@@ -173,6 +193,17 @@ describe('apiFetch', () => {
         })
     })
 
+    describe('idempotent passthrough', () => {
+        it('forwards the idempotent flag to fetchWithSentry', async () => {
+            await apiFetch('/update-user', { method: 'POST', body: '{}', idempotent: true })
+
+            expect(mockFetchWithSentry).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({ method: 'POST', idempotent: true })
+            )
+        })
+    })
+
     describe('performance telemetry', () => {
         it('captures a sampled route template with server duration', async () => {
             jest.spyOn(Math, 'random').mockReturnValueOnce(0.01)
@@ -227,6 +258,42 @@ describe('apiFetch', () => {
                 'api_request_problem',
                 expect.objectContaining({ outcome: 'timeout', problem: 'timeout' })
             )
+        })
+
+        it('separates a request interrupted by an app suspension from a timeout', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            const interrupted = Object.assign(new Error('Peanut is taking too long'), {
+                name: 'ConnectionTimeoutError',
+                interrupted: true,
+            })
+            mockFetchWithSentry.mockRejectedValueOnce(interrupted)
+
+            await expect(apiFetch('/users/me')).rejects.toBe(interrupted)
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({ outcome: 'interrupted', problem: 'interrupted' })
+            )
+        })
+
+        it('stops sending problem events after 20 in one page load', async () => {
+            jest.spyOn(Math, 'random').mockReturnValue(0.9)
+
+            await jest.isolateModulesAsync(async () => {
+                const { apiFetch: freshApiFetch } = await import('../api-fetch')
+                const { default: freshPosthog } = await import('posthog-js')
+                const { fetchWithSentry: freshFetch } = await import('@/utils/sentry.utils')
+
+                for (let i = 0; i < 25; i++) {
+                    ;(freshFetch as jest.Mock).mockRejectedValueOnce(new Error('offline'))
+                    await expect(freshApiFetch('/points/cash-status')).rejects.toThrow('offline')
+                }
+
+                const problems = (freshPosthog.capture as jest.Mock).mock.calls.filter(
+                    ([name]) => name === 'api_request_problem'
+                )
+                expect(problems).toHaveLength(20)
+            })
         })
     })
 })

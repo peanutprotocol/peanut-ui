@@ -24,7 +24,8 @@ interface KycStatusDrawerProps {
 // provider names, no rail reads. Resuming/retrying launches Sumsub via the kept
 // useMultiPhaseKycFlow plumbing.
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
-    const { identity, status, isRegionRestricted, isTerminalFailure, isEmailCollision } = useIdentityVerification()
+    const { identity, status, isRegionRestricted, isTerminalFailure, isEmailCollision, needsDocumentRestart } =
+        useIdentityVerification()
     const { logoutUser } = useAuth()
     const t = useTranslations('kyc')
     const { setIsSupportModalOpen } = useModalsContext()
@@ -45,12 +46,15 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         onKeepMounted?.(true)
         onClose()
         try {
-            await sumsubFlow.handleInitiateKyc()
+            // An approval with no identity document: the start route answers
+            // "already approved" and opens nothing, so only the restart reaches
+            // the document upload.
+            await (needsDocumentRestart ? sumsubFlow.handleRestartIdentity() : sumsubFlow.handleInitiateKyc())
         } catch (e) {
             onKeepMounted?.(false)
             throw e
         }
-    }, [onKeepMounted, onClose, sumsubFlow])
+    }, [onKeepMounted, onClose, sumsubFlow, needsDocumentRestart])
 
     const renderContent = () => {
         switch (status) {

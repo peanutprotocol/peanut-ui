@@ -57,7 +57,7 @@ jest.mock('next-intl', () => ({
 
 // Presentational children pull in icons/haptics/media that jsdom can't render;
 // the receipt id is built in the parent, so stub them to focus the test.
-jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
+jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => <div data-testid="success-sound" /> }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/0_Bruddle/PageStack', () => ({
     PageStack: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
@@ -80,6 +80,9 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Global/AddressLink', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/CreateAccountButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Provider/ProviderFinePrint', () => ({
+    ProviderFinePrint: ({ providerId }: { providerId: string }) => <p>provider:{providerId}</p>,
+}))
 
 beforeEach(() => {
     mockPush.mockClear()
@@ -89,6 +92,16 @@ beforeEach(() => {
 })
 
 describe('PaymentSuccessView done', () => {
+    it('does not play the money sound for a newly created request', () => {
+        render(<PaymentSuccessView type="REQUEST" amount="5" />)
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
+    it.each(['SEND', 'DEPOSIT'] as const)('keeps the money sound for %s', (type) => {
+        render(<PaymentSuccessView type={type} amount="5" />)
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+    })
+
     it.each(['SEND', 'REQUEST', 'DEPOSIT'] as const)(
         '%s: back to home replaces when home is not in history, never pushes',
         (type) => {
@@ -123,5 +136,12 @@ describe('PaymentSuccessView done', () => {
 
         expect(mockReplace).toHaveBeenCalledWith('/request')
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('names the provider only when the flow passes one', () => {
+        const { rerender } = render(<PaymentSuccessView type="SEND" amount="5" />)
+        expect(screen.queryByText(/^provider:/)).not.toBeInTheDocument()
+        rerender(<PaymentSuccessView isWithdrawFlow amount="5" providerId="bridge-eea" />)
+        expect(screen.getByText('provider:bridge-eea')).toBeInTheDocument()
     })
 })

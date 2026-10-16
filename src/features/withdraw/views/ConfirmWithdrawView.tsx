@@ -71,7 +71,7 @@ interface WithdrawConfirmViewProps {
     isFromSendFlow?: boolean
     /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
     toNickname?: string | null
-    /** "Save to address book" prompt, rendered under the details card (only when not yet saved). */
+    /** "Save to address book" prompt, rendered under the recipient card (only when not yet saved). */
     saveAddressPrompt?: React.ReactNode
     /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
     confirmDisabled?: boolean
@@ -119,6 +119,11 @@ export default function ConfirmWithdrawView({
         tokenSymbol: token.symbol,
     })
 
+    // After this charge spends, a lower live balance is expected. Only a new
+    // spend needs affordability validation; processing keeps the CTA locked
+    // while the balance refreshes and payment recording finishes.
+    const balanceBlocksConfirmation = insufficientBalance && !alreadySpent
+
     const displayReceived = useMemo<string | null>(() => {
         if (!isCrossChain || !receiveAmount || !resolvedTokenSymbol) return null
         return isStableCoin(resolvedTokenSymbol) ? `$${receiveAmount}` : `${receiveAmount} ${resolvedTokenSymbol}`
@@ -150,6 +155,30 @@ export default function ConfirmWithdrawView({
                     tokenSymbol="USDC"
                     isFromSendFlow={isFromSendFlow}
                 />
+
+                {/* The recipient has its own card with the save prompt under it, so saving
+                    reads as saving the address, not the amount or fee. */}
+                <Card className="rounded-sm">
+                    <PaymentInfoRow
+                        hideBottomBorder
+                        label={t('confirm.to')}
+                        value={
+                            toNickname ? (
+                                <span className="text-foreground-primary">
+                                    {savedAddressLabel(toNickname, toAddress)}
+                                </span>
+                            ) : (
+                                <AddressLink
+                                    isLink={false}
+                                    address={toAddress}
+                                    className="text-foreground-primary no-underline"
+                                />
+                            )
+                        }
+                    />
+                </Card>
+
+                {saveAddressPrompt}
 
                 <Card className="rounded-sm">
                     {isCrossChain && (isCalculating || displayReceived) && (
@@ -195,22 +224,6 @@ export default function ConfirmWithdrawView({
                             </div>
                         }
                     />
-                    <PaymentInfoRow
-                        label={t('confirm.to')}
-                        value={
-                            toNickname ? (
-                                <span className="text-foreground-primary">
-                                    {savedAddressLabel(toNickname, toAddress)}
-                                </span>
-                            ) : (
-                                <AddressLink
-                                    isLink={false}
-                                    address={toAddress}
-                                    className="text-foreground-primary no-underline"
-                                />
-                            )
-                        }
-                    />
                     <NetworkFeeRow
                         label={t('confirm.networkFee')}
                         feeUsd={networkFee}
@@ -239,8 +252,6 @@ export default function ConfirmWithdrawView({
                     <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
-                {saveAddressPrompt}
-
                 {showHighFeeWarning && <Callout priority="info">{t('confirm.highFeeWarning')}</Callout>}
 
                 {error ? (
@@ -260,9 +271,10 @@ export default function ConfirmWithdrawView({
                         // landed there is nothing left to gate: Retry only
                         // replays the record.
                         disabled={
-                            alreadySpent
+                            isProcessing ||
+                            (alreadySpent
                                 ? confirmDisabled
-                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled
+                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled)
                         }
                         loading={false}
                         className="w-full"
@@ -278,7 +290,7 @@ export default function ConfirmWithdrawView({
                         disabled={
                             isProcessing ||
                             isCalculating ||
-                            insufficientBalance ||
+                            balanceBlocksConfirmation ||
                             !!belowMinimumMessage ||
                             confirmDisabled
                         }
@@ -291,7 +303,7 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {insufficientBalance && !error && (
+                {balanceBlocksConfirmation && !isProcessing && !error && (
                     <Callout priority="error">{tErrors('notEnoughBalanceAddFunds')}</Callout>
                 )}
                 {belowMinimumMessage && !insufficientBalance && !error && (

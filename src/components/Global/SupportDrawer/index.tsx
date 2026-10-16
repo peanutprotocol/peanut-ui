@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -7,6 +8,7 @@ import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useVisualViewport } from '@/hooks/useVisualViewport'
 import { useBackHandler } from '@/hooks/useBackHandler'
+import { useOverlayVisibility } from '@/utils/overlay-visibility'
 import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -29,9 +31,12 @@ const DISMISS_THRESHOLD = 100
 const TOP_RESERVE = 24
 
 const SupportDrawer = () => {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
+    useOverlayVisibility(isSupportModalOpen)
     const userData = useCrispUserData()
     const crispTokenId = useCrispTokenId()
     const [isCrispReady, setIsCrispReady] = useState(false)
@@ -441,6 +446,8 @@ const SupportDrawer = () => {
         return () => window.removeEventListener('keydown', handleEscape)
     }, [isSupportModalOpen, setIsSupportModalOpen])
 
+    if (nativePlatform.isCapacitor) return null
+
     return (
         <>
             {/* backdrop */}
@@ -521,7 +528,7 @@ const SupportDrawer = () => {
                                 </Button>
                             </div>
                         )}
-                        {!isCapacitor() && hasBeenOpened && !isAwaitingToken && (
+                        {!nativePlatform.isCapacitor && hasBeenOpened && !isAwaitingToken && (
                             <iframe
                                 // token/locale changes need a full session re-bind, so they
                                 // remount the proxy; everything else updates live over the

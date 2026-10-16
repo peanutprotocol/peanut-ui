@@ -58,6 +58,27 @@ export default function CalloutPage() {
 
             <SectionDivider />
 
+            <DocSection title="Errors that mention support">
+                <DocSection.Content>
+                    <div className="flex flex-col gap-3">
+                        <Callout priority="error">
+                            There was an issue with your request. Please try again or contact support.
+                        </Callout>
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Automatic support link"
+                        code={`// An inline error whose text mentions support (en/es/pt) gets a
+// "Contact support" link that opens the support drawer with the error
+// prefilled. Passing your own ctas turns it off.
+<Callout priority="error">{error.errorMessage}</Callout>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <DocSection title="Build: body vs title + body">
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
@@ -134,7 +155,12 @@ export default function CalloutPage() {
 
             <SectionDivider />
 
-            <DocSection title="CTAs">
+            <DocSection
+                title="CTAs — inline only"
+                description={
+                    'For inline banners and modals. variant="floating" (the toast surface) rejects ctas at the type level: a toast auto-dismisses, so its action could vanish before the user taps it.'
+                }
+            >
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
                         <Callout priority="attention" ctas={[{ label: 'CTA1', onClick: noop }]}>
@@ -199,7 +225,8 @@ export default function CalloutPage() {
                         name: 'ctas',
                         type: '1-2 × { label, onClick }',
                         default: '(none)',
-                        description: 'Underlined text actions, never full-size buttons',
+                        description:
+                            'Underlined text actions, never full-size buttons. Inline only — a type error on floating',
                     },
                 ]}
             />

@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 import { rainApi } from '@/services/rain'
 

@@ -31,9 +31,9 @@ jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({ useSignSpendBundle: jest
 jest.mock('../useCardFlow', () => ({ useCardFlow: jest.fn() }))
 jest.mock('@/app/actions/sumsub', () => ({ initiateSelfHealResubmission: jest.fn() }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
-jest.mock('@/components/Card/AddCardEntryScreen', () => ({
-    __esModule: true,
-    default: () => <div>add card screen</div>,
+jest.mock('../components/CardAcquisitionScreen', () => ({
+    CardAcquisitionScreen: () => <div>add card screen</div>,
+    CardMilestoneScreen: () => null,
 }))
 jest.mock('@/components/Card/ApplicationStatusScreen', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/CardTermsScreen', () => ({ __esModule: true, default: () => null }))

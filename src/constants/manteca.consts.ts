@@ -25,8 +25,8 @@ export const MANTECA_QR_DEPOSIT_ADDRESS_NON_AR = '0x49200bF84dC26349C86ce0400190
  */
 export const MANTECA_QR_INIT_SCAN_TIMEOUT_MS = 10_000
 
-export const MANTECA_ARG_DEPOSIT_NAME = 'Sixalime Sas'
-export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678845-3'
+export const MANTECA_ARG_DEPOSIT_NAME = 'SIXALIME S.A.U.'
+export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678854-3'
 
 // ui mirror of peanut-api-ts/src/manteca/consts.ts MANTECA_SUPPORTED_COUNTRIES.
 // first-party manteca bank/kyc rails are currently active only in argentina and brazil.

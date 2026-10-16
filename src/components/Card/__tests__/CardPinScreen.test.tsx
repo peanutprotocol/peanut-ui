@@ -41,10 +41,20 @@ describe('CardPinScreen', () => {
         expect(screen.getByText('****')).toBeInTheDocument()
     })
 
+    it('shows Change pin when editing an existing pin', async () => {
+        renderScreen()
+        fireEvent.click(screen.getByRole('button', { name: 'Change pin' }))
+        expect(await screen.findByText('Change pin')).toBeInTheDocument()
+        expect(screen.queryByText('Set pin')).not.toBeInTheDocument()
+    })
+
     it('switches to the no-pin empty state when rain reports no pin set', async () => {
         mockGetPin.mockResolvedValue(null)
         renderScreen()
         fireEvent.click(screen.getByRole('button', { name: 'Show pin' }))
         expect(await screen.findByText('No pin set yet')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Set pin' }))
+        expect(await screen.findByText('Set pin')).toBeInTheDocument()
+        expect(screen.queryByText('Change pin')).not.toBeInTheDocument()
     })
 })

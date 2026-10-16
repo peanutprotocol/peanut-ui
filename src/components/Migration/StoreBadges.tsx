@@ -3,11 +3,19 @@ import { useRef } from 'react'
 import { copyIOSHandoff, playStoreUrlWithReferrer, trackDeferredHandoffCreated } from '@/utils/deferred-link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, STORE_URL, type MigrationSurface } from '@/constants/migration.consts'
-import { trackStoreClick } from '@/utils/migration.utils'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 
 /** Show the device's store when known, or both stores on desktop. */
-export default function StoreBadges({ surface, payload }: { surface: MigrationSurface; payload?: string }) {
+export default function StoreBadges({
+    surface,
+    payload,
+    iosPayload,
+}: {
+    surface: MigrationSurface
+    payload?: string
+    iosPayload?: string
+}) {
     // Repeated taps must not inflate the handoff count used to measure successful installs.
     const counted = useRef(new Set<string>())
     const countHandoff = (store: 'ios' | 'android', handoff: string) => {
@@ -17,7 +25,7 @@ export default function StoreBadges({ surface, payload }: { surface: MigrationSu
         trackDeferredHandoffCreated(store)
     }
     const { deviceType } = useDeviceType()
-    const thisPlatform = deviceType === DeviceType.IOS ? 'ios' : deviceType === DeviceType.ANDROID ? 'android' : null
+    const thisPlatform = storeForDevice(deviceType)
     const stores = thisPlatform ? ([thisPlatform] as const) : (['ios', 'android'] as const)
     return (
         <div className="flex w-full flex-col gap-4">
@@ -28,12 +36,13 @@ export default function StoreBadges({ surface, payload }: { surface: MigrationSu
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
-                        trackStoreClick(s, surface, !!payload)
-                        if (!payload) return
-                        if (s === 'android') countHandoff(s, payload)
+                        const handoff = s === 'ios' ? (iosPayload ?? payload) : payload
+                        trackStoreClick(s, surface, !!handoff)
+                        if (!handoff) return
+                        if (s === 'android') countHandoff(s, handoff)
                         else
-                            void copyIOSHandoff(payload)
-                                .then(() => countHandoff(s, payload))
+                            void copyIOSHandoff(handoff)
+                                .then(() => countHandoff(s, handoff))
                                 .catch(() => {})
                     }}
                     className="w-full"
@@ -44,7 +53,7 @@ export default function StoreBadges({ surface, payload }: { surface: MigrationSu
                     <Button
                         variant={i === 0 ? 'primary' : 'secondary'}
                         shadowSize="4"
-                        icon={s === 'ios' ? 'apple-logo' : 'google-play'}
+                        icon={storeIcon(s)}
                         className="w-full"
                     >
                         {STORE_NAME[s]}

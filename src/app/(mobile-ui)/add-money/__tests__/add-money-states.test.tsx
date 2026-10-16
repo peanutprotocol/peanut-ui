@@ -109,6 +109,7 @@ jest.mock('@/assets/payment-apps', () => ({
 const mockUseAuth = jest.fn()
 jest.mock('@/context/authContext', () => ({
     useAuth: () => mockUseAuth(),
+    useOptionalAuth: () => mockUseAuth(),
 }))
 
 const mockUseWallet = jest.fn()
@@ -139,6 +140,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({
         setIsSupportModalOpen: jest.fn(),
         setIsQRScannerOpen: jest.fn(),

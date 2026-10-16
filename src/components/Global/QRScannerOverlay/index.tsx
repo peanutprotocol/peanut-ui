@@ -14,6 +14,8 @@ import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
+import { offerPushPrompt } from '@/hooks/useNotifications'
 import { BASE_URL } from '@/constants/general.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
@@ -384,6 +386,7 @@ export default function QRScannerOverlay() {
                 {
                     const timestamp = Date.now()
                     redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(data)}&t=${timestamp}&type=${recognized}`
+                    void offerPushPrompt(PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN)
                 }
                 break
             case EQrType.PIX_KEY:
@@ -391,6 +394,7 @@ export default function QRScannerOverlay() {
                     const url = pixKeyToQrPayUrl(data)
                     if (url) {
                         redirectUrl = url
+                        void offerPushPrompt(PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN)
                     } else {
                         showModal(EModalType.UNRECOGNIZED)
                         return { success: true }

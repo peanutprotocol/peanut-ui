@@ -13,7 +13,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import { areEvmAddressesEqual, toInviteCode } from '@/utils/general.utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { apiFetch } from '@/utils/api-fetch'
@@ -37,8 +37,6 @@ import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol, getChainName } from '@/utils/general.utils'
 import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { invitesApi } from '@/services/invites'
-import { EInviteType } from '@/services/services.types'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
@@ -118,11 +116,8 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
         showVerificationModal,
         setShowVerificationModal,
         verificationPromptReason,
-        setVerificationPromptReason,
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
-        claimToMercadoPago,
-        setClaimToMercadoPago,
         setRegionalMethodType,
         hideTokenSelector,
         setHideTokenSelector,
@@ -146,7 +141,7 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
     const { claimLink, claimLinkXchain, removeParamStep } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const router = useRouter()
-    const { user, fetchUser } = useAuth()
+    const { user } = useAuth()
     const queryClient = useQueryClient()
     const prevRecipientType = useRef<string | null>(null)
     const prevUser = useRef(user)
@@ -290,49 +285,6 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             })
 
             if (!isPeanutWallet && recipient.address === '') return
-
-            // If the user doesn't have app access, accept the invite before claiming the link
-            if (!user?.user.hasAppAccess) {
-                try {
-                    const inviterUsername = claimLinkData.sender?.username
-                    if (!inviterUsername) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: t('errors.missingInviter'),
-                        })
-                        setLoadingState('Idle')
-                        return
-                    }
-                    const inviteCode = toInviteCode(inviterUsername)
-                    const result = await invitesApi.acceptInvite(
-                        inviteCode,
-                        EInviteType.PAYMENT_LINK,
-                        campaignTag ?? undefined
-                    )
-                    if (!result.success || !result.onboardingResolved) {
-                        console.error('Failed to accept invite')
-                        setErrorState({
-                            showError: true,
-                            errorMessage: tCommon('genericError'),
-                        })
-                        setLoadingState('Idle')
-                        return
-                    }
-
-                    // fetch user so that we have the latest state and user can access the app.
-                    // We dont need to wait for this, can happen in background.
-                    fetchUser()
-                } catch (error) {
-                    Sentry.captureException(error)
-                    console.error('Failed to accept invite', error)
-                    setErrorState({
-                        showError: true,
-                        errorMessage: tCommon('genericError'),
-                    })
-                    setLoadingState('Idle')
-                    return
-                }
-            }
 
             try {
                 setLoadingState('Executing transaction')
@@ -523,7 +475,6 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             isXChain,
             address,
             campaignTag,
-            fetchUser,
             t,
             tCommon,
             toFriendlyError,
@@ -1037,29 +988,23 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             if (consumedStepRef.current) return
             if (stepFromURL) consumedStepRef.current = true
             removeParamStep()
-            if (stepFromURL === 'claim' && isPeanutWallet) {
+            // Mercado Pago / Pix (step=regional-claim) claim into the user's own
+            // wallet exactly like step=claim; the success screen then offers the
+            // withdraw to the method tapped BEFORE the auth redirect, which only
+            // the URL carried across. Every other mount clears it, so a later
+            // claim in this session does not inherit the offer. Without a valid
+            // param it stays null, never a default that could masquerade as a
+            // real choice.
+            setRegionalMethodType(
+                stepFromURL === 'regional-claim' && (methodFromURL === 'pix' || methodFromURL === 'mercadopago')
+                    ? methodFromURL
+                    : null
+            )
+            if ((stepFromURL === 'claim' || stepFromURL === 'regional-claim') && isPeanutWallet) {
                 handleClaimLink(false, true)
-            } else if (stepFromURL === 'regional-claim') {
-                // restore the method the user tapped BEFORE the auth redirect —
-                // context state didn't survive the remount, only the URL did.
-                // without a valid param the method stays null (unknown), never
-                // a default that could masquerade as a real choice.
-                if (methodFromURL === 'pix' || methodFromURL === 'mercadopago') {
-                    setRegionalMethodType(methodFromURL)
-                }
-                setClaimToMercadoPago(true)
             }
         }
     }, [user, stepFromURL, methodFromURL, isPeanutWallet, selectedTokenData, address])
-
-    useEffect(() => {
-        if (claimToMercadoPago && !user) {
-            // regional claim without an account: the sender's verification is
-            // irrelevant here, so don't render copy that blames them
-            setVerificationPromptReason('account-required')
-            setShowVerificationModal(true)
-        }
-    }, [claimToMercadoPago, user, setShowVerificationModal, setVerificationPromptReason])
 
     return {
         t,
@@ -1076,7 +1021,6 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
         claimBankFlowStep,
         claimToExternalWallet,
         setClaimToExternalWallet,
-        claimToMercadoPago,
         hideTokenSelector,
         showVerificationModal,
         setShowVerificationModal,

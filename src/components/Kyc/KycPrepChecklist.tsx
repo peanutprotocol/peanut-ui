@@ -3,13 +3,15 @@
 import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { ProviderRow } from '@/components/Provider/ProviderRow'
+import type { ProviderId } from '@/types/provider.types'
 import { useTranslations } from 'next-intl'
 
 export type KycPrepPath = 'standard' | 'extended' | 'hosted'
 
 /**
  * The "before you start" prep content shown before the verification SDK
- * opens: what to have ready, how long it takes, and the heads-up that a
+ * opens: what to have ready and the heads-up that a
  * follow-up document can be requested. The extended path (Manteca BR/AR)
  * adds the tax ID and the regulatory questions the provider asks there.
  * Rendered inside the unlock/initiate modals, never as its own route, so
@@ -22,7 +24,19 @@ export type KycPrepPath = 'standard' | 'extended' | 'hosted'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCountry?: 'AR' | 'BR' }) => {
+const KycPrepChecklist = ({
+    path,
+    taxIdCountry,
+    providerId,
+    nested,
+}: {
+    path: KycPrepPath
+    taxIdCountry?: 'AR' | 'BR'
+    /** the account provider the check unlocks; its row heads the card (TASK-23295) */
+    providerId?: ProviderId | null
+    /** set inside a drawer, so the provider sheet stacks on top */
+    nested?: boolean
+}) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
     const items =
@@ -47,6 +61,9 @@ const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCoun
                 that document stays on screen under its row — it is the part a
                 user gets wrong, so it does not belong behind a tooltip. */}
             <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                {providerId && (
+                    <ProviderRow providerId={providerId} label="accountProvider" nested={nested} prospective />
+                )}
                 {items.map((item) => (
                     <div key={item} className="pb-3">
                         <DataRow label={t(`items.${item}.label`)} value={t(`items.${item}.title`)} />
@@ -66,18 +83,8 @@ const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCoun
                     </span>
                 </Callout>
             )}
-            {/* Above "how long": the note is about WHAT may still be asked for,
-                so it belongs with the requirements list it qualifies. Duration
-                reads last, as the closing fact. */}
+            {/* The extra-document note qualifies the requirements list. */}
             {!isHosted && <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>}
-            {/* Plain prose, not a card: the framed box read as one more
-                requirement alongside the list above it, when it is only a note. */}
-            {!isHosted && (
-                <div className="flex flex-col gap-0.5">
-                    <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
-                    <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
-                </div>
-            )}
         </div>
     )
 }

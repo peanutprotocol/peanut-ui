@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 
 import { countryData } from '@/components/AddMoney/consts'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
@@ -11,6 +12,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
+import { useSubmissionKey } from '@/hooks/useSubmissionKey'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -40,6 +42,7 @@ import type { BridgeBankStep } from './types'
  * deep link.
  */
 export function useBridgeBankFlow() {
+    const native = useNativePlatform()
     const params = useParams()
     // country comes from the path on web, from ?country= on native (nuqs per
     // the URL-as-State rule; read-only here)
@@ -74,6 +77,7 @@ export function useBridgeBankFlow() {
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp } = useCreateOnramp()
+    const submissionKey = useSubmissionKey()
 
     // inline sumsub kyc flow for bridge bank onramp
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -108,7 +112,9 @@ export function useBridgeBankFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
 
-    const onBack = useSafeBack(selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath) : '/add-money')
+    const onBack = useSafeBack(
+        selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath, native.isCapacitor) : '/add-money'
+    )
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
@@ -319,6 +325,13 @@ export function useBridgeBankFlow() {
             const onrampDataResponse = await createOnramp({
                 amount: rawTokenAmount,
                 country: selectedCountry,
+                // the same amount and country re-confirmed after a failure
+                // reuses the key, so the API returns the transfer it made
+                // keyed on the amount as sent, so "100" and "100.0" are one submission
+                idempotencyKey: submissionKey({
+                    amount: Number(rawTokenAmount).toFixed(2),
+                    country: selectedCountry.id,
+                }),
             })
             setOnrampData(onrampDataResponse)
 

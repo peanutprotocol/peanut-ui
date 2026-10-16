@@ -8,6 +8,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── Signup funnel ──
     SIGNUP_STEP_VIEWED: 'signup_step_viewed',
+    SIGNUP_COUNTRY_SIGNALS_CAPTURED: 'signup_country_signals_captured',
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
     SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',
@@ -18,18 +19,16 @@ export const ANALYTICS_EVENTS = {
     HOME_VIEWED: 'home_viewed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
-    HOME_CHECKLIST_HIDDEN: 'home_checklist_hidden',
     HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
-    SIGNUP_WAITLIST_VIEWED: 'signup_waitlist_viewed',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
-    SIGNUP_EXISTING_SESSION_PROMPTED: 'signup_existing_session_prompted',
+    SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
+    SIGNUP_INVITER_ADDED: 'signup_inviter_added',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
-    SIGNUP_EXISTING_SESSION_LOGGED_OUT: 'signup_existing_session_logged_out',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
     SIGNUP_PASSKEY_FAILED: 'signup_passkey_failed',
@@ -157,7 +156,10 @@ export const ANALYTICS_EVENTS = {
     INVITE_CODE_VALIDATED: 'invite_code_validated',
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
-    WAITLIST_STEP_VIEWED: 'waitlist_step_viewed',
+    // One per registration (every outcome, `none` included) and per later
+    // retry that found an invite. `status: none` after a restored invite link
+    // is the iOS stash loss of Oct 2026 — it used to leave no trace at all.
+    INVITE_ATTRIBUTION_SETTLED: 'invite_attribution_settled',
 
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
@@ -203,6 +205,10 @@ export const ANALYTICS_EVENTS = {
     MODAL_SHOWN: 'modal_shown',
     MODAL_DISMISSED: 'modal_dismissed',
     MODAL_CTA_CLICKED: 'modal_cta_clicked',
+
+    // ── Arrival prompt (TASK-23251): props country, prompt ──
+    ARRIVAL_PROMPT_SHOWN: 'arrival_prompt_shown',
+    ARRIVAL_PROMPT_CTA_CLICKED: 'arrival_prompt_cta_clicked',
 
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
@@ -315,6 +321,7 @@ export const ANALYTICS_EVENTS = {
     // card_tokenization_declined (Rain webhooks) close this funnel.
     CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
     CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_ALREADY_ADDED: 'card_add_to_wallet_already_added',
     CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
     CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
@@ -357,7 +364,6 @@ export const ANALYTICS_EVENTS = {
     // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
     // `store` ∈ 'ios' | 'android'. qr_shown fires once per QR display (the
     // smart QR serves both stores, so it has no store dimension).
-    MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
     // guest Join/Continue-with-Peanut CTA rendered to a logged-out web
     // visitor during the window — the impression leg of the guest funnel
     MIGRATION_GUEST_CTA_SHOWN: 'migration_guest_cta_shown',
@@ -373,6 +379,18 @@ export const ANALYTICS_EVENTS = {
     DEFERRED_LINK_RESTORED: 'deferred_link_restored',
     // Fired on the web side when a store bounce writes the hand-off.
     DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
+
+    // ── Statements (Profile → Statements): activity download ──
+    // `range_preset` is the named period (allTime, last30d, …) or 'custom',
+    // and `range_days` its length — never the dates themselves, which would
+    // describe when a person banks. RANGE_APPLIED fires on a preset pick or a
+    // finished custom period. STARTED and SAVED are separate because native
+    // delivery needs a second tap: the gap between them is the share sheet
+    // being dismissed. FAILED carries the server's reason code.
+    ACTIVITY_RANGE_APPLIED: 'activity_range_applied',
+    ACTIVITY_EXPORT_STARTED: 'activity_export_started',
+    ACTIVITY_EXPORT_SAVED: 'activity_export_saved',
+    ACTIVITY_EXPORT_FAILED: 'activity_export_failed',
 } as const
 
 /**
@@ -424,9 +442,13 @@ export const REFERRAL_SOURCES = {
     BADGE_DETAIL: 'badge_detail',
     BADGE_UNLOCK: 'badge_unlock',
     QR_PAY_SUCCESS: 'qr_pay_success',
+    // Early-user announcement drawer's share button (utm_content only, no
+    // referral CTA event).
+    EARLY_USER_DRAWER: 'early_user_drawer',
     // Pre-existing wire value — the receipt used this as an inline literal
     // before it was registered here. Do not rename.
     TRANSACTION_RECEIPT: 'transaction_receipt',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]
+export type ReferralSource = (typeof REFERRAL_SOURCES)[keyof typeof REFERRAL_SOURCES]

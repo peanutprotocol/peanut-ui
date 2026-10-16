@@ -30,7 +30,6 @@ export default function TabsPage() {
     // drives the tab row of another one
     const [limitsPeriod, setLimitsPeriod] = useState('monthly')
     const [depositChainType, setDepositChainType] = useState('EVM')
-    const [tokenNetwork, setTokenNetwork] = useState('all')
 
     return (
         <DocPage>
@@ -308,7 +307,7 @@ export default function TabsPage() {
 
             <DocSection
                 title="Icon + text labels, and focus"
-                description="`label` is a ReactNode, so a tab can carry an icon beside its name — that is what the token selector's network row does. Keyboard focus draws the full DS ring (3px `action-focus`, never pink): tab into the row below and use the arrow keys."
+                description="`label` is a ReactNode, so a tab can carry an icon beside its name. Keyboard focus draws the full DS ring (3px `action-focus`, never pink): tab into the row below and use the arrow keys."
             >
                 <DocSection.Content>
                     <Tabs
@@ -441,53 +440,6 @@ export default function TabsPage() {
                         onValueChange={setDepositChainType}
                         fullWidth="stretch"
                         aria-label="Select a network type"
-                    />
-                </ProductUsage.Example>
-
-                <ProductUsage.Example
-                    title="Token selector — network row"
-                    path="src/components/Global/TokenSelector/TokenSelector.tsx"
-                    description="fullWidth='stretch': the tab count is decided at runtime — the row drops the chains that do not fit — and whatever survives shares the row equally, the same row add-money renders above. In product each chain label carries its own logo; the Icon here stands in for it."
-                    code={`const networkTabs = [
-    { value: 'all', label: t('tokenSelector.allNetworks') },
-    ...visiblePopularChains.map((chain) => ({
-        value: chain.chainId,
-        label: chainTabLabel(chain.name, chain.iconURI),
-    })),
-]
-
-<Tabs
-    aria-label={t('tokenSelector.selectANetwork')}
-    value={activeNetworkTab}
-    onValueChange={handleNetworkTabChange}
-    tabs={networkTabs}
-    fullWidth="stretch"
-/>`}
-                >
-                    <Tabs
-                        aria-label="Select a network"
-                        value={tokenNetwork}
-                        onValueChange={setTokenNetwork}
-                        fullWidth="stretch"
-                        tabs={[
-                            { value: 'all', label: 'All' },
-                            {
-                                value: '42161',
-                                label: (
-                                    <>
-                                        <Icon name="arrow-up-right" size={16} /> ARB
-                                    </>
-                                ),
-                            },
-                            {
-                                value: '1',
-                                label: (
-                                    <>
-                                        <Icon name="arrow-up-right" size={16} /> ETH
-                                    </>
-                                ),
-                            },
-                        ]}
                     />
                 </ProductUsage.Example>
             </ProductUsage>

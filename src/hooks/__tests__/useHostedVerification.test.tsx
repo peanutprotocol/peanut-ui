@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Native return signals for the hosted-verification wait. The in-app browser
  * emits `browserFinished` when the user swipes the sheet away, but a universal

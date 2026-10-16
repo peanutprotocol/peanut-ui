@@ -29,7 +29,10 @@ export const tokenSelectorContext = createContext({
     setIsXChain: (_value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
+    refetchTokenData: async (): Promise<ITokenPriceData | null | undefined> => undefined,
     supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
+    /** true until the chain/token record loads — a selection must not be "corrected" against a partial record */
+    isLoadingChains: false as boolean,
     selectedTokenBalance: undefined as string | undefined,
     setSelectedTokenBalance: (_balance: string | undefined) => {},
 })
@@ -57,7 +60,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
 
     // Fetch supported chains and tokens (cached for 24 hours - static data)
-    const { data: fetchedChainsAndTokens = {} } = useSupportedChainsAndTokens()
+    const { data: fetchedChainsAndTokens = {}, isPending: isLoadingChains } = useSupportedChainsAndTokens()
 
     // Merge the synthetic non-EVM withdraw destinations (Solana/Tron) here —
     // the ONE record every selector surface AND the price hook read, so
@@ -76,6 +79,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         data: tokenPriceData,
         isLoading: isFetchingTokenData,
         isFetching,
+        refetch,
     } = useTokenPrice({
         tokenAddress: selectedTokenAddress,
         chainId: selectedChainID,
@@ -85,6 +89,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
     // Derive selectedTokenData from query (single source of truth)
     const selectedTokenData = tokenPriceData
+    const refetchTokenData = useCallback(async () => (await refetch()).data, [refetch])
 
     // Trigger xchain route refetch when token data changes
     // This preserves the original behavior where setRefetchXchainRoute(true) was called
@@ -127,7 +132,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setIsXChain,
                 selectedTokenData,
                 isFetchingTokenData,
+                refetchTokenData,
                 supportedChainsAndTokens,
+                isLoadingChains,
                 selectedTokenBalance,
                 setSelectedTokenBalance,
                 devconnectTokenAddress,

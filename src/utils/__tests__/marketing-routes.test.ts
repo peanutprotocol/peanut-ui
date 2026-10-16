@@ -1,6 +1,17 @@
 import { isMarketingRoute } from '../marketing-routes'
 
 describe('isMarketingRoute', () => {
+    const nativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+    afterEach(() => {
+        if (nativeBuild === undefined) delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+        else process.env.NEXT_PUBLIC_CAPACITOR_BUILD = nativeBuild
+    })
+    it('keeps the native bootstrap and every deep-link destination on the same provider tree', () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        for (const route of ['/', '/home/', '/setup', '/en/help/delete-account', null]) {
+            expect(isMarketingRoute(route)).toBe(false)
+        }
+    })
     it('treats the landing page as marketing', () => {
         expect(isMarketingRoute('/')).toBe(true)
     })

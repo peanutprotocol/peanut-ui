@@ -9,6 +9,7 @@ import { renderReceiptPdf } from '../ReceiptPdfDocument'
 import { buildReceiptPdfModel } from '../receipt-pdf-model'
 import { captureException } from '@sentry/nextjs'
 import { loadMessages } from '@/i18n/app/messages'
+import { serverFetch } from '@/utils/api-fetch'
 import type { NextRequest } from 'next/server'
 
 jest.mock('@/app/actions/history', () => ({ getHistoryEntry: jest.fn() }))
@@ -17,6 +18,7 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
 }))
 jest.mock('../ReceiptPdfDocument', () => ({ renderReceiptPdf: jest.fn() }))
 jest.mock('../receipt-pdf-model', () => ({ buildReceiptPdfModel: jest.fn() }))
+jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // The registry/history.utils graph reaches @/app/actions/clients, whose
 // module-scope ranked fallback transport pings every Arbitrum RPC on import
@@ -31,6 +33,7 @@ const mockMap = mapTransactionDataForDrawer as jest.Mock
 const mockRender = renderReceiptPdf as jest.Mock
 const mockBuildModel = buildReceiptPdfModel as jest.Mock
 const mockLoadMessages = loadMessages as jest.Mock
+const mockServerFetch = serverFetch as jest.Mock
 
 const get = async (
     entryId: string,
@@ -322,5 +325,64 @@ describe('GET /receipt/[entryId]/pdf — receipt freshness', () => {
         // the pending bytes were not promoted into the completed receipt's cache
         mockGetHistoryEntry.mockResolvedValueOnce({ status: 'COMPLETED', amount: '10' })
         expect(await bytesOf(await get('entry-race', 'kind=OFFRAMP&locale=en&_=3'))).toBe('%PDF COMPLETED 10')
+    })
+})
+
+describe('GET /receipt/[entryId]/pdf — bridge entity from the owner residence', () => {
+    const bridgeOfframp = (flow = 'OFFRAMP') => ({
+        status: 'COMPLETED',
+        extraData: { provider: 'BRIDGE', bridgeFlow: flow },
+        senderAccount: { userId: 'owner-1' },
+        recipientAccount: {},
+    })
+    const me = (userId: string) => ({
+        ok: true,
+        json: async () => ({ user: { userId }, residence: { verified: 'DE' } }),
+    })
+    const residencePassed = () => mockBuildModel.mock.calls[0][3]
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockMap.mockReturnValue({ transactionDetails: { id: 'entry-1', extraDataForDrawer: { kind: 'OFFRAMP' } } })
+        mockBuildModel.mockReturnValue({ fileName: 'peanut-receipt-entry-1.pdf' })
+        mockRender.mockResolvedValue(Buffer.from('%PDF-1.7'))
+    })
+
+    test('the signed-in owner gets their residence, uncached', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        mockServerFetch.mockResolvedValue(me('owner-1'))
+        const response = await get('entry-own', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(mockServerFetch).toHaveBeenCalledWith('/users/me', { headers: { Authorization: 'Bearer tok' } })
+        expect(residencePassed()).toBe('DE')
+        expect(response.headers.get('Cache-Control')).toBe('no-store')
+    })
+
+    test('a signed-in non-owner gets the brand-only record', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        mockServerFetch.mockResolvedValue(me('someone-else'))
+        await get('entry-other', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(residencePassed()).toBeNull()
+    })
+
+    test('an anonymous request never asks who is viewing', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        await get('entry-anon', 'kind=OFFRAMP&locale=en')
+        expect(mockServerFetch).not.toHaveBeenCalled()
+        expect(residencePassed()).toBeNull()
+    })
+
+    test('a bank send-link claim keeps the brand-only record even for a party', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp('BANK_SEND_LINK_CLAIM'))
+        await get('entry-claim', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(mockServerFetch).not.toHaveBeenCalled()
+        expect(residencePassed()).toBeNull()
+    })
+
+    test('a failed /users/me still renders, brand-only', async () => {
+        mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
+        mockServerFetch.mockRejectedValue(new Error('down'))
+        const response = await get('entry-down', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
+        expect(response.status).toBe(200)
+        expect(residencePassed()).toBeNull()
     })
 })

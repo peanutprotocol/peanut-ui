@@ -47,6 +47,8 @@ import {
 } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { providerForRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -237,6 +239,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // and dead-ended ready users behind a "You're all set / Go back" modal.
     const { gateFor } = useCapabilities()
     const bankRegionIntent = useBankRegionIntent()
+    const bridgeProviderId = useBridgeProviderId()
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
     // This screen serves both the add-money (deposit) and withdraw flows. Gate on
     // the operation that matches the flow — a withdraw-enabled but deposit-blocked
@@ -568,6 +571,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
                 regionName={currentCountry && localizedCountryTitle(locale, currentCountry)}
+                providerId={
+                    providerForRegionIntent(bankRegionIntent(currentCountry)) === 'bridge'
+                        ? bridgeProviderId
+                        : undefined
+                }
             />
             <BridgeTosStep
                 visible={showBridgeTos}
@@ -579,7 +587,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     else formRef.current?.handleSubmit()
                 }}
                 onSkip={hideTos}
-                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
             <ProvideEmailStep
                 visible={showProvideEmail}

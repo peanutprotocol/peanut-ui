@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * AdditionalVerificationView — the "what to expect" screen in front of
  * Bridge's hosted verification (Persona).

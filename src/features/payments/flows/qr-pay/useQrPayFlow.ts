@@ -31,6 +31,7 @@ import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError, type SpendStrategy } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
+import { isPasskeyBusyError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
@@ -297,6 +298,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [paymentLock, paymentProcessor, setAmount, setCurrencyAmount])
 
+    const [rateUnavailable, setRateUnavailable] = useState(false)
+    const [rateAttempt, setRateAttempt] = useState(0)
+    const retryRate = useCallback(() => {
+        setRateUnavailable(false)
+        setRateAttempt((attempt) => attempt + 1)
+    }, [])
+
     // Get currency object from payment lock (Manteca)
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
@@ -319,13 +327,18 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 price,
             }
         }
-        getCurrencyObject().then((currencyObject) => {
-            if (!cancelled) setCurrency(currencyObject)
-        })
+        getCurrencyObject()
+            .then((currencyObject) => {
+                if (!cancelled) setCurrency(currencyObject)
+            })
+            // The FX layer already reported the failure; without a live rate the amount cannot be priced.
+            .catch(() => {
+                if (!cancelled) setRateUnavailable(true)
+            })
         return () => {
             cancelled = true
         }
-    }, [paymentLock, paymentProcessor, setCurrency])
+    }, [paymentLock, paymentProcessor, setCurrency, rateAttempt])
 
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
@@ -338,7 +351,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             errorCode !== 'confirmTransaction' &&
             errorCode !== 'balanceSettling' &&
             // A rejection the user can clear by typing a different amount.
-            errorCode !== 'amountRetryable'
+            errorCode !== 'amountRetryable' &&
+            // Nothing was signed or sent; tapping Pay again is safe.
+            errorCode !== 'signRetryable'
         )
     }, [errorMessage, errorCode, requoteFailed])
 
@@ -583,16 +598,6 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
-    // The "paying" caption timer must die with the flow: the loading context is
-    // app-wide, so a timer surviving unmount would flip it back to 'Paying'
-    // after the route already reset it to Idle.
-    const payingStateTimerRef = useRef<NodeJS.Timeout | null>(null)
-    useEffect(() => {
-        return () => {
-            if (payingStateTimerRef.current) clearTimeout(payingStateTimerRef.current)
-        }
-    }, [])
-
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
      * (a broadcast may well have happened and reverted definitively), so the
@@ -782,12 +787,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         telemetry.stage('lock_ready', { outcome: 'success' })
 
         setLoadingState('Preparing transaction')
-        // Routing picks the funding SOURCE; execution runs on the mixed
-        // pipeline whenever collateral is involved (even a fully-collateral
-        // payment from an empty smart account), because that is the route with
-        // a durable reservation and definitive failure codes — so a late
-        // controller rotation is recoverable on this same lock. Cost: the
-        // passkey fallback is two taps, one where the ephemeral path is on.
+        // Direct collateral funding needs one admin signature. Mixed funding
+        // combines both balances and also needs a UserOp signature.
         // Same terms on a recovery re-sign: only the prep and the signature are
         // fresh — amount, recipient and the payment lock below are not.
         // Signing has only begun once the engine reports its preparation done
@@ -814,6 +815,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             onProgress: (event: SignSpendProgressEvent) => {
                 if (event.stage === 'signing_preparation_ready') {
                     signingStarted = true
+                    setLoadingState('Approve transaction')
                     telemetry.stage(event.stage, { preparation: event.preparation })
                 } else {
                     telemetry.stage(event.stage)
@@ -829,7 +831,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
          */
         const quoteExpired = () => isLockExpired(finalPaymentLock)
         if (quoteExpired()) {
-            void handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
+            await handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
             return
         }
 
@@ -842,7 +844,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // back to the same review screen, with a refreshed quote when the
             // replacement could not be prepared inside the current lock.
             if (error instanceof SpendRecoveryQuoteReviewError) {
-                void handleQuoteRecovery(error)
+                await handleQuoteRecovery(error)
                 return
             }
             if (error instanceof SpendRecoveryAbortedError) {
@@ -864,13 +866,22 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // Looser than the classifier's 'not allowed by the user agent';
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
+            } else if (isPasskeyBusyError(error)) {
+                // an earlier passkey prompt still owns the authenticator; nothing was signed.
+                // still reported, tagged apart, so the busy rate stays visible
+                void captureNetworkTriagedFailure(error, {
+                    tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign', qr_pay_failure: 'passkey_busy' },
+                })
+                setErrorMessage(t('errors.passkeyBusy'), 'signRetryable')
             } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                 // Keep the flow-specific fallback — "couldn't sign" beats the
                 // generic support copy on a signing failure — and the Sentry report.
                 void captureNetworkTriagedFailure(error, {
                     tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign' },
                 })
-                setErrorMessage(t('errors.signFailed'))
+                // before the passkey, the failure was routing, the rain draft or
+                // the op build; nothing was signed or sent either way, so retry is safe
+                setErrorMessage(t(signingStarted ? 'errors.signFailed' : 'errors.preparationFailed'), 'signRetryable')
             } else {
                 // A classified error is normally a deliberate non-report (backend
                 // wire code, or a user action). Network-layer failures are the
@@ -891,7 +902,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
 
         if (quoteExpired()) {
-            void handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
+            await handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
             return
         }
 
@@ -899,8 +910,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         // mixed/userOp route broadcasts the funding op FIRST — a definitive
         // revert leaves no provider order behind, which is what makes the
         // replacement below safe.
-        // Schedule "paying" state after 3s so the user sees something is happening.
-        payingStateTimerRef.current = setTimeout(() => setLoadingState('Paying'), 3000)
+        setLoadingState('Paying')
         try {
             // Built from the artifact actually being submitted: a recovery
             // replacement carries a fresh prep + signature under the SAME lock.
@@ -956,11 +966,6 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 }
             )
             telemetry.stage('response_received', { outcome: 'success' })
-            // clear the timer since we got a response
-            if (payingStateTimerRef.current) {
-                clearTimeout(payingStateTimerRef.current)
-                payingStateTimerRef.current = null
-            }
             // Map backend field name (sponsoredUsd) to frontend field name (amountSponsored)
             const perkResponse = qrPaymentResponse.perk as Record<string, unknown> | undefined
             if (qrPaymentResponse.perk && typeof perkResponse?.sponsoredUsd === 'number') {
@@ -994,11 +999,6 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // nothing, so that stage is not reported at all. The money
             // outcome is decided per branch below, never from a status code.
             if (!isNetworkLayerFailure(error)) telemetry.stage('response_received', { outcome: 'failed' })
-            // clear the timer on error to prevent race condition
-            if (payingStateTimerRef.current) {
-                clearTimeout(payingStateTimerRef.current)
-                payingStateTimerRef.current = null
-            }
             /*
              * Controller-recovery control flow, handled BEFORE any failure
              * copy: the payment never left the client, so the user goes back to
@@ -1007,7 +1007,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
              * Nothing is submitted under refreshed terms without that tap.
              */
             if (error instanceof SpendRecoveryQuoteReviewError) {
-                void handleQuoteRecovery(error)
+                await handleQuoteRecovery(error)
                 return
             }
             if (error instanceof SpendRecoveryAbortedError) {
@@ -1083,9 +1083,19 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         setQrPayment,
     ])
 
+    // set before the first await: a same-tick double tap reaches here twice
+    // before the loading state renders, and two attempts mean two passkey
+    // prompts and two rain drafts (TASK-22518). a new scan remounts the
+    // provider, so it starts unlocked.
+    // a re-quote is awaited inside the attempt, so the latch also covers it
+    const payInFlightRef = useRef(false)
     const payQR = useCallback(async () => {
-        if (paymentProcessor === 'MANTECA') {
+        if (paymentProcessor !== 'MANTECA' || payInFlightRef.current) return
+        payInFlightRef.current = true
+        try {
             await handleMantecaPayment()
+        } finally {
+            payInFlightRef.current = false
         }
     }, [paymentProcessor, handleMantecaPayment])
 
@@ -1200,6 +1210,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         waitingForMerchantAmount,
         showOrderNotReadyModal,
         isLoadingPaymentData,
+        rateUnavailable,
         loadingState,
         isSuccess,
         hasUnsettledPayment: !!qrPayment && qrPaymentDisplayStatus(qrPayment.status) !== 'completed',
@@ -1230,6 +1241,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         initErrorNeedsSupport,
         isBlockingError,
         balanceErrorMessage,
+        rateUnavailable,
+        retryRate,
         // controller-rotation quote handoff
         quoteUpdatedNotice,
         isQuoteRecovering,

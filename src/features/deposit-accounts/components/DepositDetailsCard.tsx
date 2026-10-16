@@ -1,5 +1,9 @@
+import { useTranslations } from 'next-intl'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import Card from '@/components/Global/Card'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
+import type { ProviderId } from '@/types/provider.types'
 import type { DepositDetailRow } from '../types'
 
 /**
@@ -11,7 +15,15 @@ import type { DepositDetailRow } from '../types'
  * second line, which only the label-above-value row holds. PaymentInfoRow is
  * the DS row for deposit details and draws its own dashed divider.
  */
-export function DepositDetailsCard({ rows }: { rows: DepositDetailRow[] }) {
+export function DepositDetailsCard({
+    rows,
+    providerId,
+}: {
+    rows: DepositDetailRow[]
+    /** who holds the account; its row closes the card (TASK-23295) */
+    providerId?: ProviderId | null
+}) {
+    const t = useTranslations('provider')
     return (
         <Card position="solo" className="px-4 py-0">
             {rows.map((row, index) => (
@@ -20,9 +32,21 @@ export function DepositDetailsCard({ rows }: { rows: DepositDetailRow[] }) {
                     label={row.label}
                     value={row.value}
                     allowCopy={row.copyable !== false}
-                    hideBottomBorder={index === rows.length - 1}
+                    hideBottomBorder={!providerId && index === rows.length - 1}
                 />
             ))}
+            {providerId && (
+                <PaymentInfoRow
+                    hideBottomBorder
+                    label={
+                        <span className="flex items-center gap-1">
+                            {t('label.accountProvider')}
+                            <ProviderHelp providerId={providerId} />
+                        </span>
+                    }
+                    value={PROVIDERS[providerId].brand}
+                />
+            )}
         </Card>
     )
 }

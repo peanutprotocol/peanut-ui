@@ -8,6 +8,7 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
@@ -52,7 +53,7 @@ const MantecaAddMoney: FC = () => {
     const t = useTranslations('addMoney')
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
-    const leaveToHome = useReturnTo('/home')
+    const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
@@ -398,6 +399,13 @@ const MantecaAddMoney: FC = () => {
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
                     onBack={onBack}
+                    providerFinePrint={
+                        residenceGatedCountry && (
+                            <ProviderFinePrint
+                                providerId={residenceGatedCountry === 'AR' ? 'manteca-ar' : 'manteca-br'}
+                            />
+                        )
+                    }
                 />
             </>
         )

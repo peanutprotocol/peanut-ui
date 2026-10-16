@@ -28,6 +28,8 @@ import type {
 } from '@/services/services.types'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Tooltip } from '@/components/Tooltip'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -56,6 +58,7 @@ const CryptoDepositView = ({
     const t = useTranslations('addMoney.crypto')
     const tAddMoney = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+    const tProvider = useTranslations('provider')
     const [showHowToDeposit, setShowHowToDeposit] = useState(false)
     const [showSupportedNetworks, setShowSupportedNetworks] = useState(false)
     const { status, resetStatus, isResetting } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
@@ -251,6 +254,15 @@ const CryptoDepositView = ({
                                         />
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* who holds the deposit address (TASK-23295) */}
+                            <div className="border-t border-border-default p-4">
+                                <p className="mb-2 flex items-center gap-1 text-label-l">
+                                    {tProvider('label.provider')}
+                                    <ProviderHelp providerId="rhino" />
+                                </p>
+                                <p className="text-body-s">{PROVIDERS.rhino.brand}</p>
                             </div>
                         </div>
 

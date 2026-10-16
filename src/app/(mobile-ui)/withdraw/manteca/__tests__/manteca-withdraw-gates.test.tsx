@@ -17,6 +17,7 @@ import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { registerSpendArtifactMeta, SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 
 // ---------- module-level mocks ----------
 
@@ -144,9 +145,11 @@ jest.mock('@/hooks/wallet/spendPreflight', () => {
             this.name = 'SessionKeyGrantRequiredError'
         }
     }
+    class RainControllerCheckError extends Error {}
     const WEBAUTHN_NAMES = ['NotAllowedError', 'NotReadableError', 'InvalidStateError', 'NotSupportedError']
     return {
         SessionKeyGrantRequiredError,
+        RainControllerCheckError,
         isUserCancellation: (error: unknown) =>
             error instanceof SessionKeyGrantRequiredError
                 ? error.cause?.kind === 'user-cancelled'
@@ -617,6 +620,149 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         expect(screen.getByText('common.continue')).toBeDisabled()
         expect(mockInitiateWithdraw).not.toHaveBeenCalled()
     })
+})
+
+/**
+ * Collateral that covers the withdrawal signs DIRECTLY: the artifact goes to the
+ * backend as `kind: 'rainWithdrawal'`. Recovery is the real shared engine; a
+ * direct artifact only ever replays after the backend's proven pre-effect
+ * RAIN_CONTROLLER_CHANGED — pending, unknown and structured late failures are
+ * submitted once and never re-signed.
+ */
+describe('manteca withdraw — direct collateral artifact', () => {
+    const OLD_COORD = `0x${'a'.repeat(40)}`
+    const NEW_COORD = `0x${'b'.repeat(40)}`
+    // The provider's entity-aware deposit address: the SPEND recipient, never
+    // the bank destination typed by the user.
+    const PROVIDER_ADDRESS = '0x6E945f8EC93061f5f11Edc5e6Fb4A70BeB514e97'
+    const BANK_DESTINATION = '0000003100010000000009'
+    const LOCK = { ...PRICE_LOCK, depositAddress: PROVIDER_ADDRESS }
+
+    const directArtifact = (prep: string, coordinatorAddress: string) =>
+        registerSpendArtifactMeta(
+            {
+                strategy: 'collateral-only' as const,
+                rainWithdrawal: {
+                    preparedCoordinatorAddress: coordinatorAddress,
+                    preparationId: prep,
+                    amount: '50000000',
+                    recipientAddress: PROVIDER_ADDRESS as `0x${string}`,
+                    directTransfer: true,
+                    adminSalt: `0x${'11'.repeat(32)}`,
+                    adminNonce: '1',
+                    adminSignature: `0x${'ab'.repeat(65)}`,
+                    executorSignature: '0x44',
+                    executorSalt: `0x${'22'.repeat(32)}`,
+                    expiresAt: 1234567890,
+                },
+            },
+            { coordinatorAddress }
+        )
+
+    it('signs once and submits the direct artifact with the provider recipient apart from the bank destination', async () => {
+        const artifact = directArtifact('prep-1', OLD_COORD)
+        mockSignSpend.mockResolvedValue(artifact)
+        mockWithdrawWithSignedTx.mockResolvedValue({ transactionHash: '0xhash' })
+
+        await reachReview(LOCK)
+        clickConfirm()
+
+        await waitFor(() => expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend.mock.calls[0][0]).toMatchObject({
+            requiredUsdcAmount: 50_000_000n,
+            recipient: PROVIDER_ADDRESS,
+            kind: 'FIAT_OFFRAMP',
+        })
+        const body = mockWithdrawWithSignedTx.mock.calls[0][0]
+        expect(body).toEqual({
+            kind: 'rainWithdrawal',
+            priceLockCode: 'lock-1',
+            amount: '50.00',
+            destinationAddress: BANK_DESTINATION,
+            bankCode: undefined,
+            accountType: undefined,
+            currency: 'ARS',
+            signedRainWithdrawal: (artifact as { rainWithdrawal: unknown }).rainWithdrawal,
+            chainId: '42161',
+        })
+        expect(body.destinationAddress).not.toBe(PROVIDER_ADDRESS)
+        expect(mockStepperGoTo).toHaveBeenCalledWith('success')
+    })
+
+    it.each([
+        ['an unknown network failure', () => Promise.reject(new Error('Network request timed out'))],
+        [
+            'a WITHDRAWAL_PENDING_CONFIRMATION conflict',
+            () =>
+                Promise.reject(
+                    new ApiError('Withdrawal pending confirmation', {
+                        status: 409,
+                        code: 'WITHDRAWAL_PENDING_CONFIRMATION',
+                    })
+                ),
+        ],
+        [
+            'a structured revert even with a moved controller',
+            () => Promise.resolve({ error: 'Failed to broadcast UserOp', code: 'USER_OP_REVERTED' }),
+        ],
+        ['a still-pending response', () => Promise.resolve({ status: 'PENDING' })],
+    ])('%s: submitted once, never re-signed', async (_label, outcome) => {
+        mockSignSpend.mockResolvedValue(directArtifact('prep-1', OLD_COORD))
+        mockRefreshControllerAddress.mockResolvedValue({ coordinatorAddress: NEW_COORD, changed: true })
+        mockWithdrawWithSignedTx.mockImplementation(outcome)
+
+        await reachReview(LOCK)
+        mockInitiateWithdraw.mockClear()
+        clickConfirm()
+
+        await waitFor(() => expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1))
+        // Let any (wrongly) triggered recovery run before asserting it did not.
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 50))
+        })
+        expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+    })
+
+    it('a proven pre-effect RAIN_CONTROLLER_CHANGED re-signs once under the SAME lock and amount', async () => {
+        mockSignSpend
+            .mockResolvedValueOnce(directArtifact('prep-1', OLD_COORD))
+            .mockResolvedValueOnce(directArtifact('prep-2', NEW_COORD))
+        mockWithdrawWithSignedTx
+            .mockRejectedValueOnce(
+                new ApiError('Rain controller changed', {
+                    status: 409,
+                    code: API_ERROR_CODES.RAIN_CONTROLLER_CHANGED,
+                })
+            )
+            .mockResolvedValueOnce({ transactionHash: '0xhash' })
+
+        await reachReview(LOCK)
+        mockInitiateWithdraw.mockClear()
+        clickConfirm()
+
+        await waitFor(() => expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(2))
+        const [first, second] = mockWithdrawWithSignedTx.mock.calls.map(([body]) => body)
+        expect(first.signedRainWithdrawal.preparationId).toBe('prep-1')
+        expect(second).toMatchObject({
+            kind: 'rainWithdrawal',
+            priceLockCode: 'lock-1',
+            amount: '50.00',
+            destinationAddress: BANK_DESTINATION,
+            currency: 'ARS',
+        })
+        expect(second.signedRainWithdrawal.preparationId).toBe('prep-2')
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+        expect(mockSignSpend.mock.calls[1][0]).toMatchObject({
+            requiredUsdcAmount: 50_000_000n,
+            recipient: PROVIDER_ADDRESS,
+            kind: 'FIAT_OFFRAMP',
+        })
+        expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('failure')
+    }, 20_000)
 })
 
 // TASK-22452: the amount field is in the local currency while the balance row is

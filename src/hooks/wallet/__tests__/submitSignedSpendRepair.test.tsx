@@ -235,6 +235,52 @@ describe('recovery via submitSignedSpend + useSignedSpendRecovery', () => {
         expect(mockRefreshController).toHaveBeenCalledTimes(1)
     })
 
+    // A direct (QR_PAY) artifact carries no mixed replay capability: a late
+    // structured UserOp outcome, even with a moved controller, fails closed.
+    it.each([
+        ['USER_OP_REVERTED', API_ERROR_CODES.USER_OP_REVERTED],
+        ['USER_OP_REJECTED', API_ERROR_CODES.USER_OP_REJECTED],
+    ])('a direct collateral artifact + %s + moved controller is never replayed', async (_label, code) => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: NEW_COORD, changed: true })
+        const body = { error: 'Failed to broadcast UserOp', code }
+        const submit = jest.fn(async () => body)
+        const resign = jest.fn()
+
+        await expect(submitWithRecovery(collateralArtifact('prep-1'), submit, resign)).resolves.toBe(body)
+        expect(submit).toHaveBeenCalledTimes(1)
+        expect(resign).not.toHaveBeenCalled()
+    })
+
+    // Cache-only repair may still read the controller; only submit/resign are pinned.
+    it.each([
+        [
+            'WITHDRAWAL_PENDING_CONFIRMATION',
+            new ApiError('Withdrawal pending confirmation', { status: 409, code: 'WITHDRAWAL_PENDING_CONFIRMATION' }),
+        ],
+        ['a network timeout', new Error('Network request timed out')],
+    ])('a direct collateral artifact that throws %s is submitted once and never re-signed', async (_label, failure) => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: NEW_COORD, changed: true })
+        const submit = jest.fn(async () => {
+            throw failure
+        })
+        const resign = jest.fn()
+
+        await expect(submitWithRecovery(collateralArtifact('prep-1'), submit, resign)).rejects.toBe(failure)
+        expect(submit).toHaveBeenCalledTimes(1)
+        expect(resign).not.toHaveBeenCalled()
+    })
+
+    it('a direct collateral artifact that is still pending never re-signs or repairs', async () => {
+        const pending = { status: 'PENDING' }
+        const resign = jest.fn()
+
+        await expect(submitWithRecovery(collateralArtifact('prep-1'), async () => pending, resign)).resolves.toBe(
+            pending
+        )
+        expect(resign).not.toHaveBeenCalled()
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
     it('a second failure after recovery stops there and keeps the final outcome', async () => {
         const submit = jest.fn(async () => {
             throw controllerChanged

@@ -219,11 +219,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                         // Browser auto-checks can be delayed in background tabs.
                                         document.addEventListener('visibilitychange', () => {
                                             if (!document.hidden) {
-                                                registration.update();
+                                                registration.update().catch((error) => {
+                                                    console.warn('SW update failed:', error);
+                                                });
                                             }
                                         });
                                     } catch (error) {
-                                        console.error('SW registration failed:', error);
+                                        // Online use can continue without the optional SW.
+                                        // Keep a breadcrumb without creating an app-crash event.
+                                        console.warn('SW registration failed:', error);
                                     }
                                 });
 
@@ -264,6 +268,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <Script
                                 src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
                                 strategy="lazyOnload"
+                                crossOrigin="anonymous"
                             />
                             <Script id="google-analytics" strategy="lazyOnload">
                                 {`

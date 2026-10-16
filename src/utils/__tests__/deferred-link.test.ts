@@ -8,10 +8,14 @@ import {
     playStoreUrlWithReferrer,
     restoreDeferredContext,
     APP_LOCALE_KEY,
+    MAX_PLAY_REFERRER_LENGTH,
 } from '../deferred-link'
 import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
 import { saveToCookie } from '../cookie-url.utils'
+import { SIGNUP_ATTRIBUTION_COOKIE } from '../signup-attribution'
+import { readInviteCode, stashInvite } from '../invite-stash'
+import { EInviteType } from '@/services/services.types'
 
 const getReferrer = jest.fn()
 
@@ -51,10 +55,12 @@ jest.mock('@capacitor/preferences', () => ({
 }))
 
 const posthogCapture = jest.fn()
+const posthogRegister = jest.fn()
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
         capture: (...args: unknown[]) => posthogCapture(...args),
+        register: (...args: unknown[]) => posthogRegister(...args),
     },
 }))
 
@@ -83,9 +89,291 @@ beforeEach(() => {
 })
 
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
+    it('tags the Play referrer with plain utm fields, web campaign by default (TASK-23382)', () => {
+        const payload = buildDeferredPayload('/home')
+        const params = new URLSearchParams(payload)
+        expect(params.get('utm_source')).toBe('peanut.me')
+        expect(params.get('utm_campaign')).toBe('web')
+        expect(params.has('utm_medium')).toBe(false)
+        expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=pnutdl%3D1%26')
+        expect(playStoreUrlWithReferrer(payload)).toContain('utm_source%3Dpeanut.me%26utm_campaign%3Dweb')
+        // the native parser only reads its own keys
+        expect(parseDeferredPayload(payload)).toEqual({ dest: '/home' })
+        // the iOS clipboard hand-off is a peanut.me url and stays untagged
+        expect(buildDeferredPayload('/home', undefined, 'ios')).not.toContain('utm_')
+    })
+
+    it('carries the web session campaign and medium into the Play referrer', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'google',
+                utmMedium: 'cpc',
+                utmCampaign: 'br-launch',
+                path: '/pt-br/blog/guide',
+            },
+        })
+
+        const params = new URLSearchParams(buildDeferredPayload('/home'))
+        expect(params.get('utm_source')).toBe('peanut.me')
+        expect(params.get('utm_medium')).toBe('cpc')
+        expect(params.get('utm_campaign')).toBe('br-launch')
+        expect([...params.keys()].filter((k) => !k.startsWith('utm_'))).toEqual(['pnutdl', 'at', 'dest'])
+    })
+
+    it('keeps the known campaign in the Play referrer when the last touch is referrer-only', () => {
+        // first visit from the br-launch ad, then a return from an untagged
+        // external site right before the Android install tap: the install is
+        // still a br-launch install, not a `web` one.
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '44444444-4444-4444-8444-444444444444',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                utmSource: 'google',
+                utmMedium: 'cpc',
+                utmCampaign: 'br-launch',
+                path: '/pt-br/blog/guide',
+            },
+            lastTouch: {
+                occurredAt: new Date(Date.now() - 60 * 1000).toISOString(),
+                referrerHost: 'news.example',
+                path: '/',
+            },
+        })
+
+        const params = new URLSearchParams(buildDeferredPayload('/home'))
+        expect(params.get('utm_source')).toBe('peanut.me')
+        expect(params.get('utm_medium')).toBe('cpc')
+        expect(params.get('utm_campaign')).toBe('br-launch')
+    })
+
+    it('keeps a campaign held only by the content touch in the Play referrer', () => {
+        // direct /home visit, then a tagged /content page, then a return from an
+        // untagged external site: the campaign survives only as firstContentTouch.
+        const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 1000).toISOString()
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '55555555-5555-4555-8555-555555555555',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: { occurredAt: minutesAgo(30), path: '/home' },
+            firstContentTouch: {
+                occurredAt: minutesAgo(20),
+                utmSource: 'guide-template',
+                utmMedium: 'content',
+                utmCampaign: 'guide',
+                path: '/content/guide',
+            },
+            lastTouch: { occurredAt: minutesAgo(1), referrerHost: 'news.example', path: '/' },
+        })
+
+        const params = new URLSearchParams(buildDeferredPayload('/home'))
+        expect(params.get('utm_medium')).toBe('content')
+        expect(params.get('utm_campaign')).toBe('guide')
+    })
+
+    it('never carries an ad click id inside dest, on either store (TASK-23382, decision 2)', () => {
+        window.history.pushState(
+            {},
+            '',
+            '/pt-br/?utm_source=google&utm_medium=cpc&utm_campaign=br&gclid=CLICK123&fbclid=FB456&TWCLID=TW789'
+        )
+
+        const android = buildDeferredPayload()
+        expect(android).not.toContain('CLICK123')
+        expect(android).not.toContain('FB456')
+        expect(android).not.toContain('TW789')
+        expect(android).not.toMatch(/gclid|fbclid|twclid/i)
+        // the campaign fields on the landing url still ride; only the click ids go
+        expect(parseDeferredPayload(android)).toEqual({
+            lang: 'pt-br',
+            dest: '/?utm_source=google&utm_medium=cpc&utm_campaign=br',
+        })
+
+        const ios = buildDeferredPayload(undefined, undefined, 'ios')
+        expect(ios).not.toMatch(/CLICK123|FB456|TW789|gclid|fbclid|twclid/i)
+
+        // an explicit dest is scrubbed the same way; a click-id-only query drops cleanly
+        window.history.replaceState({}, '', '/')
+        expect(parseDeferredPayload(buildDeferredPayload('/claim/abc?gclid=X#p=secret'))).toEqual({
+            dest: '/claim/abc#p=secret',
+        })
+        expect(parseDeferredPayload(buildDeferredPayload('/home?gclid=X&ref=ok'))).toEqual({ dest: '/home?ref=ok' })
+    })
+
+    it('drops the plain utm fields after the attribution token and before referral identities', () => {
+        stashInvite('alice', EInviteType.DIRECT)
+        saveToCookie('campaignTag', 'nita')
+        const payload = buildDeferredPayload('/' + 'x'.repeat(MAX_PLAY_REFERRER_LENGTH))
+
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(payload)).toEqual({ invite: 'alice', badgeCampaigns: ['nita'] })
+        expect(payload).toContain('utm_campaign=web')
+
+        // `pnutdl%3D1%26invite%3D` is 22 encoded characters: this invite fits alone
+        // and leaves no room for `utm_source=peanut.me&utm_campaign=web`.
+        const invite = 'x'.repeat(MAX_PLAY_REFERRER_LENGTH - 32)
+        const squeezed = buildDeferredPayload('/home', invite)
+        expect(encodeURIComponent(squeezed).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(squeezed).not.toContain('utm_')
+        expect(parseDeferredPayload(squeezed)).toEqual({ invite })
+    })
+
+    it('uses a compact attribution token within Play referrer limits', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'creator',
+                utmMedium: 'social',
+                utmCampaign: 'localized-landing-page',
+                path: '/es-419/blog/creator-guide',
+            },
+        })
+
+        const payload = buildDeferredPayload('/home')
+        expect(payload).toContain('at=')
+        expect(payload).not.toContain('attribution=')
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(512)
+        expect(parseDeferredPayload(payload)?.attribution).toMatchObject({
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            firstTouch: { utmSource: 'creator', utmCampaign: 'localized-landing-page' },
+        })
+    })
+
+    it('preserves the inviter when a maximum-size attribution cannot fit the Play referrer', () => {
+        const maxTag = 'x'.repeat(128)
+        stashInvite('alice', EInviteType.DIRECT)
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: maxTag,
+                utmMedium: maxTag,
+                utmCampaign: maxTag,
+                utmContent: maxTag,
+                referrerHost: `${maxTag}.example`,
+                path: `/en/blog/${maxTag}`,
+            },
+            lastTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: maxTag,
+                utmMedium: maxTag,
+                utmCampaign: maxTag,
+                utmContent: maxTag,
+                referrerHost: `${maxTag}.example`,
+                path: `/en/blog/${maxTag}`,
+            },
+        })
+
+        const payload = buildDeferredPayload('/home')
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(512)
+        expect(parseDeferredPayload(payload)).toMatchObject({ invite: 'alice' })
+        expect(parseDeferredPayload(payload)?.attribution).toBeUndefined()
+    })
+
+    it('drops oversized attribution instead of aborting a direct Play handoff', () => {
+        const maxTag = 'x'.repeat(128)
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: maxTag,
+                utmMedium: maxTag,
+                utmCampaign: maxTag,
+                utmContent: maxTag,
+                referrerHost: `${maxTag}.example`,
+                path: `/en/blog/${maxTag}`,
+            },
+            lastTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: maxTag,
+                utmMedium: maxTag,
+                utmCampaign: maxTag,
+                utmContent: maxTag,
+                referrerHost: `${maxTag}.example`,
+                path: `/en/blog/${maxTag}`,
+            },
+        })
+
+        const payload = buildDeferredPayload('/home')
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(512)
+        expect(parseDeferredPayload(payload)?.attribution).toBeUndefined()
+        expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=')
+    })
+
+    it('keeps a fitting badge before marketing attribution on Play and keeps the full journey on iOS', () => {
+        const tag = 'x'.repeat(64)
+        saveToCookie('campaignTag', 'nita')
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: tag,
+                utmMedium: tag,
+                utmCampaign: tag,
+                utmContent: tag,
+                path: '/en/blog/guide',
+            },
+            lastTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: tag,
+                utmMedium: tag,
+                utmCampaign: tag,
+                utmContent: tag,
+                path: '/en/blog/next',
+            },
+        })
+
+        const playPayload = buildDeferredPayload('/home', undefined, 'android')
+        const iosPayload = buildDeferredPayload('/home', undefined, 'ios')
+        expect(encodeURIComponent(playPayload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(playPayload)?.badgeCampaigns).toEqual(['nita'])
+        expect(parseDeferredPayload(playPayload)?.attribution).toBeUndefined()
+        expect(encodeURIComponent(iosPayload).length).toBeGreaterThan(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(iosPayload)?.badgeCampaigns).toEqual(['nita'])
+        expect(parseDeferredPayload(iosPayload)?.attribution?.journeyId).toBe('33333333-3333-4333-8333-333333333333')
+    })
+
+    it('keeps the store handoff usable when even the inviter exceeds the Play limit', () => {
+        window.history.replaceState({}, '', '/es-419/home')
+        const payload = buildDeferredPayload('/home', 'x'.repeat(MAX_PLAY_REFERRER_LENGTH))
+
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(payload)).toEqual({})
+        expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=')
+        expect(playStoreUrlWithReferrer('x'.repeat(MAX_PLAY_REFERRER_LENGTH + 1))).not.toContain('&referrer=')
+    })
+
     it('round-trips a full payload including an encoded dest with query', () => {
         window.history.replaceState({}, '', '/es-419/some-page')
-        saveToCookie('inviteCode', 'abc123')
+        stashInvite('abc123', EInviteType.DIRECT)
         saveToCookie('campaignTag', 'offramp')
 
         const payload = buildDeferredPayload('/claim/XYZ?t=1')
@@ -140,8 +428,8 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         })
     })
 
-    it('invite argument overrides the cookie (claim CTA knows the code pre-cookie)', () => {
-        saveToCookie('inviteCode', 'cookiecode')
+    it('invite argument overrides the stash (claim CTA knows the code before anything is stashed)', () => {
+        stashInvite('cookiecode', EInviteType.DIRECT)
         expect(parseDeferredPayload(buildDeferredPayload('/home', 'sendercode'))).toEqual({
             invite: 'sendercode',
             dest: '/home',
@@ -202,15 +490,16 @@ describe('parseDeferredPayload rejection', () => {
 })
 
 describe('applyDeferredPayload', () => {
-    it('writes a SESSION inviteCode cookie and a 30-day campaign list', () => {
+    it('stashes the invite outside cookies and writes a 30-day campaign list', () => {
         applyDeferredPayload({ invite: 'abc', campaign: 'off' })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'abc')
+        expect(readInviteCode()).toBe('abc')
+        expect(mockSaveToCookie).not.toHaveBeenCalledWith('inviteCode', expect.anything())
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'off', 30)
     })
 
     it('normalizes invite separately while preserving campaign spelling after outer trim', () => {
         applyDeferredPayload({ invite: ' @Alice ', campaign: ' OFFRAMP ' })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
+        expect(readInviteCode()).toBe('alice')
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'OFFRAMP', 30)
     })
 
@@ -252,14 +541,14 @@ describe('applyDeferredPayload', () => {
 })
 
 describe('restoreDeferredContext', () => {
-    it('restores cookies, locale and dest from the android referrer, once', async () => {
+    it('restores the invite, campaign, locale and dest from the android referrer, once', async () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({
             referrer: 'pnutdl=1&lang=es-419&invite=abc&badge_campaign=off&dest=%2Fclaim%2FXYZ',
         })
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/claim/XYZ', locale: 'es-419' })
-        expect(document.cookie).toContain('inviteCode=')
+        expect(readInviteCode()).toBe('abc')
         expect(document.cookie).toContain('campaignTag=')
         expect(localStorage.getItem(APP_LOCALE_KEY)).toBe('es-419')
 
@@ -359,7 +648,7 @@ describe('restoreDeferredContext', () => {
         clipboardWrite.mockResolvedValue(undefined)
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'test')
+        expect(readInviteCode()).toBe('test')
         expect(clipboardWrite).toHaveBeenCalled()
     })
 })
@@ -387,6 +676,37 @@ describe('restore telemetry', () => {
         })
         // the inviter and destination must never reach analytics
         expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('abc')
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('/home')
+    })
+
+    it('restores attribution and registers only the durable journey identity', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({
+            referrer: `pnutdl=1&attribution=${encodeURIComponent(
+                JSON.stringify({
+                    schemaVersion: '1',
+                    journeyId: '33333333-3333-4333-8333-333333333333',
+                    platform: 'android',
+                    analyticsState: 'enabled',
+                    captureMethod: 'browser',
+                    firstTouch: {
+                        occurredAt: '2026-09-10T09:00:00.000Z',
+                        utmSource: 'creator',
+                        utmCampaign: 'summer',
+                        path: '/blog/how-it-works',
+                    },
+                })
+            )}&dest=%2Fhome`,
+        })
+
+        await restoreDeferredContext()
+
+        expect(posthogRegister).toHaveBeenCalledWith({
+            signup_journey_id: '33333333-3333-4333-8333-333333333333',
+            signup_platform: 'android',
+            signup_attribution_capture_method: 'deferred_link',
+        })
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('creator')
         expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('/home')
     })
 

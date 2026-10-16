@@ -1,7 +1,8 @@
 name: App Release OTA
 
 # Every compatible main push publishes an OTA from that exact main commit,
-# independently of the native store build. A changed native contract stops at
+# independently of the native store build. A push that only moves the
+# src/content pointer starts no release. A changed native contract stops at
 # the floor guard; completion still triggers the native build, while the later
 # OTA cutover waits until the new binaries are available.
 # Only the first run from a main push may publish a production OTA.
@@ -15,10 +16,28 @@ name: App Release OTA
 #
 # The tag is written afterwards as the record of what shipped. A failed deploy
 # leaves no tag; any partial upload still reserves its number for a fresh retry.
+# If the second platform promotion fails, the first platform channel returns to
+# its previous bundle. A failure other than the native preflight (which hands
+# off to the store build on purpose) alerts #🔥-notifs. To retry, dispatch this
+# workflow on main with the main tip SHA.
 
 on:
     push:
         branches: [main]
+        # A content publish (content-publish-automerge.yml) only moves this
+        # submodule pointer. It reaches the web through Vercel and needs no OTA
+        # and no store build: each one used a version number and replaced the
+        # release candidate (Release 164). The main-tip guards below let a
+        # running release continue past such a push.
+        paths-ignore: ['src/content']
+    # Retry a failed OTA without a new main push. The run publishes the current
+    # main tip only; the SHA input makes the operator name it.
+    workflow_dispatch:
+        inputs:
+            sha:
+                description: 'Full SHA of the current main tip to publish'
+                required: true
+                type: string
 
 env:
     CAPGO_APP_ID: me.peanut.wallet
@@ -40,7 +59,7 @@ concurrency:
 
 jobs:
     resolve:
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
         runs-on: ubuntu-latest
         environment: Production
         outputs:
@@ -62,11 +81,17 @@ jobs:
             # Use the main-push source and the release tooling at that SHA.
             - name: Guard release ref
               working-directory: .
+              env:
+                  INPUT_SHA: ${{ inputs.sha || '' }}
               run: |
                   if [ "$GITHUB_REF_NAME" != main ] ||
-                     [ "$GITHUB_EVENT_NAME" != push ] ||
+                     { [ "$GITHUB_EVENT_NAME" != push ] && [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; } ||
                      [ "$GITHUB_RUN_ATTEMPT" != 1 ]; then
-                      echo '::error::production OTA requires the first run of a main push; manual dispatches and reruns are not releases' >&2
+                      echo '::error::production OTA requires the first run of a main push or a guarded dispatch on main; reruns are not releases' >&2
+                      exit 1
+                  fi
+                  if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$INPUT_SHA" != "$GITHUB_SHA" ]; then
+                      echo "::error::the sha input (${INPUT_SHA:-empty}) is not the main tip this run checked out (${GITHUB_SHA:0:7})" >&2
                       exit 1
                   fi
 
@@ -92,7 +117,7 @@ jobs:
               run: |
                   SOURCE_SHA="$(git rev-parse HEAD)"
                   LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-                  if [ "$SOURCE_SHA" != "$LATEST_MAIN_SHA" ]; then
+                  if ! node ../release-tooling/scripts/release-source-guard.mjs "$SOURCE_SHA" "$LATEST_MAIN_SHA"; then
                       echo "::error::main advanced while the OTA source was selected ($SOURCE_SHA -> $LATEST_MAIN_SHA)" >&2
                       exit 1
                   fi
@@ -178,7 +203,7 @@ jobs:
 
     deploy:
         needs: resolve
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
         runs-on: ubuntu-latest
         environment: Production
         env:
@@ -190,6 +215,8 @@ jobs:
             MIGRATION_CUTOVER: ${{ needs.resolve.outputs.migration_cutover }}
             IOS_BRIDGE_BEFORE: ${{ needs.resolve.outputs.ios_bridge_before }}
             ANDROID_BRIDGE_BEFORE: ${{ needs.resolve.outputs.android_bridge_before }}
+        outputs:
+            native_incompatible: ${{ steps.native_incompatible.outputs.found }}
         defaults:
             run:
                 working-directory: app
@@ -249,6 +276,17 @@ jobs:
                   path: ${{ runner.temp }}/ota-native-incompatible/head.sha
                   if-no-files-found: ignore
                   retention-days: 7
+
+            # The native preflight failing is the expected handoff to the store
+            # build, so it must not raise the failure alert.
+            - name: Mark native-incompatible OTA
+              id: native_incompatible
+              if: failure()
+              working-directory: .
+              run: |
+                  if [ -f "$RUNNER_TEMP/ota-native-incompatible/head.sha" ]; then
+                      echo "found=true" >> "$GITHUB_OUTPUT"
+                  fi
 
             # NEXT_PUBLIC_* values are baked into the static export at build time.
             # rpId MUST be peanut.me (passkeys + assetlinks/AASA). CAPACITOR_BUILD /
@@ -321,21 +359,24 @@ jobs:
                   EOF
 
             - name: Build native static export
+              env:
+                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+                  SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
               run: node scripts/native-build.js
 
             # A queued run can finish building after a newer commit lands on
             # main. Re-read the remote ref after the expensive build so a stale
-            # bundle cannot advance into the candidate/promotion sequence.
+            # bundle cannot advance into the candidate/promotion sequence. A
+            # main that moved by the content pointer only keeps this release.
             - name: Guard current main after build
               env:
                   EXPECTED_MAIN_SHA: ${{ needs.resolve.outputs.source_sha }}
               run: |
                   LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-                  if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
+                  if ! node ../release-tooling/scripts/release-source-guard.mjs "$EXPECTED_MAIN_SHA" "$LATEST_MAIN_SHA"; then
                       echo "::error::main advanced during the build ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to publish a stale OTA" >&2
                       exit 1
                   fi
-                  echo "main is still ${EXPECTED_MAIN_SHA:0:7} after the build"
 
             - name: Verify build output
               run: |
@@ -460,12 +501,36 @@ jobs:
               run: |
                   guard_current_main() {
                     LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-                    if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
+                    if ! node ../release-tooling/scripts/release-source-guard.mjs "$EXPECTED_MAIN_SHA" "$LATEST_MAIN_SHA"; then
                       echo "::error::main advanced before production promotion ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to promote a stale OTA" >&2
                       exit 1
                     fi
-                    echo "main is still ${EXPECTED_MAIN_SHA:0:7} before production promotion"
                   }
+
+                  # If a later step fails, return every channel this step moved with
+                  # promote-production to the bundle it served before, so the two
+                  # platforms never serve different releases. Bridge and cutover
+                  # promotions also change the native-version policy; those are
+                  # reported, not reverted.
+                  RESTORE=()
+                  restore_promoted() {
+                    local status=$?
+                    if [ "$status" -eq 0 ]; then return 0; fi
+                    for ENTRY in "${RESTORE[@]}"; do
+                      RESTORE_PLATFORM="${ENTRY%%=*}"
+                      RESTORE_VERSION="${ENTRY#*=}"
+                      if [ -z "$RESTORE_VERSION" ]; then
+                        echo "::error::$RESTORE_PLATFORM was promoted but its previous bundle is unknown; fix the channel in Capgo" >&2
+                        continue
+                      fi
+                      echo "::error::returning the $RESTORE_PLATFORM channel to $RESTORE_VERSION" >&2
+                      PLATFORM="$RESTORE_PLATFORM" PREVIOUS_VERSION="$RESTORE_VERSION" \
+                        node ../release-tooling/scripts/capgo-release-guard.mjs restore-production ||
+                        echo "::error::could not return the $RESTORE_PLATFORM channel to $RESTORE_VERSION; fix it in Capgo" >&2
+                    done
+                    exit "$status"
+                  }
+                  trap restore_promoted EXIT
 
                   for PLATFORM in ios android; do
                     export PLATFORM VERSION="$RELEASE_VERSION-$PLATFORM"
@@ -498,6 +563,8 @@ jobs:
                       node ../release-tooling/scripts/capgo-release-guard.mjs promote-android-bridge
                       node ../release-tooling/scripts/capgo-release-guard.mjs verify-android-bridge
                     else
+                      PREVIOUS="$(node ../release-tooling/scripts/capgo-release-guard.mjs current-version)"
+                      RESTORE+=("$PLATFORM=$PREVIOUS")
                       node ../release-tooling/scripts/capgo-release-guard.mjs promote-production
                       node ../release-tooling/scripts/capgo-release-guard.mjs verify-production
                     fi
@@ -515,7 +582,7 @@ jobs:
 
     tag:
         needs: [resolve, deploy]
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -544,3 +611,31 @@ jobs:
                   git tag -a "ota-$VERSION" -m "OTA release $VERSION"
                   git push origin "ota-$VERSION"
                   echo "Tagged ota-$VERSION at ${SOURCE_SHA:0:7}"
+
+    # 18 of 37 OTA runs failed between 2026-09-23 and 2026-10-11 and nobody was
+    # told. The native preflight failure is the planned handoff to the store
+    # build and does not alert; App Release Android & iOS alerts for itself.
+    alert:
+        needs: [resolve, deploy, tag]
+        if: ${{ always() && contains(needs.*.result, 'failure') && needs.deploy.outputs.native_incompatible != 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.sha }}
+                  sparse-checkout: scripts/post-release-alert.sh
+                  sparse-checkout-cone-mode: false
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '22'
+
+            - name: Post the failure to Discord
+              env:
+                  DISCORD_WEBHOOK: ${{ secrets.RELEASE_ALERT_DISCORD_WEBHOOK || secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  VERSION: ${{ needs.resolve.outputs.version }}
+                  RESULTS: 'resolve=${{ needs.resolve.result }} deploy=${{ needs.deploy.result }} tag=${{ needs.tag.result }}'
+              run: |
+                  FAILED="$(tr ' ' '\n' <<< "$RESULTS" | grep '=failure$' | cut -d= -f1 | paste -sd, -)"
+                  bash scripts/post-release-alert.sh "🚨 OTA ${VERSION:-<unresolved>} failed at: ${FAILED}. Check that both production channels serve the same release before the next main merge. Run: $RUN_URL"

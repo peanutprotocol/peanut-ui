@@ -7,6 +7,7 @@ export type Screen = {
     name: string
     flow: string
     kind: 'route' | 'component'
+    defaultScreen: boolean
     route: string
     camera?: 'synthetic' | 'denied'
     videoFrame?: number
@@ -14,11 +15,13 @@ export type Screen = {
     requiresSource?: string
     entryRoute?: string
     actions?: PageCapture['actions']
+    expectSelector?: string
     routePattern?: string
     fixture: string
     clicks: string[]
     clickTestIds?: string[]
     source?: string
+    captureState?: string[]
     exclusion?: string
     unavailable?: string
     toBottom?: boolean
@@ -50,6 +53,7 @@ const readiness: Record<string, string> = {
     'fixture-reconsent': 'A small update to our terms',
     '18-a-reconsentmodal': 'A small update to our terms',
     '67-e-provideemailstep': 'Add email to continue',
+    '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
 const routeOverrides: Record<
     string,
@@ -64,12 +68,38 @@ const routeOverrides: Record<
 
     '66-e-avatarpicker': { route: FIXTURES['avatar-picker'].route, fixture: 'avatar-picker' },
 }
+// Page captures that deliberately show a second state of another page. Keep this
+// list explicit: a fixture can also be necessary to reach a canonical page.
+const variationPageIds = new Set([
+    'p02-backup-lose-phone',
+    'p03-backup-change-phone',
+    'p04-backup-export-keys',
+    'p35-home-ctas',
+    'p36-add-money-bank-list',
+    'p37-add-money-crypto',
+    'p38-kyc-action-required',
+    'p39-language',
+    'p40-withdraw',
+    'p41-home-add-drawer',
+    'p42-home-send-drawer',
+    'p57-qr-code',
+    'p59-receipt',
+    'p68-invite',
+    'p71-accounts-held',
+    'p72-accounts-held-open',
+    'p73-token-selector-drawer',
+    'p74-network-selector-drawer',
+    'p75-residence-country-dropdown',
+    'p76-exchange-currency-dropdown',
+    'p77-base-select-dropdown',
+])
 const definitions: Screen[] = [
     {
         id: 'qr-camera-permission',
         name: 'QR scanner — camera permission needed',
         flow: 'Payments',
         kind: 'component',
+        defaultScreen: false,
         route: '/dev/surfaces?s=54-d-qrbottomdrawer',
         fixture: 'profile-edit',
         clicks: [],
@@ -80,6 +110,7 @@ const definitions: Screen[] = [
         name: f.about,
         flow: flow(`${id} ${f.route}`),
         kind: 'route' as const,
+        defaultScreen: false,
         route: f.route,
         fixture: id,
         clicks: [],
@@ -89,6 +120,14 @@ const definitions: Screen[] = [
         ...p,
         flow: flow(p.route),
         kind: (p.route.startsWith('/dev/') ? 'component' : 'route') as Screen['kind'],
+        defaultScreen:
+            p.defaultScreen ??
+            (!p.route.startsWith('/dev/') &&
+                !p.route.includes('drawer=') &&
+                !variationPageIds.has(p.id) &&
+                !p.clicks?.length &&
+                !p.actions?.length &&
+                !p.expectSelector),
         fixture: p.fixture ?? 'profile-edit',
         clicks: p.clicks ?? [],
     })),
@@ -97,12 +136,15 @@ const definitions: Screen[] = [
         name: s.name,
         flow: flow(`${s.path} ${s.name}`),
         kind: (routeOverrides[id] ? 'route' : 'component') as Screen['kind'],
+        defaultScreen: false,
         route: routeOverrides[id]?.route ?? `/dev/surfaces?s=${id}`,
         fixture: routeOverrides[id]?.fixture ?? s.shotFixture ?? 'profile-edit',
         clicks: s.shotClick ? [s.shotClick] : [],
         clickTestIds: s.shotClickTestId ? [s.shotClickTestId] : [],
         source: s.path,
-        expectsLoading: id === '24-b-kycverificationinprogressmodal',
+        captureState: s.captureState,
+        expectSelector: s.expectSelector,
+        expectsLoading: ['24-b-kycverificationinprogressmodal', '90-f-withdraw-review-processing'].includes(id),
         event: routeOverrides[id]?.event,
         storage: routeOverrides[id]?.storage,
         unavailable: routeOverrides[id] ? undefined : s.blocked,
@@ -121,17 +163,22 @@ const flowOrder = [
 ]
 const setupJourney: Record<string, { journey: string; step: number }> = {
     '01-a-landing': { journey: 'Account setup', step: 10 },
-    '02-a-joinwaitlist': { journey: 'Account setup', step: 20 },
+    '06-b-invite': { journey: 'Account setup', step: 20 },
     '06-a-signup': { journey: 'Account setup', step: 30 },
+    '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 31 },
+    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 32 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
-    '07-a-setuppasskey': { journey: 'Account setup', step: 50 },
-    '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 51 },
-    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 52 },
+    '04-b-advantage-fees': { journey: 'Account setup', step: 42 },
+    '02-b-advantage-card': { journey: 'Account setup', step: 44 },
+    '03-c-residence-congrats': { journey: 'Account setup', step: 46 },
+    '03-h-funding-methods': { journey: 'Account setup', step: 47 },
+    '03-i-payment-methods': { journey: 'Account setup', step: 48 },
+    '07-c-notification-email': { journey: 'Account setup', step: 53 },
+    '07-d-notification-settings': { journey: 'Account setup', step: 54 },
+    '07-b-advantage-control': { journey: 'Account setup', step: 55 },
     '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
+    '07-e-setup-celebration': { journey: 'Account setup', step: 65 },
     '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
-    'p51-setup-finish': { journey: 'Account setup', step: 80 },
-    'fixture-setup-pending': { journey: 'Resume setup', step: 110 },
-    'p50-setup-session': { journey: 'Resume setup', step: 120 },
     'fixture-guest-invite': { journey: 'Invite entry', step: 210 },
     'p68-invite': { journey: 'Invite entry', step: 220 },
     '10-a-confirminvitemodal': { journey: 'Invite entry', step: 230 },
@@ -141,10 +188,12 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
 }
 const orderedDefinitions = definitions
     .map((screen, catalogueIndex) => {
-        const flowIndex = flowOrder.indexOf(screen.flow)
         const journey = setupJourney[screen.id]
+        const screenFlow = journey?.journey === 'Account setup' ? 'Setup and login' : screen.flow
+        const flowIndex = flowOrder.indexOf(screenFlow)
         return {
             ...screen,
+            flow: screenFlow,
             ...(journey ? { journey: journey.journey } : {}),
             order:
                 (flowIndex === -1 ? flowOrder.length : flowIndex) * 10_000 + (journey?.step ?? 1_000 + catalogueIndex),
@@ -156,6 +205,14 @@ export const SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
     sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
+    expectSelector:
+        screen.expectSelector ??
+        // The QR drawer intentionally rests at a small peek snap. Its visible
+        // title proves it is open without requiring half its full-height box.
+        (screen.id === '54-d-qrbottomdrawer' ? '[role="dialog"][data-state="open"] h2' : undefined) ??
+        (/Drawer\b/.test(screen.name) || screen.route.includes('drawer=')
+            ? '[role="dialog"]:not([aria-modal="false"])'
+            : undefined),
     camera: screen.id === '54-d-qrbottomdrawer' ? ('synthetic' as const) : screen.camera,
     requiresSource: ['fixture-avatar-picker', '66-e-avatarpicker'].includes(screen.id)
         ? 'src/components/Avatar/AvatarPicker.tsx'

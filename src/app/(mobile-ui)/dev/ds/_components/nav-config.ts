@@ -1,5 +1,6 @@
 import {
     BellRing,
+    CalendarRange,
     Blocks,
     Boxes,
     CaseUpper,
@@ -45,6 +46,7 @@ import {
     Puzzle,
     RectangleEllipsis,
     RectangleHorizontal,
+    Rows2,
     Rows3,
     Ruler,
     Shapes,
@@ -169,6 +171,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/button',
             description: 'Primary interaction component. 3 variants, 3 sizes, shadow options, long-press support',
             status: 'production',
+        },
+        {
+            label: 'Calendar',
+            icon: CalendarRange,
+            href: '/dev/ds/primitives/calendar',
+            description:
+                'Range calendar over react-day-picker, semantic tokens only. Built for the statement period on Profile → Statements',
+            status: 'limited',
         },
         {
             label: 'Card',
@@ -347,6 +357,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/data-row',
             description:
                 'Label + value row, promoted from TransactionDetails/ReceiptRow. Copy, tooltip, loading, trailing slot',
+            status: 'production',
+        },
+        {
+            label: 'DataRowGroup',
+            icon: Rows2,
+            href: '/dev/ds/primitives/data-row-group',
+            description: 'One theme of rows in a receipt card. One dashed divider between groups, none inside',
             status: 'production',
         },
         {

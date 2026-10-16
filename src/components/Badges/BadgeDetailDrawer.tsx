@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
@@ -37,12 +38,13 @@ export const BadgeDetailDrawer = ({
     earned = true,
     unlockText,
 }: BadgeDetailDrawerProps) => {
+    const origin = useAppOrigin()
     const t = useTranslations('badges')
     const locale = useLocale()
     const { user: authUser } = useAuth()
     const username = authUser?.user?.username
     // the sharer's own invite link, so a guest signup credits them
-    const shareLink = getBadgeShareLink(username)
+    const shareLink = getBadgeShareLink(username, REFERRAL_SOURCES.BADGE_DETAIL, origin)
     useBadgeShareImpression(isOpen && earned, REFERRAL_SOURCES.BADGE_DETAIL, username)
 
     const shareText = getBadgeShareText(code, title, shareLink, {

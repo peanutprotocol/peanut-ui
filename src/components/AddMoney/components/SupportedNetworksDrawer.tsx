@@ -26,8 +26,7 @@ const SupportedNetworksDrawer = ({ visible, onClose }: SupportedNetworksDrawerPr
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        {/* same bright-yellow bubble as TokenAndNetworkConfirmationDrawer — the two
-                            screens carry the same permanent-loss warning and should read alike */}
+                        {/* bright-yellow bubble: this screen carries the permanent-loss warning */}
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('title')}</DrawerTitle>

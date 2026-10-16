@@ -42,6 +42,8 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { providerForRegionIntent } from '@/utils/regions.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -111,6 +113,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // the *claimer's* own capabilities. See utils/capability-gate.ts.
     const { gateFor } = useCapabilities()
     const bankRegionIntent = useBankRegionIntent()
+    const bridgeProviderId = useBridgeProviderId()
     const { banking: isBankRestricted } = useResidenceRestrictions()
     // local states for this component
     const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
@@ -405,6 +408,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 variant={getKycModalVariant(gate.kind)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                providerId={
+                    providerForRegionIntent(bankRegionIntent(bankRailCountry ?? selectedCountry)) === 'bridge'
+                        ? bridgeProviderId
+                        : undefined
+                }
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
         </>
@@ -682,7 +690,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                 handleCreateOfframpAndClaim(localBankDetails)
                             }}
                             onSkip={hideTos}
-                            reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                         />
                         {kycModal}
                     </>

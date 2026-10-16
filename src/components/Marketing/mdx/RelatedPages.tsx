@@ -5,6 +5,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { PROSE_WIDTH, CARD_HOVER } from '../constants'
 import { getTranslations } from '@/i18n'
 import { resolveContentHref } from '@/lib/content'
+import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 interface RelatedLinkProps {
@@ -41,8 +42,10 @@ export function RelatedPages({ title, children, locale = DEFAULT_LOCALE }: Relat
     Children.forEach(children, (child) => {
         if (!isValidElement(child)) return
         if (child.type === RelatedLink || child.props?.href) {
+            const href = resolveContentHref(child.props.href, locale)
+            if (isGoneMarketingPath(href)) return
             links.push({
-                href: child.props.href,
+                href,
                 text:
                     typeof child.props.children === 'string'
                         ? child.props.children
@@ -58,7 +61,7 @@ export function RelatedPages({ title, children, locale = DEFAULT_LOCALE }: Relat
             <h2 className="mb-4 text-heading-xs text-foreground-primary md:text-heading-s">{heading}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {links.map((link) => (
-                    <Link key={link.href} href={resolveContentHref(link.href, locale)} className="flex">
+                    <Link key={link.href} href={link.href} className="flex">
                         <Card shadowSize="4" className={`flex-1 flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                             <span className="text-body-m-semibold">{link.text}</span>
                             <Icon name="chevron-right" size={20} className="ml-auto shrink-0" />

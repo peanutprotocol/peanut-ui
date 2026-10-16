@@ -1,0 +1,1622 @@
+[
+    {
+        "id": "01-a-landing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
+    },
+    {
+        "id": "06-b-invite",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-b-invite",
+        "source": "Setup/Views/Invite.tsx"
+    },
+    {
+        "id": "06-a-signup",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-a-signup",
+        "source": "Setup/Views/Signup.tsx"
+    },
+    {
+        "id": "08-a-passkeysetuphelpmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-a-passkeysetuphelpmodal",
+        "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
+    },
+    {
+        "id": "09-a-passkeyinfomodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
+        "source": "Setup/components/PasskeyInfoDrawer.tsx"
+    },
+    {
+        "id": "03-a-residence-select",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-a-residence-select",
+        "source": "Setup/Views/Residence.tsx"
+    },
+    {
+        "id": "04-b-advantage-fees",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=04-b-advantage-fees",
+        "source": "Setup/Views/Advantage.tsx"
+    },
+    {
+        "id": "02-b-advantage-card",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=02-b-advantage-card",
+        "source": "Setup/Views/Advantage.tsx"
+    },
+    {
+        "id": "03-c-residence-congrats",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-c-residence-congrats",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "03-h-funding-methods",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-h-funding-methods",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "03-i-payment-methods",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-i-payment-methods",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "07-c-notification-email",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-c-notification-email",
+        "source": "Setup/Views/Email.tsx"
+    },
+    {
+        "id": "07-d-notification-settings",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-settings",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
+        "id": "07-b-advantage-control",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-b-advantage-control",
+        "source": "Setup/Views/Advantage.tsx"
+    },
+    {
+        "id": "05-a-signtesttransaction",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=05-a-signtesttransaction",
+        "source": "Setup/Views/SignTestTransaction.tsx"
+    },
+    {
+        "id": "07-e-setup-celebration",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-e-setup-celebration",
+        "source": "Setup/Views/Success.tsx"
+    },
+    {
+        "id": "20-a-setupnotificationsmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=20-a-setupnotificationsmodal",
+        "source": "Notifications/SetupNotificationsModal.tsx"
+    },
+    {
+        "id": "fixture-guest-invite",
+        "flow": "Setup and login",
+        "route": "/invite?code=synthetic-invite"
+    },
+    {
+        "id": "p68-invite",
+        "flow": "Setup and login",
+        "route": "/invite?code=synthetic-invite"
+    },
+    {
+        "id": "10-a-confirminvitemodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=10-a-confirminvitemodal",
+        "source": "Global/ConfirmInviteModal/index.tsx"
+    },
+    {
+        "id": "13-a-guestloginmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=13-a-guestloginmodal",
+        "source": "Global/GuestLoginModal/index.tsx"
+    },
+    {
+        "id": "14-a-guestverificationmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=14-a-guestverificationmodal",
+        "source": "Global/GuestVerificationModal/index.tsx"
+    },
+    {
+        "id": "15-a-invitefriendsmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=15-a-invitefriendsmodal",
+        "source": "Global/InviteFriendsModal/index.tsx"
+    },
+    {
+        "id": "fixture-setup-payment-plan",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-c-residence-congrats"
+    },
+    {
+        "id": "fixture-profile-accounts-no-residence",
+        "flow": "Setup and login",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-residence-restricted",
+        "flow": "Setup and login",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "p75-residence-country-dropdown",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-a-residence-select"
+    },
+    {
+        "id": "45-c-residencechangemodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=45-c-residencechangemodal",
+        "source": "Profile/views/ResidenceChangeDrawer.tsx"
+    },
+    {
+        "id": "78-f-choice-guest-claim",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=78-f-choice-guest-claim",
+        "source": "Claim/Link/SendLinkActionList.tsx"
+    },
+    {
+        "id": "83-f-choice-residence-restricted",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=83-f-choice-residence-restricted",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "84-f-choice-public-profile-guest",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=84-f-choice-public-profile-guest",
+        "source": "Profile/components/PublicProfile.tsx"
+    },
+    {
+        "id": "fixture-home",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-verification-needed",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-history",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-history-pix-key-owner",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-limits",
+        "flow": "Home and shared states",
+        "route": "/limits"
+    },
+    {
+        "id": "fixture-long-name-history",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-huge-amount-history",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-huge-limits",
+        "flow": "Home and shared states",
+        "route": "/limits/manteca"
+    },
+    {
+        "id": "fixture-history-receipt-attachment",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-history-receipt-no-attachment",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-empty-history",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-empty-home",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-early-user",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-arrival-pix-br",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-add-drawer",
+        "flow": "Home and shared states",
+        "route": "/home?drawer=add"
+    },
+    {
+        "id": "fixture-home-new-user",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-verify-processing",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-verified-unfunded",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-verified-crypto-dust",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-money-before-verify",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-funded",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-verify-processing-long",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-money-in-out-only",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-funded-no-spend-path",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-collateral-only",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-region-restricted",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-transacting-without-id-check",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-banking-restricted-resident",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-fully-restricted-resident",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-activated",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-error-history",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-error-limits",
+        "flow": "Home and shared states",
+        "route": "/limits/manteca"
+    },
+    {
+        "id": "p05-home",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "p13-limits",
+        "flow": "Home and shared states",
+        "route": "/limits"
+    },
+    {
+        "id": "p28-history",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "p35-home-ctas",
+        "flow": "Home and shared states",
+        "route": "/dev/home-ctas"
+    },
+    {
+        "id": "p41-home-add-drawer",
+        "flow": "Home and shared states",
+        "route": "/home?drawer=add"
+    },
+    {
+        "id": "p53-maintenance",
+        "flow": "Home and shared states",
+        "route": "/maintenance"
+    },
+    {
+        "id": "p59-receipt",
+        "flow": "Home and shared states",
+        "route": "/receipt/synthetic-invalid"
+    },
+    {
+        "id": "p60-receipt-entry",
+        "flow": "Home and shared states",
+        "route": "/receipt"
+    },
+    {
+        "id": "p67-recipient",
+        "flow": "Home and shared states",
+        "route": "/demo"
+    },
+    {
+        "id": "p77-base-select-dropdown",
+        "flow": "Home and shared states",
+        "route": "/dev/ds/primitives/base-select"
+    },
+    {
+        "id": "11-a-earlyusermodal",
+        "flow": "Home and shared states",
+        "route": "/home",
+        "source": "Global/EarlyUserDrawer/index.tsx"
+    },
+    {
+        "id": "12-a-eastereggmodal",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=12-a-eastereggmodal",
+        "source": "Global/EasterEggDrawer/index.tsx"
+    },
+    {
+        "id": "17-a-nomorejailmodal",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=17-a-nomorejailmodal",
+        "source": "Global/NoMoreJailDrawer/index.tsx"
+    },
+    {
+        "id": "41-c-migrationdownloadmodal",
+        "flow": "Home and shared states",
+        "route": "/home",
+        "source": "Migration/MigrationDownloadModal.tsx"
+    },
+    {
+        "id": "43-c-scantodownloadmodal",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=43-c-scantodownloadmodal",
+        "source": "Migration/ScanToDownloadModal.tsx"
+    },
+    {
+        "id": "48-c-balancewarningmodal",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=48-c-balancewarningmodal",
+        "source": "Global/BalanceWarningDrawer/index.tsx"
+    },
+    {
+        "id": "51-d-homeactiondrawers",
+        "flow": "Home and shared states",
+        "route": "/home?drawer=add",
+        "source": "features/home/components/HomeActionDrawers.tsx"
+    },
+    {
+        "id": "60-d-offlinescreen",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=60-d-offlinescreen",
+        "source": "Global/OfflineScreen/index.tsx"
+    },
+    {
+        "id": "61-d-backenderrorscreen",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=61-d-backenderrorscreen",
+        "source": "Global/BackendErrorScreen/index.tsx"
+    },
+    {
+        "id": "63-d-emptystate",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=63-d-emptystate",
+        "source": "Global/EmptyStates/EmptyState.tsx"
+    },
+    {
+        "id": "64-d-nodataemptystate",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=64-d-nodataemptystate",
+        "source": "Global/EmptyStates/NoDataEmptyState.tsx"
+    },
+    {
+        "id": "65-d-faqs",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=65-d-faqs",
+        "source": "Global/FAQs/index.tsx"
+    },
+    {
+        "id": "75-e-rateunavailable",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=75-e-rateunavailable",
+        "source": "Global/RateUnavailable/index.tsx"
+    },
+    {
+        "id": "70-d-activationctas-outbound",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=70-d-activationctas-outbound",
+        "source": "Home/FirstPaymentChooser.tsx"
+    },
+    {
+        "id": "fixture-identity-verification",
+        "flow": "Verification",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-identity-awaiting-upload",
+        "flow": "Verification",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-identity-review-overdue",
+        "flow": "Verification",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-identity-document-missing",
+        "flow": "Verification",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-kyc-action-required",
+        "flow": "Verification",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-reconsent",
+        "flow": "Verification",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-provider-rejection",
+        "flow": "Verification",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-identity-final-rejected",
+        "flow": "Verification",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-identity-action-required",
+        "flow": "Verification",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-card-application-rejected",
+        "flow": "Verification",
+        "route": "/home"
+    },
+    {
+        "id": "p52-kyc-success",
+        "flow": "Verification",
+        "route": "/kyc/success"
+    },
+    {
+        "id": "18-a-reconsentmodal",
+        "flow": "Verification",
+        "route": "/home",
+        "source": "Global/ReConsentModal/index.tsx"
+    },
+    {
+        "id": "22-b-initiatekycmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=22-b-initiatekycmodal",
+        "source": "Kyc/InitiateKycModal.tsx"
+    },
+    {
+        "id": "23-b-kycreverificationpendingmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=23-b-kycreverificationpendingmodal",
+        "source": "Kyc/KycReverificationPendingModal.tsx"
+    },
+    {
+        "id": "24-b-kycverificationinprogressmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-b-kycverificationinprogressmodal",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
+        "id": "25-b-kycactionrequiredmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=25-b-kycactionrequiredmodal",
+        "source": "Kyc/modals/KycActionRequiredModal.tsx"
+    },
+    {
+        "id": "26-b-kycfailedmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=26-b-kycfailedmodal",
+        "source": "Kyc/modals/KycFailedModal.tsx"
+    },
+    {
+        "id": "27-b-kycprocessingmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=27-b-kycprocessingmodal",
+        "source": "Kyc/modals/KycProcessingModal.tsx"
+    },
+    {
+        "id": "28-b-kycregionrestrictedmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=28-b-kycregionrestrictedmodal",
+        "source": "Kyc/modals/KycRegionRestrictedModal.tsx"
+    },
+    {
+        "id": "29-b-kycstatusdrawer",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=29-b-kycstatusdrawer",
+        "source": "Kyc/KycStatusDrawer.tsx"
+    },
+    {
+        "id": "30-b-unlockmethodmodal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=30-b-unlockmethodmodal",
+        "source": "IdentityVerification/UnlockMethodModal.tsx"
+    },
+    {
+        "id": "67-e-provideemailstep",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=67-e-provideemailstep",
+        "source": "Kyc/ProvideEmailStep.tsx"
+    },
+    {
+        "id": "68-e-bridgetosstep",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=68-e-bridgetosstep",
+        "source": "Kyc/BridgeTosStep.tsx"
+    },
+    {
+        "id": "69-e-kycprepchecklist-standard",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=69-e-kycprepchecklist-standard",
+        "source": "Kyc/KycPrepChecklist.tsx"
+    },
+    {
+        "id": "70-e-kycprepchecklist-extended",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=70-e-kycprepchecklist-extended",
+        "source": "Kyc/KycPrepChecklist.tsx"
+    },
+    {
+        "id": "71-e-kycprepchecklist-hosted",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=71-e-kycprepchecklist-hosted",
+        "source": "Kyc/KycPrepChecklist.tsx"
+    },
+    {
+        "id": "72-e-kycfailedcontent-terminal",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=72-e-kycfailedcontent-terminal",
+        "source": "Kyc/KycFailedContent.tsx"
+    },
+    {
+        "id": "73-e-rejectlabelslist",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=73-e-rejectlabelslist",
+        "source": "Kyc/RejectLabelsList.tsx"
+    },
+    {
+        "id": "74-e-kycactionrequired",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=74-e-kycactionrequired",
+        "source": "Kyc/states/KycActionRequired.tsx"
+    },
+    {
+        "id": "fixture-add-money",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-add-money-crypto",
+        "flow": "Add money",
+        "route": "/add-money/crypto"
+    },
+    {
+        "id": "fixture-add-money-country-provider-wait",
+        "flow": "Add money",
+        "route": "/add-money/spain"
+    },
+    {
+        "id": "fixture-get-paid",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-review-action",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-empty",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-blocked",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-claim",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
+    },
+    {
+        "id": "fixture-get-paid-claim-eur",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-claim-cop",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=BANK_TRANSFER_CO"
+    },
+    {
+        "id": "fixture-get-paid-details-eur",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-details-usd",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=ACH_US"
+    },
+    {
+        "id": "fixture-get-paid-details-usd-state-restricted",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=ACH_US"
+    },
+    {
+        "id": "fixture-get-paid-details-gbp",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=FASTER_PAYMENTS_GB"
+    },
+    {
+        "id": "fixture-get-paid-details-mxn",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=SPEI_MX"
+    },
+    {
+        "id": "fixture-get-paid-details-provider-held",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-details-ownership-unknown",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-provisioning",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=ACH_US"
+    },
+    {
+        "id": "fixture-get-paid-revoked",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=ACH_US"
+    },
+    {
+        "id": "fixture-get-paid-share",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=share&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-cop",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_CO"
+    },
+    {
+        "id": "fixture-get-paid-ar",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR"
+    },
+    {
+        "id": "p17-add-money",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "p18-add-money-crypto",
+        "flow": "Add money",
+        "route": "/add-money/crypto"
+    },
+    {
+        "id": "p19-add-money-us-bank",
+        "flow": "Add money",
+        "route": "/add-money/usa/bank"
+    },
+    {
+        "id": "p36-add-money-bank-list",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "p37-add-money-crypto",
+        "flow": "Add money",
+        "route": "/add-money/crypto"
+    },
+    {
+        "id": "p61-bank-europe",
+        "flow": "Add money",
+        "route": "/add-money/spain/bank"
+    },
+    {
+        "id": "p62-bank-us",
+        "flow": "Add money",
+        "route": "/add-money/usa/bank"
+    },
+    {
+        "id": "p63-deposit-argentina",
+        "flow": "Add money",
+        "route": "/add-money/argentina"
+    },
+    {
+        "id": "p69-regional-deposit",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "38-c-howtodepositmodal",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=38-c-howtodepositmodal",
+        "source": "AddMoney/components/HowToDepositDrawer.tsx"
+    },
+    {
+        "id": "39-c-onrampconfirmationmodal",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=39-c-onrampconfirmationmodal",
+        "source": "AddMoney/components/OnrampConfirmationModal.tsx"
+    },
+    {
+        "id": "fixture-card-application",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-onboarding",
+        "flow": "Card",
+        "route": "/card?card_step=eligibility"
+    },
+    {
+        "id": "fixture-card-available",
+        "flow": "Card",
+        "route": "/card?card_step=available"
+    },
+    {
+        "id": "fixture-card-funding",
+        "flow": "Card",
+        "route": "/card?card_step=funding"
+    },
+    {
+        "id": "fixture-card-holder",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-prohibited",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-pending",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-pin",
+        "flow": "Card",
+        "route": "/card/pin"
+    },
+    {
+        "id": "fixture-card-limit",
+        "flow": "Card",
+        "route": "/card/limit"
+    },
+    {
+        "id": "fixture-card-access",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-arrival-card",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-verified-unfunded-no-card",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-card-application-pending",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-card-info-failed",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "p22-card",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "p23-card-limit",
+        "flow": "Card",
+        "route": "/card/limit"
+    },
+    {
+        "id": "p24-card-pin",
+        "flow": "Card",
+        "route": "/card/pin"
+    },
+    {
+        "id": "p25-card-recovery",
+        "flow": "Card",
+        "route": "/card-recovery"
+    },
+    {
+        "id": "p43-card-physical",
+        "flow": "Card",
+        "route": "/card/physical"
+    },
+    {
+        "id": "p44-card-add-to-wallet",
+        "flow": "Card",
+        "route": "/card/add-to-wallet"
+    },
+    {
+        "id": "p46-card-signature",
+        "flow": "Card",
+        "route": "/fix-card-signature"
+    },
+    {
+        "id": "32-c-cancelcardmodal",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=32-c-cancelcardmodal",
+        "source": "Card/CancelCardModal.tsx"
+    },
+    {
+        "id": "33-c-cardlimiteditmodal",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=33-c-cardlimiteditmodal",
+        "source": "Card/CardLimitEditDrawer.tsx"
+    },
+    {
+        "id": "34-c-lockcardmodal",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=34-c-lockcardmodal",
+        "source": "Card/LockCardModal.tsx"
+    },
+    {
+        "id": "57-d-raincooldownintromodal",
+        "flow": "Card",
+        "route": "/home",
+        "source": "Global/RainCooldown/IntroModal.tsx"
+    },
+    {
+        "id": "58-d-stalecardapprovalreenablemodal",
+        "flow": "Card",
+        "route": "/home",
+        "source": "Global/StaleCardApproval/ReEnableModal.tsx"
+    },
+    {
+        "id": "59-d-successviewdetailscard",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=59-d-successviewdetailscard",
+        "source": "Global/SuccessViewComponents/SuccessViewDetailsCard.tsx"
+    },
+    {
+        "id": "76-e-limitswarningcard-warning",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=76-e-limitswarningcard-warning",
+        "source": "features/limits/components/LimitsWarningCard.tsx"
+    },
+    {
+        "id": "77-e-limitswarningcard-error",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=77-e-limitswarningcard-error",
+        "source": "features/limits/components/LimitsWarningCard.tsx"
+    },
+    {
+        "id": "82-f-choice-card-requires-info",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-f-choice-card-requires-info",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
+        "id": "82-f-choice-card-needs-review",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-f-choice-card-needs-review",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
+        "id": "qr-camera-permission",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
+    },
+    {
+        "id": "fixture-qr-pay-rate-unavailable",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-pix-key-owner",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&pixKey=maria%40silva.com.br&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-pix-key-cpf",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1"
+    },
+    {
+        "id": "fixture-send",
+        "flow": "Payments",
+        "route": "/send"
+    },
+    {
+        "id": "fixture-request",
+        "flow": "Payments",
+        "route": "/request"
+    },
+    {
+        "id": "fixture-request-contact-blocked",
+        "flow": "Payments",
+        "route": "/request?recipient=alice"
+    },
+    {
+        "id": "fixture-profile-request-blocked",
+        "flow": "Payments",
+        "route": "/profile/view?username=alice"
+    },
+    {
+        "id": "fixture-request-contact-received",
+        "flow": "Payments",
+        "route": "/request?recipient=alice"
+    },
+    {
+        "id": "fixture-history-bank-paid-request",
+        "flow": "Payments",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-history-request-bank-details",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-bank-request"
+    },
+    {
+        "id": "fixture-arrival-qr-ar",
+        "flow": "Payments",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-send-contacts-long-names",
+        "flow": "Payments",
+        "route": "/send?view=contacts"
+    },
+    {
+        "id": "fixture-home-send-drawer",
+        "flow": "Payments",
+        "route": "/home?drawer=send"
+    },
+    {
+        "id": "fixture-home-request-drawer",
+        "flow": "Payments",
+        "route": "/home?drawer=request"
+    },
+    {
+        "id": "fixture-home-funded-qr",
+        "flow": "Payments",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-qr-blocked-unfunded",
+        "flow": "Payments",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-request-with-bank-alternative",
+        "flow": "Payments",
+        "route": "/request"
+    },
+    {
+        "id": "fixture-request-created-bank-details",
+        "flow": "Payments",
+        "route": "/request?amount=50"
+    },
+    {
+        "id": "fixture-request-pay-open-amount",
+        "flow": "Payments",
+        "route": "/pay-request?chargeId=demo-open-charge"
+    },
+    {
+        "id": "fixture-request-pay-by-bank",
+        "flow": "Payments",
+        "route": "/pay-request?id=demo-request"
+    },
+    {
+        "id": "p20-qr-pay",
+        "flow": "Payments",
+        "route": "/qr-pay"
+    },
+    {
+        "id": "p31-send",
+        "flow": "Payments",
+        "route": "/send"
+    },
+    {
+        "id": "p32-request",
+        "flow": "Payments",
+        "route": "/request"
+    },
+    {
+        "id": "p33-claim",
+        "flow": "Payments",
+        "route": "/claim"
+    },
+    {
+        "id": "p42-home-send-drawer",
+        "flow": "Payments",
+        "route": "/home?drawer=send"
+    },
+    {
+        "id": "p47-pay-request",
+        "flow": "Payments",
+        "route": "/pay-request?id=synthetic-request"
+    },
+    {
+        "id": "p55-send-recipient",
+        "flow": "Payments",
+        "route": "/send/demo"
+    },
+    {
+        "id": "p56-request-recipient",
+        "flow": "Payments",
+        "route": "/request/demo"
+    },
+    {
+        "id": "p57-qr-code",
+        "flow": "Payments",
+        "route": "/qr/synthetic-invalid"
+    },
+    {
+        "id": "p58-qr-success",
+        "flow": "Payments",
+        "route": "/qr/synthetic-success/success"
+    },
+    {
+        "id": "50-d-transactiondetailsdrawer",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=50-d-transactiondetailsdrawer",
+        "source": "TransactionDetails/TransactionDetailsDrawer.tsx"
+    },
+    {
+        "id": "52-d-contributorsdrawer",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=52-d-contributorsdrawer",
+        "source": "features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx"
+    },
+    {
+        "id": "53-d-cancelsendlinkdrawer",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=53-d-cancelsendlinkdrawer",
+        "source": "Global/CancelSendLinkDrawer/index.tsx"
+    },
+    {
+        "id": "54-d-qrbottomdrawer",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=54-d-qrbottomdrawer",
+        "source": "Global/QRBottomDrawer/index.tsx"
+    },
+    {
+        "id": "56-d-camerapermissionmodal",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=56-d-camerapermissionmodal",
+        "source": "Global/QRScanner/CameraPermissionDrawer.tsx"
+    },
+    {
+        "id": "79-f-choice-direct-send",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=79-f-choice-direct-send",
+        "source": "features/payments/shared/components/PaymentMethodActionList.tsx"
+    },
+    {
+        "id": "80-f-choice-semantic-request",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=80-f-choice-semantic-request",
+        "source": "features/payments/shared/components/PaymentMethodActionList.tsx"
+    },
+    {
+        "id": "81-f-choice-request-pot",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=81-f-choice-request-pot",
+        "source": "features/payments/flows/contribute-pot/components/RequestPotActionList.tsx"
+    },
+    {
+        "id": "87-f-request-created",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=87-f-request-created",
+        "source": "Request/link/views/RequestCreatedView.tsx"
+    },
+    {
+        "id": "88-f-request-bank-currency",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=88-f-request-bank-currency",
+        "source": "features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx"
+    },
+    {
+        "id": "fixture-withdraw",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-crypto-destination",
+        "flow": "Withdraw",
+        "route": "/withdraw/crypto"
+    },
+    {
+        "id": "fixture-withdraw-address-book",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-payout-currency",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-usd-speed",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-bank-form",
+        "flow": "Withdraw",
+        "route": "/withdraw/spain?step=form"
+    },
+    {
+        "id": "fixture-withdraw-currency-list",
+        "flow": "Withdraw",
+        "route": "/withdraw?showAll=true&rail=bank"
+    },
+    {
+        "id": "fixture-withdraw-bank-form-us-abroad",
+        "flow": "Withdraw",
+        "route": "/withdraw/usa?step=form"
+    },
+    {
+        "id": "fixture-withdraw-bank-form-us-resident",
+        "flow": "Withdraw",
+        "route": "/withdraw/usa?step=form"
+    },
+    {
+        "id": "fixture-withdraw-pick",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-amount-last",
+        "flow": "Withdraw",
+        "route": "/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true"
+    },
+    {
+        "id": "fixture-withdraw-amount-error",
+        "flow": "Withdraw",
+        "route": "/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01"
+    },
+    {
+        "id": "fixture-withdraw-destination-names",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "fixture-history-wire-withdrawal",
+        "flow": "Withdraw",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-empty-accounts",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-long-destination-names",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "p14-withdraw",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "p15-withdraw-crypto",
+        "flow": "Withdraw",
+        "route": "/withdraw/crypto?amount=50"
+    },
+    {
+        "id": "p16-withdraw-manteca",
+        "flow": "Withdraw",
+        "route": "/withdraw/manteca?country=argentina&amount=50"
+    },
+    {
+        "id": "p26-recover-funds",
+        "flow": "Withdraw",
+        "route": "/recover-funds"
+    },
+    {
+        "id": "p27-recover-wallet",
+        "flow": "Withdraw",
+        "route": "/recover-wallet"
+    },
+    {
+        "id": "p40-withdraw",
+        "flow": "Withdraw",
+        "route": "/withdraw"
+    },
+    {
+        "id": "p64-withdraw-europe",
+        "flow": "Withdraw",
+        "route": "/withdraw/spain/bank"
+    },
+    {
+        "id": "p73-token-selector-drawer",
+        "flow": "Withdraw",
+        "route": "/withdraw/crypto"
+    },
+    {
+        "id": "p74-network-selector-drawer",
+        "flow": "Withdraw",
+        "route": "/withdraw/crypto"
+    },
+    {
+        "id": "85-f-choice-claim-error",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=85-f-choice-claim-error",
+        "source": "Claim/Generic/ClaimError.view.tsx"
+    },
+    {
+        "id": "86-f-choice-not-found",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=86-f-choice-not-found",
+        "source": "app/not-found.tsx"
+    },
+    {
+        "id": "89-f-withdraw-review-insufficient",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=89-f-withdraw-review-insufficient",
+        "source": "features/withdraw/views/ConfirmWithdrawView.tsx"
+    },
+    {
+        "id": "90-f-withdraw-review-processing",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=90-f-withdraw-review-processing",
+        "source": "features/withdraw/views/ConfirmWithdrawView.tsx"
+    },
+    {
+        "id": "91-f-withdraw-review-spent",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=91-f-withdraw-review-spent",
+        "source": "features/withdraw/views/ConfirmWithdrawView.tsx"
+    },
+    {
+        "id": "fixture-rewards",
+        "flow": "Rewards",
+        "route": "/rewards"
+    },
+    {
+        "id": "fixture-rewards-invites",
+        "flow": "Rewards",
+        "route": "/rewards/invites"
+    },
+    {
+        "id": "fixture-badges",
+        "flow": "Rewards",
+        "route": "/badges"
+    },
+    {
+        "id": "fixture-huge-rewards-cash",
+        "flow": "Rewards",
+        "route": "/rewards"
+    },
+    {
+        "id": "fixture-empty-invites",
+        "flow": "Rewards",
+        "route": "/rewards/invites"
+    },
+    {
+        "id": "fixture-empty-rewards",
+        "flow": "Rewards",
+        "route": "/rewards"
+    },
+    {
+        "id": "p29-badges",
+        "flow": "Rewards",
+        "route": "/badges"
+    },
+    {
+        "id": "36-c-badgedetailmodal",
+        "flow": "Rewards",
+        "route": "/dev/surfaces?s=36-c-badgedetailmodal",
+        "source": "Badges/BadgeDetailDrawer.tsx"
+    },
+    {
+        "id": "37-c-badgestatusdrawer",
+        "flow": "Rewards",
+        "route": "/dev/surfaces?s=37-c-badgestatusdrawer",
+        "source": "Badges/BadgeStatusDrawer.tsx"
+    },
+    {
+        "id": "fixture-profile",
+        "flow": "Profile and settings",
+        "route": "/profile"
+    },
+    {
+        "id": "fixture-profile-edit",
+        "flow": "Profile and settings",
+        "route": "/profile/edit"
+    },
+    {
+        "id": "fixture-profile-edit-unverified",
+        "flow": "Profile and settings",
+        "route": "/profile/edit"
+    },
+    {
+        "id": "fixture-settings-language",
+        "flow": "Profile and settings",
+        "route": "/settings/language"
+    },
+    {
+        "id": "fixture-hugo-long-username",
+        "flow": "Profile and settings",
+        "route": "/profile"
+    },
+    {
+        "id": "fixture-long-full-name",
+        "flow": "Profile and settings",
+        "route": "/profile"
+    },
+    {
+        "id": "fixture-unverified",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-home-avatar",
+        "flow": "Profile and settings",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-peer-avatars",
+        "flow": "Profile and settings",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-avatar-picker",
+        "flow": "Profile and settings",
+        "route": "/profile?avatarPicker=true"
+    },
+    {
+        "id": "fixture-profile-accounts",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-two-held",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-at-limit",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-none-held",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-review-causes",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-payments",
+        "flow": "Profile and settings",
+        "route": "/profile/payments"
+    },
+    {
+        "id": "fixture-profile-accounts-br-resident",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "p01-backup",
+        "flow": "Profile and settings",
+        "route": "/profile/backup"
+    },
+    {
+        "id": "p02-backup-lose-phone",
+        "flow": "Profile and settings",
+        "route": "/profile/backup"
+    },
+    {
+        "id": "p03-backup-change-phone",
+        "flow": "Profile and settings",
+        "route": "/profile/backup"
+    },
+    {
+        "id": "p04-backup-export-keys",
+        "flow": "Profile and settings",
+        "route": "/profile/backup"
+    },
+    {
+        "id": "p06-profile",
+        "flow": "Profile and settings",
+        "route": "/profile"
+    },
+    {
+        "id": "p07-profile-edit",
+        "flow": "Profile and settings",
+        "route": "/profile/edit"
+    },
+    {
+        "id": "p08-profile-view",
+        "flow": "Profile and settings",
+        "route": "/profile/view?username=demo"
+    },
+    {
+        "id": "p09-profile-about",
+        "flow": "Profile and settings",
+        "route": "/profile/about"
+    },
+    {
+        "id": "p10-exchange-rate",
+        "flow": "Profile and settings",
+        "route": "/profile/exchange-rate"
+    },
+    {
+        "id": "p11-identity-verification",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "p12-identity-additional",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts/additional"
+    },
+    {
+        "id": "p34-language",
+        "flow": "Profile and settings",
+        "route": "/settings/language"
+    },
+    {
+        "id": "p38-kyc-action-required",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "p39-language",
+        "flow": "Profile and settings",
+        "route": "/settings/language"
+    },
+    {
+        "id": "p70-payments",
+        "flow": "Profile and settings",
+        "route": "/profile/payments"
+    },
+    {
+        "id": "p71-accounts-held",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "p72-accounts-held-open",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "p76-exchange-currency-dropdown",
+        "flow": "Profile and settings",
+        "route": "/profile/exchange-rate"
+    },
+    {
+        "id": "p78-statements",
+        "flow": "Profile and settings",
+        "route": "/profile/statements"
+    },
+    {
+        "id": "19-a-unsupportedbrowsermodal",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=19-a-unsupportedbrowsermodal",
+        "source": "Global/UnsupportedBrowserModal/index.tsx"
+    },
+    {
+        "id": "40-c-supportednetworksmodal",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=40-c-supportednetworksmodal",
+        "source": "AddMoney/components/SupportedNetworksDrawer.tsx"
+    },
+    {
+        "id": "44-c-otaupdatemodal",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=44-c-otaupdatemodal",
+        "source": "Profile/components/OtaUpdateModal.tsx"
+    },
+    {
+        "id": "55-d-supportdrawer",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=55-d-supportdrawer",
+        "source": "Global/SupportDrawer/index.tsx"
+    },
+    {
+        "id": "62-d-unsupportedwebviewscreen",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=62-d-unsupportedwebviewscreen",
+        "source": "Global/UnsupportedWebViewScreen/index.tsx"
+    },
+    {
+        "id": "66-e-avatarpicker",
+        "flow": "Profile and settings",
+        "route": "/profile?avatarPicker=true",
+        "source": "Avatar/AvatarPicker.tsx"
+    },
+    {
+        "id": "66-d-backupfaqlosephone",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=66-d-backupfaqlosephone",
+        "source": "Profile/BackupFaqDrawers.tsx"
+    },
+    {
+        "id": "67-d-backupfaqchangephone",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=67-d-backupfaqchangephone",
+        "source": "Profile/BackupFaqDrawers.tsx"
+    },
+    {
+        "id": "68-d-backupfaqexportkeys",
+        "flow": "Profile and settings",
+        "route": "/dev/surfaces?s=68-d-backupfaqexportkeys",
+        "source": "Profile/BackupFaqDrawers.tsx"
+    }
+]

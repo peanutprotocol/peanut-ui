@@ -121,6 +121,7 @@ jest.mock('@/hooks/useDetermineBankClaimType', () => ({
 }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { fullName: 'Ana Perez', email: 'ana@example.com' } }, fetchUser: jest.fn() }),
+    useOptionalAuth: () => null,
 }))
 jest.mock('@/context/loadingStates.context', () => {
     const { createContext } = jest.requireActual('react')

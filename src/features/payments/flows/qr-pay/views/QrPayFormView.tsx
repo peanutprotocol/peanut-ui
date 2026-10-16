@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import GlobalCard from '@/components/Global/Card'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -12,9 +13,12 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { ProviderHelp } from '@/components/Provider/ProviderHelp'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
@@ -34,8 +38,11 @@ export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
+    const tProvider = useTranslations('provider')
     const {
         paymentProcessor,
+        targetMantecaCountry,
         paymentLock,
         qrPayment,
         merchantName,
@@ -53,8 +60,11 @@ export function QrPayFormView() {
         errorInitiatingPayment,
         isBlockingError,
         balanceErrorMessage,
+        rateUnavailable,
+        retryRate,
         shouldBlockPay,
         isLoading,
+        loadingState,
         quoteUpdatedNotice,
         isQuoteRecovering,
         payQR,
@@ -89,6 +99,14 @@ export function QrPayFormView() {
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
+
+    // the manteca entity behind the rail, for the provider row (TASK-23295)
+    const providerId =
+        paymentProcessor === 'MANTECA' && targetMantecaCountry
+            ? targetMantecaCountry === 'BR'
+                ? 'manteca-br'
+                : 'manteca-ar'
+            : null
 
     return (
         <>
@@ -145,6 +163,24 @@ export function QrPayFormView() {
                             </div>
                         </div>
                     </Card>
+
+                    {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
+                    {pixKeySave.savedName && (
+                        <p
+                            className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary"
+                            data-testid="pix-key-saved-as"
+                        >
+                            {t('pixKeySavedAs', { name: pixKeySave.savedName })}
+                        </p>
+                    )}
+                    {pixKeySave.isOffered && (
+                        <SaveAddressPrompt
+                            checked={pixKeySave.checked}
+                            nickname={pixKeySave.nickname}
+                            onCheckedChange={pixKeySave.setChecked}
+                            onNicknameChange={pixKeySave.setNickname}
+                        />
+                    )}
 
                     {/* Amount Card */}
                     {currency && (
@@ -204,7 +240,7 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
+                            moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null
@@ -226,19 +262,21 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder
+                            hideBottomBorder={!providerId}
                         />
+                        {providerId && (
+                            <PaymentInfoRow
+                                hideBottomBorder
+                                label={
+                                    <span className="flex items-center gap-1">
+                                        {tProvider('label.provider')}
+                                        <ProviderHelp providerId={providerId} />
+                                    </span>
+                                }
+                                value={PROVIDERS[providerId].brand}
+                            />
+                        )}
                     </GlobalCard>
-
-                    {/* Same place as the crypto review screen's address-book prompt. */}
-                    {pixKeySave.isOffered && (
-                        <SaveAddressPrompt
-                            checked={pixKeySave.checked}
-                            nickname={pixKeySave.nickname}
-                            onCheckedChange={pixKeySave.setChecked}
-                            onNicknameChange={pixKeySave.setNickname}
-                        />
-                    )}
 
                     {/* Send Button */}
                     <Button
@@ -248,6 +286,7 @@ export function QrPayFormView() {
                         disabled={
                             !!errorInitiatingPayment ||
                             isBlockingError ||
+                            rateUnavailable ||
                             !amount ||
                             isLoading ||
                             // A replacement quote is being obtained — paying now
@@ -262,7 +301,7 @@ export function QrPayFormView() {
                             limitsValidation.isBlocking
                         }
                     >
-                        {isLoading ? tCommon('loading') : tNav('pay')}
+                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
 
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
@@ -271,6 +310,8 @@ export function QrPayFormView() {
                             {quoteUpdatedNotice}
                         </Callout>
                     )}
+
+                    {rateUnavailable && <RateUnavailable onRetry={retryRate} />}
 
                     {/* Error State */}
                     {errorMessage && (
