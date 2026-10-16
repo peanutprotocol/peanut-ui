@@ -2521,6 +2521,20 @@ export const FIXTURES: Record<string, Fixture> = {
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
     },
+    'request-created-bank-details': {
+        // Tap Create request: demo-api creates every request as `demo-request`.
+        route: '/request?amount=50',
+        about: 'A new request that accepts bank transfer: the created screen shows the payment reference and the bank details.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] },
+            'GET /requests/demo-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
+    },
     'request-pay-open-amount': {
         // The override keys on this charge id, so the route names it.
         route: '/pay-request?chargeId=demo-open-charge',
