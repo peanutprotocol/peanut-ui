@@ -603,6 +603,20 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
 
+    // The requester's bank details, read only for a request that shares them.
+    // The demo request shares none, so no demo screen reads this; the fixtures
+    // that turn sharing on read it under the strict capture harness and lay
+    // their own account over it. The answer is a 200 because the harness keeps
+    // this status for the fixture's override.
+    {
+        method: 'GET',
+        pattern: '/requests/:uuid/deposit-instructions',
+        handler: ({ params }) => ({
+            depositAccount: DEMO_DEPOSIT_ACCOUNT_EUR,
+            paymentReference: params.uuid.slice(0, 8),
+        }),
+    },
+
     // send links
     { method: 'GET', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'POST', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
