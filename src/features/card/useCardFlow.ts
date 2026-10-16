@@ -11,7 +11,7 @@ import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { computeCardState, type CardTopLevelState } from '@/components/Card/cardState.utils'
 import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
-import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
+import { initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { cardConsentDocuments } from '@/services/consent'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
@@ -29,6 +29,7 @@ import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
  */
 export function useCardFlow() {
     const t = useTranslations('card')
+    const tKyc = useTranslations('kyc')
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
@@ -215,6 +216,61 @@ export function useCardFlow() {
         : undefined
     const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
     const onUploadIdentity = identityAction ? () => void startIdentityUpload() : undefined
+
+    const informationActions = cardRail
+        ? nextActionsForRail(cardRail.id).filter(
+              (action) =>
+                  action.kind === 'sumsub' &&
+                  action.purpose === 'rain-card' &&
+                  (action.levelKey === 'tax_identification_number' || action.levelKey === 'birth_details')
+          )
+        : []
+    const [informationSession, setInformationSession] = useState<{ key: string; token: string } | null>(null)
+    const [informationError, setInformationError] = useState<string | null>(null)
+    const informationStartingRef = useRef<object | null>(null)
+    const informationUserRef = useRef(userId)
+    informationUserRef.current = userId
+    useEffect(() => {
+        setInformationSession(null)
+        setInformationError(null)
+        return () => {
+            informationStartingRef.current = null
+        }
+    }, [userId])
+    const startInformationAction = useCallback(
+        async (key: string) => {
+            if (!userId || informationStartingRef.current || informationSession) return
+            const attempt = {}
+            informationStartingRef.current = attempt
+            setInformationError(null)
+            try {
+                const response = await startKycAction(key)
+                if (informationStartingRef.current !== attempt || informationUserRef.current !== userId) return
+                if (response.error || !response.data?.token) {
+                    setInformationError(
+                        response.code
+                            ? tKyc('errorStartActionFailed')
+                            : (response.error ?? tKyc('errorStartActionFailed'))
+                    )
+                    return
+                }
+                setInformationSession({ key, token: response.data.token })
+            } catch {
+                if (informationStartingRef.current === attempt && informationUserRef.current === userId) {
+                    setInformationError(tKyc('errorStartActionFailed'))
+                }
+            } finally {
+                if (informationStartingRef.current === attempt) informationStartingRef.current = null
+            }
+        },
+        [userId, informationSession, tKyc]
+    )
+    const refreshInformationToken = useCallback(async () => {
+        if (!informationSession) throw new Error('No card information action to refresh')
+        const response = await startKycAction(informationSession.key)
+        if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
+        return response.data.token
+    }, [informationSession])
 
     // Once the backend's own state takes over (the rail's sumsub action gives
     // way to the review-wait state, an approval, or a different ask), drop the
@@ -598,6 +654,12 @@ export function useCardFlow() {
         // identity re-upload
         onUploadIdentity,
         identityUploadError,
+        informationActions,
+        informationSession,
+        setInformationSession,
+        informationError,
+        startInformationAction,
+        refreshInformationToken,
         // card-application sumsub
         sumsubToken,
         handleSumsubComplete,

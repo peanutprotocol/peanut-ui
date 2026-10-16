@@ -38,6 +38,7 @@ interface Props {
      *  this opens Rain's card-member portal to re-upload — the primary CTA so
      *  users fix it themselves instead of hitting the contact-support dead end. */
     onUploadIdentity?: () => void
+    informationActions?: Array<{ key: string; label: string; onClick: () => void }>
     /** Inline failure from starting the upload (a silent primary CTA on a
      *  stuck-application screen reads as broken). */
     uploadError?: string
@@ -82,6 +83,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     onContactSupport,
     onUploadProofOfAddress,
     onUploadIdentity,
+    informationActions = [],
     uploadError,
     onPrev,
 }) => {
@@ -121,7 +123,6 @@ const ApplicationStatusScreen: FC<Props> = ({
                         <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
                             {t('uploadProofOfAddress')}
                         </Button>
-                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
                     </div>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
@@ -129,8 +130,24 @@ const ApplicationStatusScreen: FC<Props> = ({
                         <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
                             {t('uploadIdentityDocuments')}
                         </Button>
-                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
                     </div>
+                )}
+                {variant === 'requires-info' &&
+                    informationActions.map((action) => (
+                        <Button
+                            key={action.key}
+                            variant="primary"
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={action.onClick}
+                        >
+                            {action.label}
+                        </Button>
+                    ))}
+                {SUPPORT_VARIANTS.has(variant) && uploadError && (
+                    <p role="alert" className="text-body-s text-foreground-error">
+                        {uploadError}
+                    </p>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
                     <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
