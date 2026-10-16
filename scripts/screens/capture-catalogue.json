@@ -1059,6 +1059,11 @@
         "route": "/request"
     },
     {
+        "id": "fixture-request-created-bank-details",
+        "flow": "Payments",
+        "route": "/request?amount=50"
+    },
+    {
         "id": "fixture-request-pay-open-amount",
         "flow": "Payments",
         "route": "/pay-request?chargeId=demo-open-charge"
