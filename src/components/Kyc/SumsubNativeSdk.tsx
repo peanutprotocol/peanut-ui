@@ -45,6 +45,7 @@ export const SumsubNativeSdk = ({
     visible,
     accessToken,
     documentConfig,
+    preselection,
     email,
     onClose,
     onComplete,
@@ -65,6 +66,8 @@ export const SumsubNativeSdk = ({
     // A profile refresh must not relaunch the SDK over the user's KYC edits.
     const documentConfigRef = useRef(documentConfig)
     documentConfigRef.current = documentConfig
+    const preselectionRef = useRef(preselection)
+    preselectionRef.current = preselection
     const emailRef = useRef(email)
     emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
@@ -161,9 +164,11 @@ export const SumsubNativeSdk = ({
                 .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
             if (documentConfigRef.current) {
-                if (typeof builder.withPreferredDocumentDefinitions !== 'function')
+                if (typeof builder.withPreferredDocumentDefinitions === 'function') {
+                    builder = builder.withPreferredDocumentDefinitions(documentConfigRef.current.documentDefinitions)
+                } else if (preselectionRef.current !== 'preferred') {
                     throw new Error('Document preselection requires an app update')
-                builder = builder.withPreferredDocumentDefinitions(documentConfigRef.current.documentDefinitions)
+                }
             }
             instance = builder.build()
 
