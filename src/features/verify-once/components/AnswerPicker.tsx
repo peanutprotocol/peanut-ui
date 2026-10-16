@@ -13,6 +13,8 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type { VerifyOnceField } from '@/app/actions/types/kyc-verify-once.types'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
+import { humanizeOccupation, useOccupationLabels } from '../occupations/labels'
+import { normalizeSearch, searchOccupations } from '../occupations/search'
 import { useOptionLabel } from '../useOptionLabel'
 
 const FIELD_ICONS: Record<string, IconName> = {
@@ -23,50 +25,28 @@ const FIELD_ICONS: Record<string, IconName> = {
     annualSalary: 'dollar',
     expectedMonthlyVolume: 'arrow-up-right',
     sourceOfFunds: 'wallet',
-    bankOccupation: 'user',
     bankMonthlyPayments: 'arrow-up-right',
     actingAsIntermediary: 'users',
 }
 
-// Most picked first, per job list (Rain's for the card, Bridge's for a bank account); a title the list lacks is left out.
-const POPULAR_JOBS: Record<string, string[]> = {
-    occupation: [
-        'Software Developers, Applications',
-        'Self-Employee',
-        'Accountants and Auditors',
-        'Registered Nurses',
-        'Retail Salespersons',
-        'Customer Service Representatives',
-        'Graphic Designers',
-        'Lawyers',
-        'Taxi Drivers and Chauffeurs',
-        'Waiters and Waitresses',
-        'Student',
-        'Other',
-    ],
-    bankOccupation: [
-        'Software developer',
-        'Accountant and auditor',
-        'Registered nurse',
-        'Retail salesperson',
-        'Customer service representative',
-        'Graphic designer',
-        'Lawyer',
-        'Taxi driver',
-        'Waiter or waitress',
-        'Web developer',
-        'Chief executive',
-        'Cashier',
-    ],
-}
+// Most picked first; one list serves the card and the bank account.
+const POPULAR_JOBS = [
+    'software_developer_applications',
+    'accountant_and_auditor',
+    'registered_nurse',
+    'retail_salesperson',
+    'customer_service_representative',
+    'graphic_designer',
+    'lawyer',
+    'taxi_driver',
+    'waiter_or_waitress',
+    'web_developer',
+    'cashier',
+    'student',
+]
 const MAX_RESULTS = 40
 
-const normalize = (text: string) =>
-    text
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-const matchesQuery = (text: string, words: string[]) => words.every((word) => normalize(text).includes(word))
+const matchesQuery = (text: string, words: string[]) => words.every((word) => normalizeSearch(text).includes(word))
 
 function Flag({ country, size }: { country: string; size: 'xs' | 's' }) {
     return (
@@ -113,24 +93,31 @@ export function AnswerPicker({
     const label = useOptionLabel()
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
-    const searchable = field.kind === 'occupation' || field.kind === 'country'
+    const isJob = field.kind === 'occupation'
+    const searchable = isJob || field.kind === 'country'
+    const jobLabels = useOccupationLabels(isJob)
     const countries = useMemo(
         () => (field.kind === 'country' ? buildResidenceCountryOptions(locale) : []),
         [field.kind, locale]
     )
-    const optionLabel = (option: string) =>
-        field.kind === 'country'
-            ? (countries.find((c) => c.value === option)?.label ?? option)
-            : label(field.key, option)
+    const optionLabel = (option: string) => {
+        if (isJob) return jobLabels?.[option] ?? humanizeOccupation(option)
+        if (field.kind === 'country') return countries.find((c) => c.value === option)?.label ?? option
+        return label(field.key, option)
+    }
     const options = field.kind === 'country' ? countries.map((c) => c.value) : (field.options ?? [])
     const shown = value ? optionLabel(value) : t('choose')
     const title = t(`pickerTitle.${field.key}` as never)
 
-    const words = normalize(query).split(/\s+/).filter(Boolean)
-    const matches = words.length ? options.filter((o) => matchesQuery(optionLabel(o), words) || o === query) : options
+    const words = normalizeSearch(query).split(/\s+/).filter(Boolean)
+    const matches = !words.length
+        ? options
+        : isJob
+          ? searchOccupations(options, optionLabel, query, locale)
+          : options.filter((o) => matchesQuery(optionLabel(o), words) || o === query)
     const popularJobs =
-        field.kind === 'occupation' && !words.length
-            ? [...new Set([value, ...(POPULAR_JOBS[field.key] ?? [])])].filter((job) => job && options.includes(job))
+        isJob && !words.length
+            ? [...new Set([value, ...POPULAR_JOBS])].filter((job) => job && options.includes(job))
             : []
     const popular = popularJobs.length ? popularJobs : null
     const listed = popular ?? (searchable ? matches.slice(0, MAX_RESULTS) : options)

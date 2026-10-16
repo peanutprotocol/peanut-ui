@@ -72,10 +72,6 @@ export function QuestionFields({
     const Sentences = sentencesAsHeading ? 'h1' : 'p'
     const id = useId()
     const sentences = fields.filter(isSentenceField)
-    // Bridge's job list alone reads like the card's; beside Rain's it says which list it is.
-    const twoJobLists = sentences.some((f) => f.key === 'occupation')
-    const sentenceKey = (field: VerifyOnceField) =>
-        field.key === 'bankOccupation' && !twoJobLists ? 'sentence.occupation' : `sentence.${field.key}`
     const typed = fields.filter((f) => !isSentenceField(f))
     const errorText = (key: string) => (errors[key] ? t(`errors.${fieldErrorKey(errors[key])}` as never) : null)
 
@@ -98,8 +94,8 @@ export function QuestionFields({
                                         className={sentenceSize === 'm' ? 'block h-4 compact:h-2' : 'block h-1'}
                                     />
                                 )}
-                                {t.has(sentenceKey(field) as never) ? (
-                                    t.rich(sentenceKey(field) as 'sentence.cardPurpose', {
+                                {t.has(`sentence.${field.key}` as never) ? (
+                                    t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
                                         nw: nowrap,
                                         pill: () => (
                                             <AnswerPicker

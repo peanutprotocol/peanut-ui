@@ -3398,8 +3398,7 @@
             "hints": {
                 "purpose": "Escolha a opção mais próxima.",
                 "work": "Escolha a opção mais próxima.",
-                "money": "Uma estimativa aproximada está ótima.",
-                "workTwoLists": "Nossos parceiros de cartão e de banco usam listas de profissões diferentes. Escolha a opção mais próxima em cada uma."
+                "money": "Uma estimativa aproximada está ótima."
             },
             "why": {
                 "purpose": "Bancos e emissores de cartão precisam saber como você vai usar sua conta. Toda conta financeira regulada pergunta isso.",
@@ -3421,7 +3420,6 @@
                 "expectedMonthlyVolume": "<nw>Vou gastar <pill></pill></nw> <nw>por mês</nw>",
                 "sourceOfFunds": "Meu dinheiro vem <nw>de <pill></pill></nw>",
                 "countryOfBirth": "Nasci <nw>em <pill></pill></nw>",
-                "bankOccupation": "Na lista do banco, é mais <nw>parecido com <pill></pill></nw>",
                 "bankMonthlyPayments": "Por mês, minha conta <nw>movimenta <pill></pill></nw>",
                 "actingAsIntermediary": "Vou enviar dinheiro <nw><pill></pill></nw>",
                 "nationality": "Tenho cidadania <nw>de <pill></pill></nw>",
@@ -3436,7 +3434,6 @@
                 "expectedMonthlyVolume": "Quanto você vai gastar por mês",
                 "sourceOfFunds": "De onde vem seu dinheiro",
                 "countryOfBirth": "País de nascimento",
-                "bankOccupation": "Seu trabalho, para a conta bancária",
                 "bankMonthlyPayments": "Quanto sua conta vai movimentar por mês",
                 "actingAsIntermediary": "Em nome de quem você envia dinheiro",
                 "nationality": "Sua cidadania",
@@ -3448,7 +3445,7 @@
                 "popular": "Populares",
                 "matches": "{count, plural, one {# resultado} other {# resultados}}",
                 "typeToSearch": "Digite para buscar entre as {count} profissões.",
-                "noJob": "Nenhuma profissão corresponde a “{query}”. Tente uma palavra mais geral, como “manager” ou “driver”, ou escolha Other.",
+                "noJob": "Nenhuma profissão corresponde a “{query}”. Tente uma palavra mais geral, como “gerente” ou “motorista”.",
                 "noCountry": "Nenhum país corresponde a “{query}”.",
                 "keepTyping": "Continue digitando para refinar a busca."
             },

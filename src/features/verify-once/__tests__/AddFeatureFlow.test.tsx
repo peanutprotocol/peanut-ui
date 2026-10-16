@@ -132,7 +132,7 @@ describe('AddFeatureQuestions', () => {
 })
 
 describe('AddFeatureQuestions: a Bridge high-risk bank account', () => {
-    it('asks Bridge’s job list and its money answers, labelled, and saves them for the bank feature', async () => {
+    it('asks the job and Bridge’s money answers, labelled, and saves them for the bank feature', async () => {
         mockQuestions.mockResolvedValue({
             available: true,
             attemptId: null,
@@ -151,11 +151,11 @@ describe('AddFeatureQuestions: a Bridge high-risk bank account', () => {
                             value: 'employed',
                         },
                         {
-                            key: 'bankOccupation',
+                            key: 'occupation',
                             kind: 'occupation',
                             required: true,
-                            options: ['Lawyer', 'Software developer'],
-                            value: 'Lawyer',
+                            options: ['lawyer', 'software_developer_applications'],
+                            value: 'lawyer',
                         },
                     ],
                 },
@@ -187,16 +187,12 @@ describe('AddFeatureQuestions: a Bridge high-risk bank account', () => {
         mockSave.mockResolvedValue({ kind: 'saved', next: null })
         const onDone = jest.fn()
         renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={onDone} />)
-        expect(await screen.findByTestId('verify-pick-bankOccupation')).toHaveTextContent('Lawyer')
+        expect(await screen.findByTestId('verify-pick-occupation')).toHaveTextContent('Lawyer')
         expect(screen.getByTestId('verify-pick-bankMonthlyPayments')).toHaveTextContent('Under $5,000')
         expect(screen.getByTestId('verify-pick-actingAsIntermediary')).toHaveTextContent('Only for myself')
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
-        expect(mockSave).toHaveBeenCalledWith(
-            'work',
-            { employmentStatus: 'employed', bankOccupation: 'Lawyer' },
-            'bank'
-        )
+        expect(mockSave).toHaveBeenCalledWith('work', { employmentStatus: 'employed', occupation: 'lawyer' }, 'bank')
         expect(mockSave).toHaveBeenCalledWith(
             'money',
             { bankMonthlyPayments: '0_4999', actingAsIntermediary: 'no' },
@@ -302,7 +298,7 @@ describe('AddFeatureQuestions: the API asks for a step again', () => {
                     features: ['card'],
                     answered: true,
                     fields: [
-                        { key: 'occupation', kind: 'occupation', required: true, options: ['Lawyers'], value: null },
+                        { key: 'occupation', kind: 'occupation', required: true, options: ['lawyer'], value: null },
                     ],
                 },
             ],

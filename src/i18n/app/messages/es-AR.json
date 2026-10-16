@@ -1535,8 +1535,7 @@
             "phoneHelp": "Incluí el código de tu país, como +54.",
             "hints": {
                 "purpose": "Elegí la opción más parecida.",
-                "work": "Elegí la opción más parecida.",
-                "workTwoLists": "Nuestros socios de tarjeta y de banco usan listas de trabajos distintas. Elegí la opción más parecida en cada una."
+                "work": "Elegí la opción más parecida."
             },
             "why": {
                 "work": "Los bancos y emisores de tarjetas tienen que saber a qué te dedicás.",
@@ -1545,7 +1544,7 @@
             },
             "search": {
                 "typeToSearch": "Escribí para buscar entre los {count} trabajos.",
-                "noJob": "Ningún trabajo coincide con “{query}”. Probá una palabra más general, como “manager” o “driver”, o elegí Other.",
+                "noJob": "Ningún trabajo coincide con “{query}”. Probá una palabra más general, como “gerente” o “chofer”.",
                 "keepTyping": "Seguí escribiendo para acotar la búsqueda."
             },
             "titles": {

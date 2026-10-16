@@ -255,23 +255,29 @@ describe('VerifyOnceFlow', () => {
         expect(await screen.findByText('We’re checking your ID')).toBeInTheDocument()
     })
 
-    it('a card + bank user answers Rain’s and Bridge’s job lists on one work step, told they differ', async () => {
+    it('a card + bank user picks one job, from one list, shown by its label', async () => {
         const questions = build({ money: true, tax: true }, 'purpose')
         questions.steps.splice(1, 0, {
             id: 'work',
             features: ['card', 'bank'],
             answered: false,
             fields: [
-                { key: 'occupation', kind: 'occupation', required: true, options: ['Lawyers'], value: null },
-                { key: 'bankOccupation', kind: 'occupation', required: true, options: ['Lawyer'], value: null },
+                {
+                    key: 'occupation',
+                    kind: 'occupation',
+                    required: true,
+                    options: ['lawyer', 'software_developer_applications'],
+                    value: 'software_developer_applications',
+                },
             ],
         })
         questions.firstUnanswered = 'work'
         mockQuestions.mockResolvedValue(questions)
         renderFlow()
-        expect(await screen.findByTestId('verify-pick-occupation')).toBeInTheDocument()
-        expect(screen.getByTestId('verify-pick-bankOccupation')).toBeInTheDocument()
-        expect(screen.getByText(/use different job lists/)).toBeInTheDocument()
+        await waitFor(() =>
+            expect(screen.getByTestId('verify-pick-occupation')).toHaveTextContent('Software developer, applications')
+        )
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(1)
     })
 
     it('an answer refused because the user already has today’s verification sends them Home', async () => {

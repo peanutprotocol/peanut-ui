@@ -3398,8 +3398,7 @@
             "hints": {
                 "purpose": "Pick the closest match.",
                 "work": "Pick the closest match.",
-                "money": "Rough estimates are fine.",
-                "workTwoLists": "Our card and bank partners use different job lists. Pick the closest match on each."
+                "money": "Rough estimates are fine."
             },
             "why": {
                 "purpose": "Banks and card issuers must know how you’ll use your account. Every regulated financial account asks this.",
@@ -3421,7 +3420,6 @@
                 "expectedMonthlyVolume": "<nw>I’ll spend <pill></pill></nw> <nw>a month</nw>",
                 "sourceOfFunds": "My money comes <nw>from <pill></pill></nw>",
                 "countryOfBirth": "I was born <nw>in <pill></pill></nw>",
-                "bankOccupation": "On the bank’s list, it’s <nw>closest to <pill></pill></nw>",
                 "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
                 "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
                 "nationality": "I’m a citizen <nw>of <pill></pill></nw>",
@@ -3436,7 +3434,6 @@
                 "expectedMonthlyVolume": "What you’ll spend each month",
                 "sourceOfFunds": "Where your money comes from",
                 "countryOfBirth": "Country of birth",
-                "bankOccupation": "Your job, for the bank account",
                 "bankMonthlyPayments": "What your account moves each month",
                 "actingAsIntermediary": "Who you send money for",
                 "nationality": "Your citizenship",
@@ -3448,7 +3445,7 @@
                 "popular": "Popular",
                 "matches": "{count, plural, one {# match} other {# matches}}",
                 "typeToSearch": "Type to search all {count} jobs.",
-                "noJob": "No job matches “{query}”. Try a broader word, like “manager” or “driver”, or pick Other.",
+                "noJob": "No job matches “{query}”. Try a broader word, like “manager” or “driver”.",
                 "noCountry": "No country matches “{query}”.",
                 "keepTyping": "Keep typing to narrow it down."
             },

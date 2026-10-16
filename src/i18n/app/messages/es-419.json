@@ -3398,8 +3398,7 @@
             "hints": {
                 "purpose": "Elige la opción más parecida.",
                 "work": "Elige la opción más parecida.",
-                "money": "Una estimación aproximada está bien.",
-                "workTwoLists": "Nuestros socios de tarjeta y de banco usan listas de trabajos distintas. Elige la opción más parecida en cada una."
+                "money": "Una estimación aproximada está bien."
             },
             "why": {
                 "purpose": "Los bancos y emisores de tarjetas deben saber cómo usarás tu cuenta. Toda cuenta financiera regulada lo pregunta.",
@@ -3421,7 +3420,6 @@
                 "expectedMonthlyVolume": "<nw>Gastaré <pill></pill></nw> <nw>al mes</nw>",
                 "sourceOfFunds": "Mi dinero viene <nw>de <pill></pill></nw>",
                 "countryOfBirth": "Nací <nw>en <pill></pill></nw>",
-                "bankOccupation": "En la lista del banco, se parece <nw>más a <pill></pill></nw>",
                 "bankMonthlyPayments": "Cada mes, mi cuenta <nw>mueve <pill></pill></nw>",
                 "actingAsIntermediary": "Enviaré dinero <nw><pill></pill></nw>",
                 "nationality": "Tengo ciudadanía <nw>de <pill></pill></nw>",
@@ -3436,7 +3434,6 @@
                 "expectedMonthlyVolume": "Lo que gastarás cada mes",
                 "sourceOfFunds": "De dónde viene tu dinero",
                 "countryOfBirth": "País de nacimiento",
-                "bankOccupation": "Tu trabajo, para la cuenta bancaria",
                 "bankMonthlyPayments": "Lo que moverá tu cuenta cada mes",
                 "actingAsIntermediary": "En nombre de quién envías dinero",
                 "nationality": "Tu ciudadanía",
@@ -3448,7 +3445,7 @@
                 "popular": "Populares",
                 "matches": "{count, plural, one {# resultado} other {# resultados}}",
                 "typeToSearch": "Escribe para buscar entre los {count} trabajos.",
-                "noJob": "Ningún trabajo coincide con “{query}”. Prueba una palabra más general, como “manager” o “driver”, o elige Other.",
+                "noJob": "Ningún trabajo coincide con “{query}”. Prueba una palabra más general, como “gerente” o “conductor”.",
                 "noCountry": "Ningún país coincide con “{query}”.",
                 "keepTyping": "Sigue escribiendo para acotar la búsqueda."
             },

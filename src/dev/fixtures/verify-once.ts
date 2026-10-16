@@ -7,48 +7,26 @@
 
 import type { Fixture } from './types'
 
-// A slice of Rain's 843 titles: enough to search and to show the popular list.
-const RAIN_TITLES = [
-    'Accountants and Auditors',
-    'Actors',
-    'Architects, Except Landscape and Naval',
-    'Chief Executives',
-    'Customer Service Representatives',
-    'Dental Hygienists',
-    'Electricians',
-    'Graphic Designers',
-    'Lawyers',
-    'Marketing Managers',
-    'Other',
-    'Registered Nurses',
-    'Retail Salespersons',
-    'Self-Employee',
-    'Software Developers, Applications',
-    'Student',
-    'Taxi Drivers and Chauffeurs',
-    'Teachers and Instructors, All Other',
-    'Waiters and Waitresses',
-    'Web Developers',
-]
-
-// A slice of Bridge's 569 titles (its own list, not Rain's): the bank-account job question.
-const BRIDGE_TITLES = [
-    'Accountant and auditor',
-    'Actor',
-    'Cashier',
-    'Chief executive',
-    'Customer service representative',
-    'Dentist',
-    'Electrician',
-    'Graphic designer',
-    'Lawyer',
-    'Marketing manager',
-    'Registered nurse',
-    'Retail salesperson',
-    'Software developer',
-    'Taxi driver',
-    'Waiter or waitress',
-    'Web developer',
+// A slice of the 858 Peanut job codes (one list for Rain and Bridge): enough to search and to show the popular list.
+const OCCUPATIONS = [
+    'accountant_and_auditor',
+    'actor',
+    'architect',
+    'cashier',
+    'chief_executive',
+    'customer_service_representative',
+    'dental_hygienist',
+    'electrician',
+    'graphic_designer',
+    'lawyer',
+    'marketing_manager',
+    'registered_nurse',
+    'retail_salesperson',
+    'software_developer_applications',
+    'student',
+    'taxi_driver',
+    'waiter_or_waitress',
+    'web_developer',
 ]
 const MONTHLY_PAYMENTS = ['0_4999', '5000_9999', '10000_49999', '50000_plus']
 const YES_NO = ['yes', 'no']
@@ -113,7 +91,7 @@ const US_STEPS = [
         id: 'work',
         features: ['card'],
         answered: false,
-        fields: [{ key: 'occupation', kind: 'occupation', required: true, options: RAIN_TITLES, value: null }],
+        fields: [{ key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null }],
     },
     {
         id: 'money',
@@ -155,9 +133,8 @@ const PH_STEPS = [
         features: ['card', 'bank'],
         answered: false,
         fields: [
-            { key: 'occupation', kind: 'occupation', required: true, options: RAIN_TITLES, value: null },
+            { key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null },
             choice('employmentStatus', EMPLOYMENT),
-            { key: 'bankOccupation', kind: 'occupation', required: true, options: BRIDGE_TITLES, value: null },
         ],
     },
     {
@@ -210,7 +187,7 @@ const DE_STEPS = [
         features: ['card', 'bank'],
         answered: false,
         fields: [
-            { key: 'occupation', kind: 'occupation', required: true, options: RAIN_TITLES, value: null },
+            { key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null },
             choice('employmentStatus', EMPLOYMENT),
         ],
     },
@@ -270,7 +247,7 @@ const AR_STEPS = [
         features: ['card', 'local'],
         answered: false,
         fields: [
-            { key: 'occupation', kind: 'occupation', required: true, options: RAIN_TITLES, value: null },
+            { key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null },
             choice('employmentStatus', LOCAL_EMPLOYMENT),
         ],
     },
@@ -464,10 +441,10 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
                         fields: [
                             choice('employmentStatus', EMPLOYMENT),
                             {
-                                key: 'bankOccupation',
+                                key: 'occupation',
                                 kind: 'occupation',
                                 required: true,
-                                options: BRIDGE_TITLES,
+                                options: OCCUPATIONS,
                                 value: null,
                             },
                         ],
