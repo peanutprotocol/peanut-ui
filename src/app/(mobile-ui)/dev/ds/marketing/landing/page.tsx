@@ -3,14 +3,14 @@ import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
-import { CONTAINER_SET, CTA_RULES, HERO_RECIPES, SECTION_PADDING } from './landing-data'
+import { CONTAINER_SET, CTA_MOTION_RULES, CTA_RULES, HERO_RECIPES, SECTION_PADDING } from './landing-data'
 
 export default function MarketingLandingPage() {
     return (
         <DocPage>
             <DocHeader
                 title="Landing"
-                description="The LP recipe book (ruled 2026-10-15, q4): two LP heroes — the key visual on the main LP, the promoted product split on sub-LPs — plus the one content hero, the FAQ fold, the Knerd closing fold, the on-band CTA, and the landing containers."
+                description="The LP recipe book (ruled 2026-10-15, q4): two LP heroes — the key visual on the main LP, the promoted product split on sub-LPs — plus the one content hero, the FAQ fold, the Knerd closing fold, the on-band CTA, the marketing CTA motion, and the landing containers."
             />
 
             <DesignNote type="info">
@@ -63,6 +63,19 @@ export default function MarketingLandingPage() {
                     ))}
                 </ul>
                 <ViewportFrame demo="cta-bands" label="On-band CTA" heights={{ phone: 1000, desktop: 1000 }} />
+            </DocSection>
+
+            {/* Marketing CTA motion */}
+            <DocSection
+                title="Marketing CTA motion"
+                description="The one motion a marketing CTA adds to the DS Button (ruled 2026-10-16, konrad): a mount entrance and a hover drop-and-tilt. Hover the buttons in the frame; Replay entrance remounts them."
+            >
+                <ul className="space-y-1 text-body-s">
+                    {CTA_MOTION_RULES.map((rule) => (
+                        <li key={rule}>{rule}</li>
+                    ))}
+                </ul>
+                <ViewportFrame demo="cta-motion" label="Marketing CTA motion" heights={{ phone: 560, desktop: 560 }} />
             </DocSection>
 
             {/* Containers */}

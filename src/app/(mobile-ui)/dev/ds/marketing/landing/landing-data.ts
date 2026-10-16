@@ -71,3 +71,13 @@ export const CTA_RULES = [
     'On cream (the page ground): Button variant=primary — the pink pill.',
     'Labels are sentence case everywhere.',
 ]
+
+/** the marketing CTA motion layer (ruled 2026-10-16, konrad) */
+export const CTA_MOTION_RULES = [
+    'Every marketing CTA is the plain DS Button plus CTA_MOTION (the .cta-motion class) — one class, no per-site variant.',
+    'Entrance: on mount the CTA fades in from 4px low and 0.75deg tilted, 500ms on ease-spring.',
+    'Hover (real-hover devices only): the CTA drops 6px and tilts 0.75deg, 500ms on ease-spring; the 4px DS press still applies on top.',
+    "Geometry, variant, colour and the press stay the DS Button's: w-fit, default size, no overrides.",
+    'prefers-reduced-motion: no entrance, no hover move, no parked offset — only the DS press.',
+    'App screens never take it; the sticky mobile CTA keeps its own slide-in.',
+]
