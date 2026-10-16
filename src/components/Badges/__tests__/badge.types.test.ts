@@ -67,6 +67,14 @@ describe('buildBadgeCollection', () => {
         })
     })
 
+    it('carries the api share line of an earned badge', () => {
+        const [badge] = buildBadgeCollection(
+            [owned('FIRST_INVITE', '2026-09-01T00:00:00Z', { shareLine: 'Traje a mi primer amigo' })],
+            catalog
+        )
+        expect(badge.shareLine).toBe('Traje a mi primer amigo')
+    })
+
     it('does not duplicate an earned badge from the catalog', () => {
         const badges = buildBadgeCollection([owned('FIRST_INVITE', '2026-09-01T00:00:00Z')], catalog)
         expect(badges.filter(({ code }) => code === 'FIRST_INVITE')).toHaveLength(1)

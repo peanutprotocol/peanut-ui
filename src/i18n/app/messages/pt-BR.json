@@ -2621,6 +2621,7 @@
         "iconAlt": "Ícone de {name}",
         "shareAchievement": "Compartilhar conquista",
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
+        "shareJoin": "Vem pro Peanut comigo 👉 {link}",
         "toastSingle": "Selo desbloqueado: {name}",
         "toastMultiple": "{count, plural, one {# selo desbloqueado} other {# selos desbloqueados}}",
         "unlock": {

@@ -8,6 +8,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from './capacitor'
 import { isDemoMode } from './demo'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
+import { currentAppLocale } from '@/i18n/app/locale-store'
 import { ensureActiveFixture } from '@/dev/fixtures/active'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -68,6 +69,12 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     // application/json here would break attachment uploads (send-links, charges).
     if (fetchOptions.body && !hasContentType && !(fetchOptions.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json'
+    }
+    // the api localizes copy (badges) from this. null on the server and before the
+    // startup locale is on screen; the api then uses the user's stored locale.
+    const locale = currentAppLocale()
+    if (locale && !Object.keys(callerHeaders).some((k) => k.toLowerCase() === 'accept-language')) {
+        headers['Accept-Language'] = locale
     }
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
 

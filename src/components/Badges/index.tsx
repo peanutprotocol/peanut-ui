@@ -154,6 +154,7 @@ export const Badges = () => {
                     code={selectedBadge.code}
                     title={selectedBadge.name}
                     description={selectedBadge.description}
+                    shareLine={selectedBadge.shareLine}
                     logo={selectedBadge.logo!}
                     earned={selectedBadge.earned}
                     unlockText={selectedBadge.earned ? undefined : unlockText(selectedBadge.unlock)}
