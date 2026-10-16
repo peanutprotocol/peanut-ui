@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { PROSE_WIDTH } from '@/components/Marketing/constants'
+import { PROSE_WIDTH } from '@/constants/layout.consts'
 
 export type FAQsProps = {
     heading: string
