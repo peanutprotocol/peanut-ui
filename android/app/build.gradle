@@ -160,4 +160,4 @@ apply from: 'capacitor.build.gradle'
 // No google-services plugin: OneSignal registers with FCM on its own —
 // PushRegistratorFCM builds FirebaseOptions in code from the sender ID served
 // by the OneSignal dashboard, and firebase-messaging arrives transitively via
-// com.onesignal:notifications. See docs/NATIVE-RELEASE.md §Android push.
+// com.onesignal:notifications. See mono ops/releases.md, appendix "Native 9" (https://github.com/peanutprotocol/mono/blob/main/ops/releases.md).

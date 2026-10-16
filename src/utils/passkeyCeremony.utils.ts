@@ -2,6 +2,7 @@ import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 import { setCachedStepUpToken } from '@/services/step-up-cache'
+import { openCredentialCall } from '@/utils/webauthn-ceremony-telemetry'
 
 /**
  * Guards for the passkey ceremony (TASK-21782).
@@ -87,7 +88,7 @@ const reportedConflictCeremonies = new Set<number>()
  */
 export const captureCeremonyGuardError = (
     err: Error,
-    flow: 'login' | 'register',
+    flow: 'login' | 'register' | 'sign',
     extra?: Record<string, unknown>
 ): void => {
     if (err.name === 'CeremonyConflictError') {
@@ -105,9 +106,16 @@ export const captureCeremonyGuardError = (
             reportedConflictCeremonies.add(ceremonyId)
         }
     }
+    const osCall = openCredentialCall()
     captureException(err, {
         tags: { error_type: `${flow}_${GUARD_ERROR_TAG[err.name] ?? 'ceremony_guard'}` },
-        extra: { shimInstalled: isPasskeyShimInstalled(), isCapacitor: isCapacitor(), ...extra },
+        extra: {
+            shimInstalled: isPasskeyShimInstalled(),
+            isCapacitor: isCapacitor(),
+            osCallInFlight: osCall?.inFlight,
+            osCallElapsedMs: osCall?.elapsedMs,
+            ...extra,
+        },
     })
 }
 
@@ -181,12 +189,31 @@ export const stashCeremonyStepUpToken = (token: string, expiresIn: number, issui
  * and the ceremony-active window has closed, so a late success can neither
  * log the user in nor store its token.
  */
-export const raceCeremonyTimeout = <T>(promise: Promise<T>, ms: number = CEREMONY_TIMEOUT_MS): Promise<T> => {
+export const raceCeremonyTimeout = <T>(
+    promise: Promise<T>,
+    ms: number = CEREMONY_TIMEOUT_MS,
+    onTimeout?: () => void
+): Promise<T> => {
     let timer: ReturnType<typeof setTimeout>
     const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new CeremonyTimeoutError(ms)), ms)
+        timer = setTimeout(() => {
+            onTimeout?.()
+            reject(new CeremonyTimeoutError(ms))
+        }, ms)
     })
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>
+}
+
+/**
+ * A browser keeps an abandoned get()/create() pending and rejects the retry
+ * with "A request is already pending" (PEANUT-UI-TBB). The ceremony's abort
+ * signal belongs to @simplewebauthn's shared service, which the zerodev SDK
+ * and step-up both start through. The native shim ignores a mid-call abort.
+ */
+const cancelBrowserCeremony = (): void => {
+    void import('@simplewebauthn/browser')
+        .then(({ WebAuthnAbortService }) => WebAuthnAbortService.cancelCeremony())
+        .catch(() => {})
 }
 
 /**
@@ -216,7 +243,8 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
     try {
         const result = await raceCeremonyTimeout(
             startCeremony(),
-            native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS
+            native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS,
+            native ? undefined : cancelBrowserCeremony
         )
         if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
         const stepUp = takeStashedStepUp()

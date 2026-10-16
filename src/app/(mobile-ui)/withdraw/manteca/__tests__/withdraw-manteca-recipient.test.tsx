@@ -96,6 +96,7 @@ jest.mock('@/features/limits/utils', () => ({
     isBrUserEligibleForLimitIncrease: () => false,
 }))
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
 }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => null }))

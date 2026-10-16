@@ -11,6 +11,7 @@ import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -205,5 +206,28 @@ describe('ApplicationStatusScreen — upload error', () => {
             />
         )
         expect(screen.getByText('Could not start the upload. Please try again.')).toBeInTheDocument()
+    })
+})
+
+describe('ApplicationStatusScreen — card partner review', () => {
+    it('maps card_needs_review to its localized reason key', () => {
+        expect(reasonCodeKey('card_needs_review')).toBe('reasons.card_needs_review')
+    })
+
+    it('uses the mapped review copy instead of different backend prose and keeps support clickable', () => {
+        const onContactSupport = jest.fn()
+        const backendReason = 'Internal partner escalation: please wait for an operator.'
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonCode="card_needs_review"
+                reasonMessage={backendReason}
+                onContactSupport={onContactSupport}
+            />
+        )
+        expect(screen.getByText('Our card partner needs to check a few more details.')).toBeInTheDocument()
+        expect(screen.queryByText(backendReason)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(onContactSupport).toHaveBeenCalledTimes(1)
     })
 })

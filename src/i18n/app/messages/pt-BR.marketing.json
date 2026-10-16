@@ -12,14 +12,17 @@
         "retry": "Tentar novamente",
         "close": "Fechar",
         "loading": "Carregando...",
+        "inEnglish": "Em inglês",
         "somethingWentWrong": "Algo deu errado",
         "genericError": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "copiedToClipboard": "Copiado para a área de transferência",
+        "savedToDocuments": "Salvo em Documentos",
         "maybeLater": "Talvez depois",
         "tryAgain": "Tentar de novo",
         "skipForNow": "Pular por enquanto",
         "gotIt": "Entendi",
         "contactSupport": "Falar com o suporte",
+        "supportErrorPrefill": "Recebi este erro no app: {error}",
         "peanutFee": "Taxa do Peanut",
         "sponsoredByPeanut": "Patrocinada pelo Peanut!",
         "pending": "Pendente",
@@ -118,26 +121,27 @@
         "loginIncomplete": "O login não foi concluído. Tente novamente.",
         "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
         "transferTemporarilyUnavailable": "As transferências estão temporariamente indisponíveis. Confira sua atividade antes de tentar novamente.",
-        "userOpReverted": "Não foi possível concluir o pagamento. Tente novamente."
+        "userOpReverted": "Não foi possível concluir o pagamento. Tente novamente.",
+        "passkeyAssociationUnavailable": "A verificação com passkey está indisponível no momento. Aguarde alguns segundos e tente de novo.",
+        "passkeyAssociationMismatch": "As passkeys estão indisponíveis neste app no momento. Atualize o Peanut ou fale com o suporte se o problema continuar.",
+        "passkeyDeviceLocked": "Desbloqueie o dispositivo e tente de novo.",
+        "passkeyBiometryRequired": "Use o Face ID ou Touch ID para verificar a passkey e tente de novo.",
+        "passkeyVerificationIncomplete": "A verificação com passkey não foi concluída. Tente de novo quando quiser."
     },
     "migration": {
         "downloadPeanut": "Baixar Peanut",
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
             "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
-            "maybeLater": "Baixo depois",
-            "title": "O Peanut vai ser só app",
-            "description": "Em {days, plural, one {# dia} other {# dias}} o Peanut se muda por completo para o app. Baixe agora e continue de onde parou. Sua conta e seu dinheiro se mudam com você automaticamente.",
-            "remindLater": "Lembrar depois"
+            "maybeLater": "Baixo depois"
         },
         "sunset": {
-            "heading": "O Peanut agora é só app",
-            "sub": "Baixe o app e continue de onde parou. Sua conta e seu dinheiro já estão lá esperando por você.",
             "supportLink": "Problemas para baixar o app? Fale com nosso suporte"
         },
         "qr": {
             "title": "Baixe o app do Peanut",
-            "scanHint": "Escaneie com a câmera do seu celular para baixar."
+            "scanHint": "Escaneie com a câmera do seu celular para baixar.",
+            "logIn": "Entrar pela web"
         },
         "banner": {
             "title": "O app do Peanut chegou!",

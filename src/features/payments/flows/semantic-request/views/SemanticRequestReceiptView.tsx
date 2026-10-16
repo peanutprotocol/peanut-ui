@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 /**
  * receipt view for semantic request flow
@@ -24,6 +25,7 @@ import { payLinkUrl } from '@/utils/url.utils'
 import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 export function SemanticRequestReceiptView() {
+    const origin = useAppOrigin()
     const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
     const { charge, recipient, parsedUrl, isFetchingCharge } = useSemanticRequestFlow()
@@ -48,7 +50,7 @@ export function SemanticRequestReceiptView() {
 
         const recipientIdentifier = recipient?.identifier || parsedUrl?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${charge.uuid}`)
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${charge.uuid}`, origin)
             : undefined
 
         const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
@@ -98,7 +100,7 @@ export function SemanticRequestReceiptView() {
         }
 
         return details as TransactionDetails
-    }, [charge, recipient, parsedUrl, tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol, t])
+    }, [charge, recipient, parsedUrl, tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol, t, origin])
 
     // show loading if fetching charge
     if (isFetchingCharge || !charge) {

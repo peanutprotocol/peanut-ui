@@ -9,6 +9,7 @@ import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
+import type { SumsubSubmissionSource } from '@/components/Kyc/sumsubSdk.types'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
@@ -317,6 +318,26 @@ export const useMultiPhaseKycFlow = ({
         dismissCorrection,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
 
+    const [submissionAttempt, setSubmissionAttempt] = useState(() => ({
+        id: 0,
+        intent: regionIntent,
+        residence: isResidenceChangeFlow,
+    }))
+    const reportedAttemptsRef = useRef(new Set<number>())
+    // Every SDK opening (initiate, restart, correction, self-heal, start-action) is a fresh attempt.
+    // Set during render so the SDK launch effect in the same commit binds to the new attempt.
+    const [attemptWrapperOpen, setAttemptWrapperOpen] = useState(showWrapper)
+    if (showWrapper !== attemptWrapperOpen) {
+        setAttemptWrapperOpen(showWrapper)
+        if (showWrapper) {
+            setSubmissionAttempt((attempt) => ({
+                id: attempt.id + 1,
+                intent: attempt.intent,
+                residence: isResidenceChangeFlow,
+            }))
+        }
+    }
+
     // keep ref in sync
     useEffect(() => {
         closeVerificationModalRef.current = closeVerificationProgressModal
@@ -355,22 +376,33 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [liveKycStatus, fetchUser, regionIntent, showWrapper, isMultiLevel])
 
-    // A multi-level session never reaches handleSdkComplete on the happy path:
-    // the SDK stays open through the follow-up level and the APPROVED transition
-    // closes it without onComplete. The wrapper reports the Level-1 submit
-    // through onSubmitted instead, so the funnel still gets its KYC_SUBMITTED.
-    const handleSdkSubmitted = useCallback(() => {
-        reportedRejectionRef.current = null
-        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
-    }, [regionIntent])
+    // Retain the attempt in late SDK callbacks so they cannot consume a newer attempt's submission.
+    // A residence change is an action on an approved identity, never an identity submission.
+    const captureSubmission = useCallback(
+        (source: SumsubSubmissionSource | 'sdk_complete') => {
+            if (submissionAttempt.residence || reportedAttemptsRef.current.has(submissionAttempt.id)) return
+            reportedAttemptsRef.current.add(submissionAttempt.id)
+            posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
+                region_intent: submissionAttempt.intent,
+                submit_source: source,
+            })
+        },
+        [submissionAttempt]
+    )
+
+    const handleSdkSubmitted = useCallback(
+        (source: SumsubSubmissionSource = 'sdk_submitted') => {
+            reportedRejectionRef.current = null
+            captureSubmission(source)
+        },
+        [captureSubmission]
+    )
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         reportedRejectionRef.current = null
         if (!isResidenceChangeFlow) {
-            posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
-                region_intent: lastIntentRef.current ?? regionIntent,
-            })
+            captureSubmission('sdk_complete')
             isRealtimeFlowRef.current = true
         }
         // Deliberately does NOT consume a deferred ACTION_REQUIRED for the capture
@@ -397,7 +429,7 @@ export const useMultiPhaseKycFlow = ({
         handleSumsubApproved,
         isActionFlow,
         isResidenceChangeFlow,
-        regionIntent,
+        captureSubmission,
         verificationSession,
     ])
 
@@ -417,6 +449,7 @@ export const useMultiPhaseKycFlow = ({
             corridor?: DepositCorridor
         ) => {
             const intent = overrideIntent ?? regionIntent
+            setSubmissionAttempt((attempt) => ({ id: attempt.id + 1, intent, residence: false }))
             lastIntentRef.current = intent
             setRequestedIntent(intent)
             lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }

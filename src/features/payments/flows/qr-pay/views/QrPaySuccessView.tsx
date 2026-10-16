@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -46,6 +46,8 @@ export function QrPaySuccessView() {
         usePerkHoldToClaim(qrPayment, setQrPayment)
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
     const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false)
+    // a double tap would push /request twice and leave a duplicate history entry
+    const splitNavigatedRef = useRef(false)
 
     // Live card-vs-local-rail markup, driven by Manteca's rate + (for ARS)
     // BCRA's official rate. Same hook (and cache entry) the confirm screen's
@@ -227,6 +229,8 @@ export function QrPaySuccessView() {
                             ) : (
                                 <Button
                                     onClick={() => {
+                                        if (splitNavigatedRef.current) return
+                                        splitNavigatedRef.current = true
                                         // same query-builder shape as withdraw's downstreamQuery —
                                         // /request seeds its form from these params
                                         // A person's name paid by PIX key stays out of the URL,
@@ -247,7 +251,7 @@ export function QrPaySuccessView() {
                             <Button
                                 variant="secondary"
                                 shadowSize="4"
-                                disabled={false}
+                                disabled={!receiptTransaction}
                                 onClick={() => {
                                     if (receiptTransaction) {
                                         openTransactionDetails(receiptTransaction)

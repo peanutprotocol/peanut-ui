@@ -10,6 +10,7 @@ import { PROSE_WIDTH } from './constants'
 import { isCapacitor } from '@/utils/capacitor'
 import { isNativeHelpContext } from '@/utils/native-help-context'
 import { showCrispLauncher } from '@/utils/crisp-launcher'
+import { isEnglishFallback } from '@/i18n/englishFallback'
 
 interface HelpArticle {
     slug: string
@@ -17,6 +18,8 @@ interface HelpArticle {
     title: string
     description: string
     category: string
+    /** Locale that owns the prose — differs from the hub's when the fallback served it. */
+    lang: string
 }
 
 interface HelpLandingStrings {
@@ -25,34 +28,43 @@ interface HelpLandingStrings {
     noResults: string
     cantFind: string
     cantFindDesc: string
+    /** Label on an article the fallback serves in English, e.g. "En inglés". */
+    inEnglish: string
 }
 
 interface HelpLandingProps {
     articles: HelpArticle[]
     categories: string[]
+    /** The hub's locale, to spot articles served in another language. */
+    locale: string
     /** Every label comes from the page, which already holds the locale catalog.
      *  Reading '@/i18n' here instead would ship all four catalogs to the client. */
     strings: HelpLandingStrings
 }
 
-function CategoryRows({ articles }: { articles: HelpArticle[] }) {
+function CategoryRows({ articles, locale, inEnglish }: { articles: HelpArticle[]; locale: string; inEnglish: string }) {
     return (
         <div className="flex flex-col">
-            {articles.map((article, i) => (
-                <ContentLinkRow
-                    key={article.slug}
-                    href={article.href}
-                    title={article.title}
-                    description={article.description}
-                    index={i}
-                    total={articles.length}
-                />
-            ))}
+            {articles.map((article, i) => {
+                const english = isEnglishFallback(article.lang, locale)
+                return (
+                    <ContentLinkRow
+                        key={article.slug}
+                        href={article.href}
+                        title={article.title}
+                        description={article.description}
+                        index={i}
+                        total={articles.length}
+                        lang={english ? article.lang : undefined}
+                        languageLabel={english ? inEnglish : undefined}
+                    />
+                )
+            })}
         </div>
     )
 }
 
-export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
+export default function HelpLanding({ articles, categories, locale, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
     // The static page cannot know whether it was opened by the native app.
     // Reveal browser-only support instructions after that context is resolved.
@@ -113,7 +125,11 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                                 <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {category}
                                 </h2>
-                                <CategoryRows articles={filteredArticles.filter((a) => a.category === category)} />
+                                <CategoryRows
+                                    articles={filteredArticles.filter((a) => a.category === category)}
+                                    locale={locale}
+                                    inEnglish={strings.inEnglish}
+                                />
                             </section>
                         ))}
                     </div>

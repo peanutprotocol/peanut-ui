@@ -1,10 +1,11 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import type { FlowStepGuard } from '@/hooks/useFlowStepper.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { isNativeBridge } from '@/utils/capacitor'
+
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 
 /** ?screen=, not ?step=: at /setup entry, ?step=signup is an existing contract
@@ -17,6 +18,12 @@ export const SETUP_SCREEN_PARAM = 'screen'
  * filtered list arrives and leave the cursor outside the active flow.
  */
 export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
+
+/**
+ * The first step after registration. The username step creates the account and
+ * the passkey, so once it succeeds the flow locks every step before this one.
+ */
+export const SETUP_POST_REGISTRATION_SCREEN: ScreenId = 'residence'
 
 /**
  * The setup flow's cursor: a named screen id in the URL (?screen=signup),
@@ -37,6 +44,8 @@ export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
  * preferences, while history pops cannot re-enter the registration forms.
  */
 export const useSetupFlow = () => {
+    const nativePlatform = useNativePlatform()
+
     const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } =
         useSetupFlowContext()
 
@@ -70,7 +79,7 @@ export const useSetupFlow = () => {
         steps: screenIds,
         defaultStep: SETUP_DEFAULT_SCREEN,
         urlKey: SETUP_SCREEN_PARAM,
-        history: isNativeBridge() ? 'replace' : 'push',
+        history: nativePlatform.isNativeBridge ? 'replace' : 'push',
         guards,
     })
 

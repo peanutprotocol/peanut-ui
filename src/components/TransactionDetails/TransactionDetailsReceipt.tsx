@@ -5,6 +5,7 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import React from 'react'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { RequestBankTransferCard } from '@/features/deposit-accounts/components/RequestBankTransferCard'
 import Card from '@/components/Global/Card'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -44,6 +45,7 @@ export const TransactionDetailsReceipt = ({
     avatarUrl,
     isPublic = false,
     showPublicIssuer = false,
+    isActive = true,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -57,8 +59,11 @@ export const TransactionDetailsReceipt = ({
     avatarUrl?: string
     isPublic?: boolean
     showPublicIssuer?: boolean
+    /** the drawer becomes inactive before its closing animation unmounts it. */
+    isActive?: boolean
 }) => {
     const t = useAppTranslations('transaction')
+    const tRequest = useAppTranslations('request')
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.
@@ -227,7 +232,26 @@ export const TransactionDetailsReceipt = ({
                 vm={vm}
                 shouldShowQrShare={shouldShowQrShare}
                 inDrawer={!!setIsModalOpen}
+                isActive={isActive}
             />
+
+            {/* What a payer is told to pay by bank transfer, for the requester
+                of a pending request that accepts it. Only inside the drawer:
+                the public receipt is not the requester's screen, and the
+                details open in a nested drawer that needs a parent drawer. */}
+            {!isPublic &&
+                setIsModalOpen &&
+                vm.isPendingRequester &&
+                transaction.isRequestPotLink &&
+                transaction.extraDataForDrawer?.bankInstructionsShared && (
+                    <RequestBankTransferCard
+                        requestId={transaction.id}
+                        title={tRequest('paidByBank.rowLabel')}
+                        nested
+                        canShare
+                        onOpenChange={setIsModalOpen}
+                    />
+                )}
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

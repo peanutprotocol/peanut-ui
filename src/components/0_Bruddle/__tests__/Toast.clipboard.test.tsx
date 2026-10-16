@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, screen } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { ToastProvider, useToast } from '../Toast'

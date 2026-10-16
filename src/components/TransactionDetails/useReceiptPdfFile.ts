@@ -7,6 +7,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import { authReady, getAuthHeaders } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
+import { saveToDocuments } from '@/utils/native-file.utils'
+import { NativeReceiptShareUnavailable, shareNativeReceipt } from '@/utils/native-receipt-share'
 import { shareableUrl } from '@/utils/url.utils'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { receiptPdfPath } from './receipt-pdf-link.utils'
@@ -61,7 +63,7 @@ async function fetchReceiptPdf(path: `/${string}`, entryId: string): Promise<Rec
  * button and the more-actions drawer rows reuse one fetch/share/download
  * path. auth, native CapacitorHttp handling, prefetch and retry-on-failure
  * semantics are unchanged — including the guarantee that a cached file is
- * shared synchronously from the click, which native share sheets require.
+ * shared synchronously from the click, which the browser share API requires.
  */
 export function useReceiptPdfFile({
     entryId,
@@ -78,6 +80,7 @@ export function useReceiptPdfFile({
     version?: string
 }) {
     const t = useAppTranslations('transaction')
+    const tCommon = useAppTranslations('common')
     const toast = useToast()
     const locale = useLocale()
     const [pdf, setPdf] = useState<ReceiptPdfFile | null>(null)
@@ -91,6 +94,13 @@ export function useReceiptPdfFile({
     // state alone cannot guard same-tick double taps (it only lands on the
     // next render); the ref makes repeated selection while pending a no-op
     const busyRef = useRef(false)
+    const mountedRef = useRef(true)
+    useEffect(() => {
+        mountedRef.current = true
+        return () => {
+            mountedRef.current = false
+        }
+    }, [])
 
     useEffect(() => {
         // always drop a stale file on identity change — with or without
@@ -144,8 +154,16 @@ export function useReceiptPdfFile({
             await deliver(file, receipt)
         } catch (cause) {
             if (cause instanceof Error && cause.name === 'AbortError') return
-            Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action } })
-            toast.error(t('actions.receiptPdfUnavailable'))
+            if (!(cause instanceof NativeReceiptShareUnavailable)) {
+                Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action } })
+            }
+            toast.error(
+                t(
+                    cause instanceof NativeReceiptShareUnavailable
+                        ? 'actions.nativeReceiptShareUnavailable'
+                        : 'actions.receiptShareFailed'
+                )
+            )
         } finally {
             busyRef.current = false
             setBusy(null)
@@ -154,7 +172,14 @@ export function useReceiptPdfFile({
 
     const share = () =>
         runFileAction('share', async (file, receipt) => {
-            if (navigator.share && navigator.canShare?.({ files: [file] })) {
+            if (isCapacitor()) {
+                await shareNativeReceipt(
+                    receipt.blob,
+                    receipt.filename,
+                    t('officialReceipt.pdf.title'),
+                    () => mountedRef.current && pathRef.current === pdfPath
+                )
+            } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
                 await navigator.share({ files: [file], title: t('officialReceipt.pdf.title') })
             } else {
                 downloadBlob(receipt.blob, receipt.filename)
@@ -163,9 +188,19 @@ export function useReceiptPdfFile({
         })
 
     const download = () =>
-        runFileAction('download', async (file, receipt) => {
-            if (isCapacitor() && navigator.share && navigator.canShare?.({ files: [file] })) {
-                await navigator.share({ files: [file], title: t('officialReceipt.pdf.title') })
+        runFileAction('download', async (_file, receipt) => {
+            if (isCapacitor()) {
+                // Android keeps the file in Documents; iOS, and a failed write, share it
+                if ((await saveToDocuments({ blob: receipt.blob, fileName: receipt.filename })) === 'saved') {
+                    toast.success(tCommon('savedToDocuments'))
+                    return
+                }
+                await shareNativeReceipt(
+                    receipt.blob,
+                    receipt.filename,
+                    t('officialReceipt.pdf.title'),
+                    () => mountedRef.current && pathRef.current === pdfPath
+                )
             } else {
                 downloadBlob(receipt.blob, receipt.filename)
             }

@@ -1,5 +1,3 @@
-import { MantecaAccountType } from '@/constants/manteca.consts'
-
 export interface MantecaDepositResponseData {
     id: string
     numberId: string
@@ -66,24 +64,6 @@ export interface MantecaDepositResponseData {
     }
     creationTime: string
     updatedAt: string
-}
-
-export enum MercadoPagoStep {
-    DETAILS = 'details',
-    REVIEW = 'review',
-    SUCCESS = 'success',
-}
-
-export type MantecaWithdrawData = {
-    amount: string
-    destinationAddress: string
-    bankCode?: string
-    accountType?: MantecaAccountType
-    txHash: string
-    currency: string
-    // optional: if provided, uses the pre-locked price from /withdraw/init
-    // if not provided, a new price lock is created (legacy behavior)
-    priceLockCode?: string
 }
 
 export type MantecaWithdrawResponseData = {

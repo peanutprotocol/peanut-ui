@@ -114,6 +114,7 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             // break the socket for every user the moment the policy is enforced.
             'wss://api.peanut.me',
             'wss://*.peanut.me',
+            'https://peanut-notes.s3.eu-north-1.amazonaws.com',
             'https://*.ingest.sentry.io',
             'https://*.ingest.us.sentry.io',
             // Wildcarded because GA4 shards collection by region: EU traffic
@@ -558,6 +559,10 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
+            // layout.tsx registers the worker with error handling. Avoid both uncaught
+            // auto-registration and an online event reloading a page mid-payment.
+            register: false,
+            reloadOnOnline: false,
             // explicitly include offline screen assets in precache
             additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
         })

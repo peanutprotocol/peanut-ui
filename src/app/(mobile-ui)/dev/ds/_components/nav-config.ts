@@ -1,5 +1,6 @@
 import {
     BellRing,
+    CalendarRange,
     Blocks,
     Boxes,
     CaseUpper,
@@ -170,6 +171,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/button',
             description: 'Primary interaction component. 3 variants, 3 sizes, shadow options, long-press support',
             status: 'production',
+        },
+        {
+            label: 'Calendar',
+            icon: CalendarRange,
+            href: '/dev/ds/primitives/calendar',
+            description:
+                'Range calendar over react-day-picker, semantic tokens only. Built for the statement period on Profile → Statements',
+            status: 'limited',
         },
         {
             label: 'Card',

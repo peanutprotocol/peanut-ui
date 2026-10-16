@@ -93,6 +93,11 @@ export function isIOSNative(): boolean {
     return getPlatform() === 'ios-native'
 }
 
+/** iOS counterpart of {@link isAndroidNativeBridge}: false in iPhone Safari, even on capacitor-flavoured web builds. */
+export function isIOSNativeBridge(): boolean {
+    return isNativeBridge() && window.Capacitor?.getPlatform?.() === 'ios'
+}
+
 /**
  * The export's stylesheet needs `@layer` (Safari 15.4), `color-mix(in oklab)`
  * (16.2) and `@property` (16.4); a WebView missing any of them paints the app
@@ -230,9 +235,11 @@ export async function closeInAppBrowser(): Promise<void> {
     }
 }
 
-export async function openExternalUrl(url: string): Promise<void> {
+export async function openExternalUrl(url: string, signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) throw new DOMException('Browser navigation cancelled', 'AbortError')
     if (isCapacitor()) {
         const { Browser } = await import('@capacitor/browser')
+        if (signal?.aborted) throw new DOMException('Browser navigation cancelled', 'AbortError')
         inAppBrowserOpen = true
         await Browser.open({ url: withNativeHelpContext(url) })
     } else if (!window.open(url, '_blank')) {

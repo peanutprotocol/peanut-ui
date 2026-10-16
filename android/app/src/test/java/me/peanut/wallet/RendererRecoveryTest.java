@@ -21,8 +21,11 @@ public class RendererRecoveryTest {
 
     @Test
     public void normalAppSwitchesKeepTheExistingPage() {
+        assertFalse(recovery.isForeground());
         recovery.onResume();
+        assertTrue(recovery.isForeground());
         recovery.onPause();
+        assertFalse(recovery.isForeground());
         recovery.onResume();
         flush();
         assertEquals(0, recreations);

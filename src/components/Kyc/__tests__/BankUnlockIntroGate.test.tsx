@@ -31,8 +31,8 @@ jest.mock('@/components/Profile/views/MoneySettings.view', () => ({
 }))
 // Keep the real dialog, persistence, and entry points; animation is independent.
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ title, description, onBack, children, image, showProgress }: any) => (
-        <div data-animation={image.animation} data-progress={String(showProgress)}>
+    SetupWrapper: ({ title, description, onBack, children, image, showLanguageSwitcher }: any) => (
+        <div data-animation={image.animation} data-language-switcher={String(showLanguageSwitcher)}>
             <h1>{title}</h1>
             <p>{description}</p>
             <button onClick={onBack}>Back</button>
@@ -63,8 +63,8 @@ it('shows the retired banking screen from the Accounts menu and continues to acc
     expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument()
     expect(screen.queryByText('account-choices')).not.toBeInTheDocument()
     expect(screen.getByText(en.setup.steps['advantage-bank'].description)).toBeInTheDocument()
-    expect(introHeading()?.parentElement).toHaveAttribute('data-animation', 'bank')
-    expect(introHeading()?.parentElement).toHaveAttribute('data-progress', 'false')
+    expect(introHeading()?.parentElement).toHaveAttribute('data-animation', 'accounts')
+    expect(introHeading()?.parentElement).toHaveAttribute('data-language-switcher', 'false')
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(screen.getByText('account-choices')).toBeInTheDocument()
 })

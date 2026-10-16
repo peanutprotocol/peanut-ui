@@ -46,7 +46,7 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
 
     return (
         <>
-            <Toggle checked={checked} onChange={handleToggleChange} aria-label={t('menu.showMyFullName')} />
+            <Toggle checked={checked} onChange={handleToggleChange} aria-label={t('menu.showFullName')} />
             <ActionModal
                 visible={isConfirming}
                 onClose={() => setIsConfirming(false)}

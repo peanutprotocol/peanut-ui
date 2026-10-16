@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The blocking Add Money card is rendered for both Manteca currencies. These
  * tests keep the native route failure visible and prove the pointer-events

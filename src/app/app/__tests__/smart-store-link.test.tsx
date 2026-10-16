@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * /app — the smart store link a download QR encodes.
  *
@@ -47,6 +49,8 @@ jest.mock('@/utils/capacitor', () => ({
 
 let mockFlagOn = true
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     isPwaSunsetOn: () => mockFlagOn,
     trackStoreClick: jest.fn(),
 }))

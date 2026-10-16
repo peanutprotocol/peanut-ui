@@ -25,6 +25,11 @@ const abort = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
 const tagsSet = () => Object.fromEntries(lastScope.setTag.mock.calls)
 const fingerprint = () => lastScope.setFingerprint.mock.calls[0]?.[0] as string[]
 
+// Read timeouts are sampled in production; report every one here so assertions are deterministic.
+beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0)
+})
+
 describe('timeout reporting — one issue, endpoint on a tag', () => {
     let infoSpy: jest.SpyInstance
 
@@ -75,6 +80,7 @@ describe('timeout reporting — one issue, endpoint on a tag', () => {
             route: '/manteca/qr-payment/init',
             'http.method': 'POST',
             feature: 'qr-pay',
+            timeout_sample_rate: '1',
         })
     })
 
@@ -82,6 +88,44 @@ describe('timeout reporting — one issue, endpoint on a tag', () => {
         expect(routeTag('https://api.peanut.me/fx/card-markup?currency=ARS')).toBe('/fx/card-markup?currency={value}')
         // Staging and production share a route; `environment` already separates them.
         expect(routeTag('https://api.staging.peanut.me/charges')).toBe(routeTag('https://api.peanut.me/charges'))
+    })
+})
+
+describe('read timeouts are sampled, mutation timeouts are not', () => {
+    let infoSpy: jest.SpyInstance
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        ;(Sentry.withScope as jest.Mock).mockImplementation((cb: (s: ScopeSpy) => void) => {
+            lastScope = { setFingerprint: jest.fn(), setTag: jest.fn() }
+            cb(lastScope)
+        })
+        global.fetch = jest.fn().mockRejectedValue(abort())
+    })
+
+    afterEach(() => infoSpy.mockRestore())
+
+    it('drops a read timeout outside the sample, but keeps it on the trail', async () => {
+        jest.spyOn(Math, 'random').mockReturnValue(0.5)
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(/taking too long/)
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Request timed out (not sampled)' })
+        )
+    })
+
+    it('tags a sampled read timeout with its rate', async () => {
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(/taking too long/)
+        expect(Object.fromEntries(lastScope.setTag.mock.calls).timeout_sample_rate).toBe('0.1')
+    })
+
+    it('reports every mutation timeout, whatever the roll', async () => {
+        jest.spyOn(Math, 'random').mockReturnValue(0.99)
+        await expect(
+            fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST' })
+        ).rejects.toThrow(/taking too long/)
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -140,5 +184,75 @@ describe('silentTimeout — call sites that own a fallback', () => {
         await fetchWithSentry('https://api.peanut.me/fx/card-markup?currency=ARS', { silentTimeout: true })
 
         expect(Sentry.captureMessage).toHaveBeenCalled()
+    })
+})
+
+describe('callerReportsFailures — the caller files the one report', () => {
+    let infoSpy: jest.SpyInstance
+    const url = 'https://api.peanut.me/bridge/exchange-rate?accountType=iban'
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        ;(Sentry.withScope as jest.Mock).mockImplementation((cb: (s: ScopeSpy) => void) => {
+            lastScope = { setFingerprint: jest.fn(), setTag: jest.fn() }
+            cb(lastScope)
+        })
+    })
+
+    afterEach(() => infoSpy.mockRestore())
+
+    const failedResponse = (status: number) =>
+        ({
+            ok: false,
+            status,
+            clone: () => ({ json: () => Promise.resolve({}), text: () => Promise.resolve('{}') }),
+        }) as unknown as Response
+
+    it('records a timeout as a breadcrumb and still throws', async () => {
+        global.fetch = jest.fn().mockRejectedValue(abort())
+
+        await expect(fetchWithSentry(url, { callerReportsFailures: true })).rejects.toThrow(/taking too long/)
+
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Request timed out (silent)' })
+        )
+    })
+
+    it('records a non-2xx response as a breadcrumb with its status', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failedResponse(503))
+
+        const response = await fetchWithSentry(url, { callerReportsFailures: true })
+
+        expect(response.status).toBe(503)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'Request failed (reported by caller)',
+                data: expect.objectContaining({ status: 503, route: '/bridge/exchange-rate?accountType={value}' }),
+            })
+        )
+    })
+
+    it('records a network failure as a breadcrumb and still throws', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+
+        await expect(fetchWithSentry(url, { callerReportsFailures: true })).rejects.toMatchObject({
+            name: 'ServiceUnavailableError',
+        })
+
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Request failed (reported by caller)' })
+        )
+    })
+
+    it('leaves every other request reporting its own non-2xx', async () => {
+        global.fetch = jest.fn().mockResolvedValue(failedResponse(503))
+
+        await fetchWithSentry(url)
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
     })
 })

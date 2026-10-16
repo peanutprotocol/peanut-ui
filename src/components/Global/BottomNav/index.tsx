@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -81,10 +82,13 @@ type TabBox = { left: number; width: number }
 const restingX = (box: TabBox) => box.left - 1
 
 export const BottomNav = () => {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('navigation')
     const pathname = usePathname()
     const router = useRouter()
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
+    const isWebSupportOpen = isSupportModalOpen && !nativePlatform.isCapacitor
     const { triggerHaptic } = useAppHaptic()
     const { user } = useAuth()
     const hasUnreadSupport = useSupportUnread(!!user?.user.userId, user?.user.userId)
@@ -170,7 +174,7 @@ export const BottomNav = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeTab])
 
-    const selectedTab = isSupportModalOpen ? 'support' : activeTab
+    const selectedTab = isWebSupportOpen ? 'support' : activeTab
     const activeBox = selectedTab ? boxes[selectedTab] : undefined
 
     const clampX = (x: number) => {
@@ -289,7 +293,7 @@ export const BottomNav = () => {
                 <button
                     type="button"
                     aria-label={t('support')}
-                    aria-expanded={isSupportModalOpen}
+                    aria-expanded={isWebSupportOpen}
                     {...tabPressHandlers('support')}
                     onClick={() => setIsSupportModalOpen(true)}
                     className={tabClass}

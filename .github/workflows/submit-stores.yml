@@ -1,0 +1,138 @@
+name: Submit store builds
+
+# Moves a tagged store build from the tester tracks to the stores: the TestFlight
+# build to App Store review (released automatically on approval) and the Play
+# `internal` release to the `production` track. Google Play does not publish it:
+# a person publishes the release in the Play Console after this run. Nothing is
+# built or uploaded here.
+#
+# Run it only after the native smoke test on the release page passed on one
+# iPhone and one Android (ops/releases.md step 18). Start with dry_run on: it
+# reads both stores and prints what it would change.
+#
+# Only the newest `v*` tag can be submitted. A failed release run leaves builds
+# on the tester tracks with no tag (Release 164: 1.12.0, 1.13.0); those must
+# never reach users.
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Tagged version to submit, e.g. 1.14.0'
+                required: true
+                type: string
+            platforms:
+                description: 'Which stores'
+                required: true
+                default: both
+                type: choice
+                options: [both, ios, android]
+            smoke_tested:
+                description: 'The native smoke test passed on one iPhone and one Android'
+                required: true
+                default: false
+                type: boolean
+            dry_run:
+                description: 'Read only: print what would change'
+                required: true
+                default: true
+                type: boolean
+            whats_new:
+                description: 'Store release notes. Empty: a short default in each language; notes already typed in App Store Connect are kept'
+                required: false
+                default: ''
+                type: string
+            android_rollout:
+                description: 'Share of Android users, above 0 up to 1 (1 = everyone)'
+                required: false
+                default: '1'
+                type: string
+
+permissions:
+    contents: read
+
+concurrency:
+    group: submit-stores
+    cancel-in-progress: false
+
+jobs:
+    guard:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - name: Only the newest tag, only after the smoke test
+              env:
+                  VERSION: ${{ inputs.version }}
+                  SMOKE_TESTED: ${{ inputs.smoke_tested }}
+                  DRY_RUN: ${{ inputs.dry_run }}
+              run: |
+                  if [ "$GITHUB_REF_NAME" != main ]; then
+                      echo "::error::run this on main" >&2
+                      exit 1
+                  fi
+                  if [ "$DRY_RUN" != true ] && [ "$SMOKE_TESTED" != true ]; then
+                      echo "::error::tick smoke_tested only after the native smoke test passed on one iPhone and one Android" >&2
+                      exit 1
+                  fi
+                  if ! git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+                      echo "::error::no tag v$VERSION: only a release run that passed on both platforms writes one" >&2
+                      exit 1
+                  fi
+                  NEWEST="$(node scripts/release-version.mjs newest-native)"
+                  if [ "$NEWEST" != "$VERSION" ]; then
+                      echo "::error::$VERSION is not the newest native release ($NEWEST)" >&2
+                      exit 1
+                  fi
+                  echo "v$VERSION is the newest native release"
+
+    ios:
+        needs: guard
+        if: ${{ inputs.platforms == 'both' || inputs.platforms == 'ios' }}
+        runs-on: ubuntu-latest
+        environment: Production
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '22'
+            - name: Submit to App Store review
+              env:
+                  ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+                  ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+                  ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+                  VERSION: ${{ inputs.version }}
+                  WHATS_NEW: ${{ inputs.whats_new }}
+                  DRY_RUN: ${{ inputs.dry_run }}
+              run: |
+                  # The step shell is plain `bash -e`; without pipefail, tee would turn a failed submission green.
+                  set -o pipefail
+                  args=(ios --version "$VERSION" --whats-new "$WHATS_NEW")
+                  [ "$DRY_RUN" = true ] && args+=(--dry-run)
+                  node scripts/submit-stores.mjs "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+    android:
+        needs: guard
+        if: ${{ inputs.platforms == 'both' || inputs.platforms == 'android' }}
+        runs-on: ubuntu-latest
+        environment: Production
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '22'
+            - name: Promote Play internal to production
+              env:
+                  PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+                  VERSION: ${{ inputs.version }}
+                  WHATS_NEW: ${{ inputs.whats_new }}
+                  ROLLOUT: ${{ inputs.android_rollout }}
+                  DRY_RUN: ${{ inputs.dry_run }}
+              run: |
+                  # The step shell is plain `bash -e`; without pipefail, tee would turn a failed submission green.
+                  set -o pipefail
+                  args=(android --version "$VERSION" --whats-new "$WHATS_NEW" --rollout "$ROLLOUT")
+                  [ "$DRY_RUN" = true ] && args+=(--dry-run)
+                  node scripts/submit-stores.mjs "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"

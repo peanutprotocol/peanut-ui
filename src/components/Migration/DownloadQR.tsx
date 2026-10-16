@@ -1,4 +1,5 @@
 'use client'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
@@ -40,7 +41,10 @@ export default function DownloadQR({ surface, handoff }: { surface: MigrationSur
     }, [surface])
 
     // Keep preview and LAN scans on the same server as the displayed QR.
-    const origin = typeof window !== 'undefined' ? window.location.origin : SELF_URL
+    const origin = useHydrationSnapshot(
+        () => window.location.origin,
+        () => SELF_URL
+    )
 
     return (
         <div className="flex w-full flex-col items-center gap-3 py-2">

@@ -1,8 +1,9 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useEffect, type CSSProperties } from 'react'
 import { useTranslations } from 'next-intl'
-import { getPlatform, openExternalUrl } from '@/utils/capacitor'
+import { openExternalUrl } from '@/utils/capacitor'
 import { captureMessage } from '@/utils/sentry-lazy'
 
 const BYPASS_KEY = 'unsupportedWebViewBypass'
@@ -71,8 +72,10 @@ const styles = {
 let reported = false
 
 export function UnsupportedWebViewScreen() {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('unsupportedWebView')
-    const platform = getPlatform() === 'android-native' ? 'android' : 'ios'
+    const platform = nativePlatform.platform === 'android-native' ? 'android' : 'ios'
 
     useEffect(() => {
         if (reported) return

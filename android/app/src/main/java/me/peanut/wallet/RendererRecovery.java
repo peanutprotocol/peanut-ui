@@ -49,6 +49,10 @@ final class RendererRecovery {
         return pending;
     }
 
+    boolean isForeground() {
+        return resumed;
+    }
+
     long getLastRecoveryAt() {
         return lastRecoveryAt;
     }

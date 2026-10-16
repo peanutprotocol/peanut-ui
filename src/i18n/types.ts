@@ -36,6 +36,7 @@ export interface Translations {
 
     // Navigation
     home: string
+    breadcrumbLabel: string // accessible name of the breadcrumb nav
     sendMoney: string
 
     // Converter
@@ -71,6 +72,9 @@ export interface Translations {
     pressTeam: string // "Team"
     pressCompany: string // "Company"
     pressMediaContact: string // "Media contact"
+    pressBoilerplateShort: string // "Short"
+    pressBoilerplateMedium: string // "Medium"
+    pressBoilerplatePress: string // "Press / Partner"
 
     // Help center
     help: string // "Help"
@@ -206,6 +210,10 @@ export interface Translations {
     footerSecurity: string
     footerStatus: string
     footerCareers: string
+    footerTeaserLabel: string
+    footerRickrollLabel: string
+    footerFollowOnX: string
+    footerViewGithub: string
 
     // Public status page (/status)
     statusPageTitle: string
@@ -327,6 +335,7 @@ export interface Translations {
     contentHubTitle: string
     contentHubSubtitle: string
     contentSearchPlaceholder: string
+    inEnglish: string // label on a hub item the fallback serves in English ("En inglés")
     filterAll: string
     filterBlog: string
     filterStories: string

@@ -116,6 +116,14 @@ export interface HistoryEntryExtraData {
     // that summarises a request pot's contributors rather than an
     // individual fulfilment.
     isRequestPotRollup?: boolean
+    /** Request-pot rollups only: USD received by bank deposit, as a decimal
+     *  string. Already inside `totalAmountCollected`; sent apart so a rollup
+     *  repeated across history pages adds it once (`mergeRepeatedEntry`). */
+    receivedAmount?: string
+    /** Request rollups only: the requester opted in to payment by bank
+     *  transfer. Written by the API request rollup; the requester's drawer
+     *  gates on it before asking for the bank details. */
+    bankInstructionsShared?: boolean
 
     // Common fields
     link?: string
@@ -288,7 +296,7 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
     return FINAL_STATES.includes(transaction.status)
 }
 
-export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
+export function getReceiptUrl(transaction: TransactionDetails, origin?: string): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
     // Kinds whose receipt URL is the dedicated /receipt page (shareable,
     // OG-augmented). SEND_LINK is the deliberate extra over FIAT_RAIL_KINDS —
@@ -296,7 +304,7 @@ export function getReceiptUrl(transaction: TransactionDetails): string | undefin
     // the txHash branch in useReceiptViewModel, not hasShareableReceipt. All
     // other kinds fall back to the stamped link.
     if (kind && hasReceiptPage(transaction)) {
-        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`)
+        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`, origin)
     }
     if (transaction.extraDataForDrawer?.link) {
         return transaction.extraDataForDrawer.link
@@ -498,11 +506,8 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 try {
                     const price = await getCachedCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
-                } catch (error) {
-                    console.error(
-                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                        error
-                    )
+                } catch {
+                    // Reported once per provider request by the FX layer, not once per row.
                 }
             }
             break
@@ -529,11 +534,8 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                             const price = await getCachedCurrencyPrice(entry.currency.code)
                             const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
                             entry.currency.amount = converted.toString()
-                        } catch (error) {
-                            console.error(
-                                `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                                error
-                            )
+                        } catch {
+                            // Reported once per provider request by the FX layer, not once per row.
                         }
                     } else {
                         // Unlike ONRAMP, OFFRAMP's `currency.amount` genuinely

@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
 import { isCapacitor } from '@/utils/capacitor'
 

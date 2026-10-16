@@ -1,7 +1,9 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, renderHook } from '@testing-library/react'
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import { useState, type ReactNode } from 'react'
-import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
+import { SETUP_DEFAULT_SCREEN, SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { filterSetupStepsForResidence } from '../filterSetupSteps'
@@ -19,7 +21,7 @@ jest.mock('@/utils/capacitor', () => ({
 // and the point of no return after a no-back step renders.
 
 const STEPS = setupSteps.filter((s) =>
-    ['landing', 'welcome', 'signup', 'residence', 'passkey-permission', 'advantage-control'].includes(s.screenId)
+    ['landing', 'welcome', 'signup', 'residence', 'notification-permission', 'advantage-control'].includes(s.screenId)
 )
 
 const wrapperFor = (searchParams: Record<string, string>) =>
@@ -52,12 +54,11 @@ const seedSteps = async (
 
 describe('useSetupFlow (URL stepper)', () => {
     it.each([
-        ['PT', ['advantage-card']],
-        ['AR', ['advantage-local']],
-        ['IN', ['advantage-exchange']],
-        ['JP', ['advantage-exchange', 'advantage-card']],
-        ['RU', ['advantage-exchange', 'advantage-people']],
-    ])('walks the remaining feature screens after the merged plan for %s', async (country, features) => {
+        ['PT', ['advantage-fees', 'advantage-card']],
+        ['IN', ['advantage-fees']],
+        ['JP', ['advantage-card']],
+        ['RU', []],
+    ])('walks the sell screens offered between residence and the payment plan for %s', async (country, features) => {
         const { result } = renderFlow({ screen: 'residence' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
         await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country as string))
@@ -70,7 +71,7 @@ describe('useSetupFlow (URL stepper)', () => {
         await act(async () => {
             await result.current.flow.handleNext()
         })
-        expect(result.current.flow.step?.screenId).toBe('passkey-permission')
+        expect(result.current.flow.step?.screenId).toBe('payment-plan')
         for (const expected of [...features].reverse()) {
             await act(async () => result.current.flow.handleBack())
             expect(result.current.flow.step?.screenId).toBe(expected)
@@ -101,7 +102,7 @@ describe('useSetupFlow (URL stepper)', () => {
     })
 
     it('handleNext walks the filtered list and reports the end explicitly — no clamp loop (TASK-21404)', async () => {
-        const { result } = renderFlow({ screen: 'passkey-permission' })
+        const { result } = renderFlow({ screen: 'notification-permission' })
         await seedSteps(result)
         await act(async () => {
             await result.current.flow.handleNext()
@@ -159,22 +160,36 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
-    it('walks every post-registration screen backward without reopening username or residence', async () => {
+    it('walks every post-registration screen backward to residence without reopening the username', async () => {
         const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result, setupSteps)
         await act(async () => {
-            result.current.context.setNoBackLockScreenId('passkey-permission')
+            result.current.context.setNoBackLockScreenId(SETUP_POST_REGISTRATION_SCREEN)
         })
-        for (const expected of ['notification-permission', 'notification-email', 'passkey-permission']) {
+        for (const expected of [
+            'notification-permission',
+            'notification-email',
+            'payment-plan',
+            'advantage-card',
+            'advantage-fees',
+            'residence',
+        ]) {
             await act(async () => {
                 result.current.flow.handleBack()
             })
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
+        // the account exists: neither Back nor a URL move may reopen the username or invite step
         await act(async () => {
-            result.current.flow.setScreenId('signup')
+            result.current.flow.handleBack()
         })
-        expect(result.current.flow.step?.screenId).toBe('passkey-permission')
+        expect(result.current.flow.step?.screenId).toBe('residence')
+        for (const target of ['signup', 'invite', 'landing'] as const) {
+            await act(async () => {
+                result.current.flow.setScreenId(target)
+            })
+            expect(result.current.flow.step?.screenId).toBe('residence')
+        }
     })
 
     it('derives backward and forward arrival direction for external URL changes', async () => {
@@ -247,17 +262,16 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
-    it('keeps email and notification choices after passkey creation and celebrates last', () => {
+    it('creates the account on the username step, then residence, sell screens, plan, contact and finish', () => {
+        expect(SETUP_POST_REGISTRATION_SCREEN).toBe('residence')
         expect(setupScreenIds).toEqual([
             'landing',
+            'invite',
             'signup',
-            'advantage-fees',
             'residence',
+            'advantage-fees',
             'advantage-card',
-            'advantage-exchange',
-            'advantage-local',
-            'advantage-people',
-            'passkey-permission',
+            'payment-plan',
             'notification-email',
             'notification-permission',
             'advantage-control',

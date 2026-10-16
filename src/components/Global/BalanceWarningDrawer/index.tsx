@@ -4,7 +4,8 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
@@ -76,10 +77,8 @@ function detectPlatform(): Platform {
 
 export default function BalanceWarningDrawer({ visible, onCloseAction }: BalanceWarningDrawerProps) {
     const t = useTranslations('global')
-    const platformInfo = useMemo(() => {
-        const platform = detectPlatform()
-        return PLATFORM_INFO[platform]
-    }, [])
+    const platform = useHydrationSnapshot(detectPlatform, () => Platform.UNKNOWN)
+    const platformInfo = PLATFORM_INFO[platform]
     const platformName = platformInfo.name ?? t('balanceWarningModal.yourDevice')
 
     const hasTrackedShow = useRef(false)

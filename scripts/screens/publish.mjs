@@ -9,7 +9,7 @@ import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
 
 const immutableReportPath =
-    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/(?:440x956|360x800|320x712)\/[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
+    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/(?:440x956|360x800|320x712)\/[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
 
 const localeInfo = {
     en: { slug: 'en', label: 'English' },
@@ -256,6 +256,7 @@ export async function publishReport({
                     ? { profile: `${after.width}x${after.height}` }
                     : {}),
                 complete: report.complete,
+                ...(report.scope ? { scope: report.scope, scopeComplete: report.scopeComplete } : {}),
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),
                 captureAttempt: Number(env.CAPTURE_ATTEMPT ?? 0),

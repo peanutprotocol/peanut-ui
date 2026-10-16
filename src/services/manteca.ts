@@ -1,6 +1,5 @@
 import {
     type MantecaDepositResponseData,
-    type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
@@ -263,14 +262,20 @@ export const mantecaApi = {
 
         return response.json()
     },
-    getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
+    getPrices: async (
+        { asset, against }: { asset: string; against: string },
+        options: { callerReportsFailures?: boolean } = {}
+    ): Promise<MantecaPrice> => {
         const response = await serverFetch(`/manteca/prices?asset=${asset}&against=${against}`, {
             method: 'GET',
+            ...options,
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Get prices failed: ${response.statusText}`)
+            throw Object.assign(new Error(errorData.message || `Get prices failed: ${response.statusText}`), {
+                status: response.status,
+            })
         }
 
         return response.json()
@@ -347,38 +352,9 @@ export const mantecaApi = {
         }
     },
 
-    withdraw: async (data: MantecaWithdrawData): Promise<MantecaWithdrawResponse> => {
-        try {
-            const response = await serverFetch('/manteca/withdraw', {
-                method: 'POST',
-                timeoutMs: 120_000, // Funding can precede Manteca accounting; match the signed withdrawal budget.
-                body: jsonStringify(data),
-            })
-
-            const result = await response.json()
-            if (!response.ok) {
-                return {
-                    error: result.error || 'Failed to create manteca withdraw.',
-                    message: result.message,
-                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
-                }
-            }
-
-            return { data: result }
-        } catch (error) {
-            console.log('error', error)
-            console.error('Error calling create manteca withdraw API:', error)
-            if (error instanceof Error) {
-                return { error: error.message }
-            }
-            return { error: 'An unexpected error occurred.' }
-        }
-    },
-
     /**
      * Initialize withdraw with a locked price.
      * This locks the exchange rate for ~120 seconds so user sees the exact amount they'll receive.
-     * The priceLockCode should be passed to withdraw() to use the locked price.
      */
     initiateWithdraw: async (params: {
         amount: string

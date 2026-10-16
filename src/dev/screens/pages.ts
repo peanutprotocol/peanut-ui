@@ -14,6 +14,8 @@ export type PageCapture = {
     clicks?: string[]
     /** Scroll to the bottom first — some notifications sit below the fold. */
     toBottom?: boolean
+    /** Canonical page after navigation, even when navigation needs setup actions. */
+    defaultScreen?: boolean
 }
 
 export const PAGE_CAPTURES: PageCapture[] = [
@@ -122,6 +124,7 @@ PAGE_CAPTURES.push(
         id: 'p64-withdraw-europe',
         name: 'Withdraw — European bank',
         route: '/withdraw/spain/bank',
+        defaultScreen: true,
         entryRoute: '/withdraw?amount=50',
         actions: [
             { click: '0802' },
@@ -180,12 +183,9 @@ PAGE_CAPTURES.push(
         route: '/withdraw/crypto',
         fixture: 'withdraw-crypto-destination',
         actions: [
-            { clickSelector: '[data-testid="token-selector-trigger"]' },
+            { clickSelector: '[data-testid="network-selector-trigger"]' },
             { clickSelector: '[role="dialog"] [role="option"]' },
-            { clickSelector: '[data-testid="token-selector-trigger"]' },
-            { click: 'More networks' },
-            { clickSelector: '[role="dialog"] [role="option"]' },
-            { click: 'More networks' },
+            { clickSelector: '[data-testid="network-selector-trigger"]' },
         ],
         expectSelector: '[role="dialog"] [role="option"][aria-selected="true"]',
     },
@@ -217,5 +217,6 @@ PAGE_CAPTURES.push(
             { clickSelector: 'button[role="combobox"]' },
         ],
         expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
-    }
+    },
+    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' }
 )

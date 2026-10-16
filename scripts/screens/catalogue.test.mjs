@@ -56,6 +56,41 @@ test('the actual screen catalogue produces valid capture manifests in every loca
     }
 })
 
+test('canonical pages and interactive variants retain distinct gallery classification', () => {
+    const byId = new Map(screens.map((screen) => [screen.id, screen]))
+    for (const id of ['p01-backup', 'p05-home', 'p64-withdraw-europe', 'p78-statements'])
+        assert.equal(byId.get(id)?.defaultScreen, true, id)
+    for (const id of [
+        'p02-backup-lose-phone',
+        'p38-kyc-action-required',
+        'p41-home-add-drawer',
+        'p72-accounts-held-open',
+        'p73-token-selector-drawer',
+        'fixture-home',
+        '90-f-withdraw-review-processing',
+    ])
+        assert.equal(byId.get(id)?.defaultScreen, false, id)
+    const manifest = validateCapture({
+        schema: 1,
+        type: 'capture',
+        commit: 'a'.repeat(40),
+        contentCommit: 'b'.repeat(40),
+        harness: 'c'.repeat(64),
+        fixtures: 'd'.repeat(64),
+        environment: 'catalogue-test',
+        adapter: 'v1',
+        capturedAt: '2026-10-13T00:00:00Z',
+        locale: 'en',
+        profile: 'en-393x852',
+        width: 393,
+        height: 852,
+        screens: materializeCatalogue(screens, []),
+        inventory: [],
+    })
+    assert.equal(manifest.screens.find((screen) => screen.id === 'p05-home').defaultScreen, true)
+    assert.equal(manifest.screens.find((screen) => screen.id === 'p41-home-add-drawer').defaultScreen, false)
+})
+
 test('account setup keeps distinct integer steps in the intended journey order', () => {
     const setup = screens.filter(({ journey }) => journey === 'Account setup')
     assert.equal(new Set(setup.map(({ order }) => order)).size, setup.length)
@@ -63,21 +98,17 @@ test('account setup keeps distinct integer steps in the intended journey order',
     assert.deepEqual(
         setup.map(({ id }) => id),
         [
-            '01-b-first-launch-intro',
             '01-a-landing',
+            '06-b-invite',
             '06-a-signup',
-            '04-b-advantage-fees',
-            '03-a-residence-select',
-            '03-c-residence-congrats',
-            '03-h-funding-methods',
-            '03-f-advantage-exchange',
-            '03-i-payment-methods',
-            '02-b-advantage-card',
-            '03-e-advantage-local',
-            '03-g-advantage-people',
-            '07-a-setuppasskey',
             '08-a-passkeysetuphelpmodal',
             '09-a-passkeyinfomodal',
+            '03-a-residence-select',
+            '04-b-advantage-fees',
+            '02-b-advantage-card',
+            '03-c-residence-congrats',
+            '03-h-funding-methods',
+            '03-i-payment-methods',
             '07-c-notification-email',
             '07-d-notification-settings',
             '07-b-advantage-control',

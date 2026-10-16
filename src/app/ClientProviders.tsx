@@ -19,8 +19,10 @@ import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useSplashGate } from '@/hooks/useSplashGate'
+import { useHydrationPathname } from '@/hooks/useHydrationPathname'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -69,9 +71,11 @@ const subscribeWebViewSupport = () => () => {}
 const unsupportedWebView = () => isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
 const serverUnsupportedWebView = () => false
 
-const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
+const AppGlobals = dynamic(() => importWithChunkRetry(() => import('./AppGlobals')).then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
-const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
+const AppIntlProvider = dynamic(() =>
+    importWithChunkRetry(() => import('@/i18n/app/AppIntlProvider')).then((m) => m.AppIntlProvider)
+)
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     const unsupported = useSyncExternalStore(subscribeWebViewSupport, unsupportedWebView, serverUnsupportedWebView)
@@ -85,7 +89,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // globals that depend on it are not mounted there either. `isMarketingRoute`
     // fails safe: an unrecognised path gets the full app tree.
     const pathname = usePathname()
-    const marketing = isMarketingRoute(pathname)
+    const marketing = isMarketingRoute(useHydrationPathname())
 
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 

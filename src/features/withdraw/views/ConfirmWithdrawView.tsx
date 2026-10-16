@@ -119,6 +119,11 @@ export default function ConfirmWithdrawView({
         tokenSymbol: token.symbol,
     })
 
+    // After this charge spends, a lower live balance is expected. Only a new
+    // spend needs affordability validation; processing keeps the CTA locked
+    // while the balance refreshes and payment recording finishes.
+    const balanceBlocksConfirmation = insufficientBalance && !alreadySpent
+
     const displayReceived = useMemo<string | null>(() => {
         if (!isCrossChain || !receiveAmount || !resolvedTokenSymbol) return null
         return isStableCoin(resolvedTokenSymbol) ? `$${receiveAmount}` : `${receiveAmount} ${resolvedTokenSymbol}`
@@ -266,9 +271,10 @@ export default function ConfirmWithdrawView({
                         // landed there is nothing left to gate: Retry only
                         // replays the record.
                         disabled={
-                            alreadySpent
+                            isProcessing ||
+                            (alreadySpent
                                 ? confirmDisabled
-                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled
+                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled)
                         }
                         loading={false}
                         className="w-full"
@@ -284,7 +290,7 @@ export default function ConfirmWithdrawView({
                         disabled={
                             isProcessing ||
                             isCalculating ||
-                            insufficientBalance ||
+                            balanceBlocksConfirmation ||
                             !!belowMinimumMessage ||
                             confirmDisabled
                         }
@@ -297,7 +303,7 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {insufficientBalance && !error && (
+                {balanceBlocksConfirmation && !isProcessing && !error && (
                     <Callout priority="error">{tErrors('notEnoughBalanceAddFunds')}</Callout>
                 )}
                 {belowMinimumMessage && !insufficientBalance && !error && (

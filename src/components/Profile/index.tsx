@@ -169,6 +169,8 @@ export const Profile = () => {
                             endText={LOCALE_LABELS[locale]}
                             href="/settings/language"
                         />
+                        {/* a document glyph: `download` already marks "Update available" in this group */}
+                        <ProfileMenuItem icon="docs" label={t('menu.statements')} href="/profile/statements" />
                         <ProfileMenuItem
                             icon="upload-cloud"
                             label={t('menu.backup')}
@@ -226,7 +228,10 @@ export const Profile = () => {
                 <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
             )}
             {isStoreUpdateModalMounted && (
-                <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+                <StoreUpdateModal
+                    visible={isStoreUpdateModalOpen && storeUpdateRequired}
+                    onClose={() => setIsStoreUpdateModalOpen(false)}
+                />
             )}
         </div>
     )

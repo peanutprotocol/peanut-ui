@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 /**
  * shared success view for all payment flows
@@ -117,6 +118,7 @@ const PaymentSuccessView = ({
     providerId,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
+    const origin = useAppOrigin()
     const t = useTranslations('payment')
     const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { user: authUser } = useAuth()
@@ -167,7 +169,7 @@ const PaymentSuccessView = ({
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`)
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`, origin)
             : undefined
 
         let details: Partial<TransactionDetails> = {
@@ -237,6 +239,7 @@ const PaymentSuccessView = ({
         resolvedChainName,
         resolvedTokenSymbol,
         paymentDetails,
+        origin,
         usdAmount,
         t,
     ])
@@ -314,11 +317,16 @@ const PaymentSuccessView = ({
                 <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
             )}
             <PageStack.Center className="relative z-10 gap-4">
-                <PeanutMascot
-                    pose="cheering"
-                    alt="Peanut Mascot"
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
-                />
+                {/* the card is the first child, so this box ends at the card's top edge. clipping
+                    there keeps the legs hidden: the lottie art fills more of its box than the old
+                    raster did, and a short card no longer covers the lower half */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-full -z-10 h-32 overflow-hidden">
+                    <PeanutMascot
+                        pose="cheering"
+                        alt="Peanut Mascot"
+                        className="absolute top-0 left-1/2 h-60 w-auto -translate-x-1/2"
+                    />
+                </div>
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
                         <IconBubble icon="check" color="green" />

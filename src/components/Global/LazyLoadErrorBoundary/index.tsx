@@ -6,6 +6,7 @@ interface LazyLoadErrorBoundaryProps {
     children: React.ReactNode
     fallback?: React.ReactNode
     onError?: (error: Error) => void
+    reloadOnChunkError?: boolean
 }
 
 interface LazyLoadErrorBoundaryState {
@@ -34,7 +35,7 @@ class LazyLoadErrorBoundary extends React.Component<LazyLoadErrorBoundaryProps, 
         // A swallowed chunk failure means UI silently never appears (e.g. the
         // transaction-details drawer); a one-time reload re-pins to the current
         // deployment and restores it.
-        recoverFromChunkError(error)
+        if (this.props.reloadOnChunkError !== false) recoverFromChunkError(error)
     }
 
     render() {

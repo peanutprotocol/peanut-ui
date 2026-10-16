@@ -9,6 +9,8 @@ let mockDevice = 'web'
 let mockMigration = true
 const mockTrackStoreClick = jest.fn()
 jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     trackStoreClick: (...args: unknown[]) => mockTrackStoreClick(...args),
     storeAnchorHref: () => '/store',
     onStoreAnchorClick: jest.fn(),
@@ -22,7 +24,9 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigration }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => mockIntercept }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+    Button: ({ children, icon }: { children: React.ReactNode; icon?: string }) => (
+        <span data-icon={icon}>{children}</span>
+    ),
 }))
 
 beforeEach(() => {
@@ -45,10 +49,23 @@ it.each(['ios', 'android'])('has one store download action on %s', (device) => {
     mockDevice = device
     render(<LandingDownloadCta />)
     expect(screen.getAllByRole('link')).toHaveLength(1)
-    expect(screen.getByRole('link', { name: 'downloadNow' })).toHaveAttribute(
-        'href',
-        STORE_URL[device as 'ios' | 'android']
+    expect(screen.getByRole('link', { name: 'downloadNow' })).toHaveAttribute('href', '/store')
+})
+it.each([
+    ['web', 'qr-code'],
+    ['ios', 'apple-logo'],
+    ['android', 'google-play'],
+])('the hero and the sticky bar show the same icon on %s', (device, icon) => {
+    mockDevice = device
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 400 })
+    render(
+        <>
+            <LandingDownloadCta />
+            <StickyMobileCTA strings={{ logIn: 'Log in' } as LandingStrings} />
+        </>
     )
+    const icons = screen.getAllByText('downloadNow').map((el) => el.getAttribute('data-icon'))
+    expect(icons).toEqual([icon, icon])
 })
 it.each(['ios', 'android'])('tracks the %s footer store link without changing its destination', (store) => {
     render(<FooterStoreLinks />)

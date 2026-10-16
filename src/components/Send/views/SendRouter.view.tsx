@@ -1,4 +1,5 @@
 'use client'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PIX from '@/assets/payment-apps/pix.svg'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
@@ -47,10 +48,13 @@ export const SendRouterView = () => {
     // - query param: /send?recipient=kushagra (preferred for native navigation)
     // - path segment: /send/kushagra (from deep links, SPA fallback serves /send page)
     const recipientFromQuery = searchParams.get('recipient')
-    const recipientFromPath =
-        typeof window !== 'undefined' && window.location.pathname.startsWith('/send/')
-            ? decodeURIComponent(window.location.pathname.replace('/send/', '').split('/')[0])
-            : null
+    const pathname = useHydrationSnapshot(
+        () => window.location.pathname,
+        () => ''
+    )
+    const recipientFromPath = pathname.startsWith('/send/')
+        ? decodeURIComponent(pathname.replace('/send/', '').split('/')[0])
+        : null
     const recipientUsername = recipientFromQuery || recipientFromPath || null
     const goBack = useSafeBack('/home')
     // replace, not push: a pushed fallback would mint a history entry that the

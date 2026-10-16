@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { renderHook as renderRawHook, act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { type ReactNode } from 'react'

@@ -27,11 +27,11 @@ export function BankUnlockIntro({ onContinue, onBack }: { onContinue: () => void
             <SetupWrapper
                 layoutType="signup"
                 screenId="advantage-bank"
-                image={{ animation: 'bank' }}
+                image={{ animation: 'accounts' }}
                 title={t('steps.advantage-bank.title')}
                 description={t('steps.advantage-bank.description')}
                 showBackButton
-                showProgress={false}
+                showLanguageSwitcher={false}
                 onBack={onBack}
             >
                 <SetupFooter

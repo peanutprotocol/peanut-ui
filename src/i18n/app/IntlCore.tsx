@@ -1,8 +1,9 @@
 'use client'
 
-import { NextIntlClientProvider, IntlErrorCode, type IntlError } from 'next-intl'
+import { NextIntlClientProvider } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_APP_LOCALE, type AppLocale } from './config'
+import { onIntlError } from './intl-error'
 import { AppLocaleContext } from './locale-context'
 import { type AppMessages } from './messages'
 import {
@@ -14,16 +15,7 @@ import {
     persistLocale,
 } from './locale-store'
 import { isHtmlLangClaimed, setHtmlLangReleaseListener } from '../htmlLangClaim'
-
-function onIntlError(error: IntlError): void {
-    if (error.code === IntlErrorCode.MISSING_MESSAGE) {
-        // unreachable for valid keys (catalogs are deep-merged over English);
-        // never crash on copy in production
-        if (process.env.NODE_ENV !== 'production') console.warn(error.message)
-        return
-    }
-    console.error(error)
-}
+import { useClientTimeZone } from './useClientTimeZone'
 
 /**
  * Locale resolution + NextIntlClientProvider, independent of which catalog it
@@ -50,6 +42,7 @@ export function IntlCore({
     /** Setup's first language switcher waits until its initial locale is applied. */
     startupFallback?: React.ReactNode
 }) {
+    const timeZone = useClientTimeZone()
     /* SSR and the first client render must both use English so the hydration
        passes match; the real locale is resolved and swapped in an effect. */
     const [{ locale, messages }, setIntlState] = useState<{ locale: AppLocale; messages: AppMessages }>({
@@ -128,12 +121,7 @@ export function IntlCore({
 
     return (
         <AppLocaleContext.Provider value={{ locale, setLocale }}>
-            <NextIntlClientProvider
-                locale={locale}
-                messages={messages}
-                timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
-                onError={onIntlError}
-            >
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone} onError={onIntlError}>
                 {!startupSettled && startupFallback !== undefined ? startupFallback : children}
             </NextIntlClientProvider>
         </AppLocaleContext.Provider>

@@ -12027,6 +12027,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/history/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One file in the requested format. A period with more records than one file holds returns application/zip: one file per calendar year of the time zone, in the requested format. */
+        get: {
+            parameters: {
+                query: {
+                    format: "csv" | "pdf" | "xlsx";
+                    from?: string;
+                    /** @description Exclusive upper date-time bound */
+                    to?: string;
+                    timeZone?: string;
+                    /** @description Language of the PDF and XLSX labels, dates and amounts. CSV is always English. */
+                    locale?: "en" | "es-419" | "es-AR" | "pt-BR";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/identity": {
         parameters: {
             query?: never;
@@ -12681,6 +12723,62 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/arrival": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        country: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            prompt: "qr_ar" | "pix_br" | "card" | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

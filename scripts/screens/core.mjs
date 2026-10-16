@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
 import { captureProfile } from './capture-profiles.mjs'
+import { canonicalScope, scopeCapture } from './capture-scope.mjs'
 
 export const hash = (data) => createHash('sha256').update(data).digest('hex')
 const sha = /^[a-f0-9]{40}$/
@@ -45,6 +46,10 @@ export function validateCapture(input) {
         assert(['captured', 'failed', 'excluded', 'unavailable', 'absent'].includes(s.status), 'Invalid capture status')
         assert(['route', 'component'].includes(s.kind), 'Invalid screen kind')
         const out = { id: s.id, name: text(s.name), flow: text(s.flow), kind: s.kind, status: s.status }
+        if (s.defaultScreen !== undefined) {
+            assert(typeof s.defaultScreen === 'boolean', 'Invalid default-screen classification')
+            out.defaultScreen = s.defaultScreen
+        }
         if (s.order !== undefined) {
             assert(Number.isInteger(s.order) && s.order >= 0 && s.order <= 1_000_000, 'Invalid screen order')
             out.order = s.order
@@ -82,6 +87,11 @@ export function validateCapture(input) {
         assert(digest.test(entry.before) && digest.test(entry.after), 'Invalid adapter file digest')
         return { path: text(entry.path), before: entry.before, after: entry.after }
     })
+    const scope = input.scope === undefined ? undefined : canonicalScope(input.scope, seen)
+    if (scope) assert(scope.screenIds.length === screens.length, 'Scoped catalogue contains omitted states')
+    const settled =
+        screens.some((s) => s.status === 'captured') &&
+        screens.every((s) => ['captured', 'excluded', 'absent'].includes(s.status))
     return {
         schema: 1,
         type: 'capture',
@@ -102,11 +112,8 @@ export function validateCapture(input) {
         screens,
         inventory,
         adapterFiles,
-        complete:
-            inventory.length > 0 &&
-            inventory.every((entry) => entry.status !== 'missing') &&
-            screens.some((s) => s.status === 'captured') &&
-            screens.every((s) => ['captured', 'excluded', 'absent'].includes(s.status)),
+        ...(scope ? { scope, scopeComplete: settled && inventory.every((entry) => entry.status !== 'missing') } : {}),
+        complete: !scope && inventory.length > 0 && inventory.every((entry) => entry.status !== 'missing') && settled,
     }
 }
 export function validateJourneys(input) {
@@ -243,8 +250,15 @@ export function storeAsset(dir, data, extension = 'png') {
     return name
 }
 export function compare(beforeInput, afterInput, assetsDir) {
-    const before = validateCapture(beforeInput),
+    let before = validateCapture(beforeInput),
         after = validateCapture(afterInput)
+    const scope = after.scope ?? before.scope
+    if (scope) {
+        if (before.scope && after.scope)
+            assert(JSON.stringify(before.scope) === JSON.stringify(after.scope), 'Capture scopes differ')
+        before = validateCapture(scopeCapture(before, scope))
+        after = validateCapture(scopeCapture(after, scope))
+    }
     assert(
         sameEnvironment(before, after),
         'Capture environments differ; recapture both with the same harness, fixtures and renderer'
@@ -267,6 +281,7 @@ export function compare(beforeInput, afterInput, assetsDir) {
             name: metadata.name,
             flow: metadata.flow,
             kind: metadata.kind,
+            ...(metadata.defaultScreen !== undefined ? { defaultScreen: metadata.defaultScreen } : {}),
             ...(metadata.order !== undefined ? { order: metadata.order } : {}),
             ...(metadata.journey !== undefined ? { journey: metadata.journey } : {}),
             before: a,
@@ -314,6 +329,7 @@ export function compare(beforeInput, afterInput, assetsDir) {
         before,
         after,
         complete: before.complete && after.complete,
+        ...(scope ? { scope, scopeComplete: before.scopeComplete && after.scopeComplete } : {}),
         screens,
     }
 }
@@ -335,6 +351,7 @@ export function materializeCatalogue(catalogue, results) {
                 name: s.name,
                 flow: s.flow,
                 kind: s.kind,
+                ...(s.defaultScreen !== undefined ? { defaultScreen: s.defaultScreen } : {}),
                 ...(s.order !== undefined ? { order: s.order } : {}),
                 ...(s.journey !== undefined ? { journey: s.journey } : {}),
                 status: 'unavailable',

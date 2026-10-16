@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // extended integration test: action functions do NOT leak apiKey in request body
 // follows the same mock pattern as api-headers.test.ts
 

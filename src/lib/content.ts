@@ -23,6 +23,7 @@ import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
+import { isValidLocale } from '@/i18n/config'
 
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
@@ -67,24 +68,27 @@ export function hasSingletonContent(intent: string, locale: string): boolean {
     return readSingletonContent(intent, locale) !== null
 }
 
-/** Locale whose file actually serves this page — first hit in the fallback chain. */
-export function contentLocaleFor(intent: string, slug: string, lang: string): string {
+/**
+ * Locale whose file actually serves this page — first hit in the fallback chain.
+ * es-es files are not a route locale, so the chain skips them.
+ */
+export function contentLocaleFor(intent: string, slug: string, lang: string): Locale {
     for (const locale of getLocaleFallbacks(lang)) {
-        if (hasPageContent(intent, slug, locale)) return locale
+        if (isValidLocale(locale) && hasPageContent(intent, slug, locale)) return locale
     }
     return 'en'
 }
 
-export function corridorLocaleFor(destination: string, origin: string, lang: string): string {
+export function corridorLocaleFor(destination: string, origin: string, lang: string): Locale {
     for (const locale of getLocaleFallbacks(lang)) {
-        if (hasCorridorContent(destination, origin, locale)) return locale
+        if (isValidLocale(locale) && hasCorridorContent(destination, origin, locale)) return locale
     }
     return 'en'
 }
 
-export function singletonLocaleFor(intent: string, lang: string): string {
+export function singletonLocaleFor(intent: string, lang: string): Locale {
     for (const locale of getLocaleFallbacks(lang)) {
-        if (hasSingletonContent(intent, locale)) return locale
+        if (isValidLocale(locale) && hasSingletonContent(intent, locale)) return locale
     }
     return 'en'
 }

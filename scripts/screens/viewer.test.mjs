@@ -11,8 +11,13 @@ const elementIds = [
     'view-mode',
     'view-mode-control',
     'view-mode-row',
+    'variations-mode',
     'source',
     'source-control',
+    'branch',
+    'branch-control',
+    'screen-updates-only',
+    'screen-updates-control',
     'locale',
     'profile',
     'profile-control',
@@ -53,6 +58,13 @@ const elementIds = [
     'auth-preview',
     'auth-gate',
     'google-sign-in',
+    'comment-feed',
+    'comment-panel',
+    'votes',
+    'votes-control',
+    'vote-scope-control',
+    'vote-scope-all',
+    'vote-scope-me',
 ]
 
 class Element {
@@ -156,7 +168,7 @@ test('legacy four-pixel false positives are hidden, counted as unchanged, and re
     const noiseTile = elements.get('screens').children.find(({ id }) => id === 'pixels-4')
     assert.equal(noiseTile.children[0].children[0].textContent, 'unchanged')
     assert.match(elementText(noiseTile), /4 pixels below change threshold/)
-    assert.doesNotMatch(elementText(noiseTile), /0\.00% pixels changed/)
+    assert.doesNotMatch(elementText(noiseTile), /0\.00% changed/)
     assert.equal(
         elements.get('screens').children.find(({ id }) => id === 'failed').children[0].children[0].textContent,
         'failed'
@@ -165,7 +177,7 @@ test('legacy four-pixel false positives are hidden, counted as unchanged, and re
 
 async function loadLanding(
     pathname,
-    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '' } = {}
+    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '', screenComments } = {}
 ) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
@@ -198,6 +210,7 @@ async function loadLanding(
         getElementById: (id) => elements.get(id),
         querySelector: (selector) => (selector === '.brand' ? brand : null),
     }
+    elements.document = document
     const context = vm.createContext({
         console,
         document,
@@ -210,7 +223,7 @@ async function loadLanding(
                   : response,
         history,
         location,
-        window: {},
+        window: screenComments ? { ScreenComments: screenComments } : {},
     })
     vm.runInContext(viewer, context, {
         filename: 'public/screen-library/viewer.js',
@@ -224,6 +237,73 @@ async function loadLanding(
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
+
+test('PR report heading and tab title retain PR and branch context across view and filter changes', async () => {
+    const path = `2026-10-09/pr-3593/en/${'a'.repeat(40)}/run-37911623740-1`
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852, capturedAt: '2026-10-09T12:00:00Z' },
+        screens: [],
+    }
+    const elements = await loadLanding(`/screens/${path}/`, {
+        report,
+        index: [{ path, date: '2026-10-09', branch: 'innolope/store-country', prNumber: 3593, locale: 'en' }],
+    })
+    for (const update of [
+        () => {},
+        () => {
+            elements.get('view-mode').checked = true
+            elements.get('view-mode').dispatch('change')
+        },
+        () => elements.get('search').dispatch('input'),
+        () => {
+            elements.get('view-mode').checked = false
+            elements.get('view-mode').dispatch('change')
+        },
+    ]) {
+        update()
+        assert.equal(elements.get('title').textContent, 'PR #3593')
+        assert.match(elementText(elements.get('description')), /innolope\/store-country.*October 9, 2026/)
+        assert.equal(elements.document.title, 'PR #3593 · Peanut Screen library')
+    }
+})
+
+test('older report URLs identify the PR or branch with missing or fallback catalogue metadata', async () => {
+    for (const [channel, expectedTitle, type, branch] of [
+        ['pr-3593', 'PR #3593', 'comparison'],
+        ['compare-main', 'Main', 'comparison'],
+        ['compare-main-2026-08-27', 'Main', 'comparison'],
+        ['compare-main-2026-08-27', 'Main', 'comparison', 'compare-main-2026-08-27'],
+        ['compare-dev', 'Dev', 'comparison'],
+        ['main', 'Main', 'capture'],
+        ['dev', 'Dev', 'capture'],
+    ]) {
+        const capture = { width: 393, height: 852, capturedAt: '2026-10-09T12:00:00Z' }
+        const report = {
+            schema: 1,
+            type,
+            locale: 'en',
+            complete: true,
+            ...capture,
+            before: capture,
+            after: capture,
+            screens: [],
+        }
+        const path = `2026-10-09/${channel}/en/${'a'.repeat(40)}`
+        const elements = await loadLanding(`/screens/${path}/`, {
+            report,
+            index: branch ? [{ path, branch, date: '2026-10-09', locale: 'en' }] : [],
+        })
+        assert.equal(elements.get('title').textContent, expectedTitle)
+        assert.equal(elements.document.title, `${expectedTitle} · Peanut Screen library`)
+        assert.match(elementText(elements.get('description')), /October 9, 2026/)
+        assert.doesNotMatch(elementText(elements.get('description')), /pr-3593/)
+    }
+})
 
 test('root shows the branded sign-in gate when Access redirects the catalogue request', async () => {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
@@ -575,72 +655,73 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
 })
 
-test('new and legacy after-only screens stay in visual changes with a New screen placeholder', async () => {
-    const image = 'a'.repeat(64) + '.png'
-    const reason = 'This revision has no compatible scenario harness for this component'
-    const row = (id, status, baselineStatus = 'unavailable') => ({
-        id,
-        name: id,
-        flow: 'Setup and login',
-        kind: 'component',
-        status,
-        before: { status: baselineStatus, reason },
-        after: { status: 'captured', image, thumbnail: image },
+for (const channel of ['pr-3392', 'compare-main'])
+    test(`${channel}: new and legacy after-only screens stay in visual changes with a New screen placeholder`, async () => {
+        const image = 'a'.repeat(64) + '.png'
+        const reason = 'This revision has no compatible scenario harness for this component'
+        const row = (id, status, baselineStatus = 'unavailable') => ({
+            id,
+            name: id,
+            flow: 'Setup and login',
+            kind: 'component',
+            status,
+            before: { status: baselineStatus, reason },
+            after: { status: 'captured', image, thumbnail: image },
+        })
+        const report = {
+            schema: 1,
+            type: 'comparison',
+            locale: 'en',
+            complete: false,
+            before: { width: 393, height: 852 },
+            after: { width: 393, height: 852 },
+            screens: [
+                row('legacy', 'unavailable'),
+                row('modern', 'new'),
+                row('added', 'added', 'absent'),
+                row('failed-baseline', 'failed', 'failed'),
+                row('excluded-baseline', 'excluded', 'excluded'),
+                {
+                    ...row('after-gap', 'unavailable'),
+                    before: { status: 'captured', image },
+                    after: { status: 'unavailable', reason },
+                },
+            ],
+        }
+        const elements = await loadLanding(`/screens/2026-10-06/${channel}/en/` + 'b'.repeat(40) + '/', {
+            report,
+            search: '?status=differences&view=changed',
+        })
+        assert.deepEqual(
+            elements.get('screens').children.map(({ id }) => id),
+            ['legacy', 'modern', 'added']
+        )
+        assert.match(elements.get('coverage').textContent, /2 new screens/)
+        assert.match(elements.get('coverage').textContent, /Incomplete capture/)
+        for (const tile of elements.get('screens').children) {
+            const before = tile.children[1].children[0]
+            assert.match(elementText(before), /New screen No before screenshot/)
+            assert.equal(imageSources(before).length, 0)
+            assert.equal(before.children[1].title, reason)
+            assert.equal(imageSources(tile).length, 1)
+            tile.children[1].children[1].children[1].onclick()
+            assert.match(elementText(elements.get('zoom-images')), /New screen No before screenshot/)
+            assert.equal(imageSources(elements.get('zoom-images')).length, 1)
+        }
+        elements.get('status').value = 'new'
+        elements.get('status').dispatch('input')
+        assert.deepEqual(
+            elements.get('screens').children.map(({ id }) => id),
+            ['legacy', 'modern']
+        )
+        assert.equal(elements.get('view-mode').checked, false)
+        elements.get('view-mode').checked = true
+        elements.get('view-mode').dispatch('change')
+        assert.equal(
+            elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
+            true
+        )
     })
-    const report = {
-        schema: 1,
-        type: 'comparison',
-        locale: 'en',
-        complete: false,
-        before: { width: 393, height: 852 },
-        after: { width: 393, height: 852 },
-        screens: [
-            row('legacy', 'unavailable'),
-            row('modern', 'new'),
-            row('added', 'added', 'absent'),
-            row('failed-baseline', 'failed', 'failed'),
-            row('excluded-baseline', 'excluded', 'excluded'),
-            {
-                ...row('after-gap', 'unavailable'),
-                before: { status: 'captured', image },
-                after: { status: 'unavailable', reason },
-            },
-        ],
-    }
-    const elements = await loadLanding('/screens/2026-10-06/pr-3392/en/' + 'b'.repeat(40) + '/', {
-        report,
-        search: '?status=differences&view=changed',
-    })
-    assert.deepEqual(
-        elements.get('screens').children.map(({ id }) => id),
-        ['legacy', 'modern', 'added']
-    )
-    assert.match(elements.get('coverage').textContent, /2 new screens/)
-    assert.match(elements.get('coverage').textContent, /Incomplete capture/)
-    for (const tile of elements.get('screens').children) {
-        const before = tile.children[1].children[0]
-        assert.match(elementText(before), /New screen No before screenshot/)
-        assert.equal(imageSources(before).length, 0)
-        assert.equal(before.children[1].title, reason)
-        assert.equal(imageSources(tile).length, 1)
-        tile.children[1].children[1].children[1].onclick()
-        assert.match(elementText(elements.get('zoom-images')), /New screen No before screenshot/)
-        assert.equal(imageSources(elements.get('zoom-images')).length, 1)
-    }
-    elements.get('status').value = 'new'
-    elements.get('status').dispatch('input')
-    assert.deepEqual(
-        elements.get('screens').children.map(({ id }) => id),
-        ['legacy', 'modern']
-    )
-    assert.equal(elements.get('view-mode').checked, false)
-    elements.get('view-mode').checked = true
-    elements.get('view-mode').dispatch('change')
-    assert.equal(
-        elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
-        true
-    )
-})
 
 test('screen preview uses the viewport device frame and supports chevrons and keyboard navigation', async () => {
     const first = 'a'.repeat(64) + '.webp'
@@ -893,6 +974,268 @@ test('report filters restore from and continuously update the shareable URL', as
         elements.location.search,
         '?source=synthetic&locale=en&q=Changed+screen&flow=Home&status=changed&view=all'
     )
+})
+
+const comparisonScreen = ({ id, name = id, flow = 'Home', status = 'changed', defaultScreen }) => {
+    const image = 'a'.repeat(64) + '.png'
+    return {
+        id,
+        name,
+        flow,
+        kind: 'route',
+        status,
+        ...(defaultScreen === undefined ? {} : { defaultScreen }),
+        before: { status: 'captured', image, thumbnail: image },
+        after: { status: 'captured', image, thumbnail: image },
+    }
+}
+
+const comparisonReportWith = (screens, locale = 'en') => ({
+    schema: 1,
+    type: 'comparison',
+    locale,
+    complete: true,
+    before: { commit: 'a'.repeat(40), capturedAt: 'now', environment: 'test' },
+    after: { commit: 'b'.repeat(40), capturedAt: 'now', environment: 'test' },
+    screens,
+})
+
+test('comment thread permalink survives filter changes within the same report', async () => {
+    const path = `2026-10-13/pr-3700/en/${'b'.repeat(40)}`
+    const threadId = '11111111-1111-4111-8111-111111111111'
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'synthetic' }],
+        report: comparisonReportWith([comparisonScreen({ id: 'home', name: 'Home review' })]),
+        search: `?source=synthetic&locale=en&comments=${threadId}&q=Home`,
+    })
+
+    elements.get('search').value = 'Home review'
+    elements.get('search').dispatch('input')
+    const destination = new URL(elements.historyCalls.at(-1), 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${path}/`)
+    assert.equal(destination.searchParams.get('locale'), 'en')
+    assert.equal(destination.searchParams.get('q'), 'Home review')
+    assert.equal(destination.searchParams.get('comments'), threadId)
+})
+
+test('comment thread permalink is dropped when locale navigation changes report path', async () => {
+    const commit = 'b'.repeat(40)
+    const englishPath = `2026-10-13/pr-3700/en/${commit}`
+    const spanishPath = `2026-10-13/pr-3700/es-419/${commit}`
+    const threadId = '22222222-2222-4222-8222-222222222222'
+    const elements = await loadLanding(`/screens/${englishPath}/`, {
+        index: [
+            { path: englishPath, locale: 'en', source: 'synthetic' },
+            { path: spanishPath, locale: 'es-419', source: 'synthetic' },
+        ],
+        report: comparisonReportWith([comparisonScreen({ id: 'home', defaultScreen: true })]),
+        search: `?source=synthetic&locale=en&comments=${threadId}&scope=default`,
+    })
+
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    const destination = new URL(elements.location.href, 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${spanishPath}/`)
+    assert.equal(destination.searchParams.get('locale'), 'es-419')
+    assert.equal(destination.searchParams.get('scope'), 'default')
+    assert.equal(destination.searchParams.has('comments'), false)
+})
+
+test('comment thread permalink is dropped when source navigation changes report', async () => {
+    const journeyPath = `2026-09-14/nutcracker/en/${'c'.repeat(40)}`
+    const syntheticPath = `2026-09-14/dev/en/${'d'.repeat(40)}`
+    const threadId = '33333333-3333-4333-8333-333333333333'
+    const report = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: 'c'.repeat(40),
+        uiCommit: 'd'.repeat(40),
+        apiCommit: 'e'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T08:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        complete: true,
+        screens: [],
+    }
+    const elements = await loadLanding(`/screens/${journeyPath}/`, {
+        index: [
+            { path: journeyPath, locale: 'en', source: 'nutcracker' },
+            { path: syntheticPath, locale: 'en', source: 'synthetic' },
+        ],
+        report,
+        search: `?source=nutcracker&locale=en&comments=${threadId}&status=passed`,
+    })
+
+    elements.get('source').value = 'synthetic'
+    elements.get('source').dispatch('change')
+    const destination = new URL(elements.location.href, 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${syntheticPath}/`)
+    assert.equal(destination.searchParams.get('source'), 'synthetic')
+    assert.equal(destination.searchParams.get('locale'), 'en')
+    assert.equal(destination.searchParams.has('comments'), false)
+})
+
+test('PR galleries start with all variations and default mode excludes every explicitly special route state', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'p01-home', name: 'Home', defaultScreen: true }),
+        comparisonScreen({ id: 'p01-home-modal', name: 'Home modal', defaultScreen: false }),
+        comparisonScreen({ id: 'p01-home-drawer', name: 'Home drawer', defaultScreen: false }),
+        comparisonScreen({ id: 'p01-home-toggle-on', name: 'Home toggle enabled', defaultScreen: false }),
+        comparisonScreen({ id: 'p01-home-special-fixture', name: 'Home special fixture', defaultScreen: false }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, { report })
+
+    assert.equal(elements.get('variations-mode').checked, true)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home', 'p01-home-modal', 'p01-home-drawer', 'p01-home-toggle-on', 'p01-home-special-fixture']
+    )
+
+    elements.get('variations-mode').checked = false
+    elements.get('variations-mode').dispatch('change')
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home']
+    )
+    assert.equal(new URLSearchParams(elements.location.search).get('scope'), 'default')
+})
+
+test('default screens compose with search, flow and status and restore from a shareable URL', async () => {
+    const path = `2026-10-13/pr-3700/en/${'b'.repeat(40)}`
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'home-default', name: 'Home review', flow: 'Home', defaultScreen: true }),
+        comparisonScreen({ id: 'home-modal', name: 'Home review modal', flow: 'Home', defaultScreen: false }),
+        comparisonScreen({
+            id: 'home-unchanged',
+            name: 'Home review unchanged',
+            flow: 'Home',
+            status: 'unchanged',
+            defaultScreen: true,
+        }),
+        comparisonScreen({ id: 'send-default', name: 'Send review', flow: 'Send', defaultScreen: true }),
+    ])
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'synthetic' }],
+        report,
+        search: '?source=synthetic&locale=en&q=review&flow=Home&status=changed&view=all&scope=default',
+    })
+
+    assert.equal(elements.get('variations-mode').checked, false)
+    assert.equal(elements.get('search').value, 'review')
+    assert.equal(elements.get('flow').value, 'Home')
+    assert.equal(elements.get('status').value, 'changed')
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['home-default']
+    )
+
+    elements.get('search').value = 'Home review'
+    elements.get('search').dispatch('input')
+    assert.equal(new URLSearchParams(elements.location.search).get('scope'), 'default')
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['home-default']
+    )
+})
+
+test('default-screen scope survives locale navigation on the same PR report', async () => {
+    const commit = 'b'.repeat(40)
+    const englishPath = `2026-10-13/pr-3700/en/${commit}`
+    const spanishPath = `2026-10-13/pr-3700/es-419/${commit}`
+    const elements = await loadLanding(`/screens/${englishPath}/`, {
+        index: [
+            { path: englishPath, locale: 'en', source: 'synthetic' },
+            { path: spanishPath, locale: 'es-419', source: 'synthetic' },
+        ],
+        report: comparisonReportWith([comparisonScreen({ id: 'home', defaultScreen: true })]),
+        search: '?source=synthetic&locale=en&scope=default',
+    })
+
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    const destination = new URL(elements.location.href, 'https://screens.example')
+    assert.equal(destination.pathname, `/screens/${spanishPath}/`)
+    assert.equal(destination.searchParams.get('locale'), 'es-419')
+    assert.equal(destination.searchParams.get('scope'), 'default')
+})
+
+test('unknown gallery scope fails open to all variations', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'home', defaultScreen: true }),
+        comparisonScreen({ id: 'home-modal', defaultScreen: false }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report,
+        search: '?scope=surprise',
+    })
+
+    assert.equal(elements.get('variations-mode').checked, true)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['home', 'home-modal']
+    )
+})
+
+test('legacy manifests use the documented conservative ID fallback in default mode', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'p01-home' }),
+        comparisonScreen({ id: 'p01-home-modal' }),
+        comparisonScreen({ id: 'p01-home-drawer' }),
+        comparisonScreen({ id: 'p01-home-toggle-on' }),
+        comparisonScreen({ id: 'p01-home-special-fixture' }),
+        comparisonScreen({ id: 'legacy-unknown-route' }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report,
+        search: '?scope=default',
+    })
+
+    assert.equal(elements.get('variations-mode').checked, false)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home']
+    )
+})
+
+test('a screen anchor reveals a variation even when the shared scope is default-only', async () => {
+    const report = comparisonReportWith([
+        comparisonScreen({ id: 'p01-home', defaultScreen: true }),
+        comparisonScreen({ id: 'p41-home-add-drawer', defaultScreen: false }),
+    ])
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report,
+        search: '?scope=default',
+        hash: '#p41-home-add-drawer',
+    })
+    assert.equal(elements.get('variations-mode').checked, true)
+    assert.equal(new URLSearchParams(elements.location.search).has('scope'), false)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['p01-home', 'p41-home-add-drawer']
+    )
+})
+
+test('default-only mode filters a bounded 2,000-screen comparison without losing the target', async () => {
+    const screens = Array.from({ length: 2000 }, (_, index) =>
+        comparisonScreen({
+            id: `screen-${index}`,
+            name: `Screen ${index}`,
+            defaultScreen: index % 10 === 0,
+        })
+    )
+    const elements = await loadLanding(`/screens/2026-10-13/pr-3700/en/${'b'.repeat(40)}/`, {
+        report: comparisonReportWith(screens),
+        search: '?scope=default&q=Screen%201990',
+    })
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['screen-1990']
+    )
+    assert.equal(elements.get('screen-load-more').hidden, true)
 })
 
 test('report navigation drops status filters that belong to a different source', async () => {
@@ -1265,4 +1608,408 @@ test('hosted report 404 shows a report-not-found state instead of an unpublished
     assert.match(elements.get('empty-title').textContent, /report is not available/i)
     assert.doesNotMatch(elements.get('empty-title').textContent, /almost here/i)
     assert.match(elements.get('empty-message').textContent, /published report/i)
+})
+
+test('Main filter shows released full libraries and comparisons and survives a shared URL', async () => {
+    const commit = 'a'.repeat(40)
+    const entries = ['main', 'compare-main', 'dev', 'pr-1'].map((channel) => ({
+        path: `2026-10-08/${channel}/en/${commit}/run-50-1`,
+        date: '2026-10-08',
+        locale: 'en',
+        complete: true,
+    }))
+    const elements = await loadLanding('/', { index: entries, search: '?branch=main' })
+    assert.equal(elements.get('branch').value, 'main')
+    assert.equal(elements.get('branch-control').hidden, false)
+    assert.equal(versionLinks(elements).length, 2)
+    assert.ok(versionLinks(elements).every((link) => /\/(main|compare-main)\//.test(link.href)))
+    assert.match(elements.location.search, /branch=main/)
+    assert.ok(versionLinks(elements).some((link) => /Full library/.test(elementText(link))))
+    assert.ok(versionLinks(elements).some((link) => /Changed screens/.test(elementText(link))))
+    elements.get('branch').value = 'dev'
+    elements.get('branch').dispatch('change')
+    assert.equal(versionLinks(elements).length, 1)
+    assert.match(versionLinks(elements)[0].href, /\/dev\//)
+    elements.get('branch').value = ''
+    elements.get('branch').dispatch('change')
+    assert.equal(versionLinks(elements).length, 4)
+    assert.doesNotMatch(elements.location.search, /branch=/)
+})
+
+const votePath = `2026-10-15/pr-3703/en/${'c'.repeat(40)}`
+const voteReport = {
+    schema: 1,
+    type: 'capture',
+    locale: 'en',
+    width: 393,
+    height: 852,
+    screens: ['loved', 'disliked', 'split', 'quiet'].map((id, index) => ({
+        id,
+        name: id,
+        flow: 'Home',
+        status: 'captured',
+        image: `${String(index).repeat(64)}.png`,
+    })),
+}
+const voteTotals = {
+    loved: { up: 2, down: 0, mine: 1 },
+    disliked: { up: 0, down: 1, mine: 0 },
+    split: { up: 1, down: 1, mine: -1 },
+    quiet: { up: 0, down: 0, mine: 0 },
+}
+const bobTotals = {
+    loved: { up: 2, down: 0, mine: 0 },
+    disliked: { up: 0, down: 1, mine: -1 },
+    split: { up: 1, down: 1, mine: 1 },
+    quiet: { up: 0, down: 0, mine: 0 },
+}
+function fakeComments({ fail = 0, failure = 'Votes are unavailable right now.' } = {}) {
+    const loaded = new Map()
+    const calls = []
+    const forced = []
+    const state = { totals: voteTotals, options: undefined }
+    const client = {
+        setContext: async () => {},
+        badge: () => new Element('badge'),
+        voteControls: () => new Element('votes'),
+        votesAvailable: () => true,
+        voteTotals: (scope) => loaded.get(scope.screenId),
+        async loadVoteTotals(scopes, { force = false } = {}) {
+            calls.push(scopes.map((scope) => scope.screenId))
+            forced.push(force)
+            if (calls.length <= fail) throw new Error(failure)
+            for (const scope of scopes) loaded.set(scope.screenId, state.totals[scope.screenId])
+        },
+        open() {},
+        close() {},
+        isOpen: () => false,
+        navigateThread() {},
+    }
+    // Mirrors votes.js: a saved vote updates its totals, then calls onVotesChange.
+    const settleVote = (screenId, totals) => {
+        loaded.set(screenId, totals)
+        state.options.onVotesChange()
+    }
+    // Mirrors comments.js: teammates changed votes, then focus or the feed's Refresh calls onVotesRefresh.
+    const teammatesChanged = (totals) => {
+        state.totals = totals
+        state.options.onVotesRefresh()
+    }
+    // Mirrors votes.js: an account change clears personal totals, then calls onVotesReset.
+    const switchAccount = (totals) => {
+        state.totals = totals
+        loaded.clear()
+        state.options.onVotesReset()
+    }
+    return {
+        create: (options) => {
+            state.options = options
+            return client
+        },
+        calls,
+        forced,
+        settleVote,
+        teammatesChanged,
+        switchAccount,
+    }
+}
+const settle = () => new Promise((resolve) => setImmediate(resolve))
+const renderedIds = (elements) => elements.get('screens').children.map(({ id }) => id)
+const setVotes = (elements, value) => {
+    elements.get('votes').value = value
+    elements.get('votes').dispatch('change')
+}
+
+test('the Votes filter keeps screens any teammate voted on, Any vote is either, and it round trips through the URL', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    assert.equal(elements.get('votes-control').hidden, false)
+    assert.equal(elements.get('votes').value, 'up')
+    assert.equal(elements.get('vote-scope-control').hidden, false, 'Votes from appears once a vote option is picked')
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    setVotes(elements, 'up,down')
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
+    assert.equal(new URLSearchParams(elements.location.search).get('votes'), 'up,down')
+    setVotes(elements, 'down')
+    assert.deepEqual(renderedIds(elements), ['disliked', 'split'])
+    assert.equal(new URLSearchParams(elements.location.search).get('votes'), 'down')
+    setVotes(elements, '')
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split', 'quiet'])
+    assert.equal(new URLSearchParams(elements.location.search).has('votes'), false)
+    assert.equal(elements.get('vote-scope-control').hidden, true, 'All screens hides Votes from')
+    assert.equal(screenComments.calls.length, 1, 'totals load once for every screen in the report')
+})
+
+test('legacy vote URLs resolve to the Votes filter', async () => {
+    for (const [query, value] of [
+        ['votes=up', 'up'],
+        ['votes=down', 'down'],
+        ['votes=up,down', 'up,down'],
+        ['votes=down,up', 'up,down'],
+        ['votes=sideways', ''],
+    ]) {
+        const elements = await loadLanding(`/screens/${votePath}/`, {
+            report: voteReport,
+            search: `?source=synthetic&locale=en&${query}`,
+            screenComments: fakeComments(),
+        })
+        await settle()
+        assert.equal(elements.get('votes').value, value, query)
+    }
+})
+
+test('an empty vote filter explains itself and offers a way to clear it', async () => {
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: { ...voteReport, screens: voteReport.screens.filter(({ id }) => id === 'quiet') },
+        search: '?source=synthetic&locale=en&votes=down',
+        screenComments: fakeComments(),
+    })
+    await settle()
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /No downvoted screens match these filters/)
+    const clear = notice.children.find((child) => child.textContent === 'Clear vote filters')
+    clear.onclick()
+    assert.equal(elements.get('votes').value, '')
+    assert.deepEqual(renderedIds(elements), ['quiet'])
+    assert.equal(new URLSearchParams(elements.location.search).has('votes'), false)
+})
+
+test('a failed vote load offers retry without looping and recovers', async () => {
+    const screenComments = fakeComments({ fail: 1 })
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    await settle()
+    assert.equal(screenComments.calls.length, 1, 'a failure is not retried automatically')
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /Votes are unavailable right now/)
+    const labels = notice.children.slice(1).map((child) => child.textContent)
+    assert.deepEqual(labels, ['Retry', 'Clear vote filters'])
+    notice.children[1].onclick()
+    await settle()
+    assert.equal(screenComments.calls.length, 2)
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+})
+
+test('vote filters stay hidden where votes are unavailable', async () => {
+    const report = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+    })
+    assert.equal(report.get('votes-control').hidden, true)
+    assert.equal(report.get('votes').value, '')
+    assert.equal(report.get('vote-scope-control').hidden, true)
+    assert.deepEqual(renderedIds(report), ['loved', 'disliked', 'split', 'quiet'])
+    const landing = await loadLanding('/screens/', {
+        index: [{ path: votePath, locale: 'en', source: 'synthetic' }],
+        screenComments: fakeComments(),
+    })
+    assert.equal(landing.get('votes-control').hidden, true)
+    assert.equal(landing.get('vote-scope-control').hidden, true)
+})
+
+const setScope = (elements, scope) => {
+    elements.get('vote-scope-me').checked = scope === 'me'
+    elements.get('vote-scope-all').checked = scope !== 'me'
+    elements.get(scope === 'me' ? 'vote-scope-me' : 'vote-scope-all').dispatch('change')
+}
+
+test('My votes keeps only the viewer’s own choices and stays in the URL as by=me', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    assert.equal(elements.get('vote-scope-control').hidden, false)
+    assert.equal(elements.get('vote-scope-me').checked, true)
+    assert.deepEqual(renderedIds(elements), ['loved'], 'upvotes work as favorites')
+    setVotes(elements, 'up,down')
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    const params = new URLSearchParams(elements.location.search)
+    assert.equal(params.get('votes'), 'up,down')
+    assert.equal(params.get('by'), 'me')
+    setScope(elements, 'all')
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'], 'all teammates restores shared totals')
+    assert.equal(new URLSearchParams(elements.location.search).has('by'), false, 'the default scope is omitted')
+    assert.equal(screenComments.calls.length, 1, 'switching scope reuses the loaded totals')
+    setScope(elements, 'me')
+    setVotes(elements, '')
+    const cleared = new URLSearchParams(elements.location.search)
+    assert.equal(cleared.has('votes') || cleared.has('by'), false, 'no hidden scope is kept without a vote filter')
+})
+
+test('the vote scope defaults to all teammates and is hidden without votes', async () => {
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments: fakeComments(),
+    })
+    await settle()
+    assert.equal(elements.get('vote-scope-all').checked, true)
+    assert.equal(elements.get('vote-scope-me').checked, false)
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    const unavailable = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+    })
+    assert.equal(unavailable.get('vote-scope-control').hidden, true)
+    assert.equal(unavailable.get('vote-scope-me').checked, false)
+})
+
+test('an empty My votes filter speaks to the viewer and offers to clear it', async () => {
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: { ...voteReport, screens: voteReport.screens.filter(({ id }) => id === 'loved') },
+        search: '?source=synthetic&locale=en&votes=down&by=me',
+        screenComments: fakeComments(),
+    })
+    await settle()
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /You haven't downvoted any screens that match these filters/)
+    notice.children.find((child) => child.textContent === 'Clear vote filters').onclick()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+    assert.equal(elements.get('vote-scope-me').checked, true, 'clearing filters keeps the chosen scope')
+})
+
+test('My votes without a known identity shows why instead of an empty result', async () => {
+    const screenComments = fakeComments({ fail: 1, failure: 'Your session expired. Sign in, then retry.' })
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    await settle()
+    const [notice] = elements.get('screens').children
+    assert.match(elementText(notice), /Sign in, then retry/)
+    assert.deepEqual(
+        notice.children.slice(1).map((child) => child.textContent),
+        ['Retry', 'Clear vote filters']
+    )
+    notice.children[1].onclick()
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+})
+
+test('an account switch reloads personal votes instead of reusing the previous person’s', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+    screenComments.switchAccount(bobTotals)
+    assert.match(elementText(elements.get('screens').children[0]), /Loading your votes/)
+    await settle()
+    assert.equal(screenComments.calls.length, 2, 'totals reload for the new account')
+    assert.deepEqual(renderedIds(elements), ['split'], "Bob's upvotes, not Alice's")
+})
+
+test('removing your last matching vote drops the card from the vote filter right away', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up&by=me',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved'])
+    screenComments.settleVote('loved', { up: 1, down: 0, mine: 0 })
+    const [notice, ...rest] = elements.get('screens').children
+    assert.equal(notice.className, 'filter-notice')
+    assert.equal(rest.length, 0)
+    assert.match(elementText(notice), /You haven't upvoted any screens/)
+    assert.equal(screenComments.calls.length, 1, 're-filtering reuses the settled totals')
+})
+
+test('a vote settled in the open preview re-filters once the preview closes', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    elements.get('zoom').open = true
+    screenComments.settleVote('split', { up: 0, down: 1, mine: 0 })
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'], 'the preview keeps a stable list while open')
+    elements.get('zoom').open = false
+    elements.get('zoom').dispatch('close')
+    assert.deepEqual(renderedIds(elements), ['loved'])
+})
+
+test('settled votes leave the list alone when no vote filter is on', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en',
+        screenComments,
+    })
+    await settle()
+    const before = elements.get('screens').children
+    screenComments.settleVote('loved', { up: 0, down: 0, mine: 0 })
+    assert.equal(elements.get('screens').children, before, 'no re-render without a vote filter')
+})
+
+test('a focus or feed refresh re-checks every row the vote filter covers without a loading flash', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'])
+    screenComments.teammatesChanged({
+        ...voteTotals,
+        split: { up: 0, down: 1, mine: -1 },
+        disliked: { up: 1, down: 1, mine: 0 },
+    })
+    assert.deepEqual(renderedIds(elements), ['loved', 'split'], 'the current list stays while totals reload')
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked'], 'removed and newly matching cards both update')
+    assert.deepEqual(
+        [...screenComments.calls.at(-1)],
+        ['loved', 'disliked', 'split', 'quiet'],
+        'hidden rows are re-checked'
+    )
+    assert.equal(screenComments.forced.at(-1), true)
+})
+
+test('a refresh with no vote filter on loads nothing extra', async () => {
+    const screenComments = fakeComments()
+    await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en',
+        screenComments,
+    })
+    await settle()
+    screenComments.teammatesChanged(bobTotals)
+    await settle()
+    assert.equal(screenComments.calls.length, 0)
+})
+
+test('unknown totals never hide a card that is already on screen', async () => {
+    const screenComments = fakeComments()
+    const elements = await loadLanding(`/screens/${votePath}/`, {
+        report: voteReport,
+        search: '?source=synthetic&locale=en&votes=up,down',
+        screenComments,
+    })
+    await settle()
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
+    screenComments.settleVote('split', undefined)
+    assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
 })

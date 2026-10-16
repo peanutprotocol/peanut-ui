@@ -1,4 +1,6 @@
-/** Access-protected read-only endpoint. Never exposes arbitrary bucket objects. */
+import { commentsFetch } from './comments.mjs'
+
+/** Access-protected endpoint. Never exposes arbitrary bucket objects. */
 function safeGalleryReturn(value, origin) {
     if (
         !value ||
@@ -28,9 +30,11 @@ function safeGalleryReturn(value, origin) {
 }
 
 export default {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
         const url = new URL(request.url)
         const path = url.pathname
+        if (path === '/screen-data/comments' || path.startsWith('/screen-data/comments/'))
+            return commentsFetch(request, env, ctx)
         if (!['GET', 'HEAD'].includes(request.method))
             return new Response('Method not allowed', {
                 status: 405,

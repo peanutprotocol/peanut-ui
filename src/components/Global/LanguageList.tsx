@@ -28,28 +28,34 @@ export const LanguageList = ({ onSelect }: { onSelect: (locale: AppLocale) => vo
     // and break the joined list geometry
     return (
         <div>
-            {APP_LOCALES.map((appLocale, index) => (
-                <ListItem
-                    key={appLocale}
-                    position={getCardPosition(index, APP_LOCALES.length)}
-                    onClick={() => onSelect(appLocale)}
-                    leading={
-                        <Image
-                            src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
-                            alt=""
-                            width={80}
-                            height={80}
-                            className="size-6 rounded-full object-cover"
-                        />
-                    }
-                    title={
-                        <span className="text-body-m text-foreground-primary" lang={appLocale}>
-                            {LOCALE_LABELS[appLocale]}
-                        </span>
-                    }
-                    trailing={appLocale === locale ? <Icon name="check" size={20} /> : undefined}
-                />
-            ))}
+            {APP_LOCALES.map((appLocale, index) => {
+                const isSelected = appLocale === locale
+                // selected-row rule from design.md: pale-blue fill, over-color ink, painted check
+                const paint = isSelected ? 'text-foreground-over-color-primary' : 'text-foreground-primary'
+                return (
+                    <ListItem
+                        key={appLocale}
+                        position={getCardPosition(index, APP_LOCALES.length)}
+                        onClick={() => onSelect(appLocale)}
+                        className={isSelected ? 'bg-background-selection' : undefined}
+                        leading={
+                            <Image
+                                src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
+                                alt=""
+                                width={80}
+                                height={80}
+                                className="size-6 rounded-full object-cover"
+                            />
+                        }
+                        title={
+                            <span className={`text-body-m ${paint}`} lang={appLocale}>
+                                {LOCALE_LABELS[appLocale]}
+                            </span>
+                        }
+                        trailing={isSelected ? <Icon name="check" size={20} className={paint} /> : undefined}
+                    />
+                )
+            })}
         </div>
     )
 }
