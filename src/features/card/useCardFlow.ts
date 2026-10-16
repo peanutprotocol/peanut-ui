@@ -29,7 +29,6 @@ import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
  */
 export function useCardFlow() {
     const t = useTranslations('card')
-    const tKyc = useTranslations('kyc')
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
@@ -248,22 +247,20 @@ export function useCardFlow() {
                 if (informationStartingRef.current !== attempt || informationUserRef.current !== userId) return
                 if (response.error || !response.data?.token) {
                     setInformationError(
-                        response.code
-                            ? tKyc('errorStartActionFailed')
-                            : (response.error ?? tKyc('errorStartActionFailed'))
+                        response.code ? t('informationStartFailed') : (response.error ?? t('informationStartFailed'))
                     )
                     return
                 }
                 setInformationSession({ key, token: response.data.token })
             } catch {
                 if (informationStartingRef.current === attempt && informationUserRef.current === userId) {
-                    setInformationError(tKyc('errorStartActionFailed'))
+                    setInformationError(t('informationStartFailed'))
                 }
             } finally {
                 if (informationStartingRef.current === attempt) informationStartingRef.current = null
             }
         },
-        [userId, informationSession, tKyc]
+        [userId, informationSession, t]
     )
     const refreshInformationToken = useCallback(async () => {
         if (!informationSession) throw new Error('No card information action to refresh')

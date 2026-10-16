@@ -38,7 +38,7 @@ interface Props {
      *  this opens Rain's card-member portal to re-upload — the primary CTA so
      *  users fix it themselves instead of hitting the contact-support dead end. */
     onUploadIdentity?: () => void
-    informationActions?: Array<{ key: string; label: string; onClick: () => void }>
+    informationActions?: Array<{ key: string; kind: InformationKind; label: string; onClick: () => void }>
     /** Inline failure from starting the upload (a silent primary CTA on a
      *  stuck-application screen reads as broken). */
     uploadError?: string
@@ -62,6 +62,22 @@ const COPY_KEYS = {
         body: 'status.pendingResidenceBlockedBody',
     },
 } as const satisfies Record<Variant, { title: string; body: string }>
+
+export type InformationKind = 'taxId' | 'birthDate'
+
+/** A self-serve step on the screen replaces the support line with what to do. */
+function requiresInfoBodyKey(kinds: InformationKind[], uploadsProofOfAddress: boolean, uploadsIdentity: boolean) {
+    const hasTaxId = kinds.includes('taxId')
+    const hasBirthDate = kinds.includes('birthDate')
+    const uploads = Number(uploadsProofOfAddress) + Number(uploadsIdentity)
+    if (uploads > 1 || (uploads > 0 && kinds.length > 0)) return 'status.requiresInfoStepsBody'
+    if (hasTaxId && hasBirthDate) return 'status.requiresInfoTaxIdAndBirthDateBody'
+    if (hasTaxId) return 'status.requiresInfoTaxIdBody'
+    if (hasBirthDate) return 'status.requiresInfoBirthDateBody'
+    if (uploadsProofOfAddress) return 'status.requiresInfoProofOfAddressBody'
+    if (uploadsIdentity) return 'status.requiresInfoIdentityBody'
+    return COPY_KEYS['requires-info'].body
+}
 
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
@@ -93,6 +109,14 @@ const ApplicationStatusScreen: FC<Props> = ({
     const copyKeys = COPY_KEYS[variant]
     const reasonKey = reasonCodeKey(reasonCode)
     const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
+    const bodyKey =
+        variant === 'requires-info'
+            ? requiresInfoBodyKey(
+                  informationActions.map((action) => action.kind),
+                  !!onUploadProofOfAddress,
+                  !!onUploadIdentity
+              )
+            : copyKeys.body
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -108,7 +132,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 <div className="flex flex-col gap-3">
                     <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
                     {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
-                    <p className="text-foreground-secondary">{t(copyKeys.body)}</p>
+                    <p className="text-foreground-secondary">{t(bodyKey)}</p>
                 </div>
                 {variant === 'geo-blocked' && (
                     <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>

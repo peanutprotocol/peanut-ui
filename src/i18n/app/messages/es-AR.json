@@ -884,6 +884,7 @@
         }
     },
     "card": {
+        "informationStartFailed": "No pudimos abrir el formulario. Intentalo de nuevo.",
         "noActiveCard": "No tenés una tarjeta activa.",
         "entry": {
             "title": "Gastá donde acepten Visa",
@@ -902,7 +903,13 @@
         },
         "status": {
             "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
-            "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escribile a soporte para continuar.",
+            "requiresInfoBody": "El equipo de Peanut te va a ayudar a terminar tu solicitud de tarjeta. Hablá con soporte para continuar.",
+            "requiresInfoTaxIdBody": "Proporcioná tu identificación fiscal para terminar tu solicitud de tarjeta.",
+            "requiresInfoBirthDateBody": "Proporcioná tu fecha de nacimiento para terminar tu solicitud de tarjeta.",
+            "requiresInfoTaxIdAndBirthDateBody": "Proporcioná tu identificación fiscal y tu fecha de nacimiento para terminar tu solicitud de tarjeta.",
+            "requiresInfoProofOfAddressBody": "Subí un comprobante de domicilio para terminar tu solicitud de tarjeta.",
+            "requiresInfoIdentityBody": "Subí tus documentos de identidad para terminar tu solicitud de tarjeta.",
+            "requiresInfoStepsBody": "Completá los pasos de abajo para terminar tu solicitud de tarjeta.",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escribile a soporte y lo resolvemos.",
             "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vivís. Podés seguir usando las otras funciones de Peanut disponibles para vos.",

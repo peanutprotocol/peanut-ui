@@ -231,3 +231,56 @@ describe('ApplicationStatusScreen — card partner review', () => {
         expect(onContactSupport).toHaveBeenCalledTimes(1)
     })
 })
+
+describe('ApplicationStatusScreen — requires-info body follows the self-serve step', () => {
+    const status = en.card.status
+    const action = (kind: 'taxId' | 'birthDate') => ({
+        key: kind,
+        kind,
+        label: kind === 'taxId' ? en.card.provideTaxId : en.card.provideBirthDate,
+        onClick: jest.fn(),
+    })
+
+    it.each([
+        [[action('taxId')], status.requiresInfoTaxIdBody],
+        [[action('birthDate')], status.requiresInfoBirthDateBody],
+        [[action('taxId'), action('birthDate')], status.requiresInfoTaxIdAndBirthDateBody],
+    ])('names the requested detail instead of sending the user to support', (actions, body) => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                informationActions={actions}
+                onContactSupport={jest.fn()}
+            />
+        )
+        expect(screen.getByText(body)).toBeInTheDocument()
+        expect(screen.queryByText(status.requiresInfoBody)).not.toBeInTheDocument()
+        expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
+    })
+
+    it('describes a single upload, and falls back to generic steps for a mix', () => {
+        const { unmount } = render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                onUploadProofOfAddress={jest.fn()}
+                onContactSupport={jest.fn()}
+            />
+        )
+        expect(screen.getByText(status.requiresInfoProofOfAddressBody)).toBeInTheDocument()
+        unmount()
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                informationActions={[action('taxId')]}
+                onUploadIdentity={jest.fn()}
+                onContactSupport={jest.fn()}
+            />
+        )
+        expect(screen.getByText(status.requiresInfoStepsBody)).toBeInTheDocument()
+    })
+
+    it('keeps the support line only when there is nothing to do on screen', () => {
+        render(<ApplicationStatusScreen variant="requires-info" onContactSupport={jest.fn()} />)
+        expect(screen.getByText(status.requiresInfoBody)).toBeInTheDocument()
+    })
+})
