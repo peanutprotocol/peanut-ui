@@ -75,7 +75,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                     <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
 
-                <h1 className="font-roboto-flex-extrabold text-left text-heading font-extraBlack md:text-headingMedium">
+                <h1 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack xs:text-heading md:text-headingMedium">
                     {i18n.landingRailsHeading}
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>

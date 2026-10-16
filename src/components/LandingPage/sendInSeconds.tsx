@@ -52,8 +52,11 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
     const lockupEnd = headline.startsWith(accent)
         ? accent.length + (headline.slice(accent.length).match(/^\S*/)?.[0].length ?? 0)
         : -1
+    // below xs (390) the line steps down one more so "COMISIONES." fits the
+    // 272px column at 320. No font-extraBlack: heading-m carries its own
+    // weight, and font-roboto-flex-extrabold already sets 1000.
     const displayClass =
-        'font-roboto-flex-extrabold block text-headingSmall font-extraBlack text-balance text-foreground-primary uppercase md:text-headingMedium'
+        'font-roboto-flex-extrabold block text-heading-m text-balance text-foreground-primary uppercase xs:text-headingSmall md:text-headingMedium'
 
     return (
         <section

@@ -35,8 +35,14 @@ export function NoFees({
     // SSR'd as "en" and only corrected after hydration, so a :lang() step would
     // first paint at the EN size and jump on the es/pt pages. The 8-character
     // threshold is what messages.test.ts holds the catalogs to.
+    // Below xs (390) every catalog steps down once more so the longest word
+    // fits the 272px column at 320: heading → headingSmall, and the long-word
+    // catalogs from headingSmall to the DS heading-m, the largest step that
+    // fits "TRANSFERENCIA" (342px at 42px).
     const headlineSize =
-        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8 ? 'text-headingSmall' : 'text-heading'
+        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8
+            ? 'text-heading-m xs:text-headingSmall'
+            : 'text-headingSmall xs:text-heading'
 
     // The scribble circles the closing word of the line, so each catalog picks
     // what gets circled just by putting that word last.
@@ -115,8 +121,10 @@ export function NoFees({
                     lettering is real text now so it localizes; only the doodles
                     stay as art, positioned in em so they track the lettering
                     size. */}
+                {/* below xs the line takes the long-word headline step, so
+                    es/pt keep the 390 proportion (headline = this line) */}
                 <div className="mx-auto mb-1 w-full max-w-xs md:max-w-md">
-                    <div className="font-roboto-flex-extrabold pt-[0.23em] text-headingSmall text-foreground-primary">
+                    <div className="font-roboto-flex-extrabold pt-[0.23em] text-heading-m text-foreground-primary xs:text-headingSmall">
                         <p>
                             {reallyZeroLead}
                             <span className="relative inline-block">
