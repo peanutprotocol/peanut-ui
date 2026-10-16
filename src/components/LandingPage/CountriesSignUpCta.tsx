@@ -9,6 +9,8 @@ import { CTA_WIDTH } from '@/components/Marketing/constants'
 /**
  * Keep the illustration server-rendered while this CTA follows the migration flag.
  * The /app href also handles middle-clicks that bypass the modal handler.
+ * At app CTA width the button no longer fits inside the flag orbit, so it
+ * sits under the illustration instead of on top of it.
  */
 export function CountriesSignUpCta({ label }: { label: string }) {
     const interceptAppCta = useAppModal()
@@ -19,7 +21,7 @@ export function CountriesSignUpCta({ label }: { label: string }) {
             href={migrationOn ? '/app' : '/setup'}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute inset-0 flex items-center justify-center"
+            className="mt-6 flex justify-center"
             onClick={(event) => {
                 if (interceptAppCta(MIGRATION_SURFACES.LANDING_COUNTRIES)) event.preventDefault()
             }}
