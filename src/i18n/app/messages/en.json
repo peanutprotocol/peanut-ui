@@ -251,6 +251,24 @@
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
             "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
+        },
+        "arrival": {
+            "qr_ar": {
+                "title": "Just landed in Argentina",
+                "description": "The café only takes Mercado Pago? Pay by scanning QR codes and save money!",
+                "cta": "Scan QR"
+            },
+            "pix_br": {
+                "title": "Just landed in Brazil",
+                "description": "Everything here runs on Pix. Scan the QR code and pay as a local!",
+                "cta": "Scan QR"
+            },
+            "card": {
+                "title": "Peanut Card works here",
+                "description": "Pay online, and in shops with Apple Pay or Google Pay where supported.",
+                "cta": "View card"
+            },
+            "notNow": "Not now"
         }
     },
     "profile": {
@@ -1297,6 +1315,7 @@
             "unavailable": "Bank transfer is not available for this request right now.",
             "amountLabel": "Amount to send",
             "amountValueApprox": "≈ {amount}",
+            "bodyWithReference": "{text} · Reference {reference}",
             "exactBadge": "Exact amount",
             "estimateBadge": "Estimate",
             "amountNote": "Estimated at today’s rate. Your bank may convert at a different rate, so the exact amount can change.",
@@ -1360,7 +1379,8 @@
         "guestVerification": {
             "otherMethod": "Claim with other method",
             "senderUnverifiedDescription": "The sender can't send to a bank yet. Claim another way, or create and verify an account to receive it in your bank.",
-            "accountRequiredDescription": "You'll need a Peanut account to claim with this method. Create one and verify your identity, and your funds will be deposited to your bank."
+            "accountRequiredDescription": "You'll need a Peanut account to claim with this method. Create one and verify your identity, and your funds will be deposited to your bank.",
+            "regionalAccountRequiredDescription": "You'll need a Peanut account to claim with this method. The funds go to your account first, and from there you can withdraw them to Mercado Pago or Pix."
         },
         "actions": {
             "claimOn": "Claim on",
@@ -1393,7 +1413,8 @@
             "fromSender": "from {sender}",
             "youWillReceive": "Receiving",
             "youClaimed": "Claimed",
-            "devconnectReturnHint": "Tap the X button at the top left to return to the Devconnect app"
+            "devconnectReturnHint": "Tap the X button at the top left to return to the Devconnect app",
+            "withdrawTo": "Withdraw to {method}"
         },
         "bank": {
             "selectCountry": "Bank account country",
@@ -1410,18 +1431,6 @@
                 "linkInvalid": "We could not verify this link. Open the link again and try once more.",
                 "inProgress": "This link is being claimed right now. Wait a moment and try again.",
                 "accountLimit": "Too many bank accounts were added for this link. Contact support to claim it."
-            }
-        },
-        "manteca": {
-            "youWillReceive": "Receiving",
-            "receiveIn": "Receive in {method}",
-            "enterAccountDetails": "Enter bank details",
-            "destinationAddress": "Destination Address",
-            "exchangeRate": "Exchange Rate",
-            "errors": {
-                "missingTxHash": "Claim failed: missing transaction hash.",
-                "withdrawalProcessing": "Withdrawal successful! Your funds are being processed. If the transaction doesn't appear in your history within 5 minutes, please contact support.",
-                "generic": "Something went wrong. Please contact Support"
             }
         }
     },
@@ -2017,7 +2026,8 @@
         "initial": {
             "placeholderEns": "Address or ENS",
             "placeholderAddress": "Address",
-            "detailsMissing": "Withdrawal details are missing"
+            "detailsMissing": "Withdrawal details are missing",
+            "confirmNetwork": "Pick the network for this address"
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
@@ -3427,27 +3437,19 @@
         "tokenSelector": {
             "selectAToken": "Select a token",
             "onChain": "on <c>{chainName}</c>",
-            "noFeesWithToken": "No fees with this token.",
-            "drawerTitle": "Select Token and Network",
-            "crossChainUnavailable": "Cross-chain transactions are temporarily unavailable. You can use USDC on Arbitrum.",
-            "allNetworks": "All",
-            "selectANetwork": "Select a network",
-            "moreNetworksButton": "more",
-            "searchTokenPlaceholder": "Token or address",
-            "sponsoredHint": "Transactions using USDC on Arbitrum are sponsored",
-            "availableToken": "Available token",
-            "searchResults": "Search Results",
-            "popularTokensOnChain": "Popular tokens on {chainName}",
-            "popularTokens": "Popular tokens",
-            "noMatchingTokensTitle": "No matching popular tokens found",
+            "searchTokenPlaceholder": "Search token",
             "noMatchingTokensDescription": "Try searching for a different token",
-            "noPopularTokensTitle": "No popular tokens available",
-            "moreNetworksTitle": "More networks",
             "searchNetworkPlaceholder": "Search network",
             "noNetworksFoundTitle": "No networks found matching {search}",
             "noNetworksFoundDescription": "Try searching for a different network",
             "searchPlaceholder": "Search...",
-            "clearSearch": "Clear search"
+            "clearSearch": "Clear search",
+            "tokenLabel": "Token",
+            "networkLabel": "Network",
+            "noFee": "No fee",
+            "networkFee": "Network fee",
+            "noTokensFoundTitle": "No tokens found",
+            "lockedHint": "Only USDC on Arbitrum for now"
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",

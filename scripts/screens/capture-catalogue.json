@@ -245,6 +245,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-arrival-pix-br",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-home-add-drawer",
         "flow": "Home and shared states",
         "route": "/home?drawer=add"
@@ -849,6 +854,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-arrival-card",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
         "id": "fixture-home-verified-unfunded-no-card",
         "flow": "Card",
         "route": "/home"
@@ -1004,6 +1014,21 @@
         "route": "/request?recipient=alice"
     },
     {
+        "id": "fixture-history-bank-paid-request",
+        "flow": "Payments",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-history-request-bank-details",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-bank-request"
+    },
+    {
+        "id": "fixture-arrival-qr-ar",
+        "flow": "Payments",
+        "route": "/home"
+    },
+    {
         "id": "fixture-send-contacts-long-names",
         "flow": "Payments",
         "route": "/send?view=contacts"
@@ -1032,6 +1057,11 @@
         "id": "fixture-request-with-bank-alternative",
         "flow": "Payments",
         "route": "/request"
+    },
+    {
+        "id": "fixture-request-created-bank-details",
+        "flow": "Payments",
+        "route": "/request?amount=50"
     },
     {
         "id": "fixture-request-pay-open-amount",

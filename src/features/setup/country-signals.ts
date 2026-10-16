@@ -87,11 +87,12 @@ export function recordSetupIpCountry(country: string | null) {
     publish({ ipCountry: normalizeCountrySignal(country) })
 }
 
-async function readEdgeCountry() {
+/** The Vercel edge country of the request IP, uncached; null on failure or after the timeout. */
+export async function fetchEdgeCountry(): Promise<string | null> {
     const controller = new AbortController()
     let timeout: ReturnType<typeof setTimeout> | undefined
     try {
-        const result = await Promise.race([
+        return await Promise.race([
             fetch(`${getApiBaseUrl()}/api/geo-country`, {
                 signal: controller.signal,
                 credentials: 'omit',
@@ -110,12 +111,15 @@ async function readEdgeCountry() {
                 }, SETUP_EDGE_COUNTRY_TIMEOUT_MS)
             }),
         ])
-        publish({ vercelIpCountry: result, edgeSettled: true })
     } catch {
-        publish({ vercelIpCountry: null, edgeSettled: true })
+        return null
     } finally {
         clearTimeout(timeout)
     }
+}
+
+async function readEdgeCountry() {
+    publish({ vercelIpCountry: await fetchEdgeCountry(), edgeSettled: true })
 }
 
 /** Started at setup entry; shared across mounts and the residence screen. */

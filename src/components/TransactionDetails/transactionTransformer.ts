@@ -266,6 +266,10 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             return goalCents > 0 && collectedCents >= goalCents ? 'completed' : 'pending'
         }
         case 'CLOSED':
+            // The API stamps `completedAt` only on a request that was paid off.
+            // A bank-paid request can close a few cents short in USD, so the
+            // collected total cannot decide this.
+            if (entry.completedAt) return 'completed'
             // 0 collected → treated as cancelled, not closed
             return entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
         default: {
@@ -458,6 +462,8 @@ export interface TransactionDetails {
          *  when they typed one, otherwise the default our payment partner
          *  composed. Owner-only: it never reaches a public receipt. */
         paymentReference?: string
+        /** Request rollups: the requester opted in to payment by bank transfer. */
+        bankInstructionsShared?: boolean
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -788,6 +794,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
             payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
+            bankInstructionsShared: entry.extraData?.bankInstructionsShared || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

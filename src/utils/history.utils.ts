@@ -116,6 +116,14 @@ export interface HistoryEntryExtraData {
     // that summarises a request pot's contributors rather than an
     // individual fulfilment.
     isRequestPotRollup?: boolean
+    /** Request-pot rollups only: USD received by bank deposit, as a decimal
+     *  string. Already inside `totalAmountCollected`; sent apart so a rollup
+     *  repeated across history pages adds it once (`mergeRepeatedEntry`). */
+    receivedAmount?: string
+    /** Request rollups only: the requester opted in to payment by bank
+     *  transfer. Written by the API request rollup; the requester's drawer
+     *  gates on it before asking for the bank details. */
+    bankInstructionsShared?: boolean
 
     // Common fields
     link?: string

@@ -23,6 +23,12 @@ export interface ShareTextCopy {
      * an account in their own name where they can.
      */
     eurOwnNameLine: string
+    /**
+     * A request's own values, each already "label: value": the amount to send,
+     * only when it is exact in the account currency, and the reference that
+     * matches the transfer to the request.
+     */
+    request?: { amountRow?: string; referenceRow: string }
 }
 
 /**
@@ -42,7 +48,7 @@ export interface ShareTextCopy {
  * can tell them before they send.
  */
 export function buildShareText(
-    account: DepositAccountView,
+    account: Pick<DepositAccountView, 'instructions' | 'matching' | 'railId'>,
     copy: ShareTextCopy,
     rowLabels: DepositRowLabels,
     railLabels: RailLabels
@@ -57,10 +63,16 @@ export function buildShareText(
             .map((row) => `${row.label}: ${row.value}`),
     ]
 
+    if (copy.request) {
+        lines.push('')
+        if (copy.request.amountRow) lines.push(copy.request.amountRow)
+        lines.push(copy.request.referenceRow)
+    }
+
     if (copy.payerLine) lines.push('', copy.payerLine)
     // A reference row alone reads as one more field to copy; the payer has to
     // know the transfer is not matched without it.
-    if (account.instructions.depositMessage) lines.push('', copy.referenceLine)
+    if (account.instructions.depositMessage || copy.request) lines.push('', copy.referenceLine)
     if (corridorFromRailId(account.railId) === 'SEPA_EU') lines.push('', copy.eurOwnNameLine)
 
     lines.push('', copy.outro)

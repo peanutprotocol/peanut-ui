@@ -409,6 +409,113 @@ let rows = [],
     reportSourceEntries = [],
     filteredRows = [],
     renderedCount = 0
+let commentsReportPath = ''
+const comments =
+    !offline && window.ScreenComments
+        ? window.ScreenComments.create({
+              feed: $('comment-feed'),
+              panel: $('comment-panel'),
+              dialog: $('zoom'),
+              onNavigate: navigateComment,
+              onVotesReset: voteTotalsReset,
+              onVotesChange: voteTotalsChanged,
+              onVotesRefresh: voteTotalsRefreshed,
+          })
+        : null
+function commentScopes(row) {
+    if (!comments || !commentsReportPath) return []
+    const manifest = activeComparison ?? report
+    return ['before', 'after'].flatMap((side) => {
+        const capture = manifest?.type === 'comparison' ? manifest[side] : manifest
+        const screenshot = row[side]
+        if (!screenshot?.image || (manifest?.type !== 'comparison' && side !== 'after')) return []
+        return [
+            {
+                reportPath: commentsReportPath,
+                screenId: row.id,
+                name: row.name,
+                locale: capture?.locale ?? manifest?.locale ?? $('locale').value ?? 'en',
+                profile:
+                    Number.isInteger(capture?.width) && Number.isInteger(capture?.height)
+                        ? `${capture.width}x${capture.height}`
+                        : (capture?.profile ?? '393x852'),
+                image: screenshot.image,
+                side,
+            },
+        ]
+    })
+}
+function openComments(row, scope, threadId) {
+    zoom(row, 'screen')
+    $('zoom-images').replaceChildren(
+        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    )
+    previewFeedback([scope])
+    comments?.open(scope, threadId, commentScopes(row))
+}
+function openRetainedComment(scope, threadId) {
+    const row = {
+        id: scope.screenId,
+        name: `${scope.name || scope.screenId} · No longer in this report`,
+        [scope.side]: { image: scope.image, status: 'captured' },
+    }
+    zoom(row, 'screen')
+    $('zoom-images').replaceChildren(
+        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    )
+    $('zoom-position').textContent = 'No longer in this report'
+    $('zoom-prev').disabled = true
+    $('zoom-next').disabled = true
+    if (threadId) comments.open(scope, threadId, [scope])
+    previewFeedback([scope])
+}
+// Comment feed items carry a threadId; vote activity opens the screen without a discussion.
+function navigateComment(scope, threadId) {
+    if (!/^(?:reports\/[a-z0-9/-]+|collections\/[a-z0-9-]+)$/.test(scope.reportPath)) return
+    if (scope.reportPath !== commentsReportPath) {
+        const path = scope.reportPath.startsWith('reports/')
+            ? `/screens/${scope.reportPath.slice(8)}/`
+            : `/${scope.reportPath}/`
+        const params = new URLSearchParams({ locale: scope.locale, ...(threadId ? { comments: threadId } : {}) })
+        params.set('view', 'all')
+        location.href = `${path}?${params}#${encodeURIComponent(scope.screenId)}`
+        return
+    }
+    // A collection can drop a screen after its discussion started; redirecting here would loop.
+    if (!rows.some((row) => row.id === scope.screenId)) {
+        openRetainedComment(scope, threadId)
+        return
+    }
+    viewMode = 'all'
+    showVariations = true
+    $('view-mode').checked = true
+    $('variations-mode').checked = true
+    $('search').value = ''
+    $('flow').value = ''
+    $('status').value = ''
+    resetVoteFilter()
+    render()
+    let row = rows.find((value) => value.id === scope.screenId)
+    const version = threadId ? 'Commented version' : 'Voted version'
+    if (row[scope.side]?.image !== scope.image)
+        row = {
+            ...row,
+            name: `${row.name} · ${version}`,
+            [scope.side]: { image: scope.image, status: 'captured' },
+        }
+    zoom(row, scope.side === 'before' ? 'side' : 'screen')
+    if (scope.side === 'before')
+        $('zoom-images').replaceChildren(
+            phonePreview(image(scope.image, row.name, { preview: false }), `Before · ${version}`)
+        )
+    if (threadId) comments.open(scope, threadId, [scope])
+    previewFeedback([scope])
+    const url = new URL(location.href)
+    if (threadId) url.searchParams.set('comments', threadId)
+    else url.searchParams.delete('comments')
+    url.hash = scope.screenId
+    history.replaceState(null, '', url.pathname + url.search + url.hash)
+}
 let historyState = null
 let historyGeneration = 0
 let currentReportPath = ''
@@ -828,11 +935,14 @@ function isDefaultScreen(row) {
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
+    if (requestedFilter('comments')) params.set('comments', requestedFilter('comments'))
     const source = overrides.source ?? $('source').value
     const locale = overrides.locale ?? $('locale').value
     const profile = overrides.profile ?? $('profile').value
     if (source) params.set('source', source)
     if (locale) params.set('locale', locale)
+    const allUpdates = report ? requestedFilter('updates') === 'all' : !$('screen-updates-only').checked
+    if (allUpdates) params.set('updates', 'all')
     if (!report && source === 'synthetic' && profile && profile !== '393x852') params.set('profile', profile)
     if (!report) {
         const branch = overrides.branch ?? $('branch').value
@@ -848,6 +958,9 @@ function shareableParams(overrides = {}) {
         if (query) params.set('q', query)
         if (flow) params.set('flow', flow)
         if (status) params.set('status', status)
+        const { up, down } = voteChoice()
+        if (up || down) params.set('votes', [up && 'up', down && 'down'].filter(Boolean).join(','))
+        if ((up || down) && myVotes()) params.set('by', 'me')
         if (report.type === 'comparison') {
             params.set('view', overrides.view ?? viewMode)
             if ((overrides.scope ?? (showVariations ? 'all' : 'default')) === 'default') params.set('scope', 'default')
@@ -858,7 +971,9 @@ function shareableParams(overrides = {}) {
     return params
 }
 function shareableHref(pathname = location.pathname, overrides, hash = location.hash ?? '') {
-    const query = shareableParams(overrides).toString()
+    const params = shareableParams(overrides)
+    if (pathname !== location.pathname) params.delete('comments')
+    const query = params.toString()
     return `${pathname}${query ? `?${query}` : ''}${hash}`
 }
 function syncShareableUrl() {
@@ -935,6 +1050,41 @@ function updatePreviewPosition() {
     $('zoom-prev').disabled = onlyOne
     $('zoom-next').disabled = onlyOne
 }
+// Votes are a verdict on the change, so only the After screenshot carries them.
+const verdictControls = (scope) => (scope?.side === 'after' ? comments?.voteControls?.(scope) : undefined)
+function feedback(scope, action) {
+    const group = el('div', undefined, 'screen-feedback')
+    const votes = verdictControls(scope)
+    if (votes) group.append(votes)
+    group.append(comments.badge(scope, action))
+    return group
+}
+function previewFor(scope) {
+    return [...$('zoom-images').querySelectorAll('.device-preview')].find((preview) => {
+        const images = preview.querySelectorAll('img')
+        return images.length === 1 && images[0].getAttribute('src') === asset(scope.image)
+    })
+}
+function previewFeedback(scopes) {
+    if (!comments) return
+    let fallback = $('zoom-feedback')
+    if (!fallback) {
+        fallback = el('div')
+        fallback.id = 'zoom-feedback'
+        $('zoom-images').after(fallback)
+    }
+    fallback.replaceChildren()
+    for (const scope of scopes) {
+        const item = feedback(scope, () => comments.open(scope, undefined, scopes))
+        const preview = previewFor(scope)
+        if (preview) {
+            preview.append(item)
+            continue
+        }
+        if (scopes.length > 1) item.prepend(el('span', scope.side === 'before' ? 'Before' : 'After', 'feedback-side'))
+        fallback.append(item)
+    }
+}
 function zoom(row, mode = 'side') {
     active = row
     const single = mode === 'screen' || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all')
@@ -981,6 +1131,27 @@ function zoom(row, mode = 'side') {
                 $('zoom-images').append(fig)
             }
     }
+    const scopes = commentScopes(row)
+    const primary = scopes.find((scope) => scope.side === 'after') ?? scopes[0]
+    previewFeedback(
+        mode === 'screen'
+            ? scopes.filter(
+                  (scope) =>
+                      scope.image === availableScreen(row)?.image &&
+                      scope.side === (availableScreen(row) === row.before ? 'before' : 'after')
+              )
+            : scopes
+    )
+    if (comments && primary) {
+        let toggle = $('zoom-comments')
+        if (!toggle) {
+            toggle = el('button', 'Comments')
+            toggle.id = 'zoom-comments'
+            $('zoom-controls').after(toggle)
+        }
+        toggle.onclick = () => (comments.isOpen() ? comments.close() : comments.open(primary, undefined, scopes))
+        if (comments.isOpen()) comments.open(primary, undefined, scopes)
+    }
     updatePreviewPosition()
     if (!$('zoom').open) {
         $('zoom').showModal()
@@ -992,6 +1163,128 @@ function navigatePreview(direction) {
     const index = activePreviewIndex()
     const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
     zoom(filteredRows[next], activeMode)
+}
+const voteFilter = { loading: false, error: '', requested: new Set(), stale: false, refreshing: false }
+const voteChoice = () => {
+    const picked = ($('votes')?.value ?? '').split(',')
+    return { up: picked.includes('up'), down: picked.includes('down') }
+}
+const myVotes = () => Boolean($('vote-scope-me')?.checked)
+const afterScope = (row) => commentScopes(row).find((scope) => scope.side === 'after')
+// "Votes from" only matters once a vote option is picked, so the row stays narrow until then.
+function syncVoteScope() {
+    if ($('vote-scope-control')) $('vote-scope-control').hidden = !!$('votes-control')?.hidden || !$('votes')?.value
+}
+function resetVoteFilter() {
+    if ($('votes')) $('votes').value = ''
+    syncVoteScope()
+    voteFilter.error = ''
+    voteFilter.requested.clear()
+}
+// Personal vote state was cleared (sign-in or account switch); reload instead of filtering on stale totals.
+function voteTotalsReset() {
+    voteFilter.error = ''
+    voteFilter.requested.clear()
+    const { up, down } = voteChoice()
+    if (report && (up || down)) render()
+}
+// A settled vote can drop a card out of the active vote filter. Re-filter without losing the
+// reader's place; while the preview is open, wait until it closes so its position stays valid.
+function voteTotalsChanged() {
+    const { up, down } = voteChoice()
+    if (!report || !(up || down)) return
+    if ($('zoom').open) voteFilter.stale = true
+    else refreshVoteFilter()
+}
+// Focus and the feed's Refresh reload votes. Quietly re-check every row the active filter covers,
+// including rows it hides; if that fails the current list stays and the cards show their own errors.
+function voteTotalsRefreshed() {
+    const { up, down } = voteChoice()
+    if (!report || !(up || down) || voteFilter.loading || voteFilter.refreshing) return
+    const scopes = filteredScreenRows().map(afterScope).filter(Boolean)
+    if (!scopes.length) return
+    voteFilter.refreshing = true
+    comments
+        .loadVoteTotals(scopes, { force: true })
+        .then(voteTotalsChanged)
+        .catch(() => {})
+        .finally(() => (voteFilter.refreshing = false))
+}
+function refreshVoteFilter() {
+    voteFilter.stale = false
+    const shown = renderedCount,
+        scroll = window.scrollY
+    render()
+    while (renderedCount < Math.min(shown, filteredRows.length)) appendNextPage()
+    if (scroll !== undefined) window.scrollTo?.(0, scroll)
+}
+function loadVoteFilter(scopes) {
+    if (voteFilter.loading) return
+    voteFilter.loading = true
+    for (const scope of scopes) voteFilter.requested.add(JSON.stringify(scope))
+    comments
+        .loadVoteTotals(scopes)
+        .then(() => (voteFilter.error = ''))
+        .catch((error) => {
+            if (!error.stale) voteFilter.error = error.message || 'Votes are unavailable right now.'
+        })
+        .finally(() => {
+            voteFilter.loading = false
+            render()
+        })
+}
+// "All teammates" keeps screens with at least one matching vote on the After screenshot;
+// "My votes" keeps the viewer's own, so upvotes double as favorites.
+function voteFiltered(candidates) {
+    const choice = voteChoice()
+    if (!choice.up && !choice.down) return { rows: candidates }
+    const scopes = candidates.map(afterScope).filter(Boolean)
+    const missing = scopes.filter(
+        (scope) => !comments.voteTotals(scope) && !voteFilter.requested.has(JSON.stringify(scope))
+    )
+    if (voteFilter.loading || (missing.length && !voteFilter.error)) {
+        if (missing.length) loadVoteFilter(missing)
+        return { rows: [], notice: myVotes() ? 'Loading your votes…' : 'Loading votes…' }
+    }
+    if (voteFilter.error) return { rows: [], notice: voteFilter.error, retry: true }
+    const mine = myVotes()
+    const shown = new Set(filteredRows.map((row) => row.id))
+    return {
+        rows: candidates.filter((row) => {
+            const scope = afterScope(row)
+            const totals = scope && comments.voteTotals(scope)
+            // Unknown totals (a save in flight or a failed reload) never hide a card already on screen.
+            if (!totals) return Boolean(scope) && shown.has(row.id)
+            return mine
+                ? (choice.up && totals.mine === 1) || (choice.down && totals.mine === -1)
+                : (choice.up && totals.up > 0) || (choice.down && totals.down > 0)
+        }),
+    }
+}
+function voteEmptyMessage() {
+    const { up, down } = voteChoice()
+    if (myVotes())
+        return up && down
+            ? "You haven't voted on any screens that match these filters."
+            : up
+              ? "You haven't upvoted any screens that match these filters."
+              : "You haven't downvoted any screens that match these filters."
+    return up && down
+        ? 'No voted screens match these filters.'
+        : up
+          ? 'No upvoted screens match these filters.'
+          : 'No downvoted screens match these filters.'
+}
+function filterNotice(text, actions = []) {
+    const notice = el('div', undefined, 'filter-notice')
+    notice.append(el('p', text))
+    for (const [label, onClick] of actions) {
+        const action = el('button', label, 'filter-action')
+        action.type = 'button'
+        action.onclick = onClick
+        notice.append(action)
+    }
+    return notice
 }
 function filteredScreenRows() {
     const q = $('search').value.toLowerCase(),
@@ -1034,13 +1327,18 @@ function renderTile(row) {
               ['After', row.after],
           ]) {
         const fig = el('figure', undefined, `shot${label === 'Before' && newScreen(row) ? ' new-screen-shot' : ''}`)
-        fig.append(el('figcaption', label))
+        const caption = el('figcaption', label)
+        fig.append(caption)
         if (!unavailable(s)) {
             const b = el('button')
             b.setAttribute('aria-label', `Enlarge ${row.name}, ${label}`)
             b.append(image(s.image, row.name))
             b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
             fig.append(b)
+            const side =
+                label === 'Before' ? 'before' : label === 'After' ? 'after' : s === row.before ? 'before' : 'after'
+            const scope = commentScopes(row).find((value) => value.side === side)
+            if (scope) caption.append(comments.badge(scope, () => openComments(row, scope)))
         } else
             fig.append(
                 label === 'Before' && newScreen(row)
@@ -1070,7 +1368,9 @@ function renderTile(row) {
                     : 'Below change threshold'
             )
         )
-    else if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% pixels changed`))
+    else if (row.percent !== undefined) foot.append(el('span', `${row.percent.toFixed(2)}% changed`))
+    const verdict = verdictControls(commentScopes(row).find((scope) => scope.side === 'after'))
+    if (verdict) foot.append(verdict)
     tile.append(foot)
     return tile
 }
@@ -1089,14 +1389,36 @@ function render() {
     if (report?.type === 'comparison')
         $('title').textContent = reportTitle || (changedMode ? 'See what changed.' : 'Every screen.')
     document.title = `${$('title').textContent} · Peanut Screen library`
-    filteredRows = filteredScreenRows()
+    const voted = voteFiltered(filteredScreenRows())
+    filteredRows = voted.rows
     renderedCount = 0
     $('screens').className =
         report?.type === 'journeys' ? 'all-screens journey-screens' : changedMode ? 'changed-screens' : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
+        const clearVotes = [
+            'Clear vote filters',
+            () => {
+                resetVoteFilter()
+                render()
+                syncShareableUrl()
+            },
+        ]
+        const retry = [
+            'Retry',
+            () => {
+                voteFilter.error = ''
+                voteFilter.requested.clear()
+                render()
+            },
+        ]
+        const { up, down } = voteChoice()
         $('screens').append(
-            el('p', changedMode ? 'No visual changes match these filters.' : 'No screens match these filters.')
+            voted.notice
+                ? filterNotice(voted.notice, voted.retry ? [retry, clearVotes] : [])
+                : up || down
+                  ? filterNotice(voteEmptyMessage(), [clearVotes])
+                  : el('p', changedMode ? 'No visual changes match these filters.' : 'No screens match these filters.')
         )
         $('screen-load-more').hidden = true
         return
@@ -1290,8 +1612,15 @@ function renderDateStrip(availableEntries) {
     return selected
 }
 function renderLanding() {
+    $('empty-state').hidden = true
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     $('branch-control').hidden = selectedSource !== 'synthetic'
+    $('screen-updates-control').hidden = selectedSource !== 'synthetic'
+    for (const control of ['votes-control', 'vote-scope-control']) if ($(control)) $(control).hidden = true
+    if (!$('screen-updates-only').dataset.initialized) {
+        $('screen-updates-only').checked = requestedFilter('updates') !== 'all'
+        $('screen-updates-only').dataset.initialized = 'true'
+    }
     const branch = $('branch').dataset.initialized ? $('branch').value : requestedFilter('branch')
     $('branch').value = ['dev', 'main'].includes(branch) ? branch : ''
     $('branch').dataset.initialized = 'true'
@@ -1313,7 +1642,13 @@ function renderLanding() {
     const selected = populateLocale(profileEntries, current || requestedFilter('locale'))
     const localeEntries = profileEntries.filter((entry) => entry.locale === selected)
     const selectedDate = renderDateStrip(localeEntries)
-    const visible = localeEntries.filter((entry) => !selectedDate || entry.date === selectedDate)
+    const visible = localeEntries.filter((entry) => {
+        if (selectedDate && entry.date !== selectedDate) return false
+        if (selectedSource !== 'synthetic' || !$('screen-updates-only').checked) return true
+        // Full-library captures inherit their comparison's PR and count, but are never "no updates".
+        const { prNumber, changedScreens, kind } = versionDetails(entry)
+        return kind !== 'Changed screens' || !prNumber || changedScreens !== 0
+    })
     const real = selectedSource === 'nutcracker'
     $('title').textContent = real ? 'Real backend journeys.' : 'Every screen. Every change.'
     $('description').textContent = real
@@ -1363,6 +1698,15 @@ function renderLanding() {
         group.append(heading, grid)
         $('versions').append(group)
     }
+    if (!visible.length)
+        $('versions').append(
+            el(
+                'p',
+                selectedSource === 'synthetic' && $('screen-updates-only').checked
+                    ? 'No screen updates match these filters. Turn off “Screen updates only” to see all PRs.'
+                    : 'No published runs match these filters.'
+            )
+        )
     syncShareableUrl()
 }
 function renderCoverage() {
@@ -1394,6 +1738,7 @@ function renderCoverage() {
 }
 async function configureReportLocales(reportPath) {
     $('branch-control').hidden = true
+    $('screen-updates-control').hidden = true
     if (report.type === 'collection') {
         reportLocaleEntries = (activeComparison ? [activeComparison.locale] : report.locales).map((locale) => ({
             locale,
@@ -1439,6 +1784,7 @@ async function configureReportLocales(reportPath) {
 }
 async function start() {
     if (offline) document.querySelector('.brand').href = './index.html'
+    else if (requestedFilter('updates') === 'all') document.querySelector('.brand').href = '/screens/?updates=all'
     // The worker publishes both the root and nested copies of index.html.
     const pathname = location.pathname
     const isHostedIndex =
@@ -1449,6 +1795,10 @@ async function start() {
         pathname === '/screen-library/index.html'
     const collectionMatch = /^\/collections\/([a-z0-9][a-z0-9-]{0,119})\/?$/.exec(pathname)
     const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
+    if (comments) {
+        $('comment-feed').hidden = false
+        comments.setContext({ prNumber: Number(/^\d{4}-\d{2}-\d{2}\/pr-([1-9]\d*)\//.exec(path)?.[1]) || undefined })
+    }
     if (!offline && !path) {
         const index = await loadJSON('/screen-data/index.json')
         if (!index.length) {
@@ -1499,6 +1849,11 @@ async function start() {
             throw new Error('Unsupported comparison for this collection')
         activeComparison = normalizeComparison(comparison)
     }
+    commentsReportPath = activeComparison
+        ? `reports/${comparisonPath}`
+        : collectionMatch
+          ? `collections/${collectionMatch[1]}`
+          : `reports/${reportPath}`
     if (report.type === 'comparison') report = normalizeComparison(report)
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
@@ -1613,6 +1968,22 @@ async function start() {
     if (report.type === 'comparison' && ['all', 'changed'].includes(requestedView)) viewMode = requestedView
     $('view-mode').checked = viewMode === 'all'
     $('search').value = requestedFilter('q').slice(0, 200)
+    const votesAvailable = Boolean(comments?.votesAvailable?.()) && Boolean(commentsReportPath)
+    const requestedVotes = requestedFilter('votes').split(',')
+    if ($('votes-control')) {
+        $('votes-control').hidden = !votesAvailable
+        $('votes').value = votesAvailable
+            ? [requestedVotes.includes('up') && 'up', requestedVotes.includes('down') && 'down']
+                  .filter(Boolean)
+                  .join(',')
+            : ''
+    }
+    if ($('vote-scope-control')) {
+        $('vote-scope-me').checked = votesAvailable && requestedFilter('by') === 'me'
+        $('vote-scope-all').checked = !$('vote-scope-me').checked
+    }
+    syncVoteScope()
+    if (votesAvailable) $('dashboard-filters').hidden = false
     const requestedFlow = requestedFilter('flow')
     $('flow').value = rows.some((row) => row.flow === requestedFlow) ? requestedFlow : ''
     const requestedStatus = requestedFilter('status')
@@ -1635,16 +2006,27 @@ async function start() {
         $('view-mode').checked = true
         $('variations-mode').checked = true
         $('status').value = ''
+        resetVoteFilter()
         render()
         while (!document.getElementById(location.hash.slice(1)) && renderedCount < filteredRows.length) appendNextPage()
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
     }
     syncShareableUrl()
+    const threadId = requestedFilter('comments')
+    if (comments && /^[a-f0-9-]{36}$/.test(threadId)) comments.navigateThread(threadId)
     const historyRow = rows.find((row) => row.id === requestedFilter('history'))
     if (historyRow) await openScreenHistory(historyRow, false)
 }
 for (const name of ['search', 'flow'])
     $(name).addEventListener('input', () => {
+        render()
+        syncShareableUrl()
+    })
+for (const name of ['votes', 'vote-scope-all', 'vote-scope-me'])
+    $(name)?.addEventListener('change', () => {
+        syncVoteScope()
+        voteFilter.error = ''
+        voteFilter.requested.clear()
         render()
         syncShareableUrl()
     })
@@ -1703,6 +2085,7 @@ $('source').addEventListener('change', () => {
 })
 $('profile').addEventListener('change', renderLanding)
 $('branch').addEventListener('change', renderLanding)
+$('screen-updates-only').addEventListener('change', renderLanding)
 $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''
@@ -1715,6 +2098,10 @@ $('variations-mode').addEventListener('change', () => {
     syncShareableUrl()
 })
 $('close').onclick = () => $('zoom').close()
+$('zoom').addEventListener('close', () => {
+    comments?.close()
+    if (voteFilter.stale) refreshVoteFilter()
+})
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
@@ -1725,7 +2112,11 @@ $('zoom').addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         event.preventDefault()
         $('zoom').close()
-    } else if (event.target !== $('slider') && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    } else if (
+        event.target !== $('slider') &&
+        !event.target?.matches?.('input,textarea,select,[contenteditable]') &&
+        (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+    ) {
         event.preventDefault()
         navigatePreview(event.key === 'ArrowLeft' ? -1 : 1)
     }

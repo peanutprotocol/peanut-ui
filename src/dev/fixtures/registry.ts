@@ -212,6 +212,60 @@ const RECEIPT_ATTACHMENT_ENTRY = {
     attachmentUrl: 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf',
 }
 
+// A request paid by bank deposit (TASK-23729): no charge, the deposit matcher
+// closed it. €5 asked = $5.64, 5.57 USDC arrived, and it settled in euros, so
+// the API sends `completedAt` (the request's `paidAt`) and no `cancelledAt`.
+const BANK_PAID_REQUEST_ENTRY = {
+    uuid: 'fixture-bank-paid-request',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-12T10:00:00.000Z'),
+    createdAt: new Date('2026-08-11T09:00:00.000Z'),
+    completedAt: new Date('2026-08-12T10:00:00.000Z'),
+    amount: '5.64',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'CLOSED',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    memo: 'Concert ticket',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        source: 'EXTERNAL',
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        receivedAmount: '5.57',
+    },
+    isRequestLink: true,
+    totalAmountCollected: 5.57,
+    charges: [],
+}
+
+// A pending request link that accepts bank transfer (TASK-23727): the
+// requester's receipt shows the reference and the bank details behind a tap.
+const PENDING_BANK_REQUEST_ENTRY = {
+    ...BANK_PAID_REQUEST_ENTRY,
+    uuid: 'fixture-bank-request',
+    timestamp: new Date('2026-10-15T10:00:00.000Z'),
+    createdAt: new Date('2026-10-15T10:00:00.000Z'),
+    completedAt: null,
+    amount: '250',
+    status: 'PENDING',
+    memo: 'Flat deposit',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        bankInstructionsShared: true,
+        link: 'https://peanut.me/request/fixture-bank-request',
+    },
+    totalAmountCollected: 0,
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -1281,6 +1335,28 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'history-bank-paid-request': {
+        route: '/history',
+        about: 'A request paid by bank deposit a few cents short in USD. Reads Completed, nothing remaining.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [BANK_PAID_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-paid-request': BANK_PAID_REQUEST_ENTRY,
+        },
+    },
+    'history-request-bank-details': {
+        route: '/history?tx=fixture-bank-request',
+        about: 'A pending request that accepts bank transfer: its receipt shows the payment reference and the bank details.',
+        responses: {
+            'GET /users/history': { entries: [PENDING_BANK_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-request': PENDING_BANK_REQUEST_ENTRY,
+            'GET /requests/fixture-bank-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
+    },
     'empty-history': {
         route: '/history',
         about: 'Nothing on the timeline yet: no transaction, no badge, no ID check.',
@@ -1533,6 +1609,24 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
         responses: { 'GET /users/me': { showEarlyUserModal: true } },
+    },
+
+    // Arrival prompt (TASK-23251). The app must resolve a country first (the
+    // edge, else ipapi); with none it makes no call and shows nothing.
+    'arrival-qr-ar': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Argentina, pay a Mercado Pago QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'qr_ar' } },
+    },
+    'arrival-pix-br': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Brazil, pay a Pix QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'pix_br' } },
+    },
+    'arrival-card': {
+        route: '/home',
+        about: 'Arrival drawer over home: abroad with an active card.',
+        responses: { 'POST /users/me/arrival': { prompt: 'card' } },
     },
 
     // ---------------------------------------------------------------------
@@ -2426,6 +2520,20 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
+    },
+    'request-created-bank-details': {
+        // Tap Create request: demo-api creates every request as `demo-request`.
+        route: '/request?amount=50',
+        about: 'A new request that accepts bank transfer: the created screen shows the payment reference and the bank details.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] },
+            'GET /requests/demo-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
     },
     'request-pay-open-amount': {
         // The override keys on this charge id, so the route names it.

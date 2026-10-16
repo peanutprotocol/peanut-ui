@@ -102,6 +102,18 @@
         },
         "drawers": {
             "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios a tu nombre."
+        },
+        "arrival": {
+            "qr_ar": {
+                "description": "¿El café solo acepta Mercado Pago? ¡Pagá escaneando el QR y ahorrá dinero!"
+            },
+            "pix_br": {
+                "description": "Acá todo se paga con Pix. ¡Escaneá el QR y pagá como un local!"
+            },
+            "card": {
+                "title": "La tarjeta funciona acá",
+                "description": "Pagá en línea y en comercios con Apple Pay o Google Pay donde estén disponibles."
+            }
         }
     },
     "profile": {
@@ -751,7 +763,8 @@
         },
         "guestVerification": {
             "senderUnverifiedDescription": "Quien te envía todavía no puede enviar a un banco. Reclamá de otra forma, o creá y verificá una cuenta para recibirlo en tu banco.",
-            "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco."
+            "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco.",
+            "regionalAccountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Los fondos llegan primero a tu cuenta y desde ahí podés retirarlos a Mercado Pago o Pix."
         },
         "actions": {
             "invitedBy": "Invitación de {username}"
@@ -773,13 +786,6 @@
                 "linkInvalid": "No pudimos verificar este enlace. Abrilo de nuevo e intentalo otra vez.",
                 "inProgress": "Este enlace se está reclamando ahora mismo. Esperá un momento e intentalo otra vez.",
                 "accountLimit": "Se agregaron demasiadas cuentas bancarias para este enlace. Contactá a soporte para reclamarlo."
-            }
-        },
-        "manteca": {
-            "enterAccountDetails": "Ingresá los datos bancarios",
-            "errors": {
-                "withdrawalProcessing": "¡Retiro exitoso! Tus fondos se están procesando. Si la transacción no aparece en tu historial en 5 minutos, contactá a soporte.",
-                "generic": "Algo salió mal. Contactá a soporte"
             }
         }
     },
@@ -1053,7 +1059,8 @@
         },
         "initial": {
             "placeholderEns": "Dirección o ENS",
-            "placeholderAddress": "Dirección"
+            "placeholderAddress": "Dirección",
+            "confirmNetwork": "Elegí la red para esta dirección"
         },
         "confirm": {
             "youPay": "Total"
@@ -1547,10 +1554,7 @@
         },
         "tokenSelector": {
             "selectAToken": "Elegí un token",
-            "drawerTitle": "Elegí token y red",
-            "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Podés usar USDC en Arbitrum.",
-            "selectANetwork": "Elegí una red",
-            "searchTokenPlaceholder": "Token o dirección",
+            "searchTokenPlaceholder": "Buscar token",
             "noMatchingTokensDescription": "Intentá buscar otro token",
             "searchNetworkPlaceholder": "Buscar red",
             "noNetworksFoundDescription": "Intentá buscar otra red"

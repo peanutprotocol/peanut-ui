@@ -251,6 +251,24 @@
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
             "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
+        },
+        "arrival": {
+            "qr_ar": {
+                "title": "Aterrizaste en Argentina",
+                "description": "¿El café solo acepta Mercado Pago? ¡Paga escaneando el QR y ahorra dinero!",
+                "cta": "Escanear QR"
+            },
+            "pix_br": {
+                "title": "Aterrizaste en Brasil",
+                "description": "Aquí todo se paga con Pix. ¡Escanea el QR y paga como un local!",
+                "cta": "Escanear QR"
+            },
+            "card": {
+                "title": "La tarjeta funciona aquí",
+                "description": "Paga en línea y en comercios con Apple Pay o Google Pay donde estén disponibles.",
+                "cta": "Ver tarjeta"
+            },
+            "notNow": "Ahora no"
         }
     },
     "profile": {
@@ -1297,6 +1315,7 @@
             "unavailable": "La transferencia bancaria no está disponible para esta solicitud por ahora.",
             "amountLabel": "Monto a enviar",
             "amountValueApprox": "≈ {amount}",
+            "bodyWithReference": "{text} · Referencia {reference}",
             "exactBadge": "Monto exacto",
             "estimateBadge": "Estimado",
             "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
@@ -1360,7 +1379,8 @@
         "guestVerification": {
             "otherMethod": "Reclamar con otro método",
             "senderUnverifiedDescription": "Quien te envía todavía no puede enviar a un banco. Reclama de otra forma, o crea y verifica una cuenta para recibirlo en tu banco.",
-            "accountRequiredDescription": "Necesitas una cuenta de Peanut para reclamar con este método. Crea una y verifica tu identidad, y tus fondos se depositarán en tu banco."
+            "accountRequiredDescription": "Necesitas una cuenta de Peanut para reclamar con este método. Crea una y verifica tu identidad, y tus fondos se depositarán en tu banco.",
+            "regionalAccountRequiredDescription": "Necesitas una cuenta de Peanut para reclamar con este método. Los fondos llegan primero a tu cuenta y desde ahí puedes retirarlos a Mercado Pago o Pix."
         },
         "actions": {
             "claimOn": "Reclamar en",
@@ -1393,7 +1413,8 @@
             "fromSender": "de {sender}",
             "youWillReceive": "Recibiendo",
             "youClaimed": "Reclamado",
-            "devconnectReturnHint": "Toca el botón X de arriba a la izquierda para volver a la app de Devconnect"
+            "devconnectReturnHint": "Toca el botón X de arriba a la izquierda para volver a la app de Devconnect",
+            "withdrawTo": "Retirar a {method}"
         },
         "bank": {
             "selectCountry": "País de la cuenta bancaria",
@@ -1410,18 +1431,6 @@
                 "linkInvalid": "No pudimos verificar este enlace. Ábrelo de nuevo e inténtalo otra vez.",
                 "inProgress": "Este enlace se está reclamando ahora mismo. Espera un momento e inténtalo otra vez.",
                 "accountLimit": "Se agregaron demasiadas cuentas bancarias para este enlace. Contacta a soporte para reclamarlo."
-            }
-        },
-        "manteca": {
-            "youWillReceive": "Recibiendo",
-            "receiveIn": "Recibir en {method}",
-            "enterAccountDetails": "Ingresa los datos bancarios",
-            "destinationAddress": "Dirección de destino",
-            "exchangeRate": "Tipo de cambio",
-            "errors": {
-                "missingTxHash": "Falló el reclamo: falta el hash de la transacción.",
-                "withdrawalProcessing": "¡Retiro exitoso! Tus fondos se están procesando. Si la transacción no aparece en tu historial en 5 minutos, contacta a soporte.",
-                "generic": "Algo salió mal. Contacta a soporte"
             }
         }
     },
@@ -2017,7 +2026,8 @@
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
-            "detailsMissing": "Faltan los datos del retiro"
+            "detailsMissing": "Faltan los datos del retiro",
+            "confirmNetwork": "Elige la red para esta dirección"
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
@@ -3427,27 +3437,19 @@
         "tokenSelector": {
             "selectAToken": "Elige un token",
             "onChain": "en <c>{chainName}</c>",
-            "noFeesWithToken": "Sin comisiones con este token.",
-            "drawerTitle": "Elige token y red",
-            "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Puedes usar USDC en Arbitrum.",
-            "allNetworks": "Todas",
-            "selectANetwork": "Elige una red",
-            "moreNetworksButton": "más",
-            "searchTokenPlaceholder": "Token o dirección",
-            "sponsoredHint": "Las transacciones con USDC en Arbitrum son patrocinadas",
-            "availableToken": "Token disponible",
-            "searchResults": "Resultados de búsqueda",
-            "popularTokensOnChain": "Tokens populares en {chainName}",
-            "popularTokens": "Tokens populares",
-            "noMatchingTokensTitle": "No se encontraron tokens populares que coincidan",
+            "searchTokenPlaceholder": "Buscar token",
             "noMatchingTokensDescription": "Intenta buscar otro token",
-            "noPopularTokensTitle": "No hay tokens populares disponibles",
-            "moreNetworksTitle": "Más redes",
             "searchNetworkPlaceholder": "Buscar red",
             "noNetworksFoundTitle": "No se encontraron redes que coincidan con {search}",
             "noNetworksFoundDescription": "Intenta buscar otra red",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Borrar búsqueda"
+            "clearSearch": "Borrar búsqueda",
+            "tokenLabel": "Token",
+            "networkLabel": "Red",
+            "noFee": "Sin comisión",
+            "networkFee": "Comisión de red",
+            "noTokensFoundTitle": "No se encontraron tokens",
+            "lockedHint": "Por ahora, solo USDC en Arbitrum"
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",

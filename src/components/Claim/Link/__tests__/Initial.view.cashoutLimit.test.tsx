@@ -104,8 +104,6 @@ jest.mock('@/context/ClaimBankFlowContext', () => ({
         setVerificationPromptReason: jest.fn(),
         setClaimToExternalWallet: jest.fn(),
         resetFlow: jest.fn(),
-        claimToMercadoPago: false,
-        setClaimToMercadoPago: jest.fn(),
         setRegionalMethodType: jest.fn(),
         hideTokenSelector: false,
         setHideTokenSelector: jest.fn(),
@@ -168,10 +166,6 @@ jest.mock('@/components/Claim/Link/SendLinkActionList', () => ({
 }))
 jest.mock('../views/BankFlowManager.view', () => ({
     BankFlowManager: () => <div data-testid="bank-flow" />,
-}))
-jest.mock('../MantecaFlowManager', () => ({
-    __esModule: true,
-    default: () => <div data-testid="manteca-flow" />,
 }))
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,

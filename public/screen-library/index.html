@@ -6,6 +6,8 @@
         <meta name="robots" content="noindex,nofollow" />
         <title>Peanut · Screen library</title>
         <link rel="stylesheet" href="/screen-library/viewer.css" />
+        <script defer src="/screen-library/votes.js"></script>
+        <script defer src="/screen-library/comments.js"></script>
         <script defer src="/screen-library/viewer.js"></script>
     </head>
     <body>
@@ -77,6 +79,45 @@
                             </select></label
                         >
                         <label id="locale-control">Locale<select id="locale"></select></label>
+                        <label id="screen-updates-control" class="switch-control" for="screen-updates-only" hidden
+                            ><span>Screen updates only</span
+                            ><input id="screen-updates-only" type="checkbox" role="switch" checked /><span
+                                class="switch"
+                                aria-hidden="true"
+                            ></span
+                        ></label>
+                        <label id="votes-control" hidden
+                            >Votes<select id="votes">
+                                <option value="">All screens</option>
+                                <option value="up">Upvoted</option>
+                                <option value="down">Downvoted</option>
+                                <option value="up,down">Any vote</option>
+                            </select></label
+                        >
+                        <div
+                            id="vote-scope-control"
+                            class="vote-scope"
+                            role="radiogroup"
+                            aria-labelledby="vote-scope-label"
+                            hidden
+                        >
+                            <span id="vote-scope-label">Votes from</span>
+                            <span class="vote-scope-options"
+                                ><label
+                                    ><input
+                                        id="vote-scope-all"
+                                        type="radio"
+                                        name="vote-scope"
+                                        value="all"
+                                        checked
+                                    /><span>All teammates</span></label
+                                ><label
+                                    ><input id="vote-scope-me" type="radio" name="vote-scope" value="me" /><span
+                                        >My votes</span
+                                    ></label
+                                ></span
+                            >
+                        </div>
                         <label id="profile-control" hidden>Viewport<select id="profile"></select></label>
                     </nav>
                     <nav id="screen-filters" class="filters" aria-label="Filter screens">
@@ -174,9 +215,16 @@
                     <p id="history-detail-note" class="history-meta"></p>
                 </section>
             </section>
-            <section id="versions" aria-label="Versions"></section>
-            <section id="screens" aria-label="Screens"></section>
-            <div id="screen-load-more" class="load-more" hidden aria-live="polite">Scroll to load more screens</div>
+            <div class="library-layout">
+                <div class="library-content">
+                    <section id="versions" aria-label="Versions"></section>
+                    <section id="screens" aria-label="Screens"></section>
+                    <div id="screen-load-more" class="load-more" hidden aria-live="polite">
+                        Scroll to load more screens
+                    </div>
+                </div>
+                <aside id="comment-feed" class="comment-feed" aria-label="Latest screen activity" hidden></aside>
+            </div>
         </main>
         <dialog id="zoom" aria-labelledby="zoom-title">
             <div class="dialog-head">
@@ -194,10 +242,13 @@
                     >Before / after<input id="slider" type="range" min="0" max="100" value="50"
                 /></label>
             </div>
-            <div class="preview-stage">
-                <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
-                <div id="zoom-images"></div>
-                <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
+            <div class="zoom-body">
+                <div class="preview-stage">
+                    <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
+                    <div id="zoom-images"></div>
+                    <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
+                </div>
+                <aside id="comment-panel" class="comment-panel" aria-label="Screen discussion" hidden></aside>
             </div>
             <p class="preview-help"><kbd>←</kbd><kbd>→</kbd> Navigate <kbd>Esc</kbd> Close</p>
         </dialog>

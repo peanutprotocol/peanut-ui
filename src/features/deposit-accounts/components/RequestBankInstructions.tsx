@@ -95,10 +95,14 @@ export function RequestBankInstructions({
     // has their transfer returned. The same rule the requester reads before
     // sharing the link.
     const senderNote = senderLimit(account.matching)?.payer
+    // A euro transfer from an account in another name can be returned, the
+    // same caveat the requester's shared text carries.
+    const eurOwnNameNote = corridor === 'SEPA_EU' ? tDeposit('share.eurOwnName') : undefined
 
     return (
         <div className="flex flex-col gap-4">
             {senderNote && <Callout priority="attention">{senderNote}</Callout>}
+            {eurOwnNameNote && <Callout priority="attention">{eurOwnNameNote}</Callout>}
 
             <Section title={tDeposit('details.sectionTitle')}>
                 <DepositDetailsCard rows={rows} />

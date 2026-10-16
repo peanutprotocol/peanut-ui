@@ -6,7 +6,7 @@
  * shows available methods for claiming a send link:
  * - continue with peanut (creates account)
  * - bank transfer (requires kyc)
- * - mercadopago/pix (regional, requires verification)
+ * - mercadopago/pix (claims to a new peanut account, then withdraw)
  * - external wallet (claim to any address)
  *
  * the alternate rails are for recipients we cannot identify as Peanut users.
@@ -39,7 +39,6 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { DEVCONNECT_CLAIM_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../useClaimLink'
 import starStraightImage from '@/assets/icons/starStraight.svg'
-import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../../Global/ConfirmInviteModal'
 import Loading from '../../Global/Loading'
@@ -55,6 +54,11 @@ import { useKnownPeanutDevice } from '@/hooks/useKnownPeanutDevice'
 import { stashInvite } from '@/utils/invite-stash'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
+
+// The invite prompt offers to "continue without signing up". Mercado Pago and
+// Pix always need an account (TASK-23648), and their account prompt keeps the
+// invite, so for them that offer would be false.
+const SKIPS_INVITE_PROMPT = ['devconnect', 'mercadopago', 'pix']
 
 interface ISendLinkActionListProps {
     claimLinkData: ClaimLinkData
@@ -84,8 +88,6 @@ export default function SendLinkActionList({
         setFlowStep: setClaimBankFlowStep,
         setShowVerificationModal,
         setVerificationPromptReason,
-        setClaimToMercadoPago,
-        setRegionalMethodType,
         setHideTokenSelector,
     } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
@@ -95,7 +97,6 @@ export default function SendLinkActionList({
     const { addParamStep } = useClaimLink()
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
-    const { user } = useAuth()
     const knownDevice = useKnownPeanutDevice()
     const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({ trackImpressionWhenGuest: !isLoggedIn })
     const {
@@ -156,19 +157,16 @@ export default function SendLinkActionList({
                 break
             case 'mercadopago':
             case 'pix':
-                if (!user) {
-                    // carry the tapped method in the URL: the auth redirect fully
-                    // remounts the flow, and Initial.view restores it from the
-                    // `method` param when it re-enters via step=regional-claim.
-                    addParamStep('regional-claim', { method: method.id })
-                    // the blocker is the missing account, not the sender —
-                    // mercadopago/pix never consult the sender's rails at all
-                    setVerificationPromptReason('account-required')
-                    setShowVerificationModal(true)
-                    return
-                }
-                setRegionalMethodType(method.id)
-                setClaimToMercadoPago(true)
+                // The link is claimed into the claimer's own Peanut account and
+                // withdrawn from there. A claim straight to Manteca moved the money
+                // before any payout existed, and a refused payout stranded it
+                // (TASK-23648). These cards render only for guests, so this always
+                // asks for an account first. The tapped method rides the URL: the
+                // auth redirect remounts the flow, and useInitialClaimFlow reads
+                // it back from step=regional-claim.
+                addParamStep('regional-claim', { method: method.id })
+                setVerificationPromptReason('regional-account-required')
+                setShowVerificationModal(true)
                 break
             case 'devconnect':
                 setExternalWalletRecipient?.({
@@ -290,7 +288,11 @@ export default function SendLinkActionList({
                                 return (
                                     <MethodCard
                                         onClick={() => {
-                                            if (isInviteLink && !isLoggedIn && method.id !== 'devconnect') {
+                                            if (
+                                                isInviteLink &&
+                                                !isLoggedIn &&
+                                                !SKIPS_INVITE_PROMPT.includes(method.id)
+                                            ) {
                                                 setSelectedMethod(method)
                                                 setShowInviteModal(true)
                                             } else {

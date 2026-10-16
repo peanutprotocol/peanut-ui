@@ -20,9 +20,11 @@ jest.mock('@/components/Global/ShareButton', () => ({
         <button data-url={url}>{children}</button>
     ),
 }))
-jest.mock('../RequestFulfillmentNotice', () => ({
-    RequestFulfillmentNotice: ({ bankPayable }: { bankPayable: boolean }) =>
-        bankPayable ? <div data-testid="bank-status" /> : null,
+jest.mock('../RequestFulfillmentNotice', () => ({ RequestFulfillmentNotice: () => null }))
+jest.mock('@/features/deposit-accounts/components/RequestBankTransferCard', () => ({
+    RequestBankTransferCard: ({ requestId, canShare }: { requestId: string; canShare?: boolean }) => (
+        <div data-testid="bank-transfer-card" data-request={requestId} data-share={String(!!canShare)} />
+    ),
 }))
 
 const renderView = (overrides: Partial<React.ComponentProps<typeof RequestCreatedView>> = {}) => {
@@ -55,14 +57,13 @@ it('makes successful creation persistent and celebrates once', () => {
         'data-url',
         'https://peanut.me/request/pay?id=request-1'
     )
-    expect(screen.getByTestId('bank-status')).toBeInTheDocument()
     expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
 })
 
 it('shows two buttons, primary Done first, then share', () => {
     renderView({ requestAmount: '', bankPayable: false })
 
-    expect(screen.queryByTestId('bank-status')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bank-transfer-card')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
         messages.common.done,
         messages.request.shareOpenRequest,
@@ -75,4 +76,13 @@ it('exits the terminal state through Done', () => {
     expect(screen.queryByRole('button', { name: /back/i })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: messages.common.done }))
     expect(props.onDone).toHaveBeenCalledTimes(1)
+})
+
+// What a payer is told to pay by bank, before the requester shares the link.
+it('shows the shareable bank transfer card for a request that accepts bank transfer', () => {
+    renderView()
+
+    const card = screen.getByTestId('bank-transfer-card')
+    expect(card).toHaveAttribute('data-request', 'request-1')
+    expect(card).toHaveAttribute('data-share', 'true')
 })

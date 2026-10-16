@@ -157,3 +157,33 @@ describe('rail names on the details card', () => {
         expect(accepts?.value).not.toContain('_')
     })
 })
+
+/** A request share carries the two values the payer types into their bank. */
+describe('the shared text of a request', () => {
+    const request = (amountRow?: string) =>
+        buildShareText(
+            account('anyone'),
+            { ...copy, request: { amountRow, referenceRow: 'Payment reference: demo-req' } },
+            ROW_LABELS,
+            RAIL_LABELS
+        )
+
+    it('adds the amount and the reference after the account numbers, then says the reference is needed', () => {
+        const out = request('Amount to send: £40.00')
+        expect(out.indexOf('04-00-53')).toBeLessThan(out.indexOf('Amount to send: £40.00'))
+        expect(out.indexOf('Amount to send: £40.00')).toBeLessThan(out.indexOf('Payment reference: demo-req'))
+        expect(out.indexOf('Payment reference: demo-req')).toBeLessThan(out.indexOf(copy.referenceLine))
+        expect(out.indexOf(copy.referenceLine)).toBeLessThan(out.indexOf(copy.outro))
+    })
+
+    it('leaves the amount out when there is no exact one', () => {
+        const out = request()
+        expect(out).not.toContain('Amount to send')
+        expect(out).toContain('Payment reference: demo-req')
+    })
+
+    it('adds neither to an account share', () => {
+        expect(text('anyone')).not.toContain('Payment reference')
+        expect(text('anyone')).not.toContain(copy.referenceLine)
+    })
+})
