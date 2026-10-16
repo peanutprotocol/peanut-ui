@@ -409,7 +409,7 @@ describe('native locale', () => {
         arrangeDevice('en-US')
         freshStore().persistLocale('es-AR')
         await settle()
-        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-AR', 'app-locale-device': 'en' })
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-AR', 'app-locale-device': 'en-US' })
     })
 
     it('keeps the pick while the device stays on that locale', async () => {
@@ -428,6 +428,28 @@ describe('native locale', () => {
         expect(mockPrefs.size).toBe(0)
     })
 
+    // fr-FR and en-US both resolve to en, so comparing resolved locales would miss this move
+    it('drops a pick made on an unsupported phone language once the device moves to English', async () => {
+        arrangeDevice('fr-FR')
+        freshStore().persistLocale('es-AR')
+        await settle()
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-AR', 'app-locale-device': 'fr-FR' })
+
+        arrangeDevice('en-US')
+        await expect(freshStore().localeReady()).resolves.toBe('en')
+        await settle()
+        expect(mockPrefs.size).toBe(0)
+    })
+
+    it('keeps the pick when the device moves onto a language the app does not support', async () => {
+        mockPrefs.set('app-locale', 'es-AR')
+        mockPrefs.set('app-locale-device', 'en-US')
+        arrangeDevice('fr-FR')
+        await expect(freshStore().localeReady()).resolves.toBe('es-AR')
+        await settle()
+        expect(mockPrefs.get('app-locale')).toBe('es-AR')
+    })
+
     it('drops an older bundle value matching the device, so the device language applies from now on', async () => {
         mockPrefs.set('app-locale', 'en')
         arrangeDevice('en-US')
@@ -441,7 +463,7 @@ describe('native locale', () => {
         arrangeDevice('en-US')
         await expect(freshStore().localeReady()).resolves.toBe('pt-BR')
         await settle()
-        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'pt-BR', 'app-locale-device': 'en' })
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'pt-BR', 'app-locale-device': 'en-US' })
     })
 
     it('keeps the pick when the device lookup stalls, since nothing shows the locale moved', async () => {
@@ -475,6 +497,6 @@ describe('native locale', () => {
         store.persistLocale('es-419')
         await pending
         await settle()
-        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-419', 'app-locale-device': 'en' })
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-419', 'app-locale-device': 'en-US' })
     })
 })
