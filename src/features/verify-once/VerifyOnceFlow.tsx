@@ -180,7 +180,8 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
     }
 
     const onConflict = (error: AnswerFormError) => {
-        if (error === 'unavailable') router.replace('/home')
+        // Not (or no longer) a verify-once user: today's flow starts from Home.
+        if (error === 'unavailable' || error === 'existing_verification') router.replace('/home')
         // Another device submitted the ID, or the features changed: the server rebuilds the questions.
         else if (error === 'identity_submitted' || error === 'feature_not_selected') void reload()
     }

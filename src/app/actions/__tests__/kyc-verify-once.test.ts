@@ -1,4 +1,9 @@
-import { getKycQuestions, saveKycAnswers, startVerifyOnceIdentity } from '@/app/actions/kyc-verify-once'
+import {
+    getKycQuestions,
+    saveKycAnswers,
+    saveVerifyOnceFeatures,
+    startVerifyOnceIdentity,
+} from '@/app/actions/kyc-verify-once'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -123,5 +128,30 @@ describe('startVerifyOnceIdentity', () => {
         await expect(startVerifyOnceIdentity('attempt-1', document)).resolves.toEqual({ kind: 'failed' })
         mockFetch.mockResolvedValue(reply(503, null))
         await expect(startVerifyOnceIdentity('attempt-1', document)).resolves.toEqual({ kind: 'failed' })
+    })
+})
+
+describe('saveVerifyOnceFeatures', () => {
+    const features = { qr: true, bank: true, local: false, card: true }
+
+    it('PUTs the feature set with the flag header', async () => {
+        mockFetch.mockResolvedValue(reply(200, { intents: features }))
+        await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'saved' })
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/kyc-intents',
+            expect.objectContaining({ method: 'PUT', headers: { 'x-kyc-verify-once': '1' } })
+        )
+    })
+
+    it('names the step still missing for the added feature', async () => {
+        mockFetch.mockResolvedValue(reply(409, { code: 'questions_missing', feature: 'card', step: 'phone' }))
+        await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'questions-missing', step: 'phone' })
+    })
+
+    it('anything else fails', async () => {
+        mockFetch.mockResolvedValue(reply(500, null))
+        await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'failed' })
+        mockFetch.mockRejectedValue(new Error('offline'))
+        await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'failed' })
     })
 })

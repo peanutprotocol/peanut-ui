@@ -10,10 +10,16 @@ import type {
 } from '@/app/actions/types/kyc-verify-once.types'
 import { initialValues, stepPayload } from './verifyOnce.utils'
 
-export type AnswerFormError = 'retry' | 'feature_not_selected' | 'identity_submitted' | 'unavailable' | 'conflict'
+export type AnswerFormError =
+    | 'retry'
+    | 'feature_not_selected'
+    | 'identity_submitted'
+    | 'unavailable'
+    | 'existing_verification'
+    | 'conflict'
 export type SaveOutcome = { ok: true; next: VerifyOnceStepId | null } | { ok: false; error?: AnswerFormError }
 
-const CONFLICTS = new Set(['feature_not_selected', 'identity_submitted', 'unavailable'])
+const CONFLICTS = new Set(['feature_not_selected', 'identity_submitted', 'unavailable', 'existing_verification'])
 
 /**
  * The answers of the steps on screen: kept in memory only (never storage),

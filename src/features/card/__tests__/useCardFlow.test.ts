@@ -147,12 +147,12 @@ describe('useCardFlow', () => {
     })
 
     it('asks the verify-once card questions on questions-required, then applies again once they are saved', async () => {
-        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'card' })
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'purpose' })
         const { result } = renderHook(() => useCardFlow())
         await act(async () => {
             await result.current.handleApply()
         })
-        expect(result.current.pendingQuestions).toBe(true)
+        expect(result.current.pendingQuestions).toBe('purpose')
         expect(result.current.pendingTerms).toBeNull()
 
         mockApplyForCard.mockResolvedValueOnce({ status: 'terms-required', isUsResident: true })
@@ -161,8 +161,17 @@ describe('useCardFlow', () => {
         })
         expect(mockApplyForCard).toHaveBeenCalledTimes(2)
         expect(mockApplyForCard).toHaveBeenLastCalledWith(expect.objectContaining({ termsAccepted: false }))
-        expect(result.current.pendingQuestions).toBe(false)
+        expect(result.current.pendingQuestions).toBeNull()
         expect(result.current.pendingTerms).toEqual({ isUsResident: true })
+    })
+
+    it('asks the job again when Rain refused the title (questions-required at the work step)', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'work' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe('work')
     })
 
     it('routes terms-required to the terms screen', async () => {

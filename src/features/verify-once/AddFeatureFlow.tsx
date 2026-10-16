@@ -4,18 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
-import { getKycQuestions } from '@/app/actions/kyc-verify-once'
-import { getKycDocumentPlan, saveKycFeatures } from '@/app/actions/kyc-workflow'
+import { getKycQuestions, saveVerifyOnceFeatures, type FeatureIntentsResult } from '@/app/actions/kyc-verify-once'
+import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import type { VerifyOnceFeature, VerifyOnceStep } from '@/app/actions/types/kyc-verify-once.types'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
-import { openSteps } from './verifyOnce.utils'
 
 /** Adds the feature to the saved set once its answers are in; a feature already there is left as is. */
-export async function addKycFeature(feature: VerifyOnceFeature) {
+export async function addKycFeature(feature: VerifyOnceFeature): Promise<FeatureIntentsResult> {
     const plan = await getKycDocumentPlan()
-    if (!plan.features[feature]) await saveKycFeatures({ ...plan.features, [feature]: true })
+    if (plan.features[feature]) return { kind: 'saved' }
+    return saveVerifyOnceFeatures({ ...plan.features, [feature]: true })
 }
 
 type State =
@@ -30,10 +30,13 @@ type State =
  */
 export function AddFeatureQuestions({
     feature,
+    requiredStep,
     onBack,
     onDone,
 }: {
     feature: VerifyOnceFeature
+    /** A step the caller was told is missing (the card application); asked even when the read says answered. */
+    requiredStep?: string | null
     onBack: () => void
     onDone: () => void
 }) {
@@ -42,30 +45,43 @@ export function AddFeatureQuestions({
     // Called once per finish, whatever the parent re-renders with.
     const onDoneRef = useRef(onDone)
     onDoneRef.current = onDone
+    const loadRef = useRef<(required?: string | null) => Promise<void>>(async () => {})
+    const firstRequired = useRef(requiredStep)
 
-    const finish = useCallback(async () => {
-        try {
-            await addKycFeature(feature)
-            onDoneRef.current()
-        } catch {
-            setState({ kind: 'failed' })
-        }
-    }, [feature])
+    const finish = useCallback(
+        async (afterRequired?: string | null) => {
+            try {
+                const result = await addKycFeature(feature)
+                if (result.kind === 'saved') onDoneRef.current()
+                // A step asked a second time with nothing new to answer would loop: stop on the failure screen.
+                else if (result.kind === 'questions-missing' && result.step !== afterRequired)
+                    await loadRef.current(result.step)
+                else setState({ kind: 'failed' })
+            } catch {
+                setState({ kind: 'failed' })
+            }
+        },
+        [feature]
+    )
 
-    const load = useCallback(async () => {
-        setState({ kind: 'loading' })
-        try {
-            const questions = await getKycQuestions(feature)
-            const steps = openSteps(questions)
-            if (!steps.length) return finish()
-            setState({ kind: 'asking', steps, residence: questions.residence })
-        } catch {
-            setState({ kind: 'failed' })
-        }
-    }, [feature, finish])
+    const load = useCallback(
+        async (required?: string | null) => {
+            setState({ kind: 'loading' })
+            try {
+                const questions = await getKycQuestions(feature)
+                const steps = questions.steps.filter((s) => !s.answered || s.id === required)
+                if (!steps.length) return finish(required)
+                setState({ kind: 'asking', steps, residence: questions.residence })
+            } catch {
+                setState({ kind: 'failed' })
+            }
+        },
+        [feature, finish]
+    )
+    loadRef.current = load
 
     useEffect(() => {
-        void load()
+        void load(firstRequired.current)
     }, [load])
 
     if (state.kind === 'loading')
@@ -84,7 +100,7 @@ export function AddFeatureQuestions({
                 footer={
                     <VerifyFooter
                         actions={
-                            <Button shadowSize="4" className="w-full" onClick={() => void load()}>
+                            <Button shadowSize="4" className="w-full" onClick={() => void load(firstRequired.current)}>
                                 {t('loadFailed.retry')}
                             </Button>
                         }
@@ -104,7 +120,9 @@ export function AddFeatureQuestions({
                 setState({ kind: 'loading' })
                 void finish()
             }}
-            onConflict={() => void load()}
+            onConflict={(error) =>
+                error === 'unavailable' || error === 'existing_verification' ? onBack() : void load()
+            }
         />
     )
 }

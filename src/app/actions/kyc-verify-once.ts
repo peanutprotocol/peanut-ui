@@ -1,7 +1,7 @@
 import { serverFetch } from '@/utils/api-fetch'
 import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
 import { validSession } from './kyc-workflow'
-import type { KycAttemptSession } from './types/kyc-workflow.types'
+import type { KycAttemptSession, KycFeatures } from './types/kyc-workflow.types'
 import type {
     SaveAnswersResult,
     VerifyOnceAnswers,
@@ -77,4 +77,24 @@ export async function startVerifyOnceIdentity(
     } catch {
         return { kind: 'failed' }
     }
+}
+
+export type FeatureIntentsResult =
+    | { kind: 'saved' }
+    | { kind: 'questions-missing'; step: VerifyOnceStepId | null }
+    | { kind: 'failed' }
+
+/** Saves the feature set after add-later; a feature whose answers are still missing is refused with its step. */
+export async function saveVerifyOnceFeatures(features: KycFeatures): Promise<FeatureIntentsResult> {
+    let response: Response
+    try {
+        response = await call('/users/kyc-intents', { method: 'PUT', body: JSON.stringify(features) })
+    } catch {
+        return { kind: 'failed' }
+    }
+    if (response.ok) return { kind: 'saved' }
+    const body = await json(response)
+    if (response.status === 409 && body?.code === 'questions_missing')
+        return { kind: 'questions-missing', step: body.step ?? null }
+    return { kind: 'failed' }
 }

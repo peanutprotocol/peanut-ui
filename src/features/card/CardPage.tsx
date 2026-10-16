@@ -134,7 +134,8 @@ export const CardPage: FC = () => {
                 <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">
                     <AddFeatureQuestions
                         feature="card"
-                        onBack={() => setPendingQuestions(false)}
+                        requiredStep={pendingQuestions}
+                        onBack={() => setPendingQuestions(null)}
                         onDone={handleQuestionsDone}
                     />
                 </div>

@@ -249,6 +249,14 @@ describe('VerifyOnceFlow', () => {
         expect(await screen.findByText('We’re checking your ID')).toBeInTheDocument()
     })
 
+    it('an answer refused because the user already has today’s verification sends them Home', async () => {
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'existing_verification' })
+        renderFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
+    })
+
     it('sends a user the server keeps on today’s flow back to Home', async () => {
         mockPlan.mockResolvedValue({ ...plan, flow: 'document-first' })
         renderFlow()

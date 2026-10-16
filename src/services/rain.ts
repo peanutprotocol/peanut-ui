@@ -414,9 +414,10 @@ export type ApplyForCardResponse =
       }
     | {
           // Verify-once: the card answers (purpose, job, income, spend,
-          // phone) are not all in Sumsub yet. Ask them, then apply again.
+          // phone) are not all in Sumsub yet, or Rain refused the job title
+          // (step 'work'). Ask them, then apply again.
           status: 'questions-required'
-          step: 'card'
+          step: string
       }
     | {
           // The send gate refused Rain for this user's plan; `reason` is the

@@ -19,6 +19,7 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     feature_not_selected: 'errors.featureNotSelected',
     identity_submitted: 'errors.identitySubmitted',
     unavailable: 'errors.unavailable',
+    existing_verification: 'errors.unavailable',
     conflict: 'errors.retry',
 }
 
