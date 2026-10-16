@@ -173,7 +173,7 @@ export const mdxComponents: MdxComponentMap = {
         />
     ),
     td: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
-        <td className="border-b border-border-default/10 px-4 py-3 text-foreground-secondary" {...props} />
+        <td className="border-b border-border-default px-4 py-3 text-foreground-secondary" {...props} />
     ),
     pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
         <div className={`mx-auto my-6 ${PROSE_WIDTH} px-6 md:px-4`}>

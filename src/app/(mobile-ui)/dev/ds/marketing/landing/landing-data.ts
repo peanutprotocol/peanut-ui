@@ -11,7 +11,7 @@ export interface HeroRecipe {
     useWhen: string
     heights: Record<PreviewViewport, number>
     /** a demo that stands in for work another branch owes carries the note */
-    pending?: string
+    note?: string
 }
 
 export const HERO_RECIPES: HeroRecipe[] = [
@@ -26,8 +26,7 @@ export const HERO_RECIPES: HeroRecipe[] = [
         name: 'Product split',
         useWhen: 'Use when: a star-feature or campaign sub-LP leads with the one product it sells.',
         heights: { phone: 1000, desktop: 760 },
-        pending:
-            'Demo built from the real primitives — no reusable component ships yet; the canonical component lands in ds-marketing-heroes.',
+        note: 'Component: Marketing/ProductSplitHero — /shhhhh is the first caller. Star-feature LPs build on it; never rebuild the split by hand.',
     },
     {
         demo: 'content-hero',

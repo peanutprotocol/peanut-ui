@@ -55,9 +55,6 @@ export default function MarketingBrandPage() {
                             body={
                                 <div>
                                     <p>{entry.role}</p>
-                                    {entry.pending && (
-                                        <p className="mt-1 text-label-m text-foreground-secondary">{entry.pending}</p>
-                                    )}
                                 </div>
                             }
                         />
@@ -117,13 +114,13 @@ export default function MarketingBrandPage() {
                 title="Display ramp"
                 description="The enforced September ruling (112/104, 80/64, 60/46, 42/36 at weight 1000). Rendered at the RULED leading."
             >
-                <DesignNote type="warning">
-                    The @theme ramp tokens already carry this leading, but the unlayered{' '}
-                    <code className="font-mono">.font-roboto-flex-extrabold</code> class (globals.css ~1355) beats
-                    layered utilities and forces line-height 1.0 at every call site. This specimen pins the ruled values
-                    with explicit <code className="font-mono">!leading</code> overrides — pending: the @layer fix lands
-                    in ds-marketing-tokens, then the overrides here go. Watch es/pt accented caps (Á É Í) at these
-                    leadings: the fix branch captures before/after.
+                <DesignNote type="info">
+                    The unlayered <code className="font-mono">.font-roboto-flex-extrabold</code> class sets line-height
+                    1.0, which used to beat the ramp utilities. globals.css now re-asserts the ruled leading for the
+                    four display sizes (<code className="font-mono">.font-roboto-flex-extrabold.text-heading*</code> and
+                    the md variants), so a call site that pairs the class with a ramp size gets 112/104, 80/64, 60/46 or
+                    42/36 with no override. App-scale pairings keep 100%. In es/pt, accented caps (Á É Í) touch the line
+                    above at this leading — accepted (ruled 2026-10-15).
                 </DesignNote>
                 <div className="space-y-8 overflow-x-hidden rounded-sm border border-border-default bg-background-page p-4">
                     {DISPLAY_RAMP.map((step) => (

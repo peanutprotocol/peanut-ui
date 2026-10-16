@@ -28,7 +28,6 @@ export default function MarketingContentPage() {
             {CONTENT_DEMOS.map((entry) => (
                 <DocSection key={entry.demo} title={entry.title} description={entry.rule}>
                     <ViewportFrame demo={entry.demo} label={entry.title} heights={entry.heights} />
-                    {entry.pending && <p className="text-label-m text-foreground-secondary">{entry.pending}</p>}
                 </DocSection>
             ))}
         </DocPage>

@@ -11,8 +11,6 @@ export interface PaletteEntry {
     /** complete class so Tailwind sees it at build time */
     swatchClass: string
     role: string
-    /** a swatch that documents a FUTURE state carries the pending note */
-    pending?: string
 }
 
 export const MARKETING_PALETTE: PaletteEntry[] = [
@@ -42,11 +40,9 @@ export const MARKETING_PALETTE: PaletteEntry[] = [
     },
     {
         label: 'Lavender',
-        token: 'background-setup-hero',
-        swatchClass: 'bg-background-setup-hero',
-        role: 'Marketing band ground — ruled 2026-10-15. The lavender bands stay; no more raw hex inline.',
-        pending:
-            'pending: the named marketing band token lands in ds-marketing-tokens — today the value ships as blue-300 / background-setup-hero',
+        token: 'background-marketing-sky',
+        swatchClass: 'bg-background-marketing-sky',
+        role: 'Marketing band ground — ruled 2026-10-15. The lavender bands stay, on this token; no raw hex and no app token (background-setup-hero is the sign-up hero, not a band).',
     },
 ]
 

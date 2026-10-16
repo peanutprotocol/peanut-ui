@@ -11,7 +11,6 @@ export interface ContentDemo {
     rule: string
     heights: Record<PreviewViewport, number>
     /** a demo that shows a ruled state a fix branch still owes carries the note */
-    pending?: string
 }
 
 export const CONTENT_DEMOS: ContentDemo[] = [
@@ -32,8 +31,6 @@ export const CONTENT_DEMOS: ContentDemo[] = [
         title: 'Table treatment',
         rule: 'Plain tokens, no tints: cream header row (background-page), white body rows (background-default), full-strength border-default rules. A table wider than the phone scrolls inside its border.',
         heights: { phone: 400, desktop: 380 },
-        pending:
-            'The mdx element map still ships the pink th tint (bg-action-primary/15) and faded td rules — the fix lands in this run’s themed fix branch; this frame shows the ruled target.',
     },
     {
         demo: 'prose-container',

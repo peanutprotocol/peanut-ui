@@ -5,9 +5,8 @@ import { DEMO_TABLE } from '../_components/preview-data'
  * The ruled table treatment (table-tints A, 2026-10-14): plain tokens only —
  * cream header row on background-page, white body rows on background-default,
  * full-strength border-default rules. No pink tint, no faded /10 rules. The
- * mdx element map still ships bg-action-primary/15 on th and
- * border-border-default/10 on td; that fix lands in this run's themed fix
- * branch — this page renders the RULED look it must converge on.
+ * mdx element map (Marketing/mdx/components.tsx) renders the same classes;
+ * this page is the specimen.
  */
 export default function ContentTablePreview() {
     return (

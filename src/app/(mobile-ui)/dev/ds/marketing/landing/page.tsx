@@ -30,7 +30,7 @@ export default function MarketingLandingPage() {
                             <p className="text-body-m-semibold">{hero.name}</p>
                             <p className="text-body-s text-foreground-secondary">{hero.useWhen}</p>
                             <ViewportFrame demo={hero.demo} label={`${hero.name} hero`} heights={hero.heights} />
-                            {hero.pending && <p className="text-label-m text-foreground-secondary">{hero.pending}</p>}
+                            {hero.note && <p className="text-label-m text-foreground-secondary">{hero.note}</p>}
                         </div>
                     ))}
                 </div>
