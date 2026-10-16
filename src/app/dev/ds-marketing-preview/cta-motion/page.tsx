@@ -26,13 +26,14 @@ export default function CtaMotionPreview() {
                 <Button key={`cream-${mount}`} variant="primary" className={`mx-auto mt-6 w-fit ${CTA_MOTION}`}>
                     Get the app
                 </Button>
-                <button
-                    type="button"
+                <Button
+                    variant="ghost"
+                    size="small"
                     onClick={() => setMount((n) => n + 1)}
-                    className="mt-10 text-body-s text-foreground-secondary underline"
+                    className="mx-auto mt-10 w-fit"
                 >
                     Replay entrance
-                </button>
+                </Button>
             </section>
         </main>
     )
