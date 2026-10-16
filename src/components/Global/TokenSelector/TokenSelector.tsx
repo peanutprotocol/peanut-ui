@@ -169,13 +169,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
         const visible = filterTokenOptions(options, searchValue)
         return (
             <>
-                <DrawerTitle>{t('tokenSelector.tokenLabel')}</DrawerTitle>
-                <SearchInput
-                    value={searchValue}
-                    onChange={setSearchValue}
-                    onClear={() => setSearchValue('')}
-                    placeholder={t('tokenSelector.searchTokenPlaceholder')}
-                />
+                {/* title and search stay pinned while the list scrolls under them */}
+                <div className="sticky top-0 z-10 flex flex-col gap-4 bg-white pb-4">
+                    <DrawerTitle>{t('tokenSelector.tokenLabel')}</DrawerTitle>
+                    <SearchInput
+                        value={searchValue}
+                        onChange={setSearchValue}
+                        onClear={() => setSearchValue('')}
+                        placeholder={t('tokenSelector.searchTokenPlaceholder')}
+                    />
+                </div>
                 {visible.length > 0 ? (
                     <ListGroup role="listbox" aria-label={t('tokenSelector.tokenLabel')}>
                         {visible.map((option) => {
@@ -221,15 +224,18 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
         const visible = filterNetworks(networks, searchValue)
         return (
             <>
-                <DrawerTitle>{t('tokenSelector.networkLabel')}</DrawerTitle>
-                {networks.length >= NETWORK_SEARCH_MIN && (
-                    <SearchInput
-                        value={searchValue}
-                        onChange={setSearchValue}
-                        onClear={() => setSearchValue('')}
-                        placeholder={t('tokenSelector.searchNetworkPlaceholder')}
-                    />
-                )}
+                {/* title and search stay pinned while the list scrolls under them */}
+                <div className="sticky top-0 z-10 flex flex-col gap-4 bg-white pb-4">
+                    <DrawerTitle>{t('tokenSelector.networkLabel')}</DrawerTitle>
+                    {networks.length >= NETWORK_SEARCH_MIN && (
+                        <SearchInput
+                            value={searchValue}
+                            onChange={setSearchValue}
+                            onClear={() => setSearchValue('')}
+                            placeholder={t('tokenSelector.searchNetworkPlaceholder')}
+                        />
+                    )}
+                </div>
                 {visible.length > 0 ? (
                     <ListGroup role="listbox" aria-label={t('tokenSelector.networkLabel')}>
                         {visible.map((network) => (
@@ -291,9 +297,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
             {/* a drag/Escape/outside-click dismiss runs the same close path as a row tap */}
             <Drawer open={openDrawer !== null} onOpenChange={(isOpen) => !isOpen && close()}>
                 <DrawerContent className="py-4">
-                    <div className="flex flex-col gap-4">
-                        {drawerKind === 'token' ? tokenDrawer() : networkDrawer()}
-                    </div>
+                    {/* no gap here: the pinned header's pb-4 is the 16px above the list,
+                     * so rows scrolling under it stay covered */}
+                    <div className="flex flex-col">{drawerKind === 'token' ? tokenDrawer() : networkDrawer()}</div>
                 </DrawerContent>
             </Drawer>
         </div>
