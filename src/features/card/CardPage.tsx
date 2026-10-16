@@ -15,6 +15,7 @@ import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { useCardFlow } from './useCardFlow'
+import { AddFeatureQuestions } from '@/features/verify-once/AddFeatureFlow'
 
 export const CardPage: FC = () => {
     const t = useTranslations('card')
@@ -44,6 +45,9 @@ export const CardPage: FC = () => {
         pendingResidenceBlocked,
         planRefusal,
         setPlanRefusal,
+        pendingQuestions,
+        setPendingQuestions,
+        handleQuestionsDone,
         kycFlow,
         handleApply,
         handleConfirmCountry,
@@ -122,6 +126,18 @@ export const CardPage: FC = () => {
                     onContactSupport={() => setIsSupportModalOpen(true)}
                     onPrev={onBack}
                 />
+            )
+        }
+        // Verify-once: the card's own questions on one full screen over the page, then the application resumes.
+        if (pendingQuestions) {
+            return (
+                <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">
+                    <AddFeatureQuestions
+                        feature="card"
+                        onBack={() => setPendingQuestions(false)}
+                        onDone={handleQuestionsDone}
+                    />
+                </div>
             )
         }
         if (planRefusal) {

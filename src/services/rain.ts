@@ -16,6 +16,7 @@ import { getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
+import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
 import type { AcceptedLegalDocument } from '@/services/consent'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -412,6 +413,12 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
+          // Verify-once: the card answers (purpose, job, income, spend,
+          // phone) are not all in Sumsub yet. Ask them, then apply again.
+          status: 'questions-required'
+          step: 'card'
+      }
+    | {
           // The send gate refused Rain for this user's plan; `reason` is the
           // plan's refusal code (e.g. identity_document_insufficient).
           status: 'provider-not-in-plan'
@@ -443,6 +450,8 @@ interface RequestOpts {
     stepUp?: boolean
     /** Use an already-cached proof without opening a new ceremony. */
     stepUpToken?: string
+    /** Extra request headers (the verify-once flag header on the application). */
+    headers?: Record<string, string>
     /**
      * Suppress the GLOBAL cooldown explainer for a 425 (the typed
      * `RainCooldownError` and its telemetry are unchanged). Only the internal
@@ -459,7 +468,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
     // JS never holds the token.
     if (!isCapacitor() && !getAuthToken()) throw new Error('Authentication required')
 
-    const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
+    const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY, ...opts.headers }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
     if (opts.stepUp) headers[STEP_UP_HEADER] = opts.stepUpToken ?? (await getStepUpToken())
 
@@ -753,6 +762,7 @@ export const rainApi = {
                 method: 'POST',
                 path: '/rain/cards',
                 body,
+                headers: verifyOnceHeaders(),
                 // The first-time-application path runs 7 sequential Sumsub calls, a
                 // deliberate 2.5s readiness sleep, the Rain createApplication call,
                 // and an optional inline issueCard — routinely 7-13s. The default

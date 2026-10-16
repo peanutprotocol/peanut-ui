@@ -146,6 +146,25 @@ describe('useCardFlow', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 
+    it('asks the verify-once card questions on questions-required, then applies again once they are saved', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'card' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe(true)
+        expect(result.current.pendingTerms).toBeNull()
+
+        mockApplyForCard.mockResolvedValueOnce({ status: 'terms-required', isUsResident: true })
+        await act(async () => {
+            result.current.handleQuestionsDone()
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(2)
+        expect(mockApplyForCard).toHaveBeenLastCalledWith(expect.objectContaining({ termsAccepted: false }))
+        expect(result.current.pendingQuestions).toBe(false)
+        expect(result.current.pendingTerms).toEqual({ isUsResident: true })
+    })
+
     it('routes terms-required to the terms screen', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: true })
         const { result } = renderHook(() => useCardFlow())

@@ -40,6 +40,7 @@ import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isDemoMode } from '@/utils/demo'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import { entryFeature, verifyOnceRoute } from '@/features/verify-once/verifyOnceEntry'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -625,6 +626,21 @@ export const useSumsubKycFlow = ({
                     setDocumentPreferencesOnly(false)
                     plan = await findKycDocumentPlan()
                     planUnreadableRef.current = plan === null
+                    // Verify-once users answer Peanut's questions on /verify before any document.
+                    const verifyOncePath = await verifyOnceRoute(
+                        plan,
+                        entryFeature({
+                            intent: overrideIntent ?? regionIntent,
+                            corridor,
+                            targetCountry: rawTargetCountry,
+                        })
+                    )
+                    if (verifyOncePath) {
+                        userInitiatedRef.current = false
+                        if (crossRegion) prevStatusRef.current = savedPrevStatus
+                        router.push(verifyOncePath)
+                        return false
+                    }
                     if (plan?.available) {
                         if (plan.activeAttemptId) {
                             try {
@@ -829,7 +845,7 @@ export const useSumsubKycFlow = ({
                 initiatingRef.current = false
             }
         },
-        [regionIntent, onKycSuccess, t, actionErrorMessage, acceptSessionView, setError, acceptDocumentSession]
+        [regionIntent, onKycSuccess, t, actionErrorMessage, acceptSessionView, setError, acceptDocumentSession, router]
     )
     legacyInitiateRef.current = () => handleInitiateKyc()
 

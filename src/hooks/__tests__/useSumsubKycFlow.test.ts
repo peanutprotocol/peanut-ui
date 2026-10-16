@@ -61,7 +61,13 @@ jest.mock('@/hooks/useWebSocket', () => ({
     },
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'test' } } }) }))
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }) }))
+const mockRouterPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockRouterPush, replace: jest.fn() }) }))
+let mockVerifyOnceFlag = false
+jest.mock('@/features/verify-once/verifyOnceFlag', () => ({
+    isVerifyOnceEnabled: () => mockVerifyOnceFlag,
+    verifyOnceHeaders: () => ({}),
+}))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
@@ -2075,5 +2081,60 @@ describe('an API without a readable document plan keeps the legacy flow', () => 
         } as never)
         renderHook(() => useSumsubKycFlow({ regionIntent: 'STANDARD' }))
         await waitFor(() => expect(mockInitiate).toHaveBeenCalledWith({ regionIntent: 'STANDARD' }))
+    })
+})
+
+describe('useSumsubKycFlow — verify-once routing', () => {
+    const verifyOncePlan = {
+        available: true,
+        activeAttemptId: null,
+        policyVersion: 'v1',
+        flow: 'verify-once',
+        proofOfAddress: null,
+        features: { qr: true, bank: false, local: false, card: true },
+        routes: [],
+    }
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockRouterPush.mockReset()
+        mockVerifyOnceFlag = true
+        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue(verifyOncePlan)
+        ;(getKycDocumentStatus as jest.Mock).mockResolvedValue('NOT_STARTED')
+    })
+    afterEach(() => {
+        mockVerifyOnceFlag = false
+        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue({ available: false, routes: [] })
+        ;(getKycDocumentStatus as jest.Mock).mockResolvedValue('IN_REVIEW')
+    })
+
+    it('opens /verify instead of the document picker or the SDK', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(result.current.documentPlan).toBeNull()
+        expect(result.current.showWrapper).toBe(false)
+    })
+
+    it('sends a verified user adding a bank account to its add-later screen', async () => {
+        ;(getKycDocumentStatus as jest.Mock).mockResolvedValue('APPROVED')
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleInitiateKyc('NA', undefined, true)
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify?feature=bank')
+        expect(mockInitiate).not.toHaveBeenCalled()
+    })
+
+    it('keeps today’s flow with the flag off', async () => {
+        mockVerifyOnceFlag = false
+        mockInitiate.mockResolvedValue({ data: { token: 'tok', status: 'PENDING' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 })

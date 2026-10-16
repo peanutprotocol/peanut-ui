@@ -24,6 +24,7 @@ import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
+import { useVerifyOnceStart } from '@/features/verify-once/useVerifyOnceStart'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -92,6 +93,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // The checklist's Verify row opens the same start modal the bank and
     // deposit gates use: its outage, region and residence checks run here too.
     const [showInitiateKyc, setShowInitiateKyc] = useState(false)
+    // verify-once users go straight to the question screens
+    const verifyOnce = useVerifyOnceStart()
+    const startIdentityCheck = () => (verifyOnce ? router.push('/verify') : setShowInitiateKyc(true))
     // the document list or the SDK takes over the screen; the modal that opened it should not stay in front
     useEffect(() => {
         if (kycFlow.showWrapper || kycFlow.documentPlan) setShowInitiateKyc(false)
@@ -214,7 +218,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                 <GettingStartedChecklist
                     onboarding={onboarding}
                     showWelcome={showWelcome}
-                    onStartIdentityCheck={() => setShowInitiateKyc(true)}
+                    onStartIdentityCheck={startIdentityCheck}
                     onStartQrIdentityCheck={qrIdentityCheck.start}
                 />
                 <InitiateKycModal

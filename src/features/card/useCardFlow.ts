@@ -88,6 +88,8 @@ export function useCardFlow() {
     // The send gate's refusal of Rain for this plan (POST /rain/cards 403
     // provider-not-in-plan), when the app has copy and a step for it.
     const [planRefusal, setPlanRefusal] = useState<string | null>(null)
+    // Verify-once: POST /rain/cards answered `questions-required`; the card questions come first.
+    const [pendingQuestions, setPendingQuestions] = useState(false)
 
     const state = computeCardState({
         overview,
@@ -252,6 +254,12 @@ export function useCardFlow() {
                 setPendingCountryConfirmation(null)
                 setGeoBlocked(false)
                 setPendingResidenceBlocked(true)
+                return
+            }
+            if (res.status === 'questions-required') {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setPendingQuestions(true)
                 return
             }
             if (res.status === 'provider-not-in-plan' && 'message' in res) {
@@ -527,6 +535,8 @@ export function useCardFlow() {
         } else if (res.status === 'pending-residence-blocked') {
             setGeoBlocked(false)
             setPendingResidenceBlocked(true)
+        } else if (res.status === 'questions-required') {
+            setPendingQuestions(true)
         } else {
             invalidateOverview()
         }
@@ -545,6 +555,12 @@ export function useCardFlow() {
         advanceFromApplyResponse(res)
         return false
     })
+
+    // The card answers are saved and the card joined the saved features: apply again.
+    const handleQuestionsDone = useCallback(() => {
+        setPendingQuestions(false)
+        void handleApply(false)
+    }, [handleApply])
 
     return {
         // data
@@ -574,6 +590,9 @@ export function useCardFlow() {
         pendingResidenceBlocked,
         planRefusal,
         setPlanRefusal,
+        pendingQuestions,
+        setPendingQuestions,
+        handleQuestionsDone,
         kycFlow,
         handleApply,
         handleConfirmCountry,
