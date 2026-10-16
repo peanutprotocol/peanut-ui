@@ -479,7 +479,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                         variant="secondary"
                         className={`w-fit ${CTA_MOTION}`}
                     >
-                        INSTALL PEANUT
+                        Install Peanut
                     </Button>
                 </div>
                 <Link
