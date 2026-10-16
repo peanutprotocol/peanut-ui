@@ -29,12 +29,16 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: '431def76a1838075b8110dff955da06a3d561d61229117c14127deef9f09e1ca',
     },
     privacy: {
-        version: '2026-08-27',
-        hash: 'da1d914e134c2ac6b75ca6d83211ae443880c709a288a1e285efead347f70181',
+        version: '2026-09-25',
+        hash: '1d7cb222ea2fdac39adfc99a6739822045091c131ddd38ed4030be38bef66452',
+    },
+    'real-time-funding-terms': {
+        version: '2026-09-29',
+        hash: '59e2db2c52e64fcd5f92587203f671a97d687b204f621dc4590635d6c37eeb27',
     },
     terms: {
-        version: '2026-07-15',
-        hash: '6ed61c54c9b6c1c40ab053c597c83288b36bf07f0470627b67634db0e41d7398',
+        version: '2026-09-26',
+        hash: '1098bda28be7baf5a438ae18b095a938e4c9e090b838d59727432fdc9255a3aa',
     },
 } as const
 
