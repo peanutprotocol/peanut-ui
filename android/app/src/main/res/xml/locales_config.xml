@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mirrors APP_LOCALES in src/i18n/app/config.ts; lists the app in Android 13+ per-app language settings. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="es-419" />
+    <locale android:name="es-AR" />
+    <locale android:name="pt-BR" />
+</locale-config>
