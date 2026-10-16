@@ -1,6 +1,10 @@
 import type { paths } from '@/types/api.generated'
 
-export type KycDocumentPlan = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json']
+// `flow` and `proofOfAddress` are typed here until the API types are regenerated (verify-once, api#1816).
+export type KycDocumentPlan = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json'] & {
+    flow?: 'verify-once' | 'document-first' | null
+    proofOfAddress?: 'suggested' | null
+}
 export type KycFeatures = KycDocumentPlan['features']
 type AttemptResponse = paths['/users/kyc/attempts']['post']['responses'][200]['content']['application/json']
 export type KycDocumentConfig = AttemptResponse['sdkConfig']

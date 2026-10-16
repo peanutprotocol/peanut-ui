@@ -1,5 +1,6 @@
 import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
 import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
 import type {
     KycAttemptSession,
@@ -11,7 +12,12 @@ import type {
 } from './types/kyc-workflow.types'
 
 async function read<T>(path: string, options?: RequestInit): Promise<T> {
-    const response = await serverFetch(path, { ...options, cache: 'no-store', redactTelemetry: true })
+    const response = await serverFetch(path, {
+        ...options,
+        headers: { ...verifyOnceHeaders(), ...(options?.headers as Record<string, string> | undefined) },
+        cache: 'no-store',
+        redactTelemetry: true,
+    })
     if (!response.ok) throw new Error('KYC request failed')
     return response.json() as Promise<T>
 }
@@ -38,7 +44,7 @@ export async function saveKycFeatures(
     })
     return { plan: await getKycDocumentPlan(restart), features: saved?.features ?? undefined }
 }
-function validSession(value: KycAttemptSession): KycAttemptSession {
+export function validSession(value: KycAttemptSession): KycAttemptSession {
     const identity = value?.sdkConfig?.documentDefinitions?.IDENTITY
     if (
         !value?.attemptId ||
@@ -78,6 +84,7 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
     const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
         method: 'POST',
         body: '{}',
+        headers: verifyOnceHeaders(),
         cache: 'no-store',
         redactTelemetry: true,
     })
