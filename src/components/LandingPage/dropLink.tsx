@@ -6,6 +6,7 @@ import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.webp'
 import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.webp'
 import { WHATSAPP_ICON, IMESSAGE_ICON, FBMessenger_ICON, TELEGRAM_ICON } from '@/assets/icons'
 import type { LandingStrings } from './landingStrings'
+import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 export function DropLink({ strings }: { strings: LandingStrings }) {
     const reduceMotion = useReducedMotion()
@@ -122,8 +123,8 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                     <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">{strings.dropLinkBody}</p>
 
-                    <a href="/setup" target="_blank" rel="noopener noreferrer">
-                        <Button variant="secondary" className="mt-8 hidden w-58 md:inline-block md:w-72">
+                    <a href="/setup" target="_blank" rel="noopener noreferrer" className={`block ${CTA_WIDTH}`}>
+                        <Button variant="secondary" className="mt-8 hidden md:flex">
                             {strings.signUp}
                         </Button>
                     </a>

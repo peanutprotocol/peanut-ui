@@ -2,7 +2,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
-import { PROSE_WIDTH } from '../constants'
+import { CTA_WIDTH, PROSE_WIDTH } from '../constants'
 
 interface CTAProps {
     text: string
@@ -50,13 +50,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                         className="absolute -top-24 left-1/2 -z-0 h-40 w-40 -translate-x-1/2 md:-top-28 md:h-48 md:w-48"
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
-                        <Button
-                            href={href}
-                            plainAnchor={plainAnchor}
-                            shadowSize="4"
-                            variant="primary"
-                            className="w-full justify-center px-8 sm:w-auto md:px-12"
-                        >
+                        <Button href={href} plainAnchor={plainAnchor} variant="primary" className={CTA_WIDTH}>
                             {text}
                         </Button>
                         {subtitle && <p className="mt-3 text-body-s text-foreground-secondary">{subtitle}</p>}
@@ -68,13 +62,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
 
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 md:px-4 md:py-12`}>
-            <Button
-                href={href}
-                plainAnchor={plainAnchor}
-                shadowSize="4"
-                variant="primary"
-                className="mx-auto w-full justify-center px-8 sm:w-auto md:px-12"
-            >
+            <Button href={href} plainAnchor={plainAnchor} variant="primary" className={`mx-auto ${CTA_WIDTH}`}>
                 {text}
             </Button>
         </div>

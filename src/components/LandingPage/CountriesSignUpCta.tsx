@@ -4,6 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 /**
  * Keep the illustration server-rendered while this CTA follows the migration flag.
@@ -23,7 +24,7 @@ export function CountriesSignUpCta({ label }: { label: string }) {
                 if (interceptAppCta(MIGRATION_SURFACES.LANDING_COUNTRIES)) event.preventDefault()
             }}
         >
-            <Button variant="secondary" className="w-auto">
+            <Button variant="secondary" className={CTA_WIDTH}>
                 {label}
             </Button>
         </a>

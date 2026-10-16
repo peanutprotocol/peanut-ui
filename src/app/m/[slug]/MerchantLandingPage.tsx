@@ -15,6 +15,7 @@ import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
 import { Star } from '@/assets/illustrations'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import type { Merchant, MenuItem } from './merchants'
+import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 /** Build a `/invite` URL with the merchant's vanity code + the UTM
  *  attribution. The code (e.g. `STAIN`, `BANOMADS`) is registered in
@@ -116,11 +117,9 @@ function Hero({ merchant }: { merchant: Merchant }) {
                     )}
 
                     <div className="mt-8 flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-6">
-                        <div className="relative">
-                            <Link href={buildInviteHref(merchant, 'hero')} className="inline-block">
-                                <Button variant="secondary" className="!w-auto">
-                                    {merchant.primaryCta}
-                                </Button>
+                        <div className={`relative ${CTA_WIDTH}`}>
+                            <Link href={buildInviteHref(merchant, 'hero')} className="block">
+                                <Button variant="secondary">{merchant.primaryCta}</Button>
                             </Link>
                             <motion.img
                                 src={Star.src}
@@ -471,10 +470,8 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                     {merchant.install.sub}
                 </p>
                 <div className="mt-10 flex justify-center">
-                    <Link href={buildInviteHref(merchant, 'end_fold')} className="inline-block">
-                        <Button variant="secondary" className="!w-auto">
-                            INSTALL PEANUT
-                        </Button>
+                    <Link href={buildInviteHref(merchant, 'end_fold')} className={`block ${CTA_WIDTH}`}>
+                        <Button variant="secondary">INSTALL PEANUT</Button>
                     </Link>
                 </div>
                 <Link

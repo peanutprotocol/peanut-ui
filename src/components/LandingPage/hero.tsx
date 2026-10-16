@@ -13,6 +13,7 @@ import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
+import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -111,7 +112,7 @@ const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean):
     }) as CSSProperties
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? `mx-auto ${CTA_WIDTH}` : 'right-[calc(50%-120px)]'}`
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, contentHrefs }: HeroProps) {
     const migrationOn = useMigrationFlag()
@@ -122,6 +123,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                 style={getCtaStyle(variant, buttonVisible)}
             >
                 <a
+                    className="block w-full"
                     href={cta.href}
                     target={cta.isExternal ? '_blank' : undefined}
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}

@@ -120,13 +120,7 @@ export default function ShhhhhLandingPage() {
                 pitch={t('hero.pitch')}
                 lead={t('hero.lead')}
                 cta={
-                    <Button
-                        className="sm:w-auto"
-                        variant="secondary"
-                        onClick={handleCTA}
-                        loading={busy}
-                        disabled={busy}
-                    >
+                    <Button variant="secondary" onClick={handleCTA} loading={busy} disabled={busy}>
                         {t('hero.cta')}
                     </Button>
                 }
