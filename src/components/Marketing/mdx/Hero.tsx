@@ -4,7 +4,7 @@ import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { PROSE_WIDTH } from '../constants'
+import { CTA_WIDTH, PROSE_WIDTH } from '../constants'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -55,7 +55,7 @@ export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, s
                     )}
                     {cta && ctaHref && (
                         <div className="mt-8">
-                            <Button variant="secondary" href={ctaHref} className="inline-flex w-auto">
+                            <Button variant="secondary" href={ctaHref} className={`mx-auto ${CTA_WIDTH}`}>
                                 {cta}
                             </Button>
                         </div>

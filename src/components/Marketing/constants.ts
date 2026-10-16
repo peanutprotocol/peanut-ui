@@ -20,3 +20,11 @@ export const CARD_HOVER =
  *  element map and any component that writes its own anchor cannot drift. */
 export const PROSE_LINK =
     'text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary'
+
+/** Marketing CTA column — the app's own CTA geometry (ruled 2026-10-15, konrad:
+ *  marketing CTAs keep the app Button's width and layout). In the app a CTA is
+ *  a default-size `Button` filling its column (design.md primary/secondary CTA,
+ *  `className="w-full"`); on desktop that column is the sign-up screen's
+ *  `md:max-w-xs` (SetupWrapper), the screen these CTAs lead to. Put it on the
+ *  element that holds the Button. A content-hugging pill is not app geometry. */
+export const CTA_WIDTH = 'w-full md:max-w-xs'

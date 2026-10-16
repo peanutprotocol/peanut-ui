@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { CTA_WIDTH } from '@/components/Marketing/constants'
 
 // The card face renders nothing on the server and rasterises four canvases on
 // mount, so it stays out of the first chunk. The host box reserves the aspect
@@ -42,10 +43,8 @@ export function ShhhhhFold() {
                     </p>
 
                     <div className="mt-8 flex flex-wrap items-center gap-6">
-                        <Link prefetch={false} href="/shhhhh">
-                            <Button variant="secondary" className="!w-auto">
-                                {t('cta')}
-                            </Button>
+                        <Link prefetch={false} href="/shhhhh" className={CTA_WIDTH}>
+                            <Button variant="secondary">{t('cta')}</Button>
                         </Link>
                     </div>
 
