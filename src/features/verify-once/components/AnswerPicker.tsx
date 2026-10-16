@@ -23,26 +23,49 @@ const FIELD_ICONS: Record<string, IconName> = {
     annualSalary: 'dollar',
     expectedMonthlyVolume: 'arrow-up-right',
     sourceOfFunds: 'wallet',
+    bankOccupation: 'user',
+    bankMonthlyPayments: 'arrow-up-right',
+    actingAsIntermediary: 'users',
 }
 
-// Rain's list, most picked first; a title the list lacks is left out.
-const POPULAR_JOBS = [
-    'Software Developers, Applications',
-    'Self-Employee',
-    'Accountants and Auditors',
-    'Registered Nurses',
-    'Retail Salespersons',
-    'Customer Service Representatives',
-    'Graphic Designers',
-    'Lawyers',
-    'Taxi Drivers and Chauffeurs',
-    'Waiters and Waitresses',
-    'Student',
-    'Other',
-]
+// Most picked first, per job list (Rain's for the card, Bridge's for a bank account); a title the list lacks is left out.
+const POPULAR_JOBS: Record<string, string[]> = {
+    occupation: [
+        'Software Developers, Applications',
+        'Self-Employee',
+        'Accountants and Auditors',
+        'Registered Nurses',
+        'Retail Salespersons',
+        'Customer Service Representatives',
+        'Graphic Designers',
+        'Lawyers',
+        'Taxi Drivers and Chauffeurs',
+        'Waiters and Waitresses',
+        'Student',
+        'Other',
+    ],
+    bankOccupation: [
+        'Software developer',
+        'Accountant and auditor',
+        'Registered nurse',
+        'Retail salesperson',
+        'Customer service representative',
+        'Graphic designer',
+        'Lawyer',
+        'Taxi driver',
+        'Waiter or waitress',
+        'Web developer',
+        'Chief executive',
+        'Cashier',
+    ],
+}
 const MAX_RESULTS = 40
 
-const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const normalize = (text: string) =>
+    text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
 const matchesQuery = (text: string, words: string[]) => words.every((word) => normalize(text).includes(word))
 
 function Flag({ country, size }: { country: string; size: 'xs' | 's' }) {
@@ -100,10 +123,11 @@ export function AnswerPicker({
 
     const words = normalize(query).split(/\s+/).filter(Boolean)
     const matches = words.length ? options.filter((o) => matchesQuery(optionLabel(o), words) || o === query) : options
-    const popular =
+    const popularJobs =
         field.kind === 'occupation' && !words.length
-            ? [...new Set([value, ...POPULAR_JOBS])].filter((job) => job && options.includes(job))
-            : null
+            ? [...new Set([value, ...(POPULAR_JOBS[field.key] ?? [])])].filter((job) => job && options.includes(job))
+            : []
+    const popular = popularJobs.length ? popularJobs : null
     const listed = popular ?? (searchable ? matches.slice(0, MAX_RESULTS) : options)
 
     const choose = (option: string) => {

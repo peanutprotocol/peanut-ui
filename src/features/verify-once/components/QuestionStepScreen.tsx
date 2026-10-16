@@ -100,7 +100,12 @@ export function QuestionStepScreen({
     const fields = steps.flatMap((s) => s.fields)
     const single = steps.length === 1 ? steps[0] : null
     const heading = useStepHeading(single ?? steps[0])
-    const hint = single && !heading && t.has(`hints.${single.id}` as never) ? t(`hints.${single.id}` as never) : null
+    // A card + bank user answers two job lists on one screen (Rain's and Bridge's differ).
+    const twoJobLists = fields.some((f) => f.key === 'occupation') && fields.some((f) => f.key === 'bankOccupation')
+    const hintKey = single && !heading ? (twoJobLists ? 'hints.workTwoLists' : `hints.${single.id}`) : null
+    const hint = hintKey && t.has(hintKey as never) ? t(hintKey as never) : null
+    // Past three sentences the step uses the smaller heading, so its CTA stays on screen.
+    const compact = !!title || fields.filter(isSentenceField).length > 3
     const complete = stepComplete(fields, form.values)
 
     const submit = async () => {
@@ -156,7 +161,8 @@ export function QuestionStepScreen({
                     errors={form.errors}
                     residence={residence}
                     onChange={form.change}
-                    sentenceSize={title ? 's' : 'm'}
+                    sentenceSize={compact ? 's' : 'm'}
+                    sentencesAsHeading={!title}
                 />
                 {/* Return on the last typed field submits, as the CTA does. */}
                 <button type="submit" className="sr-only" aria-hidden tabIndex={-1} />

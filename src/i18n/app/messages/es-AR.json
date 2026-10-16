@@ -1535,7 +1535,8 @@
             "phoneHelp": "Incluí el código de tu país, como +54.",
             "hints": {
                 "purpose": "Elegí la opción más parecida.",
-                "work": "Elegí la opción más parecida."
+                "work": "Elegí la opción más parecida.",
+                "workTwoLists": "Nuestros socios de tarjeta y de banco usan listas de trabajos distintas. Elegí la opción más parecida en cada una."
             },
             "why": {
                 "work": "Los bancos y emisores de tarjetas tienen que saber a qué te dedicás.",
@@ -1581,6 +1582,9 @@
             },
             "loadFailed": {
                 "description": "Revisá tu conexión e intentá de nuevo. Tus respuestas hasta ahora están guardadas."
+            },
+            "pickerTitle": {
+                "actingAsIntermediary": "En nombre de quién enviás dinero"
             }
         }
     },

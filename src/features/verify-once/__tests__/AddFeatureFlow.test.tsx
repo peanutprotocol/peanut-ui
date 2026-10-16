@@ -62,7 +62,7 @@ describe('AddFeatureQuestions', () => {
     it('asks every missing answer of the feature on one screen, never an ID check', async () => {
         mockQuestions.mockResolvedValue(cardQuestions())
         renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={jest.fn()} />)
-        expect(await screen.findByText('A few answers for your card')).toBeInTheDocument()
+        expect(await screen.findByText('For your card')).toBeInTheDocument()
         expect(mockQuestions).toHaveBeenCalledWith('card')
         expect(screen.getByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-annualSalary')).toBeInTheDocument()
@@ -128,6 +128,80 @@ describe('AddFeatureQuestions', () => {
         renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
         await waitFor(() => expect(onDone).toHaveBeenCalled())
         expect(mockSaveFeatures).not.toHaveBeenCalled()
+    })
+})
+
+describe('AddFeatureQuestions: a Bridge high-risk bank account', () => {
+    it('asks Bridge’s job list and its money answers, labelled, and saves them for the bank feature', async () => {
+        mockQuestions.mockResolvedValue({
+            available: true,
+            attemptId: null,
+            residence: 'PH',
+            steps: [
+                {
+                    id: 'work',
+                    features: ['bank'],
+                    answered: false,
+                    fields: [
+                        {
+                            key: 'employmentStatus',
+                            kind: 'choice',
+                            required: true,
+                            options: ['employed'],
+                            value: 'employed',
+                        },
+                        {
+                            key: 'bankOccupation',
+                            kind: 'occupation',
+                            required: true,
+                            options: ['Lawyer', 'Software developer'],
+                            value: 'Lawyer',
+                        },
+                    ],
+                },
+                {
+                    id: 'money',
+                    features: ['bank'],
+                    answered: false,
+                    fields: [
+                        {
+                            key: 'bankMonthlyPayments',
+                            kind: 'choice',
+                            required: true,
+                            options: ['0_4999'],
+                            value: '0_4999',
+                        },
+                        {
+                            key: 'actingAsIntermediary',
+                            kind: 'choice',
+                            required: true,
+                            options: ['yes', 'no'],
+                            value: 'no',
+                        },
+                    ],
+                },
+            ],
+            firstUnanswered: 'work',
+            progress: { done: 1, total: 3 },
+        })
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={onDone} />)
+        expect(await screen.findByTestId('verify-pick-bankOccupation')).toHaveTextContent('Lawyer')
+        expect(screen.getByTestId('verify-pick-bankMonthlyPayments')).toHaveTextContent('Under $5,000')
+        expect(screen.getByTestId('verify-pick-actingAsIntermediary')).toHaveTextContent('Only for myself')
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockSave).toHaveBeenCalledWith(
+            'work',
+            { employmentStatus: 'employed', bankOccupation: 'Lawyer' },
+            'bank'
+        )
+        expect(mockSave).toHaveBeenCalledWith(
+            'money',
+            { bankMonthlyPayments: '0_4999', actingAsIntermediary: 'no' },
+            'bank'
+        )
     })
 })
 

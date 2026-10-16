@@ -249,6 +249,25 @@ describe('VerifyOnceFlow', () => {
         expect(await screen.findByText('We’re checking your ID')).toBeInTheDocument()
     })
 
+    it('a card + bank user answers Rain’s and Bridge’s job lists on one work step, told they differ', async () => {
+        const questions = build({ money: true, tax: true }, 'purpose')
+        questions.steps.splice(1, 0, {
+            id: 'work',
+            features: ['card', 'bank'],
+            answered: false,
+            fields: [
+                { key: 'occupation', kind: 'occupation', required: true, options: ['Lawyers'], value: null },
+                { key: 'bankOccupation', kind: 'occupation', required: true, options: ['Lawyer'], value: null },
+            ],
+        })
+        questions.firstUnanswered = 'work'
+        mockQuestions.mockResolvedValue(questions)
+        renderFlow()
+        expect(await screen.findByTestId('verify-pick-occupation')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-pick-bankOccupation')).toBeInTheDocument()
+        expect(screen.getByText(/use different job lists/)).toBeInTheDocument()
+    })
+
     it('an answer refused because the user already has today’s verification sends them Home', async () => {
         mockSave.mockResolvedValue({ kind: 'conflict', code: 'existing_verification' })
         renderFlow()

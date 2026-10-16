@@ -3398,7 +3398,8 @@
             "hints": {
                 "purpose": "Elige la opción más parecida.",
                 "work": "Elige la opción más parecida.",
-                "money": "Una estimación aproximada está bien."
+                "money": "Una estimación aproximada está bien.",
+                "workTwoLists": "Nuestros socios de tarjeta y de banco usan listas de trabajos distintas. Elige la opción más parecida en cada una."
             },
             "why": {
                 "purpose": "Los bancos y emisores de tarjetas deben saber cómo usarás tu cuenta. Toda cuenta financiera regulada lo pregunta.",
@@ -3417,7 +3418,10 @@
                 "annualSalary": "<nw>Gano <pill></pill></nw> <nw>al año</nw>",
                 "expectedMonthlyVolume": "<nw>Gastaré <pill></pill></nw> <nw>al mes</nw>",
                 "sourceOfFunds": "Mi dinero viene <nw>de <pill></pill></nw>",
-                "countryOfBirth": "Nací <nw>en <pill></pill></nw>"
+                "countryOfBirth": "Nací <nw>en <pill></pill></nw>",
+                "bankOccupation": "En la lista del banco, se parece <nw>más a <pill></pill></nw>",
+                "bankMonthlyPayments": "Cada mes, mi cuenta <nw>mueve <pill></pill></nw>",
+                "actingAsIntermediary": "Enviaré dinero <nw><pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "Para qué usarás la tarjeta",
@@ -3427,7 +3431,10 @@
                 "annualSalary": "Tus ingresos anuales",
                 "expectedMonthlyVolume": "Lo que gastarás cada mes",
                 "sourceOfFunds": "De dónde viene tu dinero",
-                "countryOfBirth": "País de nacimiento"
+                "countryOfBirth": "País de nacimiento",
+                "bankOccupation": "Tu trabajo, para la cuenta bancaria",
+                "bankMonthlyPayments": "Lo que moverá tu cuenta cada mes",
+                "actingAsIntermediary": "En nombre de quién envías dinero"
             },
             "search": {
                 "occupation": "Buscar trabajos",
@@ -3493,6 +3500,16 @@
                     "ecommerce_reseller": "Ventas en línea",
                     "someone_elses_funds": "Dinero de otra persona",
                     "gambling_proceeds": "Ganancias de apuestas"
+                },
+                "bankMonthlyPayments": {
+                    "0_4999": "Menos de US$5.000",
+                    "5000_9999": "US$5.000–US$9.999",
+                    "10000_49999": "US$10.000–US$49.999",
+                    "50000_plus": "US$50.000 o más"
+                },
+                "actingAsIntermediary": {
+                    "no": "Solo para mí",
+                    "yes": "En nombre de otras personas"
                 }
             },
             "titles": {
@@ -3605,10 +3622,9 @@
             },
             "addLater": {
                 "title": {
-                    "bank": "Unas respuestas para tu cuenta bancaria",
-                    "card": "Unas respuestas para tu tarjeta"
+                    "bank": "Para tu cuenta bancaria",
+                    "card": "Para tu tarjeta"
                 },
-                "description": "Solo preguntamos lo que todavía no nos dijiste.",
                 "doneTitle": "Todo listo",
                 "doneDescription": {
                     "bank": "Estamos configurando tu cuenta bancaria. Suele tardar unos minutos y te avisaremos cuando esté lista.",

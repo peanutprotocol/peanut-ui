@@ -3398,7 +3398,8 @@
             "hints": {
                 "purpose": "Pick the closest match.",
                 "work": "Pick the closest match.",
-                "money": "Rough estimates are fine."
+                "money": "Rough estimates are fine.",
+                "workTwoLists": "Our card and bank partners use different job lists. Pick the closest match on each."
             },
             "why": {
                 "purpose": "Banks and card issuers must know how you’ll use your account. Every regulated financial account asks this.",
@@ -3417,7 +3418,10 @@
                 "annualSalary": "<nw>I earn <pill></pill></nw> <nw>a year</nw>",
                 "expectedMonthlyVolume": "<nw>I’ll spend <pill></pill></nw> <nw>a month</nw>",
                 "sourceOfFunds": "My money comes <nw>from <pill></pill></nw>",
-                "countryOfBirth": "I was born <nw>in <pill></pill></nw>"
+                "countryOfBirth": "I was born <nw>in <pill></pill></nw>",
+                "bankOccupation": "On the bank’s list, it’s <nw>closest to <pill></pill></nw>",
+                "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
+                "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "What you’ll use the card for",
@@ -3427,7 +3431,10 @@
                 "annualSalary": "Your yearly income",
                 "expectedMonthlyVolume": "What you’ll spend each month",
                 "sourceOfFunds": "Where your money comes from",
-                "countryOfBirth": "Country of birth"
+                "countryOfBirth": "Country of birth",
+                "bankOccupation": "Your job, for the bank account",
+                "bankMonthlyPayments": "What your account moves each month",
+                "actingAsIntermediary": "Who you send money for"
             },
             "search": {
                 "occupation": "Search jobs",
@@ -3493,6 +3500,16 @@
                     "ecommerce_reseller": "Selling online",
                     "someone_elses_funds": "Someone else’s money",
                     "gambling_proceeds": "Gambling winnings"
+                },
+                "bankMonthlyPayments": {
+                    "0_4999": "Under $5,000",
+                    "5000_9999": "$5,000–$9,999",
+                    "10000_49999": "$10,000–$49,999",
+                    "50000_plus": "$50,000 or more"
+                },
+                "actingAsIntermediary": {
+                    "no": "Only for myself",
+                    "yes": "On behalf of others"
                 }
             },
             "titles": {
@@ -3605,10 +3622,9 @@
             },
             "addLater": {
                 "title": {
-                    "bank": "A few answers for your bank account",
-                    "card": "A few answers for your card"
+                    "bank": "For your bank account",
+                    "card": "For your card"
                 },
-                "description": "We only ask what you haven’t told us yet.",
                 "doneTitle": "You’re all set",
                 "doneDescription": {
                     "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",

@@ -114,7 +114,6 @@ export function AddFeatureQuestions({
             residence={state.residence}
             feature={feature}
             title={t(`addLater.title.${feature}`)}
-            description={t('addLater.description')}
             onBack={onBack}
             onSaved={() => {
                 setState({ kind: 'loading' })

@@ -50,6 +50,7 @@ export function QuestionFields({
     residence,
     onChange,
     sentenceSize = 'm',
+    sentencesAsHeading = true,
 }: {
     fields: VerifyOnceField[]
     values: VerifyOnceAnswers
@@ -58,12 +59,17 @@ export function QuestionFields({
     onChange: (key: string, value: string) => void
     /** One step leads with its sentences as the heading; a screen of several steps has its own title. */
     sentenceSize?: 'm' | 's'
+    sentencesAsHeading?: boolean
 }) {
     const t = useTranslations('kyc.verifyOnce')
     const locale = useLocale()
-    const Sentences = sentenceSize === 'm' ? 'h1' : 'p'
+    const Sentences = sentencesAsHeading ? 'h1' : 'p'
     const id = useId()
     const sentences = fields.filter(isSentenceField)
+    // Bridge's job list alone reads like the card's; beside Rain's it says which list it is.
+    const twoJobLists = sentences.some((f) => f.key === 'occupation')
+    const sentenceKey = (field: VerifyOnceField) =>
+        field.key === 'bankOccupation' && !twoJobLists ? 'sentence.occupation' : `sentence.${field.key}`
     const typed = fields.filter((f) => !isSentenceField(f))
     const errorText = (key: string) => (errors[key] ? t(`errors.${fieldErrorKey(errors[key])}` as never) : null)
 
@@ -83,11 +89,11 @@ export function QuestionFields({
                                 {index > 0 && (
                                     <span
                                         aria-hidden="true"
-                                        className={sentenceSize === 'm' ? 'block h-4 compact:h-2' : 'block h-2'}
+                                        className={sentenceSize === 'm' ? 'block h-4 compact:h-2' : 'block h-1'}
                                     />
                                 )}
-                                {t.has(`sentence.${field.key}` as never) ? (
-                                    t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
+                                {t.has(sentenceKey(field) as never) ? (
+                                    t.rich(sentenceKey(field) as 'sentence.cardPurpose', {
                                         nw: nowrap,
                                         pill: () => (
                                             <AnswerPicker

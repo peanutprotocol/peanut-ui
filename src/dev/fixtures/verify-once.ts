@@ -31,6 +31,28 @@ const RAIN_TITLES = [
     'Web Developers',
 ]
 
+// A slice of Bridge's 569 titles (its own list, not Rain's): the bank-account job question.
+const BRIDGE_TITLES = [
+    'Accountant and auditor',
+    'Actor',
+    'Cashier',
+    'Chief executive',
+    'Customer service representative',
+    'Dentist',
+    'Electrician',
+    'Graphic designer',
+    'Lawyer',
+    'Marketing manager',
+    'Registered nurse',
+    'Retail salesperson',
+    'Software developer',
+    'Taxi driver',
+    'Waiter or waitress',
+    'Web developer',
+]
+const MONTHLY_PAYMENTS = ['0_4999', '5000_9999', '10000_49999', '50000_plus']
+const YES_NO = ['yes', 'no']
+
 const choice = (key: string, options: string[], value: string | null = null) => ({
     key,
     kind: 'choice',
@@ -135,6 +157,7 @@ const PH_STEPS = [
         fields: [
             { key: 'occupation', kind: 'occupation', required: true, options: RAIN_TITLES, value: null },
             choice('employmentStatus', EMPLOYMENT),
+            { key: 'bankOccupation', kind: 'occupation', required: true, options: BRIDGE_TITLES, value: null },
         ],
     },
     {
@@ -145,6 +168,8 @@ const PH_STEPS = [
             choice('annualSalary', SALARIES, '25k_50k'),
             choice('expectedMonthlyVolume', VOLUMES, '1k_5k'),
             choice('sourceOfFunds', SOURCES, 'salary'),
+            choice('bankMonthlyPayments', MONTHLY_PAYMENTS),
+            choice('actingAsIntermediary', YES_NO),
         ],
     },
     {
@@ -224,7 +249,7 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
     },
     'verify-once-ph': {
         route: '/verify',
-        about: 'Verify-once questions for a Philippine resident (Bridge high risk): two or three answers per screen.',
+        about: 'Verify-once questions for a Philippine resident (Bridge high risk) with bank + card: two job lists on work, five answers on money.',
         responses: asking('PH', PH_STEPS),
     },
     'verify-once-save-fails': {
@@ -284,7 +309,7 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
     },
     'verify-once-add-bank': {
         route: '/verify?feature=bank',
-        about: 'Add-later: a verified Philippine resident adds the bank account; Bridge’s three answers on one screen.',
+        about: 'Add-later: a verified Philippine resident adds the bank account; Bridge’s six answers on one screen.',
         responses: {
             'GET /users/kyc/questions': questions(
                 'PH',
@@ -299,9 +324,27 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
                         id: 'work',
                         features: ['bank'],
                         answered: false,
-                        fields: [choice('employmentStatus', EMPLOYMENT)],
+                        fields: [
+                            choice('employmentStatus', EMPLOYMENT),
+                            {
+                                key: 'bankOccupation',
+                                kind: 'occupation',
+                                required: true,
+                                options: BRIDGE_TITLES,
+                                value: null,
+                            },
+                        ],
                     },
-                    { id: 'money', features: ['bank'], answered: false, fields: [choice('sourceOfFunds', SOURCES)] },
+                    {
+                        id: 'money',
+                        features: ['bank'],
+                        answered: false,
+                        fields: [
+                            choice('sourceOfFunds', SOURCES),
+                            choice('bankMonthlyPayments', MONTHLY_PAYMENTS),
+                            choice('actingAsIntermediary', YES_NO),
+                        ],
+                    },
                 ],
                 'purpose'
             ),
