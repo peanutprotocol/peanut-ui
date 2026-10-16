@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -37,10 +38,20 @@ function Flag({ country }: { country: string }) {
     )
 }
 
+// A list this long gets a search box (the issuing countries of a catalogue).
+const SEARCH_FROM = 12
+
+const normalize = (text: string) =>
+    text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+
 function OptionDrawer({
     open,
     onOpenChange,
     title,
+    searchLabel,
     options,
     value,
     label,
@@ -50,19 +61,43 @@ function OptionDrawer({
     open: boolean
     onOpenChange: (open: boolean) => void
     title: string
+    searchLabel?: string
     options: string[]
     value: string
     label: (option: string) => string
     leading?: (option: string) => React.ReactNode
     onChoose: (option: string) => void
 }) {
+    const [query, setQuery] = useState('')
+    const searchable = !!searchLabel && options.length >= SEARCH_FROM
+    const needle = normalize(query.trim())
+    const shown = needle ? options.filter((o) => normalize(label(o)).includes(needle)) : options
     return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
+        <Drawer
+            open={open}
+            onOpenChange={(next) => {
+                if (!next) setQuery('')
+                onOpenChange(next)
+            }}
+        >
             <DrawerContent>
-                <div className="flex flex-col gap-4 pb-4">
+                <div className={searchable ? 'flex min-h-[75vh] flex-col gap-4 pb-4' : 'flex flex-col gap-4 pb-4'}>
                     <DrawerTitle>{title}</DrawerTitle>
+                    {searchable && (
+                        <div className="sticky top-0 z-10 bg-white">
+                            <BaseInput
+                                type="search"
+                                autoComplete="off"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder={searchLabel}
+                                aria-label={searchLabel}
+                                leftContent={<Icon name="search" size={20} className="text-foreground-secondary" />}
+                            />
+                        </div>
+                    )}
                     <ListGroup>
-                        {options.map((option) => (
+                        {shown.map((option) => (
                             <ListItem
                                 key={option}
                                 title={label(option)}
@@ -72,6 +107,7 @@ function OptionDrawer({
                                 className={option === value ? 'bg-background-selection' : undefined}
                                 onClick={() => {
                                     onChoose(option)
+                                    setQuery('')
                                     onOpenChange(false)
                                 }}
                             />
@@ -199,6 +235,7 @@ export function IdentityDocumentScreen({
                 open={picking === 'country'}
                 onOpenChange={(open) => setPicking(open ? 'country' : null)}
                 title={t('midpoint.issuedBy')}
+                searchLabel={t('search.country')}
                 options={countries}
                 value={country}
                 label={countryName}

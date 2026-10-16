@@ -3608,7 +3608,7 @@
                     "bank": "Algumas respostas para sua conta bancária",
                     "card": "Algumas respostas para seu cartão"
                 },
-                "description": "Só perguntamos o que você ainda não informou. Sua verificação de identidade continua valendo.",
+                "description": "Só perguntamos o que você ainda não informou.",
                 "doneTitle": "Tudo pronto",
                 "doneDescription": {
                     "bank": "Estamos configurando sua conta bancária. Costuma levar alguns minutos, e vamos avisar quando estiver pronta.",

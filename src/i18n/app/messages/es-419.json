@@ -3608,7 +3608,7 @@
                     "bank": "Unas respuestas para tu cuenta bancaria",
                     "card": "Unas respuestas para tu tarjeta"
                 },
-                "description": "Solo preguntamos lo que todavía no nos dijiste. Tu verificación de identidad no cambia.",
+                "description": "Solo preguntamos lo que todavía no nos dijiste.",
                 "doneTitle": "Todo listo",
                 "doneDescription": {
                     "bank": "Estamos configurando tu cuenta bancaria. Suele tardar unos minutos y te avisaremos cuando esté lista.",

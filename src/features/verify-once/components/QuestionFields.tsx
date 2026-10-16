@@ -80,7 +80,12 @@ export function QuestionFields({
                     >
                         {sentences.map((field, index) => (
                             <Fragment key={field.key}>
-                                {index > 0 && <span aria-hidden="true" className="block h-4 compact:h-2" />}
+                                {index > 0 && (
+                                    <span
+                                        aria-hidden="true"
+                                        className={sentenceSize === 'm' ? 'block h-4 compact:h-2' : 'block h-2'}
+                                    />
+                                )}
                                 {t.has(`sentence.${field.key}` as never) ? (
                                     t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
                                         nw: nowrap,

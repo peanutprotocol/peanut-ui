@@ -3608,7 +3608,7 @@
                     "bank": "A few answers for your bank account",
                     "card": "A few answers for your card"
                 },
-                "description": "We only ask what you haven’t told us yet. Your ID check stays as it is.",
+                "description": "We only ask what you haven’t told us yet.",
                 "doneTitle": "You’re all set",
                 "doneDescription": {
                     "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",
