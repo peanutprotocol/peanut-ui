@@ -115,6 +115,27 @@ describe('getBadgeShareText', () => {
         expect(text).toContain(url)
     })
 
+    it('uses the api share line in any locale, with the localized join line', () => {
+        const options = {
+            localizedFallback: 'fallback',
+            shareLine: 'Gané mi primera insignia',
+            joinLine: `Únete 👉 ${url}`,
+        }
+
+        expect(getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, { locale: 'es-419', ...options })).toBe(
+            `Gané mi primera insignia\n\nÚnete 👉 ${url}`
+        )
+        expect(getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, { locale: 'en', ...options })).toBe(
+            `Gané mi primera insignia\n\nÚnete 👉 ${url}`
+        )
+    })
+
+    it('falls back to app copy when the api sends no share line', () => {
+        const options = { locale: 'pt-BR', localizedFallback: 'fallback', shareLine: '  ', joinLine: 'join' }
+
+        expect(getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, options)).toBe('fallback')
+    })
+
     it('keeps the localized generic copy outside English', () => {
         const localizedFallback = `Ganhei o selo First Swipe no Peanut!\n\n${url}`
 

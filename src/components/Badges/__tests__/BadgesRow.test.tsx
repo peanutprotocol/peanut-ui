@@ -4,6 +4,7 @@ import React from 'react'
 import type { ComponentProps } from 'react'
 import BadgesRow from '@/components/Badges/BadgesRow'
 import { getBadgeIcon } from '@/components/Badges/badge.utils'
+import en from '@/i18n/app/messages/en.json'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -66,21 +67,30 @@ describe('BadgesRow', () => {
         expect(screen.queryByText('You earned this badge.')).not.toBeInTheDocument()
     })
 
-    // The test above uses a code with no `badges.catalog` entry, so it passes even
-    // if the localized copy swallows the audience choice. This one uses a real code.
-    it('keeps the backend public description for a badge that IS in the catalog', () => {
+    // a real catalog code: the api copy must still beat the app catalog
+    it('prefers api copy over the app catalog for both audiences', () => {
         const apiBadge = {
             ...badge('VERIFIED', '2026-08-04T00:00:00.000Z'),
-            description: 'You earned this badge.',
-            publicDescription: 'They earned this badge.',
+            name: 'Verificado',
+            description: 'Verificaste tu identidad.',
+            publicDescription: 'Verificó su identidad.',
         }
 
         const { rerender } = render(<BadgesRow badges={[apiBadge]} isSelfProfile />)
-        expect(screen.getByText(/officially verified/)).toBeInTheDocument()
+        expect(screen.getByText('Verificaste tu identidad.')).toBeInTheDocument()
+        expect(screen.getByText('Verificado')).toBeInTheDocument()
+        expect(screen.queryByText(/officially verified/)).not.toBeInTheDocument()
 
         rerender(<BadgesRow badges={[apiBadge]} isSelfProfile={false} />)
-        expect(screen.getByText('They earned this badge.')).toBeInTheDocument()
+        expect(screen.getByText('Verificó su identidad.')).toBeInTheDocument()
         expect(screen.queryByText(/officially verified/)).not.toBeInTheDocument()
+    })
+
+    it('falls back to the app catalog when an older api sends no copy', () => {
+        render(<BadgesRow badges={[{ ...badge('VERIFIED', '2026-08-04T00:00:00.000Z'), name: '' }]} />)
+
+        expect(screen.getByText(/officially verified/)).toBeInTheDocument()
+        expect(screen.getByRole('img', { name: en.badges.catalog.VERIFIED.name })).toBeInTheDocument()
     })
 
     it('keeps an earned badge visible with generic art when the backend icon fails', () => {
