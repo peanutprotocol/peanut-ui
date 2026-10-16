@@ -26,7 +26,7 @@
     "bareListLeading": 17,
     "rawHexMarketing": 0,
     "arbitraryFontSizeMarketing": 13,
-    "knerdOutsideTitle": 4,
+    "knerdOutsideTitle": 3,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -131,6 +131,11 @@
             "date": "2026-10-16",
             "metrics": ["arbitraryFontSize 14 -> 15", "arbitraryFontSizeMarketing 12 -> 13"],
             "reason": "home hero TAP. SCAN. ANYWHERE. back on its shipped 38px mobile size (text-[2.375rem]): hero text sizes are the standing exception (ruled 2026-09-17) and Konrad's 15 Oct review asked to keep hero title sizes as shipped; run 1 had moved it onto headingSmall/headingMedium"
+        },
+        {
+            "date": "2026-10-16",
+            "metrics": ["knerdOutsideTitle 4 -> 3"],
+            "reason": "round-2 knerd merge: the closing-fold preview page no longer names font-knerd outside Title now that the fold renders the canonical Title lockup; real count fell, ratchet follows it down"
         }
     ]
 }

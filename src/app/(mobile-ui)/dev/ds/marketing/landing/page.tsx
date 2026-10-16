@@ -47,7 +47,7 @@ export default function MarketingLandingPage() {
             {/* Closing fold */}
             <DocSection
                 title="Closing fold"
-                description="Done RIGHT (ruled 2026-10-14): the 1–3 knerd accent words go through the Title component — never hand-rolled font-knerd layers, never a whole sentence. The shipped landing closer still hand-rolls it; the fix branch moves it onto Title."
+                description="Done RIGHT (ruled 2026-10-14, composition 2026-10-15): the opening 1–3 words stand as a Title lockup, last word on its own line, the rest of the headline sits under it in the display ramp — the hero LP composition. Never Knerd inline in a sentence, never hand-rolled font-knerd layers."
             >
                 <ViewportFrame demo="closing-fold" label="Closing fold" heights={{ phone: 480, desktop: 560 }} />
             </DocSection>

@@ -41,13 +41,19 @@ const starConfigs = [
 export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
 
-    // Knerd goes through Title, one accent word, the rest in the display ramp
-    // (ruled 2026-10-14). The accent quotes the headline exactly; if a
-    // translation drifts the fold renders the plain headline instead of
-    // mis-splitting it.
+    // The hero composition (Konrad, 15 Oct): the opening 1-3 words stand as a
+    // Knerd lockup with the last word on its own line, and the rest of the
+    // headline sits under it in the display ramp, the way TAP. SCAN. ANYWHERE.
+    // sits under LOCAL FEEL. Punctuation touching the accent stays in the
+    // lockup. If a translation drifts so the accent no longer opens the
+    // headline, the fold renders the plain headline instead of mis-splitting it.
     const headline = i18n.landingClosingHeadline
     const accent = i18n.landingClosingAccent
-    const accentAt = headline.indexOf(accent)
+    const lockupEnd = headline.startsWith(accent)
+        ? accent.length + (headline.slice(accent.length).match(/^\S*/)?.[0].length ?? 0)
+        : -1
+    const displayClass =
+        'font-roboto-flex-extrabold block text-headingSmall font-extraBlack text-balance text-foreground-primary uppercase md:text-headingMedium'
 
     return (
         <section
@@ -81,22 +87,18 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
             {/* Main content */}
             <div className={`relative mx-auto ${PROSE_WIDTH} text-center`}>
                 {/* Was an SVG with the words baked in, so it stayed English on every locale.
-                    Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px.
-                    The accent words carry no accented caps in any locale, so the knerd
-                    glyphs stay inside the display leading. */}
-                <h2 className="font-roboto-flex-extrabold mb-6 text-headingSmall font-extraBlack text-balance text-foreground-primary uppercase md:mb-10 md:text-headingMedium">
-                    {accentAt === -1 ? (
-                        headline
+                    Each lockup line holds at most two words. The size steps keep the longest
+                    line, SEGUNDOS., inside the column: 42px at 320, 60px from 390, 112px from lg. */}
+                <h2 className="mb-6 flex flex-col items-center md:mb-10">
+                    {lockupEnd === -1 ? (
+                        <span className={displayClass}>{headline}</span>
                     ) : (
                         <>
-                            {headline.slice(0, accentAt)}
-                            {/* Punctuation touching the accent wraps with it — Title is an
-                                inline-block, so a loose ". " starts the next line with a bare period. */}
-                            <span className="whitespace-nowrap">
-                                <Title text={accent} />
-                                {headline.slice(accentAt + accent.length).match(/^\S*/)?.[0]}
-                            </span>
-                            {headline.slice(accentAt + accent.length).replace(/^\S*/, '')}
+                            <Title
+                                text={headline.slice(0, lockupEnd).replace(/ (?=\S+$)/, '\n')}
+                                className="text-headingSmall xs:text-heading md:text-headingMedium lg:text-headingLarge"
+                            />
+                            <span className={`mt-4 md:mt-8 ${displayClass}`}>{headline.slice(lockupEnd).trim()}</span>
                         </>
                     )}
                 </h2>
