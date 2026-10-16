@@ -1194,11 +1194,6 @@
         "route": "/withdraw/crypto"
     },
     {
-        "id": "fixture-withdraw-crypto-fee-estimate",
-        "flow": "Withdraw",
-        "route": "/withdraw/crypto"
-    },
-    {
         "id": "fixture-withdraw-address-book",
         "flow": "Withdraw",
         "route": "/withdraw"

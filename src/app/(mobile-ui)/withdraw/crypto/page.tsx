@@ -35,7 +35,6 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits, formatUnits } from 'viem'
 import { WithdrawAmountView } from '@/features/withdraw/views/WithdrawAmountView'
-import { useWithdrawFeeEstimate } from '@/features/withdraw/useWithdrawFeeEstimate'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -117,18 +116,6 @@ export default function WithdrawCryptoPage() {
             prepared: !!(chargeDetails && withdrawData),
             executed: !!transactionHash,
         }),
-    })
-
-    // amount screen: a debounced, quote-only estimate for the chosen destination.
-    // The review step still quotes for real (quoteRoute) and shows the final fee.
-    const feeEstimate = useWithdrawFeeEstimate({
-        amountUsd: stepper.step === 'amount' ? liveResolvedAmount : '',
-        sourceChainId: PEANUT_WALLET_CHAIN.id.toString(),
-        destinationChainId: destination?.chain.chainId ?? '',
-        tokenAddress: destination?.token.address ?? '',
-        tokenSymbol: destination?.token.symbol ?? '',
-        recipient: destination?.address ?? '',
-        depositor: address,
     })
 
     // hooks for route calculation and payment recording
@@ -968,9 +955,6 @@ export default function WithdrawCryptoPage() {
                         errorMessage: amountError || paymentError || '',
                     }}
                     isCryptoWithdraw
-                    feeEstimate={feeEstimate}
-                    receiveTokenSymbol={destination.token.symbol}
-                    resolvedAmountUsd={liveResolvedAmount}
                 />
             )}
 

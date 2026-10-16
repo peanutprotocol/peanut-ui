@@ -2038,7 +2038,6 @@
             "chainAlt": "red",
             "to": "Para",
             "networkFee": "Comisión de red",
-            "estimatedNetworkFee": "Comisión de red estimada",
             "networkFeeInfo": "Entregar en esta red es gratis — Peanut lo cubre. Algunas redes, como Ethereum, Tron y Solana, cobran una comisión que se descuenta del monto recibido.",
             "networkFeeChargedInfo": "Cada red cobra distinto por entregar. Esta cobra, y se descuenta del monto recibido. Otras, como Arbitrum, son gratis.",
             "youPay": "Total",
