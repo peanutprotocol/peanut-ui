@@ -7,7 +7,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import posthog from 'posthog-js'
 import ProfileHeader from './ProfileHeader'
@@ -52,6 +52,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [loadedAvatar, setLoadedAvatar] = useState<{ username: string; avatarKey: string | null } | null>(null)
     const avatarKey = loadedAvatar?.username === username ? loadedAvatar.avatarKey : null
     const router = useRouter()
+    const locale = useLocale()
     const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
@@ -157,7 +158,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         return () => {
             superseded = true
         }
-    }, [username])
+        // the api localizes badge copy, so refetch when the language changes
+    }, [username, locale])
 
     // interaction-status is the complete "sent money before" source (covers send-link
     // claims etc., unlike the profile payload's narrow received-from-you sum); stays
